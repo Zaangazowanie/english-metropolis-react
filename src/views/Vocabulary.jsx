@@ -70,6 +70,9 @@ export default function Vocabulary({ data }) {
 
   useEffect(() => {
     function onKeyDown(event) {
+      const tag = (event.target?.tagName || '').toLowerCase()
+      if (['input', 'textarea', 'select'].includes(tag) || event.target?.isContentEditable) return
+
       if (event.key === 'ArrowLeft') {
         setActiveIndex((current) => Math.max(0, current - 1))
       } else if (event.key === 'ArrowRight') {

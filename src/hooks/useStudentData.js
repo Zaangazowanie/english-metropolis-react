@@ -143,8 +143,25 @@ function flattenKeywords(lessons) {
 }
 
 function getAnalysisForLesson(lesson, analyses) {
+  if (!lesson || !analyses?.length) return null
+
   const lessonDate = normalizeDateKey(lesson?.date)
-  return analyses.find((analysis) => normalizeDateKey(analysis?.date) === lessonDate) || null
+
+  // Primary: date match (stable when dates are unique)
+  const dateMatch = analyses.find((a) => normalizeDateKey(a?.date) === lessonDate)
+  if (dateMatch) return dateMatch
+
+  // Secondary: title substring match (fallback for date collisions or drift)
+  const lessonTitle = String(lesson?.title || '').toLowerCase().trim()
+  if (lessonTitle.length > 5) {
+    const titleMatch = analyses.find((a) => {
+      const summary = String(a?.lessonSummary || a?.lessonTitle || '').toLowerCase()
+      return summary.includes(lessonTitle)
+    })
+    if (titleMatch) return titleMatch
+  }
+
+  return null
 }
 
 async function queryConvex(path, args) {
