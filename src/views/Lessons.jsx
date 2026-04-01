@@ -16,6 +16,7 @@ export default function Lessons({ data }) {
 
   return (
     <section className="space-y-4" id="page-lessons">
+      <style>{`[id^="lesson-card-"] { scroll-margin-top: 120px; }`}</style>
       <div className="glass-panel rounded-[2rem] border border-white/50 editorial-shadow px-5 py-4 sm:px-6 sm:py-4">
         <div aria-hidden="true" className="glass-accent-orb orb-section-blue"></div>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
