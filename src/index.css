@@ -1,1 +1,2 @@
-@import "tailwindcss";
+/* Tailwind utilities from production are embedded in the HTML classes.
+   Production CSS is loaded via <link> tags in index.html for zero-drift parity. */
