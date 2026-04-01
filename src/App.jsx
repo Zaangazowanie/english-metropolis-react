@@ -4,8 +4,11 @@ import Dashboard from './views/Dashboard.jsx'
 import Vocabulary from './views/Vocabulary.jsx'
 import Lessons from './views/Lessons.jsx'
 import Quiz from './views/Quiz.jsx'
+import useStudentData from './hooks/useStudentData.js'
 
 function App() {
+  const studentData = useStudentData()
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Production header shell */}
@@ -40,9 +43,9 @@ function App() {
         <div className="max-w-7xl mx-auto space-y-6">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/vocabulary" element={<Vocabulary />} />
-            <Route path="/lessons" element={<Lessons />} />
+            <Route path="/dashboard" element={<Dashboard data={studentData} />} />
+            <Route path="/vocabulary" element={<Vocabulary data={studentData} />} />
+            <Route path="/lessons" element={<Lessons data={studentData} />} />
             <Route path="/quiz" element={<Quiz />} />
           </Routes>
         </div>

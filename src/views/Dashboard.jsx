@@ -1,18 +1,54 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-export default function Dashboard() {
+function formatDate(value) {
+  if (!value) return 'Date unavailable'
+
+  const parsed = new Date(`${value}T12:00:00`)
+  if (Number.isNaN(parsed.getTime())) return value
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(parsed)
+}
+
+function buildEncouragement(lessons, level) {
+  const featuredTopics = [...new Set(lessons.flatMap((lesson) => lesson.topics || []))].slice(0, 3)
+  const topicLine = featuredTopics.length >= 3
+    ? `You covered some fascinating topics - from ${featuredTopics[0]} to ${featuredTopics[1]} and ${featuredTopics[2]}.`
+    : 'Your lesson archive already covers a strong range of topics.'
+
+  return [
+    `Your recent lessons show real range and steady progress at ${level}.`,
+    topicLine,
+    'Keep up the excellent work.',
+  ]
+}
+
+export default function Dashboard({ data }) {
   const navigate = useNavigate()
-  const [lessonCount] = useState(0)
-  const [keywordCount] = useState(0)
+  const lessons = data?.lessons || []
+  const lessonCount = data?.lessonCount || 0
+  const keywordCount = data?.keywordCount || 0
+  const profile = data?.profile
   const [lessonNavSearch, setLessonNavSearch] = useState('')
-  const [initials] = useState('SK')
-  const [greeting] = useState('Hey Szymon!')
-  const [name] = useState('Szymon Karpiński')
-  const [level] = useState('C1')
-  const [lineOne] = useState('Your recent lessons show real range and steady progress.')
-  const [lineTwo] = useState('You covered some fascinating topics - from AI ethics to prohibition-era bootlegging.')
-  const [lineThree] = useState('Keep up the excellent work.')
+  const filteredLessons = lessons.filter((lesson) => {
+    const search = lessonNavSearch.trim().toLowerCase()
+    if (!search) return true
+    return [
+      lesson.title,
+      lesson.date,
+      lesson.topic,
+      ...(lesson.topics || []),
+      ...(lesson.keywords || []).map((keyword) => `${keyword.word} ${keyword.definition_en || ''}`),
+    ]
+      .join(' ')
+      .toLowerCase()
+      .includes(search)
+  })
+  const encouragement = buildEncouragement(lessons, profile?.level || 'C1')
 
   return (
     <>
@@ -53,33 +89,84 @@ export default function Dashboard() {
               value={lessonNavSearch}
               onChange={(event) => setLessonNavSearch(event.target.value)}
             />
-            <div id="dashboardLessonNavigator" className="space-y-1.5"></div>
+            <div id="dashboardLessonNavigator" className="space-y-1.5">
+              {data?.lessonsError ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {data.lessonsError}
+                </div>
+              ) : filteredLessons.length ? (
+                filteredLessons.map((lesson) => (
+                  <button
+                    key={lesson.id}
+                    type="button"
+                    className="w-full rounded-[1.25rem] border border-slate-200 bg-white/85 px-4 py-3 text-left transition hover:border-sky-200 hover:bg-white"
+                    onClick={() => navigate(`/lessons#lesson-card-${lesson.id}`)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-label text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                          {formatDate(lesson.date)}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-slate-900">{lesson.title}</p>
+                      </div>
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-label font-bold uppercase tracking-[0.16em] text-slate-600">
+                        {lesson.keyword_count}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">{lesson.topic}</p>
+                  </button>
+                ))
+              ) : (
+                <p className="rounded-2xl border border-slate-200 bg-white/70 px-4 py-3 text-sm text-slate-500">
+                  No lessons available.
+                </p>
+              )}
+            </div>
           </div>
         </div>
         <div id="lessonStudentProfileCard" className="liquid-glass-panel rounded-[2rem] p-5 sm:p-6 editorial-shadow">
           <div aria-hidden="true" className="glass-accent-orb orb-section-violet"></div>
           <div className="flex items-center gap-3">
             <div className="lesson-profile-avatar h-14 w-14 rounded-2xl border border-white/10 flex items-center justify-center">
-              <span id="lessonProfileInitials" className="font-headline text-lg text-white">{initials}</span>
+              <span id="lessonProfileInitials" className="font-headline text-lg text-white">{profile?.initials || 'SK'}</span>
             </div>
             <div className="min-w-0">
               <p className="font-label text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Student Snapshot</p>
-              <p id="lessonProfileGreeting" className="font-headline text-xl leading-tight text-slate-900">{greeting}</p>
-              <p id="lessonProfileName" className="mt-1 text-sm text-slate-600 truncate">{name}</p>
-              <span id="lessonProfileLevel" className="mt-2 inline-flex items-center rounded-full bg-white/30 px-3 py-1 text-[10px] font-label font-bold uppercase tracking-[0.2em] text-slate-700">{level}</span>
+              <p id="lessonProfileGreeting" className="font-headline text-xl leading-tight text-slate-900">Hey {profile?.firstName || 'Szymon'}!</p>
+              <p id="lessonProfileName" className="mt-1 text-sm text-slate-600 truncate">{profile?.name || 'Szymon Karpiński'}</p>
+              <span id="lessonProfileLevel" className="mt-2 inline-flex items-center rounded-full bg-white/30 px-3 py-1 text-[10px] font-label font-bold uppercase tracking-[0.2em] text-slate-700">{profile?.level || 'C1'}</span>
             </div>
           </div>
           <div id="lessonProfileEncouragement" className="mt-3 space-y-1.5 text-sm leading-relaxed text-slate-700">
-            <p id="lessonProfileLineOne">{lineOne}</p>
-            <p id="lessonProfileLineTwo">{lineTwo}</p>
-            <p id="lessonProfileLineThree">{lineThree}</p>
+            <p id="lessonProfileLineOne">{encouragement[0]}</p>
+            <p id="lessonProfileLineTwo">{encouragement[1]}</p>
+            <p id="lessonProfileLineThree">{encouragement[2]}</p>
           </div>
         </div>
       </section>
 
-      <section id="cumulativeAnalysisSection" className="hidden">
+      <section id="cumulativeAnalysisSection" className={data?.analyses?.length ? '' : 'hidden'}>
         <div className="glass-panel rounded-[2rem] border border-white/50 editorial-shadow px-5 py-4 sm:px-6 sm:py-4">
-          <div id="cumulativeAnalysisCard"></div>
+          <div id="cumulativeAnalysisCard">
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="liquid-glass-card rounded-[1.5rem] px-4 py-4">
+                <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Average Score</p>
+                <p className="mt-2 font-headline text-3xl text-slate-900">{data?.averageScore || 0}</p>
+                <p className="mt-2 text-sm text-slate-500">Pulled from Convex lesson analyses.</p>
+              </div>
+              <div className="liquid-glass-card rounded-[1.5rem] px-4 py-4">
+                <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Latest Analysis</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900">{data?.latestAnalysis?.cefrBand || 'Pending'} {Math.round(Number(data?.latestAnalysis?.overallScore || 0)) || ''}</p>
+                <p className="mt-2 text-sm text-slate-500">{data?.latestAnalysis?.lessonTitle || 'No analysis linked yet.'}</p>
+              </div>
+              <div className="liquid-glass-card rounded-[1.5rem] px-4 py-4">
+                <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Feedback Status</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                  {data?.convexError || data?.latestAnalysis?.feedback || 'Convex analysis feedback is ready when available.'}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </>
