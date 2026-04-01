@@ -38,17 +38,22 @@ export default function Vocabulary({ data }) {
   const [studyDeck, setStudyDeck] = useState([])
   const [reviewedIds, setReviewedIds] = useState([])
 
-  const filteredKeywords = (mode === 'study' ? studyDeck : keywords).filter((keyword) => {
+  const baseKeywords = (mode === 'study' ? studyDeck : keywords).filter((keyword) => {
     const matchesLesson = lessonFilter === 'all' || keyword.lessonId === lessonFilter
-    const matchesTopic = topicFilter === 'all' || keyword.topics.includes(topicFilter)
     const search = searchTerm.trim().toLowerCase()
     const matchesSearch = !search || keyword.searchText.includes(search)
-    return matchesLesson && matchesTopic && matchesSearch
+    return matchesLesson && matchesSearch
+  })
+
+  const filteredKeywords = baseKeywords.filter((keyword) => {
+    const matchesTopic = topicFilter === 'all' || keyword.topics.includes(topicFilter)
+    return matchesTopic
   })
 
   const activeKeyword = filteredKeywords[activeIndex] || null
-  const availableTopics = [...new Set(filteredKeywords.flatMap((keyword) => keyword.topics))].slice(0, 8)
-  const reviewedPercent = filteredKeywords.length ? Math.round((reviewedIds.length / filteredKeywords.length) * 100) : 0
+  const availableTopics = [...new Set(baseKeywords.flatMap((keyword) => keyword.topics))].slice(0, 8)
+  const reviewedInDeck = reviewedIds.filter((id) => filteredKeywords.some((kw) => kw.id === id))
+  const reviewedPercent = filteredKeywords.length ? Math.round((reviewedInDeck.length / filteredKeywords.length) * 100) : 0
 
   useEffect(() => {
     setStudyDeck(shuffle(keywords))
@@ -66,7 +71,7 @@ export default function Vocabulary({ data }) {
   useEffect(() => {
     if (!activeKeyword) return
     setReviewedIds((current) => (current.includes(activeKeyword.id) ? current : [...current, activeKeyword.id]))
-  }, [activeKeyword])
+  }, [activeKeyword?.id])
 
   useEffect(() => {
     function onKeyDown(event) {
