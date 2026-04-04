@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { NavLink, useParams } from 'react-router-dom';
-import { ALL_VOICES } from './AIChatWidget';
-import type { VoiceDef } from './AIChatWidget';
 
 const QUICK = [
   { id: 'af_heart', label: 'American Female', flag: '🇺🇸' },
@@ -14,9 +11,8 @@ const QUICK = [
 function StickyHeader() {
   const { slug } = useParams<{ slug: string }>();
   const headerRef = useRef<HTMLElement>(null);
-  const [open, setOpen] = useState(false);
   const [voice, setVoice] = useState(() => localStorage.getItem('tts_voice') || 'af_heart');
-  const [showAll, setShowAll] = useState(false);
+  const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const ddRef = useRef<HTMLDivElement>(null);
 
@@ -36,33 +32,14 @@ function StickyHeader() {
     return () => { clearTimeout(t); document.removeEventListener('mousedown', fn); };
   }, [open]);
 
-  useEffect(() => {
-    const fn = () => setVoice(localStorage.getItem('tts_voice') || 'af_heart');
-    window.addEventListener('storage', fn);
-    const i = setInterval(fn, 500);
-    return () => { window.removeEventListener('storage', fn); clearInterval(i); };
-  }, []);
-
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-  useEffect(() => {
-    if (!open || !btnRef.current) return;
-    const r = btnRef.current.getBoundingClientRect();
-    setPos({ top: r.bottom + 8, left: Math.max(8, r.right - 220) });
-  }, [open]);
-
   function pick(id: string) { setVoice(id); localStorage.setItem('tts_voice', id); setOpen(false); }
 
-  const cur = (ALL_VOICES as VoiceDef[]).find((v: VoiceDef) => v.id === voice) || QUICK[0];
+  const cur = QUICK.find(v => v.id === voice) || QUICK[0];
   const tabClass = ({ isActive }: { isActive: boolean }) => isActive ? 'tab-chip is-active' : 'tab-chip';
 
-  const usF = (ALL_VOICES as VoiceDef[]).filter((v: VoiceDef) => v.lang === 'a' && v.gender === 'female');
-  const usM = (ALL_VOICES as VoiceDef[]).filter((v: VoiceDef) => v.lang === 'a' && v.gender === 'male');
-  const ukF = (ALL_VOICES as VoiceDef[]).filter((v: VoiceDef) => v.lang === 'b' && v.gender === 'female');
-  const ukM = (ALL_VOICES as VoiceDef[]).filter((v: VoiceDef) => v.lang === 'b' && v.gender === 'male');
-
   const dd = open && (
-    <div ref={ddRef} style={{ position: 'fixed', top: pos.top, left: pos.left, width: 220, zIndex: 9999 }}
-      className="bg-white/95 backdrop-blur-xl rounded-2xl border border-white/70 shadow-[0_16px_48px_rgba(0,82,208,0.12)] overflow-hidden">
+    <div ref={ddRef}
+      className="absolute right-0 top-full mt-2 w-56 bg-white/95 backdrop-blur-xl rounded-2xl border border-white/70 shadow-[0_16px_48px_rgba(0,82,208,0.12)] overflow-hidden z-50">
       <div className="px-3 py-2 border-b border-slate-100">
         <p className="font-label text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Choose Voice</p>
       </div>
@@ -78,31 +55,6 @@ function StickyHeader() {
           {voice === v.id && <span className="material-symbols-outlined text-[#0052d0] text-lg">check</span>}
         </button>
       ))}
-      <button type="button" className="w-full text-center py-2 text-xs font-label font-semibold text-slate-500 hover:text-slate-700 cursor-pointer" onClick={() => setShowAll(p => !p)}>
-        {showAll ? 'Less ▲' : 'All voices ▼'}
-      </button>
-      {showAll && (
-        <div className="max-h-64 overflow-y-auto border-t border-slate-100 no-scrollbar">
-          {[
-            { title: '🇺🇸 US Female', voices: usF },
-            { title: '🇺🇸 US Male', voices: usM },
-            { title: '🇬🇧 UK Female', voices: ukF },
-            { title: '🇬🇧 UK Male', voices: ukM },
-          ].map((g: { title: string; voices: VoiceDef[] }) => (
-            <div key={g.title}>
-              <p className="px-3 py-1 font-label text-[9px] font-bold uppercase tracking-[0.18em] text-slate-300">{g.title}</p>
-              {g.voices.map((v: VoiceDef) => (
-                <button key={v.id} type="button"
-                  className={`w-full flex items-center gap-2 px-4 py-1.5 text-left text-sm transition-colors ${voice === v.id ? 'bg-[#0052d0]/10 text-[#0052d0]' : 'text-slate-600 hover:bg-slate-50'}`}
-                  onClick={() => pick(v.id)}>
-                  {voice === v.id && <span className="material-symbols-outlined text-[#0052d0] text-sm">check</span>}
-                  <span className="font-mono text-xs">{v.name}</span>
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 
@@ -121,6 +73,7 @@ function StickyHeader() {
               <span id="currentVoiceLabel" className="font-label text-sm text-slate-700">{cur.flag} {cur.id}</span>
               <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${open ? 'rotate-180' : ''}`}>expand_more</span>
             </button>
+            {dd}
           </div>
         </div>
         <nav aria-label="Primary" className="-mx-1 overflow-x-auto">
@@ -132,7 +85,6 @@ function StickyHeader() {
           </div>
         </nav>
       </div>
-      {typeof document !== 'undefined' && createPortal(dd, document.body)}
     </header>
   );
 }
