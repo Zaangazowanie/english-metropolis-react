@@ -18,9 +18,19 @@ export default function StudentLayout() {
       {/* Main content */}
       <main className="relative z-10 px-4 pb-6 sm:px-6 lg:px-8 pt-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          <Outlet />
+          <Outlet context={{ slug }} />
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="relative z-10 mt-12 border-t border-slate-200/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-400">
+            <p className="font-label text-xs uppercase tracking-[0.2em]">© {new Date().getFullYear()} English Metropolis</p>
+            <p className="text-xs">ESL pronunciation &amp; vocabulary for Polish learners</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
