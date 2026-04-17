@@ -6179,11 +6179,43 @@ async function fetchYouGlishPayload(keyword, options = {}) {
     }
 
     const request = (async () => {
-        const url = `/api/youglish/keyword?q=${encodeURIComponent(normalizedKeyword)}`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`YouGlish returned ${response.status}`);
-        const data = await response.json();
-        const results = Array.isArray(data.results) ? data.results : [];
+        let results = [];
+
+        // ── Primary: try /api/youglish proxy ──
+        try {
+            const url = `/api/youglish/keyword?q=${encodeURIComponent(normalizedKeyword)}`;
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                results = Array.isArray(data.results) ? data.results : [];
+            }
+        } catch (_e) {
+            // Proxy down — fall through to Convex cache
+        }
+
+        // ── Fallback: Convex youglishIndex cache ──
+        if (!results.length) {
+            try {
+                const convexUrl = (typeof CONVEX_URL !== 'undefined' && CONVEX_URL)
+                    ? CONVEX_URL
+                    : 'https://wooden-manatee-881.convex.cloud';
+                const resp = await fetch(convexUrl + '/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        path: 'analytics:getYouglishResults',
+                        args: { keyword: normalizedKeyword }
+                    })
+                });
+                const data = await resp.json();
+                if (data.status === 'success' && data.value?.results?.length) {
+                    results = data.value.results;
+                }
+            } catch (_e) {
+                // Convex also unavailable — will return empty
+            }
+        }
+
         const payload = {
             keyword: normalizedKeyword,
             results,

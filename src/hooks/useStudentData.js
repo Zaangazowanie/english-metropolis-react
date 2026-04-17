@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import {
   ANALYSES_LIMIT,
   CONVEX_URL,
@@ -32,21 +33,29 @@ function uniqueList(values) {
 function normalizeLessons(payload) {
   if (!Array.isArray(payload)) return []
 
-  return payload
-    .map((lesson, index) => {
-      const keywords = Array.isArray(lesson?.keywords) ? lesson.keywords : []
-      const topics = uniqueList((lesson?.topics || []).map(formatTopic))
+  // First pass: normalize each lesson
+  const normalized = payload.map((lesson, index) => {
+    const keywords = Array.isArray(lesson?.keywords) ? lesson.keywords : []
+    const topics = uniqueList((lesson?.topics || []).map(formatTopic))
 
-      return {
-        ...lesson,
-        id: String(lesson?.id || lesson?.date || `lesson-${index + 1}`),
-        date: normalizeDateKey(lesson?.date),
-        keyword_count: Number(lesson?.keyword_count) || keywords.length,
-        keywords,
-        topics,
-        topic: topics[0] || 'General English',
-      }
-    })
+    return {
+      ...lesson,
+      id: String(lesson?.id || lesson?.date || `lesson-${index + 1}`),
+      date: normalizeDateKey(lesson?.date),
+      keyword_count: Number(lesson?.keyword_count) || keywords.length,
+      keywords,
+      topics,
+      topic: topics[0] || 'General English',
+    }
+  })
+
+  // Sort ascending by date to assign lesson numbers (lesson 1 = oldest)
+  const sortedAsc = [...normalized].sort((a, b) => getLessonTimestamp(a.date) - getLessonTimestamp(b.date))
+  const numberByDate = {}
+  sortedAsc.forEach((l, i) => { numberByDate[l.date] = i + 1 })
+
+  // Return sorted descending (newest first) with lesson numbers attached
+  return sortedAsc.map(l => ({ ...l, lessonNumber: numberByDate[l.date] }))
     .sort((a, b) => getLessonTimestamp(b.date) - getLessonTimestamp(a.date))
 }
 
@@ -103,8 +112,8 @@ function normalizeAnalyses(payload, convexLessonsById) {
 }
 
 function flattenKeywords(lessons) {
-  return lessons.flatMap((lesson) =>
-    lesson.keywords.map((keyword, keywordIndex) => {
+  return lessons.flatMap((lesson, lessonIndex) =>
+    (lesson.keywords || []).map((keyword, keywordIndex) => {
       const lessonTopics = uniqueList([
         formatTopic(keyword?.topic),
         ...lesson.topics,
@@ -112,20 +121,29 @@ function flattenKeywords(lessons) {
 
       return {
         id: `${lesson.id}-${keywordIndex}-${String(keyword?.word || 'keyword').toLowerCase()}`,
-        lessonId: lesson.id,
+        lessonId: String(lesson.id),
         lessonDate: lesson.date,
         lessonTitle: lesson.title,
+        lessonNumber: lessonIndex + 1,
         lessonTopic: lesson.topic,
         topics: lessonTopics,
         word: String(keyword?.word || '').trim(),
         translation: String(keyword?.translation || '').trim(),
         definition: String(keyword?.definition_en || keyword?.definition_pl || '').trim(),
+        definitionEn: String(keyword?.definition_en || '').trim(),
         definitionPl: String(keyword?.definition_pl || '').trim(),
         example: String(keyword?.example_en || keyword?.example_pl || '').trim(),
+        exampleEn: String(keyword?.example_en || '').trim(),
+        examplePl: String(keyword?.example_pl || '').trim(),
         ipa: String(keyword?.ipa || '').trim(),
+        stressUK: String(keyword?.stressUK || '').trim(),
+        stressUS: String(keyword?.stressUS || '').trim(),
         cefr_level: String(keyword?.cefr_level || lesson.level || '').trim() || 'C1',
         mastery_level: String(keyword?.mastery_level || 'In Progress').trim(),
         collocations: keyword?.collocations || null,
+        synonyms: keyword?.synonyms || null,
+        learnerNotes: keyword?.learnerNotes || null,
+        topicContexts: keyword?.topic_contexts || null,
         searchText: [
           keyword?.word,
           keyword?.translation,
@@ -134,6 +152,7 @@ function flattenKeywords(lessons) {
           keyword?.example_en,
           lesson.title,
           lesson.topic,
+          ...lessonTopics,
         ]
           .join(' ')
           .toLowerCase(),
@@ -188,10 +207,49 @@ const initialProfile = {
   firstName: STUDENT_FIRST_NAME,
   name: STUDENT_NAME,
   initials: STUDENT_INITIALS,
+  slug: 'szymon-karpinski',
   level: STUDENT_LEVEL,
 }
 
+// Build a lessons.json-compatible shape from Convex queries for non-Szymon students
+function buildLessonsFromConvex(convexLessons, convexKeywords) {
+  const keywordsByLesson = {}
+  for (const kw of convexKeywords || []) {
+    const lid = String(kw.lessonId || '')
+    if (!keywordsByLesson[lid]) keywordsByLesson[lid] = []
+    keywordsByLesson[lid].push({
+      word: kw.word,
+      translation: kw.translation,
+      definition_en: kw.definitionEn,
+      definition_pl: kw.definitionPl,
+      example_en: kw.exampleEn,
+      example_pl: kw.examplePl,
+      ipa: kw.ipa,
+      stressUK: kw.stressUK,
+      stressUS: kw.stressUS,
+      topic: (kw.topics || [])[0],
+      topics: kw.topics || [],
+      collocations: kw.collocations,
+      cefr_level: kw.difficulty,
+    })
+  }
+  return (convexLessons || []).map(l => ({
+    id: String(l._id),
+    date: l.date,
+    title: l.title,
+    student: '',
+    level: '',
+    keywords: keywordsByLesson[String(l._id)] || [],
+    keyword_count: (keywordsByLesson[String(l._id)] || []).length,
+    conversation_notes: l.summary || '',
+    topics: l.topics || [],
+    summary: l.summary,
+  }))
+}
+
 export default function useStudentData() {
+  const params = useParams()
+  const urlSlug = params.slug || 'szymon-karpinski'
   const [state, setState] = useState({
     loading: true,
     lessonsError: '',
@@ -214,20 +272,35 @@ export default function useStudentData() {
         convexError: '',
       }))
 
-      const [lessonsResult, convexLessonsResult, analysesResult] = await Promise.allSettled([
-        fetch('/lessons.json').then(async (response) => {
-          if (!response.ok) {
-            throw new Error(`lessons.json failed with ${response.status}`)
-          }
-          return response.json()
-        }),
-        queryConvex('students:listLessons', { studentId: STUDENT_ID }),
-        queryConvex('analytics:getStudentAnalyses', { studentId: STUDENT_ID, limit: ANALYSES_LIMIT }),
-      ])
+      // First resolve student from slug
+      let student = null
+      try {
+        student = await queryConvex('students:getStudentBySlug', { slug: urlSlug })
+      } catch (err) {
+        if (!cancelled) setState(s => ({ ...s, loading: false, convexError: `Student "${urlSlug}" not found.` }))
+        return
+      }
+      if (!student) {
+        if (!cancelled) setState(s => ({ ...s, loading: false, convexError: `Student "${urlSlug}" not found.` }))
+        return
+      }
+
+      const studentId = String(student._id)
+
+      const fetches = [
+        queryConvex('students:listLessons', { studentId }),
+        queryConvex('analytics:getStudentAnalyses', { studentId, limit: ANALYSES_LIMIT }),
+        queryConvex('students:listKeywords', { studentId }),
+      ]
+      const [convexLessonsResult, analysesResult, keywordsResult] =
+        await Promise.allSettled(fetches)
+      const lessonsResult = convexLessonsResult
 
       if (cancelled) return
 
-      const lessonsPayload = lessonsResult.status === 'fulfilled' ? lessonsResult.value : []
+      const convexLessons = convexLessonsResult.status === 'fulfilled' ? convexLessonsResult.value : []
+      const convexKeywords = keywordsResult.status === 'fulfilled' ? keywordsResult.value : []
+      const lessonsPayload = buildLessonsFromConvex(convexLessons, convexKeywords)
       const convexLessonsById = normalizeConvexLessons(
         convexLessonsResult.status === 'fulfilled' ? convexLessonsResult.value : [],
       )
@@ -241,6 +314,16 @@ export default function useStudentData() {
         analysis: getAnalysisForLesson(lesson, analyses),
       }))
 
+      const profileFromStudent = {
+        id: studentId,
+        name: student.name || STUDENT_NAME,
+        firstName: String(student.name || '').split(' ')[0] || STUDENT_FIRST_NAME,
+        initials: String(student.name || '').split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase() || STUDENT_INITIALS,
+        slug: student.slug || urlSlug,
+        level: student.level || STUDENT_LEVEL,
+        targetLevel: student.targetLevel,
+      }
+
       setState({
         loading: false,
         lessonsError: lessonsResult.status === 'rejected' ? lessonsResult.reason?.message || 'Failed to load lessons.' : '',
@@ -248,7 +331,7 @@ export default function useStudentData() {
           convexLessonsResult.status === 'rejected' || analysesResult.status === 'rejected'
             ? 'Convex progress data is unavailable right now.'
             : '',
-        profile: initialProfile,
+        profile: profileFromStudent,
         lessons: mergedLessons,
         keywords: flattenKeywords(mergedLessons),
         analyses,
@@ -261,7 +344,7 @@ export default function useStudentData() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [urlSlug])
 
   const lessonCount = state.lessons.length
   const keywordCount = state.keywords.length

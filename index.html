@@ -1,36 +1,43 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html class="light" lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>English Metropolis</title>
-    <!-- Google Fonts (matching production) -->
+    <title>EnglishMetro.com</title>
+    <script>
+      // Tell the conversa widget which student it's talking to,
+      // and skip mounting it entirely on the public marketing/login pages.
+      (function() {
+        var path = window.location.pathname;
+        var m = path.match(/^\/app\/([^\/]+)/) || path.match(/^\/admin\/students\/([^\/]+)/);
+        window.__STUDENT_SLUG = m ? m[1] : 'szymon-karpinski';
+        window.__EM_ADMIN_MODE = /^\/admin\//.test(path);
+        window.__EM_HIDE_TUTOR = (path === '/' || path === '/login' || /^\/(privacy|cookies|terms)\/?$/.test(path));
+      })();
+    </script>
+
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <!-- Material Symbols (matching production) -->
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-    <!-- Tailwind CDN (matching production) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              label: ['Inter', 'sans-serif'],
-              headline: ['Playfair Display', 'serif'],
-            }
-          }
-        }
-      }
-    </script>
-    <!-- Production CSS (raw, unprocessed) -->
-    <link rel="stylesheet" href="/production-block-1.css">
-    <link rel="stylesheet" href="/production-block-2.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&family=Playfair+Display:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
   </head>
-  <body>
+  <body class="font-body text-on-surface min-h-screen selection:bg-primary-fixed-dim">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <!-- Conversa AI Tutor — loaded on student/admin app pages only -->
+    <script>
+      if (!window.__EM_HIDE_TUTOR) {
+        var s = document.createElement('script');
+        s.src = '/students/conversa-widget-v4g.js';
+        s.defer = true;
+        document.body.appendChild(s);
+      }
+    </script>
   </body>
 </html>
