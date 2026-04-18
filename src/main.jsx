@@ -24,10 +24,12 @@ import ConsentBanner from './components/ConsentBanner.jsx'
 import PrivacyPolicy from './views/legal/PrivacyPolicy.jsx'
 import CookiePolicy from './views/legal/CookiePolicy.jsx'
 import Terms from './views/legal/Terms.jsx'
-import Login from './views/Login.jsx'
-import Settings from './views/Settings.jsx'
+import Login from './views/design-pass/Login.jsx'
+import DesignPassSettings from './views/design-pass/Settings.jsx'
+import useStudentData from './hooks/useStudentData.js'
 import { I18nProvider } from './i18n'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
+import { ThemeProvider as DSThemeProvider } from './design-system/ThemeContext.jsx'
 
 // Domain-based routing: englishmetro.com gets the new marketing/login landing
 // at the root; existing lexicon deployment keeps its default student-first flow.
@@ -64,9 +66,13 @@ function RootRouter() {
         <Route path="/cookies" element={<CookiePolicy />} />
         <Route path="/terms" element={<Terms />} />
 
-        {/* englishmetro.com landing */}
-        <Route path="/login" element={<Login />} />
-        {IS_ENGLISHMETRO && <Route path="/" element={<Login />} />}
+        {/* englishmetro.com landing — design-pass Login wrapped in theme */}
+        <Route path="/login" element={
+          <DSThemeProvider><Login /></DSThemeProvider>
+        } />
+        {IS_ENGLISHMETRO && <Route path="/" element={
+          <DSThemeProvider><Login /></DSThemeProvider>
+        } />}
 
         <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/students" element={<Navigate to="/admin" replace />} />
@@ -102,8 +108,9 @@ function RootRouter() {
             </RootErrorBoundary>
           } />
         </Route>
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/app/:slug/settings" element={<Settings />} />
+        <Route path="/settings" element={
+          <DSThemeProvider><DesignPassSettings data={{ profile: null }}/></DSThemeProvider>
+        } />
         <Route path="/app/:slug/*" element={<App basePath="/app" />} />
         <Route path="/app/*" element={<App basePath="/app" />} />
         <Route path="/*" element={<App />} />
