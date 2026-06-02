@@ -14,7 +14,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { FONT } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Glass, Btn, Pill } from '../../design/v3/primitives.jsx'
-import { useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
+import { useStudentAuth, getStudentSessionToken } from '../../contexts/StudentAuthContext.jsx'
 import { useI18n } from '../../i18n'
 import { CONVEX_URL } from '../../data/studentConfig.js'
 
@@ -102,6 +102,7 @@ export default function LessonBooking() {
     setNotice(null)
     try {
       await convexCall('mutation', 'scheduling:bookLesson', {
+        sessionToken: getStudentSessionToken() || undefined,
         organizationId,
         studentId,
         startUtc: pendingBook.startUtc,
@@ -124,6 +125,7 @@ export default function LessonBooking() {
     setNotice(null)
     try {
       const result = await convexCall('mutation', 'scheduling:cancelBooking', {
+        sessionToken: getStudentSessionToken() || undefined,
         bookingId: pendingCancel._id,
         cancelledBy: 'student',
         cancelledByName: studentUser?.name,

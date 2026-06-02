@@ -4,7 +4,8 @@ const ADMIN_SESSION_KEY = 'conversa-admin-session'
 
 const AdminAuthContext = createContext(null)
 
-function readStoredAdminUser() {
+// Stored blob shape: { user, sessionToken }
+function readStoredAdminSession() {
   if (typeof window === 'undefined') return null
 
   try {
@@ -15,11 +16,28 @@ function readStoredAdminUser() {
   }
 }
 
+// Module-level token accessor — usable outside React (e.g. in views that
+// call Convex directly). Returns the raw session token or null.
+export function getAdminSessionToken() {
+  const stored = readStoredAdminSession()
+  return stored?.sessionToken || null
+}
+
+// Merge the stored session token into args unless the caller already set one.
+function withSessionToken(args) {
+  const merged = { ...(args || {}) }
+  if (merged.sessionToken === undefined) {
+    const token = getAdminSessionToken()
+    if (token) merged.sessionToken = token
+  }
+  return merged
+}
+
 export async function queryAdminConvex(path, args) {
   const response = await fetch('/api/query', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path, args }),
+    body: JSON.stringify({ path, args: withSessionToken(args) }),
   })
 
   if (!response.ok) {
@@ -38,7 +56,7 @@ export async function mutateAdminConvex(path, args) {
   const response = await fetch('/api/mutation', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path, args }),
+    body: JSON.stringify({ path, args: withSessionToken(args) }),
   })
 
   if (!response.ok) {
@@ -54,32 +72,59 @@ export async function mutateAdminConvex(path, args) {
 }
 
 export function AdminAuthProvider({ children }) {
-  const [adminUser, setAdminUser] = useState(() => readStoredAdminUser())
+  const [adminSession, setAdminSession] = useState(() => readStoredAdminSession())
+  const adminUser = adminSession?.user || null
 
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    if (adminUser) {
-      window.sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(adminUser))
+    if (adminSession) {
+      window.sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(adminSession))
       return
     }
 
     window.sessionStorage.removeItem(ADMIN_SESSION_KEY)
-  }, [adminUser])
+  }, [adminSession])
+
+  // Validate a restored session on mount — clear it if the server says it's
+  // no longer valid (expired / revoked), forcing a fresh login.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!adminSession?.sessionToken) return
+    let cancelled = false
+    queryAdminConvex('admin:getSession', {})
+      .then((user) => {
+        if (cancelled) return
+        if (!user) setAdminSession(null)
+      })
+      .catch(() => {
+        /* network error — keep the session for now */
+      })
+    return () => {
+      cancelled = true
+    }
+    // Run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function adminLogin(email, password) {
-    const payload = await queryAdminConvex('admin:login', { email, password })
+    const payload = await mutateAdminConvex('admin:login', { email, password })
 
     if (!payload?.success) {
       return payload || { success: false, error: 'Invalid credentials' }
     }
 
-    setAdminUser(payload.user)
+    setAdminSession({ user: payload.user, sessionToken: payload.sessionToken })
     return payload
   }
 
-  function adminLogout() {
-    setAdminUser(null)
+  async function adminLogout() {
+    try {
+      await mutateAdminConvex('admin:logout', {})
+    } catch {
+      /* best-effort — clear local state regardless */
+    }
+    setAdminSession(null)
   }
 
   const value = {
@@ -102,5 +147,3 @@ export function useAdminAuth() {
 
   return context
 }
-
-

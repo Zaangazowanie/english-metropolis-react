@@ -1,6 +1,7 @@
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { collocationsField } from "./validators.js";
+import { requireAdmin, requireSuperadmin, requireAdminOrPipelineKey, isSuperadmin } from "./authHelpers";
 
 // One-shot sweep to strip garbage tokens that the pre-2026-04-17 naive
 // capitalised-phrase extractor in ingestionProcess.deriveTopics wrote
@@ -95,14 +96,17 @@ export const backfillLessonTopics = internalMutation({
 
 export const createOrganization = mutation({
   args: {
+    sessionToken: v.string(),
     name: v.string(),
     slug: v.string(),
     type: v.string(),                   // "school", "company", "private_practice", "platform"
   },
   handler: async (ctx, args) => {
+    await requireSuperadmin(ctx, args.sessionToken);
+    const { sessionToken, ...rest } = args;
     const now = Date.now();
     return await ctx.db.insert("organizations", {
-      ...args,
+      ...rest,
       status: "active",
       settings: {
         defaultLanguage: "pl",
@@ -134,8 +138,9 @@ export const getOrganizationBySlug = query({
 });
 
 export const listOrganizations = query({
-  args: { type: v.optional(v.string()), status: v.optional(v.string()) },
+  args: { sessionToken: v.string(), type: v.optional(v.string()), status: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     if (args.status) {
       return await ctx.db.query("organizations").withIndex("by_status", q => q.eq("status", args.status!)).collect();
     }
@@ -152,7 +157,8 @@ export const listOrganizations = query({
 
 export const createGroup = mutation({
   args: {
-    organizationId: v.id("organizations"),
+    sessionToken: v.string(),
+    organizationId: v.optional(v.id("organizations")),
     name: v.string(),
     slug: v.string(),
     level: v.optional(v.string()),
@@ -161,9 +167,16 @@ export const createGroup = mutation({
     teachers: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    if (!organizationId) throw new Error("No organization in scope");
+    const { sessionToken, organizationId: _ignored, ...rest } = args;
     const now = Date.now();
     return await ctx.db.insert("groups", {
-      ...args,
+      ...rest,
+      organizationId,
       status: "active",
       createdAt: now,
       updatedAt: now,
@@ -184,15 +197,18 @@ export const listGroups = query({
 
 export const createUser = mutation({
   args: {
+    sessionToken: v.string(),
     email: v.string(),
     name: v.string(),
     role: v.string(),                   // "super_admin", "org_admin", "teacher", "assistant"
     organizationId: v.optional(v.id("organizations")),
   },
   handler: async (ctx, args) => {
+    await requireSuperadmin(ctx, args.sessionToken);
+    const { sessionToken, ...rest } = args;
     const now = Date.now();
     return await ctx.db.insert("users", {
-      ...args,
+      ...rest,
       status: "active",
       createdAt: now,
       updatedAt: now,
@@ -201,16 +217,22 @@ export const createUser = mutation({
 });
 
 export const getUserByEmail = query({
-  args: { email: v.string() },
+  args: { sessionToken: v.string(), email: v.string() },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     return await ctx.db.query("users").withIndex("by_email", q => q.eq("email", args.email)).unique();
   },
 });
 
 export const listOrgUsers = query({
-  args: { organizationId: v.id("organizations") },
+  args: { sessionToken: v.string(), organizationId: v.optional(v.id("organizations")) },
   handler: async (ctx, args) => {
-    return await ctx.db.query("users").withIndex("by_organization", q => q.eq("organizationId", args.organizationId)).collect();
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    if (!organizationId) throw new Error("No organization in scope");
+    return await ctx.db.query("users").withIndex("by_organization", q => q.eq("organizationId", organizationId)).collect();
   },
 });
 
@@ -220,14 +242,20 @@ export const listOrgUsers = query({
 
 export const listStudents = query({
   args: {
+    sessionToken: v.string(),
     organizationId: v.optional(v.id("organizations")),
     activeOnly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    if (args.organizationId) {
-      const students = await ctx.db.query("students").withIndex("by_organization", q => q.eq("organizationId", args.organizationId)).collect();
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    if (organizationId) {
+      const students = await ctx.db.query("students").withIndex("by_organization", q => q.eq("organizationId", organizationId)).collect();
       return args.activeOnly ? students.filter(s => s.status === "active") : students;
     }
+    // Only reachable for a superadmin with no org in scope → all students.
     if (args.activeOnly) {
       return await ctx.db.query("students").withIndex("by_status", q => q.eq("status", "active")).collect();
     }
@@ -251,6 +279,7 @@ export const getStudent = query({
 
 export const createStudent = mutation({
   args: {
+    sessionToken: v.string(),
     organizationId: v.optional(v.id("organizations")),
     name: v.string(),
     slug: v.string(),
@@ -265,9 +294,16 @@ export const createStudent = mutation({
     tags: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    if (!organizationId) throw new Error("No organization in scope");
+    const { sessionToken, organizationId: _ignored, ...rest } = args;
     const now = Date.now();
     return await ctx.db.insert("students", {
-      ...args,
+      ...rest,
+      organizationId,
       type: args.type ?? "individual",
       status: "active",
       enrolledAt: now,
@@ -279,6 +315,7 @@ export const createStudent = mutation({
 
 export const updateStudent = mutation({
   args: {
+    sessionToken: v.string(),
     studentId: v.id("students"),
     name: v.optional(v.string()),
     slug: v.optional(v.string()),
@@ -295,10 +332,20 @@ export const updateStudent = mutation({
     organizationId: v.optional(v.id("organizations")),
   },
   handler: async (ctx, args) => {
-    const { studentId, ...updates } = args;
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const target = await ctx.db.get(args.studentId);
+    if (!target) throw new Error("Student not found");
+    if (!isSuperadmin(user.role) && target.organizationId !== user.organizationId) {
+      throw new Error("Unauthorized");
+    }
+    const { sessionToken, studentId, ...updates } = args;
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, val]) => val !== undefined)
     );
+    // Non-superadmins may never move a student to a different org.
+    if (!isSuperadmin(user.role)) {
+      delete (cleanUpdates as Record<string, unknown>).organizationId;
+    }
     await ctx.db.patch(studentId, { ...cleanUpdates, updatedAt: Date.now() });
   },
 });
@@ -309,7 +356,8 @@ export const updateStudent = mutation({
 // ─────────────────────────────────────────────────────────────
 export const scheduleLesson = mutation({
   args: {
-    actingUserId: v.id("users"),
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     studentId: v.id("students"),
     date: v.string(),          // ISO date e.g. "2026-04-20"
     startTime: v.string(),     // "16:00" CEST
@@ -319,10 +367,7 @@ export const scheduleLesson = mutation({
     groupCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const actor = await ctx.db.get(args.actingUserId);
-    if (!actor || !["super_admin","org_admin","teacher"].includes(actor.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
 
@@ -413,6 +458,8 @@ export const getLessonByDate = query({
 
 export const createLesson = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     organizationId: v.optional(v.id("organizations")),
     studentId: v.id("students"),
     teacherId: v.optional(v.id("users")),
@@ -427,13 +474,17 @@ export const createLesson = mutation({
     order: v.number(),
   },
   handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+    const { sessionToken, apiKey, ...rest } = args;
     const now = Date.now();
-    return await ctx.db.insert("lessons", { ...args, createdAt: now, updatedAt: now });
+    return await ctx.db.insert("lessons", { ...rest, createdAt: now, updatedAt: now });
   },
 });
 
 export const updateLesson = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     lessonId: v.id("lessons"),
     title: v.optional(v.string()),
     topics: v.optional(v.array(v.string())),
@@ -443,7 +494,8 @@ export const updateLesson = mutation({
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { lessonId, ...updates } = args;
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+    const { sessionToken, apiKey, lessonId, ...updates } = args;
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, val]) => val !== undefined)
     );
@@ -549,10 +601,12 @@ export const getKeyword = query({
 //     all-zero shape so the widget can render a degraded chip.
 export const getCoverage = query({
   args: {
+    sessionToken: v.string(),
     studentSlug: v.string(),
     withinDays: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
     const withinDays = Math.max(1, Math.min(args.withinDays ?? 7, 90));
     const empty = {
       bankSize: 0,
@@ -571,6 +625,9 @@ export const getCoverage = query({
       .withIndex("by_slug", q => q.eq("slug", args.studentSlug))
       .unique();
     if (!student) return empty;
+    if (!isSuperadmin(user.role) && student.organizationId !== user.organizationId) {
+      throw new Error("Unauthorized");
+    }
 
     // Pull the full keyword bank. Cap at 5000 — well above current
     // students (Aleksandra ~168, largest student ~600).
@@ -652,6 +709,8 @@ export const getCoverage = query({
 
 export const createKeyword = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     lessonId: v.id("lessons"),
     studentId: v.id("students"),
     organizationId: v.optional(v.id("organizations")),
@@ -671,8 +730,10 @@ export const createKeyword = mutation({
     youglishCaption: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+    const { sessionToken, apiKey, ...rest } = args;
     return await ctx.db.insert("keywords", {
-      ...args,
+      ...rest,
       mastery: 0,
       reviewCount: 0,
       createdAt: Date.now(),
@@ -682,6 +743,8 @@ export const createKeyword = mutation({
 
 export const bulkCreateKeywords = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     keywords: v.array(v.object({
       lessonId: v.id("lessons"),
       studentId: v.id("students"),
@@ -703,6 +766,7 @@ export const bulkCreateKeywords = mutation({
     })),
   },
   handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     const ids = [];
     for (const kw of args.keywords) {
       const id = await ctx.db.insert("keywords", {
@@ -737,10 +801,13 @@ export const searchKeywords = query({
 
 export const updateKeywordCollocations = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     keywordId: v.id("keywords"),
     collocations: collocationsField,
   },
   handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     await ctx.db.patch(args.keywordId, {
       collocations: args.collocations,
     });
@@ -749,12 +816,15 @@ export const updateKeywordCollocations = mutation({
 
 export const bulkUpdateCollocations = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     updates: v.array(v.object({
       keywordId: v.id("keywords"),
       collocations: collocationsField,
     })),
   },
   handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     for (const { keywordId, collocations } of args.updates) {
       await ctx.db.patch(keywordId, {
         collocations,
@@ -766,10 +836,13 @@ export const bulkUpdateCollocations = mutation({
 
 export const updateKeywordMastery = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     keywordId: v.id("keywords"),
     correct: v.boolean(),
   },
   handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     const keyword = await ctx.db.get(args.keywordId);
     if (!keyword) return;
     const newReviewCount = (keyword.reviewCount || 0) + 1;
@@ -789,11 +862,14 @@ export const updateKeywordMastery = mutation({
 
 export const patchKeyword = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     keywordId: v.id("keywords"),
     spellingVariant: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { keywordId, ...fields } = args;
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+    const { sessionToken, apiKey, keywordId, ...fields } = args;
     const patch: Record<string, unknown> = {};
     if (fields.spellingVariant !== undefined) patch.spellingVariant = fields.spellingVariant;
     await ctx.db.patch(keywordId, patch);
@@ -815,6 +891,8 @@ export const patchKeyword = mutation({
 
 export const patchKeywordEnrichment = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     keywordId: v.id("keywords"),
     collocations: v.optional(v.object({
       commonCollocations: v.optional(v.array(v.object({
@@ -858,7 +936,8 @@ export const patchKeywordEnrichment = mutation({
     enrichmentModel: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { keywordId, ...rest } = args;
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+    const { sessionToken, apiKey, keywordId, ...rest } = args;
     const patch: Record<string, unknown> = {};
     for (const [k, v2] of Object.entries(rest)) {
       if (v2 !== undefined) patch[k] = v2;
@@ -880,10 +959,13 @@ export const patchKeywordEnrichment = mutation({
 
 export const patchStudentGreeting = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     analysisId: v.id("transcriptAnalyses"),
     greeting: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     const trimmed = args.greeting.trim();
     if (!trimmed) return null;
     await ctx.db.patch(args.analysisId, { studentGreeting: trimmed });
@@ -911,15 +993,25 @@ export const getLatestAnalysisForStudent = query({
 // ═══════════════════════════════════════════════════════════
 
 export const deleteKeyword = mutation({
-  args: { keywordId: v.id("keywords") },
+  args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
+    keywordId: v.id("keywords"),
+  },
   handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     await ctx.db.delete(args.keywordId);
   },
 });
 
 export const bulkDeleteKeywords = mutation({
-  args: { keywordIds: v.array(v.id("keywords")) },
+  args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
+    keywordIds: v.array(v.id("keywords")),
+  },
   handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     for (const id of args.keywordIds) {
       await ctx.db.delete(id);
     }
@@ -932,14 +1024,18 @@ export const bulkDeleteKeywords = mutation({
 
 // Student dashboard (what the student sees)
 export const getStudentDashboard = query({
-  args: { studentSlug: v.string() },
+  args: { sessionToken: v.string(), studentSlug: v.string() },
   handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
     const student = await ctx.db
       .query("students")
       .withIndex("by_slug", q => q.eq("slug", args.studentSlug))
       .unique();
 
     if (!student) return null;
+    if (!isSuperadmin(user.role) && student.organizationId !== user.organizationId) {
+      throw new Error("Unauthorized");
+    }
 
     const lessons = await ctx.db
       .query("lessons")
@@ -994,14 +1090,19 @@ export const getStudentDashboard = query({
 
 // School dashboard (teacher sees their students)
 export const getSchoolDashboard = query({
-  args: { organizationId: v.id("organizations") },
+  args: { sessionToken: v.string(), organizationId: v.optional(v.id("organizations")) },
   handler: async (ctx, args) => {
-    const org = await ctx.db.get(args.organizationId);
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    if (!organizationId) throw new Error("No organization in scope");
+    const org = await ctx.db.get(organizationId);
     if (!org) return null;
 
     const students = await ctx.db
       .query("students")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", q => q.eq("organizationId", organizationId))
       .collect();
 
     const activeStudents = students.filter(s => s.status === "active");
@@ -1042,7 +1143,7 @@ export const getSchoolDashboard = query({
 
     const groups = await ctx.db
       .query("groups")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", q => q.eq("organizationId", organizationId))
       .collect();
 
     return {
@@ -1057,8 +1158,9 @@ export const getSchoolDashboard = query({
 
 // Super admin dashboard (sees all orgs)
 export const getAdminDashboard = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     const orgs = await ctx.db.query("organizations").collect();
     const totalStudents = await ctx.db.query("students").collect();
     const totalLessons = await ctx.db.query("lessons").collect();
@@ -1095,10 +1197,16 @@ export const getAdminDashboard = query({
 // At-risk students: no lesson in N+ days
 export const getAtRiskStudents = query({
   args: {
-    organizationId: v.id("organizations"),
+    sessionToken: v.string(),
+    organizationId: v.optional(v.id("organizations")),
     daysThreshold: v.optional(v.number()), // default 14
   },
   handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    if (!organizationId) throw new Error("No organization in scope");
     const threshold = args.daysThreshold || 14;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - threshold);
@@ -1106,7 +1214,7 @@ export const getAtRiskStudents = query({
 
     const students = await ctx.db
       .query("students")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", q => q.eq("organizationId", organizationId))
       .collect();
 
     const activeStudents = students.filter(s => s.status === "active");
@@ -1156,12 +1264,18 @@ export const getAtRiskStudents = query({
 // Quiz completion rate per student (org-wide)
 export const getQuizCompletionRates = query({
   args: {
-    organizationId: v.id("organizations"),
+    sessionToken: v.string(),
+    organizationId: v.optional(v.id("organizations")),
   },
   handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    if (!organizationId) throw new Error("No organization in scope");
     const students = await ctx.db
       .query("students")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", q => q.eq("organizationId", organizationId))
       .collect();
 
     const results = await Promise.all(
@@ -1205,14 +1319,20 @@ export const getQuizCompletionRates = query({
 // Lessons by date range (for calendar view)
 export const getLessonsByDateRange = query({
   args: {
-    organizationId: v.id("organizations"),
+    sessionToken: v.string(),
+    organizationId: v.optional(v.id("organizations")),
     startDate: v.string(), // YYYY-MM-DD
     endDate: v.string(),   // YYYY-MM-DD
   },
   handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    if (!organizationId) throw new Error("No organization in scope");
     const allLessons = await ctx.db
       .query("lessons")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", q => q.eq("organizationId", organizationId))
       .collect();
 
     // Filter by date range
@@ -1252,21 +1372,27 @@ export const getLessonsByDateRange = query({
 // Enhanced school dashboard with at-risk and quiz data
 export const getSchoolDashboardEnhanced = query({
   args: {
-    organizationId: v.id("organizations"),
+    sessionToken: v.string(),
+    organizationId: v.optional(v.id("organizations")),
     atRiskDays: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    if (!organizationId) throw new Error("No organization in scope");
     const atRiskDays = args.atRiskDays || 14;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - atRiskDays);
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
-    const org = await ctx.db.get(args.organizationId);
+    const org = await ctx.db.get(organizationId);
     if (!org) return null;
 
     const students = await ctx.db
       .query("students")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", q => q.eq("organizationId", organizationId))
       .collect();
 
     const activeStudents = students.filter(s => s.status === "active");
@@ -1328,7 +1454,7 @@ export const getSchoolDashboardEnhanced = query({
 
     const groups = await ctx.db
       .query("groups")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", q => q.eq("organizationId", organizationId))
       .collect();
 
     // Lessons this week and this month
@@ -1340,7 +1466,7 @@ export const getSchoolDashboardEnhanced = query({
 
     const allOrgLessons = await ctx.db
       .query("lessons")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", q => q.eq("organizationId", organizationId))
       .collect();
 
     const lessonsThisWeek = allOrgLessons.filter(l => l.date >= weekStartStr).length;
@@ -1361,8 +1487,9 @@ export const getSchoolDashboardEnhanced = query({
 
 // Legacy stats (backward compatible)
 export const getGlobalStats = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     const students = await ctx.db.query("students").collect();
     const activeStudents = students.filter(s => s.status === "active").length;
     const allLessons = await ctx.db.query("lessons").collect();
@@ -1435,9 +1562,11 @@ export const getGlobalStats = query({
 //   - Capped at 5000 keywords (Aleksandra ~168, max student ~600).
 export const keywordHeatmap = query({
   args: {
+    sessionToken: v.string(),
     studentSlug: v.string(),
   },
   handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
     const empty = {
       studentSlug: args.studentSlug,
       bankSize: 0,
@@ -1459,6 +1588,9 @@ export const keywordHeatmap = query({
       .withIndex("by_slug", q => q.eq("slug", args.studentSlug))
       .unique();
     if (!student) return empty;
+    if (!isSuperadmin(user.role) && student.organizationId !== user.organizationId) {
+      throw new Error("Unauthorized");
+    }
 
     // Pull the keyword bank.
     const keywords = await ctx.db

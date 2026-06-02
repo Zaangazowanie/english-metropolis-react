@@ -6,7 +6,7 @@
 
 import { mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { hashPassword, verifyPassword } from "./authHelpers";
+import { hashPassword, verifyPassword, createStudentSession, requireAdmin } from "./authHelpers";
 
 // ─────────────────────────────────────────────────────────────
 // studentLogin — public mutation (called from the Login page).
@@ -44,8 +44,11 @@ export const studentLogin = mutation({
       return { success: false, error: "Invalid credentials" };
     }
 
+    const sessionToken = await createStudentSession(ctx, student._id);
+
     return {
       success: true,
+      sessionToken,
       student: {
         _id: student._id,
         name: student.name,
@@ -65,20 +68,13 @@ export const studentLogin = mutation({
 // ─────────────────────────────────────────────────────────────
 export const setStudentPassword = mutation({
   args: {
-    actingUserId: v.id("users"),
+    sessionToken: v.string(),
     studentId: v.id("students"),
     newPassword: v.string(),
   },
   handler: async (ctx, args) => {
     // Verify the acting user has the right to set passwords
-    const actor = await ctx.db.get(args.actingUserId);
-    if (!actor) {
-      throw new Error("Acting user not found");
-    }
-    const allowedRoles = ["super_admin", "org_admin", "teacher"];
-    if (!allowedRoles.includes(actor.role)) {
-      throw new Error("Insufficient permissions to set student passwords");
-    }
+    const { user } = await requireAdmin(ctx, args.sessionToken);
 
     const student = await ctx.db.get(args.studentId);
     if (!student) {

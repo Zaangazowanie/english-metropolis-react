@@ -21,7 +21,7 @@ import {
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { PROMPT_VERSION, MODEL_ANALYSIS, MODEL_KEYWORDS } from "./ingestionPrompts";
-import { isSuperadmin } from "./authHelpers";
+import { requireSuperadmin } from "./authHelpers";
 
 // ─────────────────────────────────────────────────────────────────────
 // Validators (reused from the schema so query/mutation args line up)
@@ -86,12 +86,9 @@ const stagedKeywordValidator = v.object({
 // returned URL accepts a PUT with the file bytes; Convex responds
 // with a storageId which can then be stored on an ingestionJob row.
 export const generateUploadUrl = mutation({
-  args: { actingUserId: v.id("users") },
+  args: { sessionToken: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.actingUserId);
-    if (!user || !isSuperadmin(user.role)) {
-      throw new Error("Unauthorized — superadmin only");
-    }
+    await requireSuperadmin(ctx, args.sessionToken);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -102,7 +99,7 @@ export const generateUploadUrl = mutation({
 
 export const createIngestionJob = mutation({
   args: {
-    actingUserId: v.id("users"),
+    sessionToken: v.string(),
     sourceKind: v.string(),
     organizationId: v.optional(v.id("organizations")),
     transcriptStorageId: v.optional(v.id("_storage")),
@@ -115,10 +112,7 @@ export const createIngestionJob = mutation({
     detectedTitle: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.actingUserId);
-    if (!user || !isSuperadmin(user.role)) {
-      throw new Error("Unauthorized — superadmin only");
-    }
+    const { user } = await requireSuperadmin(ctx, args.sessionToken);
 
     // Resolve organization from detected student if not supplied.
     let organizationId = args.organizationId;
@@ -135,7 +129,7 @@ export const createIngestionJob = mutation({
 
     const jobId = await ctx.db.insert("ingestionJobs", {
       organizationId,
-      createdByUserId: args.actingUserId,
+      createdByUserId: user._id,
       status: "queued",
       sourceKind: args.sourceKind,
       transcriptStorageId: args.transcriptStorageId,
@@ -162,7 +156,7 @@ export const createIngestionJob = mutation({
     // Audit log.
     await ctx.db.insert("auditLog", {
       organizationId,
-      userId: args.actingUserId,
+      userId: user._id,
       action: "ingestionJob.created",
       targetType: "ingestionJob",
       targetId: jobId,
@@ -352,12 +346,9 @@ export const loadJobForProcessing = internalQuery({
 
 // Public wrapper to retry a failed job from the UI.
 export const retryIngestionJob = mutation({
-  args: { actingUserId: v.id("users"), jobId: v.id("ingestionJobs") },
+  args: { sessionToken: v.string(), jobId: v.id("ingestionJobs") },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.actingUserId);
-    if (!user || !isSuperadmin(user.role)) {
-      throw new Error("Unauthorized — superadmin only");
-    }
+    await requireSuperadmin(ctx, args.sessionToken);
     await ctx.db.patch(args.jobId, { status: "queued", error: undefined });
     await ctx.scheduler.runAfter(
       0,
@@ -374,15 +365,12 @@ export const retryIngestionJob = mutation({
 
 export const updateStagedAnalysis = mutation({
   args: {
-    actingUserId: v.id("users"),
+    sessionToken: v.string(),
     jobId: v.id("ingestionJobs"),
     stagedAnalysis: stagedAnalysisValidator,
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.actingUserId);
-    if (!user || !isSuperadmin(user.role)) {
-      throw new Error("Unauthorized — superadmin only");
-    }
+    await requireSuperadmin(ctx, args.sessionToken);
     await ctx.db.patch(args.jobId, {
       stagedAnalysis: args.stagedAnalysis,
     });
@@ -392,15 +380,12 @@ export const updateStagedAnalysis = mutation({
 
 export const updateStagedKeywords = mutation({
   args: {
-    actingUserId: v.id("users"),
+    sessionToken: v.string(),
     jobId: v.id("ingestionJobs"),
     stagedKeywords: v.array(stagedKeywordValidator),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.actingUserId);
-    if (!user || !isSuperadmin(user.role)) {
-      throw new Error("Unauthorized — superadmin only");
-    }
+    await requireSuperadmin(ctx, args.sessionToken);
     await ctx.db.patch(args.jobId, {
       stagedKeywords: args.stagedKeywords,
     });
@@ -414,7 +399,7 @@ export const updateStagedKeywords = mutation({
 // (they can be re-generated separately).
 export const bulkReplaceStudentAnalyses = mutation({
   args: {
-    actingUserId: v.id("users"),
+    sessionToken: v.string(),
     studentId: v.id("students"),
     items: v.array(v.object({
       date: v.string(),
@@ -424,8 +409,7 @@ export const bulkReplaceStudentAnalyses = mutation({
     })),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.actingUserId);
-    if (!user || !isSuperadmin(user.role)) throw new Error("Unauthorized — superadmin only");
+    await requireSuperadmin(ctx, args.sessionToken);
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
 
@@ -502,10 +486,9 @@ export const bulkReplaceStudentAnalyses = mutation({
 });
 
 export const forceAwaitingReview = mutation({
-  args: { actingUserId: v.id("users"), jobId: v.id("ingestionJobs") },
+  args: { sessionToken: v.string(), jobId: v.id("ingestionJobs") },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.actingUserId);
-    if (!user || !isSuperadmin(user.role)) throw new Error("Unauthorized — superadmin only");
+    await requireSuperadmin(ctx, args.sessionToken);
     const job = await ctx.db.get(args.jobId);
     if (!job) throw new Error("Job not found");
     if (!job.stagedAnalysis) throw new Error("stagedAnalysis missing — run processing first");
@@ -516,17 +499,14 @@ export const forceAwaitingReview = mutation({
 
 export const updateJobMetadata = mutation({
   args: {
-    actingUserId: v.id("users"),
+    sessionToken: v.string(),
     jobId: v.id("ingestionJobs"),
     detectedStudentId: v.optional(v.id("students")),
     detectedDate: v.optional(v.string()),
     detectedTitle: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.actingUserId);
-    if (!user || !isSuperadmin(user.role)) {
-      throw new Error("Unauthorized — superadmin only");
-    }
+    await requireSuperadmin(ctx, args.sessionToken);
     const patch: any = {};
     if (args.detectedStudentId !== undefined) {
       patch.detectedStudentId = args.detectedStudentId;
@@ -547,14 +527,11 @@ export const updateJobMetadata = mutation({
 
 export const commitIngestionJob = mutation({
   args: {
-    actingUserId: v.id("users"),
+    sessionToken: v.string(),
     jobId: v.id("ingestionJobs"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.actingUserId);
-    if (!user || !isSuperadmin(user.role)) {
-      throw new Error("Unauthorized — superadmin only");
-    }
+    const { user } = await requireSuperadmin(ctx, args.sessionToken);
     const job = await ctx.db.get(args.jobId);
     if (!job) throw new Error("Job not found");
     if (job.status !== "awaiting_review") {
@@ -651,7 +628,7 @@ export const commitIngestionJob = mutation({
 
     await ctx.db.insert("auditLog", {
       organizationId: job.organizationId,
-      userId: args.actingUserId,
+      userId: user._id,
       action: "ingestionJob.committed",
       targetType: "lesson",
       targetId: lessonId,
@@ -671,12 +648,9 @@ export const commitIngestionJob = mutation({
 // Rollback a committed job: deletes the created lesson / analysis /
 // keywords and moves the job back to awaiting_review.
 export const rollbackCommittedJob = mutation({
-  args: { actingUserId: v.id("users"), jobId: v.id("ingestionJobs") },
+  args: { sessionToken: v.string(), jobId: v.id("ingestionJobs") },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.actingUserId);
-    if (!user || !isSuperadmin(user.role)) {
-      throw new Error("Unauthorized — superadmin only");
-    }
+    const { user } = await requireSuperadmin(ctx, args.sessionToken);
     const job = await ctx.db.get(args.jobId);
     if (!job || job.status !== "committed") {
       throw new Error("Only committed jobs can be rolled back");
@@ -695,7 +669,7 @@ export const rollbackCommittedJob = mutation({
     });
     await ctx.db.insert("auditLog", {
       organizationId: job.organizationId,
-      userId: args.actingUserId,
+      userId: user._id,
       action: "ingestionJob.rolledback",
       targetType: "ingestionJob",
       targetId: args.jobId,
@@ -710,8 +684,9 @@ export const rollbackCommittedJob = mutation({
 // ─────────────────────────────────────────────────────────────────────
 
 export const getIngestionJob = query({
-  args: { jobId: v.id("ingestionJobs") },
+  args: { sessionToken: v.string(), jobId: v.id("ingestionJobs") },
   handler: async (ctx, args) => {
+    await requireSuperadmin(ctx, args.sessionToken);
     const job = await ctx.db.get(args.jobId);
     if (!job) return null;
     const student = job.detectedStudentId
@@ -738,10 +713,12 @@ export const getIngestionJob = query({
 
 export const listIngestionJobs = query({
   args: {
+    sessionToken: v.string(),
     status: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requireSuperadmin(ctx, args.sessionToken);
     const limit = args.limit ?? 50;
     let q = args.status
       ? ctx.db
@@ -1067,8 +1044,9 @@ export const deleteJobInternal = internalMutation({
 });
 
 export const listAuditLog = query({
-  args: { limit: v.optional(v.number()) },
+  args: { sessionToken: v.string(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    await requireSuperadmin(ctx, args.sessionToken);
     const limit = args.limit ?? 100;
     return await ctx.db
       .query("auditLog")
@@ -1079,8 +1057,9 @@ export const listAuditLog = query({
 });
 
 export const getIngestionStats = query({
-  args: {},
-  handler: async ctx => {
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    await requireSuperadmin(ctx, args.sessionToken);
     const counts: Record<string, number> = {
       queued: 0,
       processing: 0,

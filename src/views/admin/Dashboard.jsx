@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { queryAdminConvex } from '../../contexts/AdminAuthContext.jsx'
+import { queryAdminConvex, useAdminAuth } from '../../contexts/AdminAuthContext.jsx'
 import { CefrBadge } from '../../components/analytics/AnalyticsPrimitives.jsx'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -72,6 +72,7 @@ function ScoreRing({ value, size = 96 }) {
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
+  const { adminUser } = useAdminAuth()
   const [state, setState] = useState({ loading: true, error: '', dashboard: null })
   const [monthlyStats, setMonthlyStats] = useState(null)
   const [search, setSearch] = useState('')
@@ -83,7 +84,7 @@ export default function AdminDashboard() {
       setState({ loading: true, error: '', dashboard: null })
       try {
         const dashboard = await queryAdminConvex('students:getSchoolDashboard', {
-          organizationId: 'js7cb568fpf7qhkqqe55a7jz5s83sadf',
+          organizationId: adminUser?.organizationId,
         })
         if (!cancelled) setState({ loading: false, error: '', dashboard })
       } catch (err) {
@@ -93,7 +94,7 @@ export default function AdminDashboard() {
       // cancellations) — non-blocking, the dashboard renders without it.
       try {
         const stats = await queryAdminConvex('scheduling:getMonthlyLessonStats', {
-          organizationId: 'js7cb568fpf7qhkqqe55a7jz5s83sadf',
+          organizationId: adminUser?.organizationId,
         })
         if (!cancelled) setMonthlyStats(stats)
       } catch {
@@ -102,7 +103,7 @@ export default function AdminDashboard() {
     }
     load()
     return () => { cancelled = true }
-  }, [])
+  }, [adminUser?.organizationId])
 
   if (state.loading) {
     return (

@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { queryAdminConvex, mutateAdminConvex, useAdminAuth } from '../../../contexts/AdminAuthContext.jsx'
+import { queryAdminConvex, mutateAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
 
 const CONVEX_ORIGIN = 'https://wooden-manatee-881.convex.cloud'
 
 export default function SuperadminIngest() {
-  const { adminUser } = useAdminAuth()
   const navigate = useNavigate()
 
   const [students, setStudents] = useState([])
@@ -30,7 +29,7 @@ export default function SuperadminIngest() {
   }, [])
 
   async function uploadToStorage(file) {
-    const uploadUrl = await mutateAdminConvex('ingestion:generateUploadUrl', { actingUserId: adminUser._id })
+    const uploadUrl = await mutateAdminConvex('ingestion:generateUploadUrl', {})
     const res = await fetch(uploadUrl, {
       method: 'POST',
       headers: { 'Content-Type': file.type || 'application/octet-stream' },
@@ -57,7 +56,6 @@ export default function SuperadminIngest() {
     setBusy(true)
     try {
       const args = {
-        actingUserId: adminUser._id,
         sourceKind: transcriptText.trim() ? 'manual_paste' : sourceKind,
         detectedStudentId: studentId,
         detectedDate: lessonDate,

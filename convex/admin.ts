@@ -1,10 +1,22 @@
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { hashPassword, verifyPassword, isSuperadmin } from "./authHelpers";
+import {
+  hashPassword,
+  verifyPassword,
+  isSuperadmin,
+  createAdminSession,
+  requireAdmin,
+  requireSuperadmin,
+  destroySession,
+} from "./authHelpers";
 
 // Admin login — accepts both PBKDF2-hashed and legacy plaintext rows
 // so the existing michael@conversa.com seed account still works.
-export const login = query({
+//
+// Phase A1 (2026-06-02): now a MUTATION that issues a server-side session
+// token. All protected admin functions require this token. The previous
+// query-based login issued no token, leaving every admin function public.
+export const login = mutation({
   args: { email: v.string(), password: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -22,8 +34,14 @@ export const login = query({
     ) {
       return { success: false, error: "Unauthorized" };
     }
+    if (user.status !== "active") {
+      return { success: false, error: "Account inactive" };
+    }
+    const sessionToken = await createAdminSession(ctx, user._id);
+    await ctx.db.patch(user._id, { lastLoginAt: Date.now() });
     return {
       success: true,
+      sessionToken,
       user: {
         _id: user._id,
         name: user.name,
@@ -35,12 +53,57 @@ export const login = query({
   },
 });
 
-// Set admin password (hashes with PBKDF2 before storing)
-export const setPassword = mutation({
-  args: { userId: v.id("users"), password: v.string() },
+// Restore a session on page load. Returns the user (minus password) or null.
+export const getSession = query({
+  args: { sessionToken: v.string() },
   handler: async (ctx, args) => {
+    try {
+      const { user } = await requireAdmin(ctx, args.sessionToken);
+      return {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        organizationId: user.organizationId,
+      };
+    } catch {
+      return null;
+    }
+  },
+});
+
+// Logout — destroys the session server-side.
+export const logout = mutation({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    await destroySession(ctx, args.sessionToken);
+    return { success: true };
+  },
+});
+
+// Set admin password (hashes with PBKDF2 before storing).
+// Phase A1: requires a valid admin session. Admins can only change their OWN
+// password; superadmins may pass targetUserId to reset someone else's.
+export const setPassword = mutation({
+  args: {
+    sessionToken: v.string(),
+    password: v.string(),
+    targetUserId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    if (args.password.length < 8) {
+      throw new Error("Password must be at least 8 characters");
+    }
+    let targetId = user._id;
+    if (args.targetUserId && String(args.targetUserId) !== String(user._id)) {
+      if (!isSuperadmin(user.role)) {
+        throw new Error("Unauthorized: only superadmins can reset other users' passwords");
+      }
+      targetId = args.targetUserId;
+    }
     const hashed = await hashPassword(args.password);
-    await ctx.db.patch(args.userId, {
+    await ctx.db.patch(targetId, {
       password: hashed,
       updatedAt: Date.now(),
     });
@@ -182,29 +245,30 @@ export const seedSchoolAdmin = internalMutation({
   },
 });
 
-// Verify a superadmin session. Callers (frontend) pass the userId
-// they cached in localStorage after login; we look it up and
-// confirm the user still has super_admin role. Returns the user
-// row minus the password field.
+// Verify a superadmin session. Phase A1: takes the session token (the
+// previous version took a raw userId, which anyone could supply).
 export const getSuperadmin = query({
-  args: { userId: v.id("users") },
+  args: { sessionToken: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-    if (!user || !isSuperadmin(user.role) || user.status !== "active") {
+    try {
+      const { user } = await requireSuperadmin(ctx, args.sessionToken);
+      return {
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        organizationId: user.organizationId,
+      };
+    } catch {
       return null;
     }
-    return {
-      _id: user._id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      organizationId: user.organizationId,
-    };
   },
 });
 
-// Wipe all data from all tables (for reimport). Use with caution!
-export const wipeAll = mutation({
+// Wipe all data from all tables (for reimport). Phase A1: INTERNAL ONLY —
+// this was a public mutation, meaning anyone on the internet could delete
+// the entire database via POST /api/mutation.
+export const wipeAll = internalMutation({
   args: {},
   handler: async (ctx) => {
     const tables = [

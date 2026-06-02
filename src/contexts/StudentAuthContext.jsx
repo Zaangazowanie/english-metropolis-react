@@ -25,6 +25,19 @@ function readStoredStudentUser() {
   }
 }
 
+// Module-level token accessor — usable outside React (e.g. booking views
+// that call Convex directly). Returns the raw student session token or null.
+export function getStudentSessionToken() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(STUDENT_SESSION_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    return parsed?.sessionToken || null
+  } catch {
+    return null
+  }
+}
+
 // Call the Convex HTTP API directly (same pattern as AdminAuthContext)
 async function mutateConvex(path, args) {
   // 30s AbortController-backed timeout — see practice-cache.ts.
@@ -72,7 +85,9 @@ export function StudentAuthProvider({ children }) {
       return payload || { success: false, error: 'Invalid credentials' }
     }
 
-    setStudentUser(payload.student)
+    // Store the session token alongside the student object so
+    // getStudentSessionToken() can read it back for booking calls.
+    setStudentUser({ ...payload.student, sessionToken: payload.sessionToken })
     return payload
   }
 

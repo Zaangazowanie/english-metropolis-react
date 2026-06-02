@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { queryAdminConvex, mutateAdminConvex, useAdminAuth } from '../../../contexts/AdminAuthContext.jsx'
+import { queryAdminConvex, mutateAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
 
 const CATEGORIES = ['grammar', 'vocabulary', 'pronunciation', 'collocation', 'article', 'preposition', 'word-order', 'register', 'spelling']
 
 export default function SuperadminReview() {
   const { jobId } = useParams()
-  const { adminUser } = useAdminAuth()
   const navigate = useNavigate()
 
   const [payload, setPayload] = useState(null)
@@ -54,7 +53,6 @@ export default function SuperadminReview() {
     setSaving(true)
     try {
       await mutateAdminConvex('ingestion:updateStagedAnalysis', {
-        actingUserId: adminUser._id,
         jobId,
         stagedAnalysis: {
           ...analysis,
@@ -74,7 +72,6 @@ export default function SuperadminReview() {
     setSaving(true)
     try {
       await mutateAdminConvex('ingestion:updateStagedKeywords', {
-        actingUserId: adminUser._id,
         jobId,
         stagedKeywords: keywords,
       })
@@ -90,7 +87,6 @@ export default function SuperadminReview() {
       await saveAnalysis()
       await saveKeywords()
       const result = await mutateAdminConvex('ingestion:commitIngestionJob', {
-        actingUserId: adminUser._id,
         jobId,
       })
       navigate('/admin/superadmin/jobs')
@@ -104,7 +100,6 @@ export default function SuperadminReview() {
     setError(null)
     try {
       await mutateAdminConvex('ingestion:retryIngestionJob', {
-        actingUserId: adminUser._id,
         jobId,
       })
       await loadJob()

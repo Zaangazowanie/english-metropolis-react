@@ -11,6 +11,7 @@
 
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireAdmin, requireAdminOrStudent, isSuperadmin } from "./authHelpers";
 
 export const CANCELLATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -83,8 +84,8 @@ export const getWeeklyAvailability = query({
 // Replace the full weekly availability set. Superadmin / org admin only.
 export const setWeeklyAvailability = mutation({
   args: {
-    actingUserId: v.id("users"),
-    organizationId: v.id("organizations"),
+    sessionToken: v.string(),
+    organizationId: v.optional(v.id("organizations")),
     windows: v.array(v.object({
       dayOfWeek: v.number(),
       startTime: v.string(),
@@ -94,19 +95,20 @@ export const setWeeklyAvailability = mutation({
     })),
   },
   handler: async (ctx, args) => {
-    const actor = await ctx.db.get(args.actingUserId);
-    if (!actor || !["super_admin", "org_admin", "admin"].includes(actor.role)) {
-      throw new Error("Unauthorized");
-    }
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    if (!organizationId) throw new Error("No organization in scope");
     const existing = await ctx.db
       .query("teacherAvailability")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", q => q.eq("organizationId", organizationId))
       .collect();
     const now = Date.now();
     for (const row of existing) await ctx.db.delete(row._id);
     for (const w of args.windows) {
       await ctx.db.insert("teacherAvailability", {
-        organizationId: args.organizationId,
+        organizationId,
         dayOfWeek: w.dayOfWeek,
         startTime: w.startTime,
         endTime: w.endTime,
@@ -185,20 +187,28 @@ export const getOpenSlots = query({
 
 export const listBookings = query({
   args: {
-    organizationId: v.id("organizations"),
+    sessionToken: v.optional(v.string()),
+    organizationId: v.optional(v.id("organizations")),
     studentId: v.optional(v.id("students")),
   },
   handler: async (ctx, args) => {
     let bookings;
     if (args.studentId) {
+      // Student calendar path — kept public for backwards compat.
       bookings = await ctx.db
         .query("lessonBookings")
         .withIndex("by_student", q => q.eq("studentId", args.studentId!))
         .collect();
     } else {
+      // Org-wide listing requires an admin session.
+      const { user } = await requireAdmin(ctx, args.sessionToken);
+      const organizationId = isSuperadmin(user.role)
+        ? (args.organizationId ?? user.organizationId)
+        : user.organizationId;
+      if (!organizationId) throw new Error("No organization in scope");
       bookings = await ctx.db
         .query("lessonBookings")
-        .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+        .withIndex("by_organization", q => q.eq("organizationId", organizationId))
         .collect();
     }
     // attach student names for display
@@ -213,6 +223,7 @@ export const listBookings = query({
 
 export const bookLesson = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
     organizationId: v.id("organizations"),
     studentId: v.id("students"),
     startUtc: v.number(),
@@ -221,6 +232,15 @@ export const bookLesson = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Authorization: if a token is supplied it must be a valid admin (any
+    // student in their org) or the student themselves (their own bookings).
+    // TODO Phase A2: require token — drop the no-token student-style path.
+    if (args.sessionToken) {
+      const auth = await requireAdminOrStudent(ctx, args.sessionToken);
+      if (auth.kind === "student" && String(auth.student!._id) !== String(args.studentId)) {
+        throw new Error("Unauthorized");
+      }
+    }
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
     if (student.organizationId !== args.organizationId) {
@@ -280,6 +300,7 @@ export const bookLesson = mutation({
 
 export const cancelBooking = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
     bookingId: v.id("lessonBookings"),
     cancelledBy: v.string(),                 // "student" | "school_admin" | "superadmin"
     cancelledByName: v.optional(v.string()),
@@ -287,6 +308,14 @@ export const cancelBooking = mutation({
   handler: async (ctx, args) => {
     const booking = await ctx.db.get(args.bookingId);
     if (!booking) throw new Error("Booking not found");
+    // Authorization: admin (any booking in their org) or the owning student.
+    // TODO Phase A2: require token — drop the no-token student-style path.
+    if (args.sessionToken) {
+      const auth = await requireAdminOrStudent(ctx, args.sessionToken);
+      if (auth.kind === "student" && String(auth.student!._id) !== String(booking.studentId)) {
+        throw new Error("Unauthorized");
+      }
+    }
     if (booking.status !== "scheduled") throw new Error("Only scheduled lessons can be cancelled");
 
     const now = Date.now();
@@ -313,16 +342,16 @@ export const cancelBooking = mutation({
 // never bills. Restricted to admin roles.
 export const deleteBooking = mutation({
   args: {
+    sessionToken: v.string(),
     bookingId: v.id("lessonBookings"),
-    actingUserId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const actor = await ctx.db.get(args.actingUserId);
-    if (!actor || !["super_admin", "org_admin", "admin"].includes(actor.role)) {
-      throw new Error("Unauthorized");
-    }
+    const { user } = await requireAdmin(ctx, args.sessionToken);
     const booking = await ctx.db.get(args.bookingId);
     if (!booking) throw new Error("Booking not found");
+    if (!isSuperadmin(user.role) && booking.organizationId !== user.organizationId) {
+      throw new Error("Unauthorized");
+    }
     await ctx.db.delete(args.bookingId);
     return { deleted: true };
   },
@@ -332,12 +361,17 @@ export const deleteBooking = mutation({
 // the UI; also safe to run repeatedly). A booking whose end time has passed
 // and was never cancelled counts as a taught lesson.
 export const reconcilePastBookings = mutation({
-  args: { organizationId: v.id("organizations") },
+  args: { sessionToken: v.string(), organizationId: v.optional(v.id("organizations")) },
   handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    if (!organizationId) throw new Error("No organization in scope");
     const now = Date.now();
     const bookings = await ctx.db
       .query("lessonBookings")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", q => q.eq("organizationId", organizationId))
       .collect();
     let updated = 0;
     for (const b of bookings) {
@@ -355,11 +389,16 @@ export const reconcilePastBookings = mutation({
 // the post-lesson pipeline). Billable late cancellations come from bookings.
 
 export const getMonthlyLessonStats = query({
-  args: { organizationId: v.id("organizations") },
+  args: { sessionToken: v.string(), organizationId: v.optional(v.id("organizations")) },
   handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    if (!organizationId) throw new Error("No organization in scope");
     const students = await ctx.db
       .query("students")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", q => q.eq("organizationId", organizationId))
       .collect();
 
     type MonthRow = {
@@ -410,7 +449,7 @@ export const getMonthlyLessonStats = query({
     //    NOT counting completed bookings here; the lessons table is canonical)
     const bookings = await ctx.db
       .query("lessonBookings")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .withIndex("by_organization", q => q.eq("organizationId", organizationId))
       .collect();
     const studentById: Record<string, string> = {};
     for (const s of students) studentById[String(s._id)] = s.name;

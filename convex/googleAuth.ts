@@ -22,9 +22,10 @@
 // (matches the JS-origins whitelist in Google Cloud Console).
 
 import { v } from "convex/values";
-import { action, internalQuery } from "./_generated/server";
+import { action, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
+import { createStudentSession, createAdminSession } from "./authHelpers";
 
 // ─── Allowlists ──────────────────────────────────────────────
 const SUPERADMIN_EMAILS = new Set<string>([
@@ -58,11 +59,38 @@ export const findStudentByEmail = internalQuery({
   },
 });
 
+// ─── Internal mutations — session creation (actions can't touch db) ───
+export const createSessionForStudent = internalMutation({
+  args: { studentId: v.id("students") },
+  handler: async (ctx, args) => {
+    return await createStudentSession(ctx, args.studentId);
+  },
+});
+
+export const createSessionForAdminEmail = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, args): Promise<string | null> => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+    if (
+      !user ||
+      user.status !== "active" ||
+      !["admin", "org_admin", "super_admin"].includes(user.role)
+    ) {
+      return null;
+    }
+    return await createAdminSession(ctx, user._id);
+  },
+});
+
 // ─── Public action — exchange Google ID token for our session ─
 type GoogleSignInResult =
   | {
       success: true;
       kind: "student";
+      sessionToken: string;
       student: {
         _id: string;
         name: string;
@@ -72,8 +100,8 @@ type GoogleSignInResult =
         organizationId: string | undefined;
       };
     }
-  | { success: true; kind: "superadmin"; email: string }
-  | { success: true; kind: "conversa_admin"; email: string }
+  | { success: true; kind: "superadmin"; email: string; sessionToken: string | undefined }
+  | { success: true; kind: "conversa_admin"; email: string; sessionToken: string | undefined }
   | { success: false; error: string };
 
 export const googleSignIn = action({
@@ -128,9 +156,14 @@ export const googleSignIn = action({
       ) {
         return { success: false, error: "Account inactive" };
       }
+      const sessionToken: string = await ctx.runMutation(
+        internal.googleAuth.createSessionForStudent,
+        { studentId: student._id },
+      );
       return {
         success: true,
         kind: "student",
+        sessionToken,
         student: {
           _id: student._id,
           name: student.name,
@@ -144,12 +177,20 @@ export const googleSignIn = action({
 
     // 2) Superadmin?
     if (SUPERADMIN_EMAILS.has(email)) {
-      return { success: true, kind: "superadmin", email };
+      const token: string | null = await ctx.runMutation(
+        internal.googleAuth.createSessionForAdminEmail,
+        { email },
+      );
+      return { success: true, kind: "superadmin", email, sessionToken: token ?? undefined };
     }
 
     // 3) Conversa admin?
     if (CONVERSA_ADMIN_EMAILS.has(email)) {
-      return { success: true, kind: "conversa_admin", email };
+      const token: string | null = await ctx.runMutation(
+        internal.googleAuth.createSessionForAdminEmail,
+        { email },
+      );
+      return { success: true, kind: "conversa_admin", email, sessionToken: token ?? undefined };
     }
 
     return { success: false, error: "Email not authorized" };

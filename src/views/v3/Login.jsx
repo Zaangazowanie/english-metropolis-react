@@ -128,21 +128,42 @@ export default function LoginV3() {
         try {
           window.localStorage.setItem(
             'em-student-session',
-            JSON.stringify(result.student),
+            JSON.stringify({ ...result.student, sessionToken: result.sessionToken }),
           )
         } catch {}
         window.location.href = `/app/${result.student?.slug}/dashboard`
         return
       }
       if (result.kind === 'superadmin') {
-        // No session storage for superadmin — admin login flow uses
-        // sessionStorage[conversa-admin-session] keyed off Convex user
-        // rows, which Google sign-in doesn't set up. Direct nav is the
-        // safest no-touch behaviour for now.
+        // Phase A1: if the backend issued a session token (a matching users
+        // row exists), persist the admin session blob so the admin context
+        // and token auto-injection pick it up. Shape mirrors admin:login.
+        if (result.sessionToken) {
+          try {
+            window.sessionStorage.setItem(
+              'conversa-admin-session',
+              JSON.stringify({
+                user: { email: result.email, role: 'super_admin' },
+                sessionToken: result.sessionToken,
+              }),
+            )
+          } catch {}
+        }
         window.location.href = '/admin/superadmin'
         return
       }
       if (result.kind === 'conversa_admin') {
+        if (result.sessionToken) {
+          try {
+            window.sessionStorage.setItem(
+              'conversa-admin-session',
+              JSON.stringify({
+                user: { email: result.email, role: 'admin' },
+                sessionToken: result.sessionToken,
+              }),
+            )
+          } catch {}
+        }
         window.location.href = '/admin'
         return
       }

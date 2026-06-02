@@ -68,3 +68,150 @@ export async function verifyPassword(password: string, stored: string): Promise<
 export function isSuperadmin(role: string | undefined | null): boolean {
   return role === "super_admin";
 }
+
+// ─────────────────────────────────────────────────────────────
+// Session tokens (Phase A1 security hardening, 2026-06-02)
+//
+// Raw tokens are 32 random bytes (hex). We store only the SHA-256
+// hash in `authSessions`; every protected function calls one of the
+// require* guards below with the caller-supplied raw token.
+// ─────────────────────────────────────────────────────────────
+
+const ADMIN_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;    // 7 days
+const STUDENT_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+export function generateToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+}
+
+export async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Insert a session row and return the raw token (call from a mutation/action ctx).
+export async function createAdminSession(ctx: any, userId: any): Promise<string> {
+  const token = generateToken();
+  const now = Date.now();
+  await ctx.db.insert("authSessions", {
+    kind: "admin",
+    userId,
+    tokenHash: await sha256Hex(token),
+    createdAt: now,
+    expiresAt: now + ADMIN_SESSION_TTL_MS,
+  });
+  return token;
+}
+
+export async function createStudentSession(ctx: any, studentId: any): Promise<string> {
+  const token = generateToken();
+  const now = Date.now();
+  await ctx.db.insert("authSessions", {
+    kind: "student",
+    studentId,
+    tokenHash: await sha256Hex(token),
+    createdAt: now,
+    expiresAt: now + STUDENT_SESSION_TTL_MS,
+  });
+  return token;
+}
+
+async function lookupSession(ctx: any, sessionToken: string | undefined | null) {
+  if (!sessionToken) return null;
+  const hash = await sha256Hex(sessionToken);
+  const session = await ctx.db
+    .query("authSessions")
+    .withIndex("by_tokenHash", (q: any) => q.eq("tokenHash", hash))
+    .unique();
+  if (!session) return null;
+  if (session.expiresAt < Date.now()) return null;
+  return session;
+}
+
+// Admin guard: valid session belonging to an active admin/org_admin/super_admin
+// user. Returns { user, session }. Throws on failure.
+export async function requireAdmin(ctx: any, sessionToken: string | undefined | null) {
+  const session = await lookupSession(ctx, sessionToken);
+  if (!session || session.kind !== "admin" || !session.userId) {
+    throw new Error("Unauthorized: invalid or expired session");
+  }
+  const user = await ctx.db.get(session.userId);
+  if (
+    !user ||
+    user.status !== "active" ||
+    !["admin", "org_admin", "super_admin", "teacher"].includes(user.role)
+  ) {
+    throw new Error("Unauthorized: invalid or expired session");
+  }
+  return { user, session };
+}
+
+// Superadmin-only guard.
+export async function requireSuperadmin(ctx: any, sessionToken: string | undefined | null) {
+  const { user, session } = await requireAdmin(ctx, sessionToken);
+  if (!isSuperadmin(user.role)) {
+    throw new Error("Unauthorized: superadmin only");
+  }
+  return { user, session };
+}
+
+// Student guard: valid session belonging to an active student.
+// Returns { student, session }. Throws on failure.
+export async function requireStudent(ctx: any, sessionToken: string | undefined | null) {
+  const session = await lookupSession(ctx, sessionToken);
+  if (!session || session.kind !== "student" || !session.studentId) {
+    throw new Error("Unauthorized: invalid or expired session");
+  }
+  const student = await ctx.db.get(session.studentId);
+  if (!student || student.status === "archived") {
+    throw new Error("Unauthorized: invalid or expired session");
+  }
+  return { student, session };
+}
+
+// Admin-or-student guard (e.g. lesson booking is allowed for both). Returns
+// { user } for admins or { student } for students.
+export async function requireAdminOrStudent(ctx: any, sessionToken: string | undefined | null) {
+  const session = await lookupSession(ctx, sessionToken);
+  if (!session) throw new Error("Unauthorized: invalid or expired session");
+  if (session.kind === "admin" && session.userId) {
+    const user = await ctx.db.get(session.userId);
+    if (
+      user &&
+      user.status === "active" &&
+      ["admin", "org_admin", "super_admin", "teacher"].includes(user.role)
+    ) {
+      return { kind: "admin" as const, user, student: null, session };
+    }
+  }
+  if (session.kind === "student" && session.studentId) {
+    const student = await ctx.db.get(session.studentId);
+    if (student && student.status !== "archived") {
+      return { kind: "student" as const, user: null, student, session };
+    }
+  }
+  throw new Error("Unauthorized: invalid or expired session");
+}
+
+// Pipeline guard: trusted server-side scripts (em-enrichment, post-lesson
+// publish) authenticate with a shared key held in the Convex env var
+// PIPELINE_API_KEY. Accepts EITHER a valid admin session token OR the key.
+export async function requireAdminOrPipelineKey(
+  ctx: any,
+  sessionToken: string | undefined | null,
+  apiKey: string | undefined | null,
+) {
+  const expected = process.env.PIPELINE_API_KEY;
+  if (apiKey && expected && apiKey === expected) {
+    return { kind: "pipeline" as const, user: null };
+  }
+  const { user } = await requireAdmin(ctx, sessionToken);
+  return { kind: "admin" as const, user };
+}
+
+// Delete a session (logout).
+export async function destroySession(ctx: any, sessionToken: string | undefined | null) {
+  const session = await lookupSession(ctx, sessionToken);
+  if (session) await ctx.db.delete(session._id);
+}

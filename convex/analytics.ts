@@ -1,6 +1,7 @@
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { collocationsField } from "./validators.js";
+import { requireAdminOrPipelineKey } from "./authHelpers";
 
 // ─── Transcript Analysis ───────────────────────────────────
 
@@ -37,6 +38,8 @@ export const getStudentAnalyses = query({
 
 export const updateAnalysis = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     analysisId: v.id("transcriptAnalyses"),
     lessonSummary: v.optional(v.string()),
     strengths: v.optional(v.array(v.string())),
@@ -57,7 +60,8 @@ export const updateAnalysis = mutation({
     communicativeEffectiveness: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { analysisId, ...updates } = args;
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+    const { sessionToken, apiKey, analysisId, ...updates } = args;
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, val]) => val !== undefined)
     );
@@ -67,6 +71,8 @@ export const updateAnalysis = mutation({
 
 export const createAnalysis = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     studentId: v.id("students"),
     lessonId: v.id("lessons"),
     vocabularyRange: v.number(),
@@ -89,8 +95,10 @@ export const createAnalysis = mutation({
     previousAnalysisId: v.optional(v.id("transcriptAnalyses")),
   },
   handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+    const { sessionToken, apiKey, ...rest } = args;
     return await ctx.db.insert("transcriptAnalyses", {
-      ...args,
+      ...rest,
       createdAt: Date.now(),
     });
   },
@@ -210,6 +218,8 @@ export const getYouglishResults = query({
 
 export const bulkImportYouglish = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     entries: v.array(v.object({
       keyword: v.string(),
       results: v.array(v.object({
@@ -221,6 +231,7 @@ export const bulkImportYouglish = mutation({
     })),
   },
   handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     let imported = 0;
     for (const entry of args.entries) {
       const existing = await ctx.db
@@ -269,6 +280,8 @@ export const listKeywordBank = query({
 
 export const addKeywordToBank = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     studentId: v.optional(v.id("students")),
     word: v.string(),
     translation: v.string(),
@@ -283,8 +296,10 @@ export const addKeywordToBank = mutation({
     source: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+    const { sessionToken, apiKey, ...rest } = args;
     return await ctx.db.insert("keywordBank", {
-      ...args,
+      ...rest,
       used: false,
       createdAt: Date.now(),
     });
@@ -293,9 +308,12 @@ export const addKeywordToBank = mutation({
 
 export const markKeywordBankUsed = mutation({
   args: {
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
     keywordBankId: v.id("keywordBank"),
   },
   handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     await ctx.db.patch(args.keywordBankId, { used: true });
   },
 });

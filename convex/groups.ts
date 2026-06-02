@@ -8,19 +8,24 @@ import {
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import { requireAdmin, isSuperadmin } from "./authHelpers";
 
 // ═══════════════════════════════════════════════════════════
 // GROUP QUERIES
 // ═══════════════════════════════════════════════════════════
 
 export const listGroups = query({
-  args: { organizationId: v.optional(v.id("organizations")) },
+  args: { sessionToken: v.string(), organizationId: v.optional(v.id("organizations")) },
   handler: async (ctx, args) => {
-    if (args.organizationId) {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    if (organizationId) {
       return await ctx.db
         .query("groups")
         .withIndex("by_organization", (q) =>
-          q.eq("organizationId", args.organizationId!)
+          q.eq("organizationId", organizationId)
         )
         .collect();
     }
@@ -29,16 +34,18 @@ export const listGroups = query({
 });
 
 export const getGroup = query({
-  args: { groupId: v.id("groups") },
+  args: { sessionToken: v.string(), groupId: v.id("groups") },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     return await ctx.db.get(args.groupId);
   },
 });
 
 // Join groupMemberships -> students for a given group
 export const getGroupMembers = query({
-  args: { groupId: v.id("groups") },
+  args: { sessionToken: v.string(), groupId: v.id("groups") },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     const memberships = await ctx.db
       .query("groupMemberships")
       .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
@@ -78,13 +85,17 @@ export const getStudentGroups = query({
 
 // List all groups with member counts (for admin listing)
 export const listGroupsWithCounts = query({
-  args: { organizationId: v.optional(v.id("organizations")) },
+  args: { sessionToken: v.string(), organizationId: v.optional(v.id("organizations")) },
   handler: async (ctx, args) => {
-    const groups = args.organizationId
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const organizationId = isSuperadmin(user.role)
+      ? (args.organizationId ?? user.organizationId)
+      : user.organizationId;
+    const groups = organizationId
       ? await ctx.db
           .query("groups")
           .withIndex("by_organization", (q) =>
-            q.eq("organizationId", args.organizationId!)
+            q.eq("organizationId", organizationId)
           )
           .collect()
       : await ctx.db.query("groups").collect();
@@ -140,11 +151,13 @@ export const seedGroup = internalMutation({
 // callers should verify via the frontend guard)
 export const addGroupMember = mutation({
   args: {
+    sessionToken: v.string(),
     groupId: v.id("groups"),
     studentId: v.id("students"),
     role: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     // Check for existing membership
     const existing = await ctx.db
       .query("groupMemberships")
@@ -178,10 +191,12 @@ export const addGroupMember = mutation({
 // Remove a student from a group (soft-remove: sets isActive=false)
 export const removeGroupMember = mutation({
   args: {
+    sessionToken: v.string(),
     groupId: v.id("groups"),
     studentId: v.id("students"),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     const membership = await ctx.db
       .query("groupMemberships")
       .withIndex("by_group_student", (q) =>

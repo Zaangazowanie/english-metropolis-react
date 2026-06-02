@@ -841,6 +841,28 @@ export default defineSchema({
   // interference-extraction pipeline.
   // ═══════════════════════════════════════════════════════════
 
+  // ═══════════════════════════════════════════════════════════
+  // AUTH SESSIONS — server-side session tokens for admin + student
+  // logins. The raw token is returned to the client once at login;
+  // we store only its SHA-256 hash. Protected queries/mutations
+  // require a valid, unexpired token (see authHelpers.requireAdmin /
+  // requireStudent). Added 2026-06-02 (Phase A1 security hardening —
+  // previously all admin functions were publicly callable).
+  // ═══════════════════════════════════════════════════════════
+
+  authSessions: defineTable({
+    kind: v.string(),                          // "admin" | "student"
+    userId: v.optional(v.id("users")),         // set for admin sessions
+    studentId: v.optional(v.id("students")),   // set for student sessions
+    tokenHash: v.string(),                     // SHA-256 hex of the raw token
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+  })
+    .index("by_tokenHash", ["tokenHash"])
+    .index("by_user", ["userId"])
+    .index("by_student", ["studentId"]),
+
   interferencePatterns: defineTable({
     patternId: v.string(),         // "article-omission", "third-person-s", etc.
     cefrLevel: v.string(),         // typical level this error appears
