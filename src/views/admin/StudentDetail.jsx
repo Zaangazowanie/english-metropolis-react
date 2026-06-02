@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { queryAdminConvex } from '../../contexts/AdminAuthContext.jsx'
-import { ensurePdfFonts } from '../../utils/pdf-loader.js'
+import { ensureJsPdf, ensurePdfFonts } from '../../utils/pdf-loader.js'
 import { formatDate, formatLongDate, CefrBadge } from '../../components/analytics/AnalyticsPrimitives.jsx'
 
 /* ============================================================================
@@ -547,6 +547,200 @@ function AdminInsightCardGrid({ kind, items, onOpenSource, sourceLabel = '', lin
 }
 
 /* ============================================================================
+   LessonArchiveCard — pedagogically-framed record for a single lesson.
+   Renders learning aims (from topics), learning outcomes (lessonSummary +
+   strengths), performance & attainment (the 5 CEFR metric scores), areas for
+   development (improvements) and errors & corrections (keyErrors). Aims +
+   outcomes summary show by default; the full attainment detail expands on
+   demand. onOpen opens the existing full lesson detail modal.
+   ============================================================================ */
+
+function AttainmentBar({ label, value }) {
+  const pct = Math.min(100, Math.max(0, Math.round(Number(value) || 0)))
+  const tier = scoreToTier(pct)
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="font-label text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 truncate">{label}</span>
+        <span className="font-headline text-sm text-slate-900 tabular-nums">{pct}</span>
+      </div>
+      <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+        <div className={`h-1.5 rounded-full ${tier.bar}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  )
+}
+
+function LessonArchiveCard({ lesson, analysis, pdf, onOpen, animatedDelay = 0 }) {
+  const [expanded, setExpanded] = useState(false)
+  const topics = lesson.topics || []
+  const strengths = (analysis?.strengths || []).filter(Boolean)
+  const improvements = (analysis?.improvements || []).filter(Boolean)
+  const keyErrors = (analysis?.keyErrors || []).filter(Boolean)
+
+  return (
+    <div
+      className="metric-card-enter liquid-glass-card rounded-[1.5rem] border border-white/60 px-5 py-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_56px_-32px_rgba(2,132,199,0.55)]"
+      style={{ animationDelay: `${animatedDelay}ms` }}
+    >
+      {/* Header: date · title · CEFR band · overall score */}
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <p className="font-label text-[11px] font-bold uppercase tracking-[0.22em] text-sky-600">{formatLongDate(lesson.date)}</p>
+          <h4 className="mt-1 font-headline text-2xl text-slate-900 leading-tight">{lesson.title}</h4>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {analysis && <CefrBadge band={analysis.cefrBand} score={analysis.overallScore} size="lg" />}
+          {pdf && (
+            <a
+              href={pdf.url}
+              onClick={e => e.stopPropagation()}
+              target="_blank"
+              rel="noopener"
+              title="Download original lesson notes"
+              className="rounded-full border border-sky-200 bg-sky-50 p-2 text-sky-700 hover:bg-sky-100 transition cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-base">download</span>
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Learning Aims — derived from lesson topics */}
+      {topics.length > 0 && (
+        <div className="mt-5">
+          <p className="font-label text-xs font-bold uppercase tracking-[0.24em] text-sky-600 flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-sm">target</span>
+            Learning Aims
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {topics.map((t, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm leading-relaxed text-slate-700">
+                <span className="material-symbols-outlined text-sky-400 text-base shrink-0 mt-0.5">arrow_right</span>
+                <span>To develop the learner&rsquo;s command of <span className="font-semibold text-slate-800">{t}</span>.</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Learning Outcomes — lessonSummary + strengths */}
+      {(analysis?.lessonSummary || strengths.length > 0) && (
+        <div className="mt-5">
+          <p className="font-label text-xs font-bold uppercase tracking-[0.24em] text-emerald-600 flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-sm">emoji_objects</span>
+            Learning Outcomes
+          </p>
+          {analysis?.lessonSummary && (
+            <RichText text={analysis.lessonSummary} className="mt-2" />
+          )}
+          {strengths.length > 0 && (
+            <ul className="mt-3 space-y-1.5">
+              {strengths.map((s, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm leading-relaxed text-emerald-800">
+                  <span className="material-symbols-outlined text-emerald-500 text-base shrink-0 mt-0.5">check_circle</span>
+                  <span>The learner demonstrated <RichInline text={s} /></span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Expandable: full attainment detail */}
+      {expanded && analysis && (
+        <div className="mt-5 space-y-5 border-t border-slate-100 pt-5">
+          {/* Performance & Attainment — 5 CEFR metric scores */}
+          <div>
+            <p className="font-label text-xs font-bold uppercase tracking-[0.24em] text-sky-600 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-sm">insights</span>
+              Performance &amp; Attainment
+            </p>
+            <div className="mt-3 grid gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+              {METRICS.map(m => (
+                <AttainmentBar key={m.key} label={m.label} value={analysis[m.key]} />
+              ))}
+            </div>
+          </div>
+
+          {/* Areas for Development — improvements */}
+          {improvements.length > 0 && (
+            <div>
+              <p className="font-label text-xs font-bold uppercase tracking-[0.24em] text-amber-600 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm">trending_up</span>
+                Areas for Development
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {improvements.map((imp, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm leading-relaxed text-amber-800">
+                    <span className="material-symbols-outlined text-amber-500 text-base shrink-0 mt-0.5">arrow_circle_right</span>
+                    <span>Developing competence in <RichInline text={imp} /></span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Errors & Corrections — keyErrors */}
+          {keyErrors.length > 0 && (
+            <div>
+              <p className="font-label text-xs font-bold uppercase tracking-[0.24em] text-rose-600 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm">flag</span>
+                Errors &amp; Corrections
+              </p>
+              <div className="mt-2 space-y-2">
+                {keyErrors.map((err, i) => {
+                  const isObj = typeof err === 'object' && err !== null
+                  const errText = isObj ? err.error : err
+                  return (
+                    <div key={i} className="rounded-[1rem] border border-rose-100 bg-rose-50/50 px-3 py-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-mono text-xs italic text-rose-700 leading-relaxed flex-1">&ldquo;<RichInline text={errText} />&rdquo;</p>
+                        {isObj && err.category && (
+                          <span className="shrink-0 rounded-full bg-rose-100 border border-rose-200 px-2 py-0.5 text-[10px] font-label font-bold uppercase tracking-[0.12em] text-rose-700">{err.category}</span>
+                        )}
+                      </div>
+                      {isObj && err.correction && (
+                        <p className="mt-1 text-xs text-emerald-700 leading-relaxed"><span className="font-bold">→</span> <RichInline text={err.correction} /></p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Card actions */}
+      <div className="mt-5 flex items-center gap-2 flex-wrap">
+        {analysis && (
+          <button
+            type="button"
+            onClick={() => setExpanded(v => !v)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3.5 py-1.5 font-label text-[11px] font-bold uppercase tracking-[0.16em] text-sky-700 hover:bg-sky-100 transition cursor-pointer"
+          >
+            <span className={`material-symbols-outlined text-sm transition-transform ${expanded ? 'rotate-180' : ''}`}>expand_more</span>
+            {expanded ? 'Hide attainment detail' : 'View attainment detail'}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => onOpen(lesson)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 font-label text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600 hover:border-sky-300 hover:text-sky-700 transition cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-sm">menu_book</span>
+          Open full lesson record
+        </button>
+        <span className="ml-auto font-label text-[11px] text-slate-400">
+          {lesson.keywordCount || lesson.keywords?.length || 0} vocabulary items acquired
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/* ============================================================================
    PDF Report Generator (uses window.jspdf loaded from /students/vendor/)
    ============================================================================ */
 
@@ -556,12 +750,19 @@ function AdminInsightCardGrid({ kind, items, onOpenSource, sourceLabel = '', lin
    ============================================================================ */
 
 async function generateStudentReport(student, assessment, feedback, enrichedAnalyses, lessons) {
-  const jspdfLib = typeof window !== 'undefined' ? window.jspdf : null
+  let jspdfLib
+  try {
+    jspdfLib = await ensureJsPdf()
+    await ensurePdfFonts()
+  } catch (err) {
+    console.error('Failed to load PDF dependencies', err)
+    alert('Could not load the PDF generator. Please refresh and try again.')
+    return
+  }
   if (!jspdfLib?.jsPDF) {
     alert('PDF library not loaded. Please refresh the page.')
     return
   }
-  await ensurePdfFonts()
   const { jsPDF } = jspdfLib
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
 
@@ -1184,76 +1385,96 @@ export default function StudentDetail() {
   const pdfByDate = Object.fromEntries(studentPdfs.map(p => [p.date, p]))
   const warmSummary = buildWarmSummary(student, enrichedAnalyses, lessons)
 
+  // Editorial hero name split — final word italicised in sky-600 (Dashboard.jsx pattern)
+  const nameParts = String(student?.name || 'Student').trim().split(/\s+/)
+  const heroFirst = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : ''
+  const heroLast = nameParts[nameParts.length - 1] || 'Student'
+
   return (
     <div className="space-y-6">
-      {/* Breadcrumb + report button — elevated card with clear visibility */}
-      <div className="glass-panel rounded-[1.5rem] border border-white/60 editorial-shadow flex items-center justify-between gap-4 flex-wrap px-5 py-3.5">
-        <nav className="flex items-center gap-3 min-w-0">
-          <Link
-            to="/admin"
-            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 font-label text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600 hover:border-sky-300 hover:text-sky-700 hover:bg-sky-50 transition cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-sm">arrow_back</span>
-            Roster
-          </Link>
-          <span className="material-symbols-outlined text-slate-300 text-sm">chevron_right</span>
-          <span className="font-headline text-base sm:text-lg text-slate-900 truncate">{student?.name}</span>
-        </nav>
-        <button
-          type="button"
-          onClick={() => generateStudentReport(student, overallAssessment, overallFeedback, enrichedAnalyses, lessons)}
-          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 px-4 py-2 font-label text-[11px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_4px_14px_rgba(37,99,235,0.25)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.35)] hover:scale-[1.02] transition-all cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
-          Download Full Report
-        </button>
-      </div>
+      {/* ── Editorial hero — the learner's academic record ─────────── */}
+      <section className="glass-panel relative overflow-hidden rounded-[2rem] border border-white/50 px-6 py-8 sm:px-10 sm:py-10 editorial-shadow">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(ellipse 50% 70% at 95% 0%, rgba(14,165,233,0.10), transparent 60%),
+              radial-gradient(ellipse 40% 50% at 5% 100%, rgba(37,99,235,0.07), transparent 55%)`,
+          }}
+        />
+        <div className="relative">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <Link
+              to="/admin"
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 font-label text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600 hover:border-sky-300 hover:text-sky-700 hover:bg-sky-50 transition cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-sm">arrow_back</span>
+              Back to roster
+            </Link>
+            <button
+              type="button"
+              onClick={() => generateStudentReport(student, overallAssessment, overallFeedback, enrichedAnalyses, lessons)}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-18px_rgba(2,132,199,1)] transition-all duration-300 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
+              Download Full Report
+            </button>
+          </div>
 
-      {/* Profile header — warm tone */}
-      <section className="glass-panel rounded-[2rem] border border-white/50 editorial-shadow px-5 py-6 sm:px-7">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.25rem] bg-gradient-to-br from-blue-600 to-indigo-700 shadow-md">
-              <span className="font-headline text-xl text-white">{initials}</span>
-            </div>
-            <div>
-              <h1 className="font-headline text-2xl sm:text-3xl text-slate-900">{student?.name}</h1>
-              <div className="mt-2 flex items-center gap-2 flex-wrap">
-                <CefrBadge band={student?.level || 'N/A'} size="lg" />
-                {student?.targetLevel && (
-                  <span className="text-xs font-label text-slate-500">aiming for {student.targetLevel}</span>
-                )}
-                {student?.status === 'active' && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-xs font-label font-bold uppercase tracking-[0.16em] text-emerald-700">
-                    <span className="block h-1.5 w-1.5 rounded-full bg-emerald-500" />Active
-                  </span>
-                )}
+          <p className="mt-7 font-label text-xs font-bold uppercase tracking-[0.32em] text-sky-600">Academic Record · Conversa School</p>
+
+          <div className="mt-3 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex items-center gap-5">
+              <div className="flex h-16 w-16 sm:h-20 sm:w-20 shrink-0 items-center justify-center rounded-[1.25rem] bg-gradient-to-br from-sky-500 to-blue-700 shadow-[0_14px_30px_-16px_rgba(2,132,199,0.9)]">
+                <span className="font-headline text-xl sm:text-2xl text-white">{initials}</span>
+              </div>
+              <div>
+                <h1 className="font-headline text-4xl sm:text-5xl text-slate-900 leading-[1.02]">
+                  {heroFirst && <>{heroFirst} </>}<span className="italic text-sky-600">{heroLast}</span>
+                </h1>
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  <CefrBadge band={student?.level || 'N/A'} size="lg" />
+                  {student?.targetLevel && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-label font-bold uppercase tracking-[0.14em] text-sky-700">
+                      <span className="material-symbols-outlined text-[13px]">flag</span>
+                      Target {student.targetLevel}
+                    </span>
+                  )}
+                  {student?.status === 'active' && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-xs font-label font-bold uppercase tracking-[0.16em] text-emerald-700">
+                      <span className="block h-1.5 w-1.5 rounded-full bg-emerald-500" />Active Learner
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-5 sm:ml-auto sm:text-right">
-            <div className="text-center">
-              <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Lessons</p>
-              <p className="font-headline text-2xl text-slate-900">{lessons?.length || 0}</p>
-            </div>
-            <div className="text-center">
-              <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Keywords</p>
-              <p className="font-headline text-2xl text-slate-900">{totalKeywords || 0}</p>
-            </div>
-            <div className="text-center">
-              <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Assessments</p>
-              <p className="font-headline text-2xl text-slate-900">{enrichedAnalyses.length}</p>
-            </div>
-            {recentQuizzes?.length ? (
-              <div className="text-center">
-                <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Quiz Avg</p>
-                <p className="font-headline text-2xl text-slate-900">{Math.round(avgAccuracy || 0)}%</p>
+
+            <div className="grid grid-cols-3 gap-3 sm:flex sm:gap-3">
+              <div className="liquid-glass-card metric-card-enter rounded-[1.25rem] px-4 py-3 text-center" style={{ animationDelay: '0ms' }}>
+                <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-sky-700">Lessons</p>
+                <p className="mt-1 font-headline text-3xl text-slate-900">{lessons?.length || 0}</p>
               </div>
-            ) : null}
+              <div className="liquid-glass-card metric-card-enter rounded-[1.25rem] px-4 py-3 text-center" style={{ animationDelay: '80ms' }}>
+                <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-sky-700">Vocabulary</p>
+                <p className="mt-1 font-headline text-3xl text-slate-900">{totalKeywords || 0}</p>
+              </div>
+              <div className="liquid-glass-card metric-card-enter rounded-[1.25rem] px-4 py-3 text-center" style={{ animationDelay: '160ms' }}>
+                <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-sky-700">Assessments</p>
+                <p className="mt-1 font-headline text-3xl text-slate-900">{enrichedAnalyses.length}</p>
+              </div>
+              {recentQuizzes?.length ? (
+                <div className="liquid-glass-card metric-card-enter rounded-[1.25rem] px-4 py-3 text-center" style={{ animationDelay: '240ms' }}>
+                  <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-sky-700">Quiz Avg</p>
+                  <p className="mt-1 font-headline text-3xl text-slate-900">{Math.round(avgAccuracy || 0)}%</p>
+                </div>
+              ) : null}
+            </div>
           </div>
+
+          {/* Warm summary paragraph */}
+          <p className="mt-6 text-[15px] leading-relaxed text-slate-600 max-w-4xl">{warmSummary}</p>
         </div>
-        {/* Warm summary paragraph */}
-        <p className="mt-5 text-sm leading-relaxed text-slate-600 max-w-4xl">{warmSummary}</p>
       </section>
 
       {/* CEFR Analysis — Clinical detail in drop-downs */}
@@ -1443,10 +1664,10 @@ export default function StudentDetail() {
       {/* Progress History — fixed date display */}
       {enrichedAnalyses.length > 1 && (
         <CollapsibleSection
-          title="Progress History"
+          title="Learning Progression"
           icon="trending_up"
           badge={`${enrichedAnalyses.length} assessments`}
-          subtitle="Longitudinal view of every graded lesson, newest first"
+          subtitle="Longitudinal record of the learner's attainment across every graded lesson, newest first"
           defaultOpen={true}
         >
           <div className="space-y-3">
@@ -1495,75 +1716,45 @@ export default function StudentDetail() {
         </CollapsibleSection>
       )}
 
-      {/* Lessons — full detail per lesson with download */}
+      {/* Lesson Archive — pedagogically-framed record per lesson */}
       <CollapsibleSection
-        title="Lessons"
+        title="Lesson Archive"
         icon="menu_book"
-        badge={`${lessons?.length || 0} total`}
-        subtitle="Click any lesson to open the full transcript, analysis, and key errors"
-        defaultOpen={false}
+        badge={`${lessons?.length || 0} delivered`}
+        subtitle="A complete record of learning aims, outcomes and attainment for every lesson delivered."
+        defaultOpen={true}
       >
         <input
           type="search"
-          placeholder="Search lessons by title, topic, date, or summary..."
+          placeholder="Search the archive by title, topic, date, or summary..."
           value={lessonFilter}
           onChange={(e) => setLessonFilter(e.target.value)}
           className="w-full rounded-xl border border-slate-200/60 bg-white/60 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100 mb-4"
         />
-        <div className="space-y-2 max-h-[700px] overflow-y-auto pr-1">
-          {filteredLessons.length ? filteredLessons.map(lesson => {
+        <div className="space-y-4 max-h-[820px] overflow-y-auto pr-1">
+          {filteredLessons.length ? filteredLessons.map((lesson, i) => {
             const analysis = analysisByLessonId[String(lesson._id || lesson.id)]
             const pdf = pdfByDate[lesson.date]
             return (
-              <div
+              <LessonArchiveCard
                 key={lesson._id || lesson.id}
-                className="liquid-glass-card rounded-[1.25rem] border border-white/60 px-4 py-3 hover:border-sky-200 transition cursor-pointer"
-                onClick={() => setSelectedLesson(lesson)}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-label text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{formatDate(lesson.date)}</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">{lesson.title}</p>
-                    {lesson.topics?.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {lesson.topics.slice(0, 5).map((t, i) => (
-                          <span key={i} className="rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] font-label text-slate-600">{t}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="text-center">
-                      <p className="text-[10px] font-label uppercase text-slate-400">Keywords</p>
-                      <p className="text-sm font-semibold text-slate-700">{lesson.keywordCount || lesson.keywords?.length || 0}</p>
-                    </div>
-                    {analysis && <CefrBadge band={analysis.cefrBand} score={analysis.overallScore} />}
-                    {pdf && (
-                      <a
-                        href={pdf.url}
-                        onClick={e => e.stopPropagation()}
-                        target="_blank"
-                        rel="noopener"
-                        title="Download original lesson notes"
-                        className="rounded-full border border-sky-200 bg-sky-50 p-1.5 text-sky-700 hover:bg-sky-100 transition"
-                      >
-                        <span className="material-symbols-outlined text-base">download</span>
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
+                lesson={lesson}
+                analysis={analysis}
+                pdf={pdf}
+                onOpen={setSelectedLesson}
+                animatedDelay={Math.min(i, 8) * 60}
+              />
             )
           }) : <p className="text-sm text-slate-500 text-center py-4">No lessons found.</p>}
         </div>
       </CollapsibleSection>
 
-      {/* Vocabulary — rich detail matching student panel */}
+      {/* Vocabulary Acquisition — rich detail matching student panel */}
       <CollapsibleSection
-        title="Vocabulary"
+        title="Vocabulary Acquisition"
         icon="translate"
         badge={`${totalKeywords || allKeywords.length} words`}
-        subtitle="Every keyword this student has worked through — click for full detail"
+        subtitle="Every lexical item the learner has acquired — click for full detail"
         defaultOpen={false}
       >
         <input
@@ -1641,23 +1832,23 @@ export default function StudentDetail() {
         ) : <p className="text-sm text-slate-500 text-center py-4">No quiz results yet.</p>}
       </CollapsibleSection>
 
-      {/* Downloads */}
+      {/* Downloads — source documents behind the academic record */}
       <CollapsibleSection
         title="Downloads"
         icon="cloud_download"
         badge={`${studentPdfs.length} lesson notes`}
-        subtitle="Original teacher notes and lesson transcripts"
+        subtitle="Source teacher notes and lesson transcripts underpinning this record"
         defaultOpen={false}
       >
         {studentPdfs.length ? (
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             {[...studentPdfs].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).map((pdf, i) => (
               <a
                 key={i}
                 href={pdf.url}
                 target="_blank"
                 rel="noopener"
-                className="flex items-center gap-3 rounded-[1rem] border border-slate-200/60 bg-white/70 px-3 py-2.5 hover:border-sky-200 hover:bg-sky-50/30 transition"
+                className="liquid-glass-card flex items-center gap-3 rounded-[1.25rem] border border-white/60 px-4 py-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_40px_-26px_rgba(2,132,199,0.5)]"
               >
                 <span className="material-symbols-outlined text-2xl text-rose-400 shrink-0">picture_as_pdf</span>
                 <div className="min-w-0 flex-1">

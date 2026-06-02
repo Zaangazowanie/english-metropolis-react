@@ -36,11 +36,14 @@ function monthKey(date) {
 
 // ── small building blocks ──────────────────────────────────────────────────
 
-function StatCard({ label, value, accent = 'text-slate-900', sub }) {
+function StatCard({ label, value, accent = 'text-slate-900', sub, delay = 0 }) {
   return (
-    <div className="liquid-glass-card rounded-[1.25rem] px-4 py-3">
+    <div
+      className="liquid-glass-card metric-card-enter rounded-[1.5rem] px-5 py-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_48px_-28px_rgba(2,132,199,0.5)]"
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{label}</p>
-      <p className={`mt-2 font-headline text-3xl ${accent}`}>{value}</p>
+      <p className={`mt-2 font-headline text-4xl ${accent}`}>{value}</p>
       {sub && <p className="mt-1 text-xs text-slate-500">{sub}</p>}
     </div>
   )
@@ -230,22 +233,48 @@ export default function AdminCalendar() {
   return (
     <div className="space-y-6">
 
-      {/* ── Monthly billing summary ── */}
-      <section className="glass-panel rounded-[2rem] border border-white/50 px-6 py-6 editorial-shadow">
-        <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-700">This Month</p>
-        <h2 className="mt-1 font-headline text-3xl text-slate-900">
-          {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()} — Lesson Count
-        </h2>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Completed Lessons" value={currentMonthStats?.completedLessons ?? 0} />
-          <StatCard label="Late Cancellations" value={currentMonthStats?.lateCancellations ?? 0}
-            accent={currentMonthStats?.lateCancellations ? 'text-rose-600' : 'text-slate-900'}
-            sub="Cancelled < 24h before start — billed" />
-          <StatCard label="Total Billable" value={currentMonthStats?.billableTotal ?? 0}
-            accent="text-sky-700" sub="Completed + late cancellations" />
-          <StatCard label="Scheduled Ahead" value={upcoming.length} sub="Upcoming booked lessons" />
+      {/* ── Page heading ── */}
+      <section className="glass-panel relative overflow-hidden rounded-[2rem] border border-white/50 px-6 py-8 sm:px-10 editorial-shadow">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(ellipse 50% 70% at 95% 0%, rgba(14,165,233,0.10), transparent 60%),
+              radial-gradient(ellipse 40% 50% at 5% 100%, rgba(37,99,235,0.07), transparent 55%)`,
+          }}
+        />
+        <div className="relative">
+          <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">
+            Lesson Planning · {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}
+          </p>
+          <h1 className="mt-3 font-headline text-4xl text-slate-900 leading-[1.05]">
+            Calendar &amp; <span className="italic text-sky-600">Scheduling</span>
+          </h1>
         </div>
-        <PolicyNotice />
+      </section>
+
+      {/* ── Monthly billing summary ── */}
+      <section className="glass-panel relative overflow-hidden rounded-[2rem] border border-sky-200/70 px-6 py-7 sm:px-8 editorial-shadow">
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-50/80 via-white/40 to-blue-50/60" />
+        <div className="relative">
+          <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">
+            Billing Period · {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}
+          </p>
+          <h2 className="mt-1 font-headline text-3xl text-slate-900">
+            Lessons This <span className="italic text-sky-600">Month</span>
+          </h2>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Completed Lessons" value={currentMonthStats?.completedLessons ?? 0} delay={0} />
+            <StatCard label="Late Cancellations" value={currentMonthStats?.lateCancellations ?? 0}
+              accent={currentMonthStats?.lateCancellations ? 'text-rose-600' : 'text-slate-900'}
+              sub="Cancelled < 24h before start — billed" delay={90} />
+            <StatCard label="Total Billable" value={currentMonthStats?.billableTotal ?? 0}
+              accent="text-sky-700" sub="Completed + late cancellations" delay={180} />
+            <StatCard label="Scheduled Ahead" value={upcoming.length} sub="Upcoming booked lessons" delay={270} />
+          </div>
+          <PolicyNotice />
+        </div>
       </section>
 
       {/* status notice */}
@@ -282,7 +311,7 @@ export default function AdminCalendar() {
               </span>
             )}
             <button onClick={() => { setBookingPanel(p => !p); setNotice(null); setCancelTarget(null) }}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:shadow-lg transition cursor-pointer">
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-18px_rgba(2,132,199,1)] transition-all duration-300 cursor-pointer">
               <span className="material-symbols-outlined text-lg">add</span>
               Book a lesson
             </button>
@@ -310,11 +339,22 @@ export default function AdminCalendar() {
             const taught = taughtByDate[dateStr] || []
             const bookings = bookingsByDate[dateStr] || []
             const open = slotsByDate[dateStr] || []
+            const hasLessons = taught.length > 0 || bookings.length > 0
             return (
-              <div key={dateStr} className={`min-h-[84px] rounded-[0.875rem] border px-1.5 py-1.5 text-left align-top transition ${
-                isToday ? 'border-sky-400 bg-sky-50/70 ring-1 ring-sky-200' : 'border-slate-200/70 bg-white/60'
+              <div key={dateStr} className={`min-h-[84px] rounded-[1rem] border px-1.5 py-1.5 text-left align-top transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_38px_-30px_rgba(2,132,199,0.6)] ${
+                isToday
+                  ? 'border-transparent bg-white ring-2 ring-sky-500/70 shadow-[0_16px_35px_-22px_rgba(2,132,199,0.7)]'
+                  : hasLessons
+                    ? 'border-sky-200/70 bg-sky-50/50'
+                    : 'border-slate-200/70 bg-white/60'
               }`}>
-                <div className={`text-xs font-semibold ${isToday ? 'text-sky-700' : 'text-slate-500'}`}>{dayNum}</div>
+                <div className={`flex items-center justify-between text-xs font-semibold ${isToday ? 'text-sky-700' : 'text-slate-500'}`}>
+                  {isToday ? (
+                    <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-1.5 text-white">{dayNum}</span>
+                  ) : (
+                    <span>{dayNum}</span>
+                  )}
+                </div>
                 <div className="mt-1 space-y-1">
                   {taught.map((item, idx) => (
                     <div key={`t-${idx}`} title={`${item.student?.name || ''} — ${item.lesson?.title || 'Lesson'}`}
@@ -358,8 +398,8 @@ export default function AdminCalendar() {
       {/* ── Booking panel ── */}
       {bookingPanel && (
         <section className="glass-panel rounded-[2rem] border border-sky-200 bg-sky-50/40 px-6 py-6 editorial-shadow">
-          <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-700">New Booking</p>
-          <h3 className="mt-1 font-headline text-2xl text-slate-900">Book a lesson</h3>
+          <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">New Booking</p>
+          <h3 className="mt-1 font-headline text-2xl text-slate-900">Book a <span className="italic text-sky-600">lesson</span></h3>
 
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
             {/* student picker */}
@@ -418,7 +458,7 @@ export default function AdminCalendar() {
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button onClick={doBook} disabled={!bookStudent || !bookSlot || busy}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-6 py-3 text-sm font-semibold text-white shadow-md transition enabled:hover:shadow-lg enabled:cursor-pointer disabled:opacity-40">
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-6 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] transition-all duration-300 enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_20px_40px_-18px_rgba(2,132,199,1)] enabled:cursor-pointer disabled:opacity-40">
               <span className="material-symbols-outlined text-lg">event_available</span>
               {busy ? 'Booking…' : 'Confirm booking'}
             </button>
@@ -428,7 +468,7 @@ export default function AdminCalendar() {
               </p>
             )}
             <button onClick={() => { setBookingPanel(false); setBookSlot(null); setBookStudent('') }} disabled={busy}
-              className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 transition cursor-pointer">
+              className="rounded-full border border-sky-200 bg-white/80 px-5 py-3 text-sm font-semibold text-sky-700 hover:bg-sky-50 transition cursor-pointer">
               Close
             </button>
           </div>
@@ -468,12 +508,12 @@ export default function AdminCalendar() {
       )}
 
       {/* ── Upcoming bookings list ── */}
-      <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-4 editorial-shadow sm:px-6">
-        <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-700">Upcoming</p>
-        <h3 className="mt-1 font-headline text-2xl text-slate-900">Scheduled Lessons</h3>
+      <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-6 editorial-shadow sm:px-8">
+        <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">Upcoming</p>
+        <h3 className="mt-1 font-headline text-3xl text-slate-900">Scheduled <span className="italic text-sky-600">Lessons</span></h3>
         <div className="mt-4 space-y-2">
           {upcoming.length ? upcoming.map(b => (
-            <div key={b._id} className="flex flex-wrap items-center gap-3 rounded-[1.25rem] border border-white/60 bg-white/70 px-4 py-3">
+            <div key={b._id} className="flex flex-wrap items-center gap-3 rounded-[1.25rem] border border-white/60 bg-white/70 px-4 py-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_38px_-30px_rgba(2,132,199,0.55)]">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-label font-bold uppercase tracking-[0.14em] text-emerald-700">
                 <span className="material-symbols-outlined text-sm">event</span>
                 {b.timeWarsaw}
@@ -494,10 +534,10 @@ export default function AdminCalendar() {
 
       {/* ── Month-by-month history ── */}
       {stats?.months?.length > 0 && (
-        <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-4 editorial-shadow sm:px-6">
-          <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-700">History</p>
-          <h3 className="mt-1 font-headline text-2xl text-slate-900">Monthly Lesson Totals</h3>
-          <div className="mt-4 overflow-x-auto">
+        <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-6 editorial-shadow sm:px-8">
+          <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">History</p>
+          <h3 className="mt-1 font-headline text-3xl text-slate-900">Monthly Lesson <span className="italic text-sky-600">Totals</span></h3>
+          <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[480px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
@@ -511,11 +551,17 @@ export default function AdminCalendar() {
                 {stats.months.map(m => {
                   const [y, mo] = m.month.split('-').map(Number)
                   return (
-                    <tr key={m.month} className="border-b border-slate-100">
+                    <tr key={m.month} className="border-b border-slate-100 transition-colors hover:bg-sky-50/50">
                       <td className="py-2.5 pr-4 font-semibold text-slate-800">{MONTH_NAMES[mo - 1]} {y}</td>
-                      <td className="py-2.5 pr-4 text-slate-700">{m.completedLessons}</td>
-                      <td className={`py-2.5 pr-4 ${m.lateCancellations ? 'font-semibold text-rose-600' : 'text-slate-700'}`}>{m.lateCancellations}</td>
-                      <td className="py-2.5 pr-4 font-headline text-lg text-sky-700">{m.billableTotal}</td>
+                      <td className="py-2.5 pr-4">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">{m.completedLessons}</span>
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        {m.lateCancellations
+                          ? <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-xs font-semibold text-rose-700">{m.lateCancellations}</span>
+                          : <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-500">0</span>}
+                      </td>
+                      <td className="py-2.5 pr-4 font-headline text-lg bg-gradient-to-r from-sky-600 to-blue-700 bg-clip-text text-transparent">{m.billableTotal}</td>
                     </tr>
                   )
                 })}

@@ -29,7 +29,45 @@ function buildWarmHeadline(students) {
   const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0
   const top = [...students].sort((a, b) => (b.latestAnalysis?.overallScore || 0) - (a.latestAnalysis?.overallScore || 0))[0]
   const topName = top?.student?.name?.split(' ')[0] || ''
-  return `You have ${activeCount} active learner${activeCount === 1 ? '' : 's'} at Conversa, collectively through ${totalLessons} lesson${totalLessons === 1 ? '' : 's'} with a rolling CEFR average of ${avg}/100.${topName ? ` ${topName} is currently showing the strongest recent performance — the roster below walks you through every student in detail.` : ''}`
+  return `Your ${activeCount} learner${activeCount === 1 ? '' : 's'} ${activeCount === 1 ? 'has' : 'have'} completed ${totalLessons} lesson${totalLessons === 1 ? '' : 's'} to date, with a rolling attainment average of ${avg}/100 across the CEFR assessment scale.${topName ? ` ${topName} is currently demonstrating the strongest learning outcomes — the roster below details every learner's progression.` : ''}`
+}
+
+// Time-of-day greeting for the editorial hero.
+function greetingWord() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
+// Circular attainment ring — light/blue treatment of the v3 score ring.
+function ScoreRing({ value, size = 96 }) {
+  const r = (size - 10) / 2
+  const c = 2 * Math.PI * r
+  const pct = Math.max(0, Math.min(100, value || 0))
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(2,132,199,0.12)" strokeWidth="7" />
+        <circle
+          cx={size / 2} cy={size / 2} r={r} fill="none"
+          stroke="url(#conversaRingGrad)" strokeWidth="7" strokeLinecap="round"
+          strokeDasharray={c} strokeDashoffset={c - (c * pct) / 100}
+          style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(0.16,1,0.3,1)' }}
+        />
+        <defs>
+          <linearGradient id="conversaRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#0ea5e9" />
+            <stop offset="100%" stopColor="#2563eb" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-headline text-3xl text-slate-900 leading-none">{pct}</span>
+        <span className="font-label text-[8px] font-bold uppercase tracking-[0.2em] text-slate-400 mt-0.5">/ 100</span>
+      </div>
+    </div>
+  )
 }
 
 export default function AdminDashboard() {
@@ -128,106 +166,134 @@ export default function AdminDashboard() {
     return acc
   }, {})
 
+  const statCards = [
+    { label: 'Active Learners', value: db?.activeStudents || 0, icon: 'group', note: 'currently enrolled' },
+    { label: 'Lessons Delivered', value: totalLessons, icon: 'history_edu', note: 'across all learners' },
+    { label: 'Vocabulary Acquired', value: totalKeywords, icon: 'menu_book', note: 'words & phrases taught' },
+  ]
+
   return (
     <div className="space-y-6">
-      {/* School overview — warm welcome */}
-      <section className="glass-panel rounded-[2rem] border border-white/50 px-6 py-6 editorial-shadow">
-        <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-700">School Overview</p>
-        <h2 className="mt-1 font-headline text-3xl text-slate-900">{org?.name || 'Conversa'}</h2>
-        <p className="mt-3 text-sm leading-relaxed text-slate-600 max-w-3xl">{buildWarmHeadline(students)}</p>
+      {/* ── Editorial hero — school overview ─────────────────────── */}
+      <section className="glass-panel relative overflow-hidden rounded-[2rem] border border-white/50 px-6 py-8 sm:px-10 sm:py-10 editorial-shadow">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(ellipse 50% 70% at 95% 0%, rgba(14,165,233,0.10), transparent 60%),
+              radial-gradient(ellipse 40% 50% at 5% 100%, rgba(37,99,235,0.07), transparent 55%)`,
+          }}
+        />
+        <div className="relative">
+          <p className="font-label text-xs font-bold uppercase tracking-[0.32em] text-sky-600">School Overview · {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}</p>
+          <h2 className="mt-3 font-headline text-4xl sm:text-5xl text-slate-900 leading-[1.05]">
+            {greetingWord()}, <span className="italic text-sky-600">{org?.name || 'Conversa'}.</span>
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-slate-600 max-w-3xl">{buildWarmHeadline(students)}</p>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="liquid-glass-card rounded-[1.25rem] px-4 py-3">
-            <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Active Students</p>
-            <p className="mt-2 font-headline text-3xl text-slate-900">{db?.activeStudents || 0}</p>
-          </div>
-          <div className="liquid-glass-card rounded-[1.25rem] px-4 py-3">
-            <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Total Lessons</p>
-            <p className="mt-2 font-headline text-3xl text-slate-900">{totalLessons}</p>
-          </div>
-          <div className="liquid-glass-card rounded-[1.25rem] px-4 py-3">
-            <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Vocabulary Bank</p>
-            <p className="mt-2 font-headline text-3xl text-slate-900">{totalKeywords}</p>
-          </div>
-          <div className="liquid-glass-card rounded-[1.25rem] px-4 py-3">
-            <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Avg CEFR Score</p>
-            <p className="mt-2 font-headline text-3xl text-slate-900">{avgScore}</p>
+          <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-stretch">
+            {/* Attainment ring */}
+            <div className="liquid-glass-card metric-card-enter flex items-center gap-5 rounded-[1.5rem] px-6 py-5" style={{ animationDelay: '0ms' }}>
+              <ScoreRing value={avgScore} />
+              <div>
+                <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">School Attainment</p>
+                <p className="mt-1 font-headline text-xl text-slate-900">CEFR Average</p>
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                  {Object.entries(bandDistribution).map(([band, count]) => (
+                    <span key={band} className="inline-flex items-center gap-1.5">
+                      <CefrBadge band={band} />
+                      <span className="text-xs text-slate-500">× {count}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Stat cards */}
+            <div className="grid flex-1 gap-3 sm:grid-cols-3">
+              {statCards.map((card, i) => (
+                <div
+                  key={card.label}
+                  className="liquid-glass-card metric-card-enter group rounded-[1.5rem] px-5 py-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_48px_-28px_rgba(2,132,199,0.5)]"
+                  style={{ animationDelay: `${(i + 1) * 90}ms` }}
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-[0.875rem] bg-gradient-to-br from-sky-100 to-blue-100 text-sky-700 transition-transform duration-300 group-hover:scale-110">
+                    <span className="material-symbols-outlined text-xl">{card.icon}</span>
+                  </div>
+                  <p className="mt-4 font-headline text-4xl text-slate-900">{card.value}</p>
+                  <p className="mt-1 font-label text-[10px] font-bold uppercase tracking-[0.22em] text-sky-700">{card.label}</p>
+                  <p className="mt-0.5 text-xs text-slate-400">{card.note}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-
-        {/* CEFR distribution */}
-        {Object.keys(bandDistribution).length > 0 && (
-          <div className="mt-4 flex items-center gap-3 flex-wrap">
-            <p className="font-label text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">CEFR Distribution:</p>
-            {Object.entries(bandDistribution).map(([band, count]) => (
-              <span key={band} className="inline-flex items-center gap-1.5">
-                <CefrBadge band={band} />
-                <span className="text-xs text-slate-500">× {count}</span>
-              </span>
-            ))}
-          </div>
-        )}
       </section>
 
-      {/* Monthly lesson count — the billing figure (completed lessons this
-          month + billable late cancellations). Clearly shown per spec. */}
+      {/* ── Monthly lesson count — the billing figure ─────────────── */}
       {monthlyStats?.currentMonth && (
-        <section className="glass-panel rounded-[2rem] border border-sky-200/70 bg-sky-50/40 px-6 py-6 editorial-shadow">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-700">
-                {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}
-              </p>
-              <h3 className="mt-1 font-headline text-2xl text-slate-900">Lessons This Month</h3>
+        <section className="glass-panel relative overflow-hidden rounded-[2rem] border border-sky-200/70 px-6 py-7 sm:px-8 editorial-shadow">
+          <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-50/80 via-white/40 to-blue-50/60" />
+          <div className="relative">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">
+                  Billing Period · {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}
+                </p>
+                <h3 className="mt-1 font-headline text-3xl text-slate-900">Lessons This <span className="italic text-sky-600">Month</span></h3>
+              </div>
+              <Link to="/admin/calendar"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-18px_rgba(2,132,199,1)] transition-all duration-300">
+                <span className="material-symbols-outlined text-lg">calendar_month</span>
+                Open calendar & scheduling
+              </Link>
             </div>
-            <Link to="/admin/calendar"
-              className="inline-flex items-center gap-2 rounded-full border border-sky-300 bg-white px-4 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50 transition">
-              <span className="material-symbols-outlined text-lg">calendar_month</span>
-              Open calendar & scheduling
-            </Link>
-          </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <div className="liquid-glass-card rounded-[1.25rem] px-4 py-3">
-              <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Completed Lessons</p>
-              <p className="mt-2 font-headline text-4xl text-slate-900">{monthlyStats.currentMonth.completedLessons}</p>
-            </div>
-            <div className="liquid-glass-card rounded-[1.25rem] px-4 py-3">
-              <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Late Cancellations</p>
-              <p className={`mt-2 font-headline text-4xl ${monthlyStats.currentMonth.lateCancellations ? 'text-rose-600' : 'text-slate-900'}`}>
-                {monthlyStats.currentMonth.lateCancellations}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">Cancelled &lt; 24h before start — billed</p>
-            </div>
-            <div className="liquid-glass-card rounded-[1.25rem] px-4 py-3">
-              <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Total Billable</p>
-              <p className="mt-2 font-headline text-4xl text-sky-700">{monthlyStats.currentMonth.billableTotal}</p>
-              <p className="mt-1 text-xs text-slate-500">Completed + late cancellations</p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="liquid-glass-card metric-card-enter rounded-[1.5rem] px-5 py-4" style={{ animationDelay: '0ms' }}>
+                <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Completed Lessons</p>
+                <p className="mt-2 font-headline text-5xl text-slate-900">{monthlyStats.currentMonth.completedLessons}</p>
+              </div>
+              <div className="liquid-glass-card metric-card-enter rounded-[1.5rem] px-5 py-4" style={{ animationDelay: '90ms' }}>
+                <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Late Cancellations</p>
+                <p className={`mt-2 font-headline text-5xl ${monthlyStats.currentMonth.lateCancellations ? 'text-rose-600' : 'text-slate-900'}`}>
+                  {monthlyStats.currentMonth.lateCancellations}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">Cancelled &lt; 24h before start — billed</p>
+              </div>
+              <div className="liquid-glass-card metric-card-enter rounded-[1.5rem] px-5 py-4 ring-1 ring-sky-200/60" style={{ animationDelay: '180ms' }}>
+                <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-sky-600">Total Billable</p>
+                <p className="mt-2 font-headline text-5xl bg-gradient-to-r from-sky-600 to-blue-700 bg-clip-text text-transparent">{monthlyStats.currentMonth.billableTotal}</p>
+                <p className="mt-1 text-xs text-slate-500">Completed + late cancellations</p>
+              </div>
             </div>
           </div>
         </section>
       )}
 
-      {/* Student roster */}
-      <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-4 editorial-shadow sm:px-6">
+      {/* ── Student roster ─────────────────────────────────────────── */}
+      <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-6 editorial-shadow sm:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-700">Students</p>
-            <h3 className="mt-1 font-headline text-2xl text-slate-900">Student Roster</h3>
-            <p className="mt-1 text-xs text-slate-500">Click any card to open the full student dashboard — progress history, lesson archive, vocabulary and downloadable notes.</p>
+            <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">Learners</p>
+            <h3 className="mt-1 font-headline text-3xl text-slate-900">Student <span className="italic text-sky-600">Roster</span></h3>
+            <p className="mt-2 text-sm text-slate-500 max-w-xl">Open any learner to review their full academic record — learning outcomes, lesson archive, vocabulary acquisition and downloadable progress reports.</p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-slate-400 text-sm">search</span>
-            <input
-              type="search"
-              placeholder="Search students..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="rounded-xl border border-slate-200/60 bg-white/60 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100 w-48"
-            />
+            <div className="flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-4 py-2.5 focus-within:border-sky-300 focus-within:ring-2 focus-within:ring-sky-100 transition">
+              <span className="material-symbols-outlined text-slate-400 text-base">search</span>
+              <input
+                type="search"
+                placeholder="Search learners..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none w-40"
+              />
+            </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="rounded-xl border border-slate-200/60 bg-white/60 px-3 py-2 text-sm text-slate-700 focus:border-sky-300 focus:outline-none cursor-pointer"
+              className="rounded-full border border-slate-200/70 bg-white/80 px-4 py-2.5 text-sm text-slate-700 focus:border-sky-300 focus:outline-none cursor-pointer"
             >
               <option value="name">Name</option>
               <option value="level">Level</option>
@@ -237,8 +303,8 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="mt-5 space-y-3">
-          {sorted.length ? sorted.map(({ student, lessonCount, keywordCount, latestAnalysis }) => {
+        <div className="mt-6 space-y-3">
+          {sorted.length ? sorted.map(({ student, lessonCount, keywordCount, latestAnalysis }, idx) => {
             const initials = String(student?.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('') || '?'
             const lastActivity = latestAnalysis?.createdAt ? daysAgo(latestAnalysis.createdAt) : null
 
@@ -247,16 +313,17 @@ export default function AdminDashboard() {
                 key={student?._id}
                 type="button"
                 onClick={() => navigate(`/admin/student/${student?.slug}`)}
-                className="w-full liquid-glass-card rounded-[1.5rem] border border-white/60 px-4 py-4 text-left transition hover:border-sky-200 hover:shadow-md cursor-pointer"
+                className="metric-card-enter group w-full liquid-glass-card rounded-[1.5rem] border border-white/60 px-5 py-5 text-left transition-all duration-300 hover:border-sky-200 hover:-translate-y-1 hover:shadow-[0_28px_56px_-32px_rgba(2,132,199,0.55)] cursor-pointer"
+                style={{ animationDelay: `${idx * 80}ms` }}
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] bg-gradient-to-br from-blue-600 to-indigo-700 shadow-sm">
-                      <span className="font-headline text-base text-white">{initials}</span>
+                  <div className="flex items-center gap-4 min-w-0 flex-1">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.125rem] bg-gradient-to-br from-sky-500 to-blue-700 shadow-[0_14px_30px_-16px_rgba(2,132,199,0.9)] transition-transform duration-300 group-hover:scale-105">
+                      <span className="font-headline text-lg text-white">{initials}</span>
                     </div>
                     <div className="min-w-0">
-                      <p className="font-headline text-lg text-slate-900 truncate">{student?.name}</p>
-                      <div className="mt-1 flex items-center gap-2">
+                      <p className="font-headline text-xl text-slate-900 truncate">{student?.name}</p>
+                      <div className="mt-1.5 flex items-center gap-2">
                         <CefrBadge band={student?.level || 'N/A'} />
                         {student?.targetLevel && <span className="text-[10px] font-label text-slate-400">→ {student.targetLevel}</span>}
                         {student?.status === 'active' && (
@@ -269,28 +336,28 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 sm:gap-6">
+                  <div className="flex items-center gap-5 sm:gap-7">
                     <div className="text-center">
-                      <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Lessons</p>
-                      <p className="mt-1 font-headline text-xl text-slate-900">{lessonCount}</p>
+                      <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Lessons</p>
+                      <p className="mt-1 font-headline text-2xl text-slate-900">{lessonCount}</p>
                     </div>
                     <div className="text-center">
-                      <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Keywords</p>
-                      <p className="mt-1 font-headline text-xl text-slate-900">{keywordCount}</p>
+                      <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Vocabulary</p>
+                      <p className="mt-1 font-headline text-2xl text-slate-900">{keywordCount}</p>
                     </div>
                     <div className="text-center">
-                      <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">CEFR</p>
+                      <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Attainment</p>
                       <div className="mt-1 flex items-center gap-1">
                         <CefrBadge band={latestAnalysis?.cefrBand || '—'} score={latestAnalysis?.overallScore} />
                       </div>
                     </div>
                     {lastActivity && (
-                      <div className="text-center">
-                        <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Last Activity</p>
+                      <div className="text-center hidden sm:block">
+                        <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Last Assessed</p>
                         <p className="mt-1 text-xs font-semibold text-slate-600">{lastActivity}</p>
                       </div>
                     )}
-                    <span className="material-symbols-outlined text-slate-300 text-lg">chevron_right</span>
+                    <span className="material-symbols-outlined text-slate-300 text-lg transition-all duration-300 group-hover:text-sky-600 group-hover:translate-x-1">arrow_forward</span>
                   </div>
                 </div>
               </button>

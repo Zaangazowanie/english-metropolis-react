@@ -77,40 +77,49 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div
+      className="min-h-screen"
+      style={{
+        background: `
+          radial-gradient(ellipse 70% 50% at 85% -5%, rgba(2,132,199,0.10), transparent 60%),
+          radial-gradient(ellipse 55% 45% at 0% 15%, rgba(37,99,235,0.07), transparent 55%),
+          radial-gradient(ellipse 80% 60% at 50% 115%, rgba(56,189,248,0.08), transparent 60%),
+          linear-gradient(180deg, #FBFDFF 0%, #F4F8FD 55%, #EFF5FC 100%)`,
+      }}
+    >
       <div className="sticky-header-shell px-4 pt-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <header className="glass-panel sticky top-0 z-40 rounded-none border border-white/60 border-t-0 editorial-shadow px-4 py-3 sm:top-3 sm:rounded-[2rem] sm:border-t sm:px-6 sm:py-4">
             <div className="flex items-center justify-between gap-3">
-              <Link to="/admin" className="flex items-center gap-3 min-w-0">
-                <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-[1rem] sm:rounded-[1.25rem] border border-white/60 bg-white/80 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.35)]">
-                  <span className="material-symbols-outlined text-sky-700">apartment</span>
+              <Link to="/admin" className="flex items-center gap-3 min-w-0 group">
+                <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-[1rem] sm:rounded-[1.25rem] bg-gradient-to-br from-sky-500 to-blue-700 shadow-[0_18px_45px_-22px_rgba(2,132,199,0.85)] transition-transform duration-300 group-hover:scale-105">
+                  <span className="material-symbols-outlined text-white">apartment</span>
                 </div>
                 <div className="min-w-0">
-                  <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-700">{orgName} School Admin</p>
-                  <h1 className="font-headline text-xl sm:text-3xl text-slate-900 truncate">{orgName} Admin</h1>
+                  <p className="font-label text-[10px] sm:text-xs font-bold uppercase tracking-[0.32em] text-sky-600">School Administration</p>
+                  <h1 className="font-headline text-xl sm:text-3xl text-slate-900 truncate leading-tight">
+                    {orgName}<span className="italic text-sky-600">.</span>
+                  </h1>
                 </div>
               </Link>
 
               {isSuperadmin && (
                 <Link
                   to="/admin/superadmin"
-                  className="hidden sm:flex items-center gap-2 rounded-[1rem] border border-sky-200 bg-sky-50 px-3 py-2 text-sky-700 hover:bg-sky-100 transition"
+                  className="hidden sm:flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sky-700 hover:bg-sky-100 hover:-translate-y-0.5 transition-all duration-300"
                 >
                   <span className="material-symbols-outlined text-base">arrow_back</span>
                   <span className="font-label text-xs font-bold uppercase tracking-[0.18em]">Superadmin</span>
                 </Link>
               )}
 
-              <div className="flex items-center gap-2 sm:gap-3 rounded-[1.25rem] border border-white/60 bg-white/70 px-3 py-2 sm:px-4 sm:py-3 backdrop-blur-xl">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="liquid-glass-panel flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-[0.875rem] sm:rounded-[1rem]">
-                    <span className="font-headline text-sm sm:text-base text-white">{orgInitials}</span>
-                  </div>
-                  <div className="hidden sm:block">
-                    <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Admin Panel</p>
-                    <p className="text-sm font-semibold text-slate-900">{orgName}</p>
-                  </div>
+              <div className="flex items-center gap-2 sm:gap-3 rounded-full border border-white/70 bg-white/70 px-2 py-1.5 sm:px-2.5 sm:py-2 backdrop-blur-xl shadow-[0_14px_35px_-26px_rgba(15,23,42,0.45)]">
+                <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-blue-700">
+                  <span className="font-headline text-sm sm:text-base text-white">{orgInitials}</span>
+                </div>
+                <div className="hidden sm:block pr-2">
+                  <p className="font-label text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">Admin Panel</p>
+                  <p className="text-sm font-semibold text-slate-900 leading-tight">{orgName}</p>
                 </div>
               </div>
             </div>
@@ -118,30 +127,35 @@ export default function AdminLayout() {
         </div>
       </div>
 
-      <main className="px-4 pb-8 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-          <aside className="glass-panel h-fit rounded-[2rem] border border-white/50 p-4 editorial-shadow lg:sticky lg:top-28">
-            <p className="font-label px-2 text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Navigation</p>
-            <div className="mt-3 space-y-2">
-              {navigationItems.map((item) => (
-                <Link
-                  key={item.label}
-                  to={item.to}
-                  className={                   (item.label === 'Dashboard' && location.pathname === '/admin') ||
-                    (item.label === 'Calendar' && location.pathname === '/admin/calendar') ||
-                    (item.label === 'Students' && (location.pathname.startsWith('/admin/student/') || location.pathname === '/admin/students')) ||
-                    (item.label === 'Settings' && location.pathname === '/admin/settings')
-                      ? 'flex items-center justify-between rounded-[1.25rem] border border-sky-200 bg-sky-50 text-sky-700 px-4 py-3 transition'
-                      : 'flex items-center justify-between rounded-[1.25rem] border border-slate-200/70 bg-white/80 text-slate-600 px-4 py-3 transition hover:border-sky-200 hover:text-sky-700'
-                  }
-                >
-                  <span className="flex items-center gap-3">
+      <main className="px-4 pb-12 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
+          <aside className="glass-panel h-fit rounded-[2rem] border border-white/50 p-3 editorial-shadow lg:sticky lg:top-28">
+            <p className="font-label px-3 pt-2 text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">Navigation</p>
+            <div className="mt-3 space-y-1.5">
+              {navigationItems.map((item) => {
+                const isActive =
+                  (item.label === 'Dashboard' && location.pathname === '/admin') ||
+                  (item.label === 'Calendar' && location.pathname === '/admin/calendar') ||
+                  (item.label === 'Students' && (location.pathname.startsWith('/admin/student/') || location.pathname === '/admin/students')) ||
+                  (item.label === 'Settings' && location.pathname === '/admin/settings')
+                return (
+                  <Link
+                    key={item.label}
+                    to={item.to}
+                    className={isActive
+                      ? 'flex items-center gap-3 rounded-[1.25rem] bg-gradient-to-r from-sky-600 to-blue-700 px-4 py-3 text-white shadow-[0_16px_35px_-20px_rgba(2,132,199,0.9)] transition-all duration-300'
+                      : 'flex items-center gap-3 rounded-[1.25rem] px-4 py-3 text-slate-500 transition-all duration-300 hover:bg-white/90 hover:text-sky-700 hover:shadow-[0_14px_30px_-24px_rgba(15,23,42,0.4)] hover:-translate-y-0.5'}
+                  >
                     <span className="material-symbols-outlined text-lg">{item.icon}</span>
                     <span className="font-label text-xs font-bold uppercase tracking-[0.2em]">{item.label}</span>
-                  </span>
-                  <span className="material-symbols-outlined text-base">arrow_forward</span>
-                </Link>
-              ))}
+                    {isActive && <span className="ml-auto block h-1.5 w-1.5 rounded-full bg-white/90" />}
+                  </Link>
+                )
+              })}
+            </div>
+            <div className="mt-5 mx-3 mb-2 border-t border-slate-200/70 pt-4">
+              <p className="font-label text-[9px] font-bold uppercase tracking-[0.26em] text-slate-300">Powered by</p>
+              <p className="mt-1 font-headline text-sm text-slate-500">English <span className="italic text-sky-600">Metropolis</span></p>
             </div>
           </aside>
 
