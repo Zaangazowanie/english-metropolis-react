@@ -5,6 +5,7 @@ import {
   RichInline,
 } from '../components/analytics/AnalyticsPrimitives.jsx'
 import { useI18n } from '../i18n'
+import { fetchWithTimeout } from '../practice/lib/practice-cache'
 
 /* ============================================================================
    TTS — shared with Lessons
@@ -31,7 +32,8 @@ async function playTTS(text, voice, onTimeUpdate = null, onEnded = null) {
     audio = ttsCache.get(key)
   } else {
     try {
-      const resp = await fetch('/api/tts/tts', {
+      // 30s AbortController-backed timeout — see practice-cache.ts.
+      const resp = await fetchWithTimeout('/api/tts/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, voice, lang: voice[0] || 'a' }),
@@ -96,7 +98,7 @@ async function fetchYouglish(word) {
   const variants = youglishQueryVariants(key)
   for (const v of variants) {
     try {
-      const resp = await fetch(`/api/youglish/keyword?q=${encodeURIComponent(v)}`)
+      const resp = await fetchWithTimeout(`/api/youglish/keyword?q=${encodeURIComponent(v)}`)
       if (!resp.ok) continue
       const data = await resp.json()
       const results = Array.isArray(data.results) ? data.results : []
@@ -385,19 +387,21 @@ function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0 }) {
               </button>
             </div>
           </div>
-          {/* Big "From lesson" link */}
-          <div className="mt-3 pt-3 border-t border-sky-100 text-center">
+          {/* Big "From lesson" link — fills card width, truncates long titles so
+              "FROM LESSON N" + arrow stay pinned at their anchor points. */}
+          <div className="mt-3 pt-3 border-t border-sky-100">
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onJumpToLesson && onJumpToLesson(keyword.lessonId, keyword.word) }}
-              className="group inline-flex items-center gap-2 rounded-full bg-white border border-sky-200 px-4 py-2 hover:border-sky-400 hover:bg-sky-50 transition cursor-pointer"
+              className="group flex w-full items-center gap-2 rounded-full bg-white border border-sky-200 px-4 py-2 hover:border-sky-400 hover:bg-sky-50 transition cursor-pointer min-w-0"
+              title={keyword.lessonTitle}
             >
-              <span className="material-symbols-outlined text-base text-sky-600">menu_book</span>
-              <span className="text-left">
-                <span className="block font-label text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">{t('vocabulary.card.fromLesson', { number: keyword.lessonNumber || '' })}</span>
-                <span className="block text-sm font-semibold text-slate-800 group-hover:text-sky-700 transition">{keyword.lessonTitle}</span>
+              <span className="material-symbols-outlined text-base text-sky-600 shrink-0">menu_book</span>
+              <span className="text-left flex-1 min-w-0 overflow-hidden">
+                <span className="block font-label text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400 truncate">{t('vocabulary.card.fromLesson', { number: keyword.lessonNumber || '' })}</span>
+                <span className="block text-sm font-semibold text-slate-800 group-hover:text-sky-700 transition truncate">{keyword.lessonTitle}</span>
               </span>
-              <span className="material-symbols-outlined text-sm text-slate-300 group-hover:text-sky-600">arrow_forward</span>
+              <span className="material-symbols-outlined text-sm text-slate-300 group-hover:text-sky-600 shrink-0">arrow_forward</span>
             </button>
           </div>
         </div>
@@ -627,7 +631,7 @@ export default function Vocabulary({ data }) {
             <option value="all">{t('vocabulary.filter.allLessons', { count: keywords.length })}</option>
             {lessons.map(l => {
               const num = l.lessonNumber || ''
-              const keywordCount = l.keyword_count || l.keywords?.length || 0
+              const keywordCount = l.keywordCount || l.keyword_count || l.keywords?.length || 0
               return (
                 <option key={l.id} value={l.id}>
                   {num ? t('vocabulary.filter.lessonPrefix', { number: num }) : ''}{formatDate(l.date)} · {l.title} {t('vocabulary.filter.lessonKwSuffix', { count: keywordCount })}

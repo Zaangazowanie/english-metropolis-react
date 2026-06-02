@@ -1,0 +1,33 @@
+/* BalloonPop shell — extracted from inline <style> 2026-05-02 (Tier 3 cleanup).
+ * em-bp- prefix; selectors scoped under .em-shell-balloonpop inside .em-practice-root. */
+
+@keyframes em-bp-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes em-bp-wobble {
+  0%, 100% { transform: translateX(0) rotate(-2deg); }
+  50% { transform: translateX(var(--wob, 6px)) rotate(2deg); }
+}
+@keyframes em-bp-pop {
+  0% { transform: scale(1); opacity: 1; }
+  40% { transform: scale(1.5); opacity: 1; }
+  100% { transform: scale(0.2); opacity: 0; }
+}
+@keyframes em-bp-deflate {
+  0% { transform: scaleY(1) scaleX(1) rotate(0deg); }
+  30% { transform: scaleY(0.6) scaleX(1.2) rotate(-6deg); }
+  100% { transform: scaleY(0.2) scaleX(0.4) rotate(20deg); opacity: 0; }
+}
+@keyframes em-bp-twinkle {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+@keyframes em-bp-pop-burst {
+  0% { transform: scale(0.4); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+@media (max-width: 768px) {
+  .em-bp-side { display: none !important; }
+  .em-bp-layout { grid-template-columns: 1fr !important; padding: 16px !important; }
+}

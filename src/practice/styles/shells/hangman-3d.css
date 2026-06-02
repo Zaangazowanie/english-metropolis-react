@@ -1,0 +1,246 @@
+/* Hangman 3D — "Lantern Alley" CSS+SVG scene.
+ *
+ * Ported from Mike's prototype at /tmp/hangman-handoff/00-hangman-reference/
+ * (scene.jsx + styles.css) on 2026-05-03 by Ricky.
+ *
+ * Pure CSS + SVG (no three.js / r3f / drei). Every selector is scoped under
+ * .em-hm-3d-scene so the dusk-violet palette and lantern keyframes can't
+ * leak into the rest of the practice library.
+ *
+ * The shell-3d component is purely visual; gameplay state (word slots,
+ * keyboard, hint card, lives card, dialogs) lives in Hangman.tsx.
+ */
+
+.em-hm-3d-scene {
+  /* Local design tokens — kept in scope so we don't fight global.css. */
+  --hm-bg-deep: #0A0418;
+  --hm-amber: #FBBF24;
+  --hm-amber-warm: #FFCD6E;
+  --hm-amber-pale: #FFE48A;
+  --hm-amber-deep: #7C3A18;
+  --hm-lavender: #A78BFA;
+  --hm-red: #FB7185;
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--hm-bg-deep);
+  color: #EDE6FF;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  isolation: isolate;
+}
+
+/* ─── Backdrop ─────────────────────────────────────────────── */
+.em-hm-3d-scene .hm-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.em-hm-3d-scene .hm-sky {
+  position: absolute;
+  inset: 0;
+}
+.em-hm-3d-scene .hm-grain {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 3px 3px;
+  opacity: 0.6;
+}
+.em-hm-3d-scene .hm-stars {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.em-hm-3d-scene .hm-moon {
+  position: absolute;
+  top: 8%;
+  right: 10%;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #FFE9C8, #FFB76B 60%, #C57195);
+  box-shadow: 0 0 40px rgba(255, 200, 130, 0.4);
+}
+.em-hm-3d-scene .hm-moon-glow {
+  position: absolute;
+  top: calc(8% - 30px);
+  right: calc(10% - 30px);
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 200, 130, 0.25), transparent 70%);
+  filter: blur(8px);
+}
+.em-hm-3d-scene .hm-skyline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 55%;
+  opacity: 0.85;
+}
+
+@keyframes em-hm-twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.95; }
+}
+
+/* ─── Lantern row ──────────────────────────────────────────── */
+.em-hm-3d-scene .hm-lantern-row {
+  position: absolute;
+  top: 6%;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 240px;
+  z-index: 2;
+  pointer-events: none;
+}
+.em-hm-3d-scene .hm-rope {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+.em-hm-3d-scene .hm-lanterns-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.em-hm-3d-scene .hm-lantern-wrap {
+  position: absolute;
+  transform: translateX(-50%);
+  transform-origin: top center;
+  animation: em-hm-sway 4.5s ease-in-out infinite;
+}
+@keyframes em-hm-sway {
+  0%, 100% { transform: translateX(-50%) rotate(-2deg); }
+  50% { transform: translateX(-50%) rotate(2deg); }
+}
+.em-hm-3d-scene .hm-lantern-cord {
+  display: block;
+  margin: 0 auto;
+}
+.em-hm-3d-scene .hm-lantern-body {
+  display: block;
+  margin: 0 auto;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+}
+
+/* ─── Embers ───────────────────────────────────────────────── */
+.em-hm-3d-scene .hm-embers {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, 0);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.em-hm-3d-scene .hm-ember {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #FFE48A 30%, #FB7185 70%, transparent);
+  box-shadow: 0 0 6px #FFCD6E;
+  animation: em-hm-ember-burst 1.2s ease-out forwards;
+}
+@keyframes em-hm-ember-burst {
+  0% { transform: translate(0, 0) scale(0.5); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
+}
+
+/* ─── Correct-letter flash ─────────────────────────────────────
+ * Mike 2026-05-03: every correct letter pick should make a lantern
+ * "switch on extremely bright with animation". The .is-flashing class
+ * triggers a 700ms bright-burst pulse: scale +12%, drop-shadow + glow
+ * spike to 4× normal, then ease back to lit-state. Driven by the
+ * parent's correctTick prop. */
+.em-hm-3d-scene .hm-lantern-wrap.is-flashing {
+  animation: em-hm-lantern-flash 700ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  z-index: 5;
+}
+.em-hm-3d-scene .hm-lantern-wrap.is-flashing .hm-lantern-body {
+  /* Target the actual SVG body — earlier selector pointed at non-existent
+     .hm-lantern-glow / .hm-lantern-bulb classes (Mike screenshot 2026-05-03
+     "the lanterns aren't lighting"). */
+  animation: em-hm-lantern-flash-glow 700ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes em-hm-lantern-flash {
+  0%   { transform: translate(-50%, 0) scale(1); }
+  20%  { transform: translate(-50%, -6px) scale(1.18); }
+  60%  { transform: translate(-50%, -2px) scale(1.08); }
+  100% { transform: translate(-50%, 0) scale(1); }
+}
+@keyframes em-hm-lantern-flash-glow {
+  0%   { filter: drop-shadow(0 0 8px rgba(255, 200, 80, 0.6)); }
+  20%  { filter: drop-shadow(0 0 38px rgba(255, 220, 120, 1.0)) drop-shadow(0 0 60px rgba(255, 200, 80, 0.85)) brightness(1.45); }
+  60%  { filter: drop-shadow(0 0 22px rgba(255, 220, 120, 0.85)) brightness(1.2); }
+  100% { filter: drop-shadow(0 0 8px rgba(255, 200, 80, 0.6)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .em-hm-3d-scene .hm-lantern-wrap.is-flashing,
+  .em-hm-3d-scene .hm-lantern-wrap.is-flashing .hm-lantern-body {
+    animation: none;
+  }
+}
+
+/* ─── Bajla flyby ──────────────────────────────────────────── */
+.em-hm-3d-scene .hm-bajla-flyby {
+  position: absolute;
+  top: 35%;
+  left: -160px;
+  z-index: 4;
+  pointer-events: none;
+  animation: em-hm-bajla-arc 2.6s cubic-bezier(.4,.1,.6,.9) forwards;
+}
+.em-hm-3d-scene .hm-bajla-flyby.is-idle {
+  /* Continuous low-opacity loop — the GPT image shows Bajla in the scene at all times. */
+  animation: em-hm-bajla-idle-loop 9s linear infinite;
+  opacity: 0.55;
+  top: 14%;
+  left: 6%;
+  z-index: 3;
+}
+@keyframes em-hm-bajla-arc {
+  0%   { left: -160px; top: 30%; transform: rotate(-2deg); }
+  30%  { top: 12%; transform: rotate(-6deg); }
+  60%  { top: 18%; transform: rotate(2deg); }
+  100% { left: calc(100% + 60px); top: 28%; transform: rotate(-3deg); }
+}
+@keyframes em-hm-bajla-idle-loop {
+  /* Small lazy figure-8 around the leftmost lantern at low opacity. */
+  0%   { transform: translate(0, 0) rotate(-3deg); }
+  25%  { transform: translate(40px, -16px) rotate(2deg); }
+  50%  { transform: translate(80px, 4px) rotate(-2deg); }
+  75%  { transform: translate(40px, 22px) rotate(3deg); }
+  100% { transform: translate(0, 0) rotate(-3deg); }
+}
+.em-hm-3d-scene .hm-bajla-wing {
+  transform-origin: 32px 42px;
+  animation: em-hm-bajla-flap 0.18s ease-in-out infinite;
+}
+@keyframes em-hm-bajla-flap {
+  0%, 100% { transform: rotate(-12deg); }
+  50% { transform: rotate(20deg); }
+}
+
+/* Reduced motion — kill sway / twinkle / flap so we don't induce nausea
+ * for vestibular-sensitive students. The scene still reads as a dusk
+ * London skyline; only the animations stop. */
+@media (prefers-reduced-motion: reduce) {
+  .em-hm-3d-scene .hm-lantern-wrap,
+  .em-hm-3d-scene .hm-bajla-flyby,
+  .em-hm-3d-scene .hm-bajla-flyby.is-idle,
+  .em-hm-3d-scene .hm-bajla-wing,
+  .em-hm-3d-scene .hm-stars circle {
+    animation: none !important;
+  }
+}

@@ -3,6 +3,7 @@ import { useI18n } from '../i18n'
 
 const TABS = [
   { slug: 'dashboard', icon: 'dashboard', key: 'nav.dashboard' },
+  { slug: 'calendar', icon: 'calendar_month', key: 'nav.calendar' },
   { slug: 'vocabulary', icon: 'translate', key: 'nav.vocabulary' },
   { slug: 'lessons', icon: 'menu_book', key: 'nav.lessons' },
   { slug: 'knowledge', icon: 'library_books', key: 'nav.knowledge' },
@@ -18,7 +19,7 @@ export default function TabNav() {
 
   return (
     <nav aria-label="Primary" className="-mx-1">
-      <div className="flex gap-1 overflow-x-auto pb-1 sm:grid sm:grid-cols-5 sm:gap-2 sm:overflow-visible scrollbar-hide" id="topTabNav">
+      <div className="flex gap-1 overflow-x-auto pb-1 sm:grid sm:grid-cols-6 sm:gap-2 sm:overflow-visible scrollbar-hide" id="topTabNav">
         {TABS.map((tab) => (
           <NavLink
             key={tab.slug}

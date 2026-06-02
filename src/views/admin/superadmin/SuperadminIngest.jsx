@@ -22,7 +22,11 @@ export default function SuperadminIngest() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    queryAdminConvex('students:listStudents', {}).then(setStudents).catch(e => setError(e.message))
+    let alive = true
+    queryAdminConvex('students:listStudents', {})
+      .then(d => { if (alive) setStudents(d) })
+      .catch(e => { if (alive) setError(e.message) })
+    return () => { alive = false }
   }, [])
 
   async function uploadToStorage(file) {

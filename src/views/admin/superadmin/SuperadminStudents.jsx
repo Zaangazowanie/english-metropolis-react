@@ -9,10 +9,12 @@ export default function SuperadminStudents() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    let alive = true
     queryAdminConvex('students:listStudents', {})
-      .then(setStudents)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+      .then(d => { if (alive) setStudents(d) })
+      .catch(e => { if (alive) setError(e.message) })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
   }, [])
 
   const needle = q.trim().toLowerCase()
@@ -60,13 +62,22 @@ export default function SuperadminStudents() {
                       <span className={`sa-badge sa-badge-${s.status === 'active' ? 'committed' : 'queued'}`}>{s.status}</span>
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <Link
-                        to={`/admin/student/${s.slug}`}
-                        className="text-[11px] font-bold uppercase tracking-widest"
-                        style={{ color: '#a78bfa' }}
-                      >
-                        Open →
-                      </Link>
+                      <div className="flex items-center justify-end gap-3">
+                        <Link
+                          to={`/admin/superadmin/students/${s.slug}/heatmap`}
+                          className="text-[11px] font-bold uppercase tracking-widest"
+                          style={{ color: '#7dd3fc' }}
+                        >
+                          Heatmap
+                        </Link>
+                        <Link
+                          to={`/admin/student/${s.slug}`}
+                          className="text-[11px] font-bold uppercase tracking-widest"
+                          style={{ color: '#a78bfa' }}
+                        >
+                          Open →
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

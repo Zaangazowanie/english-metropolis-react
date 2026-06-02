@@ -1,0 +1,12 @@
+/* QuizShow shell — extracted from inline <style> 2026-05-02 (Tier 3 cleanup).
+ * em-qs- prefix; selectors scoped under .em-shell-quizshow inside .em-practice-root. */
+
+@keyframes em-qs-curtain-l { from { transform: translateX(-12%); } to { transform: translateX(0); } }
+@keyframes em-qs-curtain-r { from { transform: translateX(12%); }  to { transform: translateX(0); } }
+@keyframes em-qs-spotlight-sweep { 0% { transform: rotate(-8deg); } 50% { transform: rotate(6deg); } 100% { transform: rotate(-8deg); } }
+@keyframes em-qs-marquee { from { background-position: 0 0; } to { background-position: 80px 0; } }
+@keyframes em-qs-buzzer { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+@keyframes em-qs-chime { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(251,191,36,0.6); } 60% { transform: scale(1.05); box-shadow: 0 0 0 28px rgba(251,191,36,0); } 100% { transform: scale(1); } }
+@keyframes em-qs-tickdown { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 502; } }
+@keyframes em-qs-prompt-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes em-qs-applause-dot { 0% { opacity: 0.2; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-2px); } 100% { opacity: 0.2; transform: translateY(0); } }

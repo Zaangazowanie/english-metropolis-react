@@ -1,0 +1,1671 @@
+/* Cosmetic shell — scoped to .em-practice-root so it never leaks into the
+   rest of the Lexicon SPA (Dashboard, Calendar, Lessons, Vocabulary…).
+   Originally moved from design-source/index.html lines 8-24, where it sat on
+   html/body/#root because the standalone shell was a single-page app. In
+   Lexicon the practice canvas is one route among many — so every rule below
+   must be reachable only from inside .em-practice-root. */
+
+/* ─── Practice root wrapper ─────────────────────────────────────────────
+   The wrapper element rendered by PracticeCanvas / StudentPractice. It
+   replaces what used to live on html, body, #root in the standalone shell.
+
+   EM-050 — Lexicon's site-wide body font is Lora (serif), declared in
+   src/index.css as `--font-body: "Lora", serif`. The Practice route's
+   spec calls for Inter on body copy. Rather than swap the global token
+   (which would change every other Lexicon route — Dashboard, Calendar,
+   Vocabulary, Lessons), we scope the override to .em-practice-root.
+   Inter is loaded via @fontsource imports in PracticeNew.jsx and
+   PracticeDesign.jsx, so the font is guaranteed to be present at the
+   moment this rule fires. All descendants inherit. */
+.em-practice-root {
+  position: relative;
+  width: 100%;
+  /* No fixed height — let the document own the single page scrollbar.
+     Previously height:100vh + overflow:hidden combined with .em-dash's own
+     overflow-y:auto produced two stacked scrollbars whenever Lexicon's
+     chrome (TopBar + main padding) pushed the practice content past the
+     viewport. Letting both wrappers flow lets the chrome scroll once. */
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: #0A0717;
+  color: #EDE6FF;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Override the design canvas's default warm-gray bg to match the brand */
+.em-practice-root .dc-canvas-bg {
+  background: radial-gradient(ellipse at 30% 20%, #1F1240 0%, #0A0717 60%) !important;
+}
+
+/* Make artboard cards a touch warmer-shadowed on the dark canvas */
+.em-practice-root .dc-artboard {
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.6),
+              0 8px 24px -8px rgba(232, 121, 249, 0.08) !important;
+  border-radius: 22px !important;
+  overflow: hidden;
+}
+
+.em-practice-root .dc-artboard-label,
+.em-practice-root .dc-section-title {
+  color: #EDE6FF !important;
+}
+
+.em-practice-root .dc-section-title {
+  font-family: 'Space Grotesk', sans-serif !important;
+}
+
+/* ─── Spinner animation for lazy-loaded shells ─── */
+@keyframes em-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Visible focus indicators (accessibility) ───
+   Scoped so we don't override Lexicon's own focus rings on the rest of the SPA. */
+.em-practice-root *:focus-visible {
+  outline: 2px solid var(--em-amber, #FBBF24);
+  outline-offset: 2px;
+}
+
+/* ─── Touch-action for DnD elements ─── */
+.em-practice-root [draggable="true"],
+.em-practice-root [class*="drag"] {
+  touch-action: none;
+}
+
+/* ─── Momentum scrolling for scrollable containers ─── */
+.em-practice-root .em-scroll {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* ─── Skip-to-content link (visible on focus) ─── */
+.em-practice-root .em-skip-link {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  z-index: 10000;
+  padding: 8px 16px;
+  background: var(--em-amber, #FBBF24);
+  color: var(--em-ink, #0E0A1A);
+  font-family: var(--em-mono, monospace);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 0 0 8px 8px;
+  text-decoration: none;
+}
+.em-practice-root .em-skip-link:focus {
+  top: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   STUDENT PRACTICE DASHBOARD — district atlas
+   ──────────────────────────────────────────────────────────────────────
+   Hero & secondary cards for the /practice landing view. Built to feel
+   like a folded transit-map of a fictional English-speaking metropolis:
+   warm violet/amber gradients, glass surfaces, hairline grid lines, and
+   a serif display face that makes each district feel like a destination.
+
+   Scope — every selector below is nested under .em-practice-root so the
+   dark theme never bleeds into Lexicon's other routes (Calendar, Vocab,
+   Lessons, etc.).
+   ─────────────────────────────────────────────────────────────────── */
+
+/* Outer landing-page wrapper (replaces ROOT inline style on the dashboard).
+   Grows with content; the document is the single scroll surface so we never
+   show a nested scrollbar next to the chrome's own. */
+.em-practice-root .em-dash {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  -webkit-overflow-scrolling: touch;
+  background:
+    radial-gradient(ellipse 90% 70% at 12% -5%, rgba(232, 121, 249, 0.18), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 90% 10%, rgba(251, 191, 36, 0.10), transparent 60%),
+    radial-gradient(ellipse 80% 60% at 50% 110%, rgba(125, 211, 252, 0.08), transparent 60%),
+    linear-gradient(180deg, #0A0717 0%, #110A22 60%, #07041A 100%);
+  color: var(--em-text, #EDE6FF);
+}
+
+/* Faint hairline grid that gives the page a cartographic feel */
+.em-practice-root .em-dash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(232, 121, 249, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(167, 139, 250, 0.04) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, #000 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, #000 30%, transparent 80%);
+}
+
+/* Inner page chrome — generous padding, max-width for a magazine feel */
+.em-practice-root .em-dash-inner {
+  position: relative;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 56px 40px 96px;
+}
+
+/* Page header — asymmetric, decorative serif title */
+.em-practice-root .em-dash-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 32px;
+  align-items: end;
+  padding-bottom: 28px;
+  border-bottom: 1px solid rgba(232, 121, 249, 0.18);
+  margin-bottom: 40px;
+  animation: em-rise 540ms var(--em-ease) both;
+}
+
+.em-practice-root .em-dash-eyebrow {
+  font-family: var(--em-mono);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--em-amber, #FBBF24);
+  margin-bottom: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.em-practice-root .em-dash-eyebrow::before {
+  content: '';
+  width: 28px; height: 1px;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.em-practice-root .em-dash-title {
+  font-family: var(--em-decor, 'Caprasimo', Georgia, serif);
+  font-size: clamp(40px, 6vw, 72px);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--em-text);
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
+}
+.em-practice-root .em-dash-title em {
+  font-style: italic;
+  background: linear-gradient(120deg, #FBBF24 0%, #E879F9 60%, #A78BFA 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.em-practice-root .em-dash-sub {
+  margin: 14px 0 0;
+  max-width: 540px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--em-text-muted, #9A8FB8);
+}
+
+/* Right-hand level-tag chip in the header */
+.em-practice-root .em-level-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 10px 12px;
+  border-radius: 999px;
+  background: rgba(167, 139, 250, 0.08);
+  border: 1px solid rgba(167, 139, 250, 0.28);
+  font-family: var(--em-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--em-violet, #A78BFA);
+  white-space: nowrap;
+}
+.em-practice-root .em-level-chip-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--em-violet, #A78BFA);
+  box-shadow: 0 0 12px var(--em-violet, #A78BFA);
+  animation: em-pulse 2.4s var(--em-ease) infinite;
+}
+
+/* Section eyebrow + title pair */
+.em-practice-root .em-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.em-practice-root .em-section-head h2,
+.em-practice-root .em-section-head h3 {
+  margin: 6px 0 0;
+  font-family: var(--em-decor, 'Caprasimo', Georgia, serif);
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  color: var(--em-text);
+}
+.em-practice-root .em-section-head h2 { font-size: clamp(26px, 3vw, 34px); }
+.em-practice-root .em-section-head h3 { font-size: clamp(22px, 2.5vw, 28px); }
+
+.em-practice-root .em-section-note {
+  font-size: 13px;
+  color: var(--em-text-muted, #9A8FB8);
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+/* Section divider — a hairline with a centered token */
+.em-practice-root .em-section-divider {
+  position: relative;
+  margin: 64px 0 36px;
+  border: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.32) 30%, rgba(251, 191, 36, 0.32) 70%, transparent);
+}
+.em-practice-root .em-section-divider::after {
+  content: '✦';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #0A0717;
+  padding: 0 16px;
+  color: var(--em-amber, #FBBF24);
+  font-size: 12px;
+  letter-spacing: 0.3em;
+}
+
+/* ─── Hero grid (top-tier recommended cards) ─── */
+.em-practice-root .em-hero-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 22px;
+}
+
+/* Hero card — large, glass-morphic, gradient-backed */
+.em-practice-root .em-hero-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+  padding: 28px 26px 24px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: var(--card-grad, linear-gradient(135deg, #1F1240, #4C2F7E));
+  color: var(--em-text);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  isolation: isolate;
+  font-family: var(--em-body);
+  transition:
+    transform 320ms var(--em-ease),
+    border-color 320ms var(--em-ease),
+    box-shadow 420ms var(--em-ease);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 24px 60px -24px rgba(0, 0, 0, 0.7),
+    0 4px 14px -6px rgba(0, 0, 0, 0.5);
+  animation: em-rise 620ms var(--em-ease) both;
+  animation-delay: var(--stagger, 0ms);
+}
+
+/* Glass overlay — soft frosted top half */
+.em-practice-root .em-hero-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 30% 0%, rgba(255, 255, 255, 0.10), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Diagonal grain shimmer */
+.em-practice-root .em-hero-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.4 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
+  opacity: 0.10;
+  mix-blend-mode: overlay;
+}
+
+.em-practice-root .em-hero-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.em-practice-root .em-hero-card:hover,
+.em-practice-root .em-hero-card:focus-visible {
+  transform: translateY(-6px);
+  border-color: var(--accent, #A78BFA);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.10) inset,
+    0 36px 72px -24px rgba(0, 0, 0, 0.75),
+    0 0 0 1px var(--accent, #A78BFA),
+    0 0 36px -8px var(--accent-glow, rgba(167, 139, 250, 0.55));
+}
+
+/* EM-060 — Snappy click pulse. Hover lifts -6px over 320ms cubic; press
+   should feel immediate and stamped, so we drop the duration to 80ms and
+   layer a 2px accent ring + inner accent-glow ring. Final transform of
+   -2px (vs hover's -6px) gives the "pressed" sensation against the lift. */
+.em-practice-root .em-hero-card:active {
+  transform: translateY(-2px);
+  border-color: var(--accent, #A78BFA);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 0 0 2px var(--accent, #A78BFA),
+    inset 0 0 0 1px var(--accent-glow, rgba(167, 139, 250, 0.55));
+  transition-duration: 0.08s;
+}
+
+.em-practice-root .em-hero-card.is-selecting {
+  animation: em-card-select 220ms var(--em-ease) both;
+}
+
+/* Hero card row 1 — rank badge + completion mark */
+.em-practice-root .em-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.em-practice-root .em-rank {
+  font-family: var(--em-mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  color: var(--accent, #A78BFA);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.em-practice-root .em-rank-num {
+  font-family: var(--em-decor);
+  font-size: 22px;
+  letter-spacing: 0;
+  color: var(--em-text);
+  line-height: 1;
+}
+
+.em-practice-root .em-done-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.14);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  color: var(--em-mint, #34D399);
+  font-family: var(--em-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.em-practice-root .em-done-badge::before {
+  content: '✓';
+  font-family: var(--em-display);
+  font-size: 11px;
+}
+
+/* Hero card middle — district emoji + names */
+.em-practice-root .em-hero-emoji {
+  font-size: 64px;
+  line-height: 1;
+  margin: 16px 0 14px;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
+  transition: transform 320ms var(--em-ease);
+}
+.em-practice-root .em-hero-card:hover .em-hero-emoji {
+  transform: translateY(-2px) rotate(-3deg) scale(1.04);
+}
+
+.em-practice-root .em-district-name {
+  font-family: var(--em-decor);
+  font-size: 26px;
+  line-height: 1.05;
+  letter-spacing: 0.005em;
+  margin: 0 0 4px;
+  color: var(--em-text);
+}
+
+.em-practice-root .em-district-sub {
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(237, 230, 255, 0.78);
+  margin: 0;
+}
+.em-practice-root .em-district-sub-pl {
+  font-style: italic;
+  font-size: 12px;
+  color: rgba(237, 230, 255, 0.55);
+  margin: 6px 0 0;
+}
+
+/* Hero card footer — reason + weight */
+.em-practice-root .em-hero-foot {
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.14);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 14px;
+}
+.em-practice-root .em-hero-reason {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: rgba(237, 230, 255, 0.7);
+  flex: 1;
+}
+.em-practice-root .em-hero-weight {
+  font-family: var(--em-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent, #A78BFA);
+  white-space: nowrap;
+  text-align: right;
+}
+.em-practice-root .em-hero-weight strong {
+  display: block;
+  font-family: var(--em-decor);
+  font-size: 22px;
+  letter-spacing: 0;
+  color: var(--em-text);
+}
+
+/* Tiny corner stamp — gives each card a "passport" feel */
+.em-practice-root .em-hero-stamp {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--em-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: rgba(237, 230, 255, 0.5);
+  pointer-events: none;
+}
+
+/* ─── Secondary grid (other 7 districts) ─── */
+/* Fix-3: was `repeat(auto-fit, minmax(200px, 1fr))` which produced 5 columns at
+   1280px viewport (1152px usable / 200px ≈ 5). Spec is 4-col on desktop; the
+   1024px and 768px breakpoints below override to 3-col / 2-col respectively. */
+.em-practice-root .em-secondary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.em-practice-root .em-secondary-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  padding: 20px 18px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--card-grad, linear-gradient(135deg, #14102A, #2A1450));
+  color: var(--em-text);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  isolation: isolate;
+  font-family: var(--em-body);
+  transition:
+    transform 280ms var(--em-ease),
+    border-color 280ms var(--em-ease),
+    box-shadow 360ms var(--em-ease);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 12px 30px -16px rgba(0, 0, 0, 0.55);
+  animation: em-rise 520ms var(--em-ease) both;
+  animation-delay: var(--stagger, 0ms);
+}
+.em-practice-root .em-secondary-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 40% at 20% 0%, rgba(255, 255, 255, 0.08), transparent 60%);
+  pointer-events: none;
+}
+.em-practice-root .em-secondary-card > * {
+  position: relative;
+  z-index: 1;
+}
+.em-practice-root .em-secondary-card:hover,
+.em-practice-root .em-secondary-card:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--accent, #A78BFA);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 18px 40px -16px rgba(0, 0, 0, 0.65),
+    0 0 0 1px var(--accent, #A78BFA),
+    0 0 22px -8px var(--accent-glow, rgba(167, 139, 250, 0.45));
+}
+/* EM-060 — Same snappy press treatment as hero cards, scaled down to
+   match the secondary tier's smaller lift (-1px vs hero's -2px). */
+.em-practice-root .em-secondary-card:active {
+  transform: translateY(-1px);
+  border-color: var(--accent, #A78BFA);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 0 0 2px var(--accent, #A78BFA),
+    inset 0 0 0 1px var(--accent-glow, rgba(167, 139, 250, 0.45));
+  transition-duration: 0.08s;
+}
+.em-practice-root .em-secondary-card.is-selecting {
+  animation: em-card-select 220ms var(--em-ease) both;
+}
+
+.em-practice-root .em-secondary-emoji {
+  font-size: 38px;
+  line-height: 1;
+  margin-bottom: 12px;
+  transition: transform 280ms var(--em-ease);
+}
+.em-practice-root .em-secondary-card:hover .em-secondary-emoji {
+  transform: rotate(-4deg) scale(1.06);
+}
+
+.em-practice-root .em-secondary-card .em-district-name {
+  font-size: 18px;
+  margin-bottom: 2px;
+}
+.em-practice-root .em-secondary-card .em-district-sub {
+  font-size: 12.5px;
+}
+.em-practice-root .em-secondary-card .em-district-sub-pl {
+  font-size: 11px;
+}
+
+.em-practice-root .em-secondary-card .em-done-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+}
+
+.em-practice-root .em-secondary-foot {
+  margin-top: auto;
+  padding-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.em-practice-root .em-secondary-tag {
+  font-family: var(--em-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent, #A78BFA);
+  opacity: 0.85;
+}
+.em-practice-root .em-secondary-arrow {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent, #A78BFA);
+  transition: transform 280ms var(--em-ease), background 280ms var(--em-ease);
+}
+.em-practice-root .em-secondary-card:hover .em-secondary-arrow {
+  transform: translateX(3px);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Active-shell view — Back button restyled ─── */
+.em-practice-root .em-shell-host {
+  width: 100%;
+  height: calc(100vh - 80px);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--em-ink, #0E0A1A);
+}
+.em-practice-root .em-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 10px 12px;
+  margin-bottom: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(167, 139, 250, 0.32);
+  background: rgba(167, 139, 250, 0.06);
+  color: var(--em-violet, #A78BFA);
+  font-family: var(--em-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 200ms var(--em-ease), border-color 200ms var(--em-ease), transform 200ms var(--em-ease);
+}
+.em-practice-root .em-back-btn:hover {
+  background: rgba(167, 139, 250, 0.14);
+  border-color: rgba(167, 139, 250, 0.6);
+  transform: translateX(-2px);
+}
+.em-practice-root .em-back-arrow {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(167, 139, 250, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--em-display);
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ─── Empty / loading / error states ─── */
+.em-practice-root .em-empty {
+  margin-top: 48px;
+  padding: 36px 32px;
+  border-radius: 18px;
+  border: 1px dashed rgba(232, 121, 249, 0.24);
+  background: rgba(232, 121, 249, 0.04);
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--em-text-muted);
+}
+.em-practice-root .em-empty strong {
+  display: block;
+  font-family: var(--em-decor);
+  font-size: 22px;
+  letter-spacing: 0.005em;
+  color: var(--em-text);
+  margin-bottom: 6px;
+}
+
+/* ─── Selection pulse ─── */
+@keyframes em-card-select {
+  0%   { box-shadow: 0 0 0 1px var(--accent, #A78BFA), 0 0 0 0 var(--accent-glow, rgba(167, 139, 250, 0.6)); }
+  60%  { box-shadow: 0 0 0 2px var(--accent, #A78BFA), 0 0 0 12px transparent; }
+  100% { box-shadow: 0 0 0 0 var(--accent, #A78BFA), 0 0 0 0 transparent; }
+}
+
+/* ─── Mobile / tablet tuning ─── */
+@media (max-width: 1024px) {
+  .em-practice-root .em-dash-inner { padding: 44px 28px 80px; }
+  .em-practice-root .em-secondary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* Fix-3: was `max-width: 768px` which made 768px tablets render the 2-col rule
+   instead of the 3-col rule from `max-width: 1024px` above (CSS @media is
+   inclusive). Bumping the boundary to 767px lets exactly-768px viewports pick
+   up the 3-col tablet layout. */
+@media (max-width: 767px) {
+  .em-practice-root .em-dash-head {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .em-practice-root .em-hero-grid { grid-template-columns: 1fr; }
+  .em-practice-root .em-secondary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .em-practice-root .em-hero-card { min-height: 320px; padding: 24px 22px 20px; }
+  .em-practice-root .em-hero-emoji { font-size: 54px; }
+  .em-practice-root .em-district-name { font-size: 24px; }
+}
+@media (max-width: 480px) {
+  .em-practice-root .em-dash-inner { padding: 32px 18px 72px; }
+  .em-practice-root .em-secondary-card { min-height: 170px; }
+  /* EM-014: at narrow widths the long compound eyebrow
+     "ENGLISH · METROPOLIS · ANGIELSKI" truncates with the default 0.32em
+     letter-spacing. Tighten tracking and allow wrap so it falls onto two
+     lines instead. */
+  .em-practice-root .em-pitch-eyebrow {
+    letter-spacing: 0.16em;
+    white-space: normal;
+    line-height: 1.4;
+  }
+}
+
+/* Sign-in banner — shown on /practice when no student session exists.
+   Soft glass card with the brand amber accent; nudges toward login without
+   blocking the all-districts grid below. */
+.em-practice-root .em-signin-banner {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 16px 20px;
+  margin: 24px 0 32px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(251,191,36,0.08), rgba(167,139,250,0.04));
+  border: 1px solid rgba(251,191,36,0.32);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px -12px rgba(251,191,36,0.18);
+  color: var(--em-text);
+  font-family: var(--em-body);
+  font-size: 14px;
+  line-height: 1.5;
+  animation: em-rise 540ms var(--em-ease) both;
+  animation-delay: 120ms;
+}
+.em-practice-root .em-signin-banner strong {
+  font-family: var(--em-display);
+  font-weight: 600;
+  color: var(--em-amber);
+  letter-spacing: -0.01em;
+}
+.em-practice-root .em-signin-icon {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--em-amber);
+  flex-shrink: 0;
+  text-shadow: 0 0 12px rgba(251,191,36,0.4);
+}
+@media (max-width: 640px) {
+  .em-practice-root .em-signin-banner {
+    padding: 14px 16px;
+    margin: 20px 0 24px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Layer-4 (Agent A12) — InterferenceTip overlay
+   Glass-morphism, dark-purple aesthetic. Slide-up animation, ESC dismiss.
+   Backdrop is click-to-dismiss; tip card itself catches clicks.
+   ───────────────────────────────────────────────────────────────────────── */
+.em-practice-root .em-interference-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(
+    180deg,
+    rgba(14, 10, 26, 0) 0%,
+    rgba(14, 10, 26, 0.55) 100%
+  );
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  pointer-events: auto;
+  animation: em-tip-fade 220ms var(--em-ease) both;
+}
+.em-practice-root .em-interference-tip {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  width: min(560px, 100%);
+  padding: 18px 20px 16px;
+  border-radius: 18px;
+  background: linear-gradient(
+    135deg,
+    rgba(74, 34, 112, 0.92) 0%,
+    rgba(45, 31, 74, 0.88) 60%,
+    rgba(31, 18, 64, 0.94) 100%
+  );
+  border: 1px solid rgba(232, 121, 249, 0.28);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 24px 48px -16px rgba(0, 0, 0, 0.55),
+    0 0 24px -2px rgba(232, 121, 249, 0.18);
+  color: var(--em-text);
+  font-family: var(--em-body);
+  animation: em-tip-rise 360ms var(--em-ease) both;
+  backdrop-filter: blur(8px) saturate(1.2);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+}
+.em-practice-root .em-tip-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.em-practice-root .em-tip-eyebrow {
+  font-family: var(--em-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #E879F9;
+  opacity: 0.85;
+}
+.em-practice-root .em-tip-en {
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--em-text);
+}
+.em-practice-root .em-tip-pl {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--em-text-muted, #C9BCEB);
+  font-style: italic;
+}
+.em-practice-root .em-tip-correction {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(52, 211, 153, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.22);
+  font-family: var(--em-mono, 'JetBrains Mono', monospace);
+  font-size: 14px;
+}
+.em-practice-root .em-tip-correction strong {
+  color: var(--em-mint, #34D399);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.em-practice-root .em-tip-strike {
+  color: var(--em-coral, #FB7185);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  opacity: 0.75;
+  font-size: 13px;
+}
+.em-practice-root .em-tip-pattern-tag {
+  align-self: flex-start;
+  font-family: var(--em-mono, 'JetBrains Mono', monospace);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(232, 121, 249, 0.72);
+  border: 1px solid rgba(232, 121, 249, 0.25);
+  border-radius: 999px;
+  padding: 3px 8px;
+  margin-top: 2px;
+  background: rgba(232, 121, 249, 0.06);
+}
+.em-practice-root .em-tip-dismiss {
+  align-self: flex-start;
+  margin-top: 6px;
+}
+@keyframes em-tip-rise {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes em-tip-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (max-width: 640px) {
+  .em-practice-root .em-interference-tip {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PitchCard — student-facing hero on /practice landing.
+   Adapted from the Claude Design "Cover · Okładka" exhibit artboard.
+   Full-width, ~480px tall desktop, ~360px tablet, ~520px mobile (taller
+   to fit stacked content). Skyline silhouette + Bajla mascot + 10
+   district-name pills + stat strip.
+   ───────────────────────────────────────────────────────────────────────── */
+.em-practice-root .em-pitch-card {
+  position: relative;
+  width: 100%;
+  min-height: 520px;
+  border-radius: 22px;
+  overflow: hidden;
+  margin-bottom: 36px;
+  color: #F5EFFF;
+  font-family: var(--em-body);
+  box-shadow: 0 30px 80px -20px rgba(0,0,0,0.6), 0 8px 24px -8px rgba(232,121,249,0.18);
+  animation: em-rise 720ms var(--em-ease) both;
+}
+
+.em-practice-root .em-pitch-skyline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.em-practice-root .em-pitch-bajla {
+  position: absolute;
+  top: 40px;
+  right: 56px;
+  z-index: 2;
+}
+
+.em-practice-root .em-pitch-content {
+  position: relative;
+  z-index: 1;
+  padding: 56px 64px 64px;
+  max-width: 720px;
+}
+
+.em-practice-root .em-pitch-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  color: rgba(245,239,255,0.7);
+}
+
+.em-practice-root .em-pitch-title {
+  font-family: var(--em-decor);
+  font-size: 80px;
+  line-height: 0.95;
+  margin: 20px 0 8px;
+  color: #F5EFFF;
+  text-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  font-weight: normal;
+}
+
+.em-practice-root .em-pitch-subtitle {
+  font-family: var(--em-display);
+  font-size: 22px;
+  font-weight: 400;
+  margin: 0 0 28px;
+  color: rgba(245,239,255,0.85);
+  max-width: 560px;
+  line-height: 1.35;
+}
+
+.em-practice-root .em-pitch-pills {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.em-practice-root .em-pitch-pill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-family: var(--em-mono);
+  background: rgba(0,0,0,0.32);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: #F5EFFF;
+  letter-spacing: 0.04em;
+}
+
+/* Clickable variant — only applied when PitchCard receives an onSelectShell
+ * callback. Reset native button chrome, add tactile hover/focus, keep the
+ * 44px minimum tap target on mobile. */
+.em-practice-root button.em-pitch-pill-button {
+  cursor: pointer;
+  font: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  text-transform: none;
+  transition: background 140ms var(--em-ease), border-color 140ms var(--em-ease), transform 140ms var(--em-ease);
+  min-height: 32px;
+}
+.em-practice-root button.em-pitch-pill-button:hover {
+  background: rgba(232,121,249,0.18);
+  border-color: rgba(232,121,249,0.55);
+  transform: translateY(-1px);
+}
+.em-practice-root button.em-pitch-pill-button:active {
+  transform: translateY(0);
+  background: rgba(232,121,249,0.28);
+}
+.em-practice-root button.em-pitch-pill-button:focus-visible {
+  outline: 2px solid #E879F9;
+  outline-offset: 2px;
+}
+@media (max-width: 768px) {
+  .em-practice-root button.em-pitch-pill-button {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+}
+
+.em-practice-root .em-pitch-stats {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  font-family: var(--em-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(245,239,255,0.6);
+}
+
+/* EM-034: reserve enough vertical space for the bilingual stat block (en line +
+   pl sub-line) so the Polish sub-lines never clip at desktop widths. */
+.em-practice-root .em-pitch-stats > div {
+  min-height: 48px;
+}
+
+.em-practice-root .em-pitch-stat-num {
+  font-weight: 600;
+  margin-bottom: 2px;
+  letter-spacing: 0.16em;
+}
+
+.em-practice-root .em-pitch-stat-sub {
+  display: block;
+  margin-top: 2px;
+  text-transform: lowercase;
+  letter-spacing: 0.06em;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* Tablet ≤1024px — pull margins, shrink Bajla. */
+@media (max-width: 1024px) {
+  .em-practice-root .em-pitch-card {
+    min-height: 460px;
+  }
+  .em-practice-root .em-pitch-content {
+    padding: 44px 44px 52px;
+    max-width: 640px;
+  }
+  .em-practice-root .em-pitch-title {
+    font-size: 64px;
+  }
+  .em-practice-root .em-pitch-subtitle {
+    font-size: 19px;
+  }
+  .em-practice-root .em-pitch-bajla {
+    top: 32px;
+    right: 36px;
+  }
+}
+
+/* Phone ≤640px — stacked, Bajla shrinks + repositions, headline 48px. */
+@media (max-width: 640px) {
+  .em-practice-root .em-pitch-card {
+    height: auto;
+    min-height: 440px;
+    border-radius: 18px;
+    margin-bottom: 28px;
+  }
+  .em-practice-root .em-pitch-content {
+    /* CD re-audit 2026-05-01: right-padding bumped from 24 → 90 so the
+       eyebrow + subtitle never extend into the Bajla mascot's column at
+       narrow viewports. Bajla (top:20, right:20, scale 0.5 → 60px) spans
+       right:20-80; 90px padding gives 10px margin. Title still gets the
+       full width once subtitle/eyebrow have wrapped past Bajla's row. */
+    padding: 32px 90px 28px 24px;
+  }
+  /* Title can use the full content width — Bajla only sits in the top
+     ~60px of the card, so once we're below that band the headline gets
+     full breathing room. Negate the right padding for the title only. */
+  .em-practice-root .em-pitch-title {
+    margin-right: -66px;
+  }
+  /* Pills + stats also clear Bajla band — full width below the mascot. */
+  .em-practice-root .em-pitch-pills,
+  .em-practice-root .em-pitch-stats {
+    margin-right: -66px;
+  }
+}
+/* Extra-narrow phones (≤400px) — title font drops 48 → 40 so "Ten practice"
+   never wraps inside its own line. */
+@media (max-width: 400px) {
+  .em-practice-root .em-pitch-title {
+    font-size: 40px;
+  }
+  .em-practice-root .em-pitch-title {
+    font-size: 48px;
+  }
+  .em-practice-root .em-pitch-subtitle {
+    font-size: 16px;
+    margin: 0 0 24px;
+  }
+  .em-practice-root .em-pitch-bajla {
+    top: 20px;
+    right: 20px;
+  }
+  .em-practice-root .em-pitch-bajla > * {
+    transform: scale(0.5);
+    transform-origin: top right;
+  }
+  .em-practice-root .em-pitch-pills {
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+  .em-practice-root .em-pitch-pill {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+  .em-practice-root .em-pitch-stats {
+    gap: 18px;
+    flex-wrap: wrap;
+    font-size: 9px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PitchCard right-rail (Ricky · 2026-05-02 · audit §4 #8)
+   ─────────────────────────────────────────────────────────────────────────
+   Closes the right-side void at desktop ≥1280px. Hidden below that breakpoint
+   so the existing stacked phone/tablet layout is untouched. The rail surfaces
+   the 3 hero districts (Multiple choice / Gap-fill / Open cloze) the student
+   will play first, framed as "TODAY'S 3 DISTRICTS · DZIŚ POLECANE".
+   ───────────────────────────────────────────────────────────────────── */
+.em-practice-root .em-pitch-rail {
+  display: none; /* default: hidden — only render on wide desktop */
+}
+@media (min-width: 1280px) {
+  .em-practice-root .em-pitch-card {
+    /* No height change needed — rail fits within the existing 520px min-height. */
+  }
+  .em-practice-root .em-pitch-content {
+    /* Reserve right-rail column (rail width 300 + gap 32 = 332) so headline,
+       subtitle, pills and stats never extend under the rail. */
+    max-width: calc(100% - 360px);
+  }
+  .em-practice-root .em-pitch-bajla {
+    /* Move Bajla left so the rail's top-right corner has room. */
+    right: 360px;
+  }
+  .em-practice-root .em-pitch-rail {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 56px;
+    right: 32px;
+    width: 300px;
+    z-index: 2;
+    padding: 18px 18px 16px;
+    background: rgba(15, 7, 36, 0.62);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(232, 121, 249, 0.28);
+    border-radius: 16px;
+    box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.5);
+    color: #F5EFFF;
+    font-family: var(--em-body);
+  }
+  .em-practice-root .em-pitch-rail-eyebrow {
+    color: rgba(245, 239, 255, 0.7);
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    margin-bottom: 14px;
+  }
+  .em-practice-root .em-pitch-rail-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .em-practice-root .em-pitch-rail-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.32);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    width: 100%;
+    text-align: left;
+    color: inherit;
+    font: inherit;
+    cursor: default;
+    transition: background 140ms var(--em-ease), border-color 140ms var(--em-ease), transform 140ms var(--em-ease);
+  }
+  .em-practice-root button.em-pitch-rail-item-button {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .em-practice-root button.em-pitch-rail-item-button:hover {
+    background: rgba(232, 121, 249, 0.14);
+    border-color: rgba(232, 121, 249, 0.45);
+    transform: translateX(-2px);
+  }
+  .em-practice-root button.em-pitch-rail-item-button:focus-visible {
+    outline: 2px solid #E879F9;
+    outline-offset: 2px;
+  }
+  .em-practice-root .em-pitch-rail-num {
+    font-family: var(--em-mono);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid;
+    min-width: 36px;
+    text-align: center;
+  }
+  .em-practice-root .em-pitch-rail-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+  .em-practice-root .em-pitch-rail-label {
+    font-family: var(--em-display);
+    font-size: 14px;
+    color: #F5EFFF;
+    line-height: 1.2;
+  }
+  .em-practice-root .em-pitch-rail-pl {
+    font-size: 11px;
+    color: rgba(245, 239, 255, 0.6);
+    font-style: italic;
+    margin-top: 1px;
+  }
+  .em-practice-root .em-pitch-rail-tag {
+    font-family: var(--em-mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    margin-top: 4px;
+    opacity: 0.85;
+  }
+  .em-practice-root .em-pitch-rail-foot {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.14);
+  }
+  .em-practice-root a.em-pitch-rail-foot-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 8px 10px;
+    margin: 6px -10px 0;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+  }
+  .em-practice-root a.em-pitch-rail-foot-link:hover,
+  .em-practice-root a.em-pitch-rail-foot-link:focus-visible {
+    background: rgba(251, 191, 36, 0.10);
+    border-color: rgba(251, 191, 36, 0.45);
+    outline: none;
+  }
+  .em-practice-root a.em-pitch-rail-foot-link:hover .em-pitch-rail-foot-sub,
+  .em-practice-root a.em-pitch-rail-foot-link:focus-visible .em-pitch-rail-foot-sub {
+    color: rgba(245, 239, 255, 0.92);
+  }
+  .em-practice-root a.em-pitch-rail-foot-link:hover .em-pitch-rail-foot-arrow,
+  .em-practice-root a.em-pitch-rail-foot-link:focus-visible .em-pitch-rail-foot-arrow {
+    opacity: 1;
+    transform: translateY(2px);
+    transition: transform 160ms ease, opacity 160ms ease;
+  }
+  .em-practice-root a.em-pitch-rail-foot-link:active {
+    transform: scale(0.98);
+  }
+  .em-practice-root .em-pitch-rail-foot-num {
+    font-family: var(--em-decor);
+    font-size: 26px;
+    color: #FBBF24;
+  }
+  .em-practice-root .em-pitch-rail-foot-sub {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: rgba(245, 239, 255, 0.6);
+    line-height: 1.3;
+  }
+}
+/* Extra-wide ≥1568px — pull rail in slightly, give headline more breathing
+   room so neither the rail nor the content feel cramped. */
+@media (min-width: 1568px) {
+  .em-practice-root .em-pitch-rail {
+    width: 320px;
+    top: 64px;
+    right: 48px;
+  }
+  .em-practice-root .em-pitch-bajla {
+    right: 392px;
+  }
+  .em-practice-root .em-pitch-content {
+    max-width: calc(100% - 400px);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Shell mobile overlap fixes (Builder 3 — EM-010..013)
+   ─────────────────────────────────────────────────────────────────────────
+   The four shells below were authored with absolute positioning calibrated
+   for desktop. On phones (≤768px) the title row, hint card, decoration
+   labels and play surface fight for the same Y-band. These rules retrofit
+   responsive layout WITHOUT touching primitives.tsx.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* HintCard text — guarantee wrapping at narrow widths so the long bilingual
+   strings never get clipped or ellipsised (EM-013). */
+.em-shell .em-shell-hint,
+.em-shell .em-shell-hint > div {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+/* ─── EM-010: DragDrop (The Docks) ─── */
+@media (max-width: 768px) {
+  .em-shell-dragdrop .em-shell-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .em-shell-dragdrop .em-shell-body {
+    /* Push inner content (sentence + hint card + crate dock) below the
+       wrapped header so the prompt no longer rides on top of the title. */
+    inset: 150px 16px 16px !important;
+  }
+}
+@media (max-width: 500px) {
+  .em-shell-dragdrop .em-shell-body {
+    inset: 170px 12px 12px !important;
+  }
+}
+
+/* ─── EM-011: GroupSort (Post Office) ─── */
+@media (max-width: 768px) {
+  .em-shell-groupsort .em-shell-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  /* HintCard becomes flow-positioned at the top of the play area —
+     above the mailboxes, below the title. */
+  .em-shell-groupsort .em-shell-hint {
+    position: static !important;
+    max-width: none !important;
+    margin: 84px 16px 16px;
+    z-index: auto !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+  /* Mailbox grid stacks vertically and starts well below the hint. */
+  .em-shell-groupsort > div[style*="grid-template-columns: repeat(3"] {
+    position: static !important;
+    margin: 0 16px;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  /* Unsorted mail dock follows in flow at the bottom. */
+  .em-shell-groupsort > div[style*="border-top: 1px dashed"] {
+    position: static !important;
+    margin: 16px;
+  }
+}
+
+/* ─── EM-012: Hangman (Construction Site) ─── */
+/* CD re-audit (2026-05-01): the original ≤1200px rule still left labels
+   visible on most laptop widths (1280-1440). The CREW · SAFETY HATS scrim
+   text was always decorative noise — promoting it from "hide on small
+   screens" to "always hide" so it stops fighting the HintCard for the
+   same Y-band. Hard-hat icons and rubble tiles remain. */
+.em-shell-hangman .em-hm-decor-label {
+  display: none;
+}
+@media (max-width: 768px) {
+  .em-shell-hangman .em-shell-bajla {
+    top: 28% !important;
+    right: 16px !important;
+  }
+  .em-shell-hangman .em-shell-keypad {
+    /* Keypad floats full-width above the hint card. */
+    left: 16px !important;
+    right: 16px !important;
+    bottom: 160px !important;
+    max-width: none !important;
+    justify-content: center !important;
+  }
+  .em-shell-hangman .em-shell-hint {
+    /* HintCard pinned full-width at the bottom. */
+    left: 16px !important;
+    right: 16px !important;
+    bottom: 16px !important;
+    max-width: none !important;
+  }
+}
+@media (max-width: 500px) {
+  .em-shell-hangman .em-shell-keypad {
+    bottom: 150px !important;
+    gap: 3px !important;
+  }
+}
+
+/* ─── EM-013: Wordsearch (Neon Market) ─── */
+@media (max-width: 900px) {
+  .em-shell-wordsearch .em-shell-ws-layout {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto !important;
+    gap: 12px !important;
+    padding: 16px !important;
+    overflow-y: auto !important;
+  }
+}
+@media (max-width: 768px) {
+  /* Make sure HintCard text wraps at narrow widths instead of overflowing. */
+  .em-shell-wordsearch .em-shell-ws-side {
+    min-width: 0;
+    width: 100%;
+  }
+  .em-shell-wordsearch .em-shell-hint {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+/* ─── Mobile shell-host: keep fixed height so children with `height: 100%`
+   still resolve to a real number, but flip overflow-y from hidden → auto so
+   shells that stack taller than the viewport (Crossword grid) scroll INSIDE
+   the host. CD re-audit 2026-05-01 caught the prior `height: auto` version
+   collapsing inner shells to 0 height (Matching mobile chips invisible +
+   non-interactive — P0 regression). The fix preserves `height` so absolute-
+   positioned content (Matching SVG/HTML, Hangman scene, etc.) keeps its
+   defined parent box, and only adjusts the clip behaviour. */
+@media (max-width: 768px) {
+  .em-practice-root .em-shell-host {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+/* ─── EM-080 (CD re-audit, 2026-05-01): Crossword shell stacks at ≤768px.
+   Default layout is `gridTemplateColumns: 1.4fr 1fr` (set inline at line 393
+   of Crossword.tsx). At 400px width the right column is ~150px wide and the
+   active-clue header ("Write the past participle") truncates. Stack the two
+   columns vertically and let the inner shell grow taller than the viewport.
+   The shell-host `overflow-y: auto` rule above takes care of scrolling. */
+.em-shell-crossword {
+  /* Tag selector — paired with em-shell-crossword-grid below. No desktop
+     change; rules below only fire at mobile breakpoints. */
+}
+@media (max-width: 768px) {
+  .em-practice-root .em-shell-crossword {
+    height: auto !important;
+    min-height: 100%;
+    overflow: visible !important;
+  }
+  .em-practice-root .em-shell-crossword .em-shell-crossword-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    padding: 16px !important;
+    height: auto !important;
+  }
+  /* Right-column "All streets" panel doesn't need flex:1 when stacked —
+     let it size to content so it doesn't grab leftover height. */
+  .em-practice-root .em-shell-crossword .em-shell-crossword-grid > div:nth-child(2) > div:last-child {
+    flex: none !important;
+    min-height: 240px;
+  }
+  /* Crossword clue text + active-clue header — wrap long content (e.g.
+     "Write the past participle of …") so it doesn't extend past the card
+     border on narrow widths. The buttons in the all-streets list use a
+     flex layout where the clue span has no min-width:0; force wrap with
+     overflow-wrap:anywhere. The active-clue card text inherits the same.
+     CD re-audit 2026-05-01: text overflowing card box at bottom-left. */
+  .em-practice-root .em-shell-crossword * {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .em-practice-root .em-shell-crossword button > span {
+    min-width: 0;
+  }
+}
+
+/* ─── EM-081 (CD re-audit, 2026-05-01): Matching shell mobile fallback.
+   The SVG metro layout (.em-mp-desktop) doesn't survive viewport scale-down
+   to 400px — chips collide regardless of length filter. We render a
+   stacked HTML grid (.em-mp-mobile) alongside the SVG; CSS toggles which
+   one is visible per breakpoint. Both share the same React state so all
+   matching logic (onPick, hint reveals, wrong shake, completion) works
+   in either view. */
+.em-practice-root .em-shell-matching .em-mp-mobile {
+  display: none;
+}
+@media (max-width: 768px) {
+  .em-practice-root .em-shell-matching .em-mp-desktop {
+    display: none !important;
+  }
+  .em-practice-root .em-shell-matching .em-mp-mobile {
+    /* CD re-audit hotfix2 2026-05-01: top bumped 90→160 and bottom 110→210
+       so the stacked chip grid clears the wrapped header (Nameplate +
+       Progress + Skip + Hint can take 2 lines at narrow widths) and the
+       bottom HintCard + reset row (which stacks via flex-column below).
+       Previous values were calibrated for desktop where header is one
+       line; CD caught the chrome-vs-chip overlap at 400px. */
+    display: block !important;
+    top: 160px !important;
+    bottom: 210px !important;
+  }
+  /* Header at top:24 needs less padding at narrow widths. */
+  .em-practice-root .em-shell-matching > div[style*="top: 24px"] {
+    left: 16px !important;
+    right: 16px !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  /* Bottom HintCard + reset button row — pin to safer band so it doesn't
+     overlap the stacked pairs. */
+  .em-practice-root .em-shell-matching > div[style*="bottom: 24px"]:last-of-type {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    bottom: 16px !important;
+    left: 16px !important;
+    right: 16px !important;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Kelly audit C2 (2026-05-02): global prefers-reduced-motion respect.
+ * Covers all 38 shells + chrome (PracticeReview, GroupingPill, PitchCard,
+ * GroupDetail, PracticeGroups). Ironclad WCAG 2.3.3 compliance — when a
+ * user has set "reduce motion" in their OS, every keyframe animation
+ * effectively freezes (1ms duration, no iteration), every transition
+ * collapses to instant, and decorative GPU-heavy effects switch off.
+ *
+ * Vestibular safety: students with motion sickness, photosensitive
+ * epilepsy, or visual processing differences can use the practice arena
+ * without triggering. Per-shell `<style>` blocks should layer additional
+ * `@media (prefers-reduced-motion: reduce)` rules to disable shell-
+ * specific decorative animations (starfields, shimmer overlays, etc).
+ * ───────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .em-practice-root *,
+  .em-practice-root *::before,
+  .em-practice-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Decorative animated overlays — explicit kill list. The wildcard rule
+   * above freezes their animations but the GPU layer still composes; this
+   * trades a small visual change for guaranteed quiet. */
+  .em-practice-root .em-mc-poster-shimmer,
+  .em-practice-root .em-confetti,
+  .em-practice-root .stripes,
+  .em-practice-root .vinyl,
+  .em-practice-root .em-grain {
+    display: none !important;
+  }
+}
+
+
+/* Kelly Tier-2 (2026-05-02): inline diagnostic banner shown when a shell
+ * receives an explicitly-empty puzzle prop (host generator returned 0 items).
+ * Defensive guard so we render a labelled message instead of crashing on
+ * `puzzle.scenes[0]` etc. Cosmetic only; production hosts should never
+ * reach this. */
+.em-shell-host-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  padding: 24px;
+  font-family: var(--em-mono, monospace);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--em-coral, #FB7185);
+  background: rgba(251, 113, 133, 0.06);
+  border: 1px dashed rgba(251, 113, 133, 0.4);
+  border-radius: 8px;
+  text-align: center;
+}
+
+/* Kelly Tier-2 (2026-05-02): visible focus ring for the arcade-shell game
+ * canvases. These divs are made tabbable so keyboard users can land focus
+ * on the play surface (and from there Tab into the per-target buttons).
+ * Default browser outline is suppressed by various host CSS resets; this
+ * gives an unambiguous accent halo. */
+.em-practice-root .em-bp-canvas:focus-visible,
+.em-practice-root .em-bs-canvas:focus-visible,
+.em-practice-root .em-qs-stage:focus-visible,
+.em-practice-root .em-rc-felt:focus-visible {
+  outline: 2px solid var(--em-magenta, #E879F9);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CoverageWidget — Phase 1.6 of audit §4 #21 (Ricky, 2026-05-02)
+   ─────────────────────────────────────────────────────────────────────────
+   The widget itself ships its visual styles inline (so it can ship without
+   a CSS edit dependency). What we add here are the responsive visibility
+   rules: the compact chip on PitchCard's content column should only show
+   below 1280px (where the rail-mounted full widget is hidden), and the
+   skeleton-pulse keyframe used by the loading state.
+   ───────────────────────────────────────────────────────────────────── */
+.em-practice-root .em-coverage-compact-inline {
+  display: block;
+}
+@media (min-width: 1280px) {
+  /* Desktop: the full widget lives in the rail (em-pitch-rail). Hide the
+     compact inline duplicate to avoid showing the same data twice. */
+  .em-practice-root .em-coverage-compact-inline {
+    display: none;
+  }
+}
+
+@keyframes em-skeleton-pulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .em-practice-root .em-coverage-skeleton {
+    animation: none !important;
+  }
+}

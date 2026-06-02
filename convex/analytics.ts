@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { collocationsField } from "./validators.js";
 
@@ -48,6 +48,13 @@ export const updateAnalysis = mutation({
     }))),
     personalDetails: v.optional(v.array(v.string())),
     practiceAdvice: v.optional(v.array(v.string())),
+    cefrBand: v.optional(v.string()),
+    overallScore: v.optional(v.number()),
+    vocabularyRange: v.optional(v.number()),
+    grammaticalAccuracy: v.optional(v.number()),
+    fluencyAndCoherence: v.optional(v.number()),
+    pronunciation: v.optional(v.number()),
+    communicativeEffectiveness: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { analysisId, ...updates } = args;
@@ -290,5 +297,142 @@ export const markKeywordBankUsed = mutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.keywordBankId, { used: true });
+  },
+});
+
+// ─── Per-student refinement pipeline ──────────────────────────
+// Analyses created by commitIngestionJobFanout are baseline copies of
+// the group-level staged analysis, flagged `needsRefinement=true`.
+// A VPS-side streaming worker picks these up, builds a
+// student-specific prompt, and overwrites the analysis via
+// overwriteAnalysisForRefinement.
+
+// Paginated counter — frontend/CLI calls this in a loop for a given
+// bucket ("pending" = needsRefinement === true; "refined" = false)
+// and sums `count` across pages until isDone. Uses the narrow
+// `by_needs_refinement` index so each page stays well under the
+// 16MB read limit even at 200k analyses.
+export const refinementProgressPage = query({
+  args: {
+    bucket: v.union(v.literal("pending"), v.literal("refined")),
+    cursor: v.union(v.string(), v.null()),
+    numItems: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const value = args.bucket === "refined" ? false : true;
+    const page = await ctx.db
+      .query("transcriptAnalyses")
+      .withIndex("by_needs_refinement", q => q.eq("needsRefinement", value))
+      .paginate({ cursor: args.cursor, numItems: args.numItems ?? 500 });
+    return {
+      count: page.page.length,
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+    };
+  },
+});
+
+// Superadmin panel aggregator: fetches the first page of each bucket
+// with a small numItems so we can display "~N pending, ~M refined"
+// without bursting the read limit. For an exact total, the caller
+// should loop refinementProgressPage.
+export const refinementProgress = query({
+  args: {},
+  handler: async (ctx) => {
+    // We can't paginate twice in one query, so we grab only the FIRST
+    // page of each bucket (capped) — this gives a UI-friendly estimate
+    // that is exact for the refined bucket (which is small early on)
+    // and an "at-least-N" floor on the pending bucket. Client code
+    // that needs exact totals should use refinementProgressPage.
+    const MAX = 200;
+    const pendingPage = await ctx.db
+      .query("transcriptAnalyses")
+      .withIndex("by_needs_refinement", q => q.eq("needsRefinement", true))
+      .take(MAX);
+    const refinedPage = await ctx.db
+      .query("transcriptAnalyses")
+      .withIndex("by_needs_refinement", q => q.eq("needsRefinement", false))
+      .take(MAX);
+    return {
+      pending: pendingPage.length,
+      pendingAtLeast: pendingPage.length === MAX,
+      refined: refinedPage.length,
+      refinedAtLeast: refinedPage.length === MAX,
+    };
+  },
+});
+
+// Internal: list analyses awaiting refinement with the context a VPS
+// worker needs (student name, transcript storage id, date).
+export const listPendingRefinements = internalQuery({
+  args: {
+    cursor: v.union(v.string(), v.null()),
+    numItems: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const result = await ctx.db
+      .query("transcriptAnalyses")
+      .withIndex("by_needs_refinement", q => q.eq("needsRefinement", true))
+      .paginate({ cursor: args.cursor, numItems: args.numItems });
+    const enriched = await Promise.all(
+      result.page.map(async (a) => {
+        const student = await ctx.db.get(a.studentId);
+        const lesson = await ctx.db.get(a.lessonId);
+        const transcriptUrl = lesson?.transcriptStorageId
+          ? await ctx.storage.getUrl(lesson.transcriptStorageId)
+          : null;
+        return {
+          analysisId: a._id,
+          studentId: a.studentId,
+          studentName: student?.name ?? "Unknown",
+          lessonId: a.lessonId,
+          lessonDate: lesson?.date ?? "",
+          transcriptUrl,
+          currentCefrBand: a.cefrBand,
+          currentOverallScore: a.overallScore,
+        };
+      }),
+    );
+    return {
+      page: enriched,
+      isDone: result.isDone,
+      continueCursor: result.continueCursor,
+    };
+  },
+});
+
+// Internal: overwrite an analysis with refined, student-specific data.
+// Clears needsRefinement and stamps refinedAt/refinedBy.
+export const overwriteAnalysisForRefinement = internalMutation({
+  args: {
+    analysisId: v.id("transcriptAnalyses"),
+    refinedBy: v.string(),
+    vocabularyRange: v.number(),
+    grammaticalAccuracy: v.number(),
+    fluencyAndCoherence: v.number(),
+    pronunciation: v.number(),
+    communicativeEffectiveness: v.number(),
+    overallScore: v.number(),
+    cefrBand: v.string(),
+    lessonSummary: v.string(),
+    strengths: v.array(v.string()),
+    improvements: v.array(v.string()),
+    keyErrors: v.array(v.object({
+      error: v.string(),
+      correction: v.string(),
+      category: v.string(),
+    })),
+    personalDetails: v.array(v.string()),
+    practiceAdvice: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { analysisId, refinedBy, ...fields } = args;
+    await ctx.db.patch(analysisId, {
+      ...fields,
+      needsRefinement: false,
+      refinedAt: Date.now(),
+      refinedBy,
+    });
+    return { ok: true };
   },
 });

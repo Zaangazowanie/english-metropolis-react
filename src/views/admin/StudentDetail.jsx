@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { queryAdminConvex } from '../../contexts/AdminAuthContext.jsx'
+import { ensurePdfFonts } from '../../utils/pdf-loader.js'
+import { formatDate, formatLongDate, CefrBadge } from '../../components/analytics/AnalyticsPrimitives.jsx'
 
 /* ============================================================================
    Utilities
@@ -132,25 +134,10 @@ function RichInline({ text }) {
   return <>{renderFormattedInline(str)}</>
 }
 
-function formatDate(value) {
-  if (!value) return 'N/A'
-  if (typeof value === 'number') {
-    const d = new Date(value)
-    if (!Number.isNaN(d.getTime())) {
-      return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(d)
-    }
-  }
-  const d = new Date(`${value}T12:00:00`)
-  if (Number.isNaN(d.getTime())) return String(value)
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(d)
-}
-
-function formatLongDate(value) {
-  if (!value) return 'N/A'
-  const d = typeof value === 'number' ? new Date(value) : new Date(`${value}T12:00:00`)
-  if (Number.isNaN(d.getTime())) return String(value)
-  return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(d)
-}
+// formatDate / formatLongDate / CefrBadge imported from AnalyticsPrimitives
+// (Tier 3 cleanup, 2026-05-02 — were verbatim copies). daysAgo kept local
+// because its phrasing diverges from Dashboard.jsx ('today' vs 'Today',
+// 'days ago' vs 'd ago').
 
 function daysAgo(value) {
   if (!value) return null
@@ -163,26 +150,6 @@ function daysAgo(value) {
   if (diff < 30) return `${Math.floor(diff / 7)} weeks ago`
   if (diff < 365) return `${Math.floor(diff / 30)} months ago`
   return `${Math.floor(diff / 365)} years ago`
-}
-
-function CefrBadge({ band, score, size = 'md' }) {
-  const colors = {
-    A1: 'bg-red-100 text-red-700 border-red-200',
-    A2: 'bg-orange-100 text-orange-700 border-orange-200',
-    B1: 'bg-amber-100 text-amber-700 border-amber-200',
-    B2: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    C1: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    C2: 'bg-sky-100 text-sky-700 border-sky-200',
-  }
-  const cls = colors[band] || 'bg-slate-100 text-slate-700 border-slate-200'
-  const sizeCls = size === 'lg'
-    ? 'px-3.5 py-1.5 text-sm tracking-[0.18em]'
-    : 'px-2.5 py-1 text-xs tracking-[0.16em]'
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full border font-label font-bold uppercase ${sizeCls} ${cls}`}>
-      {band}{score ? ` ${Math.round(score)}` : ''}
-    </span>
-  )
 }
 
 /* ============================================================================
@@ -584,28 +551,9 @@ function AdminInsightCardGrid({ kind, items, onOpenSource, sourceLabel = '', lin
    ============================================================================ */
 
 /* ============================================================================
-   PDF Font loader — async-loads Noto Sans so Polish diacritics render
+   PDF Font loader — uses shared ensurePdfFonts from src/utils/pdf-loader.js
+   (Tier 3 cleanup, 2026-05-02: was an inline copy with no VENDOR_V cache-bust).
    ============================================================================ */
-
-let _pdfFontsLoaded = false
-async function ensurePdfFonts() {
-  if (_pdfFontsLoaded) return
-  // Load base64 font files via script tags (they set window.__NOTO_REGULAR_B64 etc.)
-  const load = (src) => new Promise((resolve, reject) => {
-    const s = document.createElement('script')
-    s.src = src
-    s.onload = () => resolve()
-    s.onerror = reject
-    document.head.appendChild(s)
-  })
-  if (!window.__NOTO_REGULAR_B64) {
-    await load('/students/vendor/fonts/NotoSans-Regular.b64.js')
-  }
-  if (!window.__NOTO_BOLD_B64) {
-    await load('/students/vendor/fonts/NotoSans-Bold.b64.js')
-  }
-  _pdfFontsLoaded = true
-}
 
 async function generateStudentReport(student, assessment, feedback, enrichedAnalyses, lessons) {
   const jspdfLib = typeof window !== 'undefined' ? window.jspdf : null

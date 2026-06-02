@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
+import { fetchJSONCached, fetchWithTimeout } from '../practice/lib/practice-cache'
 
 /* ============================================================================
    Practice Arena — replaces the old Quiz placeholder
@@ -35,25 +36,31 @@ function useStudentSlug() {
   return params.slug || 'szymon-karpinski'
 }
 
+// Wrapped with fetchJSONCached: 30s AbortController-backed timeout + 5-min
+// in-memory cache so re-renders / route flips don't re-pull the same static
+// /practice-data/*.json files. Keys include slug + tier + category so
+// different drills don't collide.
 async function fetchExercise(slug, tier, category, exerciseIdx = 0) {
   const url = `/practice-data/${slug}/tier-${tier}/${category}.json`
-  const r = await fetch(url)
-  if (!r.ok) return null
-  const data = await r.json()
-  return Array.isArray(data) ? (data[exerciseIdx] || data[0]) : null
+  try {
+    const data = await fetchJSONCached(url, { cacheKey: `practice::${url}` })
+    return Array.isArray(data) ? (data[exerciseIdx] || data[0]) : null
+  } catch { return null }
 }
 
 async function fetchIndex(slug) {
-  const r = await fetch(`/practice-data/${slug}-index.json`)
-  if (!r.ok) return null
-  return await r.json()
+  const url = `/practice-data/${slug}-index.json`
+  try {
+    return await fetchJSONCached(url, { cacheKey: `practice::${url}` })
+  } catch { return null }
 }
 
 async function fetchKbDrill(slug, entryId) {
   if (!entryId) return null
-  const r = await fetch(`/practice-data/${slug}/kb-drills/${encodeURIComponent(entryId)}.json`)
-  if (!r.ok) return null
-  return await r.json()
+  const url = `/practice-data/${slug}/kb-drills/${encodeURIComponent(entryId)}.json`
+  try {
+    return await fetchJSONCached(url, { cacheKey: `practice::${url}` })
+  } catch { return null }
 }
 
 const KB_TYPE_META = {
@@ -786,7 +793,8 @@ function FreeWriteDrill({ advice, slug, onExit }) {
         `Please review it. Tell me what I got right, flag specific mistakes with their corrections, ` +
         `and give me one concrete tip to push this piece of writing from good to great. Be warm and specific.`
       )
-      const r = await fetch('/api/conversa/chat', {
+      // 30s AbortController-backed timeout — see practice-cache.ts.
+      const r = await fetchWithTimeout('/api/conversa/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -9,10 +9,12 @@ export default function SuperadminGroups() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    let alive = true
     queryAdminConvex('groups:listGroupsWithCounts', {})
-      .then(setGroups)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+      .then(d => { if (alive) setGroups(d) })
+      .catch(e => { if (alive) setError(e.message) })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
   }, [])
 
   const needle = q.trim().toLowerCase()

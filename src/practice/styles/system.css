@@ -1,0 +1,275 @@
+/* English Metropolis — Practice Shells design system */
+/* All shells share this base. District-specific colors layered on top. */
+
+
+:root {
+  /* Surfaces */
+  --em-ink: #0E0A1A;
+  --em-ink-2: #14102A;
+  --em-card: #181128;
+  --em-card-2: #211734;
+  --em-card-3: #2C1F46;
+  --em-line: rgba(255,255,255,0.07);
+  --em-line-strong: rgba(255,255,255,0.14);
+
+  /* Text */
+  --em-text: #EDE6FF;
+  --em-text-muted: #9A8FB8;
+  --em-text-dim: #6B6184;
+
+  /* Brand spectrum */
+  --em-magenta: #E879F9;
+  --em-violet: #A78BFA;
+  --em-amber: #FBBF24;
+  --em-mint: #34D399;
+  --em-coral: #FB7185;
+  --em-sky: #7DD3FC;
+  --em-rose: #F472B6;
+  --em-lime: #BEF264;
+
+  /* Semantic */
+  --em-correct: #34D399;
+  --em-wrong: #FB7185;
+
+  /* Type */
+  --em-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --em-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --em-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --em-decor: 'Caprasimo', Georgia, serif;
+
+  /* Motion */
+  --em-ease: cubic-bezier(.2,.7,.3,1);
+  --em-fast: 180ms;
+  --em-med: 320ms;
+  --em-slow: 520ms;
+
+  /* EM-051 — Aliases referenced by audit tooling and downstream shells.
+     These are NOT replacements for --em-ink/--em-card/--em-line; they are
+     additional names that map to the same values, so any code looking up
+     --em-bg / --em-card-bg / --em-card-border resolves to a real token. */
+  --em-bg: #0E0A1A;                            /* alias of --em-ink */
+  --em-card-bg: #181128;                       /* alias of --em-card */
+  --em-card-border: rgba(255, 255, 255, 0.07); /* alias of --em-line */
+
+  /* Dusk gradient stops — used by hero card backgrounds and pitch-card
+     skyline. Exposed as named tokens so other shells can reuse the exact
+     same hue ramp without re-declaring magic hex values. */
+  --em-dusk-1: #1F1240;
+  --em-dusk-2: #6A2A8C;
+
+  /* Pitch card / hero gradient endpoints */
+  --em-pitch-from: #1F1240;
+  --em-pitch-to: #C5598E;
+}
+
+/* Day/dusk/night themes — layered via [data-time] on the shell root */
+[data-time="day"] {
+  --em-ink: #1A1230;
+  --em-ink-2: #271940;
+  --em-card: #2D1F4A;
+  --em-card-2: #382651;
+  --em-text: #F5EFFF;
+  --em-text-muted: #B5A8D6;
+  --sky-grad: linear-gradient(180deg, #4C2F7E 0%, #7B4FB7 60%, #C58BD9 100%);
+  --time-tint: rgba(255,180,220,0.05);
+}
+[data-time="dusk"] {
+  --em-ink: #110A22;
+  --em-ink-2: #1B1132;
+  --em-card: #1F1438;
+  --em-card-2: #2A1B45;
+  --sky-grad: linear-gradient(180deg, #1F1240 0%, #4C1F70 50%, #B85A88 100%);
+  --time-tint: rgba(232,121,249,0.04);
+}
+[data-time="night"] {
+  --em-ink: #07041A;
+  --em-ink-2: #0E0926;
+  --em-card: #110A2A;
+  --em-card-2: #18113A;
+  --sky-grad: linear-gradient(180deg, #02010C 0%, #100829 60%, #2A1450 100%);
+  --time-tint: rgba(125,211,252,0.04);
+}
+
+/* Universal grain — drop on top of any photo/gradient */
+.em-grain::after {
+  content: '';
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+}
+
+/* Vignette overlay */
+.em-vignette::before {
+  content: '';
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%);
+}
+
+/* Eyebrow / station signage label */
+.em-eyebrow {
+  font-family: var(--em-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--em-text-muted);
+  font-weight: 500;
+}
+
+.em-display {
+  font-family: var(--em-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--em-text);
+}
+
+.em-decor {
+  font-family: var(--em-decor);
+  letter-spacing: 0.005em;
+}
+
+/* Card — the canonical surface */
+.em-card {
+  position: relative;
+  background: var(--em-card);
+  border: 1px solid var(--em-line);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+/* Pill button */
+.em-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--em-body);
+  font-weight: 500;
+  font-size: 13px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--em-line-strong);
+  background: rgba(255,255,255,0.04);
+  color: var(--em-text);
+  cursor: pointer;
+  transition: background var(--em-fast) var(--em-ease), transform var(--em-fast) var(--em-ease), border-color var(--em-fast) var(--em-ease);
+}
+.em-btn:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.22); }
+.em-btn:active { transform: scale(0.98); }
+.em-btn-primary {
+  background: linear-gradient(120deg, var(--em-magenta), var(--em-violet));
+  border-color: transparent;
+  color: #1A0F2E;
+  font-weight: 600;
+}
+.em-btn-primary:hover { background: linear-gradient(120deg, #F291FB, #B79EFC); }
+.em-btn-ghost {
+  background: transparent; border-color: var(--em-line);
+  color: var(--em-text-muted);
+}
+
+/* Reusable photo placeholder (since we don't ship real city photos).
+   Renders a moody tinted "scene" with grain. Caller picks --hue. */
+.em-photo {
+  position: relative;
+  background:
+    radial-gradient(ellipse 80% 60% at 30% 20%, hsla(var(--hue, 280), 70%, 55%, 0.5), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 75% 80%, hsla(calc(var(--hue, 280) + 40), 80%, 60%, 0.45), transparent 65%),
+    linear-gradient(160deg, #0a0518 0%, #1a0c2e 50%, #0a0518 100%);
+  overflow: hidden;
+}
+
+/* Bilingual hint chip */
+.em-hint-pl {
+  font-family: var(--em-body);
+  color: var(--em-text-dim);
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* District accent ring, used on focused cells */
+.em-ring {
+  box-shadow: 0 0 0 2px var(--em-ink), 0 0 0 4px var(--em-magenta), 0 0 24px rgba(232,121,249,0.4);
+}
+
+/* Sleek scrollbar */
+.em-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent; }
+.em-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.em-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 999px; }
+
+/* Body baseline (only when applied to a shell, not the canvas) */
+.em-shell {
+  font-family: var(--em-body);
+  color: var(--em-text);
+  background: var(--em-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Bajla pigeon — tiny SVG mascot */
+.bajla {
+  width: 44px; height: 44px;
+  filter: drop-shadow(0 4px 14px rgba(232,121,249,0.35));
+}
+
+/* Keyframes */
+@keyframes em-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@keyframes em-flicker {
+  0%, 100% { opacity: 1; }
+  47% { opacity: 1; }
+  48% { opacity: 0.4; }
+  49% { opacity: 1; }
+  73% { opacity: 1; }
+  74% { opacity: 0.6; }
+  75% { opacity: 1; }
+}
+/* Fix-3: `em-rise` previously animated `transform: translateY(8px → 0)` with
+   `animation-fill-mode: both`, which left `transform: translateY(0)` pinned on
+   the element after the entrance — that pin shadowed `:hover { transform:
+   translateY(-Xpx) }` on hero/secondary cards (matching specificity, but the
+   running animated value wins). Hover lift never fired.
+   We now fade in only; the cards lift on hover via their own `transition` rule
+   on `transform` without competing with this keyframe. The slight slide-up was
+   subtle; pure opacity entrance still feels good and is consistent with the
+   shells (Matching, GapFill, etc.) which also use `em-rise` for fade-in. */
+@keyframes em-rise {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes em-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes em-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+@keyframes em-confetti {
+  0% { transform: translateY(0) rotate(0); opacity: 1; }
+  100% { transform: translateY(220px) rotate(540deg); opacity: 0; }
+}
+@keyframes em-glow {
+  0%, 100% { box-shadow: 0 0 0 1px var(--em-magenta), 0 0 20px rgba(232,121,249,0.35); }
+  50% { box-shadow: 0 0 0 1px var(--em-magenta), 0 0 36px rgba(232,121,249,0.65); }
+}
+@keyframes bajla-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50%      { transform: translateY(-3px) rotate(1deg); }
+}
+@keyframes bajla-bounce {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-6px) rotate(3deg); }
+}
+@keyframes plane-cross {
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(1700px, 60px); }
+}
+@keyframes em-shimmer {
+  0%, 100% { opacity: 0.2; transform: translateX(0); }
+  50%      { opacity: 0.5; transform: translateX(8px); }
+}

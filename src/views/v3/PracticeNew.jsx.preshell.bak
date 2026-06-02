@@ -1,0 +1,622 @@
+// PracticeNew — replaces /practice. Three guiding rules:
+//   1. ZERO typing. All 6 question types are click-only.
+//   2. Answer position randomised per render (per question id) so MCQ isn't
+//      "always A" anymore (Aleksandra's complaint).
+//   3. Library-driven content under /practice-library/<level>/<category>/<skill>/.
+//
+// Views:
+//   - 'landing'     : "Continue working on…" rail + level × category grid
+//   - 'skill-list'  : list of skills within a chosen level + category
+//   - 'exercise-list': list of ex-NNN.json drills within a skill
+//   - 'session'     : running a 10-question drill
+//   - 'results'     : score summary at the end of a session
+//
+// The library has its own brief (sub-agent in parallel). If the library
+// index is missing or empty (sub-agent hasn't shipped yet), this page
+// degrades to a friendly "Library is being prepared" notice while the
+// /practice-legacy route stays fully functional.
+
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Glass, Pill, Btn, Skeleton } from '../../design/v3/primitives.jsx'
+import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
+import { CAT_COLOR, CEFR_COLOR, FONT, G } from '../../design/v3/tokens.js'
+import { useI18n } from '../../i18n'
+import QuestionRenderer from '../../components/practice/QuestionRenderer.jsx'
+
+/* ========== Library data fetchers ========== */
+
+async function fetchLibraryIndex() {
+  try {
+    const r = await fetch('/practice-library/index.json', { cache: 'no-store' })
+    if (!r.ok) return null
+    return await r.json()
+  } catch { return null }
+}
+
+async function fetchExercise(level, category, skill, exId) {
+  try {
+    const r = await fetch(`/practice-library/${level}/${category}/${skill}/${exId}.json`, { cache: 'no-store' })
+    if (!r.ok) return null
+    return await r.json()
+  } catch { return null }
+}
+
+async function fetchKnowledgeBase(slug) {
+  try {
+    const r = await fetch(`/knowledge-base/${slug}.json`, { cache: 'no-store' })
+    if (!r.ok) return []
+    const data = await r.json()
+    return Array.isArray(data) ? data : []
+  } catch { return [] }
+}
+
+/* ========== KB pattern -> skill mapping ========== */
+// Heuristic: walk each KB entry's `category` + tag-like text and try to find
+// a skill in the library whose tags / title overlap.
+function mapKbToSkills(kbEntries, libIndex) {
+  if (!libIndex || !libIndex.skills) return []
+  const skills = libIndex.skills
+  const out = []
+  const seenSkills = new Set()
+  for (const entry of kbEntries) {
+    if (!entry?.fossilized) continue
+    const cat = String(entry.category || '').toLowerCase()
+    const title = String(entry.title || '').toLowerCase()
+    const drillType = String(entry.drillType || '').toLowerCase()
+    let best = null, bestScore = 0
+    for (const sk of skills) {
+      const tags = (sk.tags || []).map(t => String(t).toLowerCase())
+      const skTitle = String(sk.title || '').toLowerCase()
+      const skSlug = String(sk.slug || '').toLowerCase()
+      let score = 0
+      // tag-overlap on category words ("grammar-tense" → "grammar", "tense")
+      for (const piece of cat.split(/[-_/\s]/).filter(Boolean)) {
+        if (tags.some(t => t.includes(piece) || piece.includes(t))) score += 2
+        if (skSlug.includes(piece) || skTitle.includes(piece)) score += 1
+      }
+      // title-word overlap
+      for (const w of title.split(/\W+/).filter(w => w.length > 4)) {
+        if (skTitle.includes(w) || tags.some(t => t.includes(w))) score += 3
+      }
+      // drill-type hint
+      if (drillType && tags.some(t => t.includes(drillType))) score += 1
+      if (score > bestScore) { bestScore = score; best = sk }
+    }
+    if (best && bestScore >= 2 && !seenSkills.has(best.slug)) {
+      seenSkills.add(best.slug)
+      out.push({ pattern: entry, skill: best })
+      if (out.length >= 6) break
+    }
+  }
+  return out
+}
+
+/* ========== Constants ========== */
+
+const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+const CATEGORIES = [
+  { key: 'grammar',        labelEn: 'Grammar',        labelPl: 'Gramatyka',       icon: 'spellcheck' },
+  { key: 'vocabulary',     labelEn: 'Vocabulary',     labelPl: 'Słownictwo',      icon: 'book' },
+  { key: 'listening',      labelEn: 'Listening',      labelPl: 'Słuchanie',       icon: 'headphones' },
+  { key: 'reading',        labelEn: 'Reading',        labelPl: 'Czytanie',        icon: 'menu_book' },
+  { key: 'use-of-english', labelEn: 'Use of English', labelPl: 'Użycie języka',   icon: 'auto_fix_high' },
+  { key: 'writing',        labelEn: 'Writing',        labelPl: 'Pisanie',         icon: 'edit_note' },
+]
+
+const ACCENT = {
+  solid: '#D946EF',
+  grad: G.brand,
+  tint: 'rgba(217,70,239,0.12)',
+}
+
+/* ========== Landing: KB rail + level×category grid ========== */
+
+function ContinueRail({ items, slug, basePath, onPickSkill }) {
+  const { T } = useV3Theme()
+  if (!items.length) return null
+  return (
+    <div style={{ marginBottom: 30 }}>
+      <div style={{
+        fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase',
+        color: T.textDim, marginBottom: 10,
+      }}>
+        Continue working on your fossilised patterns
+      </div>
+      <div style={{
+        display: 'grid', gap: 12,
+        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+      }}>
+        {items.map((it, i) => (
+          <button key={i} type="button"
+            onClick={() => onPickSkill(it.skill)}
+            style={{
+              textAlign: 'left', padding: 18, borderRadius: 16,
+              background: 'rgba(217,70,239,0.08)', border: `1px solid rgba(217,70,239,0.25)`,
+              cursor: 'pointer', color: T.text, fontFamily: FONT.body,
+              transition: 'all 200ms',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT.solid; e.currentTarget.style.background = 'rgba(217,70,239,0.14)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(217,70,239,0.25)'; e.currentTarget.style.background = 'rgba(217,70,239,0.08)' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#D946EF', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
+              {it.skill.level} · {it.skill.category}
+            </div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 17, fontStyle: 'italic', lineHeight: 1.3, marginBottom: 8 }}>
+              {it.skill.title}
+            </div>
+            <div style={{ fontSize: 12, color: T.textDim, lineHeight: 1.5 }}>
+              <strong style={{ color: T.textSoft }}>From your KB:</strong> {it.pattern.title}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function LevelGrid({ index, studentLevel, onPick }) {
+  const { T } = useV3Theme()
+  const { lang } = useI18n()
+  // Only show levels with content
+  const levelsWithContent = LEVELS.filter(L => index?.counts?.[L])
+  const visibleLevels = levelsWithContent.length > 0 ? levelsWithContent : ['A2', 'B1', 'B2', 'C1']
+
+  return (
+    <div style={{ overflow: 'auto', borderRadius: 20, border: `1px solid ${T.border}`, background: T.surface }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
+        <thead>
+          <tr>
+            <th style={{
+              textAlign: 'left', padding: '14px 18px',
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase',
+              color: T.textDim, borderBottom: `1px solid ${T.border}`, background: T.surface,
+            }}>{lang === 'pl' ? 'Kategoria' : 'Category'}</th>
+            {visibleLevels.map(L => {
+              const isStudent = L === studentLevel
+              return (
+                <th key={L} style={{
+                  padding: '14px 12px', textAlign: 'center',
+                  fontSize: 12, fontWeight: 700, letterSpacing: '0.08em',
+                  color: isStudent ? '#D946EF' : T.textSoft,
+                  background: isStudent ? 'rgba(217,70,239,0.08)' : 'transparent',
+                  borderBottom: `1px solid ${T.border}`,
+                }}>
+                  {L}
+                  {isStudent && <span style={{ display: 'block', fontSize: 9, fontWeight: 600, color: T.textDim, marginTop: 2 }}>YOUR LEVEL</span>}
+                </th>
+              )
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {CATEGORIES.map(cat => (
+            <tr key={cat.key}>
+              <td style={{
+                padding: '14px 18px',
+                borderBottom: `1px solid ${T.borderSoft}`,
+                fontSize: 14, fontWeight: 600, color: T.text, fontFamily: FONT.body,
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: T.textDim, verticalAlign: 'middle', marginRight: 8 }}>{cat.icon}</span>
+                {lang === 'pl' ? cat.labelPl : cat.labelEn}
+              </td>
+              {visibleLevels.map(L => {
+                const count = index?.counts?.[L]?.[cat.key] || 0
+                const disabled = count === 0
+                const isStudent = L === studentLevel
+                return (
+                  <td key={L} style={{
+                    padding: 6, textAlign: 'center',
+                    borderBottom: `1px solid ${T.borderSoft}`,
+                    background: isStudent ? 'rgba(217,70,239,0.04)' : 'transparent',
+                  }}>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => onPick(L, cat.key)}
+                      style={{
+                        width: '100%', padding: '12px 8px', borderRadius: 10,
+                        background: disabled ? 'transparent' : (isStudent ? 'rgba(217,70,239,0.12)' : T.surface),
+                        border: disabled ? `1px dashed ${T.borderSoft}` : `1px solid ${isStudent ? 'rgba(217,70,239,0.35)' : T.border}`,
+                        color: disabled ? T.textMute : T.text,
+                        cursor: disabled ? 'not-allowed' : 'pointer',
+                        fontFamily: FONT.body, fontSize: 13, fontWeight: 600,
+                        transition: 'all 160ms',
+                      }}
+                      onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = 'rgba(217,70,239,0.18)'; e.currentTarget.style.borderColor = '#D946EF' } }}
+                      onMouseLeave={e => { if (!disabled) { e.currentTarget.style.background = isStudent ? 'rgba(217,70,239,0.12)' : T.surface; e.currentTarget.style.borderColor = isStudent ? 'rgba(217,70,239,0.35)' : T.border } }}>
+                      {disabled ? '—' : `${count}`}
+                    </button>
+                  </td>
+                )
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+/* ========== Skill list within a level + category ========== */
+
+function SkillList({ index, level, category, onPickSkill, onBack }) {
+  const { T } = useV3Theme()
+  const skills = (index?.skills || []).filter(s => s.level === level && s.category === category)
+  return (
+    <div>
+      <button type="button" onClick={onBack} style={{
+        marginBottom: 14, padding: '6px 14px', borderRadius: 999,
+        background: 'transparent', color: T.textSoft, border: `1px solid ${T.border}`,
+        fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+        cursor: 'pointer',
+      }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: 'middle', marginRight: 4 }}>arrow_back</span>
+        Back to grid
+      </button>
+      <h2 style={{
+        fontFamily: "'Fraunces', serif", fontSize: 28, fontWeight: 500, fontStyle: 'italic',
+        margin: '0 0 18px', color: T.text,
+      }}>{level} · {category}</h2>
+      <div style={{ display: 'grid', gap: 10 }}>
+        {skills.length === 0 && (
+          <Glass padding={18}><span style={{ color: T.textDim, fontSize: 14 }}>No skills here yet.</span></Glass>
+        )}
+        {skills.map(sk => (
+          <button key={sk.slug} type="button" onClick={() => onPickSkill(sk)}
+            style={{
+              padding: 18, borderRadius: 14, textAlign: 'left',
+              background: T.surface, border: `1px solid ${T.border}`,
+              cursor: 'pointer', color: T.text, fontFamily: FONT.body, transition: 'all 160ms',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT.solid; e.currentTarget.style.background = 'rgba(217,70,239,0.08)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.surface }}>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 18, fontStyle: 'italic', marginBottom: 4 }}>{sk.title}</div>
+            <div style={{ fontSize: 12, color: T.textDim }}>
+              {sk.exerciseCount || 0} exercise{(sk.exerciseCount || 0) === 1 ? '' : 's'}
+              {sk.tags?.length ? ` · ${sk.tags.slice(0, 4).join(' · ')}` : ''}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ========== Exercise list within a skill ========== */
+
+function ExerciseList({ skill, onPick, onBack }) {
+  const { T } = useV3Theme()
+  const completed = JSON.parse(localStorage.getItem(`em.practice.completed.${skill.slug}`) || '{}')
+  const exCount = skill.exerciseCount || 0
+  const exIds = Array.from({ length: exCount }, (_, i) => `ex-${String(i + 1).padStart(3, '0')}`)
+  return (
+    <div>
+      <button type="button" onClick={onBack} style={{
+        marginBottom: 14, padding: '6px 14px', borderRadius: 999,
+        background: 'transparent', color: T.textSoft, border: `1px solid ${T.border}`,
+        fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+        cursor: 'pointer',
+      }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: 'middle', marginRight: 4 }}>arrow_back</span>
+        {skill.level} · {skill.category}
+      </button>
+      <h2 style={{
+        fontFamily: "'Fraunces', serif", fontSize: 28, fontWeight: 500, fontStyle: 'italic',
+        margin: '0 0 18px', color: T.text,
+      }}>{skill.title}</h2>
+      <div style={{
+        display: 'grid', gap: 10,
+        gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+      }}>
+        {exIds.map(exId => {
+          const c = completed[exId]
+          return (
+            <button key={exId} type="button" onClick={() => onPick(exId)}
+              style={{
+                padding: '16px 14px', borderRadius: 14,
+                background: c ? 'rgba(52,211,153,0.10)' : T.surface,
+                border: `1px solid ${c ? 'rgba(52,211,153,0.4)' : T.border}`,
+                cursor: 'pointer', color: T.text, fontFamily: FONT.body,
+                textAlign: 'center', transition: 'all 160ms',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT.solid }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = c ? 'rgba(52,211,153,0.4)' : T.border }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.textDim, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                {c ? 'Done' : 'Exercise'}
+              </div>
+              <div style={{ fontFamily: FONT.mono, fontSize: 18, fontWeight: 700, marginTop: 4 }}>
+                {exId.replace('ex-', '')}
+              </div>
+              {c && <div style={{ fontSize: 11, color: T.good, marginTop: 4 }}>Score: {c.score}/{c.total}</div>}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/* ========== Session — runs a 10-question drill ========== */
+
+function Session({ exercise, skill, onFinish, onAbort }) {
+  const { T } = useV3Theme()
+  const { t } = useI18n()
+  const questions = Array.isArray(exercise?.questions) ? exercise.questions : []
+  const [idx, setIdx] = useState(0)
+  const [answers, setAnswers] = useState({})  // qid -> { value, correct }
+  // Per-session salt so retries reshuffle
+  const sessionSalt = useMemo(() => String(Date.now()), [exercise?.id])
+  const q = questions[idx]
+  const aRec = q ? answers[q.id] : null
+  const answered = !!aRec
+  const progress = questions.length ? ((idx + (answered ? 1 : 0)) / questions.length) * 100 : 0
+
+  function record(value, correct) {
+    if (!q) return
+    setAnswers({ ...answers, [q.id]: { value, correct } })
+  }
+
+  function next() {
+    if (idx < questions.length - 1) setIdx(idx + 1)
+    else {
+      // `answers` already includes the just-answered question — record() ran on
+      // the click that revealed feedback, and React re-rendered before this
+      // Next-button handler fires.
+      const total = questions.length
+      const finalScore = Object.values(answers).filter(a => a.correct).length
+      onFinish({ score: finalScore, total })
+    }
+  }
+
+  if (!q) {
+    return (
+      <Glass padding={26}>
+        <p style={{ color: T.textDim }}>This exercise has no questions yet.</p>
+        <Btn variant="secondary" onClick={onAbort}>Back</Btn>
+      </Glass>
+    )
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <button type="button" onClick={onAbort} style={{
+          padding: '6px 12px', borderRadius: 999,
+          background: 'transparent', color: T.textSoft, border: `1px solid ${T.border}`,
+          fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+          cursor: 'pointer',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 13, verticalAlign: 'middle', marginRight: 4 }}>close</span>
+          Quit
+        </button>
+        <Pill tone="brand" size="sm">{skill.level} · {skill.category}</Pill>
+        <span style={{ flex: 1 }}/>
+        <span style={{ fontFamily: FONT.mono, fontSize: 12, color: T.textDim }}>
+          {idx + 1} / {questions.length}
+        </span>
+      </div>
+
+      <div style={{ height: 4, background: T.borderSoft, borderRadius: 4, overflow: 'hidden', marginBottom: 18 }}>
+        <div style={{
+          width: `${progress}%`, height: '100%',
+          background: ACCENT.grad, transition: 'width 520ms cubic-bezier(0.16,1,0.3,1)',
+        }}/>
+      </div>
+
+      <QuestionRenderer
+        key={q.id}
+        question={q}
+        onAnswer={record}
+        answered={answered}
+        userAnswer={aRec?.value}
+        correct={aRec?.correct}
+        accent={ACCENT}
+        sessionSalt={sessionSalt}
+      />
+
+      {answered && (
+        <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center' }}>
+          <Btn variant="primary" size="lg" trailingIcon="arrow_forward" onClick={next}>
+            {idx < questions.length - 1 ? (t('quiz.session.nextPrompt') || 'Next question') : (t('quiz.session.seeResults') || 'See results')}
+          </Btn>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ========== Results screen ========== */
+
+function Results({ score, total, skill, onTryAnother, onPickDifferent }) {
+  const { T } = useV3Theme()
+  const pct = total ? Math.round((score / total) * 100) : 0
+  const tone = pct >= 80 ? T.good : pct >= 60 ? '#FCD34D' : T.rose
+  return (
+    <Glass padding={32} style={{ textAlign: 'center' }}>
+      <div style={{
+        fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase',
+        color: T.textDim, marginBottom: 10,
+      }}>Session complete</div>
+      <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 36, fontStyle: 'italic', margin: '0 0 14px', color: T.text }}>
+        {skill.title}
+      </h2>
+      <div style={{
+        fontSize: 64, fontFamily: FONT.mono, fontWeight: 700, color: tone,
+        lineHeight: 1, margin: '20px 0 8px',
+      }}>{score}<span style={{ color: T.textDim }}>/{total}</span></div>
+      <div style={{ fontSize: 14, color: T.textSoft, marginBottom: 24 }}>
+        {pct >= 80 ? 'Sharp work.' : pct >= 60 ? 'Solid — one more rep cements it.' : 'Worth another swing.'}
+      </div>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Btn variant="primary" onClick={onTryAnother} icon="refresh">Try another</Btn>
+        <Btn variant="secondary" onClick={onPickDifferent} icon="grid_view">Pick a different skill</Btn>
+      </div>
+    </Glass>
+  )
+}
+
+/* ========== Main page ========== */
+
+export default function PracticeNew({ data, basePath = '' }) {
+  const { T } = useV3Theme()
+  const { lang } = useI18n()
+  const params = useParams()
+  const navigate = useNavigate()
+  const slug = params.slug || ''
+  const studentLevel = String(data?.profile?.level || data?.level || 'B1').toUpperCase()
+
+  const [index, setIndex] = useState(null)
+  const [indexLoading, setIndexLoading] = useState(true)
+  const [kbItems, setKbItems] = useState([])
+
+  // View state
+  const [view, setView] = useState('landing')   // landing | skill-list | exercise-list | session | results
+  const [pickedLevel, setPickedLevel] = useState(null)
+  const [pickedCategory, setPickedCategory] = useState(null)
+  const [pickedSkill, setPickedSkill] = useState(null)
+  const [pickedExercise, setPickedExercise] = useState(null)
+  const [exerciseData, setExerciseData] = useState(null)
+  const [exerciseLoading, setExerciseLoading] = useState(false)
+  const [results, setResults] = useState(null)
+
+  // Load index + KB
+  useEffect(() => {
+    let cancelled = false
+    setIndexLoading(true)
+    Promise.all([fetchLibraryIndex(), slug ? fetchKnowledgeBase(slug) : Promise.resolve([])])
+      .then(([idx, kb]) => {
+        if (cancelled) return
+        setIndex(idx)
+        setKbItems(idx ? mapKbToSkills(kb, idx) : [])
+        setIndexLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [slug])
+
+  // Load an exercise on demand
+  useEffect(() => {
+    if (view !== 'session' || !pickedSkill || !pickedExercise) return
+    let cancelled = false
+    setExerciseLoading(true)
+    fetchExercise(pickedSkill.level, pickedSkill.category, pickedSkill.slug, pickedExercise)
+      .then(ex => {
+        if (cancelled) return
+        setExerciseData(ex)
+        setExerciseLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [view, pickedSkill, pickedExercise])
+
+  function pickSkillFromAnywhere(skill) {
+    setPickedLevel(skill.level)
+    setPickedCategory(skill.category)
+    setPickedSkill(skill)
+    setView('exercise-list')
+  }
+
+  function startExercise(exId) {
+    setPickedExercise(exId)
+    setExerciseData(null)
+    setView('session')
+  }
+
+  function finishSession({ score, total }) {
+    // Persist completion to localStorage so the exercise grid lights up.
+    const key = `em.practice.completed.${pickedSkill.slug}`
+    const prev = JSON.parse(localStorage.getItem(key) || '{}')
+    prev[pickedExercise] = { score, total, ts: Date.now() }
+    localStorage.setItem(key, JSON.stringify(prev))
+    setResults({ score, total })
+    setView('results')
+  }
+
+  return (
+    <div style={{ maxWidth: 1320, margin: '0 auto', padding: '20px 14px' }}>
+      <h1 style={{
+        fontFamily: "'Fraunces', serif", fontSize: 34, fontWeight: 500, fontStyle: 'italic',
+        margin: '0 0 6px', color: T.text,
+      }}>
+        {lang === 'pl' ? 'Ćwiczenia' : 'Practice'}
+      </h1>
+      <p style={{ color: T.textDim, fontSize: 14, margin: '0 0 24px' }}>
+        {lang === 'pl'
+          ? 'Wybierz poziom i kategorię. Każde ćwiczenie to dziesięć krótkich pytań — bez wpisywania, tylko klikanie.'
+          : 'Pick a level and category. Every drill is ten quick click-only questions — no typing.'}
+      </p>
+
+      {indexLoading && (
+        <div style={{ display: 'grid', gap: 14 }}>
+          <Skeleton h={120}/>
+          <Skeleton h={300}/>
+        </div>
+      )}
+
+      {!indexLoading && !index && (
+        <Glass padding={26}>
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontStyle: 'italic', margin: '0 0 10px', color: T.text }}>
+            The new practice library is being prepared
+          </h2>
+          <p style={{ color: T.textDim, fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>
+            We're rebuilding practice from the ground up with a click-only, level × category structure.
+            While the library lands, the previous practice page is still available.
+          </p>
+          <Link to={`${basePath}/${slug}/practice-legacy`} style={{ textDecoration: 'none' }}>
+            <Btn variant="primary" trailingIcon="arrow_forward">Use the old Practice for now</Btn>
+          </Link>
+        </Glass>
+      )}
+
+      {!indexLoading && index && view === 'landing' && (
+        <>
+          <ContinueRail items={kbItems} slug={slug} basePath={basePath} onPickSkill={pickSkillFromAnywhere}/>
+          <LevelGrid index={index} studentLevel={studentLevel}
+            onPick={(L, c) => { setPickedLevel(L); setPickedCategory(c); setView('skill-list') }}/>
+        </>
+      )}
+
+      {view === 'skill-list' && index && (
+        <SkillList index={index} level={pickedLevel} category={pickedCategory}
+          onPickSkill={pickSkillFromAnywhere}
+          onBack={() => setView('landing')}/>
+      )}
+
+      {view === 'exercise-list' && pickedSkill && (
+        <ExerciseList skill={pickedSkill}
+          onPick={startExercise}
+          onBack={() => setView(pickedLevel && pickedCategory ? 'skill-list' : 'landing')}/>
+      )}
+
+      {view === 'session' && exerciseLoading && (
+        <Skeleton h={400}/>
+      )}
+      {view === 'session' && !exerciseLoading && exerciseData && (
+        <Session exercise={exerciseData} skill={pickedSkill}
+          onFinish={finishSession}
+          onAbort={() => setView('exercise-list')}/>
+      )}
+      {view === 'session' && !exerciseLoading && !exerciseData && (
+        <Glass padding={26}>
+          <p style={{ color: T.textDim }}>This drill is not available yet.</p>
+          <Btn variant="secondary" onClick={() => setView('exercise-list')}>Back</Btn>
+        </Glass>
+      )}
+
+      {view === 'results' && results && pickedSkill && (
+        <Results
+          score={results.score}
+          total={results.total}
+          skill={pickedSkill}
+          onTryAnother={() => {
+            // pick a different exercise within the same skill, fallback to ex-001
+            const exCount = pickedSkill.exerciseCount || 0
+            const completed = JSON.parse(localStorage.getItem(`em.practice.completed.${pickedSkill.slug}`) || '{}')
+            const exIds = Array.from({ length: exCount }, (_, i) => `ex-${String(i + 1).padStart(3, '0')}`)
+            const next = exIds.find(id => !completed[id]) || exIds[0]
+            if (next) startExercise(next)
+            else setView('exercise-list')
+          }}
+          onPickDifferent={() => setView('landing')}/>
+      )}
+    </div>
+  )
+}

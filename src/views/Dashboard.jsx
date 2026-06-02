@@ -391,7 +391,7 @@ export default function Dashboard({ data }) {
                   )}
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
-                  <span className="text-[10px] font-label text-slate-400">{t('dashboard.recent.words', { count: lesson.keyword_count || lesson.keywords?.length || 0 })}</span>
+                  <span className="text-[10px] font-label text-slate-400">{t('dashboard.recent.words', { count: lesson.keywordCount || lesson.keyword_count || lesson.keywords?.length || 0 })}</span>
                   {lesson.analysis && <CefrBadge band={lesson.analysis.cefrBand} score={lesson.analysis.overallScore} />}
                   <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] font-label font-bold text-amber-600 opacity-0 group-hover:opacity-100 transition">
                     {t('dashboard.recent.open')}<span className="material-symbols-outlined text-[12px]">arrow_forward</span>

@@ -9,6 +9,7 @@ import {
   STUDENT_LEVEL,
   STUDENT_NAME,
 } from '../data/studentConfig.js'
+import { fetchWithTimeout } from '../practice/lib/practice-cache'
 
 function normalizeDateKey(value) {
   return String(value || '').trim().slice(0, 10)
@@ -184,7 +185,8 @@ function getAnalysisForLesson(lesson, analyses) {
 }
 
 async function queryConvex(path, args) {
-  const response = await fetch(`${CONVEX_URL}/api/query`, {
+  // 30s AbortController-backed timeout — see practice-cache.ts.
+  const response = await fetchWithTimeout(`${CONVEX_URL}/api/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ path, args }),
@@ -244,7 +246,37 @@ function buildLessonsFromConvex(convexLessons, convexKeywords) {
     conversation_notes: l.summary || '',
     topics: l.topics || [],
     summary: l.summary,
+    status: l.status || '',
+    lessonType: l.lessonType || '',
+    duration: l.duration,
   }))
+}
+
+// Extract the next upcoming (status="planned") lesson, preferring lessons
+// whose scheduled date+time is still in the future. Returns null if none.
+function pickNextUpcomingLesson(lessons) {
+  const now = Date.now()
+  const candidates = (lessons || [])
+    .filter((l) => l && l.status === 'planned' && l.date)
+    .map((l) => {
+      const summary = String(l.summary || '')
+      const startTime = (summary.match(/Scheduled\s+(\d\d:\d\d)/i) || [])[1] || ''
+      const meetingUrl = (summary.match(/https?:\/\/meet\.google\.com\/[a-z0-9-]+/i) || [])[0] || ''
+      const [y, m, d] = String(l.date).split('-').map(Number)
+      const [hh, mm] = (startTime || '00:00').split(':').map(Number)
+      // Parse as Europe/Warsaw — CEST (UTC+2) Apr-Oct, CET (UTC+1) otherwise.
+      // Approximation, matches Calendar.jsx logic.
+      const offsetHours = m >= 4 && m <= 10 ? 2 : 1
+      const startAtMs = Number.isFinite(y)
+        ? Date.UTC(y, (m || 1) - 1, d || 1, (hh || 0) - offsetHours, mm || 0)
+        : 0
+      return { ...l, startTime, meetingUrl, startAtMs }
+    })
+    // Hide lessons that ended >60min ago — Calendar.jsx uses the same window.
+    .filter((l) => !l.startAtMs || l.startAtMs + 60 * 60_000 > now)
+    .sort((a, b) => (a.startAtMs || 0) - (b.startAtMs || 0))
+
+  return candidates[0] || null
 }
 
 export default function useStudentData() {
@@ -290,7 +322,7 @@ export default function useStudentData() {
       const fetches = [
         queryConvex('students:listLessons', { studentId }),
         queryConvex('analytics:getStudentAnalyses', { studentId, limit: ANALYSES_LIMIT }),
-        queryConvex('students:listKeywords', { studentId }),
+        queryConvex('students:listKeywords', { studentId, limit: 2000 }),
       ]
       const [convexLessonsResult, analysesResult, keywordsResult] =
         await Promise.allSettled(fetches)
@@ -346,12 +378,16 @@ export default function useStudentData() {
     }
   }, [urlSlug])
 
-  const lessonCount = state.lessons.length
+  // Lessons-on-file count should reflect *completed* lessons only — planned
+  // lessons are upcoming, not on file yet. lessonCountTotal is the raw size.
+  const completedLessons = state.lessons.filter(l => (l.status || '') !== 'planned')
+  const lessonCount = completedLessons.length
   const keywordCount = state.keywords.length
   const latestAnalysis = state.analyses[0] || null
   const averageScore = state.analyses.length
     ? Math.round(state.analyses.reduce((total, analysis) => total + Number(analysis?.overallScore || 0), 0) / state.analyses.length)
     : 0
+  const upcomingLesson = pickNextUpcomingLesson(state.lessons)
 
   return {
     ...state,
@@ -359,5 +395,6 @@ export default function useStudentData() {
     keywordCount,
     latestAnalysis,
     averageScore,
+    upcomingLesson,
   }
 }

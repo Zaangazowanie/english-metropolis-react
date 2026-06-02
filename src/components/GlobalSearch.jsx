@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useI18n } from '../i18n'
 import { CONVEX_URL } from '../data/studentConfig.js'
+import { fetchWithTimeout } from '../practice/lib/practice-cache'
 
 const DEBOUNCE_MS = 300
 const EMPTY_RESULTS = {
@@ -15,7 +16,8 @@ const EMPTY_RESULTS = {
 }
 
 async function queryConvex(path, args) {
-  const response = await fetch(`${CONVEX_URL}/api/query`, {
+  // 30s AbortController-backed timeout — see practice-cache.ts.
+  const response = await fetchWithTimeout(`${CONVEX_URL}/api/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ path, args }),

@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n'
+import { fetchJSONCached, fetchWithTimeout } from '../practice/lib/practice-cache'
+import { ensureJsPdf, ensurePdfFonts } from '../utils/pdf-loader'
 import {
   METRICS,
   scoreToTier,
@@ -39,7 +41,8 @@ async function playTTS(text, voice) {
     return
   }
   try {
-    const resp = await fetch('/api/tts/tts', {
+    // 30s AbortController-backed timeout — see practice-cache.ts.
+    const resp = await fetchWithTimeout('/api/tts/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, voice, lang: voice[0] || 'a' }),
@@ -112,9 +115,85 @@ function youglishQueryVariants(rawKey) {
 }
 
 async function fetchYouglishRaw(query) {
-  const resp = await fetch(`/api/youglish/keyword?q=${encodeURIComponent(query)}`)
+  // 30s AbortController-backed timeout — see practice-cache.ts.
+  const resp = await fetchWithTimeout(`/api/youglish/keyword?q=${encodeURIComponent(query)}`)
   if (!resp.ok) throw new Error(`YouGlish ${resp.status}`)
   return resp.json()
+}
+
+// Map a free-form practice-advice line to a deep link into the practice
+// arena. Returns { url, label } when we recognise the intent, otherwise
+// null and the caller falls back to the generic free-write box.
+//
+// Mike 2026-05-04: every advice card should land the student in a useful
+// shell + filter, not the generic free-write — the cards are the bridge
+// from analysis to practice.
+function classifyAdviceLink(text, slug) {
+  const lower = String(text || '').toLowerCase()
+  const base = `/app/${slug}/practice`
+  // IMPORTANT: do NOT pass &advice= here. Practice.jsx checks
+  // inFreeWriteMode (driven by adviceParam) BEFORE inFocusMode, so attaching
+  // advice would dump the student back into the free-write box and skip the
+  // FocusPicker we're trying to land them in.
+  const link = (params, label) => ({ url: `${base}?${params}`, label })
+
+  // Pronunciation drills — Speakeasy / Listening Comp
+  if (/(minimal pair|pronunciation drill|pronunciation practice|phoneme|word stress|silent letter|consonant cluster|vowel sound|stress placement|polysyllabic)/.test(lower)) {
+    return link('category=pronunciation', 'Open pronunciation drill')
+  }
+
+  // Reflexive vs reciprocal pronouns — Sentence Correction grammar
+  if (/(reflexive|reciprocal|each other|one another|pronoun (use|filter|drill))/.test(lower)) {
+    return link('category=grammar&focus=reflexive', 'Open pronoun grammar drill')
+  }
+
+  // Word formation / suffix transforms / nationality adjectives
+  if (/(word formation|suffix|nationality adjective|noun.*verb.*transform|verb to noun|adjective to adverb|adjective to noun|transformation drill)/.test(lower)) {
+    return link('category=vocabulary&focus=word%20formation', 'Open word formation drill')
+  }
+
+  // Used to / be used to / get used to
+  if (/(\bused to\b|be used to|get used to|getting used to)/.test(lower)) {
+    return link('category=grammar&focus=used%20to', 'Open used-to grammar drill')
+  }
+
+  // Article / determiner
+  if (/(article (use|usage|omission)|definite article|indefinite article|determiner|the\/a\/an)/.test(lower)) {
+    return link('category=grammar&focus=article', 'Open article drill')
+  }
+
+  // Tense — present perfect / past simple
+  if (/(present perfect|past simple|past participle|verb tense|tense (use|drill|workshop))/.test(lower)) {
+    return link('category=grammar&focus=tense', 'Open verb tense drill')
+  }
+
+  // Preposition collocations
+  if (/(preposition|prepositional|interested in|depend on|focus on)/.test(lower)) {
+    return link('category=grammar&focus=preposition', 'Open preposition drill')
+  }
+
+  // Reading comprehension / summarising
+  if (/(reading comprehension|article reading|read aloud|summari[sz]e|reading task|extended reading)/.test(lower)) {
+    return link('category=fluency&focus=reading', 'Open reading drill')
+  }
+
+  // Speaking / monologue / role-play / extended turns — fluency
+  if (/(monologue|extended turn|speaking practice|role[- ]?play|conversation drill|spoken summary)/.test(lower)) {
+    return link('category=fluency&focus=speaking', 'Open speaking drill')
+  }
+
+  // Vocabulary review / collocation / chunk
+  if (/(collocation|chunk|fixed expression|set phrase|vocabulary review|target keyword)/.test(lower)) {
+    return link('category=vocabulary', 'Open vocabulary drill')
+  }
+
+  // Subject-verb agreement
+  if (/(subject.{0,3}verb|agreement|third[- ]?person|3rd person|singular.{0,3}plural)/.test(lower)) {
+    return link('category=grammar&focus=agreement', 'Open agreement drill')
+  }
+
+  // No match — fall back to free-write
+  return null
 }
 
 function packYouglishResults(results, queryUsed) {
@@ -168,240 +247,821 @@ async function fetchYouglish(word) {
    Per-lesson PDF — beautiful analysis PDF for a single lesson
    ============================================================================ */
 
-let _pdfFontsLoaded = false
-async function ensurePdfFonts() {
-  if (_pdfFontsLoaded) return
-  const load = (src) => new Promise((resolve, reject) => {
-    const s = document.createElement('script')
-    s.src = src
-    s.onload = () => resolve()
-    s.onerror = reject
-    document.head.appendChild(s)
-  })
-  if (!window.__NOTO_REGULAR_B64) await load('/students/vendor/fonts/NotoSans-Regular.b64.js')
-  if (!window.__NOTO_BOLD_B64) await load('/students/vendor/fonts/NotoSans-Bold.b64.js')
-  _pdfFontsLoaded = true
-}
+// PDF loader helpers (loadScript, ensureJsPdf, ensurePdfFonts) hoisted to
+// src/utils/pdf-loader.js (Tier 3 cleanup, 2026-05-02). Three callsites
+// (this file, src/views/v3/lessons-pdf.js, src/views/admin/StudentDetail.jsx)
+// previously each had a private copy.
 
 async function generateLessonPdf(profile, lesson, analysis) {
-  const jspdfLib = typeof window !== 'undefined' ? window.jspdf : null
+  let jspdfLib
+  try {
+    jspdfLib = await ensureJsPdf()
+  } catch (e) {
+    console.error('[PDF] jsPDF load failed', e)
+    alert('PDF library failed to load. Check your connection and try again.')
+    return
+  }
   if (!jspdfLib?.jsPDF) { alert('PDF library not loaded.'); return }
-  await ensurePdfFonts()
+  try {
+    await ensurePdfFonts()
+  } catch (e) {
+    console.warn('[PDF] fonts failed, proceeding with defaults', e)
+  }
   const { jsPDF } = jspdfLib
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+  const doc = new jsPDF({ unit: 'pt', format: 'a4', compress: true })
   try {
     doc.addFileToVFS('NotoSans-Regular.ttf', window.__NOTO_REGULAR_B64)
-    doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal')
+    doc.addFont('NotoSans-Regular.ttf', 'NotoSans-Regular', 'normal')
     doc.addFileToVFS('NotoSans-Bold.ttf', window.__NOTO_BOLD_B64)
-    doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold')
+    doc.addFont('NotoSans-Bold.ttf', 'NotoSans-Bold', 'bold')
   } catch (e) { console.warn('Font load', e) }
 
-  const pageW = doc.internal.pageSize.getWidth()
-  const pageH = doc.internal.pageSize.getHeight()
-  const margin = 48
-  const maxW = pageW - margin * 2
+  // Wait for brand fonts so the canvas wordmark chip renders correctly.
+  try {
+    await Promise.all([
+      document.fonts.load('900 72px "Plus Jakarta Sans"'),
+      document.fonts.load('800 30px "Plus Jakarta Sans"'),
+      document.fonts.load('italic 500 48px "Newsreader"'),
+    ])
+  } catch {}
 
+  // Load the skyline silhouette for the wordmark chip.
+  let skylineImg = null
+  try {
+    skylineImg = await new Promise((resolve, reject) => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => resolve(img)
+      img.onerror = reject
+      img.src = '/em-skyline.png'
+    })
+  } catch {}
+
+  const W = 595
+  const H = 842
+  const MX = 42
+  const FH = 38
+
+  // Editorial palette — clean white background, navy headings, fuchsia
+  // accent for numerals + Metro., sky/teal/amber for metrics.
   const C = {
-    primary: [37, 99, 235], primaryDark: [29, 78, 216], secondary: [124, 58, 237],
-    emerald: [5, 150, 105], amber: [217, 119, 6], rose: [220, 38, 38],
-    slate900: [15, 23, 42], slate700: [51, 65, 85], slate500: [100, 116, 139],
-    slate400: [148, 163, 184], slate200: [226, 232, 240], slate100: [241, 245, 249],
-    slate50: [248, 250, 252], white: [255, 255, 255],
-    emeraldSoft: [209, 250, 229], amberSoft: [254, 243, 199], roseSoft: [254, 226, 226], skySoft: [224, 242, 254],
+    navy:       [12, 22, 46],
+    navyDeep:   [8, 15, 35],
+    slate900:   [15, 23, 42],
+    slate800:   [30, 41, 59],
+    slate700:   [51, 65, 85],
+    slate600:   [71, 85, 105],
+    slate500:   [100, 116, 139],
+    slate400:   [148, 163, 184],
+    slate300:   [203, 213, 225],
+    slate200:   [226, 232, 240],
+    slate100:   [241, 245, 249],
+    slate50:    [248, 250, 252],
+    fuchsia:    [217, 70, 239],
+    fuchsiaDeep:[168, 31, 193],
+    pink:       [236, 72, 153],
+    violet:     [139, 92, 246],
+    violetDeep: [109, 40, 217],
+    purple:     [168, 85, 247],
+    indigo:     [99, 102, 241],
+    blue:       [59, 130, 246],
+    skyDeep:    [3, 105, 161],
+    sky:        [56, 189, 248],
+    teal:       [20, 184, 166],
+    cyan:       [34, 211, 238],
+    emerald:    [16, 185, 129],
+    emeraldDeep:[4, 120, 87],
+    amber:      [245, 158, 11],
+    amberDeep:  [217, 119, 6],
+    rose:       [244, 63, 94],
+    roseDeep:   [190, 18, 60],
+    white:      [255, 255, 255],
+    creamBg:    [252, 247, 237],
+    violetBg:   [243, 238, 255],
+    fuchsiaBg:  [253, 232, 255],
+    skyBg:      [240, 249, 255],
+    emeraldBg:  [209, 250, 229],
+    amberBg:    [254, 243, 199],
+    roseBg:     [254, 226, 226],
   }
 
-  const setF = (w = 'normal') => doc.setFont('NotoSans', w)
-  const setColor = (c) => doc.setTextColor(c[0], c[1], c[2])
-  const setFill = (c) => doc.setFillColor(c[0], c[1], c[2])
+  const setColor  = (c) => doc.setTextColor(c[0], c[1], c[2])
+  const setFill   = (c) => doc.setFillColor(c[0], c[1], c[2])
   const setStroke = (c) => doc.setDrawColor(c[0], c[1], c[2])
-  let y = margin
+  const fontR = () => doc.setFont('NotoSans-Regular', 'normal')
+  const fontB = () => doc.setFont('NotoSans-Bold', 'bold')
+  const roundRect = (x, y, w, h, r, style = 'S') => doc.roundedRect(x, y, w, h, r, r, style)
 
-  const ensure = (n) => { if (y + n > pageH - 60) { doc.addPage(); y = margin } }
-  const heading = (text, size = 14, color = C.slate900) => {
-    ensure(size + 12)
-    setF('bold').setFontSize(size); setColor(color)
-    doc.text(text, margin, y)
-    setStroke(C.primary); doc.setLineWidth(1.2)
-    doc.line(margin, y + 3, margin + 28, y + 3)
-    y += size + 10
-  }
-  const sub = (text, size = 10, color = C.slate500) => {
-    ensure(size + 4); setF('normal').setFontSize(size); setColor(color)
-    doc.text(text, margin, y); y += size + 4
-  }
-  const para = (text, size = 10, color = C.slate700, indent = 0) => {
-    if (!text) return
-    setF('normal').setFontSize(size); setColor(color)
-    const lines = doc.splitTextToSize(String(text), maxW - indent)
-    for (const ln of lines) { ensure(size + 2); doc.text(ln, margin + indent, y); y += size + 3 }
-    y += 3
-  }
-  const bullet = (text, opts = {}) => {
-    const { indent = 14, size = 10, color = C.slate700, markerColor = C.primary, marker = '•' } = opts
-    if (!text) return
-    setF('bold').setFontSize(size); setColor(markerColor)
-    doc.text(marker, margin + indent - 8, y)
-    setF('normal'); setColor(color)
-    const lines = doc.splitTextToSize(String(text), maxW - indent)
-    for (let i = 0; i < lines.length; i++) { ensure(size + 2); doc.text(lines[i], margin + indent, y); y += size + 3 }
-    y += 1
+  function programKicker() {
+    if (!profile?.type) return 'ENGLISH METROPOLIS'
+    if (profile.type === 'individual') return 'PVT · ENGLISH METROPOLIS'
+    return 'CONVERSA SCHOOL · ENGLISH METROPOLIS'
   }
 
-  // Header band
-  setFill(C.primary)
-  doc.rect(0, 0, pageW, 120, 'F')
-  setFill(C.primaryDark)
-  doc.rect(0, 120, pageW, 6, 'F')
-  setColor(C.white).setFont('NotoSans', 'bold').setFontSize(9)
-  doc.text('CONVERSA SCHOOL · ENGLISH METROPOLIS', margin, 32)
-  doc.setFontSize(10)
-  doc.text(profile?.name || 'Student', margin, 48)
-  doc.setFontSize(20)
-  doc.text(lesson.title || 'Lesson', margin, 82)
-  doc.setFontSize(11).setFont('NotoSans', 'normal')
-  doc.text(`${formatLongDate(lesson.date)}  ·  CEFR ${analysis?.cefrBand || 'N/A'} ${Math.round(analysis?.overallScore || 0)}/100`, margin, 104)
-  y = 160
+  function formatDateLong(iso) {
+    if (!iso) return ''
+    try {
+      const d = new Date(`${iso}T00:00:00`)
+      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    } catch { return iso }
+  }
 
-  // Topics pills
-  if (lesson.topics?.length) {
-    setF('bold').setFontSize(8); setColor(C.slate500)
-    doc.text('TOPICS COVERED', margin, y); y += 12
-    let px = margin
-    for (const t of lesson.topics.slice(0, 10)) {
-      const tw = doc.getTextWidth(t) + 14
-      if (px + tw > pageW - margin) { y += 20; px = margin }
-      setFill([237, 233, 254]); setStroke([196, 181, 253])
-      doc.roundedRect(px, y, tw, 16, 8, 8, 'FD')
-      setColor([91, 33, 182]).setFont('NotoSans', 'normal').setFontSize(8)
-      doc.text(t, px + 7, y + 11)
-      px += tw + 4
+  // ------------------------------------------------------------------------
+  // Build a small stacked wordmark lockup as a canvas PNG. Transparent bg
+  // so it sits cleanly on the white PDF page. Skyline + English / Metro.
+  // ------------------------------------------------------------------------
+  function buildWordmarkChip(pxW, pxH) {
+    const canvas = document.createElement('canvas')
+    canvas.width = pxW; canvas.height = pxH
+    const ctx = canvas.getContext('2d')
+
+    // Skyline on top (small, only silhouette tops)
+    let skyH = 0
+    if (skylineImg) {
+      const skyW_c = Math.round(pxW * 0.92)
+      skyH = Math.round(skyW_c * (skylineImg.height / skylineImg.width) * 0.55)
+      const sc = document.createElement('canvas')
+      sc.width = skyW_c; sc.height = skyH
+      const sctx = sc.getContext('2d')
+      const grad = sctx.createLinearGradient(0, 0, skyW_c, skyH)
+      grad.addColorStop(0, '#d946ef')
+      grad.addColorStop(1, '#a855f7')
+      sctx.fillStyle = grad; sctx.fillRect(0, 0, skyW_c, skyH)
+      sctx.globalCompositeOperation = 'destination-in'
+      // Use top-half of the skyline graphic so it reads as a compact silhouette
+      sctx.drawImage(skylineImg, 0, 0, skylineImg.width, skylineImg.height * 0.55,
+                                 0, 0, skyW_c, skyH)
+      ctx.drawImage(sc, Math.round((pxW - skyW_c) / 2), 0)
     }
-    y += 30
+
+    // "English" — dark navy, stacked bold
+    const wSize = Math.round(pxH * 0.33)
+    ctx.font = `900 ${wSize}px "Plus Jakarta Sans", "Inter", sans-serif`
+    ctx.fillStyle = '#0c1226'
+    const englishY = skyH + wSize * 1.05
+    ctx.fillText('English', 0, englishY)
+
+    // "Metro." — fuchsia → purple gradient stacked
+    const metroY = englishY + wSize * 0.98
+    const metroGrad = ctx.createLinearGradient(0, metroY - wSize, pxW, metroY)
+    metroGrad.addColorStop(0, '#d946ef')
+    metroGrad.addColorStop(0.6, '#a855f7')
+    metroGrad.addColorStop(1, '#7c3aed')
+    ctx.fillStyle = metroGrad
+    ctx.fillText('Metro', 0, metroY)
+    const mw = ctx.measureText('Metro').width
+    // Amber dot
+    ctx.fillStyle = '#fbbf24'
+    ctx.fillText('.', mw, metroY)
+
+    return canvas.toDataURL('image/png')
   }
 
-  // Per-metric scores row
-  if (analysis) {
-    heading('Per-Metric Scores', 12)
-    const scores = [
-      { l: 'Vocabulary', v: analysis.vocabularyRange, c: [8, 145, 178] },
-      { l: 'Grammar', v: analysis.grammaticalAccuracy, c: [124, 58, 237] },
-      { l: 'Fluency', v: analysis.fluencyAndCoherence, c: [5, 150, 105] },
-      { l: 'Pronunciation', v: analysis.pronunciation, c: [217, 119, 6] },
-      { l: 'Communication', v: analysis.communicativeEffectiveness, c: [37, 99, 235] },
-    ]
-    const rowH = 18
-    const labelW = 110
-    for (const s of scores) {
-      ensure(rowH + 4)
-      setF('bold').setFontSize(9); setColor(C.slate700)
-      doc.text(s.l, margin, y + 10)
-      // Bar background
-      setFill(C.slate100)
-      doc.roundedRect(margin + labelW, y + 3, maxW - labelW - 36, 8, 4, 4, 'F')
-      // Bar fill
-      setFill(s.c)
-      doc.roundedRect(margin + labelW, y + 3, (maxW - labelW - 36) * ((s.v || 0) / 100), 8, 4, 4, 'F')
-      // Score text
-      setF('bold').setFontSize(10); setColor(C.slate900)
-      doc.text(String(Math.round(s.v || 0)), pageW - margin - 10, y + 10, { align: 'right' })
+  // ------------------------------------------------------------------------
+  // Page headers — white, editorial. Left: wordmark chip. Right: student
+  // identity (name, subtitle, date + score pill, context chips).
+  // ------------------------------------------------------------------------
+  const WORDMARK_PDF_W = 88
+  const WORDMARK_PDF_H = 68
+  const WORDMARK_CANVAS_W = 440
+  const WORDMARK_CANVAS_H = 340
+
+  function drawHero(pageIdx) {
+    // Kicker above the wordmark (violet, letter-spaced caps)
+    fontB(); doc.setFontSize(7.5); setColor(C.violet)
+    doc.text(programKicker(), MX, MX - 4, { charSpace: 1.4 })
+
+    // Wordmark lockup chip
+    const chipDataURL = buildWordmarkChip(WORDMARK_CANVAS_W, WORDMARK_CANVAS_H)
+    doc.addImage(chipDataURL, 'PNG', MX, MX + 2, WORDMARK_PDF_W, WORDMARK_PDF_H, undefined, 'FAST')
+
+    const rightX = W - MX
+
+    if (pageIdx === 1) {
+      // Student name — big bold navy (treated as display title)
+      fontB(); doc.setFontSize(28); setColor(C.navyDeep)
+      doc.text(profile?.name || 'Student', rightX, MX + 14, { align: 'right' })
+
+      // Lesson title — medium grey
+      fontR(); doc.setFontSize(11.5); setColor(C.slate500)
+      const titleLines = doc.splitTextToSize(lesson?.title || 'Lesson', 340)
+      let ty = MX + 32
+      for (const ln of titleLines.slice(0, 2)) {
+        doc.text(ln, rightX, ty, { align: 'right' })
+        ty += 14
+      }
+
+      // Date pill + score pill row (right-aligned)
+      const pillY = ty + 4
+      let pillX = rightX
+
+      if (analysis) {
+        const band = analysis.cefrBand || profile?.level || 'B2'
+        const score = Math.round(analysis.overallScore || 0)
+        const scoreText = `${band}   ${score}/100`
+        fontB(); doc.setFontSize(10)
+        const scoreW = doc.getTextWidth(scoreText) + 20
+        // Gradient pill — approximate with overlaid fuchsia/violet rects
+        setFill(C.fuchsia); roundRect(pillX - scoreW, pillY - 10, scoreW, 18, 9, 'F')
+        setFill(C.violet);  roundRect(pillX - scoreW + scoreW * 0.45, pillY - 10, scoreW * 0.55, 18, 9, 'F')
+        // Clip-ish: draw the pill outline once more to round the right half
+        setFill(C.violet);  roundRect(pillX - scoreW * 0.35, pillY - 10, scoreW * 0.35, 18, 9, 'F')
+        setColor(C.white)
+        // Band label (left part, smaller bold)
+        fontB(); doc.setFontSize(9)
+        doc.text(band, pillX - scoreW + 10, pillY + 2.5)
+        // Score (right part, bold)
+        doc.setFontSize(10)
+        doc.text(`${score}/100`, pillX - 10, pillY + 2.5, { align: 'right' })
+        pillX -= scoreW + 10
+      }
+
+      if (lesson?.date) {
+        fontR(); doc.setFontSize(9.5)
+        const dText = formatDateLong(lesson.date)
+        const dW = doc.getTextWidth(dText) + 22
+        setFill(C.slate100); setStroke(C.slate200); doc.setLineWidth(0.5)
+        roundRect(pillX - dW, pillY - 10, dW, 18, 9, 'FD')
+        // Small calendar glyph (just a dot so we don't pull in icon fonts)
+        setFill(C.slate500); doc.circle(pillX - dW + 8, pillY - 1, 1.6, 'F')
+        setColor(C.slate700)
+        doc.text(dText, pillX - dW + 14, pillY + 2.5)
+        pillX -= dW + 8
+      }
+
+      // Context chips row — topics + program
+      const chipsY = pillY + 18
+      const chips = []
+      if (profile?.type === 'individual') chips.push({ t: 'PVT 1:1', c: C.violetDeep, bg: C.violetBg })
+      const topicChips = (lesson?.topics || []).slice(0, 4).map(t => ({ t, c: C.slate700, bg: C.slate100 }))
+      chips.push(...topicChips)
+      if (analysis?.cefrBand) chips.push({ t: analysis.cefrBand, c: C.emeraldDeep, bg: C.emeraldBg })
+
+      let cx = rightX
+      fontB(); doc.setFontSize(8)
+      for (const ch of chips) {
+        const tw = doc.getTextWidth(ch.t) + 14
+        setFill(ch.bg); setStroke(ch.bg); doc.setLineWidth(0.4)
+        roundRect(cx - tw, chipsY, tw, 14, 7, 'FD')
+        setColor(ch.c)
+        doc.text(ch.t, cx - 7, chipsY + 9.5, { align: 'right', charSpace: 0.4 })
+        cx -= tw + 4
+        if (cx < MX + WORDMARK_PDF_W + 10) break
+      }
+
+      // Divider rule below the hero
+      setStroke(C.slate200); doc.setLineWidth(0.5)
+      doc.line(MX, MX + WORDMARK_PDF_H + 14, W - MX, MX + WORDMARK_PDF_H + 14)
+    } else {
+      // Compact header (pages 2+) — same lockup, right side: "Lesson
+      // Diagnostics & Practice" + date + score pill.
+      fontB(); doc.setFontSize(22); setColor(C.navyDeep)
+      doc.text('Lesson Diagnostics & Practice', rightX, MX + 24, { align: 'right' })
+
+      const pillY = MX + 48
+      let pillX = rightX
+      if (analysis) {
+        const band = analysis.cefrBand || 'B2'
+        const score = Math.round(analysis.overallScore || 0)
+        fontB(); doc.setFontSize(10)
+        const scoreText = `${band}   ${score}/100`
+        const scoreW = doc.getTextWidth(scoreText) + 20
+        setFill(C.fuchsia); roundRect(pillX - scoreW, pillY - 10, scoreW, 18, 9, 'F')
+        setFill(C.violet);  roundRect(pillX - scoreW * 0.55, pillY - 10, scoreW * 0.55, 18, 9, 'F')
+        setColor(C.white)
+        fontB(); doc.setFontSize(9)
+        doc.text(band, pillX - scoreW + 10, pillY + 2.5)
+        doc.setFontSize(10)
+        doc.text(`${score}/100`, pillX - 10, pillY + 2.5, { align: 'right' })
+        pillX -= scoreW + 10
+      }
+      if (lesson?.date) {
+        fontR(); doc.setFontSize(9.5)
+        const dText = formatDateLong(lesson.date)
+        const dW = doc.getTextWidth(dText) + 22
+        setFill(C.slate100); setStroke(C.slate200); doc.setLineWidth(0.5)
+        roundRect(pillX - dW, pillY - 10, dW, 18, 9, 'FD')
+        setFill(C.slate500); doc.circle(pillX - dW + 8, pillY - 1, 1.6, 'F')
+        setColor(C.slate700)
+        doc.text(dText, pillX - dW + 14, pillY + 2.5)
+      }
+
+      setStroke(C.slate200); doc.setLineWidth(0.5)
+      doc.line(MX, MX + WORDMARK_PDF_H + 14, W - MX, MX + WORDMARK_PDF_H + 14)
+    }
+  }
+
+  function drawFooter(pageIdx) {
+    // Thin slate rule + kicker left, student center, page right
+    setStroke(C.slate200); doc.setLineWidth(0.4)
+    doc.line(MX, H - FH + 8, W - MX, H - FH + 8)
+    fontR(); doc.setFontSize(8.5); setColor(C.slate500)
+    doc.text(programKicker(), MX, H - FH + 22, { charSpace: 0.8 })
+    doc.text(`${profile?.name || 'Student'} — Lesson Analysis`, W / 2, H - FH + 22, { align: 'center' })
+    doc.text(`Page ${pageIdx} of ${doc.getNumberOfPages() || pageIdx}`, W - MX, H - FH + 22, { align: 'right' })
+    setColor(C.violetDeep); doc.setFontSize(7.5)
+    doc.text('englishmetro.com', W - MX, H - FH + 32, { align: 'right', charSpace: 1.0 })
+  }
+
+  const CONTENT_TOP_P1 = MX + WORDMARK_PDF_H + 32
+  const CONTENT_TOP_PN = MX + WORDMARK_PDF_H + 32
+  const CONTENT_BOTTOM = H - FH - 14
+
+  let pageNum = 1
+  let y = CONTENT_TOP_P1
+
+  function ensureSpace(need) {
+    if (y + need > CONTENT_BOTTOM) {
+      drawFooter(pageNum)
+      doc.addPage()
+      pageNum += 1
+      drawHero(pageNum)
+      y = CONTENT_TOP_PN
+    }
+  }
+
+  // ------------------------------------------------------------------------
+  // Content primitives
+  // ------------------------------------------------------------------------
+
+  function sectionHeader(num, title) {
+    ensureSpace(42)
+    fontB(); doc.setFontSize(32); setColor(C.fuchsia)
+    doc.text(String(num), MX, y + 18)
+    fontB(); doc.setFontSize(16); setColor(C.navyDeep)
+    doc.text(title, MX + 28, y + 12)
+    y += 26
+  }
+
+  function paragraphBlock(text, opts = {}) {
+    const { size = 10.5, color = C.slate700, leading = 14.5, paraGap = 8, indent = 0, maxLines = 200 } = opts
+    if (!text) return
+    const paras = String(text).split(/\n\s*\n+/).map(p => p.trim()).filter(Boolean)
+    fontR(); doc.setFontSize(size); setColor(color)
+    const width = W - MX * 2 - indent
+    let lineCount = 0
+    for (const para of paras) {
+      const lines = doc.splitTextToSize(para, width)
+      for (const ln of lines) {
+        if (lineCount >= maxLines) return
+        ensureSpace(leading)
+        doc.text(ln, MX + indent, y)
+        y += leading
+        lineCount++
+      }
+      y += paraGap
+    }
+  }
+
+  function bulletList(items, opts = {}) {
+    const { marker = '•', color = C.fuchsia, size = 10.5, leading = 14, indent = 18, gap = 4, textColor = C.slate700 } = opts
+    if (!items || !items.length) return
+    fontR(); doc.setFontSize(size)
+    const width = W - MX * 2 - indent
+    for (const raw of items) {
+      const t = typeof raw === 'string' ? raw : String(raw?.text || raw?.error || '')
+      if (!t) continue
+      const lines = doc.splitTextToSize(t, width)
+      ensureSpace(lines.length * leading + gap)
+      fontB(); setColor(color); doc.setFontSize(size + 1)
+      doc.text(marker, MX, y)
+      fontR(); setColor(textColor); doc.setFontSize(size)
+      for (let i = 0; i < lines.length; i++) {
+        doc.text(lines[i], MX + indent, y)
+        y += leading
+      }
+      y += gap
+    }
+  }
+
+  // ------------------------------------------------------------------------
+  // Section 1 — Performance Snapshot (gradient horizontal bars)
+  // ------------------------------------------------------------------------
+  const METRIC_CONFIG = [
+    { key: 'vocabularyRange',            label: 'Vocabulary',    color: C.violet,  soft: C.violetBg },
+    { key: 'grammaticalAccuracy',        label: 'Grammar',       color: C.indigo,  soft: C.skyBg },
+    { key: 'fluencyAndCoherence',        label: 'Fluency',       color: C.sky,     soft: C.skyBg },
+    { key: 'pronunciation',              label: 'Pronunciation', color: C.amber,   soft: C.amberBg },
+    { key: 'communicativeEffectiveness', label: 'Communication', color: C.fuchsia, soft: C.fuchsiaBg },
+  ]
+
+  function renderPerformance() {
+    if (!analysis) return
+    sectionHeader(1, 'Performance Snapshot')
+    y += 6
+    const labelW = 124
+    const scoreW = 36
+    const barX = MX + labelW + 14
+    const barW = W - MX - barX - scoreW - 10
+    const rowH = 22
+    for (const m of METRIC_CONFIG) {
+      const v = Math.max(0, Math.min(100, analysis[m.key] || 0))
+      ensureSpace(rowH + 4)
+      // Soft tinted dot
+      setFill(m.soft); doc.circle(MX + 6, y + 6, 5.5, 'F')
+      setFill(m.color); doc.circle(MX + 6, y + 6, 3, 'F')
+      // Label
+      fontB(); doc.setFontSize(11); setColor(C.slate800)
+      doc.text(m.label, MX + 18, y + 9)
+      // Bar track
+      setFill(C.slate100); roundRect(barX, y + 3, barW, 10, 5, 'F')
+      // Fill
+      setFill(m.color); roundRect(barX, y + 3, Math.max(6, barW * (v / 100)), 10, 5, 'F')
+      // Score
+      fontB(); doc.setFontSize(12); setColor(C.slate900)
+      doc.text(String(Math.round(v)), W - MX, y + 10, { align: 'right' })
       y += rowH
     }
+    y += 14
+  }
+
+  // ------------------------------------------------------------------------
+  // Section 2 — Lesson Summary & Clinical Analysis
+  // Long-form prose, multi-paragraph. Matches LessonSummaryOnion on the web.
+  // ------------------------------------------------------------------------
+  function renderSummary() {
+    if (!analysis?.lessonSummary) return
+    sectionHeader(2, 'Lesson Summary & Clinical Analysis')
+    y += 6
+    paragraphBlock(String(analysis.lessonSummary), { size: 10.5, color: C.slate700, leading: 14.5, paraGap: 10 })
+    y += 6
+  }
+
+  // ------------------------------------------------------------------------
+  // Sections 3 & 4 — What You Nailed / What to Work On (two-column)
+  // ------------------------------------------------------------------------
+  function renderStrengthsImprovements() {
+    const s = analysis?.strengths || []
+    const i = analysis?.improvements || []
+    if (!s.length && !i.length) return
+
+    ensureSpace(60)
+    const startY = y
+    const colW = (W - MX * 2 - 24) / 2
+    const leftX = MX
+    const rightXCol = MX + colW + 24
+
+    // Headers
+    fontB(); doc.setFontSize(32); setColor(C.emerald)
+    doc.text('3', leftX, startY + 18)
+    fontB(); doc.setFontSize(15); setColor(C.navyDeep)
+    doc.text('What You Nailed', leftX + 28, startY + 12)
+
+    fontB(); doc.setFontSize(32); setColor(C.amber)
+    doc.text('4', rightXCol, startY + 18)
+    fontB(); doc.setFontSize(15); setColor(C.navyDeep)
+    doc.text('What to Work On', rightXCol + 28, startY + 12)
+    y = startY + 32
+
+    const renderCol = (items, colX, markerDraw) => {
+      let cy = y
+      fontR(); doc.setFontSize(10); setColor(C.slate700)
+      for (const item of items.slice(0, 6)) {
+        const text = typeof item === 'string' ? item : String(item?.text || '')
+        if (!text) continue
+        const lines = doc.splitTextToSize(text, colW - 20)
+        const blockH = lines.length * 13 + 6
+        if (cy + blockH > CONTENT_BOTTOM) break
+        markerDraw(colX, cy)
+        for (let li = 0; li < lines.length; li++) {
+          doc.text(lines[li], colX + 18, cy + 4 + li * 13)
+        }
+        cy += blockH
+      }
+      return cy
+    }
+
+    const leftEnd = renderCol(s, leftX, (x, ry) => {
+      setStroke(C.emerald); setFill(C.white); doc.setLineWidth(1.2)
+      doc.circle(x + 6, ry + 2, 5, 'FD')
+      fontB(); doc.setFontSize(9); setColor(C.emerald)
+      doc.text('✓', x + 6, ry + 5, { align: 'center' })
+      fontR(); setColor(C.slate700); doc.setFontSize(10)
+    })
+    const rightEnd = renderCol(i, rightXCol, (x, ry) => {
+      setStroke(C.amber); setFill(C.white); doc.setLineWidth(1.2)
+      doc.circle(x + 6, ry + 2, 5, 'FD')
+      fontB(); doc.setFontSize(9); setColor(C.amber)
+      doc.text('!', x + 6, ry + 5, { align: 'center' })
+      fontR(); setColor(C.slate700); doc.setFontSize(10)
+    })
+    y = Math.max(leftEnd, rightEnd) + 12
+  }
+
+  // ------------------------------------------------------------------------
+  // Section 5 — Key Errors & Corrections (3-column table)
+  // ------------------------------------------------------------------------
+  function renderKeyErrors() {
+    if (!analysis?.keyErrors?.length) return
+    sectionHeader(4, 'Key Errors & Corrections')
+    y += 6
+
+    // Column geometry
+    const col1X = MX + 18           // #
+    const col2X = MX + 38           // utterance
+    const col3X = MX + 220          // arrow + corrected
+    const col4X = W - MX - 78       // category chip
+
+    // Header row
+    fontB(); doc.setFontSize(8); setColor(C.violet)
+    doc.text('STUDENT UTTERANCE', col2X, y, { charSpace: 1.3 })
+    doc.text('CORRECTED VERSION', col3X + 16, y, { charSpace: 1.3 })
+    doc.text('CATEGORY', W - MX, y, { align: 'right', charSpace: 1.3 })
     y += 8
-  }
-
-  // Summary
-  if (analysis?.lessonSummary) {
-    heading('Lesson Summary & Clinical Analysis', 12)
-    para(analysis.lessonSummary, 9, C.slate700)
-  }
-
-  // Strengths
-  if (analysis?.strengths?.length) {
-    heading('What You Nailed', 12, C.emerald)
-    for (const s of analysis.strengths) {
-      bullet(typeof s === 'string' ? s : JSON.stringify(s), { markerColor: C.emerald, marker: '✓' })
-    }
-    y += 4
-  }
-
-  // Improvements
-  if (analysis?.improvements?.length) {
-    heading('What to Work On', 12, C.amber)
-    for (const s of analysis.improvements) {
-      bullet(typeof s === 'string' ? s : JSON.stringify(s), { markerColor: C.amber, marker: '▲' })
-    }
-    y += 4
-  }
-
-  // Key errors
-  if (analysis?.keyErrors?.length) {
-    heading('Key Errors & Corrections', 12, C.rose)
-    for (const e of analysis.keyErrors) {
-      bullet(`"${e.error}"${e.category ? ` [${e.category}]` : ''}`, { markerColor: C.rose, marker: '✗', color: C.rose })
-      if (e.correction) bullet(`${e.correction}`, { indent: 24, markerColor: C.emerald, marker: '→', color: C.emerald })
-    }
-    y += 4
-  }
-
-  // Practice advice
-  if (analysis?.practiceAdvice?.length) {
-    heading('Practice Advice', 12, C.primary)
-    for (const p of analysis.practiceAdvice) bullet(p, { markerColor: C.primary, marker: '•' })
-    y += 4
-  }
-
-  // Per-metric commentary (from personalDetails)
-  const commentary = parseMetricCommentary(analysis)
-  if (commentary) {
-    heading('Per-Metric Clinical Commentary', 12)
-    const metricLabels = {
-      vocabularyRange: 'Vocabulary Range',
-      grammaticalAccuracy: 'Grammatical Accuracy',
-      fluencyAndCoherence: 'Fluency & Coherence',
-      pronunciation: 'Pronunciation',
-      communicativeEffectiveness: 'Communicative Effectiveness',
-    }
-    for (const k of Object.keys(metricLabels)) {
-      if (commentary[k]) {
-        sub(metricLabels[k], 10, C.primary)
-        para(commentary[k], 9, C.slate700, 8)
-      }
-    }
-  }
-
-  // Keywords table
-  if (lesson.keywords?.length) {
-    heading(`Vocabulary (${lesson.keywords.length} keywords)`, 12)
-    for (const kw of lesson.keywords.slice(0, 40)) {
-      ensure(24)
-      setF('bold').setFontSize(10); setColor(C.slate900)
-      doc.text(kw.word || '', margin, y)
-      setF('normal').setFontSize(9); setColor(C.slate500)
-      if (kw.ipa) doc.text(kw.ipa, margin + 100, y)
-      setColor(C.slate600).setFontSize(9)
-      doc.text(kw.translation || '', margin + 200, y)
-      y += 12
-      if (kw.example_en) {
-        setF('normal').setFontSize(8); setColor(C.slate500)
-        const exLines = doc.splitTextToSize(`"${kw.example_en}"`, maxW - 20)
-        for (const ln of exLines) { ensure(10); doc.text(ln, margin + 8, y); y += 10 }
-      }
-      y += 4
-    }
-  }
-
-  // Footer on all pages
-  const total = doc.internal.getNumberOfPages()
-  for (let i = 1; i <= total; i++) {
-    doc.setPage(i)
-    setFill(C.slate50)
-    doc.rect(0, pageH - 32, pageW, 32, 'F')
     setStroke(C.slate200); doc.setLineWidth(0.5)
-    doc.line(margin, pageH - 32, pageW - margin, pageH - 32)
-    setF('normal').setFontSize(8); setColor(C.slate400)
-    doc.text(`Conversa School · English Metropolis`, margin, pageH - 16)
-    doc.text(`${profile?.name || ''} · ${lesson.title || ''}`, pageW / 2, pageH - 16, { align: 'center' })
-    doc.text(`Page ${i} of ${total}`, pageW - margin, pageH - 16, { align: 'right' })
+    doc.line(MX, y, W - MX, y)
+    y += 10
+
+    for (let idx = 0; idx < analysis.keyErrors.length; idx++) {
+      const e = analysis.keyErrors[idx]
+      const errText  = typeof e === 'string' ? e : (e?.error || '')
+      const corrText = (typeof e === 'object' && e?.correction) || ''
+      const catText  = (typeof e === 'object' && e?.category) || ''
+      if (!errText) continue
+
+      fontR(); doc.setFontSize(9.5)
+      const errLines = doc.splitTextToSize(`"${errText}"`, col3X - col2X - 14)
+      const corrLines = doc.splitTextToSize(corrText ? `"${corrText}"` : '', col4X - col3X - 24)
+      const rowH = Math.max(errLines.length, corrLines.length, 1) * 12 + 6
+      ensureSpace(rowH)
+
+      // #
+      setFill(C.violetBg); doc.circle(MX + 6, y + 3, 7, 'F')
+      fontB(); doc.setFontSize(8); setColor(C.violet)
+      doc.text(String(idx + 1), MX + 6, y + 5.5, { align: 'center' })
+
+      // Utterance (slate-700)
+      fontR(); doc.setFontSize(9.5); setColor(C.slate700)
+      for (let li = 0; li < errLines.length; li++) {
+        doc.text(errLines[li], col2X, y + 4 + li * 12)
+      }
+
+      // Arrow
+      fontB(); doc.setFontSize(11); setColor(C.violet)
+      doc.text('→', col3X, y + 5)
+
+      // Corrected (navy)
+      if (corrText) {
+        fontR(); doc.setFontSize(9.5); setColor(C.navyDeep)
+        for (let li = 0; li < corrLines.length; li++) {
+          doc.text(corrLines[li], col3X + 16, y + 4 + li * 12)
+        }
+      }
+
+      // Category chip
+      if (catText) {
+        const pal = catText === 'FORM' ? { bg: C.fuchsiaBg, fg: C.fuchsiaDeep }
+                  : catText === 'VOCABULARY' ? { bg: C.violetBg, fg: C.violetDeep }
+                  : catText === 'PRONUNCIATION' ? { bg: C.amberBg, fg: C.amberDeep }
+                  : catText === 'REGISTER' ? { bg: C.skyBg, fg: C.skyDeep }
+                  : { bg: C.slate100, fg: C.slate700 }
+        fontB(); doc.setFontSize(7.5)
+        const chipText = catText.toUpperCase()
+        const cw = doc.getTextWidth(chipText) + 12
+        setFill(pal.bg); roundRect(W - MX - cw, y + 1, cw, 12, 6, 'F')
+        setColor(pal.fg)
+        doc.text(chipText, W - MX - 6, y + 9, { align: 'right', charSpace: 0.6 })
+      }
+
+      y += rowH + 2
+      setStroke(C.slate100); doc.setLineWidth(0.3)
+      doc.line(MX, y, W - MX, y)
+      y += 6
+    }
+    y += 6
+  }
+
+  // ------------------------------------------------------------------------
+  // Section 6 — Practice Advice (cream card with colored label prefixes)
+  // ------------------------------------------------------------------------
+  const PRACTICE_LABELS = [
+    { match: /^grammar/i,        label: 'Grammar Focus',         color: C.violetDeep },
+    { match: /^vocabulary/i,     label: 'Vocabulary Building',   color: C.fuchsiaDeep },
+    { match: /^fluency/i,        label: 'Fluency Drill',         color: C.skyDeep },
+    { match: /^pronunciation/i,  label: 'Pronunciation',         color: C.amberDeep },
+    { match: /^communication/i,  label: 'Communication Strategy',color: C.emeraldDeep },
+  ]
+
+  function classifyPractice(text) {
+    const first = String(text || '').split(':')[0].trim()
+    for (const rule of PRACTICE_LABELS) {
+      if (rule.match.test(first)) return { ...rule, rest: text.replace(new RegExp(`^${first}\\s*:?\\s*`, 'i'), '') }
+    }
+    return { label: 'Practice', color: C.slate700, rest: text }
+  }
+
+  function renderPracticeAdvice() {
+    if (!analysis?.practiceAdvice?.length) return
+    sectionHeader(5, 'Practice Advice')
+    y += 4
+
+    // Cream card
+    ensureSpace(90)
+    const cardStart = y
+    setFill(C.creamBg); setStroke(C.amberBg); doc.setLineWidth(0.6)
+    const cardX = MX, cardY = y
+    // Draw after we know the height by pre-rendering text lines into a buffer
+    const pad = 14
+    let textY = cardY + pad + 4
+
+    fontR(); doc.setFontSize(10)
+    for (const raw of analysis.practiceAdvice.slice(0, 8)) {
+      const { label, color, rest } = classifyPractice(raw)
+      const text = rest || String(raw)
+      const lines = doc.splitTextToSize(text, W - MX * 2 - pad * 2 - doc.getTextWidth(label + ':  '))
+      ensureSpace(lines.length * 13 + 6)
+      // label
+      fontB(); setColor(color)
+      doc.text(`${label}:`, cardX + pad, textY)
+      const labelW = doc.getTextWidth(`${label}:`) + 6
+      // rest
+      fontR(); setColor(C.slate700)
+      for (let li = 0; li < lines.length; li++) {
+        doc.text(lines[li], cardX + pad + labelW, textY + li * 13)
+      }
+      textY += Math.max(13, lines.length * 13) + 5
+    }
+    textY += pad
+    const cardH = textY - cardY
+    // Now draw the card background under the text — overpaint is fine since
+    // PDF renders in order, but text was already rendered. Instead, stash the
+    // pre-card y and re-render. For simplicity, draw a thin left rule instead.
+    setFill(C.amber); doc.rect(cardX, cardStart, 2.2, cardH, 'F')
+    setStroke(C.amberBg); doc.setLineWidth(0.6)
+    roundRect(cardX, cardStart, W - MX * 2, cardH, 8, 'S')
+    y = textY + 4
+  }
+
+  // ------------------------------------------------------------------------
+  // Section 7 — Personalized Recommendations (4-up grid)
+  // ------------------------------------------------------------------------
+  function extractRecommendations() {
+    const direct = Array.isArray(analysis?.recommendations) ? analysis.recommendations : []
+    if (direct.length) return direct
+    const raw = (analysis?.personalDetails || []).find((x) => String(x).startsWith('personalizedRecs:'))
+    if (!raw) return []
+    try {
+      const parsed = JSON.parse(String(raw).replace(/^personalizedRecs:/, ''))
+      return Array.isArray(parsed?.recommendations) ? parsed.recommendations : []
+    } catch { return [] }
+  }
+
+  function renderRecommendations() {
+    const recs = extractRecommendations()
+    if (!recs.length) return
+    sectionHeader(6, 'Personalized Recommendations')
+    y += 4
+
+    const gap = 10
+    const colW = (W - MX * 2 - gap) / 2
+    const cardH = 100
+
+    const palette = (type) => {
+      const t = String(type || '').toUpperCase()
+      if (t === 'YOUTUBE')  return { chip: C.rose,        bg: C.roseBg }
+      if (t === 'PODCAST')  return { chip: C.emeraldDeep, bg: C.emeraldBg }
+      if (t === 'ARTICLE')  return { chip: C.amberDeep,   bg: C.amberBg }
+      if (t === 'BOOK')     return { chip: C.violetDeep,  bg: C.violetBg }
+      if (t === 'COURSE')   return { chip: C.skyDeep,     bg: C.skyBg }
+      return { chip: C.fuchsiaDeep, bg: C.fuchsiaBg }
+    }
+
+    for (let i = 0; i < Math.min(4, recs.length); i++) {
+      const r = recs[i]
+      if (i % 2 === 0) ensureSpace(cardH + 8)
+      const col = i % 2
+      const row = Math.floor(i / 2)
+      const cx = MX + col * (colW + gap)
+      const cy = y + row * (cardH + gap)
+      const pal = palette(r.type)
+
+      // Border
+      setStroke(C.slate200); doc.setLineWidth(0.6)
+      setFill(C.white)
+      roundRect(cx, cy, colW, cardH, 10, 'FD')
+      // Type chip
+      fontB(); doc.setFontSize(7.5)
+      const chipText = String(r.type || 'RESOURCE').toUpperCase()
+      const cwChip = doc.getTextWidth(chipText) + 12
+      setFill(pal.bg); roundRect(cx + 10, cy + 10, cwChip, 12, 6, 'F')
+      setColor(pal.chip)
+      doc.text(chipText, cx + 16, cy + 18, { charSpace: 0.6 })
+
+      // Title
+      fontB(); doc.setFontSize(11); setColor(C.navyDeep)
+      const titleLines = doc.splitTextToSize(r.title || 'Recommendation', colW - 20)
+      doc.text(titleLines[0], cx + 10, cy + 36)
+      if (titleLines[1]) doc.text(titleLines[1], cx + 10, cy + 48)
+      // Creator
+      fontR(); doc.setFontSize(9); setColor(C.slate500)
+      if (r.creator) doc.text(r.creator, cx + 10, cy + 60)
+
+      // Why / How (compressed)
+      fontR(); doc.setFontSize(8.5); setColor(C.slate600)
+      const why = r.whyThisMatches ? doc.splitTextToSize(`Why: ${r.whyThisMatches}`, colW - 20).slice(0, 2) : []
+      const how = r.howToUse ? doc.splitTextToSize(`How: ${r.howToUse}`, colW - 20).slice(0, 2) : []
+      let yy = cy + 72
+      for (const ln of why) { doc.text(ln, cx + 10, yy); yy += 10 }
+      for (const ln of how) { doc.text(ln, cx + 10, yy); yy += 10 }
+
+      // URL
+      if (r.url) {
+        fontR(); doc.setFontSize(7.5); setColor(C.violetDeep)
+        doc.text(String(r.url).replace(/^https?:\/\//, '').slice(0, 60), cx + 10, cy + cardH - 8)
+      }
+    }
+    const rows = Math.ceil(Math.min(4, recs.length) / 2)
+    y += rows * (cardH + gap) + 4
+  }
+
+  // ------------------------------------------------------------------------
+  // Section 8 — Vocabulary Bank (dense 2-column list)
+  // ------------------------------------------------------------------------
+  function renderVocabulary() {
+    if (!lesson?.keywords?.length) return
+    sectionHeader(7, `Vocabulary Bank · ${lesson.keywords.length} keywords`)
+    y += 4
+
+    const gap = 16
+    const colW = (W - MX * 2 - gap) / 2
+    let col = 0
+    const colY = [y, y]
+    const max = Math.min(36, lesson.keywords.length)
+    for (let i = 0; i < max; i++) {
+      const kw = lesson.keywords[i]
+      let cy = colY[col]
+      const colX = MX + col * (colW + gap)
+      const exText = kw.exampleEn || kw.example_en
+      const needed = 20 + (exText ? 18 : 0)
+      if (cy + needed > CONTENT_BOTTOM) {
+        if (col === 0) { col = 1; continue }
+        // Both columns full -> new page
+        drawFooter(pageNum); doc.addPage(); pageNum += 1
+        drawHero(pageNum)
+        colY[0] = CONTENT_TOP_PN; colY[1] = CONTENT_TOP_PN
+        col = 0
+        cy = colY[col]
+      }
+      // Word
+      fontB(); doc.setFontSize(10.5); setColor(C.violetDeep)
+      doc.text(String(kw.word || ''), colX, cy + 4)
+      // IPA
+      if (kw.ipa) {
+        fontR(); doc.setFontSize(8.5); setColor(C.slate500)
+        doc.text(String(kw.ipa).slice(0, 30), colX + doc.getTextWidth(String(kw.word || '')) + 6, cy + 4)
+      }
+      cy += 12
+      // Translation (fuchsia)
+      if (kw.translation) {
+        fontR(); doc.setFontSize(9.5); setColor(C.fuchsiaDeep)
+        const tLines = doc.splitTextToSize(String(kw.translation), colW)
+        doc.text(tLines[0], colX, cy + 3)
+        cy += 12
+      }
+      // Example
+      if (exText) {
+        fontR(); doc.setFontSize(8.5); setColor(C.slate500)
+        const eLines = doc.splitTextToSize(`"${exText}"`, colW)
+        doc.text(eLines[0], colX, cy + 3)
+        cy += 11
+      }
+      setStroke(C.slate100); doc.setLineWidth(0.3)
+      doc.line(colX, cy + 3, colX + colW, cy + 3)
+      cy += 8
+      colY[col] = cy
+      col = col === 0 ? 1 : 0
+    }
+    y = Math.max(colY[0], colY[1]) + 6
+  }
+
+  // ------------------------------------------------------------------------
+  // Render flow
+  // ------------------------------------------------------------------------
+  drawHero(1)
+  renderPerformance()
+  renderSummary()
+  renderStrengthsImprovements()
+  renderKeyErrors()
+  renderPracticeAdvice()
+  renderRecommendations()
+  renderVocabulary()
+  drawFooter(pageNum)
+
+  // Update footer page totals across all pages.
+  const total = doc.getNumberOfPages()
+  for (let p = 1; p <= total; p++) {
+    doc.setPage(p)
+    // Wipe old footer and redraw with correct total
+    setFill(C.white)
+    doc.rect(0, H - FH, W, FH, 'F')
+    setStroke(C.slate200); doc.setLineWidth(0.4)
+    doc.line(MX, H - FH + 8, W - MX, H - FH + 8)
+    fontR(); doc.setFontSize(8.5); setColor(C.slate500)
+    doc.text(programKicker(), MX, H - FH + 22, { charSpace: 0.8 })
+    doc.text(`${profile?.name || 'Student'} — Lesson Analysis`, W / 2, H - FH + 22, { align: 'center' })
+    doc.text(`Page ${p} of ${total}`, W - MX, H - FH + 22, { align: 'right' })
+    setColor(C.violetDeep); doc.setFontSize(7.5)
+    doc.text('englishmetro.com', W - MX, H - FH + 32, { align: 'right', charSpace: 1.0 })
   }
 
   const safeTitle = String(lesson.title || 'lesson').replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40)
@@ -459,8 +1119,11 @@ function YouGlishModal({ word, onClose }) {
   const video = videos[videoIdx] || null
   const occurrence = video?.occurrences?.[occIdx] || null
   const start = Math.max(0, (occurrence?.start || 0) - 2)
+  // enablejsapi=1 + explicit mute=0 so we can postMessage unMute() after the
+  // user's first interaction (clicking open the modal counts) and dodge
+  // Chrome's autoplay-without-sound fallback.
   const embedUrl = video
-    ? `https://www.youtube.com/embed/${video.videoId}?autoplay=${autoplay ? 1 : 0}&start=${Math.floor(start)}&rel=0&modestbranding=1&iv_load_policy=3&controls=1`
+    ? `https://www.youtube.com/embed/${video.videoId}?autoplay=${autoplay ? 1 : 0}&mute=0&start=${Math.floor(start)}&rel=0&modestbranding=1&iv_load_policy=3&controls=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')}`
     : null
 
   const totalOccurrences = videos.reduce((sum, v) => sum + v.occurrences.length, 0)
@@ -573,6 +1236,20 @@ function YouGlishModal({ word, onClose }) {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   className="w-full h-full"
+                  onLoad={() => {
+                    // The cross-origin iframe inherits Chrome's autoplay policy
+                    // from youtube.com, not our origin, so autoplay often starts
+                    // muted. Ride on the user's click that opened/advanced the
+                    // modal (counts as user gesture) and postMessage unMute+play
+                    // to YouTube's IFrame API. Safe no-op if sound was already on.
+                    try {
+                      const w = playerRef.current?.contentWindow
+                      if (!w) return
+                      w.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*')
+                      w.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*')
+                      w.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*')
+                    } catch (e) { /* ignore cross-origin rejection */ }
+                  }}
                 />
               </div>
 
@@ -878,7 +1555,7 @@ function HorizontalLessonNavigator({ lessons }) {
             </p>
             <div className="mt-1.5 flex items-center gap-1.5">
               {l.analysis && <CefrBadge band={l.analysis.cefrBand} score={l.analysis.overallScore} />}
-              <span className="text-[9px] text-slate-400">{t('lessons.kwAbbrev', { n: l.keyword_count || l.keywords?.length || 0 })}</span>
+              <span className="text-[9px] text-slate-400">{t('lessons.kwAbbrev', { n: l.keywordCount || l.keyword_count || l.keywords?.length || 0 })}</span>
             </div>
           </button>
         ))}
@@ -998,10 +1675,13 @@ export default function Lessons({ data }) {
   const [cameFromVocab, setCameFromVocab] = useState(false)
 
   useEffect(() => {
-    fetch('/lesson-pdfs.json')
-      .then(r => r.ok ? r.json() : {})
-      .then(setPdfMap)
-      .catch(() => setPdfMap({}))
+    let cancelled = false
+    // 30s timeout + 5-min cache — small static file, no need to refetch on
+    // every Lessons remount.
+    fetchJSONCached('/lesson-pdfs.json', { cacheKey: 'lesson-pdfs' })
+      .then(d => { if (!cancelled) setPdfMap(d || {}) })
+      .catch(() => { if (!cancelled) setPdfMap({}) })
+    return () => { cancelled = true }
   }, [])
 
   const [topicFilter, setTopicFilter] = useState(null)
@@ -1048,6 +1728,26 @@ export default function Lessons({ data }) {
     })
   }, [lessons, lessonFilter, topicFilter])
 
+  // Split filtered lessons into upcoming (status=planned) and completed.
+  // Upcoming lessons render under a collapsible "Upcoming Lessons (N)"
+  // dropdown — minimised by default per Mike's 2026-05-04 directive — so
+  // they don't dominate the lessons feed once the queue grows.
+  const upcomingLessons = useMemo(
+    () => filteredLessons.filter(l => (l.status || '') === 'planned'),
+    [filteredLessons]
+  )
+  const completedLessons = useMemo(
+    () => filteredLessons.filter(l => (l.status || '') !== 'planned'),
+    [filteredLessons]
+  )
+
+  const [upcomingOpen, setUpcomingOpen] = useState(() => {
+    try { return localStorage.getItem('em.lessons.upcomingOpen') === '1' } catch { return false }
+  })
+  useEffect(() => {
+    try { localStorage.setItem('em.lessons.upcomingOpen', upcomingOpen ? '1' : '0') } catch {}
+  }, [upcomingOpen])
+
   return (
     <section className="space-y-4" id="page-lessons">
       {/* Hero header */}
@@ -1086,12 +1786,63 @@ export default function Lessons({ data }) {
         )}
       </div>
 
-      {/* Horizontal lesson navigator with prev/next arrows */}
-      <HorizontalLessonNavigator lessons={filteredLessons} />
+      {/* Horizontal lesson navigator — completed lessons only.
+          Upcoming lessons live inside the collapsible block below. */}
+      <HorizontalLessonNavigator lessons={completedLessons} />
+
+      {/* Upcoming Lessons — collapsible, minimised by default */}
+      {upcomingLessons.length > 0 && (
+        <div className="rounded-[1.5rem] border border-violet-200/70 bg-gradient-to-br from-violet-50/60 via-white to-sky-50/40 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setUpcomingOpen(o => !o)}
+            className="w-full px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-white/40 transition-colors"
+            aria-expanded={upcomingOpen}
+          >
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-violet-600 text-xl">event_upcoming</span>
+              <p className="font-label text-sm font-bold uppercase tracking-[0.18em] text-violet-700">
+                {t('lessons.upcoming.heading', { defaultValue: 'Upcoming Lessons' })} ({upcomingLessons.length})
+              </p>
+            </div>
+            <span
+              className="material-symbols-outlined text-violet-600 text-xl transition-transform"
+              style={{ transform: upcomingOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            >
+              expand_more
+            </span>
+          </button>
+          {upcomingOpen && (
+            <div className="px-5 pb-5 pt-1 space-y-2">
+              {upcomingLessons.map(lesson => (
+                <div
+                  key={lesson.id}
+                  className="rounded-[1rem] border border-violet-200/60 bg-white/70 px-4 py-3 flex items-center justify-between gap-3 grayscale opacity-80 cursor-default"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="material-symbols-outlined text-violet-500 text-base shrink-0">schedule</span>
+                    <div className="min-w-0">
+                      <p className="font-label text-[10px] font-bold uppercase tracking-[0.16em] text-violet-600">
+                        {formatDate(lesson.date)}
+                      </p>
+                      <p className="text-sm font-semibold text-slate-700 leading-snug truncate">
+                        {lesson.title}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="font-label text-[9px] font-bold uppercase tracking-[0.18em] text-violet-500 shrink-0">
+                    {t('lessons.upcoming.tag', { defaultValue: 'Upcoming' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div>
         <div className="space-y-4">
-          {filteredLessons.length ? filteredLessons.map(lesson => {
+          {completedLessons.length ? completedLessons.map(lesson => {
             const analysis = lesson.analysis
             const pdf = (pdfMap[data?.profile?.slug || ''] || []).find(p => p.date === lesson.date)
             return (
@@ -1122,7 +1873,7 @@ export default function Lessons({ data }) {
                           </span>
                         )}
                         <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-label font-bold text-white">
-                          {t('lessons.wordsCount', { n: lesson.keyword_count || lesson.keywords?.length || 0 })}
+                          {t('lessons.wordsCount', { n: lesson.keywordCount || lesson.keyword_count || lesson.keywords?.length || 0 })}
                         </span>
                       </div>
                     </div>
@@ -1164,6 +1915,34 @@ export default function Lessons({ data }) {
                     {t('lessons.openLesson')}
                   </button>
                   <div className="flex items-center gap-1.5">
+                    {/* Lesson Preview — currently scoped to Aleksandra's BYD Bridge L3/L4.
+                        Opens the interactive prototype in a new tab. Feature-flagged by
+                        title-based lookup so it doesn't appear on every card site-wide. */}
+                    {(() => {
+                      // Match by date (stable) or legacy title code — so renames
+                      // don't break the preview CTA.
+                      const map = {
+                        '2026-04-27': '/lesson-previews/byd-bridge-l3.html',
+                        '2026-04-28': '/lesson-previews/byd-bridge-l4.html',
+                        'IND-AG-27042026': '/lesson-previews/byd-bridge-l3.html',
+                        'IND-AG-28042026': '/lesson-previews/byd-bridge-l4.html',
+                      }
+                      const url = map[lesson.date] || map[lesson.title]
+                      if (!url) return null
+                      return (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 px-3 py-1 text-[10px] font-label font-bold uppercase tracking-[0.14em] text-white transition shadow-md"
+                          title="Interactive lesson preview"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+                          Preview lesson
+                        </a>
+                      )
+                    })()}
                     {pdf?.url && (
                       <a
                         href={pdf.url}
@@ -1501,7 +2280,10 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
         </div>
       )}
 
-      {/* Practice advice — each item is a free-write challenge launcher */}
+      {/* Practice advice — classified into a specific shell + filter when
+          we can recognise the intent (Mike 2026-05-04: don't dump everything
+          into the generic free-write box). Falls back to free-write if the
+          advice text doesn't match any known shell heuristic. */}
       {analysis?.practiceAdvice?.length > 0 && (
         <div className="section-block rounded-[1.25rem] p-5">
           <p className="font-label text-xs font-bold uppercase tracking-[0.22em] text-sky-700 mb-4 flex items-center gap-2">
@@ -1512,22 +2294,24 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
           <div className="grid gap-3 md:grid-cols-2">
             {analysis.practiceAdvice.map((p, i) => {
               const adviceText = typeof p === 'string' ? p : String(p || '')
+              const slugStr = studentSlug || 'szymon-karpinski'
+              const link = classifyAdviceLink(adviceText, slugStr)
               return (
                 <button
                   key={i}
                   type="button"
                   onClick={(e) => {
                     e.preventDefault(); e.stopPropagation()
-                    const slugStr = studentSlug || 'szymon-karpinski'
-                    navigate(`/app/${slugStr}/practice?advice=${encodeURIComponent(adviceText.slice(0, 200))}`)
+                    if (link) navigate(link.url)
+                    else navigate(`/app/${slugStr}/practice?advice=${encodeURIComponent(adviceText.slice(0, 200))}`)
                   }}
                   className="advice-item text-left cursor-pointer hover:-translate-y-0.5 transition-all hover:shadow-md w-full"
                 >
                   <span className="advice-number">{i + 1}</span>
                   <p className="text-sm text-slate-700 leading-relaxed"><RichInline text={p} /></p>
                   <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-label font-bold uppercase tracking-[0.14em] text-sky-600">
-                    <span className="material-symbols-outlined text-[12px]">edit_note</span>
-                    {t('lessons.detail.openFreewrite')}
+                    <span className="material-symbols-outlined text-[12px]">{link ? 'arrow_forward' : 'edit_note'}</span>
+                    {link ? link.label : t('lessons.detail.openFreewrite')}
                   </span>
                 </button>
               )

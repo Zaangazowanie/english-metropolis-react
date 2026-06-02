@@ -18,12 +18,14 @@ export default function SuperadminJobs() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    let alive = true
     setLoading(true)
     const f = FILTERS.find(x => x.key === filter)
     queryAdminConvex('ingestion:listIngestionJobs', { limit: 100, status: f?.status })
-      .then(setJobs)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+      .then(d => { if (alive) setJobs(d) })
+      .catch(e => { if (alive) setError(e.message) })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
   }, [filter])
 
   return (

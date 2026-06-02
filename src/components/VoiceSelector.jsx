@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import { useV3Theme } from '../design/v3/ThemeProvider.jsx'
+import { useI18n } from '../i18n'
 
 /**
  * Full voice catalogue mirrored from the Kokoro /voices endpoint.
@@ -98,6 +100,9 @@ function broadcastVoiceChange(voiceId) {
 }
 
 export default function VoiceSelector() {
+  const { mode } = useV3Theme()
+  const { t } = useI18n()
+  const isDay = mode === 'day'
   const [voice, setVoice] = useState(() => {
     try { return localStorage.getItem('tts_voice') || 'af_heart' } catch { return 'af_heart' }
   })
@@ -153,34 +158,38 @@ export default function VoiceSelector() {
         type="button"
         onClick={() => setOpen(o => !o)}
         className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl border shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition-all cursor-pointer ${
-          current.native
-            ? 'bg-white/95 border-white/70 hover:border-emerald-300'
-            : 'bg-amber-50/90 border-amber-200 hover:border-amber-400'
+          isDay
+            ? (current.native
+                ? 'bg-white/95 border-white/70 hover:border-emerald-300'
+                : 'bg-amber-50/90 border-amber-200 hover:border-amber-400')
+            : (current.native
+                ? 'bg-slate-900/60 border-white/10 hover:border-emerald-400/60 backdrop-blur-md'
+                : 'bg-amber-950/40 border-amber-400/20 hover:border-amber-300/60 backdrop-blur-md')
         }`}
         aria-haspopup="true"
         aria-expanded={open}
       >
-        <span className="material-symbols-outlined text-slate-500 text-[18px]">settings_voice</span>
+        <span className={`material-symbols-outlined text-[18px] ${isDay ? 'text-slate-500' : 'text-slate-300'}`}>settings_voice</span>
         <FlagImg voiceId={current.id} size={20} />
-        <span className="font-label text-[13px] font-semibold text-slate-800 max-w-[100px] truncate">{current.name}</span>
+        <span className={`font-label text-[13px] font-semibold max-w-[100px] truncate ${isDay ? 'text-slate-800' : 'text-slate-100'}`}>{current.name}</span>
         {!current.native && (
-          <span className="rounded-full bg-amber-500 text-white px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide leading-none">non-native</span>
+          <span className="rounded-full bg-amber-500 text-white px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide leading-none">{t('voice.nonNative.badge')}</span>
         )}
-        <span className={`material-symbols-outlined text-slate-400 text-[18px] transition-transform ${open ? 'rotate-180' : ''}`}>expand_more</span>
+        <span className={`material-symbols-outlined text-[18px] transition-transform ${open ? 'rotate-180' : ''} ${isDay ? 'text-slate-400' : 'text-slate-400'}`}>expand_more</span>
       </button>
 
       {open && (
         <div className="absolute right-0 mt-2 w-[min(360px,calc(100vw-32px))] rounded-[1.5rem] border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.2)] overflow-hidden z-50 animate-[voicePopIn_.28s_cubic-bezier(.34,1.56,.64,1)]">
           <div className="px-4 pt-3 pb-2 border-b border-slate-100 bg-gradient-to-r from-violet-50 to-rose-50">
             <div className="flex items-center justify-between gap-2">
-              <p className="font-label text-[10px] font-bold uppercase tracking-[0.18em] text-violet-700">🌍 Accent Explorer — 54 voices</p>
+              <p className="font-label text-[10px] font-bold uppercase tracking-[0.18em] text-violet-700">🌍 {t('voice.kicker')}</p>
               <span className="rounded-full bg-white/80 border border-violet-200 px-2 py-0.5 text-[9px] font-bold text-violet-700">{filtered.length}</span>
             </div>
             <input
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Search voices by name, accent, gender…"
+              placeholder={t('voice.searchPlaceholder')}
               className="mt-2 w-full rounded-xl bg-white border border-slate-200 px-3 py-1.5 text-[12px] focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
             />
           </div>
@@ -189,7 +198,7 @@ export default function VoiceSelector() {
               <div className="px-2 pt-2">
                 <div className="px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-emerald-700 bg-emerald-50/50 rounded-lg flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[13px]">verified</span>
-                  Native English · use as pronunciation model
+                  {t('voice.native.label')}
                 </div>
                 <div className="grid grid-cols-2 gap-1 mt-1">
                   {native.map(v => (
@@ -215,7 +224,7 @@ export default function VoiceSelector() {
               <div className="px-2 pt-2 pb-2">
                 <div className="px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-amber-700 bg-amber-50/50 rounded-lg flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[13px]">public</span>
-                  World accents · ear-training for multinational work
+                  {t('voice.world.label')}
                 </div>
                 <div className="grid grid-cols-2 gap-1 mt-1">
                   {nonNative.map(v => (
@@ -239,7 +248,7 @@ export default function VoiceSelector() {
               </div>
             )}
             {filtered.length === 0 && (
-              <div className="px-4 py-8 text-center text-slate-400 text-xs">No voices match "{query}"</div>
+              <div className="px-4 py-8 text-center text-slate-400 text-xs">{t('voice.noMatch', { query })}</div>
             )}
           </div>
         </div>

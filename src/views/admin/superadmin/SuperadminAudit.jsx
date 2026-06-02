@@ -7,10 +7,12 @@ export default function SuperadminAudit() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    let alive = true
     queryAdminConvex('ingestion:listAuditLog', { limit: 100 })
-      .then(setEvents)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+      .then(d => { if (alive) setEvents(d) })
+      .catch(e => { if (alive) setError(e.message) })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
   }, [])
 
   return (

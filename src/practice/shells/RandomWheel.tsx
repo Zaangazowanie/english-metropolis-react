@@ -1,0 +1,923 @@
+// RandomWheel — "The Spinner Stand" district.
+//
+// 2026-05-02 (Ricky, post-CD audit §5 Random Wheel):
+//   The Spinner Stand was a functional duplicate of the Carnival Wheel
+//   (SpinTheWheel) — both were "spin a wheel and answer". CD audit asked for
+//   either consolidation OR harder differentiation. Mike's call: differentiate.
+//
+//   Spinner Stand is now a CATEGORY ROULETTE: each wedge is a difficulty TIER
+//   (Easy / Medium / Hard / Bonus / Wild / Lightning). The wedge you land on
+//   determines:
+//     • which round you answer (one of the N wrapper rounds)
+//     • the score multiplier for that round (Easy ×1, Lightning ×3)
+//     • the "barker call" Bajla shouts from the right-side panel
+//
+//   Carnival Wheel remains the casino-table "answer roulette" (you read the
+//   question first, then spin to commit one of A/B/C/D as your answer).
+//   Spinner Stand is the carnival-stand "category roulette" (you spin first,
+//   the wheel picks your category/tier, then you answer that question).
+//
+//   The data layer doesn't surface real per-question categories through
+//   WrapperRound, so tiers are the honest stand-in: they act AS categories
+//   visually + mechanically (tier multiplier, tier-themed barker call), and
+//   the right-side TONIGHT'S CATEGORIES board lists them with live counts.
+//
+// Visual identity (carnival-stand aesthetic):
+//   Tall wheel mounted on a stand (vs Carnival Wheel's flat roulette table),
+//   bunting + bulb-ring + ticket stubs + popcorn bucket on the right.
+//   Bajla is the BARKER calling out tier names ("Step right up! LIGHTNING tier!").
+//
+// Persisted progress — Convex-backed.
+import { useShellProgress } from '../lib/convex-stubs';
+import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
+import { maskAnswerInPrompt } from '../lib/exercise-adapters';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Bajla,
+  HintCard,
+  Progress,
+  Nameplate,
+  SkipButton,
+  HintButton,
+  Confetti,
+  useEndOfShellTip,
+} from '../components/primitives';
+import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
+// Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
+import type { FullInstructions } from '../components';
+
+// Spinner Stand · Random Wheel — full bilingual instruction copy.
+const RANDOMWHEEL_INSTRUCTIONS: FullInstructions = {
+  whatYouDo: {
+    en: [
+      'A tall carnival-stand wheel mounted on a stand: each wedge is a difficulty TIER (Easy / Medium / Hard / Bonus / Wild / Lightning).',
+      'Tap SPIN — the wheel decelerates and the pointer lands on a tier wedge.',
+      'The tier you land on selects which round you answer AND the score multiplier (Easy ×1, Lightning ×3).',
+      'Answer the question correctly to bank the multiplied points; spin again until every tier wedge is checked.',
+    ],
+    pl: [
+      'Wysokie koło karnawałowe na statywie: każdy klin to POZIOM trudności (Łatwy / Średni / Trudny / Bonus / Wild / Błyskawica).',
+      'Stuknij SPIN — koło zwalnia i wskaźnik ląduje na klinie poziomu.',
+      'Poziom, na który trafiasz, wybiera rundę do odpowiedzi ORAZ mnożnik wyniku (Łatwy ×1, Błyskawica ×3).',
+      'Odpowiedz poprawnie, aby zaksięgować pomnożone punkty; kręć dalej, aż każdy klin poziomu będzie odhaczony.',
+    ],
+  },
+  controls: {
+    en: [
+      'Tall stand wheel: 6 tier wedges (Easy / Medium / Hard / Bonus / Wild / Lightning) — numbered Q1–Q6, no truncation.',
+      'SPIN handle: brass lever at the bottom — tap to launch the wheel.',
+      'Tonight\'s Categories (right panel): live scoreboard showing tier names, multipliers, and check status per wedge.',
+      'Bajla "barker call": shouts the tier name when the wheel lands ("Step right up! LIGHTNING tier!").',
+      'Skip + Hint buttons: Skip jumps the active question, Hint greys one wrong option.',
+    ],
+    pl: [
+      'Wysokie koło na statywie: 6 klinów poziomu (Łatwy / Średni / Trudny / Bonus / Wild / Błyskawica) — numerowane Q1–Q6, bez ucinania.',
+      'Dźwignia SPIN: brązowa dźwignia u dołu — stuknij, aby zakręcić.',
+      'Dzisiejsze kategorie (panel z prawej): tablica wyników z nazwami poziomów, mnożnikami i stanem odhaczenia każdego klina.',
+      'Bajla „barker": wykrzykuje nazwę poziomu po wylądowaniu koła („Step right up! LIGHTNING tier!").',
+      'Przyciski Pomiń i Podpowiedź: Pomiń przeskakuje aktywne pytanie, Podpowiedź wyszarza jedną błędną opcję.',
+    ],
+  },
+  rightWrongSkip: {
+    en: [
+      'Right answer: ✓ green flash + multiplier-pop animation, points × tier-multiplier added to your tally, that wedge marks checked.',
+      'Wrong answer: ✗ rose flash, correct option highlights green; the wedge marks unchecked-with-X so you remember it failed.',
+      'Skip: counts as wrong — no points, the wedge marks unchecked-with-X.',
+      'You can re-spin and re-attempt failed wedges later in the round; the round only ends when every wedge is checked.',
+    ],
+    pl: [
+      'Trafna odpowiedź: ✓ zielony błysk + animacja mnożnika, punkty × mnożnik poziomu dodane do wyniku, klin oznaczony jako odhaczony.',
+      'Błąd: ✗ różowy błysk, poprawna opcja podświetla się na zielono; klin oznaczony jako „nieodhaczony z X", żebyś pamiętał o porażce.',
+      'Pomiń: liczy się jako błąd — bez punktów, klin oznaczony jako „nieodhaczony z X".',
+      'Możesz zakręcić ponownie i powtórzyć nieudane kliny później w rundzie; runda kończy się dopiero, gdy każdy klin jest odhaczony.',
+    ],
+  },
+  hintMechanic: {
+    en:
+      'You have 3 hints per session. Each tap greys out one wrong option on the active question. Save them for Hard / Lightning tier rounds where the multiplier amplifies the cost of a wrong pick.',
+    pl:
+      'Masz 3 podpowiedzi na sesję. Każde stuknięcie wyszarza jedną błędną opcję na aktywnym pytaniu. Zachowaj je na rundy Trudne / Błyskawica, gdzie mnożnik wzmacnia koszt błędu.',
+  },
+  scoring: {
+    en:
+      'Skip counts as wrong (no points, wedge marked unchecked). Each correct answer adds points × tier-multiplier to your session tally. Checking every wedge unlocks the post-shell review with explanations of any wrong picks.',
+    pl:
+      'Pomiń liczy się jako błąd (bez punktów, klin nieodhaczony). Każda trafna odpowiedź dodaje punkty × mnożnik poziomu do wyniku sesji. Odhaczenie wszystkich klinów odblokowuje przegląd po sesji z wyjaśnieniami błędów.',
+  },
+  l1Pattern: {
+    en:
+      'Random + tier-difficulty drill. Polish learners often plateau on a comfortable tier; the wheel forces exposure to all tiers so you can\'t hide from the harder ones — Lightning rounds especially target idiomatic chunks where direct PL→EN translation fails.',
+    pl:
+      'Trening losowy + zróżnicowany poziom. Polscy uczniowie zatrzymują się na wygodnym poziomie; koło wymusza ekspozycję na wszystkie poziomy, więc nie da się unikać trudniejszych — szczególnie Błyskawica celuje w idiomatyczne wyrażenia, gdzie dosłowne tłumaczenie PL→EN zawodzi.',
+  },
+};
+
+export interface WrapperRound {
+  id: string; prompt: string; options: string[]; answerIndex: number;
+  hint: string; hint_pl: string; exerciseId?: string;
+}
+export interface WrapperPuzzle { rounds: WrapperRound[]; }
+
+export type RandomWheelForcedState = 'empty' | 'active' | 'wrong' | 'correct' | 'complete' | null;
+export type TimeOfDay = 'day' | 'dusk' | 'night';
+
+export interface RandomWheelShellProps {
+  time?: TimeOfDay;
+  state?: RandomWheelForcedState;
+  puzzle?: WrapperPuzzle;
+  onWrongAnswer?: (info: {
+    questionId: string;
+    studentAnswer: string;
+    correctAnswer: string;
+    explanationPL?: string;
+    exerciseId?: string;
+  }) => void;
+  /**
+   * D3-RandomWheel (Ricky wave-4, 2026-05-02): fires once when every round
+   * has been spun + answered. Per item: each round becomes one row showing
+   * tier landed + question + student's pick + correct answer.
+   */
+  onSessionComplete?: (info: {
+    correctCount: number;
+    totalQuestions: number;
+    wrongAttempts: Array<{
+      questionId: string;
+      studentAnswer: string;
+      correctAnswer: string;
+      explanationPL?: string;
+      exerciseId?: string;
+    }>;
+    puzzle: WrapperPuzzle;
+    points: number;
+  }) => void;
+}
+
+const RW_DEMO: WrapperPuzzle = {
+  rounds: [
+    { id: 'wheel', prompt: 'A round object that turns to choose a prize is a ___.', options: ['shelf', 'wheel', 'plate', 'frame'], answerIndex: 1, hint: 'Pointer at the top.', hint_pl: 'Po polsku: koło.' },
+    { id: 'prize', prompt: 'The thing you win is the ___.', options: ['fee', 'bill', 'prize', 'fine'], answerIndex: 2, hint: 'Reward.', hint_pl: 'Po polsku: nagroda.' },
+    { id: 'lucky', prompt: 'When you keep winning, you are ___.', options: ['tired', 'lucky', 'tall', 'clever'], answerIndex: 1, hint: 'Four-leaf clover.', hint_pl: 'Po polsku: szczęściarz.' },
+    { id: 'arrow', prompt: 'The pointer at the top of the wheel is the ___.', options: ['arrow', 'tail', 'string', 'loop'], answerIndex: 0, hint: 'Like on a clock.', hint_pl: 'Po polsku: strzałka.' },
+    { id: 'kiosk', prompt: 'A small pop-up shop in a square is a ___.', options: ['barn', 'tower', 'kiosk', 'palace'], answerIndex: 2, hint: 'Often round and small.', hint_pl: 'Po polsku: kiosk.' },
+    { id: 'crowd', prompt: 'A group of people watching is a ___.', options: ['line', 'crowd', 'pair', 'court'], answerIndex: 1, hint: '"A ___ gathered."', hint_pl: 'Po polsku: tłum.' },
+  ],
+};
+
+const ACCENT = '#FBBF24';
+// 6 vivid wedge colours — drawn from the brand palette so the wheel feels
+// part of the city even though it's louder than most shells.
+const WEDGE_PALETTE = ['#FBBF24', '#FB7185', '#A78BFA', '#7DD3FC', '#34D399', '#E879F9'];
+const SPIN_DURATION_MS = 3200;
+const MIN_FULL_TURNS = 4;
+
+// CATEGORY ROULETTE tiers — the wedge you land on determines the difficulty
+// tier of that round + a score multiplier + a Bajla barker call. The TIERS
+// array is fixed length-6 to match the canonical Spinner Stand wedge count
+// (the wheel will only ever render up to 6 wedges; rounds > 6 are paged in
+// future spins on the same wheel). The labels are bilingual short — they sit
+// outside the wheel rim with thin connector lines, so labels are upright at
+// rest (no counter-rotation gymnastics).
+interface Tier {
+  id: string;
+  /** Short EN word that fits on a wedge nameplate (≤9 chars). */
+  labelEN: string;
+  /** Polish counterpart for the right-side Tonight's Categories panel. */
+  labelPL: string;
+  /** Score multiplier — Easy ×1, Lightning ×3. */
+  mult: number;
+  /** Carnival-barker call Bajla shouts when the pointer lands on this tier. */
+  barkerEN: string;
+  barkerPL: string;
+}
+
+export const TIERS: Tier[] = [
+  { id: 'easy',      labelEN: 'EASY',      labelPL: 'Łatwy',      mult: 1, barkerEN: 'Easy round! Step right up.',         barkerPL: 'Łatwa runda! Zapraszamy.' },
+  { id: 'medium',    labelEN: 'MEDIUM',    labelPL: 'Średni',     mult: 1, barkerEN: 'Medium round — keep your nerve.',     barkerPL: 'Średnia runda — uważaj.' },
+  { id: 'hard',      labelEN: 'HARD',      labelPL: 'Trudny',     mult: 2, barkerEN: 'Hard round, double points!',          barkerPL: 'Trudna runda, podwójne punkty!' },
+  { id: 'bonus',     labelEN: 'BONUS',     labelPL: 'Bonus',      mult: 2, barkerEN: 'Bonus round, double the prize!',      barkerPL: 'Runda bonusowa, podwójna nagroda!' },
+  { id: 'wild',      labelEN: 'WILD',      labelPL: 'Dzika',      mult: 2, barkerEN: 'Wild card, anything goes!',           barkerPL: 'Dzika karta, wszystko gra!' },
+  { id: 'lightning', labelEN: 'LIGHTNING', labelPL: 'Błyskawica', mult: 3, barkerEN: 'LIGHTNING round, triple points!',     barkerPL: 'BŁYSKAWICA, potrójne punkty!' },
+];
+
+type Phase = 'idle' | 'spinning' | 'reveal' | 'verdict';
+
+// ─────────────────────────────────────────────────────────────────────────
+// renderRandomWheelReviewItem — per-round locked render for PracticeReview.
+// Carnival roulette scoreboard row: round number + tier + question +
+// student's pick + correct answer.
+// ─────────────────────────────────────────────────────────────────────────
+const RW_REVIEW_ACCENT = '#FBBF24';
+export function renderRandomWheelReviewItem(
+  round: WrapperRound,
+  roundNumber: number,
+  tierLabel: string,
+  tierMult: number,
+  studentAnswer: string | undefined,
+): React.ReactNode {
+  const correct = round.options[round.answerIndex];
+  const stu = studentAnswer ?? '';
+  const isWrong = stu.length > 0 && stu !== correct;
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: 10,
+      padding: '12px 14px',
+      background: isWrong
+        ? 'linear-gradient(180deg, rgba(251,113,133,0.08), rgba(20,16,42,0.55))'
+        : 'linear-gradient(180deg, rgba(52,211,153,0.08), rgba(20,16,42,0.55))',
+      border: `1px solid ${isWrong ? 'rgba(251,113,133,0.45)' : 'rgba(52,211,153,0.45)'}`,
+      borderRadius: 8,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{
+          fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.18em',
+          padding: '2px 8px', borderRadius: 4,
+          background: `${RW_REVIEW_ACCENT}22`, color: RW_REVIEW_ACCENT,
+          border: `1px solid ${RW_REVIEW_ACCENT}66`, fontWeight: 700,
+        }}>
+          ROUND {String(roundNumber).padStart(2, '0')} · {tierLabel} ×{tierMult}
+        </span>
+        <span style={{
+          fontFamily: 'var(--em-mono)', fontSize: 9, letterSpacing: '0.18em',
+          padding: '2px 8px', borderRadius: 999, fontWeight: 700,
+          background: isWrong ? 'rgba(251,113,133,0.18)' : 'rgba(52,211,153,0.18)',
+          color: isWrong ? '#FB7185' : '#34D399',
+        }}>
+          {isWrong ? '✗ MISSED · POMINIĘTE' : '✓ POINTS · PUNKTY'}
+        </span>
+      </div>
+      <div style={{
+        fontFamily: 'var(--em-decor)', fontSize: 16, lineHeight: 1.3,
+        color: 'var(--em-text, #EDE6FF)',
+      }}>{round.prompt}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+        {round.options.map((opt, oi) => {
+          const isCorrect = oi === round.answerIndex;
+          const wasPicked = stu === opt;
+          const showCorrect = isCorrect;
+          const showWrong = wasPicked && !isCorrect;
+          return (
+            <div key={oi} style={{
+              padding: '8px 12px', borderRadius: 6,
+              background: showCorrect
+                ? 'rgba(52,211,153,0.18)'
+                : showWrong
+                  ? 'rgba(251,113,133,0.18)'
+                  : 'rgba(245,239,255,0.04)',
+              border: `1px solid ${showCorrect ? '#34D39988' : showWrong ? '#FB718588' : 'rgba(245,239,255,0.1)'}`,
+              color: showCorrect ? '#34D399' : showWrong ? '#FB7185' : 'var(--em-text, #EDE6FF)',
+              fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <span style={{ flex: 1 }}>{opt}</span>
+              {showCorrect && <span style={{ fontFamily: 'var(--em-mono)', fontSize: 10 }}>✓ TAK</span>}
+              {showWrong && <span style={{ fontFamily: 'var(--em-mono)', fontSize: 10 }}>✗ NIE</span>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
+  time = 'dusk',
+  state: forcedState = null,
+  puzzle,
+  onWrongAnswer,
+  onSessionComplete,
+}) => {
+  const active: WrapperPuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : RW_DEMO;
+  const persisted = useShellProgress('randomwheel');
+
+  const N = active.rounds.length;
+  const wedgeAngle = 360 / N;
+
+  const [completedRounds, setCompletedRounds] = useState<Set<number>>(new Set());
+  // Tier-multiplied points instead of raw right/wrong: a Lightning-tier correct
+  // answer is worth 3 points, an Easy correct is 1. Tracked but no longer
+  // surfaced in the header counter (per cross-cutting #14 — Q N/M is the
+  // only header counter; points appear in the right-side scoreboard).
+  const [points, setPoints] = useState<number>(0);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [wheelRotation, setWheelRotation] = useState<number>(0);
+  const [activeRound, setActiveRound] = useState<number | null>(null);
+  const [picked, setPicked] = useState<number | null>(null);
+  const [verdict, setVerdict] = useState<'right' | 'wrong' | null>(null);
+  const [hintsUsed, setHintsUsed] = useState<number>(0);
+  const [revealedHint, setRevealedHint] = useState<boolean>(false);
+  const [announcement, setAnnouncement] = useState<string>('');
+  // Per-tier completion + accuracy counters for the right-side board.
+  const [tierStats, setTierStats] = useState<Record<string, { played: number; right: number }>>(
+    () => Object.fromEntries(TIERS.map((t) => [t.id, { played: 0, right: 0 }])),
+  );
+  const seedRef = useRef<number>(0xC0FFEE);
+
+  const completed = !forcedState && completedRounds.size === N;
+  // correctCount derived from tier stats (right answers across all tiers).
+  const computedCorrect = Object.values(tierStats).reduce((s, t) => s + t.right, 0);
+
+  const tip = useEndOfShellTip({
+    onWrongAnswer,
+    completed,
+    forcedState,
+    onSessionComplete: onSessionComplete ? ({ wrongAttempts }) => {
+      onSessionComplete({
+        correctCount: computedCorrect,
+        totalQuestions: N,
+        wrongAttempts,
+        puzzle: active,
+        points,
+      });
+    } : undefined,
+  });
+  // Kelly Tier-2 (2026-05-02): the wheel transition is collapsed to 0.01ms
+  // by global CSS under reduced-motion, but the JS sequencer still waited
+  // 3.2s for an animation that didn't run. Snap straight to reveal/idle.
+  const reduceMotion = usePrefersReducedMotion();
+  const SPIN_WAIT_MS = reduceMotion ? 16 : SPIN_DURATION_MS;
+  const VERDICT_WAIT_MS = reduceMotion ? 16 : 1700;
+
+  useEffect(() => {
+    if (forcedState) return;
+    persisted.save({ progress: completedRounds.size / N, lastState: completed ? 'complete' : 'active' });
+    if (completed) persisted.save({ progress: 1, completed: true, lastState: 'complete' });
+  }, [completedRounds.size, forcedState, completed, N]);
+
+  // v10 instructional speech-bubble broadcast (Mike directive 2026-05-03).
+  useEffect(() => {
+    if (forcedState) return;
+    if (typeof window === 'undefined') return;
+    const detail = {
+      shellKey: 'randomwheel',
+      brief: 'Spin the wheel; the tier you land on picks the question.',
+      brief_pl: 'Zakręć kołem; poziom, na który trafisz, wybiera pytanie.',
+      detail: 'Tap SPIN. The wheel chooses tonight\'s tier — Easy, Hard, Bonus, even LIGHTNING. Each tier comes with its own question and a score multiplier. Right answers add points and check off the wedge; wrong answers leave the wedge open for another spin.',
+      detail_pl: 'Stuknij SPIN. Koło wybiera dzisiejszy poziom — Łatwy, Trudny, Bonus, nawet BŁYSKAWICA. Każdy poziom ma własne pytanie i mnożnik punktów. Trafione dodają punkty i odhaczają klin; błędne zostawiają go na następne kręcenie.',
+      fullInstructions: RANDOMWHEEL_INSTRUCTIONS,
+    };
+    window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail: null }));
+    };
+  }, [forcedState]);
+
+  useEffect(() => {
+    if (!forcedState) return;
+    if (forcedState === 'empty')   { setCompletedRounds(new Set()); setActiveRound(null); setPhase('idle'); setVerdict(null); setPoints(0); setWheelRotation(0); }
+    if (forcedState === 'active')  { setCompletedRounds(new Set()); setActiveRound(0); setPhase('reveal'); setVerdict(null); setWheelRotation(360 + 30); }
+    if (forcedState === 'correct') { setCompletedRounds(new Set([0])); setActiveRound(1); setPhase('verdict'); setPicked(active.rounds[1].answerIndex); setVerdict('right'); }
+    if (forcedState === 'wrong')   { setCompletedRounds(new Set([0])); setActiveRound(1); setPhase('verdict'); setPicked((active.rounds[1].answerIndex + 1) % active.rounds[1].options.length); setVerdict('wrong'); }
+    if (forcedState === 'complete'){ setCompletedRounds(new Set(active.rounds.map((_, i) => i))); }
+  }, [forcedState, active.rounds]);
+
+  // Pick the next round to spin TO. We bias toward unanswered rounds so the
+  // wheel doesn't keep picking the same already-answered wedge over and over.
+  const pickNextRoundIdx = (): number => {
+    const remaining: number[] = [];
+    for (let i = 0; i < N; i++) if (!completedRounds.has(i)) remaining.push(i);
+    if (remaining.length === 0) return 0;
+    seedRef.current = (seedRef.current * 9301 + 49297) & 0x7fffffff;
+    return remaining[seedRef.current % remaining.length];
+  };
+
+  const spin = (): void => {
+    if (forcedState || phase !== 'idle' || completed) return;
+    const target = pickNextRoundIdx();
+    setAnnouncement('Spinning the wheel.');
+    // For the pointer to land on wedge `target`, the wheel center of that
+    // wedge must end up at angle 0 (top). Wedge centers (in static frame) sit
+    // at angle = target * wedgeAngle + wedgeAngle / 2. To rotate that to 0,
+    // we rotate by -((target + 0.5) * wedgeAngle), plus a small jitter so the
+    // pointer lands somewhere within the wedge rather than dead-center.
+    seedRef.current = (seedRef.current * 9301 + 49297) & 0x7fffffff;
+    const jitter = ((seedRef.current % 100) / 100 - 0.5) * (wedgeAngle * 0.6);
+    const targetAngle = -((target + 0.5) * wedgeAngle) + jitter;
+    // Keep adding turns relative to current rotation so the spin always
+    // builds forward visually.
+    const fullTurns = MIN_FULL_TURNS + Math.floor(seedRef.current % 3);
+    const next = wheelRotation + fullTurns * 360 + (targetAngle - (wheelRotation % 360));
+    setWheelRotation(next);
+    setPhase('spinning');
+    setActiveRound(target);
+    // After the deceleration ends, reveal the question.
+    setTimeout(() => {
+      setPhase('reveal');
+    }, SPIN_WAIT_MS);
+  };
+
+  const onPick = (i: number): void => {
+    if (forcedState || phase !== 'reveal' || activeRound === null) return;
+    const round = active.rounds[activeRound];
+    const tier = TIERS[activeRound % TIERS.length];
+    setPicked(i);
+    setPhase('verdict');
+    const right = i === round.answerIndex;
+    setVerdict(right ? 'right' : 'wrong');
+    setAnnouncement(right ? `Correct. +${tier.mult} points (${tier.labelEN}).` : 'Wrong.');
+    if (right) setPoints((p) => p + tier.mult);
+    else {
+      tip.recordWrong({
+        questionId: round.id,
+        studentAnswer: round.options[i],
+        correctAnswer: round.options[round.answerIndex],
+        explanationPL: round.hint_pl,
+        exerciseId: round.exerciseId,
+      });
+    }
+    // Tier stats: increment played always, right only if correct.
+    setTierStats((prev) => {
+      const cur = prev[tier.id] ?? { played: 0, right: 0 };
+      return { ...prev, [tier.id]: { played: cur.played + 1, right: cur.right + (right ? 1 : 0) } };
+    });
+    setCompletedRounds((s) => { const ns = new Set(s); ns.add(activeRound); return ns; });
+    // After verdict pause, return to idle so they can spin again.
+    setTimeout(() => {
+      setPhase('idle');
+      setPicked(null);
+      setVerdict(null);
+      setActiveRound(null);
+      setRevealedHint(false);
+    }, VERDICT_WAIT_MS);
+  };
+
+  const useHint = (): void => {
+    if (forcedState || hintsUsed >= 2 || activeRound === null) return;
+    setHintsUsed((h) => h + 1);
+    setRevealedHint(true);
+  };
+
+  const reset = (): void => {
+    setCompletedRounds(new Set()); setPoints(0);
+    setTierStats(Object.fromEntries(TIERS.map((t) => [t.id, { played: 0, right: 0 }])));
+    setPhase('idle'); setWheelRotation(0); setActiveRound(null); setPicked(null); setVerdict(null);
+    setHintsUsed(0); setRevealedHint(false); tip.reset();
+  };
+
+  const grad = time === 'day'
+    ? 'linear-gradient(180deg, #4C2F7E 0%, #C58BD9 100%)'
+    : 'linear-gradient(180deg, #1F1240 0%, #4B1E78 100%)';
+
+  // Pre-compute wedge SVG paths so React doesn't re-do the trig every render.
+  // Wedge labels live INSIDE the wheel (small round number — Q1..Q6) AND
+  // also outside the rim as upright tier nameplates (EASY / MEDIUM / HARD /
+  // BONUS / WILD / LIGHTNING). The outside nameplates are not rotated with
+  // the wheel — they're attached to the static stand rim — so labels stay
+  // upright at rest and never go upside-down (#20 truncation/rotation fix).
+  const wedges = useMemo(() => {
+    const cx = 200, cy = 200, r = 180;
+    return active.rounds.map((round, i) => {
+      const a0 = (i * wedgeAngle - 90) * Math.PI / 180;
+      const a1 = ((i + 1) * wedgeAngle - 90) * Math.PI / 180;
+      const x0 = cx + r * Math.cos(a0);
+      const y0 = cy + r * Math.sin(a0);
+      const x1 = cx + r * Math.cos(a1);
+      const y1 = cy + r * Math.sin(a1);
+      const large = wedgeAngle > 180 ? 1 : 0;
+      const path = `M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`;
+      const mid = (a0 + a1) / 2;
+      const labelX = cx + (r * 0.55) * Math.cos(mid);
+      const labelY = cy + (r * 0.55) * Math.sin(mid);
+      return {
+        path,
+        color: WEDGE_PALETTE[i % WEDGE_PALETTE.length],
+        labelX,
+        labelY,
+        // The number inside the wheel still rotates with it; labels are tiny
+        // circles so any orientation is readable.
+        labelRotate: ((i + 0.5) * wedgeAngle),
+        // Tier assignment for this wedge (cycle through the 6 canonical tiers
+        // if N != 6, so a 4-wedge wheel uses Easy/Medium/Hard/Bonus).
+        tier: TIERS[i % TIERS.length],
+        roundId: round.id,
+        idx: i,
+      };
+    });
+  }, [active.rounds, wedgeAngle]);
+
+  const round = activeRound !== null ? active.rounds[activeRound] : null;
+  const activeTier = activeRound !== null ? TIERS[activeRound % TIERS.length] : null;
+  // Mask the answer word inside the displayed prompt so a sentence like
+  // "Her resilience allowed her to stay focused..." with `resilience` as the
+  // correct option becomes "Her ___ allowed her to stay focused..." — A3's
+  // adapter-layer helper, applied per-shell as the audit's #19 universal.
+  const safePrompt = round ? maskAnswerInPrompt(round.prompt, round.options[round.answerIndex]) : '';
+
+  return (
+    <div
+      className="em-shell em-shell-randomwheel"
+      role="application"
+      aria-label="Random Wheel, The Spinner Stand"
+      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: grad }}
+    >
+      <style>{`
+        @keyframes em-rw-bunting { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-3px) rotate(2deg); } }
+        @keyframes em-rw-arrow-tap { 0%, 100% { transform: translateY(0) rotate(180deg); } 50% { transform: translateY(3px) rotate(180deg); } }
+        @keyframes em-rw-card-up { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes em-rw-bulb-flicker { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+        @keyframes em-rw-spinhint-pulse { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.05); opacity: 1; } }
+        /* On narrow viewports the right-side categories panel would overlap
+           the wheel — hide it (the tier nameplates outside the wheel rim still
+           communicate the tier mechanic). On ≥1024px both render. */
+        @media (max-width: 1023px) {
+          .em-rw-categories-panel { display: none !important; }
+        }
+      `}</style>
+
+      <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
+        {announcement}
+      </div>
+
+      {/* Bunting strung across the top — small triangular flags */}
+      <svg aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 70, width: '100%', pointerEvents: 'none' }}>
+        <path d="M 0 12 Q 200 50 400 12 Q 600 50 800 12 Q 1000 50 1200 12" stroke={ACCENT} strokeWidth="1.5" fill="none" opacity="0.6" />
+        {Array.from({ length: 16 }).map((_, i) => {
+          const x = 40 + i * 75;
+          const y = 12 + Math.sin(i * 0.5) * 14;
+          const c = WEDGE_PALETTE[i % WEDGE_PALETTE.length];
+          return (
+            <polygon key={i} points={`${x},${y} ${x + 14},${y} ${x + 7},${y + 24}`}
+              fill={c} opacity="0.85"
+              style={{ transformOrigin: `${x + 7}px ${y}px`, animation: `em-rw-bunting ${1.6 + (i % 3) * 0.4}s ease-in-out ${i * 0.08}s infinite` }} />
+          );
+        })}
+      </svg>
+
+      {/* Top bar */}
+      <div style={{ position: 'absolute', top: 28, left: 28, right: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 6, gap: 12, flexWrap: 'wrap' }}>
+        <AmbientAudioPlayer shellSlug="randomwheel" />
+        <Nameplate
+          district="The Spinner Stand"
+          subtitle="Random Wheel · Koło fortuny · spin to pick the next category"
+          accent={ACCENT}
+          icon={<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8" stroke={ACCENT} strokeWidth="1.6" /><path d="M11 3 L11 11 L17 14" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" /></svg>}
+        />
+        {/* Single canonical counter — Q N/M position only. WON/LOST removed
+            per cross-cutting #14; tier-multiplied points live in the right-side
+            scoreboard, not in the header. */}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <Progress current={completedRounds.size} total={N} accent={ACCENT} />
+          <SkipButton onClick={() => { if (activeRound !== null) { setCompletedRounds((s) => { const ns = new Set(s); ns.add(activeRound); return ns; }); setPhase('idle'); setActiveRound(null); } }} />
+          <HintButton onClick={useHint} used={hintsUsed} total={2} />
+        </div>
+      </div>
+
+      {/* The wheel — biased LEFT to make room for the right-side TONIGHT'S
+          CATEGORIES panel (#9 — kills the ~50% right-side void CD flagged).
+          On viewports < 900px the panel collapses below; on ≥1280px both
+          align in a balanced two-column composition. The wheel sits on a
+          stand-leg pedestal (carnival-stand aesthetic vs Carnival Wheel's
+          flat roulette table). */}
+      <div style={{ position: 'absolute', top: 100, left: 'min(20%, 240px)', width: 420, height: 420, zIndex: 4 }}>
+        {/* Stand pedestal — visible carnival-stand structure under the wheel.
+            Two angled legs + brass plate plinth, anchoring the wheel visually
+            so it doesn't float. */}
+        <svg aria-hidden="true" style={{ position: 'absolute', left: -10, top: 380, width: 440, height: 110, pointerEvents: 'none' }}>
+          <polygon points="120,8 200,8 230,92 90,92" fill="#3B1F62" stroke={ACCENT} strokeWidth="1.5" opacity="0.9" />
+          <polygon points="220,8 300,8 330,92 190,92" fill="#3B1F62" stroke={ACCENT} strokeWidth="1.5" opacity="0.9" />
+          <rect x="60" y="86" width="320" height="16" rx="3" fill={ACCENT} opacity="0.85" />
+          <rect x="60" y="100" width="320" height="6" rx="2" fill="#0E0A1A" opacity="0.6" />
+        </svg>
+
+        {/* Pointer arrow (fixed, points down at the top of the wheel) */}
+        <div aria-hidden="true" style={{
+          position: 'absolute', top: -22, left: '50%', transform: 'translateX(-50%) rotate(180deg)',
+          width: 0, height: 0,
+          borderLeft: '14px solid transparent', borderRight: '14px solid transparent',
+          borderTop: `28px solid ${ACCENT}`,
+          filter: `drop-shadow(0 0 8px ${ACCENT})`,
+          animation: phase === 'spinning' ? 'em-rw-arrow-tap 0.18s ease-in-out infinite' : 'none',
+          zIndex: 8,
+        }} />
+
+        {/* Bulb ring */}
+        <div aria-hidden="true" style={{ position: 'absolute', inset: -14, borderRadius: '50%', pointerEvents: 'none' }}>
+          {Array.from({ length: 24 }).map((_, i) => {
+            const a = (i / 24) * 2 * Math.PI - Math.PI / 2;
+            const x = 210 + 220 * Math.cos(a);
+            const y = 210 + 220 * Math.sin(a);
+            return (
+              <div key={i} style={{
+                position: 'absolute', left: x - 4, top: y - 4,
+                width: 8, height: 8, borderRadius: '50%',
+                background: i % 2 === 0 ? ACCENT : '#FFE9A8',
+                boxShadow: `0 0 8px ${ACCENT}cc`,
+                animation: `em-rw-bulb-flicker ${1.4 + (i % 4) * 0.3}s ease-in-out ${i * 0.05}s infinite`,
+              }} />
+            );
+          })}
+        </div>
+
+        {/* The wheel SVG */}
+        <svg width="420" height="420" viewBox="0 0 400 400" style={{
+          transform: `rotate(${wheelRotation}deg)`,
+          transition: phase === 'spinning'
+            ? `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.18, 0.85, 0.18, 1)`
+            : phase === 'idle' && wheelRotation === 0 ? 'none' : 'transform 220ms var(--em-ease)',
+          transformOrigin: '200px 200px',
+          filter: 'drop-shadow(0 12px 28px rgba(0,0,0,0.5))',
+        }}>
+          {wedges.map((w, i) => {
+            const isDone = completedRounds.has(i);
+            return (
+              <g key={i}>
+                <path d={w.path} fill={w.color} stroke="#0E0A1A" strokeWidth="2" opacity={isDone ? 0.35 : 1} />
+                {/* Numbered hub — small circle with the wedge number. The
+                    circle is rotation-invariant (any orientation reads the
+                    same), so we can keep it inside the spinning frame
+                    without the upside-down-Q3/Q5 problem flagged in #20.
+                    Tier-letter labels live OUTSIDE the rim in a separate
+                    non-rotating SVG below — those stay upright. */}
+                <circle cx={w.labelX} cy={w.labelY} r="14" fill="#0E0A1A" stroke="#FFFFFF" strokeWidth="1.5" opacity={isDone ? 0.5 : 0.92} />
+                <text
+                  x={w.labelX} y={w.labelY}
+                  textAnchor="middle" dominantBaseline="central"
+                  fontFamily="Caprasimo, Georgia, serif"
+                  fontSize="13" fill="#FFFFFF" fontWeight="700"
+                >{i + 1}</text>
+                {isDone && (
+                  <text x={w.labelX} y={w.labelY + 22} textAnchor="middle" dominantBaseline="central" fontSize="14" fill="#0E0A1A" fontWeight="700">✓</text>
+                )}
+              </g>
+            );
+          })}
+          {/* Center hub */}
+          <circle cx="200" cy="200" r="36" fill="#0E0A1A" stroke={ACCENT} strokeWidth="3" />
+          <circle cx="200" cy="200" r="10" fill={ACCENT} />
+        </svg>
+
+        {/* Static tier nameplates — sit OUTSIDE the wheel rim, attached to the
+            stand frame, NOT rotated with the wheel. So labels stay upright at
+            rest (the #20 truncation/rotation fix). Each plate has the wedge
+            colour as its left bar + the EN tier label + tiny PL gloss + a
+            thin connector line back to the rim. */}
+        <svg aria-hidden="true" width="420" height="420" viewBox="0 0 400 400" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }}>
+          {wedges.map((w, i) => {
+            // Place nameplate at the OUTSIDE midpoint of each wedge.
+            // Use the wedge's centre angle (in the static frame, since
+            // these nameplates don't rotate with the wheel).
+            const a = ((i + 0.5) * wedgeAngle - 90) * Math.PI / 180;
+            const cx = 200, cy = 200;
+            const innerX = cx + 192 * Math.cos(a);
+            const innerY = cy + 192 * Math.sin(a);
+            const outerX = cx + 220 * Math.cos(a);
+            const outerY = cy + 220 * Math.sin(a);
+            // Tier nameplate sits at the outer endpoint, with anchor / x-shift
+            // computed so the plate hugs the rim without jumping off-screen.
+            const onRight = outerX >= cx;
+            const plateW = 78, plateH = 24;
+            const plateX = onRight ? outerX + 4 : outerX - plateW - 4;
+            const plateY = outerY - plateH / 2;
+            const isDone = completedRounds.has(i);
+            return (
+              <g key={`np-${i}`} opacity={isDone ? 0.5 : 1}>
+                {/* Connector line from rim to plate */}
+                <line x1={innerX} y1={innerY} x2={onRight ? plateX : plateX + plateW} y2={outerY} stroke={w.color} strokeWidth="1.5" opacity="0.85" />
+                {/* Plate background */}
+                <rect x={plateX} y={plateY} width={plateW} height={plateH} rx="4" fill="#0E0A1A" stroke={w.color} strokeWidth="1.5" />
+                {/* Colour bar on the rim-side edge */}
+                <rect x={onRight ? plateX : plateX + plateW - 4} y={plateY} width="4" height={plateH} fill={w.color} />
+                {/* Tier label — upright, never rotates */}
+                <text
+                  x={plateX + plateW / 2}
+                  y={plateY + plateH / 2}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontFamily="Inconsolata, monospace"
+                  fontSize="10"
+                  fontWeight="700"
+                  fill={w.color}
+                  letterSpacing="0.06em"
+                >{w.tier.labelEN}</text>
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Spin button — large, in the middle of the hub */}
+        {phase === 'idle' && !completed && (
+          <button
+            type="button"
+            onClick={spin}
+            disabled={!!forcedState}
+            aria-label="Spin the wheel"
+            style={{
+              position: 'absolute', top: 178, left: '50%', transform: 'translateX(-50%)',
+              width: 84, height: 84, borderRadius: '50%',
+              background: `radial-gradient(circle, ${ACCENT} 0%, #B8851A 100%)`,
+              border: '3px solid #0E0A1A', color: '#0E0A1A',
+              fontFamily: 'var(--em-decor)', fontSize: 18, cursor: 'pointer',
+              boxShadow: `0 6px 14px rgba(0,0,0,0.5), 0 0 18px ${ACCENT}88`,
+              animation: 'em-rw-spinhint-pulse 1.8s ease-in-out infinite',
+              zIndex: 7,
+            }}
+          >SPIN</button>
+        )}
+      </div>
+
+      {/* Question kiosk window — appears below the wheel after spin lands */}
+      {(phase === 'reveal' || phase === 'verdict') && round && (
+        <div
+          key={activeRound ?? 'k'}
+          style={{
+            position: 'absolute', bottom: 100, left: '50%', transform: 'translateX(-50%)',
+            width: 'min(640px, 92%)', padding: '20px 24px',
+            background: 'linear-gradient(180deg, rgba(20,8,42,0.92) 0%, rgba(8,4,26,0.95) 100%)',
+            border: `1.5px solid ${ACCENT}88`, borderRadius: 16,
+            boxShadow: `0 24px 48px rgba(0,0,0,0.6), 0 0 24px ${ACCENT}33`,
+            animation: 'em-rw-card-up 480ms var(--em-ease) both',
+            zIndex: 5,
+          }}
+        >
+          <div className="em-eyebrow" style={{ color: ACCENT, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span>WEDGE {String((activeRound ?? 0) + 1).padStart(2, '0')} · WYLOSOWANE</span>
+            {activeTier && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '2px 8px', borderRadius: 4,
+                background: `${WEDGE_PALETTE[(activeRound ?? 0) % WEDGE_PALETTE.length]}33`,
+                border: `1px solid ${WEDGE_PALETTE[(activeRound ?? 0) % WEDGE_PALETTE.length]}`,
+                color: WEDGE_PALETTE[(activeRound ?? 0) % WEDGE_PALETTE.length],
+                fontFamily: 'Inconsolata, monospace', fontSize: 11, fontWeight: 700,
+              }}>{activeTier.labelEN} · ×{activeTier.mult}</span>
+            )}
+          </div>
+          {/* Answer-mask applied per #19 — strips the answer token (and
+              morphological variants) from the displayed sentence. */}
+          <div className="em-decor" style={{ fontSize: 18, color: 'var(--em-text)', marginBottom: 14, lineHeight: 1.4 }}>{safePrompt}</div>
+          {revealedHint && <div style={{ fontSize: 12, color: ACCENT, fontStyle: 'italic', marginBottom: 10 }}>💡 {round.hint}</div>}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+            {round.options.map((opt, i) => {
+              const isPicked = picked === i;
+              const isAnswer = i === round.answerIndex;
+              const showRight = verdict !== null && isAnswer;
+              const showWrong = verdict === 'wrong' && isPicked && !isAnswer;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onPick(i)}
+                  disabled={!!forcedState || phase !== 'reveal'}
+                  aria-label={`Option ${String.fromCharCode(65 + i)}: ${opt}`}
+                  aria-pressed={isPicked}
+                  style={{
+                    minHeight: 44, padding: '12px 14px', textAlign: 'left',
+                    background: showRight ? '#34D39933' : showWrong ? '#FB718533' : isPicked ? `${ACCENT}33` : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${showRight ? '#34D399' : showWrong ? '#FB7185' : isPicked ? ACCENT : 'rgba(255,255,255,0.18)'}`,
+                    borderRadius: 10, color: 'var(--em-text)',
+                    cursor: phase === 'reveal' ? 'pointer' : 'default',
+                    fontFamily: 'var(--em-body)', fontSize: 14,
+                    transition: 'all 180ms var(--em-ease)',
+                  }}
+                >
+                  <span style={{ color: ACCENT, marginRight: 8, fontFamily: 'var(--em-mono)', fontSize: 11 }}>{String.fromCharCode(65 + i)}</span>
+                  {opt}
+                  {showRight && <span style={{ float: 'right', color: '#34D399' }}>✓</span>}
+                  {showWrong && <span style={{ float: 'right', color: '#FB7185' }}>✗</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Instructions modal only — HintCard removed 2026-05-03; the
+          chat-widget speech bubble carries the brief. */}
+      {phase === 'idle' && !completed && (
+        <div style={{ position: 'absolute', bottom: 28, left: 28, maxWidth: 360, zIndex: 5 }}>
+        </div>
+      )}
+
+      {/* RIGHT-SIDE PANEL — TONIGHT'S CATEGORIES + barker call + scoreboard.
+          Fills the ~50% right-side void CD's audit flagged as worst-seen (#9).
+          Hidden on narrow viewports (<900px) so mobile layout doesn't
+          compress; on wide viewports it gives the wheel a balanced two-column
+          composition + lets the tier mechanic surface as a visible board. */}
+      <div
+        aria-label="Tonight's categories scoreboard"
+        style={{
+          position: 'absolute', top: 110, right: 28, width: 300,
+          maxHeight: 'calc(100% - 220px)', overflowY: 'auto',
+          padding: '16px 18px', zIndex: 5,
+          background: 'linear-gradient(180deg, rgba(20,8,42,0.94) 0%, rgba(8,4,26,0.96) 100%)',
+          border: `1.5px solid ${ACCENT}66`, borderRadius: 14,
+          boxShadow: `0 16px 32px rgba(0,0,0,0.5), 0 0 18px ${ACCENT}22`,
+          display: 'block',
+        }}
+        className="em-rw-categories-panel"
+      >
+        {/* Marquee header — bilingual */}
+        <div className="em-eyebrow" style={{ color: ACCENT, marginBottom: 4, letterSpacing: '0.08em' }}>TONIGHT'S CATEGORIES</div>
+        <div style={{ fontSize: 11, color: 'var(--em-text-muted)', marginBottom: 12, fontStyle: 'italic' }}>Dzisiejsze kategorie</div>
+
+        {/* Live barker call from Bajla — changes when the pointer lands on
+            a tier. Default idle copy invites the player to spin. */}
+        <div style={{
+          padding: '10px 12px', marginBottom: 14, borderRadius: 8,
+          background: `${ACCENT}1A`, border: `1px dashed ${ACCENT}88`,
+        }}>
+          <div className="em-eyebrow" style={{ color: ACCENT, fontSize: 10, marginBottom: 4 }}>BAJLA THE BARKER</div>
+          <div style={{ fontSize: 13, color: 'var(--em-text)', lineHeight: 1.35 }}>
+            {activeTier ? activeTier.barkerEN : 'Step right up · Zapraszamy'}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--em-text-muted)', marginTop: 3, fontStyle: 'italic', lineHeight: 1.35 }}>
+            {activeTier ? activeTier.barkerPL : 'Spin to pick tonight’s category.'}
+          </div>
+        </div>
+
+        {/* Tier list — 6 rows with colour swatch + EN tier + PL gloss + ×mult
+            + per-tier played count. The tier with the active wedge gets a
+            subtle highlight ring. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {TIERS.map((t, i) => {
+            const swatch = WEDGE_PALETTE[i % WEDGE_PALETTE.length];
+            const stats = tierStats[t.id] ?? { played: 0, right: 0 };
+            const isActive = activeTier?.id === t.id;
+            return (
+              <div key={t.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '6px 8px', borderRadius: 6,
+                background: isActive ? `${swatch}22` : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${isActive ? swatch : 'rgba(255,255,255,0.08)'}`,
+                transition: 'all 200ms var(--em-ease)',
+              }}>
+                <span aria-hidden="true" style={{ width: 14, height: 14, borderRadius: 3, background: swatch, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: 'Inconsolata, monospace', fontSize: 11, fontWeight: 700, color: swatch, letterSpacing: '0.05em' }}>{t.labelEN}</div>
+                  <div style={{ fontSize: 10, color: 'var(--em-text-muted)', fontStyle: 'italic' }}>{t.labelPL} · ×{t.mult}</div>
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--em-text-muted)', fontFamily: 'Inconsolata, monospace', textAlign: 'right' }}>
+                  {stats.right}/{stats.played || 0}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Points totaliser — single secondary metric, surfaced here not in
+            the header (per cross-cutting #14 cleanup). */}
+        <div style={{
+          marginTop: 14, paddingTop: 12,
+          borderTop: '1px dashed rgba(255,255,255,0.12)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+        }}>
+          <div className="em-eyebrow" style={{ color: ACCENT, fontSize: 10 }}>POINTS · PUNKTY</div>
+          <div style={{ fontFamily: 'Caprasimo, Georgia, serif', fontSize: 22, color: ACCENT }}>{points}</div>
+        </div>
+
+        {/* Decorative ticket-stub strip + popcorn-bucket icon — props for the
+            carnival-stand aesthetic, fills remaining vertical space. */}
+        <div aria-hidden="true" style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+          {/* Ticket stubs */}
+          {[0, 1, 2].map((k) => (
+            <div key={k} style={{
+              width: 38, height: 22, borderRadius: '2px',
+              background: WEDGE_PALETTE[k % WEDGE_PALETTE.length],
+              clipPath: 'polygon(0 0, 92% 0, 100% 50%, 92% 100%, 0 100%, 8% 50%)',
+              opacity: 0.85,
+              fontFamily: 'Inconsolata, monospace', fontSize: 9, color: '#0E0A1A',
+              fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              letterSpacing: '0.04em',
+            }}>ADMIT 1</div>
+          ))}
+          {/* Popcorn bucket */}
+          <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+            <path d="M5 9 L23 9 L21 25 L7 25 Z" fill="#FB7185" stroke="#0E0A1A" strokeWidth="1.5" />
+            <path d="M5 9 L23 9 L21 25 L7 25 Z" fill="none" stroke="#FFFFFF" strokeWidth="0.8" strokeDasharray="2 1.5" opacity="0.7" />
+            <circle cx="9" cy="6" r="3" fill="#FFFFFF" />
+            <circle cx="14" cy="4" r="3.5" fill="#FFE9A8" />
+            <circle cx="19" cy="6" r="3" fill="#FFFFFF" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Standalone Bajla removed 2026-05-03 — chat-widget mascot is the
+          canonical presence. */}
+
+      {/* Completion */}
+      {completed && !onSessionComplete && (
+        <div
+          role="dialog"
+          aria-live="assertive"
+          aria-label="Spinner Stand complete"
+          style={{
+            position: 'absolute', inset: 0,
+            background: `radial-gradient(ellipse, ${ACCENT}22, rgba(14,10,26,0.62))`,
+            backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14,
+            animation: 'em-rise 0.4s var(--em-ease)', zIndex: 10,
+          }}
+        >
+          <Bajla size={84} mood="cheer" decorative />
+          <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa` }}>The wheel rests.</div>
+          <div className="em-eyebrow">EVERY WEDGE PLAYED · WSZYSTKIE KLINY ZAGRANE</div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
+            <button className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
+          </div>
+        </div>
+      )}
+      <Confetti show={completed} />
+    </div>
+  );
+};
+
+export default RandomWheelShell;

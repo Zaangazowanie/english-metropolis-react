@@ -8,6 +8,7 @@
 // so existing bookmarks keep working. Real auth sessions take priority.
 
 import { createContext, useContext, useEffect, useState } from 'react'
+import { fetchWithTimeout } from '../practice/lib/practice-cache'
 
 const STUDENT_SESSION_KEY = 'em-student-session'   // real auth session
 const LEGACY_SLUG_KEY = 'studentSlug'               // old link-based fallback
@@ -26,7 +27,8 @@ function readStoredStudentUser() {
 
 // Call the Convex HTTP API directly (same pattern as AdminAuthContext)
 async function mutateConvex(path, args) {
-  const response = await fetch('/api/mutation', {
+  // 30s AbortController-backed timeout — see practice-cache.ts.
+  const response = await fetchWithTimeout('/api/mutation', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ path, args }),

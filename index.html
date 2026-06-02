@@ -4,9 +4,23 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EnglishMetro.com</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>English Metro.</title>
+    <!-- PWA / Add-to-home-screen — Mike's new logo + brand name 2026-04-25 -->
+    <meta name="theme-color" content="#A21CAF" media="(prefers-color-scheme: light)"/>
+    <meta name="theme-color" content="#120929" media="(prefers-color-scheme: dark)"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+    <meta name="apple-mobile-web-app-title" content="English Metro."/>
+    <meta name="application-name" content="English Metro."/>
+    <link rel="manifest" href="/manifest.webmanifest?v=3"/>
+    <!-- iOS picks the ONLY apple-touch-icon link with sizes; we explicitly drop
+         the legacy /apple-touch-icon.png reference so iOS doesn't fall back to
+         the stale purple-skyline icon. ?v=3 cache-bust forces refetch. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-apple-180.png?v=3"/>
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=3"/>
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png?v=3"/>
     <script>
       // Tell the conversa widget which student it's talking to,
       // and skip mounting it entirely on the public marketing/login pages.
@@ -22,19 +36,68 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&family=Playfair+Display:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&family=Playfair+Display:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,700;1,400&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- v3 design-system keyframes (AuroraBG, Shimmer, etc.) + mobile/PWA CSS -->
+    <style>
+      /* App-feel on mobile / standalone */
+      body {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        overscroll-behavior-y: none;
+        text-size-adjust: 100%;
+        -webkit-text-size-adjust: 100%;
+      }
+      * { -webkit-overflow-scrolling: touch; }
+      button, nav, [role="button"] { -webkit-user-select: none; user-select: none; }
+      input, textarea { -webkit-user-select: text; user-select: text; }
+      .em-safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 12px); }
+      .em-safe-top    { padding-top: max(env(safe-area-inset-top), 0px); }
+      :focus:not(:focus-visible) { outline: none; }
+      @media (display-mode: standalone) {
+        body { overscroll-behavior: none; }
+      }
+      @keyframes emAurora {
+        0%, 100% { transform: translate(0,0) scale(1); }
+        33% { transform: translate(30px,-20px) scale(1.1); }
+        66% { transform: translate(-20px,30px) scale(0.95); }
+      }
+      @keyframes emShimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      @keyframes emFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes emFadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes emModalIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+      @keyframes emPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      .v3-nav-scroll::-webkit-scrollbar { display: none; }
+    </style>
 
     <!-- Material Symbols -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+
+    <!-- jsPDF for lesson-analysis PDFs. The app also lazy-loads this via
+         ensureJsPdf() on demand, but eagerly including it here shaves ~400ms
+         off the "Analysis PDF" click latency and avoids a loading hiccup.
+         ?v=2 busts a stale Cloudflare 404 cache from before the vendor dir
+         existed (safe to increment when swapping jsPDF versions). -->
+    <script src="/students/vendor/jspdf.umd.min.js?v=2" defer></script>
+    <!-- Google Identity Services — powers the new "Sign in with Google" button
+         on /login. Additive auth: existing email+password studentLogin still
+         works untouched. The button is rendered via google.accounts.id.* in
+         src/views/v3/Login.jsx; this script just exposes window.google. -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
   </head>
   <body class="font-body text-on-surface min-h-screen selection:bg-primary-fixed-dim">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <!-- Conversa AI Tutor — loaded on student/admin app pages only -->
+    <!-- Conversa AI Tutor — loaded on student/admin app pages only.
+         ?v=2 busts Cloudflare's cached 404 from when the widget wasn't
+         on the prod webroot (pre-2026-04-21). -->
     <script>
       if (!window.__EM_HIDE_TUTOR) {
         var s = document.createElement('script');
-        s.src = '/students/conversa-widget-v4g.js';
+        s.src = '/students/conversa-widget-v4h.js?v=16';
         s.defer = true;
         document.body.appendChild(s);
       }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useI18n } from '../i18n'
 
 /**
  * EU GDPR + Polish UŚŚU (Ustawa o świadczeniu usług drogą elektroniczną) cookie
@@ -50,6 +51,7 @@ export function hasConsented(category) {
 }
 
 export default function ConsentBanner() {
+  const { t } = useI18n()
   const [state, setState] = useState({ loaded: false, visible: false, expanded: false })
   const [prefs, setPrefs] = useState({ necessary: true, functional: true, analytics: false, marketing: false })
 
@@ -92,22 +94,19 @@ export default function ConsentBanner() {
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-headline text-base sm:text-lg text-slate-900 leading-tight">
-              Pliki cookie i prywatność · Cookies & privacy
+              {t('consent.title')}
             </h2>
             <p className="mt-1.5 text-[12px] sm:text-sm text-slate-600 leading-relaxed">
-              We use cookies and local storage to keep you signed in, remember your preferences, and improve the learning experience. You can accept everything, reject everything except what we strictly need, or customise. <Link to="/privacy" className="text-violet-700 font-semibold underline">Read our privacy policy</Link> · <Link to="/cookies" className="text-violet-700 font-semibold underline">Cookie policy</Link>
-            </p>
-            <p className="mt-1 text-[11px] sm:text-[12px] text-slate-500 leading-relaxed italic">
-              Używamy plików cookie i pamięci lokalnej, aby utrzymać Twoją sesję, zapamiętać preferencje i ulepszać naukę. Możesz zaakceptować wszystkie, odrzucić wszystkie poza niezbędnymi, lub dostosować ustawienia.
+              {t('consent.blurb')} <Link to="/privacy" className="text-violet-700 font-semibold underline">{t('consent.privacyLink')}</Link> · <Link to="/cookies" className="text-violet-700 font-semibold underline">{t('consent.cookieLink')}</Link>
             </p>
 
             {state.expanded && (
               <div className="mt-4 space-y-2">
                 {[
-                  { key: 'necessary', label: 'Strictly necessary', desc: 'Sign-in, security, save your session. Always on — can\'t be disabled.', disabled: true },
-                  { key: 'functional', label: 'Functional', desc: 'Your voice preference, theme, progress on flashcards.' },
-                  { key: 'analytics', label: 'Analytics', desc: 'Anonymous usage stats that help us fix bugs and improve the product. Opt-in only.' },
-                  { key: 'marketing', label: 'Marketing', desc: 'Not currently used. Reserved for future newsletters — opt-in only.' },
+                  { key: 'necessary', label: t('consent.cat.necessary.label'), desc: t('consent.cat.necessary.desc'), disabled: true },
+                  { key: 'functional', label: t('consent.cat.functional.label'), desc: t('consent.cat.functional.desc') },
+                  { key: 'analytics',  label: t('consent.cat.analytics.label'),  desc: t('consent.cat.analytics.desc') },
+                  { key: 'marketing',  label: t('consent.cat.marketing.label'),  desc: t('consent.cat.marketing.desc') },
                 ].map(cat => (
                   <label
                     key={cat.key}
@@ -136,14 +135,14 @@ export default function ConsentBanner() {
                 className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 px-4 py-2 text-[11px] font-label font-bold uppercase tracking-[0.14em] text-white transition cursor-pointer shadow-md"
               >
                 <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                Accept all
+                {t('consent.btn.acceptAll')}
               </button>
               <button
                 type="button"
                 onClick={rejectAll}
                 className="inline-flex items-center gap-1 rounded-full bg-white border-2 border-slate-200 hover:border-slate-400 px-4 py-2 text-[11px] font-label font-bold uppercase tracking-[0.14em] text-slate-700 hover:text-slate-900 transition cursor-pointer"
               >
-                Reject all
+                {t('consent.btn.rejectAll')}
               </button>
               {state.expanded ? (
                 <button
@@ -151,7 +150,7 @@ export default function ConsentBanner() {
                   onClick={save}
                   className="inline-flex items-center gap-1 rounded-full bg-slate-900 hover:bg-slate-800 px-4 py-2 text-[11px] font-label font-bold uppercase tracking-[0.14em] text-white transition cursor-pointer"
                 >
-                  Save my choices
+                  {t('consent.btn.save')}
                 </button>
               ) : (
                 <button
@@ -160,7 +159,7 @@ export default function ConsentBanner() {
                   className="inline-flex items-center gap-1 rounded-full bg-white border border-slate-200 hover:border-violet-400 px-4 py-2 text-[11px] font-label font-bold uppercase tracking-[0.14em] text-slate-600 hover:text-violet-700 transition cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[14px]">tune</span>
-                  Customise
+                  {t('consent.btn.customise')}
                 </button>
               )}
             </div>

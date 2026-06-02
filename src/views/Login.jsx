@@ -19,6 +19,11 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [authError, setAuthError] = useState(null)
+  // Easter-egg landing variant — Mike 2026-05-04: ~1 in 7 page-loads,
+  // the hero swaps the abstract skyline silhouette for the Chubby Bajla
+  // mascot leaning on the wordmark. Pure-random per page-load means each
+  // refresh re-rolls (no localStorage stickiness — that's the surprise).
+  const [showChubby] = useState(() => Math.random() < (1 / 7))
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -81,8 +86,10 @@ export default function Login() {
       <main className="em-login-content">
         <div className="em-login-brand">
           <p className="em-login-kicker">{t('login.kicker')}</p>
-          <div className="em-login-lockup">
-            <div className="em-login-skyline" role="img" aria-label="" />
+          <div className={`em-login-lockup ${showChubby ? 'em-login-lockup--chubby' : ''}`}>
+            {showChubby
+              ? <img src="/em-chubby-bajla.png" alt="" className="em-login-chubby" />
+              : <div className="em-login-skyline" role="img" aria-label="" />}
             <h1 className="em-login-wordmark">
               <span className="em-login-word">English</span>
               <span className="em-login-word em-login-word-metro">Metro</span>

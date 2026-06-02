@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { RichInline, Modal } from '../components/analytics/AnalyticsPrimitives.jsx'
 import { useI18n } from '../i18n'
+import { fetchJSONCached } from '../practice/lib/practice-cache'
 
 /* ============================================================================
    Knowledge Base — per-student error library with Polish-specific explanations
@@ -76,11 +77,14 @@ export default function KnowledgeBase({ data }) {
   const [activeDrill, setActiveDrill] = useState(null)
 
   useEffect(() => {
+    let cancelled = false
     setLoading(true)
-    fetch(`/knowledge-base/${slug}.json`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { setKb(data); setLoading(false) })
-      .catch(() => { setKb(null); setLoading(false) })
+    // 30s timeout + 5-min cache shared with practice/lib/kb-reader.fetchKB.
+    const url = `/knowledge-base/${slug}.json`
+    fetchJSONCached(url, { cacheKey: `kb::${url}` })
+      .then(data => { if (!cancelled) { setKb(data); setLoading(false) } })
+      .catch(() => { if (!cancelled) { setKb(null); setLoading(false) } })
+    return () => { cancelled = true }
   }, [slug])
 
   const errors = useMemo(() => {
@@ -413,9 +417,9 @@ function InPlaceDrill({ errorEntry, drill, onClose }) {
   return (
     <div className="space-y-4">
       {errorEntry.polishInterference && (
-        <div className="rounded-[1rem] border-2 border-violet-200 bg-violet-50/40 p-3">
-          <p className="font-label text-[9px] font-bold uppercase tracking-[0.18em] text-violet-700 mb-1">{t('knowledge.drill.context')}</p>
-          <p className="text-xs text-slate-700 leading-relaxed">{errorEntry.polishInterference}</p>
+        <div className="rounded-[1rem] border-2 border-violet-200 bg-violet-50/40 p-4 sm:p-5">
+          <p className="font-label text-[11px] font-bold uppercase tracking-[0.16em] text-violet-700 mb-2">{t('knowledge.drill.context')}</p>
+          <p className="text-[15px] text-slate-700 leading-relaxed">{errorEntry.polishInterference}</p>
         </div>
       )}
       <div className="rounded-[1.25rem] border-2 border-slate-200 bg-white p-5">

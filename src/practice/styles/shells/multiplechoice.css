@@ -1,0 +1,71 @@
+/* MultipleChoice shell — extracted from inline <style> block 2026-05-02
+ * (Tier 3 cleanup). All selectors are pre-scoped under .em-shell-multiplechoice
+ * which only renders inside .em-practice-root, so no leakage into other
+ * Lexicon routes. Keyframes use the mc- prefix so they don't collide. */
+
+@keyframes mc-flutter {
+  0%   { transform: rotate(var(--mc-r, 0deg)) translateY(0); }
+  100% { transform: rotate(calc(var(--mc-r, 0deg) + 1.5deg)) translateY(-3px); }
+}
+@keyframes mc-poster-rise {
+  0%   { opacity: 0; transform: translateY(14px) rotate(0deg); }
+  70%  { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0) rotate(var(--mc-r, 0deg)); }
+}
+@keyframes mc-card-rise {
+  0%   { opacity: 0; transform: translateY(18px) rotate(0deg); }
+  100% { opacity: 1; transform: translateY(0) rotate(var(--mc-r, 0deg)); }
+}
+/* Mike's bulletin-board redesign 2026-05-02: starfield + glitter */
+@keyframes mc-twinkle {
+  0%   { opacity: 0.15; transform: scale(0.85); }
+  100% { opacity: 1;    transform: scale(1.15); }
+}
+@keyframes mc-glitter {
+  0%   { opacity: 0.25; transform: scale(0.6); }
+  50%  { opacity: 0.95; transform: scale(1.25); }
+  100% { opacity: 0.4;  transform: scale(0.9); }
+}
+/* Shimmering border for option posters — gold sweep around the perimeter */
+@keyframes mc-poster-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.em-shell-multiplechoice .em-mc-poster-shimmer {
+  position: absolute;
+  inset: -3px;
+  border-radius: 8px;
+  padding: 2px;
+  background: linear-gradient(110deg,
+    transparent 0%, transparent 35%,
+    #FBBF24 47%, #FFFEF8 50%, #FBBF24 53%,
+    transparent 65%, transparent 100%);
+  background-size: 250% 100%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.85;
+  animation: mc-poster-shimmer 4.2s linear infinite;
+}
+@media (max-width: 768px) {
+  .em-shell-multiplechoice [role="radiogroup"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .em-shell-multiplechoice [role="radiogroup"] > button {
+    min-height: 52px !important;
+    padding: 14px 12px 12px !important;
+  }
+}
+/* Kelly audit C2 (2026-05-02): respect prefers-reduced-motion globally
+ * for this shell. Twinkle/glitter/shimmer all fall to a static frame.
+ * Vestibular safety; WCAG 2.3.3. */
+@media (prefers-reduced-motion: reduce) {
+  .em-shell-multiplechoice * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .em-shell-multiplechoice .em-mc-poster-shimmer { display: none; }
+}
