@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
+import { Link, Navigate, Outlet, useLocation, useParams } from 'react-router-dom'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import { useAdminAuth, queryAdminConvex } from '../../contexts/AdminAuthContext.jsx'
 
 const navigationItems = [
   { label: 'Dashboard', to: '/admin', icon: 'space_dashboard' },
+  { label: 'Calendar', to: '/admin/calendar', icon: 'calendar_month' },
   { label: 'Students', to: '/admin/students', icon: 'school' },
   { label: 'Settings', to: '/admin/settings', icon: 'settings' },
 ]
@@ -69,6 +70,12 @@ export default function AdminLayout() {
     }
   }, [])
 
+  // Auth gate — never render school data without a logged-in admin session
+  // (mirrors the SuperadminLayout gate).
+  if (!adminUser) {
+    return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="sticky-header-shell px-4 pt-6 sm:px-6 lg:px-8">
@@ -112,7 +119,7 @@ export default function AdminLayout() {
       </div>
 
       <main className="px-4 pb-8 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[260px,minmax(0,1fr)]">
+        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
           <aside className="glass-panel h-fit rounded-[2rem] border border-white/50 p-4 editorial-shadow lg:sticky lg:top-28">
             <p className="font-label px-2 text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Navigation</p>
             <div className="mt-3 space-y-2">
@@ -121,6 +128,7 @@ export default function AdminLayout() {
                   key={item.label}
                   to={item.to}
                   className={                   (item.label === 'Dashboard' && location.pathname === '/admin') ||
+                    (item.label === 'Calendar' && location.pathname === '/admin/calendar') ||
                     (item.label === 'Students' && (location.pathname.startsWith('/admin/student/') || location.pathname === '/admin/students')) ||
                     (item.label === 'Settings' && location.pathname === '/admin/settings')
                       ? 'flex items-center justify-between rounded-[1.25rem] border border-sky-200 bg-sky-50 text-sky-700 px-4 py-3 transition'

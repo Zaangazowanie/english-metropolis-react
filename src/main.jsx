@@ -6,6 +6,7 @@ import './index.css'
 import App from './App.jsx'
 import AdminLayout from './components/admin/AdminLayout.jsx'
 import AdminDashboard from './views/admin/Dashboard.jsx'
+import AdminCalendar from './views/admin/Calendar.jsx'
 import StudentDetail from './views/admin/StudentDetail.jsx'
 import AdminSettings from './views/admin/Settings.jsx'
 import SuperadminLayout from './views/admin/superadmin/SuperadminLayout.jsx'
@@ -18,6 +19,7 @@ import SuperadminAudit from './views/admin/superadmin/SuperadminAudit.jsx'
 import SuperadminSalary from './views/admin/superadmin/SuperadminSalary.jsx'
 import SuperadminGroups from './views/admin/superadmin/SuperadminGroups.jsx'
 import SuperadminGroupDetail from './views/admin/superadmin/SuperadminGroupDetail.jsx'
+import StudentHeatmap from './views/admin/teacher/StudentHeatmap.jsx'
 import { AdminAuthProvider } from './contexts/AdminAuthContext.jsx'
 import { StudentAuthProvider } from './contexts/StudentAuthContext.jsx'
 import ConsentBanner from './components/ConsentBanner.jsx'
@@ -25,9 +27,17 @@ import PrivacyPolicy from './views/legal/PrivacyPolicy.jsx'
 import CookiePolicy from './views/legal/CookiePolicy.jsx'
 import Terms from './views/legal/Terms.jsx'
 import Login from './views/Login.jsx'
+import LoginV3 from './views/v3/Login.jsx'
+import Logout from './views/Logout.jsx'
 import Settings from './views/Settings.jsx'
 import { I18nProvider } from './i18n'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
+import { V3ThemeProvider } from './design/v3/ThemeProvider.jsx'
+
+// v3 port kill-switch: set window.__EM_LEGACY = true in devtools to fall back to
+// the old Midnight Library login. Default is v3.
+const USE_V3 = typeof window === 'undefined' || !window.__EM_LEGACY
+const LoginComponent = USE_V3 ? LoginV3 : Login
 
 // Domain-based routing: englishmetro.com gets the new marketing/login landing
 // at the root; existing lexicon deployment keeps its default student-first flow.
@@ -65,8 +75,9 @@ function RootRouter() {
         <Route path="/terms" element={<Terms />} />
 
         {/* englishmetro.com landing */}
-        <Route path="/login" element={<Login />} />
-        {IS_ENGLISHMETRO && <Route path="/" element={<Login />} />}
+        <Route path="/login" element={<LoginComponent />} />
+        <Route path="/logout" element={<Logout />} />
+        {IS_ENGLISHMETRO && <Route path="/" element={<LoginComponent />} />}
 
         <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/students" element={<Navigate to="/admin" replace />} />
@@ -80,6 +91,7 @@ function RootRouter() {
           <Route path="ingest/:jobId" element={<SuperadminReview />} />
           <Route path="jobs" element={<SuperadminJobs />} />
           <Route path="students" element={<SuperadminStudents />} />
+          <Route path="students/:slug/heatmap" element={<StudentHeatmap />} />
           <Route path="groups" element={<SuperadminGroups />} />
           <Route path="groups/:groupId" element={<SuperadminGroupDetail />} />
           <Route path="audit" element={<SuperadminAudit />} />
@@ -89,6 +101,11 @@ function RootRouter() {
           <Route index element={
             <RootErrorBoundary>
               <AdminDashboard />
+            </RootErrorBoundary>
+          } />
+          <Route path="calendar" element={
+            <RootErrorBoundary>
+              <AdminCalendar />
             </RootErrorBoundary>
           } />
           <Route path="student/:slug" element={
@@ -121,9 +138,11 @@ createRoot(document.getElementById('root')).render(
         <ThemeProvider>
           <AdminAuthProvider>
             <StudentAuthProvider>
-              <BrowserRouter>
-                <RootRouter />
-              </BrowserRouter>
+              <V3ThemeProvider>
+                <BrowserRouter>
+                  <RootRouter />
+                </BrowserRouter>
+              </V3ThemeProvider>
             </StudentAuthProvider>
           </AdminAuthProvider>
         </ThemeProvider>

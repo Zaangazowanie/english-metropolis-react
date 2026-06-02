@@ -1,19 +1,13 @@
 import { useEffect, useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { queryAdminConvex } from '../../contexts/AdminAuthContext.jsx'
+import { CefrBadge } from '../../components/analytics/AnalyticsPrimitives.jsx'
 
-function formatDate(value) {
-  if (!value) return 'N/A'
-  if (typeof value === 'number') {
-    const parsed = new Date(value)
-    if (!Number.isNaN(parsed.getTime())) {
-      return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(parsed)
-    }
-  }
-  const parsed = new Date(`${value}T12:00:00`)
-  if (Number.isNaN(parsed.getTime())) return String(value)
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(parsed)
-}
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+// formatDate + CefrBadge consolidated to AnalyticsPrimitives (Tier 3 cleanup,
+// 2026-05-02). Dashboard.jsx had verbatim copies. daysAgo kept local because
+// its phrasing differs from StudentDetail.jsx ('Today' vs 'today').
 
 function daysAgo(value) {
   if (!value) return null
@@ -25,23 +19,6 @@ function daysAgo(value) {
   if (diff < 7) return `${diff}d ago`
   if (diff < 30) return `${Math.floor(diff / 7)}w ago`
   return `${Math.floor(diff / 30)}mo ago`
-}
-
-function CefrBadge({ band, score }) {
-  const colors = {
-    A1: 'bg-red-100 text-red-700 border-red-200',
-    A2: 'bg-orange-100 text-orange-700 border-orange-200',
-    B1: 'bg-amber-100 text-amber-700 border-amber-200',
-    B2: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    C1: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    C2: 'bg-sky-100 text-sky-700 border-sky-200',
-  }
-  const cls = colors[band] || 'bg-slate-100 text-slate-700 border-slate-200'
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-label font-bold uppercase tracking-[0.16em] ${cls}`}>
-      {band}{score ? ` ${Math.round(score)}` : ''}
-    </span>
-  )
 }
 
 function buildWarmHeadline(students) {
@@ -58,6 +35,7 @@ function buildWarmHeadline(students) {
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const [state, setState] = useState({ loading: true, error: '', dashboard: null })
+  const [monthlyStats, setMonthlyStats] = useState(null)
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('name')
 
@@ -72,6 +50,16 @@ export default function AdminDashboard() {
         if (!cancelled) setState({ loading: false, error: '', dashboard })
       } catch (err) {
         if (!cancelled) setState({ loading: false, error: 'Failed to load school data.', dashboard: null })
+      }
+      // Monthly billing figures (completed lessons + billable late
+      // cancellations) — non-blocking, the dashboard renders without it.
+      try {
+        const stats = await queryAdminConvex('scheduling:getMonthlyLessonStats', {
+          organizationId: 'js7cb568fpf7qhkqqe55a7jz5s83sadf',
+        })
+        if (!cancelled) setMonthlyStats(stats)
+      } catch {
+        /* monthly strip simply hidden on failure */
       }
     }
     load()
@@ -180,6 +168,44 @@ export default function AdminDashboard() {
           </div>
         )}
       </section>
+
+      {/* Monthly lesson count — the billing figure (completed lessons this
+          month + billable late cancellations). Clearly shown per spec. */}
+      {monthlyStats?.currentMonth && (
+        <section className="glass-panel rounded-[2rem] border border-sky-200/70 bg-sky-50/40 px-6 py-6 editorial-shadow">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-700">
+                {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}
+              </p>
+              <h3 className="mt-1 font-headline text-2xl text-slate-900">Lessons This Month</h3>
+            </div>
+            <Link to="/admin/calendar"
+              className="inline-flex items-center gap-2 rounded-full border border-sky-300 bg-white px-4 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50 transition">
+              <span className="material-symbols-outlined text-lg">calendar_month</span>
+              Open calendar & scheduling
+            </Link>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="liquid-glass-card rounded-[1.25rem] px-4 py-3">
+              <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Completed Lessons</p>
+              <p className="mt-2 font-headline text-4xl text-slate-900">{monthlyStats.currentMonth.completedLessons}</p>
+            </div>
+            <div className="liquid-glass-card rounded-[1.25rem] px-4 py-3">
+              <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Late Cancellations</p>
+              <p className={`mt-2 font-headline text-4xl ${monthlyStats.currentMonth.lateCancellations ? 'text-rose-600' : 'text-slate-900'}`}>
+                {monthlyStats.currentMonth.lateCancellations}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">Cancelled &lt; 24h before start — billed</p>
+            </div>
+            <div className="liquid-glass-card rounded-[1.25rem] px-4 py-3">
+              <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Total Billable</p>
+              <p className="mt-2 font-headline text-4xl text-sky-700">{monthlyStats.currentMonth.billableTotal}</p>
+              <p className="mt-1 text-xs text-slate-500">Completed + late cancellations</p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Student roster */}
       <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-4 editorial-shadow sm:px-6">
