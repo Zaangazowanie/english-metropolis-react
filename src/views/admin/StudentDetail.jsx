@@ -1202,6 +1202,7 @@ export default function StudentDetail() {
     }
   }, [slug])
   const [pdfMap, setPdfMap] = useState({})
+  const [levelHistory, setLevelHistory] = useState([])
   const [vocabSearch, setVocabSearch] = useState('')
   const [lessonFilter, setLessonFilter] = useState('')
   const [selectedLesson, setSelectedLesson] = useState(null)
@@ -1228,6 +1229,18 @@ export default function StudentDetail() {
     load()
     return () => { cancelled = true }
   }, [slug])
+
+  // CEFR level-change history (audit-log backed). Loaded once we know the
+  // student's _id from the dashboard payload.
+  const studentId = state.data?.student?._id
+  useEffect(() => {
+    if (!studentId) { setLevelHistory([]); return }
+    let cancelled = false
+    queryAdminConvex('students:getStudentLevelHistory', { studentId })
+      .then(rows => { if (!cancelled) setLevelHistory(rows || []) })
+      .catch(() => { if (!cancelled) setLevelHistory([]) })
+    return () => { cancelled = true }
+  }, [studentId])
 
   // Build lessonId → lesson date map so we can fix the date bug on analyses
   const lessonMetaById = useMemo(() => {
@@ -1712,6 +1725,30 @@ export default function StudentDetail() {
                 </div>
               )
             })}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* CEFR level-change history — surgical mini-section */}
+      {levelHistory.length > 0 && (
+        <CollapsibleSection
+          title="Level History"
+          icon="history"
+          badge={`${levelHistory.length} change${levelHistory.length === 1 ? '' : 's'}`}
+          subtitle="Recorded CEFR level changes for this learner, newest first"
+          defaultOpen={true}
+        >
+          <div className="space-y-2">
+            {levelHistory.map((h) => (
+              <div key={h._id} className="liquid-glass-card flex items-center justify-between gap-3 rounded-[1.25rem] border border-white/60 px-4 py-3">
+                <span className="font-label text-xs font-bold text-slate-400 shrink-0">{formatDate(h.timestamp)}</span>
+                <div className="flex items-center gap-2">
+                  <CefrBadge band={h.from || '—'} />
+                  <span className="text-emerald-600 font-bold">→</span>
+                  <CefrBadge band={h.to || '—'} />
+                </div>
+              </div>
+            ))}
           </div>
         </CollapsibleSection>
       )}

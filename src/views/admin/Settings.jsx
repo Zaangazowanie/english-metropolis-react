@@ -1,6 +1,16 @@
-import { useState } from 'react'
-import { useAdminAuth } from '../../contexts/AdminAuthContext.jsx'
+import { useState, useEffect, useCallback } from 'react'
+import { useAdminAuth, queryAdminConvex, mutateAdminConvex } from '../../contexts/AdminAuthContext.jsx'
 
+// dayOfWeek is 0=Sunday indexed (matches scheduling.ts warsawParts()).
+const DAY_OPTIONS = [
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' },
+  { value: 0, label: 'Sunday' },
+]
 
 function SettingsCard({ title, icon, children }) {
   return (
@@ -21,6 +31,137 @@ function Label({ children }) {
     <span className="font-label text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
       {children}
     </span>
+  )
+}
+
+const availInputCls = 'w-full rounded-[0.875rem] border border-slate-200/70 bg-white/90 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100'
+
+function AvailabilityEditor({ organizationId }) {
+  const [windows, setWindows] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState(null)
+
+  const load = useCallback(async () => {
+    if (!organizationId) { setLoading(false); return }
+    setLoading(true)
+    try {
+      const rows = await queryAdminConvex('scheduling:getWeeklyAvailability', { organizationId })
+      setWindows((rows || []).map(r => ({
+        dayOfWeek: r.dayOfWeek,
+        startTime: r.startTime,
+        endTime: r.endTime,
+        slotMinutes: r.slotMinutes,
+        gapMinutes: r.gapMinutes,
+      })))
+    } catch (err) {
+      setStatus({ type: 'error', message: 'Failed to load availability.' })
+    } finally {
+      setLoading(false)
+    }
+  }, [organizationId])
+
+  useEffect(() => { load() }, [load])
+
+  function updateWindow(idx, patch) {
+    setWindows(ws => ws.map((w, i) => i === idx ? { ...w, ...patch } : w))
+  }
+
+  function addWindow() {
+    setWindows(ws => [...ws, { dayOfWeek: 1, startTime: '16:00', endTime: '20:00', slotMinutes: 60, gapMinutes: 10 }])
+  }
+
+  function removeWindow(idx) {
+    setWindows(ws => ws.filter((_, i) => i !== idx))
+  }
+
+  async function handleSave() {
+    setStatus(null)
+    setSaving(true)
+    try {
+      await mutateAdminConvex('scheduling:setWeeklyAvailability', {
+        organizationId,
+        windows: windows.map(w => ({
+          dayOfWeek: Number(w.dayOfWeek),
+          startTime: w.startTime,
+          endTime: w.endTime,
+          slotMinutes: Number(w.slotMinutes) || 60,
+          gapMinutes: Number(w.gapMinutes) || 0,
+        })),
+      })
+      setStatus({ type: 'info', message: 'Availability saved.' })
+      await load()
+    } catch (err) {
+      setStatus({ type: 'error', message: 'Could not save availability.' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <span className="font-semibold">Heads up:</span> changing availability affects which slots students can book.
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-slate-400">Loading availability…</p>
+      ) : (
+        <div className="space-y-3">
+          {windows.length === 0 && (
+            <p className="text-sm text-slate-400">No availability windows yet. Add one below.</p>
+          )}
+          {windows.map((w, idx) => (
+            <div key={idx} className="liquid-glass-card rounded-[1.25rem] border border-white/60 px-4 py-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-6 sm:items-end">
+                <label className="block col-span-2 sm:col-span-1">
+                  <Label>Day</Label>
+                  <select className={availInputCls + ' mt-1.5 cursor-pointer'} value={w.dayOfWeek} onChange={e => updateWindow(idx, { dayOfWeek: Number(e.target.value) })}>
+                    {DAY_OPTIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                  </select>
+                </label>
+                <label className="block">
+                  <Label>Start</Label>
+                  <input type="time" className={availInputCls + ' mt-1.5'} value={w.startTime} onChange={e => updateWindow(idx, { startTime: e.target.value })} />
+                </label>
+                <label className="block">
+                  <Label>End</Label>
+                  <input type="time" className={availInputCls + ' mt-1.5'} value={w.endTime} onChange={e => updateWindow(idx, { endTime: e.target.value })} />
+                </label>
+                <label className="block">
+                  <Label>Slot min</Label>
+                  <input type="number" min="15" step="5" className={availInputCls + ' mt-1.5'} value={w.slotMinutes} onChange={e => updateWindow(idx, { slotMinutes: e.target.value })} />
+                </label>
+                <label className="block">
+                  <Label>Gap min</Label>
+                  <input type="number" min="0" step="5" className={availInputCls + ' mt-1.5'} value={w.gapMinutes} onChange={e => updateWindow(idx, { gapMinutes: e.target.value })} />
+                </label>
+                <button type="button" onClick={() => removeWindow(idx)} title="Remove window" aria-label="Remove window" className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/70 bg-white text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer justify-self-start">
+                  <span className="material-symbols-outlined text-lg">delete</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {status && (
+        <div className={`rounded-[1rem] border px-4 py-3 text-sm ${status.type === 'error' ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-sky-200 bg-sky-50 text-sky-700'}`}>
+          {status.message}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={addWindow} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer">
+          <span className="material-symbols-outlined text-base">add</span>
+          Add window
+        </button>
+        <button type="button" onClick={handleSave} disabled={saving || loading} className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60">
+          <span className="material-symbols-outlined text-base">{saving ? 'progress_activity' : 'save'}</span>
+          {saving ? 'Saving…' : 'Save availability'}
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -189,6 +330,14 @@ export default function AdminSettings() {
           <p className="mt-4 text-xs text-slate-400">Notification delivery will be enabled in a future update.</p>
         </SettingsCard>
       </div>
+
+      {/* Teaching Availability — recurring weekly booking windows */}
+      <SettingsCard title="Teaching Availability" icon="event_available">
+        <p className="mb-4 max-w-2xl text-sm text-slate-500">
+          Define the recurring weekly windows when lessons can be booked. Times are in Europe/Warsaw.
+        </p>
+        <AvailabilityEditor organizationId={adminUser?.organizationId} />
+      </SettingsCard>
     </div>
   )
 }

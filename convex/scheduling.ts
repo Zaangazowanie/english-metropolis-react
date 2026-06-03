@@ -71,7 +71,8 @@ function minutesToTime(mins: number): string {
 // ─── Availability ──────────────────────────────────────────────────────────
 
 export const getWeeklyAvailability = query({
-  args: { organizationId: v.id("organizations") },
+  // sessionToken accepted-and-ignored (admin frontend auto-injects it)
+  args: { organizationId: v.id("organizations"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const rows = await ctx.db
       .query("teacherAvailability")

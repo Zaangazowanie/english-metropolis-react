@@ -156,14 +156,27 @@ export const listOrganizations = query({
 // GROUPS (legacy wrappers — main group logic is in groups.ts)
 // ═══════════════════════════════════════════════════════════
 
+// Derive a URL slug from a free-text name: lowercase, diacritics stripped,
+// non-alphanumerics collapsed to single hyphens.
+function deriveSlug(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[łŁ]/g, "l")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-+)|(-+$)/g, "");
+}
+
 export const createGroup = mutation({
   args: {
     sessionToken: v.string(),
     organizationId: v.optional(v.id("organizations")),
     name: v.string(),
-    slug: v.string(),
+    slug: v.optional(v.string()),
     level: v.optional(v.string()),
     schedule: v.optional(v.string()),
+    status: v.optional(v.string()),
     courseId: v.optional(v.string()),
     teachers: v.optional(v.array(v.string())),
   },
@@ -173,15 +186,26 @@ export const createGroup = mutation({
       ? (args.organizationId ?? user.organizationId)
       : user.organizationId;
     if (!organizationId) throw new Error("No organization in scope");
-    const { sessionToken, organizationId: _ignored, ...rest } = args;
+    const { sessionToken, organizationId: _ignored, slug: _slug, status: _status, ...rest } = args;
+    const slug = (args.slug && args.slug.trim()) || deriveSlug(args.name);
     const now = Date.now();
-    return await ctx.db.insert("groups", {
+    const groupId = await ctx.db.insert("groups", {
       ...rest,
+      slug,
       organizationId,
-      status: "active",
+      status: args.status ?? "active",
       createdAt: now,
       updatedAt: now,
     });
+    await ctx.db.insert("auditLog", {
+      organizationId,
+      userId: user._id,
+      action: "group.created",
+      targetType: "group",
+      targetId: groupId,
+      timestamp: now,
+    });
+    return groupId;
   },
 });
 
@@ -286,6 +310,7 @@ export const createStudent = mutation({
     name: v.string(),
     slug: v.string(),
     email: v.optional(v.string()),
+    phone: v.optional(v.string()),
     nativeLanguage: v.optional(v.string()),
     level: v.string(),
     targetLevel: v.optional(v.string()),
@@ -303,7 +328,7 @@ export const createStudent = mutation({
     if (!organizationId) throw new Error("No organization in scope");
     const { sessionToken, organizationId: _ignored, ...rest } = args;
     const now = Date.now();
-    return await ctx.db.insert("students", {
+    const studentId = await ctx.db.insert("students", {
       ...rest,
       organizationId,
       type: args.type ?? "individual",
@@ -312,6 +337,15 @@ export const createStudent = mutation({
       createdAt: now,
       updatedAt: now,
     });
+    await ctx.db.insert("auditLog", {
+      organizationId,
+      userId: user._id,
+      action: "student.created",
+      targetType: "student",
+      targetId: studentId,
+      timestamp: now,
+    });
+    return studentId;
   },
 });
 
@@ -324,8 +358,10 @@ export const updateStudent = mutation({
     email: v.optional(v.string()),
     googleEmail: v.optional(v.string()),
     phone: v.optional(v.string()),
+    nativeLanguage: v.optional(v.string()),
     level: v.optional(v.string()),
     targetLevel: v.optional(v.string()),
+    type: v.optional(v.string()),
     status: v.optional(v.string()),
     notes: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
@@ -348,7 +384,88 @@ export const updateStudent = mutation({
     if (!isSuperadmin(user.role)) {
       delete (cleanUpdates as Record<string, unknown>).organizationId;
     }
-    await ctx.db.patch(studentId, { ...cleanUpdates, updatedAt: Date.now() });
+    const now = Date.now();
+    // CEFR level-change history: record the from→to transition so the
+    // student detail page can render a level-change timeline.
+    if (
+      cleanUpdates.level !== undefined &&
+      cleanUpdates.level !== target.level
+    ) {
+      await ctx.db.insert("auditLog", {
+        organizationId: target.organizationId,
+        userId: user._id,
+        action: "student.level_changed",
+        targetType: "student",
+        targetId: studentId,
+        details: JSON.stringify({ from: target.level, to: cleanUpdates.level }),
+        timestamp: now,
+      });
+    }
+    await ctx.db.patch(studentId, { ...cleanUpdates, updatedAt: now });
+  },
+});
+
+// Archive a student (soft-delete). Org-scoped for non-superadmins.
+export const archiveStudent = mutation({
+  args: {
+    sessionToken: v.string(),
+    studentId: v.id("students"),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const target = await ctx.db.get(args.studentId);
+    if (!target) throw new Error("Student not found");
+    if (!isSuperadmin(user.role) && target.organizationId !== user.organizationId) {
+      throw new Error("Unauthorized");
+    }
+    const now = Date.now();
+    await ctx.db.patch(args.studentId, { status: "archived", updatedAt: now });
+    await ctx.db.insert("auditLog", {
+      organizationId: target.organizationId,
+      userId: user._id,
+      action: "student.archived",
+      targetType: "student",
+      targetId: args.studentId,
+      timestamp: now,
+    });
+  },
+});
+
+// CEFR level-change history for a student (newest first). Reads the
+// auditLog rows with action "student.level_changed".
+export const getStudentLevelHistory = query({
+  args: {
+    sessionToken: v.string(),
+    studentId: v.id("students"),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const student = await ctx.db.get(args.studentId);
+    if (!student) return [];
+    if (!isSuperadmin(user.role) && student.organizationId !== user.organizationId) {
+      throw new Error("Unauthorized");
+    }
+    const rows = await ctx.db
+      .query("auditLog")
+      .withIndex("by_target", q =>
+        q.eq("targetType", "student").eq("targetId", String(args.studentId)),
+      )
+      .collect();
+    return rows
+      .filter(r => r.action === "student.level_changed")
+      .map(r => {
+        let from = null as string | null;
+        let to = null as string | null;
+        if (r.details) {
+          try {
+            const parsed = JSON.parse(r.details);
+            from = parsed.from ?? null;
+            to = parsed.to ?? null;
+          } catch { /* malformed details — surface timestamp only */ }
+        }
+        return { _id: r._id, from, to, timestamp: r.timestamp };
+      })
+      .sort((a, b) => b.timestamp - a.timestamp);
   },
 });
 

@@ -7,6 +7,8 @@ import App from './App.jsx'
 import AdminLayout from './components/admin/AdminLayout.jsx'
 import AdminDashboard from './views/admin/Dashboard.jsx'
 import AdminCalendar from './views/admin/Calendar.jsx'
+import AdminStudents from './views/admin/Students.jsx'
+import AdminCourses from './views/admin/Courses.jsx'
 import StudentDetail from './views/admin/StudentDetail.jsx'
 import AdminSettings from './views/admin/Settings.jsx'
 import SuperadminLayout from './views/admin/superadmin/SuperadminLayout.jsx'
@@ -80,7 +82,6 @@ function RootRouter() {
         {IS_ENGLISHMETRO && <Route path="/" element={<LoginComponent />} />}
 
         <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
-        <Route path="/admin/students" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/superadmin" element={
           <RootErrorBoundary>
             <SuperadminLayout />
@@ -106,6 +107,16 @@ function RootRouter() {
           <Route path="calendar" element={
             <RootErrorBoundary>
               <AdminCalendar />
+            </RootErrorBoundary>
+          } />
+          <Route path="students" element={
+            <RootErrorBoundary>
+              <AdminStudents />
+            </RootErrorBoundary>
+          } />
+          <Route path="courses" element={
+            <RootErrorBoundary>
+              <AdminCourses />
             </RootErrorBoundary>
           } />
           <Route path="student/:slug" element={

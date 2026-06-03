@@ -147,6 +147,40 @@ export const seedGroup = internalMutation({
   },
 });
 
+// Update a group's editable fields. Org-scoped for non-superadmins.
+export const updateGroup = mutation({
+  args: {
+    sessionToken: v.string(),
+    groupId: v.id("groups"),
+    name: v.optional(v.string()),
+    level: v.optional(v.string()),
+    schedule: v.optional(v.string()),
+    status: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const group = await ctx.db.get(args.groupId);
+    if (!group) throw new Error("Group not found");
+    if (!isSuperadmin(user.role) && group.organizationId !== user.organizationId) {
+      throw new Error("Unauthorized");
+    }
+    const { sessionToken, groupId, ...updates } = args;
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, val]) => val !== undefined)
+    );
+    const now = Date.now();
+    await ctx.db.patch(groupId, { ...cleanUpdates, updatedAt: now });
+    await ctx.db.insert("auditLog", {
+      organizationId: group.organizationId,
+      userId: user._id,
+      action: "group.updated",
+      targetType: "group",
+      targetId: groupId,
+      timestamp: now,
+    });
+  },
+});
+
 // Add a student to a group (superadmin only — no auth check here,
 // callers should verify via the frontend guard)
 export const addGroupMember = mutation({
