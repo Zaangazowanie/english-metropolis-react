@@ -1851,3 +1851,69 @@ export const keywordHeatmap = query({
     };
   },
 });
+
+// ═══════════════════════════════════════════════════════════
+// ACCOUNT-BY-PHONE (Workstream C: WhatsApp shared-number router)
+// ═══════════════════════════════════════════════════════════
+// Trusted server-side lookup used by the PriceMate WhatsApp relay to decide
+// whether an inbound WhatsApp sender belongs to a Conversa/English Metropolis
+// account (student or admin). Auth: admin session OR the pipeline API key.
+//
+// Phone matching is forgiving of +48-prefix / formatting variance: we strip
+// all non-digits from BOTH the query and the stored value, then compare on the
+// LAST 9 digits (a Polish national number is 9 digits; the 48 country code is
+// the prefix). Tables are tiny (a few rows) so we collect() and scan in JS
+// rather than adding a phone index.
+export const findAccountByPhone = query({
+  args: {
+    phone: v.string(),
+    apiKey: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+
+    const norm = (s: string | undefined | null) => (s || "").replace(/\D/g, "");
+    const tail9 = (s: string | undefined | null) => {
+      const d = norm(s);
+      return d.length >= 9 ? d.slice(-9) : d;
+    };
+    const want = tail9(args.phone);
+    if (!want) return null;
+
+    // Students first (non-archived). Match on last 9 digits.
+    const students = await ctx.db.query("students").collect();
+    for (const s of students) {
+      if (s.status === "archived") continue;
+      if (!s.phone) continue;
+      if (tail9(s.phone) === want) {
+        return {
+          kind: "student" as const,
+          slug: s.slug,
+          name: s.name,
+          level: s.level,
+          organizationId: s.organizationId ?? null,
+        };
+      }
+    }
+
+    // Then users (active admin/org_admin/super_admin).
+    const users = await ctx.db.query("users").collect();
+    for (const u of users) {
+      if (u.status !== "active") continue;
+      if (!["admin", "org_admin", "super_admin"].includes(u.role)) continue;
+      if (!u.phone) continue;
+      if (tail9(u.phone) === want) {
+        return {
+          kind: "admin" as const,
+          email: u.email,
+          name: u.name,
+          role: u.role,
+          organizationId: u.organizationId ?? null,
+        };
+      }
+    }
+
+    return null;
+  },
+});
