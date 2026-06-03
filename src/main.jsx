@@ -9,6 +9,7 @@ import AdminDashboard from './views/admin/Dashboard.jsx'
 import AdminCalendar from './views/admin/Calendar.jsx'
 import AdminStudents from './views/admin/Students.jsx'
 import AdminCourses from './views/admin/Courses.jsx'
+import AdminBilling from './views/admin/Billing.jsx'
 import StudentDetail from './views/admin/StudentDetail.jsx'
 import AdminSettings from './views/admin/Settings.jsx'
 import SuperadminLayout from './views/admin/superadmin/SuperadminLayout.jsx'
@@ -117,6 +118,11 @@ function RootRouter() {
           <Route path="courses" element={
             <RootErrorBoundary>
               <AdminCourses />
+            </RootErrorBoundary>
+          } />
+          <Route path="billing" element={
+            <RootErrorBoundary>
+              <AdminBilling />
             </RootErrorBoundary>
           } />
           <Route path="student/:slug" element={

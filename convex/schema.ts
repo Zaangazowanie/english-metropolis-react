@@ -73,6 +73,15 @@ export default defineSchema({
       maxTeachers: v.number(),
       expiresAt: v.optional(v.number()),
     })),
+    // Billing contact for client invoicing (Phase A3, 2026-06-03)
+    billingContact: v.optional(v.object({
+      name: v.optional(v.string()),
+      email: v.optional(v.string()),
+      phone: v.optional(v.string()),
+      address: v.optional(v.string()),
+      taxId: v.optional(v.string()),     // NIP
+      notes: v.optional(v.string()),
+    })),
     createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -811,6 +820,44 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_organization", ["organizationId"]),
+
+  // ═══════════════════════════════════════════════════════════
+  // BILLING — prepaid lesson packages + CEFR certificates
+  // (Phase A3, 2026-06-03. Statement data itself comes from
+  // `lessons` (taught) + `lessonBookings` (late cancellations) via
+  // scheduling.getMonthlyLessonStats — no separate table needed.)
+  // ═══════════════════════════════════════════════════════════
+
+  lessonPackages: defineTable({
+    organizationId: v.id("organizations"),
+    studentId: v.id("students"),
+    name: v.string(),                  // "10-lesson block"
+    totalLessons: v.number(),          // prepaid lesson count
+    purchasedAt: v.number(),           // epoch ms — consumption counts from here
+    expiresAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    status: v.string(),                // "active" | "cancelled"
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_student", ["studentId"]),
+
+  certificates: defineTable({
+    organizationId: v.id("organizations"),
+    studentId: v.id("students"),
+    studentName: v.string(),           // denormalised so public verification needs no joins
+    cefrLevel: v.string(),             // "B2"
+    lessonsCompleted: v.number(),      // at issue time
+    hoursCompleted: v.number(),        // at issue time (sum of lesson durations)
+    verificationId: v.string(),        // "CONV-2026-A1B2C3" — public lookup key
+    issuedByName: v.string(),
+    issuedAt: v.number(),
+    status: v.string(),                // "issued" | "revoked"
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_student", ["studentId"])
+    .index("by_verificationId", ["verificationId"]),
 
   lessonBookings: defineTable({
     organizationId: v.id("organizations"),

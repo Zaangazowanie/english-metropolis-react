@@ -8,6 +8,7 @@ const navigationItems = [
   { label: 'Calendar', to: '/admin/calendar', icon: 'calendar_month' },
   { label: 'Students', to: '/admin/students', icon: 'school' },
   { label: 'Courses', to: '/admin/courses', icon: 'auto_stories' },
+  { label: 'Billing', to: '/admin/billing', icon: 'receipt_long' },
   { label: 'Settings', to: '/admin/settings', icon: 'settings' },
 ]
 
@@ -139,6 +140,7 @@ export default function AdminLayout() {
                   (item.label === 'Calendar' && location.pathname === '/admin/calendar') ||
                   (item.label === 'Students' && (location.pathname.startsWith('/admin/student/') || location.pathname === '/admin/students')) ||
                   (item.label === 'Courses' && location.pathname === '/admin/courses') ||
+                  (item.label === 'Billing' && location.pathname === '/admin/billing') ||
                   (item.label === 'Settings' && location.pathname === '/admin/settings')
                 return (
                   <Link

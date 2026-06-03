@@ -11,6 +11,7 @@
 import type * as admin from "../admin.js";
 import type * as analytics from "../analytics.js";
 import type * as authHelpers from "../authHelpers.js";
+import type * as billing from "../billing.js";
 import type * as crons from "../crons.js";
 import type * as exerciseGroups from "../exerciseGroups.js";
 import type * as exposure from "../exposure.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   analytics: typeof analytics;
   authHelpers: typeof authHelpers;
+  billing: typeof billing;
   crons: typeof crons;
   exerciseGroups: typeof exerciseGroups;
   exposure: typeof exposure;
