@@ -124,7 +124,8 @@ export const createOrganization = mutation({
 });
 
 export const getOrganization = query({
-  args: { orgId: v.id("organizations") },
+  // sessionToken accepted-and-ignored (admin frontend auto-injects it)
+  args: { orgId: v.id("organizations"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.orgId);
   },
@@ -264,7 +265,8 @@ export const listStudents = query({
 });
 
 export const getStudentBySlug = query({
-  args: { slug: v.string() },
+  // sessionToken accepted-and-ignored (admin frontend auto-injects it)
+  args: { slug: v.string(), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
     return await ctx.db.query("students").withIndex("by_slug", q => q.eq("slug", args.slug)).unique();
   },

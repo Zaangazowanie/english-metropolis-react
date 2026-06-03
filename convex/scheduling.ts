@@ -133,6 +133,8 @@ export const getOpenSlots = query({
     organizationId: v.id("organizations"),
     fromDate: v.string(),   // "2026-06-02"
     toDate: v.string(),     // "2026-06-30"
+    // accepted-and-ignored: admin frontend auto-injects its session token
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const availability = await ctx.db

@@ -22,7 +22,6 @@ import type * as ingestionFewShots from "../ingestionFewShots.js";
 import type * as ingestionProcess from "../ingestionProcess.js";
 import type * as ingestionPrompts from "../ingestionPrompts.js";
 import type * as practice from "../practice.js";
-import type * as resetPassword from "../resetPassword.js";
 import type * as scheduling from "../scheduling.js";
 import type * as search from "../search.js";
 import type * as sentenceFreshness from "../sentenceFreshness.js";
@@ -52,7 +51,6 @@ declare const fullApi: ApiFromModules<{
   ingestionProcess: typeof ingestionProcess;
   ingestionPrompts: typeof ingestionPrompts;
   practice: typeof practice;
-  resetPassword: typeof resetPassword;
   scheduling: typeof scheduling;
   search: typeof search;
   sentenceFreshness: typeof sentenceFreshness;

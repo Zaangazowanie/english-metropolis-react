@@ -17,7 +17,9 @@ import {
 // token. All protected admin functions require this token. The previous
 // query-based login issued no token, leaving every admin function public.
 export const login = mutation({
-  args: { email: v.string(), password: v.string() },
+  // sessionToken is accepted-and-ignored: the frontend auto-injects it into
+  // every call, including re-login while a session is already stored.
+  args: { email: v.string(), password: v.string(), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
