@@ -211,6 +211,10 @@ export default function LoginV3() {
     if (typeof window === 'undefined' || !window.google?.accounts?.id) return
     // Clear any previous render so re-mounts don't stack buttons.
     googleBtnRef.current.innerHTML = ''
+    // GIS width is a fixed px value — size it to the card so it doesn't overflow
+    // narrow phones (the card interior is well under the old hard-coded 360px).
+    const slotW = googleBtnRef.current.parentElement?.offsetWidth || 360
+    const gWidth = Math.max(220, Math.min(400, Math.round(slotW)))
     try {
       window.google.accounts.id.renderButton(googleBtnRef.current, {
         type: 'standard',
@@ -219,7 +223,7 @@ export default function LoginV3() {
         text: 'continue_with',
         shape: 'pill',
         logo_alignment: 'left',
-        width: 360,
+        width: gWidth,
       })
     } catch (e) {
       console.warn('[Google Sign-In render failed]', e)
@@ -276,7 +280,9 @@ export default function LoginV3() {
         padding: isMobile ? '80px 24px 40px' : '80px 80px',
         gap: isMobile ? 40 : 80, maxWidth: 1560, margin: '0 auto' }}>
 
-        <div>
+        {/* minWidth:0 — without it the grid track defaults to min-width:auto and
+            expands to fit the widest content (slogan / hero), overflowing mobile. */}
+        <div style={{ minWidth: 0 }}>
           <div style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 700,
             letterSpacing: '0.3em', textTransform: 'uppercase', color: T.emerald,
             marginBottom: 24, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -286,7 +292,7 @@ export default function LoginV3() {
           </div>
           <div style={{ marginBottom: 24 }}><Skyline size={48}/></div>
           <h1 style={{ fontFamily: FONT.display, fontWeight: 600,
-            fontSize: isMobile ? 'clamp(64px, 18vw, 96px)' : 'clamp(96px, 11vw, 168px)',
+            fontSize: isMobile ? 'clamp(40px, 13vw, 68px)' : 'clamp(96px, 11vw, 168px)',
             lineHeight: 0.92, letterSpacing: '-0.04em',
             margin: 0, color: T.text }}>
             <div>English</div>
@@ -304,7 +310,7 @@ export default function LoginV3() {
           </p>
         </div>
 
-        <Glass padding={32} style={{ maxWidth: 460,
+        <Glass padding={32} style={{ maxWidth: 460, minWidth: 0,
           background: isDay
             ? 'linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(255,250,244,0.82) 100%)'
             : 'linear-gradient(180deg, rgba(30,20,60,0.55) 0%, rgba(15,10,35,0.55) 100%)',
