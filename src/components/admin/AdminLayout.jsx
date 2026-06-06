@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { Link, Navigate, Outlet, useLocation, useParams } from 'react-router-dom'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import { useAdminAuth, queryAdminConvex } from '../../contexts/AdminAuthContext.jsx'
@@ -7,6 +7,7 @@ const navigationItems = [
   { label: 'Dashboard', to: '/admin', icon: 'space_dashboard' },
   { label: 'Calendar', to: '/admin/calendar', icon: 'calendar_month' },
   { label: 'Students', to: '/admin/students', icon: 'school' },
+  { label: 'Teachers', to: '/admin/teachers', icon: 'co_present' },
   { label: 'Courses', to: '/admin/courses', icon: 'auto_stories' },
   { label: 'Billing', to: '/admin/billing', icon: 'receipt_long' },
   { label: 'Settings', to: '/admin/settings', icon: 'settings' },
@@ -25,9 +26,11 @@ function initialsFromName(name) {
 export default function AdminLayout() {
   const location = useLocation()
   const params = useParams()
-  const { adminUser, isSuperadmin } = useAdminAuth()
+  const { adminUser, isSuperadmin, adminLogout } = useAdminAuth()
   const [org, setOrg] = useState(null)
   const [viewedStudentOrg, setViewedStudentOrg] = useState(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
 
   // Resolve the acting admin's organization (runs once on login).
   useEffect(() => {
@@ -55,6 +58,23 @@ export default function AdminLayout() {
     return () => { cancelled = true }
   }, [isSuperadmin, viewedSlug])
 
+  // Close the account menu on outside-click / Esc / route change.
+  useEffect(() => {
+    if (!menuOpen) return
+    function onDoc(e) { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false) }
+    function onEsc(e) { if (e.key === 'Escape') setMenuOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onEsc)
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onEsc) }
+  }, [menuOpen])
+  useEffect(() => { setMenuOpen(false) }, [location.pathname])
+
+  async function handleLogout() {
+    setMenuOpen(false)
+    await adminLogout()
+    window.location.href = '/login'
+  }
+
   const displayOrg = viewedStudentOrg || org
   const orgName = displayOrg?.name || (isSuperadmin ? 'English Metropolis' : 'Admin')
   const orgInitials = useMemo(() => initialsFromName(orgName), [orgName])
@@ -80,13 +100,13 @@ export default function AdminLayout() {
 
   return (
     <div
-      className="min-h-screen"
+      className="conversa-admin min-h-screen"
       style={{
         background: `
-          radial-gradient(ellipse 70% 50% at 85% -5%, rgba(2,132,199,0.10), transparent 60%),
-          radial-gradient(ellipse 55% 45% at 0% 15%, rgba(37,99,235,0.07), transparent 55%),
-          radial-gradient(ellipse 80% 60% at 50% 115%, rgba(56,189,248,0.08), transparent 60%),
-          linear-gradient(180deg, #FBFDFF 0%, #F4F8FD 55%, #EFF5FC 100%)`,
+          radial-gradient(ellipse 60% 45% at 88% -8%, rgba(47,107,255,0.10), transparent 62%),
+          radial-gradient(ellipse 50% 40% at 2% 8%, rgba(99,102,241,0.08), transparent 58%),
+          radial-gradient(ellipse 70% 55% at 50% 116%, rgba(45,212,191,0.07), transparent 62%),
+          linear-gradient(180deg, #FBFCFF 0%, #F4F7FC 55%, #EFF3FB 100%)`,
       }}
     >
       <div className="sticky-header-shell px-4 pt-6 sm:px-6 lg:px-8">
@@ -94,7 +114,7 @@ export default function AdminLayout() {
           <header className="glass-panel sticky top-0 z-40 rounded-none border border-white/60 border-t-0 editorial-shadow px-4 py-3 sm:top-3 sm:rounded-[2rem] sm:border-t sm:px-6 sm:py-4">
             <div className="flex items-center justify-between gap-3">
               <Link to="/admin" className="flex items-center gap-3 min-w-0 group">
-                <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-[1rem] sm:rounded-[1.25rem] bg-gradient-to-br from-sky-500 to-blue-700 shadow-[0_18px_45px_-22px_rgba(2,132,199,0.85)] transition-transform duration-300 group-hover:scale-105">
+                <div style={{ backgroundImage: 'linear-gradient(to bottom right, var(--org-primary,#0ea5e9), var(--org-dark,#1d4ed8))' }} className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-[1rem] sm:rounded-[1.25rem] shadow-[0_18px_45px_-22px_rgba(2,132,199,0.85)] transition-transform duration-300 group-hover:scale-105">
                   <span className="material-symbols-outlined text-white">apartment</span>
                 </div>
                 <div className="min-w-0">
@@ -115,14 +135,41 @@ export default function AdminLayout() {
                 </Link>
               )}
 
-              <div className="flex items-center gap-2 sm:gap-3 rounded-full border border-white/70 bg-white/70 px-2 py-1.5 sm:px-2.5 sm:py-2 backdrop-blur-xl shadow-[0_14px_35px_-26px_rgba(15,23,42,0.45)]">
-                <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-blue-700">
-                  <span className="font-headline text-sm sm:text-base text-white">{orgInitials}</span>
-                </div>
-                <div className="hidden sm:block pr-2">
-                  <p className="font-label text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">Admin Panel</p>
-                  <p className="text-sm font-semibold text-slate-900 leading-tight">{orgName}</p>
-                </div>
+              <div className="relative" ref={menuRef}>
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen(o => !o)}
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  aria-label="Account menu"
+                  className="flex items-center gap-2 sm:gap-3 rounded-full border border-white/70 bg-white/70 px-2 py-1.5 sm:px-2.5 sm:py-2 backdrop-blur-xl shadow-[0_14px_35px_-26px_rgba(15,23,42,0.45)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-white"
+                >
+                  <div style={{ backgroundImage: 'linear-gradient(to bottom right, var(--org-primary,#0ea5e9), var(--org-dark,#1d4ed8))' }} className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full">
+                    <span className="font-headline text-sm sm:text-base text-white">{orgInitials}</span>
+                  </div>
+                  <div className="hidden sm:block pr-1 text-left">
+                    <p className="font-label text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">Admin Panel</p>
+                    <p className="text-sm font-semibold text-slate-900 leading-tight">{orgName}</p>
+                  </div>
+                  <span className="material-symbols-outlined text-slate-400 text-lg">{menuOpen ? 'expand_less' : 'expand_more'}</span>
+                </button>
+                {menuOpen && (
+                  <div role="menu" className="absolute right-0 top-[calc(100%+8px)] w-60 rounded-[1.25rem] border border-white/70 bg-white p-3 shadow-[0_30px_60px_-30px_rgba(15,23,42,0.45)] z-50 ca-slidedown">
+                    <div className="px-2 pb-2 border-b border-slate-200/70">
+                      <p className="font-label text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">Signed in as</p>
+                      <p className="mt-0.5 text-sm font-semibold text-slate-900 truncate">{adminUser?.email || orgName}</p>
+                    </div>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={handleLogout}
+                      className="mt-2 flex w-full items-center gap-2 rounded-[0.9rem] px-3 py-2.5 text-left text-rose-600 hover:bg-rose-50 transition-colors duration-200"
+                    >
+                      <span className="material-symbols-outlined text-lg">logout</span>
+                      <span className="font-label text-xs font-bold uppercase tracking-[0.18em]">Log out</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </header>
@@ -130,7 +177,7 @@ export default function AdminLayout() {
       </div>
 
       <main className="px-4 pb-12 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
+        <div className="mx-auto grid grid-cols-1 max-w-7xl gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
           <aside className="glass-panel h-fit rounded-[2rem] border border-white/50 p-3 editorial-shadow lg:sticky lg:top-28">
             <p className="font-label px-3 pt-2 text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">Navigation</p>
             <div className="mt-3 space-y-1.5">
@@ -147,7 +194,7 @@ export default function AdminLayout() {
                     key={item.label}
                     to={item.to}
                     className={isActive
-                      ? 'flex items-center gap-3 rounded-[1.25rem] bg-gradient-to-r from-sky-600 to-blue-700 px-4 py-3 text-white shadow-[0_16px_35px_-20px_rgba(2,132,199,0.9)] transition-all duration-300'
+                      ? 'flex items-center gap-3 rounded-[1.25rem] org-brand-gradient px-4 py-3 text-white shadow-[0_16px_35px_-20px_rgba(2,132,199,0.9)] transition-all duration-300'
                       : 'flex items-center gap-3 rounded-[1.25rem] px-4 py-3 text-slate-500 transition-all duration-300 hover:bg-white/90 hover:text-sky-700 hover:shadow-[0_14px_30px_-24px_rgba(15,23,42,0.4)] hover:-translate-y-0.5'}
                   >
                     <span className="material-symbols-outlined text-lg">{item.icon}</span>
