@@ -2000,6 +2000,15 @@ html.dark select:focus {
   border-color: #a78bfa !important;
   box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.22) !important;
 }
+/* The v3 Field draws its focus state on the rounded pill *wrapper*. The legacy
+   rule above paints a 3px ring on the bare <input>, which has square corners —
+   so in dark mode it shows as a rectangle inside the oval. Suppress it here
+   (higher specificity than the legacy rule, so it wins even with !important). */
+html.dark input.v3-field-input:focus,
+input.v3-field-input:focus {
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
 
 /* Accent ring/focus states that default to sky-100 (bright) */
 html.dark .focus\:ring-sky-100:focus,

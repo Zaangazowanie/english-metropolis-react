@@ -147,6 +147,7 @@ export function Field({ label, value, onChange, type = 'text', placeholder, icon
         transition: `all 200ms ${EASE.springFast}` }}>
         {icon && <span className="material-symbols-outlined" style={{ fontSize: 18, color: T.textDim }}>{icon}</span>}
         <input type={type} value={value} onChange={e => onChange && onChange(e.target.value)}
+          className="v3-field-input"
           placeholder={placeholder} autoComplete={autoComplete} required={required}
           onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none',
