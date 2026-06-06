@@ -2017,6 +2017,22 @@ input.v3-field-input:focus {
   border-color: transparent !important;
 }
 
+/* Admin search inputs sit transparent (border-radius:0) inside a rounded pill
+   wrapper. In OS dark mode the global html.dark input rules paint a square dark
+   background + square box-shadow focus ring INSIDE the pill (box-shadow follows
+   the input's own 0 radius). Keep them transparent + ring-less so the rounded
+   wrapper — which has its own focus-within ring — is the only shape shown.
+   (.ca-field inputs have their own radius, so their ring is already round.) */
+html.dark .conversa-admin input[type="search"],
+html.dark .conversa-admin .ca-search input {
+  background-color: transparent !important;
+}
+html.dark .conversa-admin input[type="search"]:focus,
+html.dark .conversa-admin .ca-search input:focus {
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
 /* Accent ring/focus states that default to sky-100 (bright) */
 html.dark .focus\:ring-sky-100:focus,
 html.dark .focus\:ring-blue-100:focus {
@@ -3087,6 +3103,13 @@ select.ca-field { cursor: pointer; appearance: none; background-image: url("data
 
 /* Numeric stats — JetBrains Mono with tabular figures, matching the student app */
 .conversa-admin .ca-num { font-family: "JetBrains Mono", ui-monospace, monospace; font-feature-settings: "tnum"; letter-spacing: -0.02em; }
+
+/* Roster card's per-row "open" chevron — hide on phones (the whole card is
+   tappable). Scoped + !important so it wins over the unlayered material-symbols
+   display rule that a Tailwind `hidden` utility loses to. */
+@media (max-width: 639px) {
+  .conversa-admin .ca-roster-arrow { display: none !important; }
+}
 
 /* Search field wrapper */
 .ca-search { display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 999px; border: 1px solid var(--ca-line-strong); background: #fff; padding: 0.55rem 1rem; transition: border-color 200ms ease, box-shadow 200ms ease; }

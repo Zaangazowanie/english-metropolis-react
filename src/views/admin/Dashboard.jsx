@@ -337,7 +337,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-5 sm:gap-7">
+                  <div className="flex items-center justify-between gap-2 sm:justify-start sm:gap-7">
                     <div className="text-center">
                       <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Lessons</p>
                       <p className="mt-1 ca-num text-2xl text-slate-900">{lessonCount}</p>
@@ -358,7 +358,7 @@ export default function AdminDashboard() {
                         <p className="mt-1 text-xs font-semibold text-slate-600">{lastActivity}</p>
                       </div>
                     )}
-                    <span className="material-symbols-outlined text-slate-300 text-lg transition-all duration-300 group-hover:text-sky-600 group-hover:translate-x-1">arrow_forward</span>
+                    <span className="ca-roster-arrow material-symbols-outlined text-slate-300 text-lg transition-all duration-300 group-hover:text-sky-600 group-hover:translate-x-1">arrow_forward</span>
                   </div>
                 </div>
               </button>
