@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Mobile: remove the ~300ms double-tap-zoom delay on interactive controls.
+   (index.html already sets tap-highlight/overflow-scrolling/safe-area; this is
+   the one nicety it lacks, and lives here because prod uses a GDPR-edited
+   index.html that the deploy script does not overwrite.) */
+button, a, [role="button"], input, select, textarea, label { touch-action: manipulation; }
+
 /* Browser autofill override — keeps the v3 Field primitive's rounded
    pill shape intact when Chrome/Safari injects autofill styling. The
    default :-webkit-autofill paints a square-cornered yellow background
@@ -2869,3 +2875,209 @@ html.dark .lfb-tab-amber.is-active   { background: linear-gradient(145deg, rgba(
     box-sizing: border-box;
   }
 }
+
+/* Per-org brand gradient for the admin nav (themed via OrgThemeContext on a
+   school subdomain; falls back to the original sky-600 -> blue-700 on apex). */
+.org-brand-gradient {
+  background-image: linear-gradient(to right, var(--org-primary, #0284c7), var(--org-dark, #1d4ed8));
+}
+
+/* ============================================================================
+   CONVERSA ADMIN — "Soft Modern / Friendly School" design system
+   ----------------------------------------------------------------------------
+   Everything here is scoped under .conversa-admin (set on the admin shell root
+   in AdminLayout.jsx). The student-facing EM site never carries that class, so
+   the global Editorial Blue / Playfair theme is left completely intact.
+
+   Type:  Space Grotesk (display + body) · JetBrains Mono (stats) — matches the
+          v3 student interface (src/design/v3/tokens.js).
+   Shape: big radii, soft shadows, rounded Material icons, gentle ink palette.
+   ============================================================================ */
+
+.conversa-admin {
+  font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.006em;
+
+  --ca-ink: #1f2a44;
+  --ca-ink-soft: #64748b;
+  --ca-ink-faint: #94a3b8;
+  --ca-line: rgba(224, 230, 241, 0.9);
+  --ca-line-strong: rgba(203, 213, 225, 0.95);
+  --ca-surface: #ffffff;
+  --ca-bg-soft: #f4f7fc;
+  --ca-accent: var(--org-primary, #2f6bff);
+  --ca-accent-deep: var(--org-dark, #4f46e5);
+  --ca-accent-tint: color-mix(in srgb, var(--ca-accent) 12%, white);
+  --ca-radius: 1.5rem;
+  --ca-radius-lg: 1.9rem;
+  --ca-radius-sm: 1rem;
+  --ca-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ---- Type overrides (Space Grotesk for display + body, matching the student app) ---- */
+.conversa-admin .font-headline { font-family: "Space Grotesk", "Inter", sans-serif; font-weight: 700; letter-spacing: -0.026em; }
+.conversa-admin .font-label    { font-family: "Space Grotesk", "Inter", sans-serif; font-weight: 700; }
+.conversa-admin .font-body     { font-family: "Space Grotesk", "Inter", sans-serif; }
+.conversa-admin h1, .conversa-admin h2, .conversa-admin h3 { letter-spacing: -0.022em; }
+
+/* ---- Rounded Material icons everywhere in admin ---- */
+.conversa-admin .material-symbols-outlined { font-family: "Material Symbols Rounded"; }
+
+/* ---- Soften the inherited surfaces (Dashboard/Calendar/Billing/Settings) ---- */
+.conversa-admin .glass-panel {
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(16px) saturate(1.04);
+  -webkit-backdrop-filter: blur(16px) saturate(1.04);
+  border: 1px solid var(--ca-line);
+  border-radius: var(--ca-radius-lg);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 24px 50px -34px rgba(47, 107, 255, 0.30);
+}
+.conversa-admin .glass-panel::before,
+.conversa-admin .glass-panel::after { display: none; }
+
+.conversa-admin .liquid-glass-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--ca-line);
+  border-radius: var(--ca-radius);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 14px 32px -26px rgba(47, 107, 255, 0.32);
+}
+.conversa-admin .editorial-shadow { box-shadow: 0 28px 56px -38px rgba(47, 107, 255, 0.34); }
+.conversa-admin .org-brand-gradient {
+  background-image: linear-gradient(135deg, var(--ca-accent), var(--ca-accent-deep));
+}
+.conversa-admin .text-slate-900 { color: var(--ca-ink); }
+
+/* ============================================================================
+   ca-* component kit (used by the rebuilt Students / Teachers / detail views)
+   ============================================================================ */
+
+/* Squircle avatar — gradient set inline per-name for a friendly, human roster */
+.ca-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 34%;
+  color: #fff;
+  font-family: "Space Grotesk", "Inter", sans-serif;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 10px 24px -12px rgba(15, 23, 42, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 360ms var(--ca-spring);
+}
+.ca-avatar-ring { box-shadow: 0 10px 24px -12px rgba(15, 23, 42, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 3px rgba(255, 255, 255, 0.9), 0 0 0 4px var(--ca-line); }
+.group:hover .ca-avatar { transform: scale(1.06) rotate(-2deg); }
+
+/* Soft row card */
+.ca-row {
+  background: var(--ca-surface);
+  border: 1px solid var(--ca-line);
+  border-radius: var(--ca-radius);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 12px 30px -26px rgba(47, 107, 255, 0.4);
+  transition: transform 320ms var(--ca-spring), box-shadow 320ms ease, border-color 220ms ease;
+}
+.ca-row:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--ca-accent) 40%, var(--ca-line));
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04), 0 26px 48px -28px rgba(47, 107, 255, 0.45);
+}
+
+/* Chips — teacher / course / meta */
+.ca-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.32rem 0.7rem 0.32rem 0.4rem;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  max-width: 220px;
+  border: 1px solid transparent;
+  transition: transform 220ms var(--ca-spring), background 200ms ease;
+}
+.ca-chip > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ca-chip--teacher { background: #eef4ff; border-color: #dbe6ff; color: #2f51c8; }
+.ca-chip--course  { background: #eefbf4; border-color: #d6f1e1; color: #15795a; }
+.ca-chip--muted   { background: #f5f7fb; border-color: var(--ca-line); color: var(--ca-ink-soft); }
+.ca-chip-dot { width: 1.35rem; height: 1.35rem; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; color: #fff; }
+.ca-chip-dot .material-symbols-outlined { font-size: 14px; }
+a.ca-chip:hover, button.ca-chip:hover { transform: translateY(-1px); }
+
+/* Buttons */
+.ca-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  border-radius: 999px;
+  font-family: "Space Grotesk", "Inter", sans-serif; font-weight: 600; font-size: 14px;
+  padding: 0.7rem 1.15rem;
+  cursor: pointer;
+  transition: transform 240ms var(--ca-spring), box-shadow 260ms ease, background 200ms ease;
+  border: 1px solid transparent;
+}
+.ca-btn:disabled { opacity: 0.55; cursor: default; }
+.ca-btn--primary {
+  color: #fff;
+  background-image: linear-gradient(135deg, var(--ca-accent), var(--ca-accent-deep));
+  box-shadow: 0 16px 34px -16px color-mix(in srgb, var(--ca-accent) 80%, transparent);
+}
+.ca-btn--primary:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 22px 44px -16px color-mix(in srgb, var(--ca-accent) 90%, transparent); }
+.ca-btn--ghost { background: #fff; border-color: var(--ca-line-strong); color: var(--ca-ink-soft); }
+.ca-btn--ghost:not(:disabled):hover { border-color: color-mix(in srgb, var(--ca-accent) 45%, var(--ca-line)); color: var(--ca-accent); background: var(--ca-accent-tint); transform: translateY(-1px); }
+.ca-btn--soft { background: var(--ca-accent-tint); color: var(--ca-accent-deep); }
+.ca-btn--soft:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 14px 28px -16px color-mix(in srgb, var(--ca-accent) 60%, transparent); }
+.ca-btn--danger { background: #fff; border-color: #fbd5d5; color: #d9434e; }
+.ca-btn--danger:not(:disabled):hover { background: #fdecec; transform: translateY(-1px); }
+
+/* Round icon button */
+.ca-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.4rem; height: 2.4rem; border-radius: 999px;
+  background: #fff; border: 1px solid var(--ca-line-strong); color: var(--ca-ink-soft);
+  cursor: pointer; transition: all 220ms var(--ca-spring);
+}
+.ca-icon-btn:hover { color: var(--ca-accent); border-color: color-mix(in srgb, var(--ca-accent) 45%, var(--ca-line)); background: var(--ca-accent-tint); transform: translateY(-1px); }
+.ca-icon-btn--danger:hover { color: #d9434e; border-color: #fbd5d5; background: #fdecec; }
+.ca-icon-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+/* Inputs / selects */
+.ca-field {
+  width: 100%;
+  border-radius: var(--ca-radius-sm);
+  border: 1px solid var(--ca-line-strong);
+  background: #fff;
+  padding: 0.7rem 0.95rem;
+  font-size: 14px;
+  font-family: "Space Grotesk", "Inter", sans-serif;
+  color: var(--ca-ink);
+  outline: none;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.ca-field:focus { border-color: var(--ca-accent); box-shadow: 0 0 0 4px var(--ca-accent-tint); }
+.ca-field::placeholder { color: var(--ca-ink-faint); }
+select.ca-field { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.85rem center; padding-right: 2.6rem; }
+.ca-label { font-family: "Space Grotesk", "Inter", sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ca-ink-faint); }
+
+/* Segmented filter control */
+.ca-segment { display: inline-flex; gap: 0.25rem; padding: 0.3rem; border-radius: 999px; background: #eef1f7; border: 1px solid var(--ca-line); }
+.ca-segment-item { border: none; background: transparent; cursor: pointer; border-radius: 999px; padding: 0.45rem 0.95rem; font-family: "Space Grotesk", "Inter", sans-serif; font-size: 12px; font-weight: 600; color: var(--ca-ink-soft); transition: all 220ms var(--ca-spring); }
+.ca-segment-item:hover { color: var(--ca-accent); }
+.ca-segment-item.is-active { color: #fff; background-image: linear-gradient(135deg, var(--ca-accent), var(--ca-accent-deep)); box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--ca-accent) 80%, transparent); }
+
+/* Small stat block */
+.ca-stat { border-radius: var(--ca-radius-sm); background: var(--ca-bg-soft); border: 1px solid var(--ca-line); padding: 0.7rem 0.95rem; text-align: center; }
+
+/* Numeric stats — JetBrains Mono with tabular figures, matching the student app */
+.conversa-admin .ca-num { font-family: "JetBrains Mono", ui-monospace, monospace; font-feature-settings: "tnum"; letter-spacing: -0.02em; }
+
+/* Search field wrapper */
+.ca-search { display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 999px; border: 1px solid var(--ca-line-strong); background: #fff; padding: 0.55rem 1rem; transition: border-color 200ms ease, box-shadow 200ms ease; }
+.ca-search:focus-within { border-color: var(--ca-accent); box-shadow: 0 0 0 4px var(--ca-accent-tint); }
+.ca-search input { border: none; outline: none; background: transparent; font-size: 14px; color: var(--ca-ink); width: 12rem; }
+.ca-search input::placeholder { color: var(--ca-ink-faint); }
+
+/* Soft expand/slide-down for inline panels */
+@keyframes caSlideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+.ca-slidedown { animation: caSlideDown 320ms var(--ca-spring); }

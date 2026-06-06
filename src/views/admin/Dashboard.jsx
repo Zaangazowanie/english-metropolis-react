@@ -63,7 +63,7 @@ function ScoreRing({ value, size = 96 }) {
         </defs>
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-headline text-3xl text-slate-900 leading-none">{pct}</span>
+        <span className="ca-num text-3xl text-slate-900 leading-none">{pct}</span>
         <span className="font-label text-[8px] font-bold uppercase tracking-[0.2em] text-slate-400 mt-0.5">/ 100</span>
       </div>
     </div>
@@ -222,7 +222,7 @@ export default function AdminDashboard() {
                   <div className="flex h-9 w-9 items-center justify-center rounded-[0.875rem] bg-gradient-to-br from-sky-100 to-blue-100 text-sky-700 transition-transform duration-300 group-hover:scale-110">
                     <span className="material-symbols-outlined text-xl">{card.icon}</span>
                   </div>
-                  <p className="mt-4 font-headline text-4xl text-slate-900">{card.value}</p>
+                  <p className="mt-4 ca-num text-4xl text-slate-900">{card.value}</p>
                   <p className="mt-1 font-label text-[10px] font-bold uppercase tracking-[0.22em] text-sky-700">{card.label}</p>
                   <p className="mt-0.5 text-xs text-slate-400">{card.note}</p>
                 </div>
@@ -253,18 +253,18 @@ export default function AdminDashboard() {
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
               <div className="liquid-glass-card metric-card-enter rounded-[1.5rem] px-5 py-4" style={{ animationDelay: '0ms' }}>
                 <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Completed Lessons</p>
-                <p className="mt-2 font-headline text-5xl text-slate-900">{monthlyStats.currentMonth.completedLessons}</p>
+                <p className="mt-2 ca-num text-5xl text-slate-900">{monthlyStats.currentMonth.completedLessons}</p>
               </div>
               <div className="liquid-glass-card metric-card-enter rounded-[1.5rem] px-5 py-4" style={{ animationDelay: '90ms' }}>
                 <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Late Cancellations</p>
-                <p className={`mt-2 font-headline text-5xl ${monthlyStats.currentMonth.lateCancellations ? 'text-rose-600' : 'text-slate-900'}`}>
+                <p className={`mt-2 ca-num text-5xl ${monthlyStats.currentMonth.lateCancellations ? 'text-rose-600' : 'text-slate-900'}`}>
                   {monthlyStats.currentMonth.lateCancellations}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">Cancelled &lt; 24h before start — billed</p>
               </div>
               <div className="liquid-glass-card metric-card-enter rounded-[1.5rem] px-5 py-4 ring-1 ring-sky-200/60" style={{ animationDelay: '180ms' }}>
                 <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-sky-600">Total Billable</p>
-                <p className="mt-2 font-headline text-5xl bg-gradient-to-r from-sky-600 to-blue-700 bg-clip-text text-transparent">{monthlyStats.currentMonth.billableTotal}</p>
+                <p className="mt-2 ca-num text-5xl bg-gradient-to-r from-sky-600 to-blue-700 bg-clip-text text-transparent">{monthlyStats.currentMonth.billableTotal}</p>
                 <p className="mt-1 text-xs text-slate-500">Completed + late cancellations</p>
               </div>
             </div>
@@ -340,11 +340,11 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-5 sm:gap-7">
                     <div className="text-center">
                       <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Lessons</p>
-                      <p className="mt-1 font-headline text-2xl text-slate-900">{lessonCount}</p>
+                      <p className="mt-1 ca-num text-2xl text-slate-900">{lessonCount}</p>
                     </div>
                     <div className="text-center">
                       <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Vocabulary</p>
-                      <p className="mt-1 font-headline text-2xl text-slate-900">{keywordCount}</p>
+                      <p className="mt-1 ca-num text-2xl text-slate-900">{keywordCount}</p>
                     </div>
                     <div className="text-center">
                       <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Attainment</p>

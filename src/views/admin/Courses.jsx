@@ -11,10 +11,10 @@ const COURSE_STATUS = [
 const EMPTY_FORM = { name: '', level: '', schedule: '', status: 'active' }
 
 function Label({ children }) {
-  return <span className="font-label text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{children}</span>
+  return <span className="ca-label">{children}</span>
 }
 
-const inputCls = 'mt-2 w-full rounded-[1rem] border border-slate-200/70 bg-white/90 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100'
+const inputCls = 'ca-field mt-2'
 
 export default function AdminCourses() {
   const { adminUser } = useAdminAuth()
@@ -124,6 +124,9 @@ export default function AdminCourses() {
     if (!addStudentId) return
     try {
       await mutateAdminConvex('groups:addGroupMember', { groupId, studentId: addStudentId })
+      // Keep students.groupId in step with the join table so the learner's
+      // course chip shows consistently on the Students roster + detail page.
+      try { await mutateAdminConvex('students:updateStudent', { studentId: addStudentId, groupId }) } catch { /* best-effort */ }
       setAddStudentId('')
       await loadMembers(groupId)
       await load()
@@ -199,12 +202,9 @@ export default function AdminCourses() {
               {state.groups.length} course{state.groups.length === 1 ? '' : 's'} on the roster. Manage class groups, schedules and enrolment.
             </p>
           </div>
-          <button
-            onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-18px_rgba(2,132,199,1)]"
-          >
+          <button onClick={openCreate} className="ca-btn ca-btn--primary">
             <span className="material-symbols-outlined text-lg">add</span>
-            Create Course
+            Create course
           </button>
         </div>
       </section>
@@ -237,7 +237,7 @@ export default function AdminCourses() {
                       {group.level && <CefrBadge band={group.level} />}
                       <div className="text-center">
                         <p className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Members</p>
-                        <p className="mt-0.5 font-headline text-xl text-slate-900">{group.activeCount ?? group.memberCount ?? 0}</p>
+                        <p className="mt-0.5 ca-num text-xl text-slate-900">{group.activeCount ?? group.memberCount ?? 0}</p>
                       </div>
                       <CourseStatusPill status={group.status} />
                       <button type="button" onClick={() => openEdit(group)} title="Edit" aria-label="Edit course" className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/70 bg-white/80 text-slate-500 hover:bg-sky-50 hover:text-sky-700 transition cursor-pointer">
@@ -273,11 +273,11 @@ export default function AdminCourses() {
                         </div>
                       )}
                       <div className="mt-4 flex items-center gap-2">
-                        <select value={addStudentId} onChange={e => setAddStudentId(e.target.value)} className="flex-1 rounded-[1rem] border border-slate-200/70 bg-white/90 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-sky-300 cursor-pointer">
+                        <select value={addStudentId} onChange={e => setAddStudentId(e.target.value)} className="ca-field flex-1">
                           <option value="">Add a student…</option>
                           {addableStudents.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
                         </select>
-                        <button type="button" disabled={!addStudentId} onClick={() => handleAddMember(group._id)} className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50">
+                        <button type="button" disabled={!addStudentId} onClick={() => handleAddMember(group._id)} className="ca-btn ca-btn--primary">
                           <span className="material-symbols-outlined text-base">person_add</span>
                           Add
                         </button>
@@ -322,10 +322,10 @@ export default function AdminCourses() {
             <div className="rounded-[1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{formError}</div>
           )}
           <div className="flex items-center justify-end gap-2 pt-1">
-            <button type="button" onClick={() => setFormOpen(false)} className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer">Cancel</button>
-            <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60">
+            <button type="button" onClick={() => setFormOpen(false)} className="ca-btn ca-btn--ghost">Cancel</button>
+            <button type="submit" disabled={saving} className="ca-btn ca-btn--primary">
               <span className="material-symbols-outlined text-base">{saving ? 'progress_activity' : 'save'}</span>
-              {saving ? 'Saving…' : (editing ? 'Save Changes' : 'Create Course')}
+              {saving ? 'Saving…' : (editing ? 'Save changes' : 'Create course')}
             </button>
           </div>
         </form>
