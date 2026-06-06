@@ -150,7 +150,9 @@ export function Field({ label, value, onChange, type = 'text', placeholder, icon
           placeholder={placeholder} autoComplete={autoComplete} required={required}
           onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none',
-            padding: '14px 14px 14px 0', fontSize: 14, fontFamily: FONT.body,
+            // 16px (not 14): iOS Safari auto-zooms — and horizontally overflows
+            // the page — when a focused input's font-size is under 16px.
+            padding: '13px 14px 13px 0', fontSize: 16, fontFamily: FONT.body,
             color: T.text, width: '100%' }}/>
         {trailing}
       </div>
