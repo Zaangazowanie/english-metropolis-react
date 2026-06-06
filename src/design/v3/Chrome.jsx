@@ -169,7 +169,7 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
         padding: isMobile ? '12px 16px' : '14px 28px',
         display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16,
         justifyContent: isMobile ? 'space-between' : 'flex-start' }}>
-        <Link to={`${tabBase}/dashboard`} style={{
+        <Link to={`${tabBase}/dashboard`} aria-label="EnglishMetro.com — home" style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           textDecoration: 'none', color: T.text, flexShrink: 0 }}>
           {/* Brand mark — Chubby Bajla replaces the Skyline mark in the
@@ -179,14 +179,18 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
           <img src="/em-chubby-bajla.png" alt="" style={{
             height: 28, width: 'auto', display: 'block',
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }}/>
+          {/* Wordmark hides on mobile — the mascot alone carries the brand so the
+              control cluster (lang / level / theme / avatar) fits without clipping. */}
+          {!isMobile && (
           <span style={{ fontFamily: FONT.display, fontWeight: 600,
-            fontSize: isMobile ? 15 : 18,
+            fontSize: 18,
             letterSpacing: '-0.02em' }}>
             English<span style={{ background: G.brand, WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Metro</span>
             <span style={{ color: T.ember }}>.</span>
-            {!isMobile && <span style={{ fontSize: 12, color: T.textDim, marginLeft: -2 }}>com</span>}
+            <span style={{ fontSize: 12, color: T.textDim, marginLeft: -2 }}>com</span>
           </span>
+          )}
         </Link>
 
         {/* Desktop: top horizontal nav. Mobile: hidden — navigation lives in
@@ -406,7 +410,8 @@ function InstallHint() {
   if (!show) return null
   return (
     <div style={{
-      position: 'fixed', left: 12, right: 12, bottom: 78, zIndex: 55,
+      position: 'fixed', left: 12, right: 12,
+      bottom: 'calc(78px + env(safe-area-inset-bottom))', zIndex: 55,
       background: isDay
         ? 'linear-gradient(180deg, #FFFFFF 0%, #FBFAFF 100%)'
         : 'linear-gradient(180deg, rgba(28,18,58,0.98), rgba(14,9,32,0.98))',
