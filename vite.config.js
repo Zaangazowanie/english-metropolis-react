@@ -12,6 +12,12 @@ import tailwindcss from '@tailwindcss/vite'
 function shellManualChunks(id) {
   const m = id.match(/\/src\/practice\/shells\/([A-Za-z0-9_]+)\.tsx?$/)
   if (m) return `shell-${m[1]}`
+  // 2026-06-12 (Ricky): 3D game shells (Fluent City arcade) — same one-chunk-
+  // per-shell rule, plus a single shared vendor chunk for the three.js stack
+  // so the engine downloads once and every game reuses the cached copy.
+  const g = id.match(/\/src\/practice\/shells3d\/([A-Za-z0-9_]+)\.tsx?$/)
+  if (g) return `game3d-${g[1]}`
+  if (/\/node_modules\/(three|@react-three)\//.test(id)) return 'vendor-three'
   return undefined
 }
 
