@@ -1,0 +1,72 @@
+/* GameHome — "Fluent City arcade" public landing (2026-06-12).
+   All motion lives here so prefers-reduced-motion can kill it wholesale.
+   Dusk-always palette; matches the v3 login aesthetic (tokens.js). */
+
+@keyframes gh-rise {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes gh-glow {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+@keyframes gh-twinkle {
+  0%, 100% { opacity: 0.18; }
+  50%      { opacity: 0.7; }
+}
+@keyframes gh-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes gh-flap {
+  0%   { transform: rotateX(0deg); filter: brightness(1); }
+  45%  { transform: rotateX(86deg); filter: brightness(1.6); }
+  100% { transform: rotateX(0deg); filter: brightness(1); }
+}
+@keyframes gh-pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55); }
+  60%      { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }
+}
+
+.gh-rise { animation: gh-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.gh-rise-1 { animation-delay: 60ms; }
+.gh-rise-2 { animation-delay: 140ms; }
+.gh-rise-3 { animation-delay: 220ms; }
+.gh-rise-4 { animation-delay: 320ms; }
+
+.gh-star { animation: gh-twinkle 3.4s ease-in-out infinite; }
+.gh-live-dot { animation: gh-pulse-dot 2.2s ease-out infinite; }
+
+.gh-ticker-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: gh-marquee 46s linear infinite;
+}
+.gh-ticker:hover .gh-ticker-track { animation-play-state: paused; }
+
+.gh-board-row { transition: background 180ms ease, transform 180ms ease; }
+.gh-board-row:hover {
+  background: rgba(217, 70, 239, 0.07) !important;
+  transform: translateX(4px);
+}
+.gh-board-row:hover .gh-flap { animation: gh-flap 420ms ease; }
+
+.gh-card { transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1), border-color 240ms ease, box-shadow 240ms ease; }
+.gh-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(217, 70, 239, 0.45) !important;
+  box-shadow: 0 22px 50px -18px rgba(217, 70, 239, 0.35), 0 0 0 1px rgba(217, 70, 239, 0.18);
+}
+.gh-card:hover .gh-card-play { opacity: 1; transform: translateY(0); }
+.gh-card-play { opacity: 0; transform: translateY(5px); transition: all 220ms ease; }
+
+.gh-cab { transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1); }
+.gh-cab:hover { transform: perspective(1200px) rotateY(-2deg) rotateX(1deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .gh-rise, .gh-star, .gh-live-dot, .gh-ticker-track, .gh-board-row, .gh-card, .gh-cab {
+    animation: none !important;
+    transition: none !important;
+  }
+  .gh-rise { opacity: 1; transform: none; }
+}

@@ -21,16 +21,25 @@ import SuperadminStudents from './views/admin/superadmin/SuperadminStudents.jsx'
 import SuperadminAudit from './views/admin/superadmin/SuperadminAudit.jsx'
 import SuperadminSalary from './views/admin/superadmin/SuperadminSalary.jsx'
 import SuperadminGroups from './views/admin/superadmin/SuperadminGroups.jsx'
+import SuperadminAvailability from './views/admin/superadmin/SuperadminAvailability.jsx'
 import SuperadminGroupDetail from './views/admin/superadmin/SuperadminGroupDetail.jsx'
 import StudentHeatmap from './views/admin/teacher/StudentHeatmap.jsx'
+import AdminTeachers from './views/admin/Teachers.jsx'
+import TeacherLogin from './views/teacher/TeacherLogin.jsx'
+import TeacherVerify from './views/teacher/TeacherVerify.jsx'
+import TeacherPortal from './views/teacher/TeacherPortal.jsx'
+import { TeacherAuthProvider, useTeacherAuth } from './contexts/TeacherAuthContext.jsx'
+import { OrgThemeProvider } from './contexts/OrgThemeContext.jsx'
 import { AdminAuthProvider } from './contexts/AdminAuthContext.jsx'
 import { StudentAuthProvider } from './contexts/StudentAuthContext.jsx'
 import ConsentBanner from './components/ConsentBanner.jsx'
+import BajlaConnectModal from './components/BajlaConnectModal.jsx'
 import PrivacyPolicy from './views/legal/PrivacyPolicy.jsx'
 import CookiePolicy from './views/legal/CookiePolicy.jsx'
 import Terms from './views/legal/Terms.jsx'
 import Login from './views/Login.jsx'
 import LoginV3 from './views/v3/Login.jsx'
+import GameHome from './views/v3/GameHome.jsx'
 import Logout from './views/Logout.jsx'
 import Settings from './views/Settings.jsx'
 import { I18nProvider } from './i18n'
@@ -68,6 +77,14 @@ class RootErrorBoundary extends Component {
   }
 }
 
+// Gate the teacher portal: redirect to the magic-link login if no teacher session.
+function TeacherGuard({ children }) {
+  const { teacher, loading } = useTeacherAuth()
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading…</div>
+  if (!teacher) return <Navigate to="/teacher/login" replace />
+  return children
+}
+
 function RootRouter() {
   return (
     <>
@@ -77,10 +94,11 @@ function RootRouter() {
         <Route path="/cookies" element={<CookiePolicy />} />
         <Route path="/terms" element={<Terms />} />
 
-        {/* englishmetro.com landing */}
+        {/* englishmetro.com landing — game-first public home (2026-06-12).
+            The sign-in form lives at /login only; / is the playable arcade. */}
         <Route path="/login" element={<LoginComponent />} />
         <Route path="/logout" element={<Logout />} />
-        {IS_ENGLISHMETRO && <Route path="/" element={<LoginComponent />} />}
+        {IS_ENGLISHMETRO && <Route path="/" element={<GameHome />} />}
 
         <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/superadmin" element={
@@ -96,6 +114,7 @@ function RootRouter() {
           <Route path="students/:slug/heatmap" element={<StudentHeatmap />} />
           <Route path="groups" element={<SuperadminGroups />} />
           <Route path="groups/:groupId" element={<SuperadminGroupDetail />} />
+          <Route path="availability" element={<SuperadminAvailability />} />
           <Route path="audit" element={<SuperadminAudit />} />
           <Route path="salary" element={<SuperadminSalary />} />
         </Route>
@@ -130,12 +149,27 @@ function RootRouter() {
               <StudentDetail />
             </RootErrorBoundary>
           } />
+          <Route path="teachers" element={
+            <RootErrorBoundary>
+              <AdminTeachers />
+            </RootErrorBoundary>
+          } />
           <Route path="settings" element={
             <RootErrorBoundary>
               <AdminSettings />
             </RootErrorBoundary>
           } />
         </Route>
+
+        {/* Teacher portal (magic-link auth) */}
+        <Route path="/teacher/login" element={<TeacherLogin />} />
+        <Route path="/teacher/verify" element={<TeacherVerify />} />
+        <Route path="/teacher" element={
+          <RootErrorBoundary>
+            <TeacherGuard><TeacherPortal /></TeacherGuard>
+          </RootErrorBoundary>
+        } />
+
         <Route path="/settings" element={<Settings />} />
         <Route path="/app/:slug/settings" element={<Settings />} />
         <Route path="/app/:slug/*" element={<App basePath="/app" />} />
@@ -144,6 +178,8 @@ function RootRouter() {
       </Routes>
       {/* Consent banner rendered once at the root so it's visible everywhere */}
       <ConsentBanner />
+      {/* Bajla WhatsApp connect popup — reaches all portals from here */}
+      <BajlaConnectModal />
     </>
   )
 }
@@ -153,15 +189,19 @@ createRoot(document.getElementById('root')).render(
     <RootErrorBoundary>
       <I18nProvider>
         <ThemeProvider>
+          <OrgThemeProvider>
           <AdminAuthProvider>
             <StudentAuthProvider>
-              <V3ThemeProvider>
-                <BrowserRouter>
-                  <RootRouter />
-                </BrowserRouter>
-              </V3ThemeProvider>
+              <TeacherAuthProvider>
+                <V3ThemeProvider>
+                  <BrowserRouter>
+                    <RootRouter />
+                  </BrowserRouter>
+                </V3ThemeProvider>
+              </TeacherAuthProvider>
             </StudentAuthProvider>
           </AdminAuthProvider>
+          </OrgThemeProvider>
         </ThemeProvider>
       </I18nProvider>
     </RootErrorBoundary>

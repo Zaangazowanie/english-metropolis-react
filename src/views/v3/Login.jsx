@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAdminAuth } from '../../contexts/AdminAuthContext.jsx'
 import { useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
+import { useOrgTheme } from '../../contexts/OrgThemeContext.jsx'
 import { FONT, G, EASE } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Field, Glass, Skyline } from '../../design/v3/primitives.jsx'
@@ -79,7 +80,14 @@ export default function LoginV3() {
   const isDay = mode === 'day'
   const { adminLogin } = useAdminAuth()
   const { studentLogin, isStudentAuthenticated, resolvedSlug } = useStudentAuth()
-  const [tab, setTab] = useState('student')
+  // School-subdomain branding (e.g. conversa.englishmetro.com): swap the EM
+  // hero for the school's logo over an ink-navy scene and tint the brand
+  // gradient. Auth flows are identical — same backend, same credentials.
+  const { theme: orgBrand } = useOrgTheme()
+  const branded = !!orgBrand?.logoUrl
+  const brandG = branded
+    ? 'linear-gradient(135deg, #1863DC 0%, #3b5fe0 55%, #6b00b8 140%)'
+    : null
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -204,8 +212,7 @@ export default function LoginV3() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Render the Google button into its DOM slot whenever the slot mounts
-  // (re-runs when the tab toggles, since the slot lives inside <form>).
+  // Render the Google button into its DOM slot whenever the slot mounts.
   useEffect(() => {
     if (!googleReady || !googleBtnRef.current) return
     if (typeof window === 'undefined' || !window.google?.accounts?.id) return
@@ -228,31 +235,31 @@ export default function LoginV3() {
     } catch (e) {
       console.warn('[Google Sign-In render failed]', e)
     }
-  }, [googleReady, isDay, tab])
+  }, [googleReady, isDay])
 
+  // Universal sign-in (Mike, 2026-06-12): ONE form for every kind of account.
+  // Try the player/student session first (the overwhelmingly common case),
+  // then fall back to the staff login. The two backends have disjoint email
+  // sets, so first-success routing is unambiguous. No role is ever shown or
+  // asked for on this page.
   async function submit(e) {
     e && e.preventDefault()
     setErr('')
     if (!email || !pw) { setErr(t('login.error.bothFields')); return }
     setLoading(true)
     try {
-      if (tab === 'school') {
-        const result = await adminLogin(email.trim(), pw)
-        if (!result?.success) {
-          setErr(result?.error || t('login.error.invalid'))
-          setLoading(false)
-          return
-        }
-        window.location.href = result.user?.role === 'super_admin' ? '/admin/superadmin' : '/admin'
-      } else {
-        const result = await studentLogin(email.trim(), pw)
-        if (!result?.success) {
-          setErr(result?.error || t('login.error.invalid'))
-          setLoading(false)
-          return
-        }
-        window.location.href = `/app/${result.student?.slug}/dashboard`
+      const student = await studentLogin(email.trim(), pw)
+      if (student?.success) {
+        window.location.href = `/app/${student.student?.slug}/dashboard`
+        return
       }
+      const admin = await adminLogin(email.trim(), pw)
+      if (admin?.success) {
+        window.location.href = admin.user?.role === 'super_admin' ? '/admin/superadmin' : '/admin'
+        return
+      }
+      setErr(student?.error || admin?.error || t('login.error.invalid'))
+      setLoading(false)
     } catch (ex) {
       setErr(ex.message || t('login.error.failed'))
       setLoading(false)
@@ -261,9 +268,15 @@ export default function LoginV3() {
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden',
-      background: isDay ? '#FBF7F2' : '#050309', color: T.text, fontFamily: FONT.body }}>
+      background: branded ? '#081226' : (isDay ? '#FBF7F2' : '#050309'),
+      color: T.text, fontFamily: FONT.body }}>
       <div aria-hidden style={{ position: 'absolute', inset: 0,
-        background: isDay
+        background: branded
+          ? `radial-gradient(ellipse 140% 80% at 50% 122%, rgba(24,99,220,0.34), transparent 62%),
+             radial-gradient(ellipse 80% 60% at 86% 10%, rgba(107,0,184,0.20), transparent 60%),
+             radial-gradient(ellipse 60% 45% at 8% 26%, rgba(63,131,248,0.12), transparent 58%),
+             linear-gradient(180deg, #060d1d 0%, #0b2147 52%, #0d2d62 100%)`
+          : isDay
           ? `radial-gradient(ellipse 140% 80% at 50% 120%, rgba(217,70,239,0.14), transparent 60%),
              radial-gradient(ellipse 80% 60% at 85% 15%, rgba(251,146,60,0.22), transparent 60%),
              radial-gradient(ellipse 70% 50% at 15% 30%, rgba(139,92,246,0.10), transparent 60%),
@@ -271,7 +284,7 @@ export default function LoginV3() {
           : `radial-gradient(ellipse 140% 80% at 50% 120%, rgba(139,92,246,0.28), transparent 60%),
              radial-gradient(ellipse 80% 60% at 80% 20%, rgba(217,70,239,0.18), transparent 60%),
              linear-gradient(180deg, #030208 0%, #0A0618 45%, #120929 100%)` }}/>
-      <SkylineHero isDay={isDay}/>
+      {!branded && <SkylineHero isDay={isDay}/>}
 
       <div style={{ position: 'relative', zIndex: 2, minHeight: '100vh',
         display: 'grid',
@@ -283,6 +296,25 @@ export default function LoginV3() {
         {/* minWidth:0 — without it the grid track defaults to min-width:auto and
             expands to fit the widest content (slogan / hero), overflowing mobile. */}
         <div style={{ minWidth: 0 }}>
+          {branded ? (
+            <div className="ca-login-hero">
+              <div style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 700,
+                letterSpacing: '0.34em', textTransform: 'uppercase', color: '#8db4f7',
+                marginBottom: 30, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#8db4f7',
+                  boxShadow: '0 0 10px #8db4f7' }}/>
+                Portal Szkoły
+              </div>
+              <img src={orgBrand.logoUrl} alt={orgBrand.orgDisplayName || 'Conversa'}
+                style={{ width: isMobile ? '88%' : 'min(560px, 92%)', height: 'auto',
+                  filter: 'brightness(0) invert(1)', display: 'block' }}/>
+              <p style={{ marginTop: 34, fontSize: isMobile ? 15 : 17,
+                color: 'rgba(214,228,252,0.85)', lineHeight: 1.55, maxWidth: 520, fontStyle: 'italic' }}>
+                Postępy uczniów, kalendarz i rozliczenia — w jednym miejscu.
+              </p>
+            </div>
+          ) : (
+          <>
           <div style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 700,
             letterSpacing: '0.3em', textTransform: 'uppercase', color: T.emerald,
             marginBottom: 24, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -308,43 +340,37 @@ export default function LoginV3() {
             color: T.textDim, lineHeight: 1.55, maxWidth: 520, fontStyle: 'italic' }}>
             {t('login.slogan')}
           </p>
+          </>
+          )}
         </div>
 
-        <Glass padding={32} style={{ maxWidth: 460, minWidth: 0,
-          background: isDay
+        <Glass padding={32} className={branded ? 'ca-login-card' : undefined} style={{ maxWidth: 460, minWidth: 0,
+          background: branded
+            ? (isDay
+              ? 'linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(244,248,255,0.90) 100%)'
+              : 'linear-gradient(180deg, rgba(13,33,71,0.72) 0%, rgba(8,18,38,0.72) 100%)')
+            : isDay
             ? 'linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(255,250,244,0.82) 100%)'
             : 'linear-gradient(180deg, rgba(30,20,60,0.55) 0%, rgba(15,10,35,0.55) 100%)',
-          border: isDay ? '1px solid rgba(162,28,175,0.18)' : '1px solid rgba(255,255,255,0.14)',
-          boxShadow: isDay
+          border: branded
+            ? (isDay ? '1px solid rgba(24,99,220,0.22)' : '1px solid rgba(141,180,247,0.22)')
+            : isDay ? '1px solid rgba(162,28,175,0.18)' : '1px solid rgba(255,255,255,0.14)',
+          boxShadow: branded
+            ? '0 30px 80px -20px rgba(3,10,26,0.6), 0 0 70px -24px rgba(24,99,220,0.45)'
+            : isDay
             ? '0 30px 80px -20px rgba(130,60,180,0.22), 0 10px 30px -10px rgba(0,0,0,0.08), 0 0 60px -20px rgba(217,70,239,0.15)'
             : '0 30px 80px -20px rgba(0,0,0,0.6), 0 0 60px -20px rgba(217,70,239,0.25)' }}>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', padding: 4,
-            background: isDay ? 'rgba(162,28,175,0.06)' : 'rgba(255,255,255,0.05)',
-            border: isDay ? '1px solid rgba(162,28,175,0.12)' : '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 999, marginBottom: 24 }}>
-            {[['student','login.tab.student'],['school','login.tab.admin']].map(([k,labelKey]) => (
-              <button key={k} type="button" onClick={() => setTab(k)}
-                style={{ padding: '10px 14px', border: 'none', cursor: 'pointer',
-                  fontFamily: FONT.body, fontSize: 12, fontWeight: 600,
-                  letterSpacing: '0.1em', textTransform: 'uppercase',
-                  background: tab === k ? G.brand : 'transparent',
-                  color: tab === k ? '#fff' : T.textDim,
-                  borderRadius: 999, boxShadow: tab === k ? '0 6px 20px -6px rgba(217,70,239,0.5)' : 'none',
-                  transition: `all 260ms ${EASE.springFast}` }}>
-                {t(labelKey)}
-              </button>
-            ))}
-          </div>
-
+          {/* Universal sign-in: the Student vs School/Admin tabs are gone
+              (Mike, 2026-06-12). One form, role auto-detected on submit. */}
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.3em',
             textTransform: 'uppercase', color: T.textDim, marginBottom: 18 }}>
-            {tab === 'student' ? t('login.cardLabel.student') : t('login.cardLabel.admin')}
+            {t('login.cardLabel.student')}
           </div>
 
           <form onSubmit={submit} autoComplete="on">
             <Field
-              label={tab === 'student' ? t('login.field.email.student') : t('login.field.email.admin')}
+              label={t('login.field.email.student')}
               value={email} onChange={setEmail}
               icon="mail" autoComplete="username" required
             />
@@ -370,8 +396,9 @@ export default function LoginV3() {
                 borderRadius: 10, color: T.rose, fontSize: 12 }}>{err}</div>
             )}
             <Btn variant="primary" size="lg" full type="submit" trailingIcon="arrow_forward"
-              disabled={loading} onClick={submit}>
-              {loading ? t('login.button.entering') : (tab === 'student' ? t('login.button.student') : t('login.button.admin'))}
+              disabled={loading} onClick={submit}
+              style={branded ? { background: brandG, boxShadow: '0 8px 24px -10px rgba(24,99,220,0.55)' } : undefined}>
+              {loading ? t('login.button.entering') : t('login.button.student')}
             </Btn>
           </form>
 

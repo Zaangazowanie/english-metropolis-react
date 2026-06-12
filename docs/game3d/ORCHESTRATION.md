@@ -131,3 +131,38 @@ gating than this.
 After each wave-1 stage, report to Mike: PRs opened (links), gate status,
 budget numbers per game (chunk KB gz / asset MB / measured fps tier), and
 blockers. Keep it to one screen.
+
+## Addendum 2026-06-12 — Home page premise + attract video directive
+
+The public home page of englishmetro.com is now the **arcade itself**
+(`src/views/v3/GameHome.jsx`, live route `/`): instantly-playable games, a
+departures board, and a stations grid. **It is the shop window for everything
+you build.** Two standing consequences for your pipeline:
+
+1. **Games land on the home page automatically.** The grid and departures
+   board merge `src/practice/shells3d/kit/registry.ts` at render time, and the
+   eight Wave-1 titles already show as "ARRIVING SOON · 3D". A build PR that
+   appends its registry entry is ALL a game needs to appear on the home page —
+   never edit GameHome.jsx from a game PR (it's outside the allowlist anyway).
+2. **No student/school/admin framing, ever, in anything user-facing you
+   build for the arcade.** Player-first language only. The CI-verified
+   wordlist on home: student, school, admin, teacher, booking — all forbidden.
+
+### NEW DELIVERABLE — gameplay attract video (assign one Fable 5 agent)
+The hero has a wired, self-disabling video slot: `<AttractVideo>` plays
+`public/home/attract.webm` (poster `public/home/attract-poster.jpg`) as an
+ambient full-bleed layer the moment those files exist; until then it renders
+nothing. Produce them:
+
+- **Content:** a 8–12s seamless loop of REAL gameplay montage — capture the
+  actual shells (run the app in your sandbox, record headless via CDP screen-
+  cast or screen capture), 3–4 games, quick cuts, dusk-palette grade. As 3D
+  games merge, refresh the reel to lead with them.
+- **Budget (gate-enforced ideas apply):** webm/VP9, 1280×720, muted, no audio
+  track, ≤ 4.0 MB; poster jpg ≤ 150 KB. It's an ambient layer at 26% opacity
+  behind text — bitrate can be low.
+- **Constraints:** same-origin assets only, no new deps, PR with only
+  `public/home/*` files + a docs note. This path is OUTSIDE the current
+  allowlist, so the PR will be held for Ricky's manual review — expected.
+- Optional follow-up (after Wave 1 merges): per-game 6s clips at
+  `public/home/clips/<shellKey>.webm` ≤ 1 MB each for hover previews.
