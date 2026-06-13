@@ -18,16 +18,22 @@ import type { Game3DRegistryEntry } from '../types'
  */
 export const game3dRegistry: Game3DRegistryEntry[] = [
   {
-    shellKey: 'airplane',
-    title: 'Paper Plane Post',
-    district: 'Royal Mail Sky Route',
-    load: () => import('../Airplane3D'),
+    shellKey: 'mazechase',
+    title: 'Museum After Dark',
+    district: 'Museum After Dark',
+    load: () => import('../MazeChase3D'),
   },
   {
     shellKey: 'snake',
     title: 'Metro Snake',
     district: 'The Underground',
     load: () => import('../Snake3D'),
+  },
+  {
+    shellKey: 'whackamole',
+    title: 'Camden Pop-Up Pigeons',
+    district: 'Camden Market',
+    load: () => import('../WhackAMole3D'),
   },
 ]
 
