@@ -18,6 +18,12 @@ import type { Game3DRegistryEntry } from '../types'
  */
 export const game3dRegistry: Game3DRegistryEntry[] = [
   {
+    shellKey: 'openthebox',
+    title: 'The Vault Job',
+    district: 'The Bank Vault',
+    load: () => import('../OpenTheBox3D'),
+  },
+  {
     shellKey: 'snake',
     title: 'Metro Snake',
     district: 'The Underground',
