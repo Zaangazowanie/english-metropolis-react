@@ -30,6 +30,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     load: () => import('../BalloonPop3D'),
   },
   {
+    shellKey: 'battleship',
+    title: 'Bathtub Fleet',
+    district: 'Little Venice Canals',
+    load: () => import('../Battleship3D'),
+  },
+  {
     shellKey: 'mazechase',
     title: 'Museum After Dark',
     district: 'Museum After Dark',
