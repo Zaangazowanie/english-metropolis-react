@@ -1889,6 +1889,7 @@ export const findAccountByPhone = query({
       if (tail9(s.phone) === want) {
         return {
           kind: "student" as const,
+          studentId: s._id,
           slug: s.slug,
           name: s.name,
           level: s.level,
@@ -1897,15 +1898,26 @@ export const findAccountByPhone = query({
       }
     }
 
-    // Then users (active admin/org_admin/super_admin).
+    // Then users. A teacher (role "teacher", active, not soft-deleted) is matched
+    // BEFORE admins so the Bajla assistant can role-gate them correctly.
     const users = await ctx.db.query("users").collect();
     for (const u of users) {
       if (u.status !== "active") continue;
-      if (!["admin", "org_admin", "super_admin"].includes(u.role)) continue;
       if (!u.phone) continue;
-      if (tail9(u.phone) === want) {
+      if (tail9(u.phone) !== want) continue;
+      if (u.role === "teacher" && !u.deletedAt) {
+        return {
+          kind: "teacher" as const,
+          teacherId: u._id,
+          name: u.name,
+          email: u.email,
+          organizationId: u.organizationId ?? null,
+        };
+      }
+      if (["admin", "org_admin", "super_admin"].includes(u.role)) {
         return {
           kind: "admin" as const,
+          userId: u._id,
           email: u.email,
           name: u.name,
           role: u.role,

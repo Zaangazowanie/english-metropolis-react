@@ -63,8 +63,11 @@ export default defineSchema({
       youglishEnabled: v.optional(v.boolean()),
       ttsEnabled: v.optional(v.boolean()),
       transcriptAnalysisEnabled: v.optional(v.boolean()),
-      brandingPrimary: v.optional(v.string()),     // hex color
-      brandingSecondary: v.optional(v.string()),
+      brandingPrimary: v.optional(v.string()),     // hex color — drives --org-primary
+      brandingSecondary: v.optional(v.string()),   // drives --org-accent
+      brandingDark: v.optional(v.string()),        // optional darker shade for gradients
+      logoUrl: v.optional(v.string()),             // per-school admin logo
+      subdomain: v.optional(v.string()),           // "conversa" -> conversa.englishmetro.com
       customDomain: v.optional(v.string()),        // "english.conversa.pl"
     })),
     subscription: v.optional(v.object({
@@ -137,12 +140,31 @@ export default defineSchema({
     locale: v.optional(v.string()),
     lastLoginAt: v.optional(v.number()),
     status: v.string(),                  // "active", "invited", "disabled"
+    // Per-teacher scheduling (2026-06-04): once a school admin sets a teacher's
+    // availability the one time, this flips true and the school view locks to
+    // read-only — the teacher then owns their own availability.
+    availabilityHandedOff: v.optional(v.boolean()),
+    deletedAt: v.optional(v.number()),   // soft-delete (teacher removal retains all data)
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_email", ["email"])
     .index("by_organization", ["organizationId"])
-    .index("by_role", ["role"]),
+    .index("by_role", ["role"])
+    .index("by_org_role", ["organizationId", "role"]),
+
+  // Magic-link login tokens (teacher portal, 2026-06-04). Only the SHA-256 hash
+  // of the token is stored; single-use (usedAt) and short-lived (expiresAt).
+  magicTokens: defineTable({
+    tokenHash: v.string(),
+    userId: v.id("users"),
+    email: v.string(),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_tokenHash", ["tokenHash"])
+    .index("by_userId", ["userId"]),
 
   // ═══════════════════════════════════════════════════════════
   // STUDENTS
@@ -810,6 +832,9 @@ export default defineSchema({
 
   teacherAvailability: defineTable({
     organizationId: v.id("organizations"),
+    teacherId: v.optional(v.id("users")),  // per-teacher availability (added 2026-06-04);
+                                           // legacy rows (org-wide) leave this unset.
+    dateWarsaw: v.optional(v.string()),    // one-off availability date; absent means recurring weekly.
     dayOfWeek: v.number(),           // 0=Sunday ... 5=Friday, 6=Saturday
     startTime: v.string(),           // "17:10" (Europe/Warsaw)
     endTime: v.string(),             // "20:30" (Europe/Warsaw)
@@ -819,7 +844,8 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_organization", ["organizationId"]),
+    .index("by_organization", ["organizationId"])
+    .index("by_org_teacher", ["organizationId", "teacherId"]),
 
   // ═══════════════════════════════════════════════════════════
   // BILLING — prepaid lesson packages + CEFR certificates
@@ -861,12 +887,14 @@ export default defineSchema({
 
   lessonBookings: defineTable({
     organizationId: v.id("organizations"),
+    teacherId: v.optional(v.id("users")),  // teacher whose slot this is (added 2026-06-04)
     studentId: v.id("students"),
     startUtc: v.number(),            // epoch ms — slot start
     endUtc: v.number(),              // epoch ms — slot end
     dateWarsaw: v.string(),          // "2026-06-05" (Europe/Warsaw, for display/grouping)
     timeWarsaw: v.string(),          // "17:10" (Europe/Warsaw)
     status: v.string(),              // "scheduled" | "completed" | "cancelled" | "cancelled_late"
+    meetLink: v.optional(v.string()),// video room for this lesson (Jitsi now; 8x8 JaaS later)
     bookedBy: v.string(),            // "student" | "school_admin" | "superadmin"
     bookedByName: v.optional(v.string()),
     cancelledBy: v.optional(v.string()),     // same actor vocabulary
@@ -879,7 +907,37 @@ export default defineSchema({
   })
     .index("by_organization", ["organizationId"])
     .index("by_student", ["studentId"])
-    .index("by_org_start", ["organizationId", "startUtc"]),
+    .index("by_org_start", ["organizationId", "startUtc"])
+    .index("by_org_teacher", ["organizationId", "teacherId"]),
+
+  // ═══════════════════════════════════════════════════════════
+  // CURRICULUM — ordered per-student lesson plan (the "30-lesson
+  // pack"). Additive (2026-06-04). `lessons` stays the taught record;
+  // curriculumItems is the FORWARD plan. A taught slot backlinks to its
+  // delivered lessons row via lessonId. pdfUrl carries the pre-made
+  // lesson PDF once generated.
+  // ═══════════════════════════════════════════════════════════
+
+  curriculumItems: defineTable({
+    organizationId: v.optional(v.id("organizations")),
+    studentId: v.id("students"),
+    position: v.number(),                 // 1..30 ordered slot
+    title: v.string(),
+    theme: v.optional(v.string()),
+    topics: v.array(v.string()),
+    languageFocus: v.optional(v.string()),
+    targetCefr: v.optional(v.string()),
+    keywords: v.optional(v.array(v.string())),
+    aim: v.optional(v.string()),
+    status: v.string(),                   // "taught" | "planned"
+    lessonId: v.optional(v.id("lessons")), // set when delivered → links plan slot to taught lesson
+    pdfUrl: v.optional(v.string()),       // pre-made lesson PDF (Kelly questions + keyword table)
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_student", ["studentId"])
+    .index("by_student_position", ["studentId", "position"])
+    .index("by_organization", ["organizationId"]),
 
   // ═══════════════════════════════════════════════════════════
   // INTERFERENCE PATTERNS — Polish-L1-on-English error patterns

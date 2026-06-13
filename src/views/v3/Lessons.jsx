@@ -1915,59 +1915,79 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
           </button>
           {upcomingOpen && (
             <div style={{ padding: '4px 18px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {upcomingLessons.map(lesson => (
-                <div
-                  key={lesson.id}
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: 12,
-                    border: `1px solid ${isDay ? '#E9D5FF' : 'rgba(139,92,246,0.25)'}`,
-                    background: isDay ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.04)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    filter: 'grayscale(0.4)',
-                    opacity: 0.85,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: T.violet || '#A78BFA', flexShrink: 0 }}>schedule</span>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{
-                        fontSize: 10,
+              {upcomingLessons.map(lesson => {
+                const keywordCount = lesson.keywordCount || lesson.keyword_count || lesson.keywords?.length || 0
+                return (
+                  <button
+                    key={lesson.id}
+                    type="button"
+                    onClick={() => setSelectedLesson(lesson)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: 12,
+                      border: `1px solid ${isDay ? '#E9D5FF' : 'rgba(139,92,246,0.25)'}`,
+                      background: isDay ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.04)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      filter: 'grayscale(0.25)',
+                      opacity: 0.92,
+                      cursor: 'pointer',
+                      color: 'inherit',
+                      fontFamily: 'inherit',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 18, color: T.violet || '#A78BFA', flexShrink: 0 }}>schedule</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: '0.16em',
+                          textTransform: 'uppercase',
+                          color: T.violet || '#A78BFA',
+                        }}>
+                          {formatDate(lesson.date)}
+                        </div>
+                        <div style={{
+                          fontSize: 14,
+                          fontWeight: 600,
+                          color: T.text,
+                          lineHeight: 1.3,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {lesson.title}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <span style={{
+                        fontSize: 9,
                         fontWeight: 700,
-                        letterSpacing: '0.16em',
+                        letterSpacing: '0.12em',
                         textTransform: 'uppercase',
                         color: T.violet || '#A78BFA',
                       }}>
-                        {formatDate(lesson.date)}
-                      </div>
-                      <div style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: T.text,
-                        lineHeight: 1.3,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        {t('lessons.wordsCount', { n: keywordCount })}
+                      </span>
+                      <span style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing: '0.18em',
+                        textTransform: 'uppercase',
+                        color: T.violet || '#A78BFA',
                       }}>
-                        {lesson.title}
-                      </div>
+                        {t('lessons.upcoming.tag', { defaultValue: 'Upcoming' })}
+                      </span>
                     </div>
-                  </div>
-                  <span style={{
-                    fontSize: 9,
-                    fontWeight: 700,
-                    letterSpacing: '0.18em',
-                    textTransform: 'uppercase',
-                    color: T.violet || '#A78BFA',
-                    flexShrink: 0,
-                  }}>
-                    {t('lessons.upcoming.tag', { defaultValue: 'Upcoming' })}
-                  </span>
-                </div>
-              ))}
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>

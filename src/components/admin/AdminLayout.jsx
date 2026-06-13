@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useRef } from 'react'
 import { Link, Navigate, Outlet, useLocation, useParams } from 'react-router-dom'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import { useAdminAuth, queryAdminConvex } from '../../contexts/AdminAuthContext.jsx'
+import { useOrgTheme } from '../../contexts/OrgThemeContext.jsx'
 
 const navigationItems = [
   { label: 'Dashboard', to: '/admin', icon: 'space_dashboard' },
@@ -27,6 +28,7 @@ export default function AdminLayout() {
   const location = useLocation()
   const params = useParams()
   const { adminUser, isSuperadmin, adminLogout } = useAdminAuth()
+  const { theme: orgTheme } = useOrgTheme()
   const [org, setOrg] = useState(null)
   const [viewedStudentOrg, setViewedStudentOrg] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -111,18 +113,28 @@ export default function AdminLayout() {
     >
       <div className="sticky-header-shell px-4 pt-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <header className="glass-panel sticky top-0 z-40 rounded-none border border-white/60 border-t-0 editorial-shadow px-4 py-3 sm:top-3 sm:rounded-[2rem] sm:border-t sm:px-6 sm:py-4">
+          <header className="ca-header glass-panel sticky top-0 z-40 rounded-none border border-white/60 border-t-0 editorial-shadow px-4 py-3 sm:top-3 sm:rounded-[2rem] sm:border-t sm:px-6 sm:py-4">
             <div className="flex items-center justify-between gap-3">
               <Link to="/admin" className="flex items-center gap-3 min-w-0 group">
-                <div style={{ backgroundImage: 'linear-gradient(to bottom right, var(--org-primary,#0ea5e9), var(--org-dark,#1d4ed8))' }} className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-[1rem] sm:rounded-[1.25rem] shadow-[0_18px_45px_-22px_rgba(2,132,199,0.85)] transition-transform duration-300 group-hover:scale-105">
-                  <span className="material-symbols-outlined text-white">apartment</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="font-label text-[10px] sm:text-xs font-bold uppercase tracking-[0.32em] text-sky-600">School Administration</p>
-                  <h1 className="font-headline text-xl sm:text-3xl text-slate-900 truncate leading-tight">
-                    {orgName}<span className="italic text-sky-600">.</span>
-                  </h1>
-                </div>
+                {orgTheme?.logoUrl ? (
+                  <div className="min-w-0">
+                    <p className="ca-brand-eyebrow font-label text-[10px] sm:text-xs font-bold uppercase tracking-[0.32em] text-sky-600">School Administration</p>
+                    <img src={orgTheme.logoUrl} alt={orgName} className="ca-brand-logo mt-1 h-8 sm:h-11 w-auto max-w-[60vw]" />
+                    <h1 className="sr-only">{orgName}</h1>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ backgroundImage: 'linear-gradient(to bottom right, var(--org-primary,#0ea5e9), var(--org-dark,#1d4ed8))' }} className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-[1rem] sm:rounded-[1.25rem] shadow-[0_18px_45px_-22px_rgba(2,132,199,0.85)] transition-transform duration-300 group-hover:scale-105">
+                      <span className="material-symbols-outlined text-white">apartment</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-label text-[10px] sm:text-xs font-bold uppercase tracking-[0.32em] text-sky-600">School Administration</p>
+                      <h1 className="font-headline text-xl sm:text-3xl text-slate-900 truncate leading-tight">
+                        {orgName}<span className="italic text-sky-600">.</span>
+                      </h1>
+                    </div>
+                  </>
+                )}
               </Link>
 
               {isSuperadmin && (
@@ -178,7 +190,7 @@ export default function AdminLayout() {
 
       <main className="px-4 pb-12 sm:px-6 lg:px-8">
         <div className="mx-auto grid grid-cols-1 max-w-7xl gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
-          <aside className="glass-panel h-fit rounded-[2rem] border border-white/50 p-3 editorial-shadow lg:sticky lg:top-28">
+          <aside className="ca-sidenav glass-panel h-fit rounded-[2rem] border border-white/50 p-3 editorial-shadow lg:sticky lg:top-28">
             <p className="font-label px-3 pt-2 text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">Navigation</p>
             <div className="mt-3 space-y-1.5">
               {navigationItems.map((item) => {

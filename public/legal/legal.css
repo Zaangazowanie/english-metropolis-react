@@ -376,6 +376,10 @@ html[data-lang="pl"] .lang-en { display: none !important; }
 }
 @media (max-width: 560px) {
   .legal-topnav .hide-mobile { display: none; }
+  /* Wrap the topnav so the EN/PL toggle drops to a second line instead of
+     running ~45px off-screen (caused a horizontal scroll at 390px). */
+  .legal-topnav { flex-wrap: wrap; justify-content: center; row-gap: 0.4rem; }
+  .lang-toggle { margin-left: 0; }
   .legal-table td:first-child { white-space: normal; }
 }
 

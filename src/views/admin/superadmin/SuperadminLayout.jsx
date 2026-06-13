@@ -7,6 +7,7 @@ const navigation = [
   { to: '/admin/superadmin/jobs', label: 'Queue', icon: 'pending_actions' },
   { to: '/admin/superadmin/students', label: 'All Students', icon: 'person' },
   { to: '/admin/superadmin/groups', label: 'Groups', icon: 'groups' },
+  { to: '/admin/superadmin/availability', label: 'Availability', icon: 'event_available' },
   { to: '/admin/superadmin/audit', label: 'Audit Log', icon: 'history' },
   { to: '/admin/superadmin/salary', label: 'Salary', icon: 'payments' },
 ]

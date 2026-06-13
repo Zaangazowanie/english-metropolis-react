@@ -252,32 +252,65 @@ function buildLessonsFromConvex(convexLessons, convexKeywords) {
   }))
 }
 
-// Extract the next upcoming (status="planned") lesson, preferring lessons
-// whose scheduled date+time is still in the future. Returns null if none.
-function pickNextUpcomingLesson(lessons) {
+function parseScheduledPreview(lesson) {
+  const summary = String(lesson?.summary || '')
+  const startTime = (summary.match(/Scheduled\s+(\d\d:\d\d)/i) || [])[1] || ''
+  const meetingUrl = (summary.match(/https?:\/\/(?:meet\.google\.com|meet\.jit\.si)\/[a-z0-9-]+/i) || [])[0] || ''
+  const [y, m, d] = String(lesson?.date || '').split('-').map(Number)
+  const [hh, mm] = (startTime || '23:59').split(':').map(Number)
+  const offsetHours = m >= 4 && m <= 10 ? 2 : 1
+  const startAtMs = Number.isFinite(y)
+    ? Date.UTC(y, (m || 1) - 1, d || 1, (hh || 23) - offsetHours, mm || 59)
+    : 0
+  return { startTime, meetingUrl, startAtMs }
+}
+
+function findLessonPreviewForBooking(lessons, booking) {
+  const planned = (lessons || []).filter((lesson) =>
+    lesson && lesson.status === 'planned' && lesson.date === booking.dateWarsaw,
+  )
+  return planned.find((lesson) => parseScheduledPreview(lesson).startTime === booking.timeWarsaw)
+    || planned[0]
+    || null
+}
+
+// The calendar booking table is the truth for upcoming lesson date/time/status.
+// Planned lesson rows supply the preview title, topics, and keywords.
+function pickNextUpcomingLesson(lessons, bookings) {
   const now = Date.now()
+  const nextBooking = (bookings || [])
+    .filter((booking) => booking && booking.status === 'scheduled')
+    .filter((booking) => Number(booking.endUtc || booking.startUtc || 0) > now)
+    .sort((a, b) => Number(a.startUtc || 0) - Number(b.startUtc || 0))[0]
+
+  if (nextBooking) {
+    const preview = findLessonPreviewForBooking(lessons, nextBooking)
+    return {
+      ...(preview || {}),
+      id: preview?.id || String(nextBooking._id),
+      bookingId: String(nextBooking._id),
+      date: nextBooking.dateWarsaw || preview?.date || '',
+      title: preview?.title || nextBooking.notes || 'Upcoming lesson',
+      topics: preview?.topics || [],
+      keywords: preview?.keywords || [],
+      keyword_count: preview?.keyword_count || preview?.keywords?.length || 0,
+      status: preview?.status || 'planned',
+      startTime: nextBooking.timeWarsaw || '',
+      meetingUrl: nextBooking.meetLink || '',
+      startAtMs: Number(nextBooking.startUtc || 0),
+      endAtMs: Number(nextBooking.endUtc || 0),
+    }
+  }
+
   const candidates = (lessons || [])
-    .filter((l) => l && l.status === 'planned' && l.date)
-    .map((l) => {
-      const summary = String(l.summary || '')
-      const startTime = (summary.match(/Scheduled\s+(\d\d:\d\d)/i) || [])[1] || ''
-      const meetingUrl = (summary.match(/https?:\/\/meet\.google\.com\/[a-z0-9-]+/i) || [])[0] || ''
-      const [y, m, d] = String(l.date).split('-').map(Number)
-      const [hh, mm] = (startTime || '00:00').split(':').map(Number)
-      // Parse as Europe/Warsaw — CEST (UTC+2) Apr-Oct, CET (UTC+1) otherwise.
-      // Approximation, matches Calendar.jsx logic.
-      const offsetHours = m >= 4 && m <= 10 ? 2 : 1
-      const startAtMs = Number.isFinite(y)
-        ? Date.UTC(y, (m || 1) - 1, d || 1, (hh || 0) - offsetHours, mm || 0)
-        : 0
-      return { ...l, startTime, meetingUrl, startAtMs }
-    })
-    // Hide lessons that ended >60min ago — Calendar.jsx uses the same window.
-    .filter((l) => !l.startAtMs || l.startAtMs + 60 * 60_000 > now)
+    .filter((lesson) => lesson && lesson.status === 'planned' && lesson.date)
+    .map((lesson) => ({ ...lesson, ...parseScheduledPreview(lesson) }))
+    .filter((lesson) => !lesson.startAtMs || lesson.startAtMs + 60 * 60_000 > now)
     .sort((a, b) => (a.startAtMs || 0) - (b.startAtMs || 0))
 
   return candidates[0] || null
 }
+
 
 export default function useStudentData() {
   const params = useParams()
@@ -288,6 +321,7 @@ export default function useStudentData() {
     convexError: '',
     profile: initialProfile,
     lessons: [],
+    bookings: [],
     keywords: [],
     analyses: [],
     convexLessonsById: {},
@@ -323,8 +357,9 @@ export default function useStudentData() {
         queryConvex('students:listLessons', { studentId }),
         queryConvex('analytics:getStudentAnalyses', { studentId, limit: ANALYSES_LIMIT }),
         queryConvex('students:listKeywords', { studentId, limit: 2000 }),
+        queryConvex('scheduling:listBookings', { studentId }),
       ]
-      const [convexLessonsResult, analysesResult, keywordsResult] =
+      const [convexLessonsResult, analysesResult, keywordsResult, bookingsResult] =
         await Promise.allSettled(fetches)
       const lessonsResult = convexLessonsResult
 
@@ -332,6 +367,7 @@ export default function useStudentData() {
 
       const convexLessons = convexLessonsResult.status === 'fulfilled' ? convexLessonsResult.value : []
       const convexKeywords = keywordsResult.status === 'fulfilled' ? keywordsResult.value : []
+      const bookings = bookingsResult.status === 'fulfilled' ? bookingsResult.value : []
       const lessonsPayload = buildLessonsFromConvex(convexLessons, convexKeywords)
       const convexLessonsById = normalizeConvexLessons(
         convexLessonsResult.status === 'fulfilled' ? convexLessonsResult.value : [],
@@ -365,6 +401,7 @@ export default function useStudentData() {
             : '',
         profile: profileFromStudent,
         lessons: mergedLessons,
+        bookings,
         keywords: flattenKeywords(mergedLessons),
         analyses,
         convexLessonsById,
@@ -387,7 +424,7 @@ export default function useStudentData() {
   const averageScore = state.analyses.length
     ? Math.round(state.analyses.reduce((total, analysis) => total + Number(analysis?.overallScore || 0), 0) / state.analyses.length)
     : 0
-  const upcomingLesson = pickNextUpcomingLesson(state.lessons)
+  const upcomingLesson = pickNextUpcomingLesson(state.lessons, state.bookings)
 
   return {
     ...state,

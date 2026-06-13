@@ -1,8 +1,8 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { queryAdminConvex } from '../../contexts/AdminAuthContext.jsx'
-import { ensureJsPdf, ensurePdfFonts } from '../../utils/pdf-loader.js'
 import { formatDate, formatLongDate, CefrBadge } from '../../components/analytics/AnalyticsPrimitives.jsx'
+import { Avatar, AssignFields, TeacherChip, CourseChip, persistAssignment } from '../../components/admin/AdminKit.jsx'
 
 /* ============================================================================
    Utilities
@@ -749,432 +749,53 @@ function LessonArchiveCard({ lesson, analysis, pdf, onOpen, animatedDelay = 0 })
    (Tier 3 cleanup, 2026-05-02: was an inline copy with no VENDOR_V cache-bust).
    ============================================================================ */
 
-async function generateStudentReport(student, assessment, feedback, enrichedAnalyses, lessons) {
-  let jspdfLib
-  try {
-    jspdfLib = await ensureJsPdf()
-    await ensurePdfFonts()
-  } catch (err) {
-    console.error('Failed to load PDF dependencies', err)
-    alert('Could not load the PDF generator. Please refresh and try again.')
-    return
+// Download the student's full progress report as a PDF. Rendered server-side
+// (headless Chrome) by the em-report service via /api/report, from the SAME data
+// shown on screen — far higher typographic fidelity than the old client jsPDF.
+async function generateStudentReport(student, assessment, feedback, enrichedAnalyses, lessons, totalKeywords, warmSummary) {
+  const METRIC_KEYS = ['vocabularyRange', 'grammaticalAccuracy', 'fluencyAndCoherence', 'pronunciation', 'communicativeEffectiveness']
+  const pickMetrics = (o) => METRIC_KEYS.reduce((acc, k) => { acc[k] = o?.[k] || 0; return acc }, {})
+  const report = {
+    organizationId: student?.organizationId || null,
+    student: {
+      name: student?.name || 'Student', slug: student?.slug || 'student',
+      level: student?.level || '', targetLevel: student?.targetLevel || '',
+    },
+    meta: { lessons: lessons?.length || 0, assessments: enrichedAnalyses?.length || 0, vocabulary: totalKeywords || 0 },
+    narrative: warmSummary || '',
+    assessment: assessment ? {
+      cefrBand: assessment.cefrBand, overallScore: assessment.overallScore,
+      avgOverall: assessment.avgOverall, assessmentCount: assessment.assessmentCount,
+      ...pickMetrics(assessment),
+    } : null,
+    patterns: {
+      strengths: (feedback?.strengths || []).map(s => ({ text: s.text, count: s.count })),
+      improvements: (feedback?.improvements || []).map(s => ({ text: s.text, count: s.count })),
+    },
+    lessons: (enrichedAnalyses || []).map(a => ({
+      date: a.lessonDate, title: a.lessonTitle, cefrBand: a.cefrBand, overallScore: a.overallScore,
+      metrics: pickMetrics(a), summary: a.lessonSummary || '',
+      strengths: a.strengths || [], improvements: a.improvements || [], keyErrors: a.keyErrors || [],
+    })),
   }
-  if (!jspdfLib?.jsPDF) {
-    alert('PDF library not loaded. Please refresh the page.')
-    return
+  let sessionToken = null
+  try { sessionToken = JSON.parse(sessionStorage.getItem('conversa-admin-session') || '{}')?.sessionToken || null } catch { /* ignore */ }
+  const resp = await fetch('/api/report', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionToken, report }),
+  })
+  if (!resp.ok) {
+    alert(`Could not generate the report (HTTP ${resp.status}). Please try again.`)
+    throw new Error(`report failed ${resp.status}`)
   }
-  const { jsPDF } = jspdfLib
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' })
-
-  // Register Noto Sans for Unicode (Polish) support
-  try {
-    doc.addFileToVFS('NotoSans-Regular.ttf', window.__NOTO_REGULAR_B64)
-    doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal')
-    doc.addFileToVFS('NotoSans-Bold.ttf', window.__NOTO_BOLD_B64)
-    doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold')
-  } catch (err) {
-    console.warn('Failed to register Noto Sans font', err)
-  }
-
-  const pageW = doc.internal.pageSize.getWidth()
-  const pageH = doc.internal.pageSize.getHeight()
-  const margin = 48
-  const maxW = pageW - margin * 2
-
-  // Color palette
-  const C = {
-    primary: [37, 99, 235],
-    primaryDark: [29, 78, 216],
-    secondary: [124, 58, 237],
-    emerald: [5, 150, 105],
-    amber: [217, 119, 6],
-    rose: [220, 38, 38],
-    slate900: [15, 23, 42],
-    slate700: [51, 65, 85],
-    slate500: [100, 116, 139],
-    slate400: [148, 163, 184],
-    slate200: [226, 232, 240],
-    slate100: [241, 245, 249],
-    slate50: [248, 250, 252],
-    white: [255, 255, 255],
-    emeraldSoft: [209, 250, 229],
-    amberSoft: [254, 243, 199],
-    roseSoft: [254, 226, 226],
-    skySoft: [224, 242, 254],
-  }
-
-  const setF = (weight = 'normal') => doc.setFont('NotoSans', weight)
-  const setColor = (c) => doc.setTextColor(c[0], c[1], c[2])
-  const setFill = (c) => doc.setFillColor(c[0], c[1], c[2])
-  const setStroke = (c) => doc.setDrawColor(c[0], c[1], c[2])
-
-  let y = margin
-  let toc = [] // { text, page }
-
-  function ensureSpace(needed) {
-    if (y + needed > pageH - 60) {
-      doc.addPage()
-      y = margin
-    }
-  }
-
-  function heading(text, size = 16, color = C.slate900) {
-    ensureSpace(size + 12)
-    setF('bold').setFontSize(size)
-    setColor(color)
-    doc.text(text, margin, y)
-    // Underline accent
-    setStroke(C.primary)
-    doc.setLineWidth(1.2)
-    doc.line(margin, y + 3, margin + 28, y + 3)
-    y += size + 10
-  }
-
-  function subheading(text, size = 11, color = C.slate500) {
-    ensureSpace(size + 4)
-    setF('normal').setFontSize(size)
-    setColor(color)
-    doc.text(text, margin, y)
-    y += size + 4
-  }
-
-  function para(text, size = 10, color = C.slate700, indent = 0) {
-    if (!text) return
-    setF('normal').setFontSize(size)
-    setColor(color)
-    const lines = doc.splitTextToSize(String(text), maxW - indent)
-    for (const ln of lines) {
-      ensureSpace(size + 2)
-      doc.text(ln, margin + indent, y)
-      y += size + 3
-    }
-    y += 3
-  }
-
-  function bullet(text, { indent = 14, size = 10, color = C.slate700, markerColor = C.primary, marker = '•' } = {}) {
-    if (!text) return
-    setF('bold').setFontSize(size)
-    setColor(markerColor)
-    doc.text(marker, margin + indent - 8, y)
-    setF('normal')
-    setColor(color)
-    const lines = doc.splitTextToSize(String(text), maxW - indent)
-    for (let i = 0; i < lines.length; i++) {
-      ensureSpace(size + 2)
-      doc.text(lines[i], margin + indent, y)
-      y += size + 3
-    }
-    y += 1
-  }
-
-  function sectionBox(title, bodyFn, { bgColor = C.skySoft, borderColor = C.primary, titleColor = C.primary, padding = 12 } = {}) {
-    const startY = y
-    // Placeholder for box — we'll render after we know the height
-    const innerY = startY + padding + 14
-    y = innerY
-    const prevY = y
-    bodyFn()
-    const endY = y
-    const boxH = endY - startY + padding
-    // Draw background
-    setFill(bgColor)
-    setStroke(borderColor)
-    doc.setLineWidth(0.8)
-    doc.roundedRect(margin - 6, startY - 6, maxW + 12, boxH + 6, 10, 10, 'FD')
-    // Title bar
-    setFill(C.white)
-    doc.roundedRect(margin - 2, startY - 2, 140, 18, 9, 9, 'F')
-    setF('bold').setFontSize(9)
-    setColor(titleColor)
-    doc.text(title, margin + 6, startY + 10)
-    // Re-render body on top (since the box is behind, we need body again)
-    y = startY + padding + 20
-  }
-
-  // ================= COVER PAGE =================
-  // Gradient-ish header (simulated with two rects)
-  setFill(C.primary)
-  doc.rect(0, 0, pageW, 140, 'F')
-  setFill(C.primaryDark)
-  doc.rect(0, 140, pageW, 8, 'F')
-
-  // School logo placeholder circle
-  setFill(C.white)
-  doc.circle(pageW - margin - 20, 40, 16, 'F')
-  setColor(C.primary).setFontSize(10).setFont('NotoSans', 'bold')
-  doc.text('CS', pageW - margin - 26, 44)
-
-  setColor(C.white).setFont('NotoSans', 'bold').setFontSize(10)
-  doc.text('CONVERSA SCHOOL  ·  ENGLISH METROPOLIS', margin, 44)
-  doc.setFontSize(28)
-  doc.text(student?.name || 'Student Report', margin, 90)
-  doc.setFontSize(12).setFont('NotoSans', 'normal')
-  const summary = `CEFR ${student?.level || 'N/A'}  ·  ${lessons?.length || 0} lessons  ·  ${enrichedAnalyses?.length || 0} assessments`
-  doc.text(summary, margin, 115)
-
-  y = 180
-
-  // Generated date
-  setColor(C.slate400).setFontSize(9).setFont('NotoSans', 'normal')
-  doc.text(`Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`, margin, y)
-  y += 24
-
-  // ================= EXECUTIVE SUMMARY BOX =================
-  if (assessment) {
-    const boxStart = y
-    setFill(C.skySoft)
-    setStroke(C.primary)
-    doc.setLineWidth(1)
-    doc.roundedRect(margin, y, maxW, 130, 12, 12, 'FD')
-    y += 18
-
-    setF('bold').setFontSize(10)
-    setColor(C.primary)
-    doc.text('EXECUTIVE SUMMARY', margin + 16, y)
-    y += 16
-
-    setF('bold').setFontSize(18)
-    setColor(C.slate900)
-    doc.text(`${assessment.cefrBand}  ${Math.round(assessment.overallScore)}/100`, margin + 16, y)
-
-    setF('normal').setFontSize(10)
-    setColor(C.slate700)
-    doc.text(`  ·  Rolling average ${assessment.avgOverall}/100 across ${assessment.assessmentCount} assessments`, margin + 125, y - 1)
-    y += 18
-
-    // 5 metric mini-bars in a row inside the box
-    const barsAreaX = margin + 16
-    const barsAreaW = maxW - 32
-    const slotW = barsAreaW / 5
-    METRICS.forEach((m, i) => {
-      const val = assessment[m.key] || 0
-      const cx = barsAreaX + i * slotW + 6
-      // Label
-      setF('bold').setFontSize(7)
-      setColor(C.slate500)
-      doc.text(m.shortLabel.toUpperCase(), cx, y + 8)
-      // Value
-      setF('bold').setFontSize(14)
-      setColor(C.slate900)
-      doc.text(String(Math.round(val)), cx, y + 24)
-      // Mini bar
-      setFill(C.slate200)
-      doc.roundedRect(cx, y + 30, slotW - 14, 4, 2, 2, 'F')
-      const metricColor = m.hue.stroke === '#0891b2' ? [8, 145, 178] :
-                          m.hue.stroke === '#7c3aed' ? [124, 58, 237] :
-                          m.hue.stroke === '#059669' ? [5, 150, 105] :
-                          m.hue.stroke === '#d97706' ? [217, 119, 6] : [37, 99, 235]
-      setFill(metricColor)
-      doc.roundedRect(cx, y + 30, (slotW - 14) * (val / 100), 4, 2, 2, 'F')
-    })
-    y = boxStart + 130 + 18
-  }
-
-  // ================= CEFR Longitudinal Chart =================
-  if (enrichedAnalyses && enrichedAnalyses.length > 1) {
-    heading('CEFR Progression', 14, C.slate900)
-    subheading('Overall score across every graded lesson', 9, C.slate500)
-    y += 4
-    // Draw a simple line chart
-    const chartH = 140
-    const chartW = maxW
-    const chartX = margin
-    const chartY = y
-    setFill(C.slate50)
-    setStroke(C.slate200)
-    doc.setLineWidth(0.5)
-    doc.roundedRect(chartX, chartY, chartW, chartH, 8, 8, 'FD')
-    // Grid
-    for (let g = 0; g <= 4; g++) {
-      const gy = chartY + 12 + (chartH - 24) * (g / 4)
-      setStroke(C.slate200)
-      doc.setLineWidth(0.3)
-      doc.line(chartX + 30, gy, chartX + chartW - 12, gy)
-      setColor(C.slate400)
-      setF('normal').setFontSize(7)
-      doc.text(String(100 - g * 25), chartX + 22, gy + 2, { align: 'right' })
-    }
-    // Data points
-    const sorted = [...enrichedAnalyses].filter(a => a.lessonDate).sort((a, b) => String(a.lessonDate).localeCompare(String(b.lessonDate)))
-    const points = sorted.map((a, i) => {
-      const x = chartX + 34 + (chartW - 46) * (sorted.length > 1 ? i / (sorted.length - 1) : 0.5)
-      const v = Number(a.overallScore) || 0
-      const yVal = chartY + 12 + (chartH - 24) * (1 - v / 100)
-      return { x, y: yVal, val: v, date: a.lessonDate, analysis: a }
-    })
-    // Line
-    setStroke(C.primary)
-    doc.setLineWidth(1.8)
-    for (let i = 1; i < points.length; i++) {
-      doc.line(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y)
-    }
-    // Points
-    for (const p of points) {
-      setFill(C.white)
-      setStroke(C.primary)
-      doc.setLineWidth(1.5)
-      doc.circle(p.x, p.y, 3.2, 'FD')
-      setFill(C.primary)
-      doc.circle(p.x, p.y, 1.4, 'F')
-    }
-    // X axis labels
-    if (sorted.length >= 2) {
-      setF('normal').setFontSize(7)
-      setColor(C.slate400)
-      const firstDate = sorted[0].lessonDate
-      const lastDate = sorted[sorted.length - 1].lessonDate
-      doc.text(formatDate(firstDate), chartX + 34, chartY + chartH - 4)
-      doc.text(formatDate(lastDate), chartX + chartW - 12, chartY + chartH - 4, { align: 'right' })
-    }
-    y = chartY + chartH + 20
-  }
-
-  // ================= RECURRING PATTERNS =================
-  if (feedback?.strengths?.length || feedback?.improvements?.length) {
-    heading('Recurring Patterns Across All Lessons', 14)
-    if (feedback.strengths.length) {
-      subheading('Consistent Strengths', 10, C.emerald)
-      y += 2
-      for (const s of feedback.strengths.slice(0, 8)) {
-        bullet(`${s.text}${s.count > 1 ? ` (observed ×${s.count})` : ''}`, { markerColor: C.emerald, marker: '✓' })
-      }
-      y += 6
-    }
-    if (feedback.improvements.length) {
-      subheading('Targets to Prioritise', 10, C.amber)
-      y += 2
-      for (const s of feedback.improvements.slice(0, 8)) {
-        bullet(`${s.text}${s.count > 1 ? ` (observed ×${s.count})` : ''}`, { markerColor: C.amber, marker: '▲' })
-      }
-      y += 6
-    }
-  }
-
-  // ================= TABLE OF CONTENTS placeholder (will populate after lessons) =================
-
-  // ================= LESSON BY LESSON =================
-  doc.addPage()
-  y = margin
-  heading('Lesson-by-Lesson Assessments', 16)
-  subheading('Each lesson with clinical commentary, key errors, and per-metric scores', 10, C.slate500)
-  y += 6
-
-  for (let li = 0; li < enrichedAnalyses.length; li++) {
-    const a = enrichedAnalyses[li]
-    ensureSpace(160)
-
-    // Remember the page for this lesson (for ToC)
-    const lessonPage = doc.internal.getNumberOfPages()
-    toc.push({
-      title: `${a.lessonTitle || 'Lesson'} · ${a.lessonDate || 'undated'}`,
-      page: lessonPage,
-      anchor: `lesson-${li}`,
-    })
-
-    // Lesson header block
-    const headerStart = y
-    setFill(C.primary)
-    doc.roundedRect(margin, y, maxW, 32, 6, 6, 'F')
-    setColor(C.white).setFont('NotoSans', 'bold').setFontSize(11)
-    doc.text(`${a.lessonDate || 'Undated'}  ·  ${a.lessonTitle || 'Lesson'}`, margin + 12, y + 20)
-    setColor(C.white).setFont('NotoSans', 'bold').setFontSize(10)
-    doc.text(`${a.cefrBand} ${Math.round(a.overallScore || 0)}`, pageW - margin - 12, y + 20, { align: 'right' })
-    y += 40
-
-    // Mini per-metric scores row
-    setF('normal').setFontSize(8)
-    setColor(C.slate500)
-    const scores = [
-      { l: 'Vocab', v: a.vocabularyRange, c: [8, 145, 178] },
-      { l: 'Grammar', v: a.grammaticalAccuracy, c: [124, 58, 237] },
-      { l: 'Fluency', v: a.fluencyAndCoherence, c: [5, 150, 105] },
-      { l: 'Pronun.', v: a.pronunciation, c: [217, 119, 6] },
-      { l: 'Comm.', v: a.communicativeEffectiveness, c: [37, 99, 235] },
-    ]
-    const perSlot = maxW / 5
-    scores.forEach((s, i) => {
-      const x = margin + i * perSlot + 8
-      setF('bold').setFontSize(7)
-      setColor(C.slate400)
-      doc.text(s.l.toUpperCase(), x, y + 8)
-      setF('bold').setFontSize(12)
-      setColor(s.c)
-      doc.text(String(Math.round(s.v || 0)), x, y + 22)
-      setFill(C.slate100)
-      doc.roundedRect(x, y + 26, perSlot - 16, 3, 1.5, 1.5, 'F')
-      setFill(s.c)
-      doc.roundedRect(x, y + 26, (perSlot - 16) * ((s.v || 0) / 100), 3, 1.5, 1.5, 'F')
-    })
-    y += 42
-
-    // Summary
-    if (a.lessonSummary) {
-      para(a.lessonSummary, 9, C.slate700)
-      y += 2
-    }
-
-    // Strengths
-    if (a.strengths?.length) {
-      ensureSpace(20)
-      setF('bold').setFontSize(8)
-      setColor(C.emerald)
-      doc.text('STRENGTHS', margin, y)
-      y += 10
-      for (const s of a.strengths.slice(0, 6)) {
-        bullet(typeof s === 'string' ? s : JSON.stringify(s), { indent: 16, size: 9, markerColor: C.emerald, marker: '✓' })
-      }
-      y += 3
-    }
-    // Improvements
-    if (a.improvements?.length) {
-      ensureSpace(20)
-      setF('bold').setFontSize(8)
-      setColor(C.amber)
-      doc.text('AREAS TO IMPROVE', margin, y)
-      y += 10
-      for (const s of a.improvements.slice(0, 6)) {
-        bullet(typeof s === 'string' ? s : JSON.stringify(s), { indent: 16, size: 9, markerColor: C.amber, marker: '▲' })
-      }
-      y += 3
-    }
-    // Key errors
-    if (a.keyErrors?.length) {
-      ensureSpace(20)
-      setF('bold').setFontSize(8)
-      setColor(C.rose)
-      doc.text('KEY ERRORS', margin, y)
-      y += 10
-      for (const e of a.keyErrors.slice(0, 6)) {
-        const errTxt = `"${e.error}" ${e.category ? `[${e.category}]` : ''}`
-        const corTxt = e.correction ? `→ ${e.correction}` : ''
-        bullet(errTxt, { indent: 16, size: 9, color: C.rose, markerColor: C.rose, marker: '✗' })
-        if (corTxt) bullet(corTxt, { indent: 24, size: 9, color: C.emerald, markerColor: C.emerald, marker: '→' })
-      }
-      y += 3
-    }
-
-    y += 14
-  }
-
-  // ================= FOOTER ON ALL PAGES =================
-  const total = doc.internal.getNumberOfPages()
-  for (let i = 1; i <= total; i++) {
-    doc.setPage(i)
-    setFill(C.slate50)
-    doc.rect(0, pageH - 32, pageW, 32, 'F')
-    setStroke(C.slate200)
-    doc.setLineWidth(0.5)
-    doc.line(margin, pageH - 32, pageW - margin, pageH - 32)
-    setF('normal').setFontSize(8)
-    setColor(C.slate400)
-    doc.text(`Conversa School · English Metropolis`, margin, pageH - 16)
-    doc.text(`${student?.name || ''}`, pageW / 2, pageH - 16, { align: 'center' })
-    doc.text(`Page ${i} of ${total}`, pageW - margin, pageH - 16, { align: 'right' })
-  }
-
-  const slug = (student?.slug || 'student')
-  const filename = `${slug}-report-${new Date().toISOString().slice(0, 10)}.pdf`
-  doc.save(filename)
+  const blob = await resp.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${student?.slug || 'student'}-report-${new Date().toISOString().slice(0, 10)}.pdf`
+  document.body.appendChild(a); a.click(); a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 4000)
 }
 
 /* ============================================================================
@@ -1208,6 +829,14 @@ export default function StudentDetail() {
   const [selectedLesson, setSelectedLesson] = useState(null)
   const [selectedKeyword, setSelectedKeyword] = useState(null)
   const [selectedMetric, setSelectedMetric] = useState(null) // { metric, scope: 'overall' | 'lesson', analysis? }
+  const [reportBusy, setReportBusy] = useState(false)
+
+  // Assignment (teacher + course) — roster data + inline editor state.
+  const [teachers, setTeachers] = useState([])
+  const [groups, setGroups] = useState([])
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [assignDraft, setAssignDraft] = useState({ primaryTeacherId: '', groupId: '' })
+  const [assignSaving, setAssignSaving] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -1229,6 +858,25 @@ export default function StudentDetail() {
     load()
     return () => { cancelled = true }
   }, [slug])
+
+  const refreshDashboard = useCallback(async () => {
+    try {
+      const data = await queryAdminConvex('students:getStudentDashboard', { studentSlug: slug })
+      setState(s => ({ ...s, data }))
+    } catch { /* keep current view on transient failure */ }
+  }, [slug])
+
+  // Teachers + courses for the assignment panel, scoped to the student's school.
+  const studentOrgId = state.data?.student?.organizationId
+  useEffect(() => {
+    if (!studentOrgId) { setTeachers([]); setGroups([]); return }
+    let cancelled = false
+    Promise.all([
+      queryAdminConvex('teachers:listTeachers', { organizationId: studentOrgId }).catch(() => []),
+      queryAdminConvex('groups:listGroups', { organizationId: studentOrgId }).catch(() => []),
+    ]).then(([t, g]) => { if (!cancelled) { setTeachers(t || []); setGroups(g || []) } })
+    return () => { cancelled = true }
+  }, [studentOrgId])
 
   // CEFR level-change history (audit-log backed). Loaded once we know the
   // student's _id from the dashboard payload.
@@ -1398,10 +1046,35 @@ export default function StudentDetail() {
   const pdfByDate = Object.fromEntries(studentPdfs.map(p => [p.date, p]))
   const warmSummary = buildWarmSummary(student, enrichedAnalyses, lessons)
 
-  // Editorial hero name split — final word italicised in sky-600 (Dashboard.jsx pattern)
+  // Editorial hero name split — final word accented (Dashboard.jsx pattern)
   const nameParts = String(student?.name || 'Student').trim().split(/\s+/)
   const heroFirst = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : ''
   const heroLast = nameParts[nameParts.length - 1] || 'Student'
+
+  // Resolve the current teacher + course names for the assignment panel.
+  const assignedTeacherName = student?.primaryTeacherId
+    ? (teachers.find(t => String(t._id) === String(student.primaryTeacherId))?.name || '')
+    : ''
+  const assignedCourseName = student?.groupId
+    ? (groups.find(g => String(g._id) === String(student.groupId))?.name || '')
+    : ''
+
+  function openAssign() {
+    setAssignDraft({
+      primaryTeacherId: student?.primaryTeacherId ? String(student.primaryTeacherId) : '',
+      groupId: student?.groupId ? String(student.groupId) : '',
+    })
+    setAssignOpen(true)
+  }
+  async function saveAssign() {
+    setAssignSaving(true)
+    try {
+      await persistAssignment(student, assignDraft)
+      await refreshDashboard()
+      setAssignOpen(false)
+    } catch { /* surfaced inline below if needed */ }
+    finally { setAssignSaving(false) }
+  }
 
   return (
     <div className="space-y-6">
@@ -1427,11 +1100,18 @@ export default function StudentDetail() {
             </Link>
             <button
               type="button"
-              onClick={() => generateStudentReport(student, overallAssessment, overallFeedback, enrichedAnalyses, lessons)}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-18px_rgba(2,132,199,1)] transition-all duration-300 cursor-pointer"
+              disabled={reportBusy}
+              onClick={async () => {
+                setReportBusy(true)
+                try {
+                  await generateStudentReport(student, overallAssessment, overallFeedback, enrichedAnalyses, lessons, totalKeywords, warmSummary)
+                } catch { /* alerted in generator */ }
+                finally { setReportBusy(false) }
+              }}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_20px_40px_-18px_rgba(2,132,199,1)] transition-all duration-300 enabled:cursor-pointer disabled:opacity-60"
             >
-              <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
-              Download Full Report
+              <span className="material-symbols-outlined text-lg">{reportBusy ? 'hourglass_top' : 'picture_as_pdf'}</span>
+              {reportBusy ? 'Generating…' : 'Download Full Report'}
             </button>
           </div>
 
@@ -1439,9 +1119,7 @@ export default function StudentDetail() {
 
           <div className="mt-3 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex items-center gap-5">
-              <div className="flex h-16 w-16 sm:h-20 sm:w-20 shrink-0 items-center justify-center rounded-[1.25rem] bg-gradient-to-br from-sky-500 to-blue-700 shadow-[0_14px_30px_-16px_rgba(2,132,199,0.9)]">
-                <span className="font-headline text-xl sm:text-2xl text-white">{initials}</span>
-              </div>
+              <Avatar name={student?.name} size={76} ring className="sm:!h-20 sm:!w-20" />
               <div>
                 <h1 className="font-headline text-4xl sm:text-5xl text-slate-900 leading-[1.02]">
                   {heroFirst && <>{heroFirst} </>}<span className="italic text-sky-600">{heroLast}</span>
@@ -1488,6 +1166,37 @@ export default function StudentDetail() {
           {/* Warm summary paragraph */}
           <p className="mt-6 text-[15px] leading-relaxed text-slate-600 max-w-4xl">{warmSummary}</p>
         </div>
+      </section>
+
+      {/* ── Assignment — teacher + course, editable inline ─────────── */}
+      <section className="glass-panel px-5 py-5 editorial-shadow sm:px-7">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <p className="font-label text-[11px] uppercase tracking-[0.24em]" style={{ color: 'var(--ca-accent)' }}>Assignment</p>
+            <span className="hidden sm:block h-4 w-px bg-slate-200" />
+            <TeacherChip name={assignedTeacherName} onClick={openAssign} />
+            <CourseChip name={assignedCourseName} onClick={openAssign} />
+          </div>
+          {!assignOpen && (
+            <button type="button" onClick={openAssign} className="ca-btn ca-btn--soft self-start sm:self-auto" style={{ padding: '0.55rem 1rem', fontSize: 13 }}>
+              <span className="material-symbols-outlined text-base">swap_horiz</span>
+              Change
+            </button>
+          )}
+        </div>
+
+        {assignOpen && (
+          <div className="ca-slidedown mt-4 rounded-[1.25rem] border border-slate-100 bg-slate-50/60 px-4 py-4">
+            <AssignFields teachers={teachers} groups={groups} value={assignDraft} onChange={setAssignDraft} idPrefix="detail" />
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button type="button" onClick={() => setAssignOpen(false)} className="ca-btn ca-btn--ghost">Cancel</button>
+              <button type="button" onClick={saveAssign} disabled={assignSaving} className="ca-btn ca-btn--primary">
+                <span className="material-symbols-outlined text-base">{assignSaving ? 'progress_activity' : 'check'}</span>
+                {assignSaving ? 'Saving…' : 'Save assignment'}
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* CEFR Analysis — Clinical detail in drop-downs */}

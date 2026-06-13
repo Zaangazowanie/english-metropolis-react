@@ -69,7 +69,8 @@ const VOICES = [
 
 function voiceById(id) { return VOICES.find(v => v.id === id) || VOICES[3] }
 
-// Country-code → 3x2 SVG flag from country-flag-icons on jsDelivr.
+// Country-code → 3x2 SVG flag, self-hosted under /flags/ (GDPR: the site CSP
+// img-src is 'self' only, which blocks the jsDelivr CDN these used to load from).
 // Emoji flags don't render reliably on desktop Chrome/Edge on Windows; SVG does.
 const CC_BY_VOICE_PREFIX = { a: 'US', b: 'GB', e: 'ES', f: 'FR', h: 'IN', i: 'IT', j: 'JP', p: 'PT', z: 'CN' }
 function ccForVoice(id) { return CC_BY_VOICE_PREFIX[(id || '')[0]] || 'US' }
@@ -77,7 +78,7 @@ function FlagImg({ voiceId, size = 18 }) {
   const cc = ccForVoice(voiceId)
   return (
     <img
-      src={`https://cdn.jsdelivr.net/npm/country-flag-icons@1.5.11/3x2/${cc}.svg`}
+      src={`/flags/3x2/${cc}.svg`}
       alt={cc}
       aria-hidden="true"
       style={{
