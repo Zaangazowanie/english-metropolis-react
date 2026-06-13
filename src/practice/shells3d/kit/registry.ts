@@ -24,10 +24,10 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     load: () => import('../Airplane3D'),
   },
   {
-    shellKey: 'battleship',
-    title: 'Bathtub Fleet',
-    district: 'Little Venice Canals',
-    load: () => import('../Battleship3D'),
+    shellKey: 'balloonpop',
+    title: 'Thames Balloon Festival',
+    district: 'Thames Balloon Festival',
+    load: () => import('../BalloonPop3D'),
   },
   {
     shellKey: 'mazechase',
@@ -46,6 +46,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     title: 'Metro Snake',
     district: 'The Underground',
     load: () => import('../Snake3D'),
+  },
+  {
+    shellKey: 'spinthewheel',
+    title: 'Pier Carnival Wheel',
+    district: 'Brighton Pier Carnival',
+    load: () => import('../SpinTheWheel3D'),
   },
   {
     shellKey: 'whackamole',
