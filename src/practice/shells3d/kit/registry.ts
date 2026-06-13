@@ -16,7 +16,14 @@ import type { Game3DRegistryEntry } from '../types'
  *     load: () => import('../Snake3D'),
  *   }
  */
-export const game3dRegistry: Game3DRegistryEntry[] = []
+export const game3dRegistry: Game3DRegistryEntry[] = [
+  {
+    shellKey: 'snake',
+    title: 'Metro Snake',
+    district: 'The Underground',
+    load: () => import('../Snake3D'),
+  },
+]
 
 /** Look up a registered 3D game by its 2D shell route key. */
 export function findGame3D(shellKey: string): Game3DRegistryEntry | undefined {
