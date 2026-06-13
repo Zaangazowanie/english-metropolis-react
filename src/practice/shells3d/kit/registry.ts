@@ -18,6 +18,12 @@ import type { Game3DRegistryEntry } from '../types'
  */
 export const game3dRegistry: Game3DRegistryEntry[] = [
   {
+    shellKey: 'mazechase',
+    title: 'Museum After Dark',
+    district: 'Museum After Dark',
+    load: () => import('../MazeChase3D'),
+  },
+  {
     shellKey: 'snake',
     title: 'Metro Snake',
     district: 'The Underground',
