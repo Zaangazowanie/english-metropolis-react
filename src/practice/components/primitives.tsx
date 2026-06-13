@@ -4,7 +4,22 @@
 import React from 'react';
 
 // ─────────────────────────────────────────────────────────────
-// Bajla — the mascot pigeon
+// Bajla — the mascot pigeon (pastel hand-drawn, procedural SVG)
+//
+// 2026-06-13 (Wave-2 widget uplift): replaced the flat /bajla.png raster with
+// a procedural, vector pigeon that renders crisply at every call-site size
+// (36–120px) and performs a distinct gesture per `mood`:
+//   • idle  — soft breathing, slow head-bob, lazy blink
+//   • cheer — a little hop, open-wing flap, sparkle twinkle
+//   • think — head cocked, a wing curled up to the chin, rising thought-dots
+//   • wave  — a friendly raised wing-wave + gentle bob
+// Everything is inline (no external/runtime URLs, no new deps). The gesture
+// choreography lives in a single <style> injected once into <head>; under
+// `prefers-reduced-motion: reduce` all animation is disabled and Bajla rests
+// in the expressive *static* pose for her mood (the wing stays raised for
+// wave, dots stay visible for think, etc.). The public API — `BajlaMood`,
+// `BajlaProps` and the bilingual a11y label — is unchanged, so this is a
+// drop-in for all existing call-sites.
 // ─────────────────────────────────────────────────────────────
 export type BajlaMood = 'idle' | 'cheer' | 'think' | 'wave';
 
@@ -25,34 +40,199 @@ export interface BajlaProps {
   decorative?: boolean;
 }
 
+// Per-mood gesture choreography. Injected once (id-guarded) so the ~30 call
+// sites share a single <style>; theme-agnostic, prefixed `bj-` to avoid any
+// collision with app CSS. transform-box/origin pin each pivot in viewBox
+// units; the reduced-motion guard freezes Bajla into her static mood pose.
+const BAJLA_STYLE_ID = 'em-bajla-pigeon-styles';
+const BAJLA_CSS = `
+.bj-svg{ --bj-ease: cubic-bezier(.42,0,.2,1); }
+.bj-root,.bj-body,.bj-head,.bj-wing-l,.bj-wing-r,.bj-arm{ transform-box: view-box; }
+.bj-eye,.bj-sparkle{ transform-box: fill-box; transform-origin: center; }
+.bj-root{ transform-origin: 60px 110px; }
+.bj-body{ transform-origin: 60px 98px; }
+.bj-head{ transform-origin: 60px 52px; }
+.bj-wing-l{ transform-origin: 40px 56px; }
+.bj-wing-r{ transform-origin: 80px 56px; }
+.bj-arm{ transform-origin: 71px 77px; }
+.bj-sparkles,.bj-thought,.bj-arm{ opacity: 0; }
+.bj-svg[data-mood="idle"] .bj-root{ animation: bj-bob 3.8s var(--bj-ease) infinite; }
+.bj-svg[data-mood="idle"] .bj-body{ animation: bj-breath 3.8s var(--bj-ease) infinite; }
+.bj-svg[data-mood="idle"] .bj-head{ animation: bj-nod 5.4s var(--bj-ease) infinite; }
+.bj-svg[data-mood="idle"] .bj-eye { animation: bj-blink 5s linear infinite; }
+.bj-svg[data-mood="cheer"] .bj-root  { animation: bj-hop .92s var(--bj-ease) infinite; }
+.bj-svg[data-mood="cheer"] .bj-wing-l{ transform: rotate(20deg);  animation: bj-flapL .42s var(--bj-ease) infinite; }
+.bj-svg[data-mood="cheer"] .bj-wing-r{ transform: rotate(-20deg); animation: bj-flapR .42s var(--bj-ease) infinite; }
+.bj-svg[data-mood="cheer"] .bj-sparkles{ opacity: 1; }
+.bj-svg[data-mood="cheer"] .bj-sparkle{ animation: bj-spark 1.15s ease-in-out infinite; }
+.bj-svg[data-mood="cheer"] .bj-sparkle.s2{ animation-delay: .38s; }
+.bj-svg[data-mood="cheer"] .bj-sparkle.s3{ animation-delay: .72s; }
+.bj-svg[data-mood="cheer"] .bj-sparkle.s4{ animation-delay: .95s; }
+.bj-svg[data-mood="cheer"] .bj-eye{ animation: bj-blink 3.4s linear infinite; }
+.bj-svg[data-mood="think"] .bj-head{ transform: rotate(-7deg); animation: bj-thinkHead 3.6s var(--bj-ease) infinite; }
+.bj-svg[data-mood="think"] .bj-arm { opacity: 1; animation: bj-tap 3.6s var(--bj-ease) infinite; }
+.bj-svg[data-mood="think"] .bj-thought{ opacity: 1; }
+.bj-svg[data-mood="think"] .bj-thought .t1{ animation: bj-dot 1.9s ease-in-out infinite; }
+.bj-svg[data-mood="think"] .bj-thought .t2{ animation: bj-dot 1.9s ease-in-out .28s infinite; }
+.bj-svg[data-mood="think"] .bj-thought .t3{ animation: bj-dot 1.9s ease-in-out .56s infinite; }
+.bj-svg[data-mood="think"] .bj-eye{ animation: bj-blink 5.5s linear infinite; }
+.bj-svg[data-mood="wave"] .bj-root  { animation: bj-bob 2.4s var(--bj-ease) infinite; }
+.bj-svg[data-mood="wave"] .bj-wing-r{ transform: rotate(-72deg); animation: bj-wave 1.1s var(--bj-ease) infinite; }
+.bj-svg[data-mood="wave"] .bj-eye{ animation: bj-blink 4.2s linear infinite; }
+@keyframes bj-bob{ 0%,100%{ transform: translateY(0) } 50%{ transform: translateY(-2.4px) } }
+@keyframes bj-breath{ 0%,100%{ transform: scaleY(1) } 50%{ transform: scaleY(1.04) } }
+@keyframes bj-nod{ 0%,100%{ transform: rotate(0) } 50%{ transform: rotate(2.4deg) } }
+@keyframes bj-blink{ 0%,93%,100%{ transform: scaleY(1) } 96.5%{ transform: scaleY(.1) } }
+@keyframes bj-hop{ 0%,100%{ transform: translateY(0) } 28%{ transform: translateY(-9px) } 46%{ transform: translateY(-7px) } 72%{ transform: translateY(0) } }
+@keyframes bj-flapL{ 0%,100%{ transform: rotate(20deg) } 50%{ transform: rotate(1deg) } }
+@keyframes bj-flapR{ 0%,100%{ transform: rotate(-20deg) } 50%{ transform: rotate(-1deg) } }
+@keyframes bj-spark{ 0%,100%{ opacity:0; transform: scale(.3) } 45%{ opacity:1; transform: scale(1) } }
+@keyframes bj-thinkHead{ 0%,100%{ transform: rotate(-7deg) } 50%{ transform: rotate(-9.5deg) } }
+@keyframes bj-tap{ 0%,100%{ transform: rotate(0) } 50%{ transform: rotate(-3deg) } }
+@keyframes bj-dot{ 0%,100%{ opacity:.35; transform: translateY(1.5px) } 50%{ opacity:1; transform: translateY(-2px) } }
+@keyframes bj-wave{ 0%,100%{ transform: rotate(-66deg) } 25%{ transform: rotate(-84deg) } 50%{ transform: rotate(-60deg) } 75%{ transform: rotate(-82deg) } }
+@media (prefers-reduced-motion: reduce){ .bj-svg *{ animation: none !important; } }
+`;
+
+function ensureBajlaStyles(): void {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(BAJLA_STYLE_ID)) return;
+  const el = document.createElement('style');
+  el.id = BAJLA_STYLE_ID;
+  el.textContent = BAJLA_CSS;
+  document.head.appendChild(el);
+}
+ensureBajlaStyles();
+
+// Per-instance id seed so each Bajla's gradients/clip are uniquely namespaced
+// (identical-but-duplicate ids would break if the first instance unmounts).
+let bajlaUid = 0;
+
 export const Bajla: React.FC<BajlaProps> = ({ size = 44, mood = 'idle', style = {}, decorative = false }) => {
-  // 2026-05-02: replaced inline SVG mascot with Mike's commissioned 3D-render
-  // PNG (transparent bg via rembg, see /public/bajla.png). The mood prop now
-  // drives bob speed only — visual variations (cheer sparkles, eye shape)
-  // were tied to SVG paths and don't apply to a raster source.
+  const idRef = React.useRef<string | null>(null);
+  if (idRef.current === null) idRef.current = `b${++bajlaUid}`;
+  const S = idRef.current;
+  const ink = '#534B73';
   const a11yProps = decorative
     ? { 'aria-hidden': true as const }
     : { role: 'img' as const, 'aria-label': 'Bajla, the pigeon — your guide · Bajla — twoja przewodniczka' };
-  const animation = mood === 'cheer'
-    ? 'em-bob 0.6s var(--em-ease) infinite'
-    : 'em-bob 2.4s var(--em-ease) infinite';
   return (
-    <img
-      className="bajla"
-      src="/bajla.png"
-      alt={decorative ? '' : 'Bajla'}
+    <svg
+      className="bajla bj-svg"
+      data-mood={mood}
+      viewBox="0 0 120 120"
       width={size}
       height={size}
+      fill="none"
       draggable={false}
       {...a11yProps}
-      style={{
-        display: 'inline-block',
-        objectFit: 'contain',
-        animation,
-        userSelect: 'none',
-        ...style,
-      }}
-    />
+      style={{ display: 'inline-block', userSelect: 'none', width: size, height: size, ...style }}
+    >
+      <defs>
+        <linearGradient id={`bjBody${S}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#CFD3F8" /><stop offset="1" stopColor="#9AA2E8" />
+        </linearGradient>
+        <linearGradient id={`bjWing${S}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#969DE3" /><stop offset="1" stopColor="#767ECB" />
+        </linearGradient>
+        <linearGradient id={`bjBeak${S}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FAB475" /><stop offset="1" stopColor="#EB8B45" />
+        </linearGradient>
+        <linearGradient id={`bjNeck${S}`} x1="0" y1="0" x2="1" y2="0.3">
+          <stop offset="0" stopColor="#7DE6CE" /><stop offset="0.55" stopColor="#F4ABD8" /><stop offset="1" stopColor="#BEA7F2" />
+        </linearGradient>
+        <radialGradient id={`bjBelly${S}`} cx="0.5" cy="0.4" r="0.75">
+          <stop offset="0" stopColor="#F6F7FF" /><stop offset="1" stopColor="#E1E4FC" />
+        </radialGradient>
+        <clipPath id={`bjClip${S}`}>
+          <path d="M60,46 C80,46 92,60 92,77 C92,93 78,103 60,103 C42,103 28,93 28,77 C28,60 40,46 60,46 Z" />
+        </clipPath>
+      </defs>
+
+      {/* contact shadow — outside bj-root so it stays grounded during the hop */}
+      <ellipse className="bj-shadow" cx="60" cy="113" rx="29" ry="4.4" fill="#5A4E78" opacity="0.16" />
+
+      <g className="bj-root">
+        {/* tail (behind body) */}
+        <path className="bj-tail" d="M60,92 C56,100 53,106 50,111 C54,109 57,106 60,104 C63,106 66,109 70,111 C67,106 64,100 60,92 Z" fill={`url(#bjWing${S})`} stroke={ink} strokeWidth="2.1" strokeLinejoin="round" />
+
+        {/* feet */}
+        <g stroke="#E98A45" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" fill="none">
+          <path d="M54,100 L52,108 M52,108 L48.5,111 M52,108 L52,112 M52,108 L55.5,111" />
+          <path d="M66,100 L68,108 M68,108 L64.5,111 M68,108 L68,112 M68,108 L71.5,111" />
+        </g>
+
+        {/* body */}
+        <g className="bj-body">
+          <path d="M60,46 C80,46 92,60 92,77 C92,93 78,103 60,103 C42,103 28,93 28,77 C28,60 40,46 60,46 Z" fill={`url(#bjBody${S})`} stroke={ink} strokeWidth="2.4" strokeLinejoin="round" />
+          <path d="M60,62 C75,62 83,73 83,84 C83,95 72,101 60,101 C48,101 37,95 37,84 C37,73 45,62 60,62 Z" fill={`url(#bjBelly${S})`} opacity="0.96" />
+          <g clipPath={`url(#bjClip${S})`}>
+            <path d="M34,57 C46,51 74,51 86,57 C81,68 70,72 60,72 C50,72 39,68 34,57 Z" fill={`url(#bjNeck${S})`} opacity="0.5" />
+          </g>
+        </g>
+
+        {/* left wing (flipper) */}
+        <g className="bj-wing-l">
+          <path d="M40,55 C31,57 27,67 30,77 C31.5,80 37,80 39,74 C42,67 43,59 42,56 C41.5,55 41,55 40,55 Z" fill={`url(#bjWing${S})`} stroke={ink} strokeWidth="2.2" strokeLinejoin="round" />
+          <path d="M30,77 C27.5,73 29,69 32,70 C33,74 32,78 30,77 Z" fill="#A8E9E1" />
+          <path d="M34,60 C33,67 31.5,73 30,77 M38,60 C37.5,68 36,74 34,78" stroke="#6E75BE" strokeWidth="1.3" strokeLinecap="round" />
+        </g>
+
+        {/* head */}
+        <g className="bj-head">
+          <g className="bj-crest" fill={`url(#bjBody${S})`} stroke={ink} strokeWidth="1.8" strokeLinejoin="round">
+            <path d="M52,16 C50,9 56,7 57,14 C56,15.5 53.5,16 52,16 Z" />
+            <path d="M59,14 C58,6 64,6 63,14 C62,15.5 60,15.5 59,14 Z" />
+            <path d="M65,15 C65.5,8 71,9 68.5,16 C67.5,16 66,16 65,15 Z" />
+          </g>
+          <circle cx="60" cy="34" r="21" fill={`url(#bjBody${S})`} stroke={ink} strokeWidth="2.4" />
+          <ellipse cx="44.5" cy="41" rx="6" ry="3.6" fill="#F7AECE" opacity="0.5" />
+          <ellipse cx="75.5" cy="41" rx="6" ry="3.6" fill="#F7AECE" opacity="0.5" />
+          {/* beak */}
+          <path d="M50,43 C54,40 66,40 70,43 C68,51 64,56 60,56 C56,56 52,51 50,43 Z" fill={`url(#bjBeak${S})`} stroke={ink} strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M52.5,46 C56,49 64,49 67.5,46" stroke="#C9743A" strokeWidth="1.2" strokeLinecap="round" />
+          <circle cx="56.5" cy="44.2" r="0.9" fill="#9A5A2C" /><circle cx="63.5" cy="44.2" r="0.9" fill="#9A5A2C" />
+          {/* eyes */}
+          <g className="bj-eye bj-eye-l">
+            <circle cx="50" cy="33" r="6.4" fill="#2E2A47" stroke="#F2A06A" strokeWidth="1.5" />
+            <circle cx="47.7" cy="30.6" r="2.1" fill="#fff" />
+            <circle cx="51.7" cy="35" r="1" fill="#fff" opacity="0.7" />
+          </g>
+          <g className="bj-eye bj-eye-r">
+            <circle cx="70" cy="33" r="6.4" fill="#2E2A47" stroke="#F2A06A" strokeWidth="1.5" />
+            <circle cx="67.7" cy="30.6" r="2.1" fill="#fff" />
+            <circle cx="71.7" cy="35" r="1" fill="#fff" opacity="0.7" />
+          </g>
+        </g>
+
+        {/* think arm — a wing curled up to the chin (think mood only) */}
+        <g className="bj-arm">
+          <path d="M71,77 C64,75 58.5,68 60,60 C60.5,57 62.2,56 63.4,57.2 C64.4,58.2 64,60 63.4,61.6 C62,66 64.5,71 69.5,74 C70.8,74.8 71.2,76 71,77 Z" fill={`url(#bjWing${S})`} stroke={ink} strokeWidth="2" strokeLinejoin="round" />
+        </g>
+
+        {/* right wing (flipper / gesture wing) */}
+        <g className="bj-wing-r">
+          <path d="M80,55 C89,57 93,67 90,77 C88.5,80 83,80 81,74 C78,67 77,59 78,56 C78.5,55 79,55 80,55 Z" fill={`url(#bjWing${S})`} stroke={ink} strokeWidth="2.2" strokeLinejoin="round" />
+          <path d="M90,77 C92.5,73 91,69 88,70 C87,74 88,78 90,77 Z" fill="#A8E9E1" />
+          <path d="M86,60 C87,67 88.5,73 90,77 M82,60 C82.5,68 84,74 86,78" stroke="#6E75BE" strokeWidth="1.3" strokeLinecap="round" />
+        </g>
+
+        {/* cheer sparkles */}
+        <g className="bj-sparkles">
+          <path className="bj-sparkle s1" d="M21,18 L21.96,23.04 L27,24 L21.96,24.96 L21,30 L20.04,24.96 L15,24 L20.04,23.04 Z" fill="#FFE39A" />
+          <path className="bj-sparkle s2" d="M99,28 L99.8,32.2 L104,33 L99.8,33.8 L99,38 L98.2,33.8 L94,33 L98.2,32.2 Z" fill="#F8B6D6" />
+          <path className="bj-sparkle s3" d="M94,10 L94.64,13.36 L98,14 L94.64,14.64 L94,18 L93.36,14.64 L90,14 L93.36,13.36 Z" fill="#9DE7DD" />
+          <path className="bj-sparkle s4" d="M16,50.6 L16.54,53.46 L19.4,54 L16.54,54.54 L16,57.4 L15.46,54.54 L12.6,54 L15.46,53.46 Z" fill="#FFD2E6" />
+        </g>
+
+        {/* think thought-dots */}
+        <g className="bj-thought" fill="#ECEAFB" stroke={ink} strokeWidth="1.4">
+          <circle className="t1" cx="83" cy="26" r="2.6" />
+          <circle className="t2" cx="93" cy="17" r="3.5" />
+          <circle className="t3" cx="104" cy="8" r="4.5" />
+        </g>
+      </g>
+    </svg>
   );
 };
 
