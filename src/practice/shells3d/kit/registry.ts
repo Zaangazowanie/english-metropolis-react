@@ -23,6 +23,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     district: 'The Underground',
     load: () => import('../Snake3D'),
   },
+  {
+    shellKey: 'spinthewheel',
+    title: 'Pier Carnival Wheel',
+    district: 'Brighton Pier Carnival',
+    load: () => import('../SpinTheWheel3D'),
+  },
 ]
 
 /** Look up a registered 3D game by its 2D shell route key. */
