@@ -24,6 +24,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     load: () => import('../Airplane3D'),
   },
   {
+    shellKey: 'balloonpop',
+    title: 'Thames Balloon Festival',
+    district: 'Thames Balloon Festival',
+    load: () => import('../BalloonPop3D'),
+  },
+  {
     shellKey: 'mazechase',
     title: 'Museum After Dark',
     district: 'Museum After Dark',
