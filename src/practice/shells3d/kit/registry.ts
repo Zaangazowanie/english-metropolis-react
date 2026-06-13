@@ -30,6 +30,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     load: () => import('../MazeChase3D'),
   },
   {
+    shellKey: 'openthebox',
+    title: 'The Vault Job',
+    district: 'The Bank Vault',
+    load: () => import('../OpenTheBox3D'),
+  },
+  {
     shellKey: 'snake',
     title: 'Metro Snake',
     district: 'The Underground',
