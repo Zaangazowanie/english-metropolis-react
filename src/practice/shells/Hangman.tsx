@@ -713,7 +713,11 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
           flex-shrink: 0;
         }
         @media (max-width: 1023px) {
-          .em-hm-rail { display: none; }
+          /* !important is required: the rail has an inline display:flex that
+             otherwise beats this rule, leaving it visible on mobile — it ate
+             240px of the play column and pushed the 7-col keypad off-screen
+             left (2026-06-05). Matches the .em-*-side pattern in Snake/Maze. */
+          .em-hm-rail { display: none !important; }
           .em-hm-grid { padding-right: 24px !important; }
         }
         @media (max-width: 480px) {

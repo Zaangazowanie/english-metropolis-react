@@ -1,15 +1,15 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
-const ADMIN_SESSION_KEY = 'conversa-admin-session'
+const TEACHER_SESSION_KEY = 'em-teacher-session'
 
-const AdminAuthContext = createContext(null)
+const TeacherAuthContext = createContext(null)
 
 // Stored blob shape: { user, sessionToken }
-function readStoredAdminSession() {
+function readStoredTeacherSession() {
   if (typeof window === 'undefined') return null
 
   try {
-    const rawValue = window.sessionStorage.getItem(ADMIN_SESSION_KEY)
+    const rawValue = window.sessionStorage.getItem(TEACHER_SESSION_KEY)
     return rawValue ? JSON.parse(rawValue) : null
   } catch {
     return null
@@ -18,16 +18,16 @@ function readStoredAdminSession() {
 
 // Module-level token accessor — usable outside React (e.g. in views that
 // call Convex directly). Returns the raw session token or null.
-export function getAdminSessionToken() {
-  const stored = readStoredAdminSession()
+export function getTeacherSessionToken() {
+  const stored = readStoredTeacherSession()
   return stored?.sessionToken || null
 }
 
-// Merge the stored session token into args unless the caller already set one.
+// Merge the stored token into args unless the caller already set one.
 function withSessionToken(args) {
   const merged = { ...(args || {}) }
   if (merged.sessionToken === undefined) {
-    const token = getAdminSessionToken()
+    const token = getTeacherSessionToken()
     if (token) merged.sessionToken = token
   }
   return merged
@@ -36,9 +36,8 @@ function withSessionToken(args) {
 // nginx rate-limits /api/* with limit_req; an over-burst is rejected with 429/503
 // generated LOCALLY, before the request is proxied to Convex — so the upstream
 // never ran and a retry is safe even for mutations. Bound the retries so a real
-// outage still fails fast. (Pages fan out many parallel queries; a transient
-// rate-limit blip should not surface.)
-async function postAdminApi(endpoint, body) {
+// outage still fails fast.
+async function postTeacherApi(endpoint, body) {
   const RETRY_STATUSES = new Set([429, 503])
   const MAX_TRIES = 3
   let response
@@ -54,8 +53,8 @@ async function postAdminApi(endpoint, body) {
   return response
 }
 
-export async function queryAdminConvex(path, args) {
-  const response = await postAdminApi('/api/query', { path, args: withSessionToken(args) })
+export async function queryTeacherConvex(path, args) {
+  const response = await postTeacherApi('/api/query', { path, args: withSessionToken(args), format: 'json' })
 
   if (!response.ok) {
     throw new Error(`${path} failed with ${response.status}`)
@@ -69,8 +68,8 @@ export async function queryAdminConvex(path, args) {
   return payload.value
 }
 
-export async function mutateAdminConvex(path, args) {
-  const response = await postAdminApi('/api/mutation', { path, args: withSessionToken(args) })
+export async function mutateTeacherConvex(path, args) {
+  const response = await postTeacherApi('/api/mutation', { path, args: withSessionToken(args), format: 'json' })
 
   if (!response.ok) {
     throw new Error(`${path} failed with ${response.status}`)
@@ -84,34 +83,47 @@ export async function mutateAdminConvex(path, args) {
   return payload.value
 }
 
-export function AdminAuthProvider({ children }) {
-  const [adminSession, setAdminSession] = useState(() => readStoredAdminSession())
-  const adminUser = adminSession?.user || null
+export function TeacherAuthProvider({ children }) {
+  const [teacherSession, setTeacherSession] = useState(() => readStoredTeacherSession())
+  const [loading, setLoading] = useState(true)
+  const teacher = teacherSession?.user || null
 
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    if (adminSession) {
-      window.sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(adminSession))
+    if (teacherSession) {
+      window.sessionStorage.setItem(TEACHER_SESSION_KEY, JSON.stringify(teacherSession))
       return
     }
 
-    window.sessionStorage.removeItem(ADMIN_SESSION_KEY)
-  }, [adminSession])
+    window.sessionStorage.removeItem(TEACHER_SESSION_KEY)
+  }, [teacherSession])
 
-  // Validate a restored session on mount — clear it if the server says it's
-  // no longer valid (expired / revoked), forcing a fresh login.
+  // Restore a stored session on mount via teacherMe — clear it if the server
+  // says it's no longer valid (expired / revoked), forcing a fresh sign-in.
+  // Refresh the stored user with the server's copy so flags like
+  // availabilityHandedOff stay current.
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (!adminSession?.sessionToken) return
+    if (!teacherSession?.sessionToken) {
+      setLoading(false)
+      return
+    }
     let cancelled = false
-    queryAdminConvex('admin:getSession', {})
+    queryTeacherConvex('teacherAuth:teacherMe', {})
       .then((user) => {
         if (cancelled) return
-        if (!user) setAdminSession(null)
+        if (!user) {
+          setTeacherSession(null)
+        } else {
+          setTeacherSession(prev => (prev ? { ...prev, user: { ...prev.user, ...user } } : prev))
+        }
       })
       .catch(() => {
         /* network error — keep the session for now */
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
       })
     return () => {
       cancelled = true
@@ -120,42 +132,25 @@ export function AdminAuthProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function adminLogin(email, password) {
-    const payload = await mutateAdminConvex('admin:login', { email, password })
-
-    if (!payload?.success) {
-      return payload || { success: false, error: 'Invalid credentials' }
-    }
-
-    setAdminSession({ user: payload.user, sessionToken: payload.sessionToken })
-    return payload
-  }
-
-  async function adminLogout() {
-    try {
-      await mutateAdminConvex('admin:logout', {})
-    } catch {
-      /* best-effort — clear local state regardless */
-    }
-    setAdminSession(null)
+  function logout() {
+    setTeacherSession(null)
   }
 
   const value = {
-    adminUser,
-    adminLogin,
-    adminLogout,
-    isAdminAuthenticated: Boolean(adminUser),
-    isSuperadmin: Boolean(adminUser) && adminUser.role === 'super_admin',
+    teacher,
+    loading,
+    logout,
+    isTeacherAuthenticated: Boolean(teacher),
   }
 
-  return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>
+  return <TeacherAuthContext.Provider value={value}>{children}</TeacherAuthContext.Provider>
 }
 
-export function useAdminAuth() {
-  const context = useContext(AdminAuthContext)
+export function useTeacherAuth() {
+  const context = useContext(TeacherAuthContext)
 
   if (!context) {
-    throw new Error('useAdminAuth must be used within AdminAuthProvider')
+    throw new Error('useTeacherAuth must be used within TeacherAuthProvider')
   }
 
   return context

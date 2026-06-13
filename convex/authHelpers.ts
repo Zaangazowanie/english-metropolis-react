@@ -147,6 +147,26 @@ export async function requireAdmin(ctx: any, sessionToken: string | undefined | 
   return { user, session };
 }
 
+// Teacher guard: valid admin-kind session belonging to an active teacher user
+// (not soft-deleted). Returns { user, session }. Throws on failure. Used by the
+// teacher portal, which is restricted to role === "teacher" only.
+export async function requireTeacher(ctx: any, sessionToken: string | undefined | null) {
+  const session = await lookupSession(ctx, sessionToken);
+  if (!session || session.kind !== "admin" || !session.userId) {
+    throw new Error("Unauthorized: invalid or expired session");
+  }
+  const user = await ctx.db.get(session.userId);
+  if (
+    !user ||
+    user.status !== "active" ||
+    user.role !== "teacher" ||
+    user.deletedAt
+  ) {
+    throw new Error("Unauthorized: invalid or expired session");
+  }
+  return { user, session };
+}
+
 // Superadmin-only guard.
 export async function requireSuperadmin(ctx: any, sessionToken: string | undefined | null) {
   const { user, session } = await requireAdmin(ctx, sessionToken);

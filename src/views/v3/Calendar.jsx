@@ -10,6 +10,7 @@ import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Glass, Btn, Pill, Skeleton } from '../../design/v3/primitives.jsx'
 import { useI18n } from '../../i18n'
 import LessonBooking from './LessonBooking.jsx'
+import Curriculum from './Curriculum.jsx'
 
 function ymd(d) {
   const y = d.getFullYear()
@@ -373,8 +374,9 @@ export default function Calendar({ data }) {
             {t('calendar.empty.body')}
           </p>
         </Glass>
-        {/* Conversa self-scheduling — render even with no lesson history */}
+        {/* Curriculum roadmap + Conversa self-scheduling — render even with no lesson history */}
         <div style={{ marginTop: 28 }}>
+          <Curriculum />
           <LessonBooking />
         </div>
       </div>
@@ -422,6 +424,9 @@ export default function Calendar({ data }) {
           </span>
         </div>
       </Glass>
+
+      {/* Curriculum roadmap (30-lesson plan) — hides itself when unseeded */}
+      <Curriculum />
 
       {/* Lesson booking — Conversa self-scheduling (hides itself for
           students whose organization has no availability configured) */}

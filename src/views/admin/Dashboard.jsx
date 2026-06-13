@@ -137,7 +137,7 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       {/* ── Hero + quick actions ─────────────────────────────────── */}
-      <section className="glass-panel relative overflow-hidden rounded-[2rem] border border-white/50 px-6 py-8 sm:px-10 sm:py-9 editorial-shadow">
+      <section className="ca-hero glass-panel relative overflow-hidden rounded-[2rem] border border-white/50 px-6 py-8 sm:px-10 sm:py-9 editorial-shadow">
         <div aria-hidden className="pointer-events-none absolute inset-0" style={{
           background: `
             radial-gradient(ellipse 50% 70% at 95% 0%, rgba(14,165,233,0.10), transparent 60%),
@@ -175,7 +175,7 @@ export default function AdminDashboard() {
       </section>
 
       {/* ── At a glance — compact KPIs (billing-forward) ─────────── */}
-      <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-5 sm:px-7 editorial-shadow">
+      <section className="ca-glance glass-panel rounded-[2rem] border border-white/50 px-5 py-5 sm:px-7 editorial-shadow">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-slate-400">At a glance · {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}</p>
           <Link to="/admin/billing" className="font-label text-[11px] font-bold uppercase tracking-[0.16em] text-sky-600 hover:text-sky-700">Billing details →</Link>
@@ -199,7 +199,7 @@ export default function AdminDashboard() {
       </section>
 
       {/* ── Student roster ─────────────────────────────────────────── */}
-      <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-6 editorial-shadow sm:px-8">
+      <section className="ca-roster glass-panel rounded-[2rem] border border-white/50 px-5 py-6 editorial-shadow sm:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">Learners</p>

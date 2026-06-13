@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { queryAdminConvex, mutateAdminConvex, useAdminAuth } from '../../contexts/AdminAuthContext.jsx'
 import { CefrBadge, Modal } from '../../components/analytics/AnalyticsPrimitives.jsx'
+import { Avatar, AssignFields, TeacherChip, CourseChip, persistAssignment } from '../../components/admin/AdminKit.jsx'
 
 const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const STUDENT_TYPES = [
@@ -30,28 +31,31 @@ const STATUS_FILTERS = [
 
 const EMPTY_FORM = {
   name: '', email: '', phone: '', nativeLanguage: 'pl',
-  level: 'B1', targetLevel: '', type: 'individual', groupId: '', notes: '',
+  level: 'B1', targetLevel: '', type: 'individual',
+  groupId: '', primaryTeacherId: '', notes: '',
 }
 
-function Label({ children }) {
-  return <span className="font-label text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{children}</span>
-}
-
-const inputCls = 'mt-2 w-full rounded-[1rem] border border-slate-200/70 bg-white/90 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100'
+const inputCls = 'ca-field mt-2'
 
 export default function AdminStudents() {
   const navigate = useNavigate()
   const { adminUser } = useAdminAuth()
-  const [state, setState] = useState({ loading: true, error: '', students: [], groups: [] })
+  const [state, setState] = useState({ loading: true, error: '', students: [], groups: [], teachers: [] })
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('active')
 
-  // Form/modal state — editing === null means "Add", otherwise the student row.
+  // Add / edit modal — editing === null means "Add", otherwise the student row.
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
+
+  // Quick assign modal (teacher + course in one save)
+  const [assignTarget, setAssignTarget] = useState(null)
+  const [assignDraft, setAssignDraft] = useState({ primaryTeacherId: '', groupId: '' })
+  const [assignSaving, setAssignSaving] = useState(false)
+  const [assignError, setAssignError] = useState('')
 
   // Per-row dialogs
   const [archiveTarget, setArchiveTarget] = useState(null)
@@ -62,13 +66,14 @@ export default function AdminStudents() {
   const load = useCallback(async () => {
     setState(s => ({ ...s, loading: true, error: '' }))
     try {
-      const [students, groups] = await Promise.all([
+      const [students, groups, teachers] = await Promise.all([
         queryAdminConvex('students:listStudents', { organizationId: adminUser?.organizationId }),
         queryAdminConvex('groups:listGroups', { organizationId: adminUser?.organizationId }),
+        queryAdminConvex('teachers:listTeachers', { organizationId: adminUser?.organizationId }).catch(() => []),
       ])
-      setState({ loading: false, error: '', students: students || [], groups: groups || [] })
+      setState({ loading: false, error: '', students: students || [], groups: groups || [], teachers: teachers || [] })
     } catch (err) {
-      setState({ loading: false, error: 'Failed to load students.', students: [], groups: [] })
+      setState({ loading: false, error: 'Failed to load students.', students: [], groups: [], teachers: [] })
     }
   }, [adminUser?.organizationId])
 
@@ -79,6 +84,12 @@ export default function AdminStudents() {
     for (const g of state.groups) map[String(g._id)] = g.name
     return map
   }, [state.groups])
+
+  const teacherNameById = useMemo(() => {
+    const map = {}
+    for (const t of state.teachers) map[String(t._id)] = t.name
+    return map
+  }, [state.teachers])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -115,17 +126,41 @@ export default function AdminStudents() {
       targetLevel: student.targetLevel || '',
       type: student.type || 'individual',
       groupId: student.groupId ? String(student.groupId) : '',
+      primaryTeacherId: student.primaryTeacherId ? String(student.primaryTeacherId) : '',
       notes: student.notes || '',
     })
     setFormError('')
     setFormOpen(true)
   }
 
+  function openAssign(student) {
+    setAssignTarget(student)
+    setAssignDraft({
+      primaryTeacherId: student.primaryTeacherId ? String(student.primaryTeacherId) : '',
+      groupId: student.groupId ? String(student.groupId) : '',
+    })
+    setAssignError('')
+  }
+
+  async function handleAssignSave() {
+    if (!assignTarget) return
+    setAssignSaving(true)
+    setAssignError('')
+    try {
+      await persistAssignment(assignTarget, assignDraft)
+      setAssignTarget(null)
+      await load()
+    } catch (err) {
+      setAssignError('Could not save the assignment. Please try again.')
+    } finally {
+      setAssignSaving(false)
+    }
+  }
+
   // Generate a slug unique within the org by appending -2, -3 … on clash.
   async function uniqueSlug(name) {
     const base = slugify(name)
     if (!base) return base
-    // getStudentBySlug is global; treat any hit as a clash and append -N.
     let candidate = base
     for (let n = 2; n < 100; n++) {
       const existing = await queryAdminConvex('students:getStudentBySlug', { slug: candidate })
@@ -154,10 +189,13 @@ export default function AdminStudents() {
           type: form.type,
           notes: form.notes || undefined,
           groupId: form.groupId || undefined,
+          primaryTeacherId: form.primaryTeacherId || undefined,
         })
+        // Keep the membership table in step with the chosen course.
+        if (form.groupId) await persistAssignment(editing, { groupId: form.groupId })
       } else {
         const slug = await uniqueSlug(form.name)
-        await mutateAdminConvex('students:createStudent', {
+        const studentId = await mutateAdminConvex('students:createStudent', {
           name: form.name.trim(),
           slug,
           email: form.email.trim() || undefined,
@@ -168,7 +206,11 @@ export default function AdminStudents() {
           type: form.type,
           notes: form.notes || undefined,
           groupId: form.groupId || undefined,
+          primaryTeacherId: form.primaryTeacherId || undefined,
         })
+        if (form.groupId && studentId) {
+          try { await mutateAdminConvex('groups:addGroupMember', { groupId: form.groupId, studentId }) } catch { /* best-effort */ }
+        }
       }
       setFormOpen(false)
       await load()
@@ -214,12 +256,12 @@ export default function AdminStudents() {
   if (state.loading) {
     return (
       <div className="space-y-6">
-        <div className="glass-panel rounded-[2rem] border border-white/50 px-6 py-6 editorial-shadow animate-pulse">
+        <div className="glass-panel px-6 py-6 editorial-shadow animate-pulse">
           <div className="h-4 w-32 rounded bg-slate-200" />
           <div className="mt-4 h-8 w-48 rounded bg-slate-200" />
         </div>
-        <div className="glass-panel rounded-[2rem] border border-white/50 px-6 py-6 editorial-shadow">
-          {[1, 2, 3, 4].map(i => <div key={i} className="mt-3 h-16 rounded-[1.25rem] bg-slate-100 animate-pulse" />)}
+        <div className="glass-panel px-6 py-6 editorial-shadow">
+          {[1, 2, 3, 4].map(i => <div key={i} className="mt-3 h-20 rounded-[1.5rem] bg-slate-100 animate-pulse" />)}
         </div>
       </div>
     )
@@ -227,126 +269,102 @@ export default function AdminStudents() {
 
   if (state.error && !state.students.length) {
     return (
-      <div className="glass-panel rounded-[2rem] border border-rose-200 bg-rose-50/50 px-6 py-6 editorial-shadow">
+      <div className="glass-panel border-rose-200 bg-rose-50/50 px-6 py-6 editorial-shadow">
         <span className="material-symbols-outlined text-3xl text-rose-400">error</span>
         <h2 className="mt-3 font-headline text-2xl text-rose-900">Unable to load students</h2>
         <p className="mt-2 text-sm text-rose-700">{state.error}</p>
-        <button onClick={load} className="mt-4 rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 transition cursor-pointer">Retry</button>
+        <button onClick={load} className="ca-btn ca-btn--ghost mt-4">Retry</button>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* ── Editorial hero ─────────────────────────────────────── */}
-      <section className="glass-panel relative overflow-hidden rounded-[2rem] border border-white/50 px-6 py-8 sm:px-10 editorial-shadow">
+      {/* ── Hero ───────────────────────────────────────────────── */}
+      <section className="glass-panel relative overflow-hidden px-6 py-8 sm:px-10 editorial-shadow">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
-          style={{
-            background: `
-              radial-gradient(ellipse 50% 70% at 95% 0%, rgba(14,165,233,0.10), transparent 60%),
-              radial-gradient(ellipse 40% 50% at 5% 100%, rgba(37,99,235,0.07), transparent 55%)`,
-          }}
+          style={{ background: `radial-gradient(ellipse 46% 70% at 96% -4%, rgba(47,107,255,0.12), transparent 60%), radial-gradient(ellipse 40% 55% at 4% 104%, rgba(45,212,191,0.10), transparent 58%)` }}
         />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">Administration · Learners</p>
-            <h1 className="mt-3 font-headline text-4xl sm:text-5xl text-slate-900 leading-[1.05]">
-              Students<span className="italic text-sky-600">.</span>
+            <p className="font-label text-[11px] uppercase tracking-[0.26em]" style={{ color: 'var(--ca-accent)' }}>Learners</p>
+            <h1 className="mt-2 font-headline text-4xl sm:text-5xl leading-[1.05]" style={{ color: 'var(--ca-ink)' }}>
+              Students
             </h1>
-            <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-slate-600">
-              {counts.total} learner{counts.total === 1 ? '' : 's'} on the roster — {counts.active} active, {counts.paused} paused, {counts.archived} archived. Open any learner to review their full academic record.
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-500">
+              {counts.total} learner{counts.total === 1 ? '' : 's'} — <b className="font-semibold text-emerald-600">{counts.active} active</b>, {counts.paused} paused, {counts.archived} archived. Tap a learner for their full record, or use <b className="font-semibold" style={{ color: 'var(--ca-accent)' }}>Assign</b> to set their teacher &amp; course in one step.
             </p>
           </div>
-          <button
-            onClick={openAdd}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-18px_rgba(2,132,199,1)]"
-          >
+          <button onClick={openAdd} className="ca-btn ca-btn--primary">
             <span className="material-symbols-outlined text-lg">person_add</span>
-            Add Student
+            Add student
           </button>
         </div>
       </section>
 
       {/* ── Roster ─────────────────────────────────────────────── */}
-      <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-6 editorial-shadow sm:px-8">
+      <section className="glass-panel px-5 py-6 editorial-shadow sm:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="ca-segment flex-wrap">
             {STATUS_FILTERS.map(f => (
-              <button
-                key={f.value}
-                onClick={() => setStatusFilter(f.value)}
-                className={statusFilter === f.value
-                  ? 'rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-4 py-2 text-xs font-label font-bold uppercase tracking-[0.16em] text-white transition'
-                  : 'rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 text-xs font-label font-bold uppercase tracking-[0.16em] text-slate-500 hover:text-sky-700 transition cursor-pointer'}
-              >
+              <button key={f.value} onClick={() => setStatusFilter(f.value)} className={`ca-segment-item ${statusFilter === f.value ? 'is-active' : ''}`}>
                 {f.label}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-4 py-2.5 focus-within:border-sky-300 focus-within:ring-2 focus-within:ring-sky-100 transition">
+          <div className="ca-search">
             <span className="material-symbols-outlined text-slate-400 text-base">search</span>
-            <input
-              type="search"
-              placeholder="Search by name or email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none w-48"
-            />
+            <input type="search" placeholder="Search by name or email…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </div>
 
         <div className="mt-6 space-y-3">
           {filtered.length ? filtered.map((student, idx) => {
-            const initials = String(student.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('') || '?'
+            const teacherName = student.primaryTeacherId ? teacherNameById[String(student.primaryTeacherId)] : ''
+            const courseName = student.groupId ? groupNameById[String(student.groupId)] : ''
             return (
-              <div
-                key={student._id}
-                className="metric-card-enter group liquid-glass-card rounded-[1.5rem] border border-white/60 px-5 py-4 transition-all duration-300 hover:border-sky-200 hover:shadow-[0_28px_56px_-32px_rgba(2,132,199,0.45)]"
-                style={{ animationDelay: `${Math.min(idx, 12) * 60}ms` }}
-              >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/admin/student/${student.slug}`)}
-                    className="flex items-center gap-4 min-w-0 flex-1 text-left cursor-pointer"
-                  >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] bg-gradient-to-br from-sky-500 to-blue-700 shadow-[0_14px_30px_-16px_rgba(2,132,199,0.9)] transition-transform duration-300 group-hover:scale-105">
-                      <span className="font-headline text-base text-white">{initials}</span>
-                    </div>
+              <div key={student._id} className="ca-row group metric-card-enter p-4 sm:p-5" style={{ animationDelay: `${Math.min(idx, 12) * 55}ms` }}>
+                <div className="flex items-center gap-4">
+                  <button type="button" onClick={() => navigate(`/admin/student/${student.slug}`)} className="flex items-center gap-4 min-w-0 flex-1 text-left cursor-pointer">
+                    <Avatar name={student.name} size={52} />
                     <div className="min-w-0">
-                      <p className="font-headline text-lg text-slate-900 truncate">{student.name}</p>
+                      <p className="font-headline text-lg truncate" style={{ color: 'var(--ca-ink)' }}>{student.name}</p>
                       <p className="text-xs text-slate-400 truncate">{student.email || 'No email on file'}</p>
                     </div>
                   </button>
+                  <div className="hidden sm:block"><StatusPill status={student.status} /></div>
+                </div>
 
-                  <div className="flex items-center gap-4 sm:gap-5 flex-wrap">
-                    <div className="flex items-center gap-1.5">
-                      <CefrBadge band={student.level || 'N/A'} />
-                      {student.targetLevel && <span className="text-[10px] font-label text-slate-400">→ {student.targetLevel}</span>}
-                    </div>
-                    <span className="hidden md:inline text-xs text-slate-500 capitalize">{student.type || 'individual'}</span>
-                    {student.groupId && groupNameById[String(student.groupId)] && (
-                      <span className="hidden lg:inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-2.5 py-1 text-xs text-sky-700 max-w-[180px] truncate">
-                        <span className="material-symbols-outlined text-sm">group</span>
-                        {groupNameById[String(student.groupId)]}
-                      </span>
+                <div className="mt-3.5 flex items-center gap-2 flex-wrap">
+                  <CefrBadge band={student.level || 'N/A'} />
+                  {student.targetLevel && (
+                    <span className="ca-chip ca-chip--muted" style={{ paddingLeft: '0.7rem' }} title={`Target ${student.targetLevel}`}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>flag</span>
+                      <span>→ {student.targetLevel}</span>
+                    </span>
+                  )}
+                  <TeacherChip name={teacherName} onClick={() => openAssign(student)} />
+                  <CourseChip name={courseName} onClick={() => openAssign(student)} />
+
+                  <div className="ml-auto flex items-center gap-1.5">
+                    <button type="button" onClick={() => openAssign(student)} className="ca-btn ca-btn--soft" style={{ padding: '0.5rem 0.95rem', fontSize: 13 }}>
+                      <span className="material-symbols-outlined text-base">swap_horiz</span>
+                      Assign
+                    </button>
+                    <IconBtn icon="visibility" label="Open record" onClick={() => navigate(`/admin/student/${student.slug}`)} />
+                    <IconBtn icon="edit" label="Edit" onClick={() => openEdit(student)} />
+                    <IconBtn icon="key" label="Set password" onClick={() => { setPasswordTarget(student); setPasswordValue(''); setPasswordStatus(null) }} />
+                    {student.status !== 'archived' && (
+                      <IconBtn icon="archive" label="Archive" danger onClick={() => setArchiveTarget(student)} />
                     )}
-                    <StatusPill status={student.status} />
-                    <div className="flex items-center gap-1">
-                      <RowAction icon="edit" label="Edit" onClick={() => openEdit(student)} />
-                      <RowAction icon="key" label="Set password" onClick={() => { setPasswordTarget(student); setPasswordValue(''); setPasswordStatus(null) }} />
-                      {student.status !== 'archived' && (
-                        <RowAction icon="archive" label="Archive" tone="rose" onClick={() => setArchiveTarget(student)} />
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
             )
           }) : (
-            <div className="liquid-glass-card rounded-[1.5rem] border border-white/60 px-4 py-8 text-center">
+            <div className="ca-row p-8 text-center">
               <span className="material-symbols-outlined text-3xl text-slate-300">person_off</span>
               <p className="mt-2 text-sm text-slate-500">
                 {search ? `No students match "${search}"` : `No ${statusFilter === 'all' ? '' : statusFilter + ' '}students yet.`}
@@ -356,78 +374,101 @@ export default function AdminStudents() {
         </div>
       </section>
 
+      {/* ── Quick assign (teacher + course in one save) ────────── */}
+      <Modal open={!!assignTarget} onClose={() => setAssignTarget(null)} title={`Assign · ${assignTarget?.name || ''}`} widthClass="max-w-xl">
+        <div className="flex items-center gap-3 rounded-[1.25rem] border border-slate-100 bg-slate-50/70 px-4 py-3">
+          <Avatar name={assignTarget?.name} size={42} />
+          <div className="min-w-0">
+            <p className="font-headline text-base" style={{ color: 'var(--ca-ink)' }}>{assignTarget?.name}</p>
+            <p className="text-xs text-slate-400">Set this learner's teacher &amp; course, then save once.</p>
+          </div>
+        </div>
+        <div className="mt-4">
+          <AssignFields teachers={state.teachers} groups={state.groups} value={assignDraft} onChange={setAssignDraft} idPrefix="quick" />
+        </div>
+        {assignError && <div className="mt-4 rounded-[1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{assignError}</div>}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button type="button" onClick={() => setAssignTarget(null)} className="ca-btn ca-btn--ghost">Cancel</button>
+          <button type="button" onClick={handleAssignSave} disabled={assignSaving} className="ca-btn ca-btn--primary">
+            <span className="material-symbols-outlined text-base">{assignSaving ? 'progress_activity' : 'check'}</span>
+            {assignSaving ? 'Saving…' : 'Save assignment'}
+          </button>
+        </div>
+      </Modal>
+
       {/* ── Add / Edit form modal ──────────────────────────────── */}
-      <Modal open={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'Edit Student' : 'Add Student'} widthClass="max-w-2xl">
+      <Modal open={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'Edit student' : 'Add student'} widthClass="max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block sm:col-span-2">
-              <Label>Name *</Label>
+              <span className="ca-label">Name *</span>
               <input className={inputCls} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" autoFocus />
             </label>
             <label className="block">
-              <Label>Email</Label>
+              <span className="ca-label">Email</span>
               <input type="email" className={inputCls} value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="student@example.com" />
             </label>
             <label className="block">
-              <Label>Phone</Label>
+              <span className="ca-label">Phone</span>
               <input className={inputCls} value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+48 …" />
             </label>
             <label className="block">
-              <Label>Native Language</Label>
+              <span className="ca-label">Native language</span>
               <input className={inputCls} value={form.nativeLanguage} onChange={e => setForm(f => ({ ...f, nativeLanguage: e.target.value }))} placeholder="pl" />
             </label>
             <label className="block">
-              <Label>Type</Label>
-              <select className={inputCls + ' cursor-pointer'} value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
+              <span className="ca-label">Type</span>
+              <select className={inputCls} value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
                 {STUDENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </label>
             <label className="block">
-              <Label>CEFR Level *</Label>
-              <select className={inputCls + ' cursor-pointer'} value={form.level} onChange={e => setForm(f => ({ ...f, level: e.target.value }))}>
+              <span className="ca-label">CEFR level *</span>
+              <select className={inputCls} value={form.level} onChange={e => setForm(f => ({ ...f, level: e.target.value }))}>
                 {CEFR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </label>
             <label className="block">
-              <Label>Target Level</Label>
-              <select className={inputCls + ' cursor-pointer'} value={form.targetLevel} onChange={e => setForm(f => ({ ...f, targetLevel: e.target.value }))}>
+              <span className="ca-label">Target level</span>
+              <select className={inputCls} value={form.targetLevel} onChange={e => setForm(f => ({ ...f, targetLevel: e.target.value }))}>
                 <option value="">—</option>
                 {CEFR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </label>
-            <label className="block sm:col-span-2">
-              <Label>Group</Label>
-              <select className={inputCls + ' cursor-pointer'} value={form.groupId} onChange={e => setForm(f => ({ ...f, groupId: e.target.value }))}>
-                <option value="">No group</option>
-                {state.groups.map(g => <option key={g._id} value={g._id}>{g.name}</option>)}
-              </select>
-            </label>
-            <label className="block sm:col-span-2">
-              <Label>Notes</Label>
-              <textarea className={inputCls} rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Teacher notes" />
-            </label>
           </div>
-          {formError && (
-            <div className="rounded-[1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{formError}</div>
-          )}
+
+          <div className="rounded-[1.25rem] border border-slate-100 bg-slate-50/60 px-4 py-4">
+            <p className="ca-label mb-1 flex items-center gap-1.5" style={{ color: 'var(--ca-accent)' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 15 }}>hub</span>
+              Assignment
+            </p>
+            <AssignFields teachers={state.teachers} groups={state.groups} value={form} onChange={(next) => setForm(f => ({ ...f, ...next }))} idPrefix="form" />
+          </div>
+
+          <label className="block">
+            <span className="ca-label">Notes</span>
+            <textarea className={inputCls} rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Teacher notes" />
+          </label>
+
+          {formError && <div className="rounded-[1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{formError}</div>}
           <div className="flex items-center justify-end gap-2 pt-1">
-            <button type="button" onClick={() => setFormOpen(false)} className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer">Cancel</button>
-            <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60">
+            <button type="button" onClick={() => setFormOpen(false)} className="ca-btn ca-btn--ghost">Cancel</button>
+            <button type="submit" disabled={saving} className="ca-btn ca-btn--primary">
               <span className="material-symbols-outlined text-base">{saving ? 'progress_activity' : 'save'}</span>
-              {saving ? 'Saving…' : (editing ? 'Save Changes' : 'Create Student')}
+              {saving ? 'Saving…' : (editing ? 'Save changes' : 'Create student')}
             </button>
           </div>
         </form>
       </Modal>
 
       {/* ── Archive confirm ────────────────────────────────────── */}
-      <Modal open={!!archiveTarget} onClose={() => setArchiveTarget(null)} title="Archive Student" widthClass="max-w-md">
+      <Modal open={!!archiveTarget} onClose={() => setArchiveTarget(null)} title="Archive student" widthClass="max-w-md">
         <p className="text-sm text-slate-600">
-          Archive <span className="font-semibold text-slate-900">{archiveTarget?.name}</span>? They will be hidden from the active roster but their record is preserved.
+          Archive <span className="font-semibold" style={{ color: 'var(--ca-ink)' }}>{archiveTarget?.name}</span>? They will be hidden from the active roster but their record is preserved.
         </p>
         <div className="mt-5 flex items-center justify-end gap-2">
-          <button onClick={() => setArchiveTarget(null)} className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer">Cancel</button>
-          <button onClick={handleArchive} className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-500 to-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(225,29,72,0.9)] hover:-translate-y-0.5 transition-all duration-300">
+          <button onClick={() => setArchiveTarget(null)} className="ca-btn ca-btn--ghost">Cancel</button>
+          <button onClick={handleArchive} className="ca-btn ca-btn--danger">
             <span className="material-symbols-outlined text-base">archive</span>
             Archive
           </button>
@@ -435,13 +476,13 @@ export default function AdminStudents() {
       </Modal>
 
       {/* ── Set password ───────────────────────────────────────── */}
-      <Modal open={!!passwordTarget} onClose={() => setPasswordTarget(null)} title="Set Student Password" widthClass="max-w-md">
+      <Modal open={!!passwordTarget} onClose={() => setPasswordTarget(null)} title="Set student password" widthClass="max-w-md">
         <form onSubmit={handleSetPassword} className="space-y-4">
           <p className="text-sm text-slate-600">
-            Set a login password for <span className="font-semibold text-slate-900">{passwordTarget?.name}</span>.
+            Set a login password for <span className="font-semibold" style={{ color: 'var(--ca-ink)' }}>{passwordTarget?.name}</span>.
           </p>
           <label className="block">
-            <Label>New Password</Label>
+            <span className="ca-label">New password</span>
             <input type="password" className={inputCls} value={passwordValue} onChange={e => setPasswordValue(e.target.value)} placeholder="At least 6 characters" autoFocus />
           </label>
           {passwordStatus && (
@@ -450,10 +491,10 @@ export default function AdminStudents() {
             </div>
           )}
           <div className="flex items-center justify-end gap-2">
-            <button type="button" onClick={() => setPasswordTarget(null)} className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer">Cancel</button>
-            <button type="submit" className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] hover:-translate-y-0.5 transition-all duration-300">
+            <button type="button" onClick={() => setPasswordTarget(null)} className="ca-btn ca-btn--ghost">Cancel</button>
+            <button type="submit" className="ca-btn ca-btn--primary">
               <span className="material-symbols-outlined text-base">key</span>
-              Set Password
+              Set password
             </button>
           </div>
         </form>
@@ -471,23 +512,16 @@ function StatusPill({ status }) {
   }
   const s = map[status] || { cls: 'bg-slate-100 border-slate-200 text-slate-500', dot: 'bg-slate-400', label: status || '—' }
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-label font-bold uppercase tracking-[0.14em] ${s.cls}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-label uppercase tracking-[0.12em] ${s.cls}`}>
       <span className={`block h-1.5 w-1.5 rounded-full ${s.dot}`} />
       {s.label}
     </span>
   )
 }
 
-function RowAction({ icon, label, onClick, tone }) {
-  const hover = tone === 'rose' ? 'hover:bg-rose-50 hover:text-rose-600' : 'hover:bg-sky-50 hover:text-sky-700'
+function IconBtn({ icon, label, onClick, danger }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={label}
-      aria-label={label}
-      className={`flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/70 bg-white/80 text-slate-500 transition cursor-pointer ${hover}`}
-    >
+    <button type="button" onClick={onClick} title={label} aria-label={label} className={`ca-icon-btn ${danger ? 'ca-icon-btn--danger' : ''}`} style={{ width: '2.2rem', height: '2.2rem' }}>
       <span className="material-symbols-outlined text-lg">{icon}</span>
     </button>
   )

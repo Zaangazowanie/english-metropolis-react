@@ -9,7 +9,7 @@
 //   • Read the monthly billing summary: completed lessons + billable late
 //     cancellations, with month-by-month history.
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { queryAdminConvex, mutateAdminConvex, useAdminAuth } from '../../contexts/AdminAuthContext.jsx'
 
 const CONVERSA_ORG = 'js7cb568fpf7qhkqqe55a7jz5s83sadf'
@@ -75,6 +75,14 @@ export default function AdminCalendar() {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState(null)   // { kind: 'ok' | 'warn' | 'err', text }
 
+  // The booking / cancel panels render below the month grid, so opening one from
+  // the header would otherwise leave it off-screen. Scroll the freshly-opened
+  // panel into view so the click visibly does something.
+  const bookingRef = useRef(null)
+  const cancelRef = useRef(null)
+  useEffect(() => { if (bookingPanel) bookingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, [bookingPanel])
+  useEffect(() => { if (cancelTarget) cancelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, [cancelTarget])
+
   const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1)
   const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0)
 
@@ -88,7 +96,9 @@ export default function AdminCalendar() {
       const today = new Date()
       const slotsFrom = ymd(today)
       const slotsTo = ymd(new Date(today.getTime() + 28 * DAY_MS))
-      const [bookings, taught, slots, students, stats] = await Promise.all([
+      // Settle each query independently: one failed call degrades just that
+      // section (e.g. an empty slot list) instead of blanking the whole page.
+      const [bookings, taught, slots, students, stats] = await Promise.allSettled([
         queryAdminConvex('scheduling:listBookings', { organizationId }),
         queryAdminConvex('students:getLessonsByDateRange', {
           organizationId, startDate: ymd(monthStart), endDate: ymd(monthEnd),
@@ -97,8 +107,25 @@ export default function AdminCalendar() {
         queryAdminConvex('students:listStudents', { organizationId, activeOnly: true }),
         queryAdminConvex('scheduling:getMonthlyLessonStats', { organizationId }),
       ])
-      setData({ loading: false, bookings, taughtLessons: taught, slots, students, stats, error: '' })
-    } catch {
+      const results = [bookings, taught, slots, students, stats]
+      const failed = results.filter(r => r.status === 'rejected')
+      if (failed.length) {
+        console.warn(`[Calendar] ${failed.length}/${results.length} queries failed`,
+          failed.map(r => r.reason?.message))
+      }
+      const val = (r, fallback) => (r.status === 'fulfilled' ? r.value : fallback)
+      setData({
+        loading: false,
+        bookings: val(bookings, []),
+        taughtLessons: val(taught, []),
+        slots: val(slots, []),
+        students: val(students, []),
+        stats: val(stats, null),
+        // Only a total wipe-out is worth blanking the page for.
+        error: failed.length === results.length ? 'Failed to load calendar data.' : '',
+      })
+    } catch (e) {
+      console.error('[Calendar] load failed', e)
       setData(d => ({ ...d, loading: false, error: 'Failed to load calendar data.' }))
     }
   }, [organizationId, cursor]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -328,9 +355,9 @@ export default function AdminCalendar() {
         </div>
 
         {/* grid */}
-        <div className="mt-4 grid grid-cols-7 gap-1.5">
+        <div className="mt-4 grid grid-cols-7 gap-2">
           {WEEKDAYS.map(d => (
-            <div key={d} className="px-1 py-1 text-center font-label text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{d}</div>
+            <div key={d} className="px-1 py-1 text-center font-label text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">{d}</div>
           ))}
           {gridCells.map((dateStr, i) => {
             if (!dateStr) return <div key={`pad-${i}`} />
@@ -341,7 +368,7 @@ export default function AdminCalendar() {
             const open = slotsByDate[dateStr] || []
             const hasLessons = taught.length > 0 || bookings.length > 0
             return (
-              <div key={dateStr} className={`min-h-[84px] rounded-[1rem] border px-1.5 py-1.5 text-left align-top transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_38px_-30px_rgba(2,132,199,0.6)] ${
+              <div key={dateStr} className={`min-h-[120px] sm:min-h-[132px] rounded-[1rem] border px-2 py-2 text-left align-top transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_38px_-30px_rgba(2,132,199,0.6)] ${
                 isToday
                   ? 'border-transparent bg-white ring-2 ring-sky-500/70 shadow-[0_16px_35px_-22px_rgba(2,132,199,0.7)]'
                   : hasLessons
@@ -358,7 +385,7 @@ export default function AdminCalendar() {
                 <div className="mt-1 space-y-1">
                   {taught.map((item, idx) => (
                     <div key={`t-${idx}`} title={`${item.student?.name || ''} — ${item.lesson?.title || 'Lesson'}`}
-                      className="truncate rounded-md bg-sky-100 border border-sky-200 px-1.5 py-0.5 text-[10px] font-semibold text-sky-800">
+                      className="truncate rounded-md bg-sky-100 border border-sky-200 px-2 py-1 text-[11px] font-semibold text-sky-800">
                       ✓ {item.student?.name?.split(' ')[0] || 'Lesson'}
                     </div>
                   ))}
@@ -371,7 +398,7 @@ export default function AdminCalendar() {
                       <button key={b._id} type="button"
                         onClick={() => { if (isScheduled) { setCancelTarget(b); setBookingPanel(false); setNotice(null) } }}
                         title={`${b.studentName} ${b.timeWarsaw} — ${b.status}`}
-                        className={`block w-full truncate rounded-md border px-1.5 py-0.5 text-left text-[10px] font-semibold ${
+                        className={`block w-full truncate rounded-md border px-2 py-1 text-left text-[11px] font-semibold ${
                           isScheduled ? 'bg-emerald-100 border-emerald-300 text-emerald-800 cursor-pointer hover:bg-emerald-200'
                           : isCompleted ? 'bg-sky-100 border-sky-200 text-sky-800'
                           : isLate ? 'bg-rose-100 border-rose-300 text-rose-700 line-through'
@@ -384,7 +411,7 @@ export default function AdminCalendar() {
                   {open.length > 0 && (
                     <button type="button"
                       onClick={() => { setBookingPanel(true); setBookSlot(open[0]); setNotice(null); setCancelTarget(null) }}
-                      className="block w-full truncate rounded-md border-2 border-dashed border-sky-300 px-1.5 py-0.5 text-left text-[10px] font-semibold text-sky-600 hover:bg-sky-50 cursor-pointer">
+                      className="block w-full truncate rounded-md border-2 border-dashed border-sky-300 px-2 py-1 text-left text-[11px] font-semibold text-sky-600 hover:bg-sky-50 cursor-pointer">
                       + {open.length} open
                     </button>
                   )}
@@ -397,7 +424,7 @@ export default function AdminCalendar() {
 
       {/* ── Booking panel ── */}
       {bookingPanel && (
-        <section className="glass-panel rounded-[2rem] border border-sky-200 bg-sky-50/40 px-6 py-6 editorial-shadow">
+        <section ref={bookingRef} className="glass-panel rounded-[2rem] border border-sky-200 bg-sky-50/40 px-6 py-6 editorial-shadow">
           <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">New Booking</p>
           <h3 className="mt-1 font-headline text-2xl text-slate-900">Book a <span className="italic text-sky-600">lesson</span></h3>
 
@@ -477,7 +504,7 @@ export default function AdminCalendar() {
 
       {/* ── Cancel confirmation ── */}
       {cancelTarget && (
-        <section className={`glass-panel rounded-[2rem] border px-6 py-6 editorial-shadow ${
+        <section ref={cancelRef} className={`glass-panel rounded-[2rem] border px-6 py-6 editorial-shadow ${
           cancelIsLate ? 'border-rose-300 bg-rose-50/60' : 'border-slate-200 bg-white/70'
         }`}>
           <p className={`font-label text-xs font-bold uppercase tracking-[0.28em] ${cancelIsLate ? 'text-rose-600' : 'text-slate-500'}`}>

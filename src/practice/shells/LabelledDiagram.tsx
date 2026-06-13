@@ -482,6 +482,23 @@ export const LabelledDiagramShell: React.FC<LabelledDiagramShellProps> = ({
           from { opacity: 0; transform: translateY(8px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        /* Mobile (2026-06-05, Phase-2 ticket #4): the desktop 2-column grid
+           (diagram | tray) squeezed the diagram to ~180px, so the hotspots
+           bunched up and were hard to tap in portrait. Stack to a single
+           column — diagram on top at full width (its SVG + hotspot overlay
+           are width:100%, so they scale up and spread the pinpoints), tray
+           below with its own scroll. !important beats the inline
+           grid-template-columns. No landscape prompt needed. */
+        @media (max-width: 768px) {
+          .em-shell-ld-layout {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: minmax(0, 1.6fr) minmax(0, 1fr) !important;
+            gap: 12px !important;
+            padding: 8px 14px 14px !important;
+          }
+          .em-ld-tray { min-height: 0; }
+          .em-ld-tray > .em-card { overflow-y: auto; }
+        }
       `}</style>
 
       <div style={{ position: 'absolute', inset: 0, background: grad }} />
@@ -703,6 +720,7 @@ export const LabelledDiagramShell: React.FC<LabelledDiagramShellProps> = ({
 
         {/* TRAY */}
         <div
+          className="em-ld-tray"
           style={{
             display: 'flex',
             flexDirection: 'column',

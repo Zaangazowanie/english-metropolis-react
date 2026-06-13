@@ -153,6 +153,42 @@ export const seedSuperadmin = internalMutation({
   },
 });
 
+// Assign a student's teacher and backfill existing calendar bookings. CLI-only.
+// Used for trusted data repair where historical booking rows were created
+// before the student had a primaryTeacherId.
+export const assignStudentTeacherAndBackfillBookings = internalMutation({
+  args: {
+    studentId: v.id("students"),
+    teacherId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const student = await ctx.db.get(args.studentId);
+    if (!student) throw new Error("Student not found");
+    const teacher = await ctx.db.get(args.teacherId);
+    if (!teacher) throw new Error("Teacher not found");
+    const now = Date.now();
+    await ctx.db.patch(args.studentId, { primaryTeacherId: args.teacherId, updatedAt: now });
+
+    const bookings = await ctx.db
+      .query("lessonBookings")
+      .withIndex("by_student", q => q.eq("studentId", args.studentId))
+      .collect();
+    let patchedBookings = 0;
+    for (const booking of bookings) {
+      if (booking.status === "scheduled" && booking.teacherId === undefined) {
+        await ctx.db.patch(booking._id, { teacherId: args.teacherId, updatedAt: now });
+        patchedBookings++;
+      }
+    }
+    return {
+      studentId: args.studentId,
+      teacherId: args.teacherId,
+      teacherEmail: teacher.email,
+      patchedBookings,
+    };
+  },
+});
+
 // Delete a test/stray user account. Also CLI-only.
 export const deleteUserByEmail = internalMutation({
   args: { email: v.string() },
