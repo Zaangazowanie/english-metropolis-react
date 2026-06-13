@@ -29,6 +29,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     district: 'The Underground',
     load: () => import('../Snake3D'),
   },
+  {
+    shellKey: 'whackamole',
+    title: 'Camden Pop-Up Pigeons',
+    district: 'Camden Market',
+    load: () => import('../WhackAMole3D'),
+  },
 ]
 
 /** Look up a registered 3D game by its 2D shell route key. */
