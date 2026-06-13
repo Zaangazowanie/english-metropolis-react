@@ -42,6 +42,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     load: () => import('../Snake3D'),
   },
   {
+    shellKey: 'spinthewheel',
+    title: 'Pier Carnival Wheel',
+    district: 'Brighton Pier Carnival',
+    load: () => import('../SpinTheWheel3D'),
+  },
+  {
     shellKey: 'whackamole',
     title: 'Camden Pop-Up Pigeons',
     district: 'Camden Market',
