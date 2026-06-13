@@ -18,6 +18,12 @@ import type { Game3DRegistryEntry } from '../types'
  */
 export const game3dRegistry: Game3DRegistryEntry[] = [
   {
+    shellKey: 'balloonpop',
+    title: 'Thames Balloon Festival',
+    district: 'Thames Balloon Festival',
+    load: () => import('../BalloonPop3D'),
+  },
+  {
     shellKey: 'snake',
     title: 'Metro Snake',
     district: 'The Underground',
