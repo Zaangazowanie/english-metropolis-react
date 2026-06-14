@@ -18,6 +18,12 @@ import type { Game3DRegistryEntry } from '../types'
  */
 export const game3dRegistry: Game3DRegistryEntry[] = [
   {
+    shellKey: 'city-hub',
+    title: 'City Hub',
+    district: 'The Central Square',
+    load: () => import('../CityHub3D'),
+  },
+  {
     shellKey: 'airplane',
     title: 'Paper Plane Post',
     district: 'Royal Mail Sky Route',
