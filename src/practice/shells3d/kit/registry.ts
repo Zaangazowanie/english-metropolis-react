@@ -24,10 +24,52 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     load: () => import('../CityHub3D'),
   },
   {
+    shellKey: 'airplane',
+    title: 'Paper Plane Post',
+    district: 'Royal Mail Sky Route',
+    load: () => import('../Airplane3D'),
+  },
+  {
+    shellKey: 'balloonpop',
+    title: 'Thames Balloon Festival',
+    district: 'Thames Balloon Festival',
+    load: () => import('../BalloonPop3D'),
+  },
+  {
+    shellKey: 'battleship',
+    title: 'Bathtub Fleet',
+    district: 'Little Venice Canals',
+    load: () => import('../Battleship3D'),
+  },
+  {
+    shellKey: 'mazechase',
+    title: 'Museum After Dark',
+    district: 'Museum After Dark',
+    load: () => import('../MazeChase3D'),
+  },
+  {
+    shellKey: 'openthebox',
+    title: 'The Vault Job',
+    district: 'The Bank Vault',
+    load: () => import('../OpenTheBox3D'),
+  },
+  {
     shellKey: 'snake',
     title: 'Metro Snake',
     district: 'The Underground',
     load: () => import('../Snake3D'),
+  },
+  {
+    shellKey: 'spinthewheel',
+    title: 'Pier Carnival Wheel',
+    district: 'Brighton Pier Carnival',
+    load: () => import('../SpinTheWheel3D'),
+  },
+  {
+    shellKey: 'whackamole',
+    title: 'Camden Pop-Up Pigeons',
+    district: 'Camden Market',
+    load: () => import('../WhackAMole3D'),
   },
 ]
 
