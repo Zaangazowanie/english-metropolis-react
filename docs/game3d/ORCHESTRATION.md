@@ -61,8 +61,20 @@ VPS agent) is the integration/merge/deploy gate.
 - You may open PRs through agents. **You never merge, never deploy, never
   modify repo settings/permissions, and never request new permission rules or
   classifier bypasses** — if something is blocked, report the blocker to Mike
-  and continue other lanes. Ricky merges after gate review and deploys from
-  the VPS under the existing deploy discipline.
+  and continue other lanes.
+- **Merge + deploy are AUTONOMOUS — do NOT wait for Mike or wake Ricky.** Label
+  a ready PR `ricky-merge` and your job on that PR is done. The VPS merge-gate
+  (`gate_em.py`, cron */3) re-verifies (budget CI green · CLEAN · allowlist) and
+  merges. On merge it triggers `deploy_em.py`, which auto-builds in a clean
+  clone, re-checks the budget, backs up + rsyncs to englishmetro.com, live-
+  verifies the bundle hash, and keeps a rollback point — typically live within
+  ~15 min, no human relay. **This applies to the flagship City Hub too:** it is
+  NOT a hold-for-Mike PR — label it `ricky-merge` like any other and it ships.
+- The autonomous lane covers the allowlist only: `src/practice/shells3d/`,
+  `src/practice/components/` (mascot/widgets/primitives — UI, no auth/booking),
+  `public/games|home/`, `docs/`, `.github/`. A PR touching anything else (app
+  shell/routing, Convex, auth, billing, deps, nginx) is held + relabelled
+  `ricky-blocked` and needs a human — report it to Mike, don't fight the gate.
 - If CI (`game3d-gate`) is red on a PR, the building agent fixes it; don't
   hand red PRs to Ricky.
 
@@ -94,9 +106,11 @@ VPS agent) is the integration/merge/deploy gate.
    per the merged storyboard + contract, registers it in `registry.ts`, runs
    the budget gate locally until green, opens the build PR with screenshot.
    *Max 4 build agents concurrent* (review capacity, not compute).
-4. **Gate:** CI green + your orchestrator review + Ricky's contract review +
-   real-browser play test on the VPS. Ricky merges. Deploys batch at wave
-   boundaries (Mike's "ship").
+4. **Gate (autonomous):** label the build PR `ricky-merge` once CI
+   (`game3d-gate`) is green and your orchestrator review passes. The VPS gate
+   re-verifies and merges, then auto-deploys to englishmetro.com (~15 min,
+   build + budget + live-verify + rollback). No wave-boundary batching, no
+   manual "ship" — each green game goes live on its own.
 
 ## Wave 1 (build in this order)
 
