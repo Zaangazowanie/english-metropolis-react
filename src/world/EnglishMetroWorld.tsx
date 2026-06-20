@@ -114,17 +114,22 @@ const PORTAL_RANGE = 2.7  // proximity (world units) that opens the play prompt
 
 // Errands in ring order (all are live shells in game3dRegistry). Beats 2/4a/4b
 // are the canon Vertical Slice; spellingbee + gapfill extend the playable hub.
-const PORTAL_DEFS: Array<{ shellKey: string; title: string }> = [
-  { shellKey: 'labelleddiagram', title: 'Light the First Lamp' },      // Beat 2 (Bajla)
-  { shellKey: 'matching',        title: "Flora's Bouquets" },          // Beat 4a (Flora)
-  { shellKey: 'anagram',         title: "Mr. Chen's Chalkboard" },     // Beat 4b (Mr. Chen)
-  { shellKey: 'spellingbee',     title: "Mr. Frank's Address Board" }, // arcade errand
-  { shellKey: 'gapfill',         title: "Posta's Smudged Postcard" },  // arcade errand
+// district: the named zone shown in the HUD when Wren is near this lamp.
+const PORTAL_DEFS: Array<{ shellKey: string; title: string; district: string }> = [
+  { shellKey: 'labelleddiagram', title: 'Light the First Lamp',       district: 'Lanterngate' },
+  { shellKey: 'matching',        title: "Flora's Bouquets",           district: 'Saffron Market' },
+  { shellKey: 'anagram',         title: "Mr. Chen's Chalkboard",      district: 'Saffron Market' },
+  { shellKey: 'spellingbee',     title: "Mr. Frank's Address Board",  district: 'The Sorting Office' },
+  { shellKey: 'gapfill',         title: "Posta's Smudged Postcard",   district: 'Postcard Pier' },
 ]
 const PORTALS: PortalDef[] = PORTAL_DEFS.map((d, i) => {
   const a = (i / PORTAL_DEFS.length) * Math.PI * 2 // 0 = +Z, clockwise
   return { shellKey: d.shellKey, title: d.title, position: [Math.sin(a) * _R, 0, Math.cos(a) * _R] }
 })
+/** Nearest portal's district (for the HUD label). */
+const DISTRICT_BY_KEY: Record<string, string> = Object.fromEntries(
+  PORTAL_DEFS.map((d) => [d.shellKey, d.district])
+)
 
 // ─── Reflection bench — "Watch the Last Train" (canon Beat 5) ─────────────────
 // The bench sits just inside the lamp ring at +X (perpendicular to Lanterngate),
@@ -821,6 +826,9 @@ export default function EnglishMetroWorld({
   const [justEarned, setJustEarned]         = useState<string | null>(null) // W8 pager
   const [showMap, setShowMap]               = useState(false) // The Round map
   const [nearBench, setNearBench]           = useState(false) // Bench Beat
+  // District label — sticky: holds the last approached district so the HUD
+  // doesn't snap back to "Lanterngate" when Wren steps away from a lamp.
+  const [currentDistrict, setCurrentDistrict] = useState('Lanterngate')
   const startMs                             = useRef(Date.now())
   const announced                           = useRef('')
   // W5: persistent lamp progress (localStorage, frontend-only)
@@ -877,7 +885,11 @@ export default function EnglishMetroWorld({
   const { keysRef, joyRef } = useWorldInput(phase === 'ambient' && !activeGame && !anyDialogue && !showMap)
 
   // ── W4/W7: portal proximity + open/close game ───────────────────────────────
-  const handleNearPortalChange = useCallback((key: string | null) => setNearPortal(key), [])
+  const handleNearPortalChange = useCallback((key: string | null) => {
+    setNearPortal(key)
+    // Update the sticky district label when Wren approaches a new lamp.
+    if (key && DISTRICT_BY_KEY[key]) setCurrentDistrict(DISTRICT_BY_KEY[key])
+  }, [])
   const handleNearBenchChange  = useCallback((near: boolean) => setNearBench(near), [])
   const openNearPortal = useCallback(() => {
     if (activeGameRef.current || !nearPortalRef.current) return
@@ -1114,7 +1126,7 @@ export default function EnglishMetroWorld({
                 textShadow: '0 1px 8px rgba(0,0,0,0.6)',
                 whiteSpace: 'nowrap',
               }}>
-                Lanterngate · The City
+                {currentDistrict} · The Round
               </div>
 
               {/* Bajla hint (hidden when a portal prompt is showing) */}
