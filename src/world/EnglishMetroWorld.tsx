@@ -1,18 +1,23 @@
-// EnglishMetroWorld — WorldKit foundation (W1: world-englishmetro chunk).
+// EnglishMetroWorld — WorldKit foundation + player (W1 stage, W2 Wren).
 //
-// The canvas and atmosphere that hosts the English Metro RPG. W1 ships the
-// stage: dusk-London plaza, lamp ring, building silhouette, drifting amber
-// motes, and the "Enter the City" DOM overlay. No player yet (W2 adds Wren).
+// The canvas and atmosphere that hosts the English Metro RPG.
+//   W1: dusk-London plaza, lamp ring, building silhouette, drifting motes,
+//       and the "Enter the City" DOM overlay.
+//   W2: Wren — third-person player character with a hand-rolled controller
+//       (WASD/arrows + on-screen touch joystick) and a collision-aware
+//       spring follow-camera. Walk into the plaza; lamps and Bajla react.
 //
 // CONTRACT compliance (docs/game3d/CONTRACT.md + Addendum A, approved):
 //   • Implements Game3DProps → onSessionComplete fires on explicit exit.
 //   • Built-in demo for anonymous play (no puzzle/vocab required).
 //   • Fullscreen CityStage canvas, aria-hidden. English in DOM overlay only.
 //   • Zero new npm deps. All imports from existing three/r3f/drei + GameKit.
+//     No physics dep — the controller + camera are hand-rolled in TS.
 //   • Budget: world-englishmetro chunk target ≤ 600 KB gz (Addendum A).
-//   • DPR ≤ 1.5, draw calls < 150 (actual: ~8). reducedMotion honored.
+//   • DPR ≤ 1.5, draw calls < 150 (actual: ~22). reducedMotion honored
+//     (no bob / no decorative sway; camera snaps instead of springing).
 //   • No per-frame allocations — scratch objects declared at module scope.
-//   • Keyboard (Escape to exit) + pointer (touch/click Begin/Exit buttons).
+//   • Keyboard (WASD/arrows + Escape) + pointer (touch joystick, Begin/Exit).
 //   • Canvas aria-hidden; live-region announces state changes.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -21,10 +26,13 @@ import {
   Color,
   FogExp2,
   Object3D,
+  Vector3,
+  MathUtils,
   Float32BufferAttribute,
   BufferGeometry,
 } from 'three'
 import type {
+  Group,
   InstancedMesh,
   Mesh,
   Points as ThreePoints,
@@ -32,10 +40,19 @@ import type {
 import type { Game3DProps, SessionResult } from '../practice/shells3d/types'
 import { CityStage, useStageQuality } from '../practice/shells3d/kit/CityStage'
 import { palette } from '../practice/shells3d/kit/palette'
+import { Bajla } from '../practice/shells3d/kit/Bajla'
+import { Wren } from './Wren'
+import { useWorldInput, readKeys } from './useWorldInput'
+import type { JoyVec } from './useWorldInput'
 
 // ─── Scratch (no per-frame allocations) ────────────────────────────────────
-const _obj = new Object3D()
-const _col = new Color()
+const _obj  = new Object3D()
+const _col  = new Color()
+const _fwd  = new Vector3()
+const _right = new Vector3()
+const _move = new Vector3()
+const _camTarget = new Vector3()
+const _lookTarget = new Vector3()
 
 // ─── Layout constants ────────────────────────────────────────────────────────
 const LAMP_COUNT       = 16
@@ -43,6 +60,23 @@ const BUILDING_COUNT   = 24
 const MOTE_COUNT       = 64
 const LAMP_RING_RADIUS = 8.5
 const FONT_DISPLAY     = '"Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif'
+
+// ─── Controller / camera tuning ───────────────────────────────────────────────
+const WALK_SPEED   = 4.2   // world units / second
+const PLAY_RADIUS  = 7.4   // Wren stays inside the lamp ring
+const CAM_DIST     = 5.6   // follow distance behind Wren
+const CAM_HEIGHT   = 3.1   // follow height above Wren
+const CAM_LOOK_Y   = 1.25  // look-at height (Wren's chest)
+const TURN_LERP    = 0.18  // heading easing toward movement direction
+const CAM_LERP     = 0.08  // camera spring easing (snaps when reducedMotion)
+const START_HEADING = Math.PI // face −Z (into the plaza) so the intro keeps the
+                              // camera on the +Z side — no jarring spin-around.
+
+/** Shortest-path angular lerp (radians). */
+function lerpAngle(a: number, b: number, t: number): number {
+  const d = Math.atan2(Math.sin(b - a), Math.cos(b - a))
+  return a + d * t
+}
 
 // ─── Fog ──────────────────────────────────────────────────────────────────────
 function SceneFog() {
@@ -241,7 +275,7 @@ function FloatingMotes({ active }: { active: boolean }) {
   )
 }
 
-// ─── Gentle camera drift (high only, respects reducedMotion) ─────────────────
+// ─── Gentle camera drift (title screen only; respects reducedMotion) ─────────
 function CameraDrift({ active }: { active: boolean }) {
   const { camera } = useThree()
   const t = useRef(0)
@@ -251,18 +285,108 @@ function CameraDrift({ active }: { active: boolean }) {
     t.current += delta * 0.12
     camera.position.x = Math.sin(t.current) * 0.6
     camera.position.y = 5 + Math.sin(t.current * 0.7) * 0.25
+    camera.position.z = 18
     camera.lookAt(0, 0.5, 0)
   })
 
   return null
 }
 
+// ─── WrenRig — third-person controller + spring follow-camera ────────────────
+// Hand-rolled (no physics dep). Each frame: read input (touch joystick wins
+// over keyboard), move Wren camera-relative on the XZ plane, ease heading to
+// face travel, clamp inside the lamp ring, then spring the camera to sit
+// behind Wren. reducedMotion → snap camera, no walk bob. Allocation-free:
+// every Vector3 is module-scope scratch.
+interface WrenRigProps {
+  keysRef: React.MutableRefObject<Set<string>>
+  joyRef: React.MutableRefObject<JoyVec | null>
+  reducedMotion: boolean
+}
+function WrenRig({ keysRef, joyRef, reducedMotion }: WrenRigProps) {
+  const { camera } = useThree()
+  const groupRef = useRef<Group>(null!)
+  const posRef = useRef(new Vector3(0, 0, 0))
+  const headingRef = useRef(START_HEADING)
+  const speedRef = useRef(0)
+
+  useFrame((_, delta) => {
+    const dt = Math.min(delta, 0.05) // clamp long frames (tab refocus)
+    const g = groupRef.current
+    if (!g) return
+
+    // 1. Resolve input — joystick takes precedence when touched.
+    const joy = joyRef.current
+    const inX = joy ? joy.x : 0
+    const inY = joy ? joy.y : 0
+    let ix = inX
+    let iy = inY
+    if (!joy) {
+      const k = readKeys(keysRef.current)
+      ix = k.x
+      iy = k.y
+    }
+    let mag = Math.hypot(ix, iy)
+    if (mag > 1) { ix /= mag; iy /= mag; mag = 1 }
+
+    const pos = posRef.current
+
+    if (mag > 0.04) {
+      // 2. Camera-relative basis on the ground plane (use the camera's own
+      //    world axes so movement always matches what the player sees).
+      _fwd.setFromMatrixColumn(camera.matrix, 2).negate(); _fwd.y = 0; _fwd.normalize()
+      _right.setFromMatrixColumn(camera.matrix, 0); _right.y = 0; _right.normalize()
+      _move.set(0, 0, 0)
+        .addScaledVector(_fwd, iy)
+        .addScaledVector(_right, ix)
+      if (_move.lengthSq() > 1e-6) _move.normalize()
+
+      // 3. Advance + clamp inside the lamp ring.
+      pos.addScaledVector(_move, WALK_SPEED * dt * mag)
+      const r = Math.hypot(pos.x, pos.z)
+      if (r > PLAY_RADIUS) { pos.x = (pos.x / r) * PLAY_RADIUS; pos.z = (pos.z / r) * PLAY_RADIUS }
+
+      // 4. Turn to face travel.
+      const desired = Math.atan2(_move.x, _move.z)
+      headingRef.current = reducedMotion
+        ? desired
+        : lerpAngle(headingRef.current, desired, TURN_LERP)
+      speedRef.current = MathUtils.lerp(speedRef.current, 1, 0.25)
+    } else {
+      speedRef.current = MathUtils.lerp(speedRef.current, 0, 0.25)
+    }
+
+    // 5. Apply transform (+ a gentle walk bob unless reducedMotion).
+    const bob = reducedMotion ? 0 : Math.abs(Math.sin(performance.now() * 0.012)) * 0.06 * speedRef.current
+    g.position.set(pos.x, bob, pos.z)
+    g.rotation.y = headingRef.current
+
+    // 6. Spring the camera behind Wren's heading.
+    const hx = Math.sin(headingRef.current)
+    const hz = Math.cos(headingRef.current)
+    _camTarget.set(pos.x - hx * CAM_DIST, CAM_HEIGHT, pos.z - hz * CAM_DIST)
+    camera.position.lerp(_camTarget, reducedMotion ? 1 : CAM_LERP)
+    _lookTarget.set(pos.x, CAM_LOOK_Y, pos.z)
+    camera.lookAt(_lookTarget)
+  })
+
+  return (
+    <group ref={groupRef}>
+      <Wren speedRef={speedRef} reducedMotion={reducedMotion} />
+    </group>
+  )
+}
+
 // ─── Scene root ──────────────────────────────────────────────────────────────
 interface SceneProps {
+  phase: WorldPhase
   motesActive: boolean
-  driftActive: boolean
+  reducedMotion: boolean
+  keysRef: React.MutableRefObject<Set<string>>
+  joyRef: React.MutableRefObject<JoyVec | null>
 }
-function WorldScene({ motesActive, driftActive }: SceneProps) {
+function WorldScene({ phase, motesActive, reducedMotion, keysRef, joyRef }: SceneProps) {
+  const ambient = phase === 'ambient'
   return (
     <>
       <SceneFog />
@@ -271,13 +395,92 @@ function WorldScene({ motesActive, driftActive }: SceneProps) {
       <LampLights />
       <BuildingSkyline />
       <FloatingMotes active={motesActive} />
-      <CameraDrift active={driftActive} />
+      {/* Title: gentle establishing drift. Ambient: Wren + follow-cam. */}
+      <CameraDrift active={!reducedMotion && !ambient} />
+      {ambient && (
+        <>
+          <WrenRig keysRef={keysRef} joyRef={joyRef} reducedMotion={reducedMotion} />
+          {/* Bajla perched on the nearest lamp, watching. */}
+          <Bajla
+            variant="idle"
+            reducedMotion={reducedMotion}
+            scale={0.6}
+            position={[0, 2.95, LAMP_RING_RADIUS]}
+          />
+        </>
+      )}
     </>
   )
 }
 
 // ─── UI states ────────────────────────────────────────────────────────────────
 type WorldPhase = 'title' | 'ambient'
+
+// ─── Touch joystick (DOM overlay; writes into joyRef) ────────────────────────
+// A thumb pad in the bottom-left. Pointer events cover touch + mouse-drag.
+// Writes a normalised { x, y } (y up = +1) into joyRef while held; clears it
+// on release so the keyboard regains control. aria-hidden — keyboard is the
+// accessible movement path; this is a supplementary touch control.
+const JOY_R = 56  // pad radius (px); knob travel clamped to this
+function TouchJoystick({ joyRef }: { joyRef: React.MutableRefObject<JoyVec | null> }) {
+  const padRef = useRef<HTMLDivElement>(null)
+  const knobRef = useRef<HTMLDivElement>(null)
+  const originRef = useRef<{ x: number; y: number } | null>(null)
+
+  const setKnob = (dx: number, dy: number) => {
+    if (knobRef.current) knobRef.current.style.transform = `translate(${dx}px, ${dy}px)`
+  }
+
+  const onDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = padRef.current?.getBoundingClientRect()
+    if (!rect) return
+    originRef.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+    ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+    onMove(e)
+  }
+  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const o = originRef.current
+    if (!o) return
+    let dx = e.clientX - o.x
+    let dy = e.clientY - o.y
+    const dist = Math.hypot(dx, dy)
+    if (dist > JOY_R) { dx = (dx / dist) * JOY_R; dy = (dy / dist) * JOY_R }
+    setKnob(dx, dy)
+    // Screen-down (+dy) must be backward (−y), so negate dy.
+    joyRef.current = { x: dx / JOY_R, y: -dy / JOY_R }
+  }
+  const onUp = () => {
+    originRef.current = null
+    joyRef.current = null
+    setKnob(0, 0)
+  }
+
+  return (
+    <div
+      ref={padRef}
+      aria-hidden="true"
+      onPointerDown={onDown}
+      onPointerMove={(e) => originRef.current && onMove(e)}
+      onPointerUp={onUp}
+      onPointerCancel={onUp}
+      style={{
+        position: 'absolute', left: 26, bottom: 26,
+        width: JOY_R * 2, height: JOY_R * 2, borderRadius: '50%',
+        background: 'rgba(10,4,24,0.42)',
+        border: '1px solid rgba(245,240,250,0.18)',
+        touchAction: 'none', pointerEvents: 'auto',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      <div ref={knobRef} style={{
+        width: 46, height: 46, borderRadius: '50%',
+        background: `radial-gradient(circle at 40% 35%, ${palette.lanternCore}, ${palette.lanternAmber})`,
+        boxShadow: `0 0 18px ${palette.lanternAmber}aa`,
+        pointerEvents: 'none', willChange: 'transform',
+      }} />
+    </div>
+  )
+}
 
 // ─── EnglishMetroWorld ────────────────────────────────────────────────────────
 export default function EnglishMetroWorld({
@@ -292,6 +495,9 @@ export default function EnglishMetroWorld({
   const [phase, setPhase]  = useState<WorldPhase>('title')
   const startMs            = useRef(Date.now())
   const announced          = useRef('')
+
+  // ── Player input (active only once Wren is in the world) ───────────────────
+  const { keysRef, joyRef } = useWorldInput(phase === 'ambient')
 
   // ── Exit handler ──────────────────────────────────────────────────────────
   const handleExit = useCallback(() => {
@@ -321,7 +527,6 @@ export default function EnglishMetroWorld({
 
   // ── Animation flags ────────────────────────────────────────────────────────
   const motesActive = !reducedMotion
-  const driftActive = !reducedMotion && phase === 'ambient'
 
   return (
     <CityStage
@@ -440,6 +645,17 @@ export default function EnglishMetroWorld({
                 🦉 &ldquo;The lamps remember every word you learn.&rdquo; — Bajla
               </div>
 
+              {/* Controls hint (top-right) */}
+              <div style={{
+                position: 'absolute', top: 22, right: 24,
+                fontFamily: FONT_DISPLAY, fontSize: 12,
+                color: 'rgba(245,240,250,0.5)', letterSpacing: '0.04em',
+                textAlign: 'right', textShadow: '0 1px 6px rgba(0,0,0,0.6)',
+                whiteSpace: 'nowrap',
+              }}>
+                WASD / arrows to walk · drag the dial on touch
+              </div>
+
               {/* Exit button */}
               <button
                 type="button"
@@ -456,12 +672,21 @@ export default function EnglishMetroWorld({
               >
                 Exit city  ⎋
               </button>
+
+              {/* Touch joystick (bottom-left) */}
+              <TouchJoystick joyRef={joyRef} />
             </div>
           )}
         </>
       }
     >
-      <WorldScene motesActive={motesActive} driftActive={driftActive} />
+      <WorldScene
+        phase={phase}
+        motesActive={motesActive}
+        reducedMotion={reducedMotion}
+        keysRef={keysRef}
+        joyRef={joyRef}
+      />
     </CityStage>
   )
 }
