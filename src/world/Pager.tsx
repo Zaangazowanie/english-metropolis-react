@@ -18,6 +18,8 @@ const STAMPS: Record<string, { glyph: string; label: string }> = {
   labelleddiagram: { glyph: '🏮', label: 'Lamp' },
   matching:        { glyph: '🌻', label: 'Bouquet' },
   anagram:         { glyph: '🍵', label: 'Café' },
+  spellingbee:     { glyph: '📮', label: 'Address' },
+  gapfill:         { glyph: '💌', label: 'Postcard' },
 }
 
 export interface PagerProps {
@@ -42,7 +44,7 @@ export function Pager({ order, completed, justEarned, reducedMotion = false }: P
 
   const wrap: CSSProperties = {
     position: 'absolute', right: 24, bottom: 24,
-    width: 196, pointerEvents: 'none',
+    width: 'fit-content', maxWidth: 'min(92vw, 340px)', pointerEvents: 'none',
     fontFamily: FONT_DISPLAY,
     background: 'linear-gradient(180deg, rgba(22,34,40,0.92) 0%, rgba(12,20,26,0.94) 100%)',
     border: '1px solid rgba(176,141,87,0.45)',
@@ -70,7 +72,7 @@ export function Pager({ order, completed, justEarned, reducedMotion = false }: P
       </div>
 
       {/* Stamp row */}
-      <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
         {order.map((key) => {
           const earned = completed.has(key)
           const isNew = justEarned === key && !reducedMotion

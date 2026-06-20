@@ -99,37 +99,29 @@ function lerpAngle(a: number, b: number, t: number): number {
   return a + d * t
 }
 
-// ─── W4: district portals ─────────────────────────────────────────────────────
-// W4 + W5: district portals — one per errand. Evenly spaced 120° apart on
-// the lamp ring so Wren can reach any by walking a comfortable arc.
-// Lanterngate lamp (Beat 2): +Z. Saffron Market lamps (Beats 4a+4b): SE, SW.
-//
-// Positions on a unit circle × LAMP_RING_RADIUS at 0°, 120°, 240°:
-//   0°:   [0,   0, +R]  ← labelleddiagram "Light the First Lamp"
-//   120°: [+R*sin(2π/3), 0, R*cos(2π/3)] = [+R*0.866, 0, -R*0.5] ← matching
-//   240°: [+R*sin(4π/3), 0, R*cos(4π/3)] = [-R*0.866, 0, -R*0.5] ← anagram
+// ─── District portals — one per errand ─────────────────────────────────────
+// Each links a world location to a registered (already-merged) game shell.
+// Positions are computed evenly around the lamp ring so any number of portals
+// stays reachable by walking a comfortable arc. Portal i sits at angle
+// i*(360/N) measured from +Z (Lanterngate), so position[0] stays at +Z.
+// Wren is clamped to PLAY_RADIUS (7.4); a portal at radius 8.5 is reached
+// within PORTAL_RANGE.
 const _R = LAMP_RING_RADIUS
 const PORTAL_RANGE = 2.7  // proximity (world units) that opens the play prompt
-const PORTALS: PortalDef[] = [
-  // Lanterngate — Beat 2: "Light the First Lamp"
-  {
-    shellKey: 'labelleddiagram',
-    title: 'Light the First Lamp',
-    position: [0, 0, _R],
-  },
-  // Saffron Market — Beat 4a: "Flora's Bouquet Gift-Tags"
-  {
-    shellKey: 'matching',
-    title: "Flora's Bouquets",
-    position: [_R * 0.866, 0, -_R * 0.5],
-  },
-  // Saffron Market — Beat 4b: "The Wind-Scattered Café Chalkboard"
-  {
-    shellKey: 'anagram',
-    title: "Mr. Chen's Chalkboard",
-    position: [-_R * 0.866, 0, -_R * 0.5],
-  },
+
+// Errands in ring order (all are live shells in game3dRegistry). Beats 2/4a/4b
+// are the canon Vertical Slice; spellingbee + gapfill extend the playable hub.
+const PORTAL_DEFS: Array<{ shellKey: string; title: string }> = [
+  { shellKey: 'labelleddiagram', title: 'Light the First Lamp' },      // Beat 2 (Bajla)
+  { shellKey: 'matching',        title: "Flora's Bouquets" },          // Beat 4a (Flora)
+  { shellKey: 'anagram',         title: "Mr. Chen's Chalkboard" },     // Beat 4b (Mr. Chen)
+  { shellKey: 'spellingbee',     title: "Mr. Frank's Address Board" }, // arcade errand
+  { shellKey: 'gapfill',         title: "Posta's Smudged Postcard" },  // arcade errand
 ]
+const PORTALS: PortalDef[] = PORTAL_DEFS.map((d, i) => {
+  const a = (i / PORTAL_DEFS.length) * Math.PI * 2 // 0 = +Z, clockwise
+  return { shellKey: d.shellKey, title: d.title, position: [Math.sin(a) * _R, 0, Math.cos(a) * _R] }
+})
 
 // ─── Fog ──────────────────────────────────────────────────────────────────────
 function SceneFog() {
@@ -1322,7 +1314,7 @@ export default function EnglishMetroWorld({
                 textShadow: `0 0 18px ${palette.lanternAmber}88`,
                 letterSpacing: '0.12em',
               }}>
-                🕯 3 lamps lit · the city breathes
+                🕯 {PORTALS.length} lamps lit · the city breathes
               </div>
               {/* Continue button */}
               <button
