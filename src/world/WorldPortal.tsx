@@ -7,11 +7,13 @@
 // no textures/URLs/deps. 2 draw calls per portal (beam + ring). reducedMotion
 // → static (no pulse). No per-frame allocations.
 
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { AdditiveBlending } from 'three'
-import type { Mesh } from 'three'
+import { AdditiveBlending, Float32BufferAttribute } from 'three'
+import type { Mesh, Points as ThreePoints, BufferGeometry } from 'three'
 import { palette } from '../practice/shells3d/kit/palette'
+
+const SPARKS = 9 // rising light-motes inside each beam ("words carry light")
 
 /** One district portal: links a world location to a registered game shell. */
 export interface PortalDef {
@@ -35,9 +37,24 @@ export interface WorldPortalProps {
 export function WorldPortal({ position, active = false, lit = false, reducedMotion = false }: WorldPortalProps) {
   const beamRef = useRef<Mesh>(null!)
   const ringRef = useRef<Mesh>(null!)
+  const sparkGeo = useRef<BufferGeometry>(null!)
+  const sparkPts = useRef<ThreePoints>(null!)
   const t = useRef(0)
 
   const baseOpacity = lit ? 0.5 : active ? 0.42 : 0.26
+
+  // Deterministic initial spark positions inside the beam (no Math.random).
+  const sparkInit = useMemo(() => {
+    const arr = new Float32Array(SPARKS * 3)
+    for (let i = 0; i < SPARKS; i++) {
+      const ang = (i / SPARKS) * Math.PI * 2 * 2.7
+      const rad = 0.06 + (i % 4) * 0.06
+      arr[i * 3] = Math.cos(ang) * rad
+      arr[i * 3 + 1] = (i * 0.51) % 2.3        // staggered heights 0..2.3
+      arr[i * 3 + 2] = Math.sin(ang) * rad
+    }
+    return arr
+  }, [])
 
   useFrame((_, delta) => {
     if (reducedMotion) return
@@ -52,6 +69,18 @@ export function WorldPortal({ position, active = false, lit = false, reducedMoti
     if (ringRef.current) {
       const m = ringRef.current.material as { opacity: number }
       m.opacity = baseOpacity + 0.25 + pulse
+    }
+    // Rise the sparks (in-place; wrap at the top of the beam).
+    const geo = sparkGeo.current
+    if (geo && geo.attributes.position) {
+      const attr = geo.attributes.position as Float32BufferAttribute
+      const a = attr.array as Float32Array
+      const rise = delta * (active ? 0.9 : 0.55)
+      for (let i = 0; i < SPARKS; i++) {
+        a[i * 3 + 1] += rise
+        if (a[i * 3 + 1] > 2.3) a[i * 3 + 1] = 0.02
+      }
+      attr.needsUpdate = true
     }
   })
 
@@ -91,6 +120,21 @@ export function WorldPortal({ position, active = false, lit = false, reducedMoti
           side={2 /* DoubleSide */}
         />
       </mesh>
+      {/* Rising light-sparks inside the beam */}
+      <points ref={sparkPts}>
+        <bufferGeometry ref={sparkGeo}>
+          <bufferAttribute attach="attributes-position" args={[sparkInit, 3]} />
+        </bufferGeometry>
+        <pointsMaterial
+          color={palette.lanternCore}
+          size={0.07}
+          sizeAttenuation
+          transparent
+          opacity={0.85}
+          blending={AdditiveBlending}
+          depthWrite={false}
+        />
+      </points>
     </group>
   )
 }
