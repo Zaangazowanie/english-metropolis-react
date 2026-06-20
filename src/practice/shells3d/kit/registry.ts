@@ -71,6 +71,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     district: 'Camden Market',
     load: () => import('../WhackAMole3D'),
   },
+  {
+    shellKey: 'spellingbee',
+    title: "Mr. Frank's Address Board",
+    district: 'The Sorting Office',
+    load: () => import('../SpellingBee3D'),
+  },
 ]
 
 /** Look up a registered 3D game by its 2D shell route key. */
