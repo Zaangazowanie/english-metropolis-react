@@ -57,6 +57,7 @@ import { useLampProgress } from './useLampProgress'
 import { useDialogue } from './useDialogue'
 import { DialogueBox } from './DialogueBox'
 import { Pager } from './Pager'
+import { useWorldAudio } from './useWorldAudio'
 import {
   INTRO_SCRIPT, PORTAL_INTROS,
   hasSeenIntro, markIntroSeen,
@@ -797,6 +798,8 @@ export default function EnglishMetroWorld({
   const { completed, markComplete } = useLampProgress()
   const completedRef = useRef(completed)
   useEffect(() => { completedRef.current = completed }, [completed])
+  // W9: synthesized audio layer (Web Audio; no files, no deps)
+  const audio = useWorldAudio()
 
   // Refs mirror state so the keyboard handler stays subscribed once.
   const nearPortalRef     = useRef<string | null>(null)
@@ -847,6 +850,7 @@ export default function EnglishMetroWorld({
   const openNearPortal = useCallback(() => {
     if (activeGameRef.current || !nearPortalRef.current) return
     const key = nearPortalRef.current
+    audio.portalTone() // W9: soft rising tone on errand open
     const introLines = PORTAL_INTROS[key]
     if (introLines && !hasSeenPortalIntro(key)) {
       // W7: show the NPC intro first (movement pauses; game opens after it ends)
@@ -859,7 +863,7 @@ export default function EnglishMetroWorld({
       setNearPortal(null) // hide prompt; world unmounts while playing
       announced.current = 'Opening errand. Press Escape to return to the city.'
     }
-  }, [])
+  }, [audio])
   const closeGame = useCallback(() => {
     setActiveGame(null)
     setNearPortal(null) // WrenRig re-detects on remount (Wren spawns away)
@@ -873,13 +877,14 @@ export default function EnglishMetroWorld({
       // W8: celebrate a genuinely-new stamp on the pager (fades after ~2.6s).
       if (isNew) {
         setJustEarned(key)
+        audio.chime() // W9: warm bell on a new stamp
         setTimeout(() => setJustEarned((k) => (k === key ? null : k)), 2600)
       }
     }
     setActiveGame(null)
     setNearPortal(null)
     announced.current = '+1 light — the lamp remembers. Back in the city.'
-  }, [markComplete])
+  }, [markComplete, audio])
 
   // W5: trigger the vertical-slice completion beat when all portals are lit.
   // Uses a useEffect so it reads the freshly-updated `completed` after state settles.
@@ -891,6 +896,7 @@ export default function EnglishMetroWorld({
 
   // ── Exit handler ──────────────────────────────────────────────────────────
   const handleExit = useCallback(() => {
+    audio.stopAmbient() // W9: fade out the drone on leaving
     const result: SessionResult = {
       correctCount:   0,
       totalQuestions: 0,
@@ -898,19 +904,20 @@ export default function EnglishMetroWorld({
       shellKey:       'world-englishmetro',
     }
     onSessionComplete?.(result)
-  }, [onSessionComplete])
+  }, [onSessionComplete, audio])
 
-  // ── Begin the journey — triggers W3 arrival + W6 cold-open dialogue ───────
+  // ── Begin the journey — triggers W3 arrival + W6 cold-open + W9 ambient ────
   const handleBegin = useCallback(() => {
     setPhase('ambient')
     announced.current = 'You have entered Lanterngate. Press Escape to leave.'
+    audio.startAmbient() // W9: the Begin click is the gesture that resumes audio
     // W3: Show "LANTERNGATE" district title for 3s then fade.
     setShowArrival(true)
     setTimeout(() => setShowArrival(false), 3200)
     // W6: play the cold-open VN dialogue once per device (after a short beat
     // so the scene establishes first). Skippable.
     if (!hasSeenIntro()) setTimeout(() => setShowIntro(true), 700)
-  }, [])
+  }, [audio])
 
   // ── W3: Bajla flyby — triggers once 1s after entering the world ───────────
   useEffect(() => {
@@ -1135,9 +1142,27 @@ export default function EnglishMetroWorld({
                 reducedMotion={reducedMotion}
               />
 
-              {/* Controls hint (top-right) */}
+              {/* W9: mute toggle (top-right) */}
+              <button
+                type="button"
+                onClick={audio.toggleMute}
+                aria-label={audio.muted ? 'Unmute sound' : 'Mute sound'}
+                style={{
+                  position: 'absolute', top: 18, right: 24,
+                  width: 34, height: 34, borderRadius: 9,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(10,4,24,0.55)',
+                  border: '1px solid rgba(245,240,250,0.18)',
+                  color: 'rgba(245,240,250,0.7)', fontSize: 15,
+                  cursor: 'pointer', pointerEvents: 'auto',
+                }}
+              >
+                {audio.muted ? '🔇' : '🔊'}
+              </button>
+
+              {/* Controls hint (top-right, below the mute toggle) */}
               <div style={{
-                position: 'absolute', top: 22, right: 24,
+                position: 'absolute', top: 60, right: 24,
                 fontFamily: FONT_DISPLAY, fontSize: 12,
                 color: 'rgba(245,240,250,0.5)', letterSpacing: '0.04em',
                 textAlign: 'right', textShadow: '0 1px 6px rgba(0,0,0,0.6)',
