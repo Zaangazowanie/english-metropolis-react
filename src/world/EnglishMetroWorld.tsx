@@ -59,6 +59,7 @@ import { DialogueBox } from './DialogueBox'
 import { Pager } from './Pager'
 import { MetroMap } from './MetroMap'
 import { ReflectionBench } from './ReflectionBench'
+import { MetroTrain } from './MetroTrain'
 import { useWorldAudio } from './useWorldAudio'
 import {
   INTRO_SCRIPT, PORTAL_INTROS,
@@ -607,6 +608,8 @@ function WorldScene({
       <LampRing />
       <LampLights />
       <BuildingSkyline />
+      {/* The elevated Round + slow last train, circling beyond the plaza */}
+      <MetroTrain reducedMotion={reducedMotion} />
       <FloatingMotes active={motesActive} />
       {/* W3: living zone — paper lanterns + NPC silhouettes always present */}
       <PaperLanterns reducedMotion={reducedMotion} />
