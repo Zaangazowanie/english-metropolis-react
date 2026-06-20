@@ -4,9 +4,11 @@
 // bench beat's "watch the last train").
 //
 // Procedural: a torus viaduct on instanced pillars + a 3-car warm-windowed
-// train that travels the circle. No textures, no GLBs, no external assets.
-// reducedMotion → the train parks (no motion). No per-frame allocations
-// (only scalar writes to the train group's position/rotation).
+// train that travels the circle, reskinned to the canonical Dusk Teal & Amber
+// art bible (dark-teal ironwork, brass rail glint, deep-teal cars, amber
+// windows + a warm headlight) and given the canon "it breathes" bob.
+// No textures, no GLBs, no external assets. reducedMotion → the train parks
+// (no motion / no breath). No per-frame allocations (only scalar writes).
 
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
@@ -23,14 +25,17 @@ const TRAIN_SPEED = 0.06  // radians / second (slow, meditative)
 const CARS      = 3
 const CAR_GAP   = 0.07    // radians between car centres
 
-const VIADUCT = '#241B3A' // dark dusk-violet ironwork
-const CAR     = '#2E2746'
-const WINDOW  = palette.lanternCore
+const VIADUCT  = '#17323A' // dark teal ironwork (canon Dusk Teal, deep)
+const RAIL     = palette.brass // warm brass rail glint
+const CAR      = '#22454E' // deep dusk-teal car body
+const WINDOW   = palette.lanternCore // warm amber window glow
+const HEADLAMP = palette.lanternAmber // warm headlight on the lead car
 
 export function MetroTrain({ reducedMotion = false }: { reducedMotion?: boolean }) {
   const pillarsRef = useRef<InstancedMesh>(null!)
   const trainRef = useRef<Group>(null!)
   const angle = useRef(0)
+  const t = useRef(0)
 
   // Place pillars once.
   useFrameOncePillars(pillarsRef)
@@ -38,8 +43,10 @@ export function MetroTrain({ reducedMotion = false }: { reducedMotion?: boolean 
   useFrame((_, delta) => {
     if (reducedMotion || !trainRef.current) return
     angle.current = (angle.current + delta * TRAIN_SPEED) % (Math.PI * 2)
+    t.current += delta
     const a = angle.current
-    trainRef.current.position.set(Math.sin(a) * TRACK_R, TRACK_Y + 0.35, Math.cos(a) * TRACK_R)
+    const breath = Math.sin(t.current * 1.1) * 0.05 // canon: "it breathes"
+    trainRef.current.position.set(Math.sin(a) * TRACK_R, TRACK_Y + 0.35 + breath, Math.cos(a) * TRACK_R)
     trainRef.current.rotation.y = -a // tangent to the circle
   })
 
@@ -53,7 +60,7 @@ export function MetroTrain({ reducedMotion = false }: { reducedMotion?: boolean 
       {/* Inner rail highlight */}
       <mesh position={[0, TRACK_Y + 0.16, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <torusGeometry args={[TRACK_R, 0.05, 4, 64]} />
-        <meshToonMaterial color="#3A2F57" />
+        <meshToonMaterial color={RAIL} />
       </mesh>
 
       {/* Pillars — instanced cylinders from ground to deck */}
@@ -82,6 +89,13 @@ export function MetroTrain({ reducedMotion = false }: { reducedMotion?: boolean 
                 <boxGeometry args={[0.02, 0.26, 0.8]} />
                 <meshBasicMaterial color={WINDOW} />
               </mesh>
+              {/* Warm headlight on the lead car (front, local +Z) */}
+              {i === CARS - 1 && (
+                <mesh position={[0, 0, 0.56]}>
+                  <sphereGeometry args={[0.09, 8, 6]} />
+                  <meshBasicMaterial color={HEADLAMP} />
+                </mesh>
+              )}
             </group>
           )
         })}
