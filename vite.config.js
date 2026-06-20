@@ -17,6 +17,10 @@ function shellManualChunks(id) {
   // so the engine downloads once and every game reuses the cached copy.
   const g = id.match(/\/src\/practice\/shells3d\/([A-Za-z0-9_]+)\.tsx?$/)
   if (g) return `game3d-${g[1]}`
+  // 2026-06-20 (Claude): English Metro WorldKit — the explorable 3D hub that
+  // hosts per-game district portals. Separate from per-game game3d-* chunks;
+  // budgeted under CONTRACT Addendum A (world chunk ≤ 600 KB gz).
+  if (/\/src\/world\//.test(id)) return 'world-englishmetro'
   if (/\/node_modules\/(three|@react-three)\//.test(id)) return 'vendor-three'
   return undefined
 }
