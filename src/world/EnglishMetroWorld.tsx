@@ -84,7 +84,7 @@ const LAMP_COUNT       = 16
 const BUILDING_COUNT   = 24
 const MOTE_COUNT       = 64
 const LAMP_RING_RADIUS = 8.5
-const NPC_COUNT        = 4    // W3: silhouette NPCs in the distance
+const NPC_COUNT        = 6    // W3: dusk residents drifting around the plaza
 const FONT_DISPLAY     = '"Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif'
 
 // ─── Controller / camera tuning ───────────────────────────────────────────────
@@ -410,14 +410,18 @@ function PaperLanterns({ reducedMotion }: { reducedMotion: boolean }) {
   )
 }
 
-// ─── W3: NPC silhouettes (distant, muffled, drifting) ────────────────────────
-// Per canon Beat 2: "A few NPCs drift in the background, muffled, not yet
-// speaking." 4 very dark indigo silhouettes at ~12 units radius (just outside
-// the lamp ring), each on a slow looping path. Head + body only. reducedMotion
-// → static. 2 draw calls (body InstancedMesh + head InstancedMesh).
+// ─── W3: dusk residents (drifting around the plaza) ──────────────────────────
+// Per canon Beat 2: "A few NPCs drift in the background." Reskinned from flat
+// dark indigo silhouettes to warm dusk-London residents — each a different coat
+// + skin tone (instanceColor) so the city reads as populated and alive, not
+// ghostly. 6 figures at ~12 units radius (just outside the lamp ring), each on
+// a slow looping path. Head + body only. reducedMotion → static. 2 draw calls
+// (body InstancedMesh + head InstancedMesh).
 const NPC_RADIUS = 12.5
 const NPC_SPEED  = 0.14  // radians / second
-const NPC_COLOR  = '#1a1030' // very dark indigo — "muffled, not yet speaking"
+// Warm coats + skin tones for the residents (cozy, slightly muted dusk hues).
+const NPC_COATS = ['#3E6B70', '#C2913F', '#6B4F70', '#8A5A3A', '#5E7378', '#9A6B55']
+const NPC_SKINS = ['#E8C8A8', '#D2A77E', '#C9956B', '#E0B894', '#B98A66', '#EAD0B2']
 
 function NpcSilhouettes({ reducedMotion }: { reducedMotion: boolean }) {
   const bodyRef = useRef<InstancedMesh>(null!)
@@ -428,6 +432,17 @@ function NpcSilhouettes({ reducedMotion }: { reducedMotion: boolean }) {
   const initAngles = useMemo(() =>
     Array.from({ length: NPC_COUNT }, (_, i) => (i / NPC_COUNT) * Math.PI * 2 + 0.6),
   [])
+
+  // Per-resident warm colors (coat + skin), set once.
+  useEffect(() => {
+    if (!bodyRef.current || !headRef.current) return
+    for (let i = 0; i < NPC_COUNT; i++) {
+      _col.set(NPC_COATS[i % NPC_COATS.length]); bodyRef.current.setColorAt(i, _col)
+      _col.set(NPC_SKINS[i % NPC_SKINS.length]); headRef.current.setColorAt(i, _col)
+    }
+    if (bodyRef.current.instanceColor) bodyRef.current.instanceColor.needsUpdate = true
+    if (headRef.current.instanceColor) headRef.current.instanceColor.needsUpdate = true
+  }, [])
 
   useFrame((_, delta) => {
     if (!bodyRef.current || !headRef.current) return
@@ -456,15 +471,17 @@ function NpcSilhouettes({ reducedMotion }: { reducedMotion: boolean }) {
 
   return (
     <>
+      {/* Coats — opaque toon, per-resident color via instanceColor */}
       <instancedMesh ref={bodyRef} args={[undefined, undefined, NPC_COUNT]}
         frustumCulled={false}>
         <cylinderGeometry args={[0.22, 0.28, 1.4, 7]} />
-        <meshBasicMaterial color={NPC_COLOR} transparent opacity={0.72} />
+        <meshToonMaterial />
       </instancedMesh>
+      {/* Heads — opaque toon, per-resident skin tone via instanceColor */}
       <instancedMesh ref={headRef} args={[undefined, undefined, NPC_COUNT]}
         frustumCulled={false}>
         <sphereGeometry args={[0.2, 7, 6]} />
-        <meshBasicMaterial color={NPC_COLOR} transparent opacity={0.65} />
+        <meshToonMaterial />
       </instancedMesh>
     </>
   )
