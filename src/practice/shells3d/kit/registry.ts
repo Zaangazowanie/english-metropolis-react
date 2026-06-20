@@ -72,6 +72,18 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     load: () => import('../WhackAMole3D'),
   },
   {
+    shellKey: 'matching',
+    title: "Flora's Bouquets",
+    district: 'Saffron Market',
+    load: () => import('../Matching3D'),
+  },
+  {
+    shellKey: 'anagram',
+    title: "Mr. Chen's Chalkboard",
+    district: 'Saffron Market',
+    load: () => import('../Anagram3D'),
+  },
+  {
     shellKey: 'labelleddiagram',
     title: 'Light the First Lamp',
     district: 'Lanterngate',
