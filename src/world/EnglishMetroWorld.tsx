@@ -60,6 +60,7 @@ import { Pager } from './Pager'
 import { MetroMap } from './MetroMap'
 import { ReflectionBench } from './ReflectionBench'
 import { MetroTrain } from './MetroTrain'
+import { DuskClouds } from './DuskClouds'
 import { useWorldAudio } from './useWorldAudio'
 import {
   INTRO_SCRIPT, PORTAL_INTROS,
@@ -608,6 +609,8 @@ function WorldScene({
       <LampRing />
       <LampLights />
       <BuildingSkyline />
+      {/* Soft watercolor clouds drifting high on the breeze */}
+      <DuskClouds reducedMotion={reducedMotion} />
       {/* The elevated Round + slow last train, circling beyond the plaza */}
       <MetroTrain reducedMotion={reducedMotion} />
       <FloatingMotes active={motesActive} />
