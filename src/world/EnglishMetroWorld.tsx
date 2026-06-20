@@ -57,6 +57,7 @@ import { useLampProgress } from './useLampProgress'
 import { useDialogue } from './useDialogue'
 import { DialogueBox } from './DialogueBox'
 import { Pager } from './Pager'
+import { MetroMap } from './MetroMap'
 import { useWorldAudio } from './useWorldAudio'
 import {
   INTRO_SCRIPT, PORTAL_INTROS,
@@ -792,6 +793,7 @@ export default function EnglishMetroWorld({
   const [showIntro, setShowIntro]           = useState(false)  // W6 VN cold-open
   const [portalIntroKey, setPortalIntroKey] = useState<string | null>(null) // W7
   const [justEarned, setJustEarned]         = useState<string | null>(null) // W8 pager
+  const [showMap, setShowMap]               = useState(false) // W10 the Round
   const startMs                             = useRef(Date.now())
   const announced                           = useRef('')
   // W5: persistent lamp progress (localStorage, frontend-only)
@@ -806,11 +808,13 @@ export default function EnglishMetroWorld({
   const activeGameRef     = useRef<string | null>(null)
   const showIntroRef      = useRef(false)
   const portalIntroKeyRef = useRef<string | null>(null)
+  const showMapRef        = useRef(false)
   const advanceRef        = useRef<() => void>(() => {})
   useEffect(() => { nearPortalRef.current = nearPortal }, [nearPortal])
   useEffect(() => { activeGameRef.current = activeGame }, [activeGame])
   useEffect(() => { showIntroRef.current = showIntro }, [showIntro])
   useEffect(() => { portalIntroKeyRef.current = portalIntroKey }, [portalIntroKey])
+  useEffect(() => { showMapRef.current = showMap }, [showMap])
 
   // ── W6: VN dialogue (cold-open). Movement pauses while it plays. ───────────
   const endIntro = useCallback(() => { setShowIntro(false); markIntroSeen() }, [])
@@ -841,9 +845,9 @@ export default function EnglishMetroWorld({
   const activeAdvance = portalIntroKey ? portalIntro.advance : intro.advance
   useEffect(() => { advanceRef.current = activeAdvance }, [activeAdvance])
 
-  // ── Player input (paused while a game or any dialogue is open) ──────────────
+  // ── Player input (paused while a game, any dialogue, or the map is open) ────
   const anyDialogue = showIntro || !!portalIntroKey
-  const { keysRef, joyRef } = useWorldInput(phase === 'ambient' && !activeGame && !anyDialogue)
+  const { keysRef, joyRef } = useWorldInput(phase === 'ambient' && !activeGame && !anyDialogue && !showMap)
 
   // ── W4/W7: portal proximity + open/close game ───────────────────────────────
   const handleNearPortalChange = useCallback((key: string | null) => setNearPortal(key), [])
@@ -928,13 +932,19 @@ export default function EnglishMetroWorld({
   }, [phase])
 
   // ── Keyboard ───────────────────────────────────────────────────────────────
-  // Precedence: portal-intro → cold-open → game → portal/world.
+  // Precedence: map → portal-intro → cold-open → game → portal/world.
+  //   • Map open: M / Escape close it.
   //   • Portal-intro playing: Enter/Space advances; Escape skips → opens game.
   //   • Cold-open playing: Enter/Space advances; Escape skips the intro.
   //   • Game open: Escape returns to the city.
-  //   • Else near a portal: Enter/Space opens that errand; Escape exits world.
+  //   • Else: M opens the Round; near a portal Enter/Space opens that errand;
+  //     Escape exits the world.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (showMapRef.current) {
+        if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') { e.preventDefault(); setShowMap(false) }
+        return
+      }
       if (portalIntroKeyRef.current) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advanceRef.current() }
         else if (e.key === 'Escape') { e.preventDefault(); endPortalIntro() }
@@ -943,6 +953,12 @@ export default function EnglishMetroWorld({
       if (showIntroRef.current) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advanceRef.current() }
         else if (e.key === 'Escape') { e.preventDefault(); endIntro() }
+        return
+      }
+      // The Round — only in free-roam (no game/dialogue active).
+      if ((e.key === 'm' || e.key === 'M') && !activeGameRef.current) {
+        e.preventDefault()
+        setShowMap(true)
         return
       }
       if (e.key === 'Escape') {
@@ -1142,6 +1158,25 @@ export default function EnglishMetroWorld({
                 reducedMotion={reducedMotion}
               />
 
+              {/* W10: "The Round" map button (top-left) */}
+              <button
+                type="button"
+                onClick={() => setShowMap(true)}
+                aria-label="Open the Round — district map"
+                style={{
+                  position: 'absolute', top: 18, left: 24,
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 12.5,
+                  color: 'rgba(245,240,250,0.72)', letterSpacing: '0.06em',
+                  background: 'rgba(10,4,24,0.55)',
+                  border: '1px solid rgba(245,240,250,0.18)',
+                  borderRadius: 9, padding: '8px 14px',
+                  cursor: 'pointer', pointerEvents: 'auto',
+                }}
+              >
+                <span style={{ fontSize: 14 }}>◷</span> The Round
+              </button>
+
               {/* W9: mute toggle (top-right) */}
               <button
                 type="button"
@@ -1332,6 +1367,11 @@ export default function EnglishMetroWorld({
               onAdvance={portalIntro.advance}
               onSkip={endPortalIntro}
             />
+          )}
+
+          {/* W10: "The Round" district map */}
+          {showMap && (
+            <MetroMap completed={completed} onClose={() => setShowMap(false)} reducedMotion={reducedMotion} />
           )}
         </>
       }
