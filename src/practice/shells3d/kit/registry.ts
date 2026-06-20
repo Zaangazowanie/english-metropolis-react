@@ -101,6 +101,16 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     district: 'The Sorting Office',
     load: () => import('../SpellingBee3D'),
   },
+  // ── English Metro WorldKit (Addendum A, approved 2026-06-20) ─────────────
+  // The explorable dusk-London hub. "shellKey" intentionally uses the world
+  // prefix so GameHome renders it as an "Enter the City" hero entry above
+  // the per-game departures board. Budget: world-englishmetro ≤ 600 KB gz.
+  {
+    shellKey: 'world-englishmetro',
+    title: 'English Metro — Enter the City',
+    district: 'All Districts',
+    load: () => import('../../../world/EnglishMetroWorld'),
+  },
 ]
 
 /** Look up a registered 3D game by its 2D shell route key. */
