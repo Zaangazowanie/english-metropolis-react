@@ -61,6 +61,7 @@ import { MetroMap } from './MetroMap'
 import { ReflectionBench } from './ReflectionBench'
 import { MetroTrain } from './MetroTrain'
 import { DuskClouds } from './DuskClouds'
+import { TitlePlanet } from './TitlePlanet'
 import { useWorldAudio } from './useWorldAudio'
 import {
   INTRO_SCRIPT, PORTAL_INTROS,
@@ -635,7 +636,8 @@ function WorldScene({
       <PaperLanterns reducedMotion={reducedMotion} />
       <NpcSilhouettes reducedMotion={reducedMotion} />
       {/* Title: gentle establishing drift. Ambient: Wren + follow-cam. */}
-      <CameraDrift active={!reducedMotion && !ambient} />
+      {/* Title: the menu "tiny planet" (drives the title camera). Ambient: Wren. */}
+      {!ambient && <TitlePlanet reducedMotion={reducedMotion} />}
       {ambient && (
         <>
           <WrenRig
@@ -1060,12 +1062,14 @@ export default function EnglishMetroWorld({
             {announced.current}
           </div>
 
-          {/* Title screen */}
+          {/* Title screen — wordmark sits in the lower band so the menu planet
+              reads in the open upper-centre; scrim darkens only toward the text. */}
           {phase === 'title' && (
             <div style={{
               position: 'absolute', inset: 0, display: 'flex',
-              flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              background: 'linear-gradient(180deg, rgba(10,4,24,0.55) 0%, rgba(26,35,72,0.4) 100%)',
+              flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end',
+              paddingBottom: '9vh',
+              background: 'linear-gradient(180deg, rgba(10,4,24,0) 0%, rgba(10,4,24,0.12) 45%, rgba(10,4,24,0.72) 100%)',
               pointerEvents: 'none',
             }}>
               <div style={{ textAlign: 'center', pointerEvents: 'auto', padding: '0 24px' }}>
