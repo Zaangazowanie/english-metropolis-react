@@ -37,6 +37,8 @@ export interface WorldAudioApi {
   chime: () => void
   /** Soft rising tone — errand opening. */
   portalTone: () => void
+  /** Soft low thud — a single footstep (call on stride beats while walking). */
+  footstep: () => void
 }
 
 export function useWorldAudio(): WorldAudioApi {
@@ -141,6 +143,25 @@ export function useWorldAudio(): WorldAudioApi {
     o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.36)
   }, [ensureCtx])
 
+  const footstep = useCallback(() => {
+    const ctx = ensureCtx()
+    if (!ctx || mutedRef.current) return
+    const t = ctx.currentTime
+    // A soft, short low "tok" — a quick pitch-dropping sine through a lowpass.
+    const o = ctx.createOscillator()
+    o.type = 'sine'
+    o.frequency.setValueAtTime(150, t)
+    o.frequency.exponentialRampToValueAtTime(70, t + 0.09)
+    const lp = ctx.createBiquadFilter()
+    lp.type = 'lowpass'; lp.frequency.value = 320
+    const g = ctx.createGain()
+    g.gain.value = 0.0001
+    g.gain.exponentialRampToValueAtTime(0.045, t + 0.008)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12)
+    o.connect(lp); lp.connect(g); g.connect(ctx.destination)
+    o.start(t); o.stop(t + 0.14)
+  }, [ensureCtx])
+
   const toggleMute = useCallback(() => {
     setMuted((m) => {
       const next = !m
@@ -162,5 +183,5 @@ export function useWorldAudio(): WorldAudioApi {
     }
   }, [])
 
-  return { muted, toggleMute, startAmbient, stopAmbient, chime, portalTone }
+  return { muted, toggleMute, startAmbient, stopAmbient, chime, portalTone, footstep }
 }

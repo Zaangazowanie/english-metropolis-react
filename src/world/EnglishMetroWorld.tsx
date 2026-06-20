@@ -488,8 +488,10 @@ interface WrenRigProps {
   onNearPortalChange: (shellKey: string | null) => void
   /** Called when Wren enters/leaves the bench proximity zone. */
   onNearBenchChange: (near: boolean) => void
+  /** Called on each stride beat while walking (soft footstep audio). */
+  onFootstep: () => void
 }
-function WrenRig({ keysRef, joyRef, reducedMotion, onNearPortalChange, onNearBenchChange }: WrenRigProps) {
+function WrenRig({ keysRef, joyRef, reducedMotion, onNearPortalChange, onNearBenchChange, onFootstep }: WrenRigProps) {
   const { camera } = useThree()
   const groupRef = useRef<Group>(null!)
   const posRef = useRef(new Vector3(0, 0, 0))
@@ -497,6 +499,7 @@ function WrenRig({ keysRef, joyRef, reducedMotion, onNearPortalChange, onNearBen
   const speedRef = useRef(0)
   const nearRef = useRef<string | null>(null)
   const nearBenchRef = useRef(false)
+  const stepClock = useRef(0)
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05) // clamp long frames (tab refocus)
@@ -580,6 +583,14 @@ function WrenRig({ keysRef, joyRef, reducedMotion, onNearPortalChange, onNearBen
       nearBenchRef.current = nearBench
       onNearBenchChange(nearBench)
     }
+
+    // 9. Footstep audio — a soft step on each stride beat while walking.
+    if (speedRef.current > 0.35) {
+      stepClock.current += dt
+      if (stepClock.current >= 0.36) { stepClock.current = 0; onFootstep() }
+    } else {
+      stepClock.current = 0.3 // primed so the first step fires quickly on move
+    }
   })
 
   return (
@@ -601,10 +612,11 @@ interface SceneProps {
   joyRef: React.MutableRefObject<JoyVec | null>
   onNearPortalChange: (shellKey: string | null) => void
   onNearBenchChange: (near: boolean) => void
+  onFootstep: () => void
 }
 function WorldScene({
   phase, motesActive, reducedMotion, bajlaVariant, nearPortal, completed,
-  keysRef, joyRef, onNearPortalChange, onNearBenchChange,
+  keysRef, joyRef, onNearPortalChange, onNearBenchChange, onFootstep,
 }: SceneProps) {
   const ambient = phase === 'ambient'
   return (
@@ -632,6 +644,7 @@ function WorldScene({
             reducedMotion={reducedMotion}
             onNearPortalChange={onNearPortalChange}
             onNearBenchChange={onNearBenchChange}
+            onFootstep={onFootstep}
           />
           {/* Bench Beat — visible in ambient always; glows when Wren nears it */}
           <ReflectionBench
@@ -1465,6 +1478,7 @@ export default function EnglishMetroWorld({
         joyRef={joyRef}
         onNearPortalChange={handleNearPortalChange}
         onNearBenchChange={handleNearBenchChange}
+        onFootstep={audio.footstep}
       />
     </CityStage>
   )
