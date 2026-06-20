@@ -3,3 +3,6 @@ dist
 .DS_Store
 *.local
 .env.local.bak-*
+
+# CI gameplay-capture working dir (advisory; only the final GIF is committed)
+.capture-out/
