@@ -3,11 +3,13 @@
 // of the plaza. After all errands are done, Bajla leads Wren here and they
 // just sit. Non-interactive by design — the scene is a reward, not a puzzle.
 //
-// Geometry: procedural (box slats + cylinder legs + thin armrests). No textures,
-// no GLBs, no external assets. MeshToonMaterial. TremblingOutlineMesh on the
-// main seat so it reads as drawn rather than placed. 1 draw call = instanced
-// slats; ~6 total. No per-frame allocations.
+// Geometry: procedural (box slats + cylinder legs + thin armrests) plus a
+// standing lantern (canon Beat 5: "the lanterns here are fully lit") casting a
+// warm pool of light over the reflection spot. No textures, no GLBs, no
+// external assets. MeshToonMaterial. TremblingOutlineMesh on the main seat so
+// it reads as drawn rather than placed. ~9 draw calls. No per-frame allocations.
 
+import { AdditiveBlending } from 'three'
 import { TremblingOutlineMesh } from './TremblingOutline'
 import { palette } from '../practice/shells3d/kit/palette'
 
@@ -82,6 +84,32 @@ export function ReflectionBench({
         <boxGeometry args={[1.0, 0.03, 0.04]} />
         <meshToonMaterial color={WOOD_DARK} />
       </mesh>
+
+      {/* ── Standing lantern beside the bench (canon Beat 5: "the lanterns
+           here are fully lit") — a warm pool of light over the reflection spot ── */}
+      <group position={[0.8, 0, 0.04]}>
+        {/* iron post */}
+        <mesh position={[0, 0.75, 0]} castShadow>
+          <cylinderGeometry args={[0.028, 0.034, 1.5, 6]} />
+          <meshToonMaterial color={IRON} />
+        </mesh>
+        {/* glowing lantern bulb (unlit MeshBasic so it always burns) */}
+        <mesh position={[0, 1.55, 0]}>
+          <sphereGeometry args={[0.1, 10, 8]} />
+          <meshBasicMaterial color={palette.lanternCore} />
+        </mesh>
+        {/* soft warm halo — the pool of light */}
+        <mesh position={[0, 1.55, 0]}>
+          <sphereGeometry args={[0.34, 12, 10]} />
+          <meshBasicMaterial
+            color={palette.lanternAmber}
+            transparent
+            opacity={0.13}
+            blending={AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      </group>
     </group>
   )
 }
