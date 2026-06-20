@@ -1,18 +1,20 @@
 // Wren — the English Metro player character. An ORIGINAL human messenger:
 // oversized teal-grey coat, long amber scarf (the same warm amber as the
 // city's lamps — canon: "Wren's scarf is a lamp she carries"), leather
-// satchel. Procedural low-poly + MeshToonMaterial with a cheap inverted-hull
-// ink outline on the dominant silhouette (coat + head). Faces +Z at heading 0
+// satchel. Procedural low-poly + MeshToonMaterial with the TremblingOutline
+// shader on the dominant silhouette (coat + head) — the hand-drawn graphite
+// ink look that is English Metro's signature style. Faces +Z at heading 0
 // so the controller's atan2 heading maps directly to rotation.y.
 //
 // Animation: arms swing and the scarf tail sways, scaled by a live `speedRef`
 // (0 idle → 1 walking) the parent rig updates each frame. reducedMotion stops
-// all decorative sway. No per-frame allocations (scalar rotations only).
+// decorative sway and holds the outline static. No per-frame allocations.
 
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type { Group, Mesh } from 'three'
 import { palette } from '../practice/shells3d/kit/palette'
+import { TremblingOutlineMesh } from './TremblingOutline'
 
 // Wren's palette — coat reads against the teal ground; scarf = lamp amber.
 const COAT   = '#54737D' // soft teal-grey wool
@@ -22,13 +24,19 @@ const HAIR   = '#3A2E2A'
 const SCARF  = palette.lanternAmber // ties Wren to the lamps
 const BAG    = palette.brass
 const TROUSER = '#2C3A42'
-const INK    = palette.night        // outline
+// INK constant removed: coat + head outlines are now TremblingOutlineMesh,
+// which reads palette.night internally from TremblingOutline.tsx.
 
 export interface WrenProps {
   /** Live 0..1 walk intensity (parent rig writes it each frame). */
   speedRef: React.MutableRefObject<number>
   reducedMotion?: boolean
 }
+
+// Outline tuning for Wren's scale (~1.8 world units tall).
+const COAT_THICKNESS = 0.038
+const HEAD_THICKNESS = 0.028
+const OUTLINE_JITTER  = 0.007
 
 /** Wren, built at local origin with feet at y=0, facing +Z. */
 export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
@@ -73,11 +81,15 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
         <cylinderGeometry args={[0.26, 0.46, 1.0, 10]} />
         <meshToonMaterial color={COAT} />
       </mesh>
-      {/* Coat inverted-hull outline */}
-      <mesh position={[0, 0.92, 0]} scale={1.05}>
+      {/* Coat trembling graphite outline — the signature English Metro look */}
+      <TremblingOutlineMesh
+        position={[0, 0.92, 0]}
+        thickness={COAT_THICKNESS}
+        jitter={OUTLINE_JITTER}
+        reducedMotion={reducedMotion}
+      >
         <cylinderGeometry args={[0.26, 0.46, 1.0, 10]} />
-        <meshBasicMaterial color={INK} side={1 /* BackSide */} />
-      </mesh>
+      </TremblingOutlineMesh>
       {/* Coat hem shadow band */}
       <mesh position={[0, 0.44, 0]}>
         <cylinderGeometry args={[0.455, 0.46, 0.08, 10]} />
@@ -123,10 +135,15 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
         <sphereGeometry args={[0.2, 12, 10]} />
         <meshToonMaterial color={SKIN} />
       </mesh>
-      <mesh position={[0, 1.62, 0]} scale={1.06}>
+      {/* Head trembling outline */}
+      <TremblingOutlineMesh
+        position={[0, 1.62, 0]}
+        thickness={HEAD_THICKNESS}
+        jitter={OUTLINE_JITTER}
+        reducedMotion={reducedMotion}
+      >
         <sphereGeometry args={[0.2, 12, 10]} />
-        <meshBasicMaterial color={INK} side={1 /* BackSide */} />
-      </mesh>
+      </TremblingOutlineMesh>
       {/* Hair cap */}
       <mesh position={[0, 1.7, -0.02]}>
         <sphereGeometry args={[0.205, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.62]} />
