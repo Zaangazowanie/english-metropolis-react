@@ -58,6 +58,7 @@ import { useDialogue } from './useDialogue'
 import { DialogueBox } from './DialogueBox'
 import { Pager } from './Pager'
 import { MetroMap } from './MetroMap'
+import { ReflectionBench } from './ReflectionBench'
 import { useWorldAudio } from './useWorldAudio'
 import {
   INTRO_SCRIPT, PORTAL_INTROS,
@@ -122,6 +123,13 @@ const PORTALS: PortalDef[] = PORTAL_DEFS.map((d, i) => {
   const a = (i / PORTAL_DEFS.length) * Math.PI * 2 // 0 = +Z, clockwise
   return { shellKey: d.shellKey, title: d.title, position: [Math.sin(a) * _R, 0, Math.cos(a) * _R] }
 })
+
+// ─── Reflection bench — "Watch the Last Train" (canon Beat 5) ─────────────────
+// The bench sits just inside the lamp ring at +X (perpendicular to Lanterngate),
+// facing south-west toward the plaza. Wren reaches it by walking left from the
+// start position. BENCH_RANGE is the proximity that shows the reflection overlay.
+const BENCH_POS: [number, number, number] = [6.4, 0, 0]
+const BENCH_RANGE = 2.2
 
 // ─── Fog ──────────────────────────────────────────────────────────────────────
 function SceneFog() {
@@ -471,14 +479,17 @@ interface WrenRigProps {
   reducedMotion: boolean
   /** Called only when the nearest in-range portal changes (not every frame). */
   onNearPortalChange: (shellKey: string | null) => void
+  /** Called when Wren enters/leaves the bench proximity zone. */
+  onNearBenchChange: (near: boolean) => void
 }
-function WrenRig({ keysRef, joyRef, reducedMotion, onNearPortalChange }: WrenRigProps) {
+function WrenRig({ keysRef, joyRef, reducedMotion, onNearPortalChange, onNearBenchChange }: WrenRigProps) {
   const { camera } = useThree()
   const groupRef = useRef<Group>(null!)
   const posRef = useRef(new Vector3(0, 0, 0))
   const headingRef = useRef(START_HEADING)
   const speedRef = useRef(0)
   const nearRef = useRef<string | null>(null)
+  const nearBenchRef = useRef(false)
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05) // clamp long frames (tab refocus)
@@ -553,6 +564,15 @@ function WrenRig({ keysRef, joyRef, reducedMotion, onNearPortalChange }: WrenRig
       nearRef.current = near
       onNearPortalChange(near)
     }
+
+    // 8. Bench proximity (Beat 5 trigger).
+    const bdx = pos.x - BENCH_POS[0]
+    const bdz = pos.z - BENCH_POS[2]
+    const nearBench = bdx * bdx + bdz * bdz < BENCH_RANGE * BENCH_RANGE
+    if (nearBench !== nearBenchRef.current) {
+      nearBenchRef.current = nearBench
+      onNearBenchChange(nearBench)
+    }
   })
 
   return (
@@ -569,14 +589,15 @@ interface SceneProps {
   reducedMotion: boolean
   bajlaVariant: BajlaVariant
   nearPortal: string | null
-  completed: Set<string>    // W5: which portals are lit
+  completed: Set<string>
   keysRef: React.MutableRefObject<Set<string>>
   joyRef: React.MutableRefObject<JoyVec | null>
   onNearPortalChange: (shellKey: string | null) => void
+  onNearBenchChange: (near: boolean) => void
 }
 function WorldScene({
   phase, motesActive, reducedMotion, bajlaVariant, nearPortal, completed,
-  keysRef, joyRef, onNearPortalChange,
+  keysRef, joyRef, onNearPortalChange, onNearBenchChange,
 }: SceneProps) {
   const ambient = phase === 'ambient'
   return (
@@ -599,6 +620,13 @@ function WorldScene({
             joyRef={joyRef}
             reducedMotion={reducedMotion}
             onNearPortalChange={onNearPortalChange}
+            onNearBenchChange={onNearBenchChange}
+          />
+          {/* Bench Beat — visible in ambient always; glows when Wren nears it */}
+          <ReflectionBench
+            position={BENCH_POS}
+            rotation={[0, -Math.PI / 6, 0]}
+            reducedMotion={reducedMotion}
           />
           {/* W4/W5: district portals (walk up → play; lit = completed) */}
           {PORTALS.map((p) => (
@@ -785,7 +813,8 @@ export default function EnglishMetroWorld({
   const [showIntro, setShowIntro]           = useState(false)  // W6 VN cold-open
   const [portalIntroKey, setPortalIntroKey] = useState<string | null>(null) // W7
   const [justEarned, setJustEarned]         = useState<string | null>(null) // W8 pager
-  const [showMap, setShowMap]               = useState(false) // W10 the Round
+  const [showMap, setShowMap]               = useState(false) // The Round map
+  const [nearBench, setNearBench]           = useState(false) // Bench Beat
   const startMs                             = useRef(Date.now())
   const announced                           = useRef('')
   // W5: persistent lamp progress (localStorage, frontend-only)
@@ -843,6 +872,7 @@ export default function EnglishMetroWorld({
 
   // ── W4/W7: portal proximity + open/close game ───────────────────────────────
   const handleNearPortalChange = useCallback((key: string | null) => setNearPortal(key), [])
+  const handleNearBenchChange  = useCallback((near: boolean) => setNearBench(near), [])
   const openNearPortal = useCallback(() => {
     if (activeGameRef.current || !nearPortalRef.current) return
     const key = nearPortalRef.current
@@ -1365,6 +1395,44 @@ export default function EnglishMetroWorld({
           {showMap && (
             <MetroMap completed={completed} onClose={() => setShowMap(false)} reducedMotion={reducedMotion} />
           )}
+
+          {/* Bench Beat — "Watch the Last Train" (canon Beat 5). Shows when
+              all errands are complete AND Wren is near the bench. No button —
+              Wren just sits; Bajla says one line; the city breathes. */}
+          {nearBench && PORTALS.every((p) => completed.has(p.shellKey)) && (
+            <div
+              aria-live="polite"
+              style={{
+                position: 'absolute', bottom: 110, left: '50%',
+                transform: 'translateX(-50%)',
+                pointerEvents: 'none',
+                animation: reducedMotion ? 'none' : 'em-bench-in 0.6s ease',
+              }}
+            >
+              <style>{`@keyframes em-bench-in { from { opacity:0; transform: translate(-50%, 10px); } to { opacity:1; transform: translate(-50%, 0); } }`}</style>
+              <div style={{
+                background: 'rgba(10,4,24,0.78)',
+                backdropFilter: 'blur(10px)',
+                border: `1px solid ${palette.bajlaPurple}44`,
+                borderRadius: 14, padding: '12px 22px',
+                textAlign: 'center', maxWidth: 340,
+              }}>
+                <div style={{
+                  fontFamily: FONT_DISPLAY, fontSize: 'clamp(13px, 1.8vw, 16px)',
+                  color: 'rgba(245,240,250,0.85)', lineHeight: 1.5,
+                }}>
+                  &ldquo;The Round never stops. Even when it is quiet.&rdquo;
+                </div>
+                <div style={{
+                  fontFamily: FONT_DISPLAY, fontSize: 12,
+                  color: `${palette.bajlaPurple}cc`, marginTop: 6,
+                  letterSpacing: '0.08em',
+                }}>
+                  — Bajla
+                </div>
+              </div>
+            </div>
+          )}
         </>
       }
     >
@@ -1378,6 +1446,7 @@ export default function EnglishMetroWorld({
         keysRef={keysRef}
         joyRef={joyRef}
         onNearPortalChange={handleNearPortalChange}
+        onNearBenchChange={handleNearBenchChange}
       />
     </CityStage>
   )
