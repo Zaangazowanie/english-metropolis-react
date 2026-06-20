@@ -32,7 +32,7 @@ const COLOR: Record<DistrictState, { dot: string; ring: string; text: string }> 
   lit:     { dot: palette.lanternAmber, ring: palette.lanternCore, text: 'rgba(245,240,250,0.92)' },
   partial: { dot: '#B5772A',            ring: palette.lanternAmber, text: 'rgba(245,240,250,0.78)' },
   active:  { dot: '#5E7E88',            ring: '#7FB0BD',            text: 'rgba(245,240,250,0.6)' },
-  soon:    { dot: '#2B2540',            ring: '#3A3358',            text: 'rgba(245,240,250,0.32)' },
+  soon:    { dot: '#1C3A42',            ring: '#3A5A62',            text: 'rgba(245,240,250,0.32)' },
 }
 
 export interface MetroMapProps {
@@ -74,7 +74,7 @@ export function MetroMap({ completed, onClose, reducedMotion = false }: MetroMap
   const backdrop: CSSProperties = {
     position: 'absolute', inset: 0, zIndex: 30,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'rgba(6,3,14,0.78)', backdropFilter: 'blur(10px)',
+    background: 'rgba(6,14,16,0.78)', backdropFilter: 'blur(10px)',
     pointerEvents: 'auto', padding: 20,
     animation: reducedMotion ? 'none' : 'em-map-in 0.3s ease',
   }
@@ -87,7 +87,7 @@ export function MetroMap({ completed, onClose, reducedMotion = false }: MetroMap
         onClick={(e) => e.stopPropagation()}
         style={{
           position: 'relative', width: 'min(440px, 94vw)',
-          background: 'linear-gradient(180deg, rgba(18,12,38,0.96) 0%, rgba(10,6,24,0.97) 100%)',
+          background: 'linear-gradient(180deg, rgba(14,30,34,0.96) 0%, rgba(8,20,24,0.97) 100%)',
           border: `1px solid ${palette.bajlaPurple}44`,
           borderRadius: 20, padding: '20px 20px 24px',
           boxShadow: '0 40px 100px -30px rgba(0,0,0,0.85)',
@@ -112,7 +112,7 @@ export function MetroMap({ completed, onClose, reducedMotion = false }: MetroMap
         {/* The clock-face map */}
         <svg viewBox="0 0 400 410" style={{ width: '100%', height: 'auto', display: 'block' }} aria-hidden="true">
           {/* faint full ring */}
-          <circle cx={CX} cy={CY} r={R} fill="none" stroke="#3A3358" strokeWidth="2" opacity="0.5" />
+          <circle cx={CX} cy={CY} r={R} fill="none" stroke="#3A5A62" strokeWidth="2" opacity="0.5" />
           {/* lit arc Lanterngate → Saffron */}
           {litArc && (
             <path
@@ -142,7 +142,7 @@ export function MetroMap({ completed, onClose, reducedMotion = false }: MetroMap
           {nodes.map((n) => {
             const [x, y] = polar(n.angle)
             return <line key={`s-${n.id}`} x1={CX} y1={CY} x2={x} y2={y}
-              stroke={n.state === 'soon' ? '#2A2440' : '#5A4E84'} strokeWidth="1" opacity="0.4" />
+              stroke={n.state === 'soon' ? '#1C3340' : '#3E6B70'} strokeWidth="1" opacity="0.4" />
           })}
 
           {/* centre hub */}
