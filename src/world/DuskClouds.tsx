@@ -27,6 +27,10 @@ const _c = new Color()
 
 const CLOUD_COUNT = 9
 const DRIFT_SPEED = 0.011 // radians / second — barely-perceptible breeze
+// Cloud tints: warm rose at the horizon (canon "amber bleeding into rose") + a
+// dusty teal for the cooler clouds (was palette.duskHorizon violet — the last
+// violet remnant of the old palette; now on the Dusk Teal & Amber bible).
+const COOL_CLOUD = '#5A8A92'
 
 // Deterministic cloud layout (radius, height, scale, tint) — no Math.random so
 // it's stable across reloads.
@@ -109,8 +113,8 @@ export function DuskClouds({ reducedMotion = false }: { reducedMotion?: boolean 
       _o.scale.set(c.sx, c.sy, c.sz)
       _o.updateMatrix()
       meshRef.current.setMatrixAt(i, _o.matrix)
-      // Alternate warm rose vs cooler violet for depth.
-      _c.set(c.warm ? palette.skyGlow : palette.duskHorizon)
+      // Alternate warm rose vs cool dusty teal for depth (canon Dusk Teal & rose).
+      _c.set(c.warm ? palette.skyGlow : COOL_CLOUD)
       meshRef.current.setColorAt(i, _c)
     })
     meshRef.current.instanceMatrix.needsUpdate = true
