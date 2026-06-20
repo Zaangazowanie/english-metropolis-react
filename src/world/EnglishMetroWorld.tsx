@@ -1,11 +1,15 @@
-// EnglishMetroWorld — WorldKit foundation + player (W1 stage, W2 Wren).
+// EnglishMetroWorld — WorldKit (W1 stage · W2 Wren · W3 Lanterngate).
 //
 // The canvas and atmosphere that hosts the English Metro RPG.
 //   W1: dusk-London plaza, lamp ring, building silhouette, drifting motes,
 //       and the "Enter the City" DOM overlay.
 //   W2: Wren — third-person player character with a hand-rolled controller
-//       (WASD/arrows + on-screen touch joystick) and a collision-aware
-//       spring follow-camera. Walk into the plaza; lamps and Bajla react.
+//       (WASD/arrows + on-screen touch joystick) and a spring follow-camera.
+//   W3: Lanterngate living zone — paper lanterns swaying between lamp posts
+//       (ambient wind), NPC silhouettes drifting in the distance, Bajla
+//       flyby triggered once on first entry, and the "LANTERNGATE" district
+//       arrival overlay. Wren's coat + head now use TremblingOutlineMesh (the
+//       signature hand-drawn graphite ink look deferred from W2).
 //
 // CONTRACT compliance (docs/game3d/CONTRACT.md + Addendum A, approved):
 //   • Implements Game3DProps → onSessionComplete fires on explicit exit.
@@ -41,6 +45,7 @@ import type { Game3DProps, SessionResult } from '../practice/shells3d/types'
 import { CityStage, useStageQuality } from '../practice/shells3d/kit/CityStage'
 import { palette } from '../practice/shells3d/kit/palette'
 import { Bajla } from '../practice/shells3d/kit/Bajla'
+import type { BajlaVariant } from '../practice/shells3d/kit/Bajla'
 import { Wren } from './Wren'
 import { useWorldInput, readKeys } from './useWorldInput'
 import type { JoyVec } from './useWorldInput'
@@ -59,6 +64,7 @@ const LAMP_COUNT       = 16
 const BUILDING_COUNT   = 24
 const MOTE_COUNT       = 64
 const LAMP_RING_RADIUS = 8.5
+const NPC_COUNT        = 4    // W3: silhouette NPCs in the distance
 const FONT_DISPLAY     = '"Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif'
 
 // ─── Controller / camera tuning ───────────────────────────────────────────────
@@ -275,6 +281,128 @@ function FloatingMotes({ active }: { active: boolean }) {
   )
 }
 
+// ─── W3: Paper lanterns (strung between lamp posts, swaying in wind) ──────────
+// 16 oval lanterns in amber, one hanging midway between each pair of adjacent
+// posts. Each sways around its Z-axis with a unique phase. InstancedMesh → 1
+// draw call. reducedMotion → static (no sway). No per-frame allocations.
+function PaperLanterns({ reducedMotion }: { reducedMotion: boolean }) {
+  const ref = useRef<InstancedMesh>(null!)
+  const t   = useRef(0)
+
+  // Pre-compute the midpoint between adjacent lamp-post pairs.
+  const midpoints = useMemo(() => {
+    return Array.from({ length: LAMP_COUNT }, (_, i) => {
+      const a0 = (i / LAMP_COUNT) * Math.PI * 2
+      const a1 = ((i + 1) / LAMP_COUNT) * Math.PI * 2
+      const r  = LAMP_RING_RADIUS * 0.98
+      return {
+        x:     (Math.cos(a0) + Math.cos(a1)) / 2 * r,
+        z:     (Math.sin(a0) + Math.sin(a1)) / 2 * r,
+        phase: i * 0.78,
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!ref.current) return
+    midpoints.forEach(({ x, z }, i) => {
+      _obj.position.set(x, 3.05, z)
+      _obj.rotation.set(0, 0, 0)
+      _obj.scale.setScalar(1)
+      _obj.updateMatrix()
+      ref.current.setMatrixAt(i, _obj.matrix)
+    })
+    ref.current.instanceMatrix.needsUpdate = true
+  }, [midpoints])
+
+  useFrame((_, delta) => {
+    if (reducedMotion || !ref.current) return
+    t.current += delta
+    midpoints.forEach(({ x, z, phase }, i) => {
+      const sway = Math.sin(t.current * 1.2 + phase) * 0.11
+      _obj.position.set(
+        x + Math.sin(sway) * 0.08,
+        3.05 - Math.abs(Math.sin(t.current * 0.6 + phase)) * 0.04,
+        z + Math.cos(sway) * 0.08,
+      )
+      _obj.rotation.set(0, 0, sway)
+      _obj.scale.setScalar(1)
+      _obj.updateMatrix()
+      ref.current.setMatrixAt(i, _obj.matrix)
+    })
+    ref.current.instanceMatrix.needsUpdate = true
+  })
+
+  return (
+    <instancedMesh ref={ref} args={[undefined, undefined, LAMP_COUNT]}
+      frustumCulled={false}>
+      {/* Squat oval lantern shape */}
+      <sphereGeometry args={[0.15, 7, 6]} />
+      <meshBasicMaterial color={palette.lanternCore} />
+    </instancedMesh>
+  )
+}
+
+// ─── W3: NPC silhouettes (distant, muffled, drifting) ────────────────────────
+// Per canon Beat 2: "A few NPCs drift in the background, muffled, not yet
+// speaking." 4 very dark indigo silhouettes at ~12 units radius (just outside
+// the lamp ring), each on a slow looping path. Head + body only. reducedMotion
+// → static. 2 draw calls (body InstancedMesh + head InstancedMesh).
+const NPC_RADIUS = 12.5
+const NPC_SPEED  = 0.14  // radians / second
+const NPC_COLOR  = '#1a1030' // very dark indigo — "muffled, not yet speaking"
+
+function NpcSilhouettes({ reducedMotion }: { reducedMotion: boolean }) {
+  const bodyRef = useRef<InstancedMesh>(null!)
+  const headRef = useRef<InstancedMesh>(null!)
+  const t = useRef(0)
+
+  // Deterministic initial angles
+  const initAngles = useMemo(() =>
+    Array.from({ length: NPC_COUNT }, (_, i) => (i / NPC_COUNT) * Math.PI * 2 + 0.6),
+  [])
+
+  useFrame((_, delta) => {
+    if (!bodyRef.current || !headRef.current) return
+    const dt = reducedMotion ? 0 : delta
+    t.current += dt
+    for (let i = 0; i < NPC_COUNT; i++) {
+      const angle = initAngles[i] + t.current * NPC_SPEED * (1 + i * 0.13)
+      const x = Math.cos(angle) * NPC_RADIUS
+      const z = Math.sin(angle) * NPC_RADIUS
+      // Body
+      _obj.position.set(x, 0.7, z)
+      _obj.rotation.set(0, -angle + Math.PI / 2, 0)
+      _obj.scale.set(1, 1, 1)
+      _obj.updateMatrix()
+      bodyRef.current.setMatrixAt(i, _obj.matrix)
+      // Head (above body)
+      _obj.position.set(x, 1.7, z)
+      _obj.rotation.set(0, 0, 0)
+      _obj.scale.setScalar(1)
+      _obj.updateMatrix()
+      headRef.current.setMatrixAt(i, _obj.matrix)
+    }
+    bodyRef.current.instanceMatrix.needsUpdate = true
+    headRef.current.instanceMatrix.needsUpdate = true
+  })
+
+  return (
+    <>
+      <instancedMesh ref={bodyRef} args={[undefined, undefined, NPC_COUNT]}
+        frustumCulled={false}>
+        <cylinderGeometry args={[0.22, 0.28, 1.4, 7]} />
+        <meshBasicMaterial color={NPC_COLOR} transparent opacity={0.72} />
+      </instancedMesh>
+      <instancedMesh ref={headRef} args={[undefined, undefined, NPC_COUNT]}
+        frustumCulled={false}>
+        <sphereGeometry args={[0.2, 7, 6]} />
+        <meshBasicMaterial color={NPC_COLOR} transparent opacity={0.65} />
+      </instancedMesh>
+    </>
+  )
+}
+
 // ─── Gentle camera drift (title screen only; respects reducedMotion) ─────────
 function CameraDrift({ active }: { active: boolean }) {
   const { camera } = useThree()
@@ -382,10 +510,11 @@ interface SceneProps {
   phase: WorldPhase
   motesActive: boolean
   reducedMotion: boolean
+  bajlaVariant: BajlaVariant
   keysRef: React.MutableRefObject<Set<string>>
   joyRef: React.MutableRefObject<JoyVec | null>
 }
-function WorldScene({ phase, motesActive, reducedMotion, keysRef, joyRef }: SceneProps) {
+function WorldScene({ phase, motesActive, reducedMotion, bajlaVariant, keysRef, joyRef }: SceneProps) {
   const ambient = phase === 'ambient'
   return (
     <>
@@ -395,14 +524,17 @@ function WorldScene({ phase, motesActive, reducedMotion, keysRef, joyRef }: Scen
       <LampLights />
       <BuildingSkyline />
       <FloatingMotes active={motesActive} />
+      {/* W3: living zone — paper lanterns + NPC silhouettes always present */}
+      <PaperLanterns reducedMotion={reducedMotion} />
+      <NpcSilhouettes reducedMotion={reducedMotion} />
       {/* Title: gentle establishing drift. Ambient: Wren + follow-cam. */}
       <CameraDrift active={!reducedMotion && !ambient} />
       {ambient && (
         <>
           <WrenRig keysRef={keysRef} joyRef={joyRef} reducedMotion={reducedMotion} />
-          {/* Bajla perched on the nearest lamp, watching. */}
+          {/* Bajla: starts idle (perched), does one flyby on district entry. */}
           <Bajla
-            variant="idle"
+            variant={bajlaVariant}
             reducedMotion={reducedMotion}
             scale={0.6}
             position={[0, 2.95, LAMP_RING_RADIUS]}
@@ -492,9 +624,11 @@ export default function EnglishMetroWorld({
   // when mounting outside PlayOverlay (e.g. a dedicated /world route in W4+).
   fullscreen = false,
 }: Game3DProps) {
-  const [phase, setPhase]  = useState<WorldPhase>('title')
-  const startMs            = useRef(Date.now())
-  const announced          = useRef('')
+  const [phase, setPhase]           = useState<WorldPhase>('title')
+  const [bajlaVariant, setBajlaVariant] = useState<BajlaVariant>('idle')
+  const [showArrival, setShowArrival]   = useState(false)  // W3 district overlay
+  const startMs                     = useRef(Date.now())
+  const announced                   = useRef('')
 
   // ── Player input (active only once Wren is in the world) ───────────────────
   const { keysRef, joyRef } = useWorldInput(phase === 'ambient')
@@ -510,11 +644,22 @@ export default function EnglishMetroWorld({
     onSessionComplete?.(result)
   }, [onSessionComplete])
 
-  // ── Begin the journey ──────────────────────────────────────────────────────
+  // ── Begin the journey — triggers W3 arrival sequence ─────────────────────
   const handleBegin = useCallback(() => {
     setPhase('ambient')
-    announced.current = 'You have entered the city. Press Escape to leave.'
+    announced.current = 'You have entered Lanterngate. Press Escape to leave.'
+    // W3: Show "LANTERNGATE" district title for 3s then fade.
+    setShowArrival(true)
+    setTimeout(() => setShowArrival(false), 3200)
   }, [])
+
+  // ── W3: Bajla flyby — triggers once 1s after entering the world ───────────
+  useEffect(() => {
+    if (phase !== 'ambient') return
+    const t1 = setTimeout(() => setBajlaVariant('flyby'), 1000)
+    const t2 = setTimeout(() => setBajlaVariant('idle'),  4800)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [phase])
 
   // ── Keyboard ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -677,6 +822,47 @@ export default function EnglishMetroWorld({
               <TouchJoystick joyRef={joyRef} />
             </div>
           )}
+
+          {/* W3: "LANTERNGATE" district arrival overlay — fades in+out once */}
+          {showArrival && (
+            <div
+              aria-live="polite"
+              style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                pointerEvents: 'none',
+                animation: 'em-arrival 3.2s ease forwards',
+              }}
+            >
+              <style>{`
+                @keyframes em-arrival {
+                  0%   { opacity: 0; }
+                  15%  { opacity: 1; }
+                  70%  { opacity: 1; }
+                  100% { opacity: 0; }
+                }
+              `}</style>
+              <div style={{
+                fontFamily: FONT_DISPLAY, fontWeight: 300,
+                fontSize: 'clamp(18px, 4vw, 42px)',
+                letterSpacing: '0.52em', textTransform: 'uppercase',
+                color: 'rgba(245,240,250,0.9)',
+                textShadow: `0 0 32px ${palette.lanternAmber}66, 0 2px 12px rgba(0,0,0,0.7)`,
+                marginBottom: 6,
+              }}>
+                Lanterngate
+              </div>
+              <div style={{
+                fontFamily: FONT_DISPLAY, fontWeight: 400,
+                fontSize: 'clamp(11px, 1.5vw, 14px)',
+                letterSpacing: '0.22em', textTransform: 'uppercase',
+                color: `${palette.lanternAmber}cc`,
+              }}>
+                The city&apos;s first voice
+              </div>
+            </div>
+          )}
         </>
       }
     >
@@ -684,6 +870,7 @@ export default function EnglishMetroWorld({
         phase={phase}
         motesActive={motesActive}
         reducedMotion={reducedMotion}
+        bajlaVariant={bajlaVariant}
         keysRef={keysRef}
         joyRef={joyRef}
       />
