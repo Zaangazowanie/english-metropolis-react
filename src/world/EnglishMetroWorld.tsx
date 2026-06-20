@@ -257,8 +257,16 @@ function LampLights() {
 // living warm city around the plaza, not flat black cutouts. Vertex-coloured,
 // 1 draw call.
 const FACADES = ['#D9CDB4', '#CDBA98', '#BFA079', '#D2C0A0', '#8E9BA0', '#C8AE90']
+// Warm lit windows — the em-spike's signature glow. A 2×2 grid of panes on each
+// building's plaza-facing (+Z) side; ~3/4 amber-lit, the rest dark. Unlit
+// MeshBasic so the panes glow on their own; per-pane color via instanceColor.
+const WINDOWS_PER  = 4
+const WINDOW_TOTAL = BUILDING_COUNT * WINDOWS_PER
+const WIN_LIT = ['#fff1b8', '#ffce86', '#ffb347'] // warm lamp-lit panes
+const WIN_OFF = '#15282E'                          // dark / unlit pane (deep teal)
 function BuildingSkyline() {
   const ref = useRef<InstancedMesh>(null!)
+  const winRef = useRef<InstancedMesh>(null!)
 
   useEffect(() => {
     for (let i = 0; i < BUILDING_COUNT; i++) {
@@ -268,28 +276,60 @@ function BuildingSkyline() {
       const depth   = 28 + (i % 4) * 7                      // 28..49
       const height  = 3 + ((i * 3.17) % 12)                 // 3..15 units
       const width   = 2 + ((i * 1.97) % 3.5)                // 2..5.5 units
+      const depthZ  = 2 + ((i * 0.73) % 3)                  // box depth
       const x       = Math.sin(angle) * depth * 0.55
       const z       = -depth + Math.cos(angle) * depth * 0.1
 
       _obj.position.set(x, height / 2, z)
-      _obj.scale.set(width, height, 2 + ((i * 0.73) % 3))
+      _obj.scale.set(width, height, depthZ)
       _obj.rotation.set(0, 0, 0)
       _obj.updateMatrix()
       ref.current.setMatrixAt(i, _obj.matrix)
 
       _col.set(FACADES[i % FACADES.length])
       ref.current.setColorAt(i, _col)
+
+      // 2×2 grid of windows on the plaza-facing (+Z) face.
+      const frontZ = z + depthZ / 2 + 0.06
+      const cols = [-width * 0.22, width * 0.22]
+      const rows = [height * 0.42, height * 0.68]
+      const paneW = Math.min(0.32, width * 0.16)
+      let k = 0
+      for (let c = 0; c < 2; c++) {
+        for (let r = 0; r < 2; r++) {
+          const wi = i * WINDOWS_PER + k
+          _obj.position.set(x + cols[c], rows[r], frontZ)
+          _obj.scale.set(paneW, 0.36, 1)
+          _obj.rotation.set(0, 0, 0)
+          _obj.updateMatrix()
+          winRef.current.setMatrixAt(wi, _obj.matrix)
+          const lit = (i * 7 + k * 3) % 4 !== 0
+          _col.set(lit ? WIN_LIT[(i + k) % WIN_LIT.length] : WIN_OFF)
+          winRef.current.setColorAt(wi, _col)
+          k++
+        }
+      }
     }
     ref.current.instanceMatrix.needsUpdate = true
     if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true
+    winRef.current.instanceMatrix.needsUpdate = true
+    if (winRef.current.instanceColor) winRef.current.instanceColor.needsUpdate = true
   }, [])
 
   return (
-    <instancedMesh ref={ref} args={[undefined, undefined, BUILDING_COUNT]}
-      frustumCulled={false}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshToonMaterial vertexColors />
-    </instancedMesh>
+    <>
+      <instancedMesh ref={ref} args={[undefined, undefined, BUILDING_COUNT]}
+        frustumCulled={false}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshToonMaterial vertexColors />
+      </instancedMesh>
+      {/* Warm lit windows — glow on their own (unlit), color via instanceColor */}
+      <instancedMesh ref={winRef} args={[undefined, undefined, WINDOW_TOTAL]}
+        frustumCulled={false}>
+        <planeGeometry args={[1, 1]} />
+        <meshBasicMaterial />
+      </instancedMesh>
+    </>
   )
 }
 
