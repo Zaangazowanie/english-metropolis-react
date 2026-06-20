@@ -64,6 +64,7 @@ import { DuskClouds } from './DuskClouds'
 import { TitlePlanet } from './TitlePlanet'
 import { FestoonLights } from './FestoonLights'
 import { LampRelight } from './LampRelight'
+import { NpcResidents } from './NpcResidents'
 import { useWorldAudio } from './useWorldAudio'
 import {
   INTRO_SCRIPT, PORTAL_INTROS,
@@ -85,7 +86,7 @@ const LAMP_COUNT       = 16
 const BUILDING_COUNT   = 24
 const MOTE_COUNT       = 64
 const LAMP_RING_RADIUS = 8.5
-const NPC_COUNT        = 6    // W3: dusk residents drifting around the plaza
+// NPC residents are now in NpcResidents.tsx (fully-built canon characters).
 const FONT_DISPLAY     = '"Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif'
 
 // ─── Controller / camera tuning ───────────────────────────────────────────────
@@ -474,83 +475,6 @@ function PaperLanterns({ reducedMotion }: { reducedMotion: boolean }) {
   )
 }
 
-// ─── W3: dusk residents (drifting around the plaza) ──────────────────────────
-// Per canon Beat 2: "A few NPCs drift in the background." Reskinned from flat
-// dark indigo silhouettes to warm dusk-London residents — each a different coat
-// + skin tone (instanceColor) so the city reads as populated and alive, not
-// ghostly. 6 figures at ~12 units radius (just outside the lamp ring), each on
-// a slow looping path. Head + body only. reducedMotion → static. 2 draw calls
-// (body InstancedMesh + head InstancedMesh).
-const NPC_RADIUS = 12.5
-const NPC_SPEED  = 0.14  // radians / second
-// Warm coats + skin tones for the residents (cozy, slightly muted dusk hues).
-const NPC_COATS = ['#3E6B70', '#C2913F', '#6B4F70', '#8A5A3A', '#5E7378', '#9A6B55']
-const NPC_SKINS = ['#E8C8A8', '#D2A77E', '#C9956B', '#E0B894', '#B98A66', '#EAD0B2']
-
-function NpcSilhouettes({ reducedMotion }: { reducedMotion: boolean }) {
-  const bodyRef = useRef<InstancedMesh>(null!)
-  const headRef = useRef<InstancedMesh>(null!)
-  const t = useRef(0)
-
-  // Deterministic initial angles
-  const initAngles = useMemo(() =>
-    Array.from({ length: NPC_COUNT }, (_, i) => (i / NPC_COUNT) * Math.PI * 2 + 0.6),
-  [])
-
-  // Per-resident warm colors (coat + skin), set once.
-  useEffect(() => {
-    if (!bodyRef.current || !headRef.current) return
-    for (let i = 0; i < NPC_COUNT; i++) {
-      _col.set(NPC_COATS[i % NPC_COATS.length]); bodyRef.current.setColorAt(i, _col)
-      _col.set(NPC_SKINS[i % NPC_SKINS.length]); headRef.current.setColorAt(i, _col)
-    }
-    if (bodyRef.current.instanceColor) bodyRef.current.instanceColor.needsUpdate = true
-    if (headRef.current.instanceColor) headRef.current.instanceColor.needsUpdate = true
-  }, [])
-
-  useFrame((_, delta) => {
-    if (!bodyRef.current || !headRef.current) return
-    const dt = reducedMotion ? 0 : delta
-    t.current += dt
-    for (let i = 0; i < NPC_COUNT; i++) {
-      const angle = initAngles[i] + t.current * NPC_SPEED * (1 + i * 0.13)
-      const x = Math.cos(angle) * NPC_RADIUS
-      const z = Math.sin(angle) * NPC_RADIUS
-      // Body
-      _obj.position.set(x, 0.7, z)
-      _obj.rotation.set(0, -angle + Math.PI / 2, 0)
-      _obj.scale.set(1, 1, 1)
-      _obj.updateMatrix()
-      bodyRef.current.setMatrixAt(i, _obj.matrix)
-      // Head (above body)
-      _obj.position.set(x, 1.7, z)
-      _obj.rotation.set(0, 0, 0)
-      _obj.scale.setScalar(1)
-      _obj.updateMatrix()
-      headRef.current.setMatrixAt(i, _obj.matrix)
-    }
-    bodyRef.current.instanceMatrix.needsUpdate = true
-    headRef.current.instanceMatrix.needsUpdate = true
-  })
-
-  return (
-    <>
-      {/* Coats — opaque toon, per-resident color via instanceColor */}
-      <instancedMesh ref={bodyRef} args={[undefined, undefined, NPC_COUNT]}
-        frustumCulled={false}>
-        <cylinderGeometry args={[0.22, 0.28, 1.4, 7]} />
-        <meshToonMaterial />
-      </instancedMesh>
-      {/* Heads — opaque toon, per-resident skin tone via instanceColor */}
-      <instancedMesh ref={headRef} args={[undefined, undefined, NPC_COUNT]}
-        frustumCulled={false}>
-        <sphereGeometry args={[0.2, 7, 6]} />
-        <meshToonMaterial />
-      </instancedMesh>
-    </>
-  )
-}
-
 // ─── Gentle camera drift (title screen only; respects reducedMotion) ─────────
 function CameraDrift({ active }: { active: boolean }) {
   const { camera } = useThree()
@@ -735,9 +659,9 @@ function WorldScene({
       {/* The elevated Round + slow last train, circling beyond the plaza */}
       <MetroTrain reducedMotion={reducedMotion} />
       <FloatingMotes active={motesActive} />
-      {/* W3: living zone — paper lanterns + NPC silhouettes always present */}
+      {/* W3: living zone — paper lanterns + fully-built canon residents */}
       <PaperLanterns reducedMotion={reducedMotion} />
-      <NpcSilhouettes reducedMotion={reducedMotion} />
+      <NpcResidents reducedMotion={reducedMotion} />
       {/* Title: gentle establishing drift. Ambient: Wren + follow-cam. */}
       {/* Title: the menu "tiny planet" (drives the title camera). Ambient: Wren. */}
       {!ambient && <TitlePlanet reducedMotion={reducedMotion} />}
