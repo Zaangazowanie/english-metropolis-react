@@ -83,6 +83,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     district: 'Saffron Market',
     load: () => import('../Anagram3D'),
   },
+  {
+    shellKey: 'labelleddiagram',
+    title: 'Light the First Lamp',
+    district: 'Lanterngate',
+    load: () => import('../LabelledDiagram3D'),
+  },
 ]
 
 /** Look up a registered 3D game by its 2D shell route key. */
