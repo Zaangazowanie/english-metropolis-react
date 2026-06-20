@@ -56,6 +56,7 @@ import type { JoyVec } from './useWorldInput'
 import { useLampProgress } from './useLampProgress'
 import { useDialogue } from './useDialogue'
 import { DialogueBox } from './DialogueBox'
+import { Pager } from './Pager'
 import {
   INTRO_SCRIPT, PORTAL_INTROS,
   hasSeenIntro, markIntroSeen,
@@ -127,8 +128,6 @@ const PORTALS: PortalDef[] = [
     position: [-_R * 0.866, 0, -_R * 0.5],
   },
 ]
-/** Total portals — used for the "X / N lamps lit" counter. */
-const TOTAL_LAMPS = PORTALS.length
 
 // ─── Fog ──────────────────────────────────────────────────────────────────────
 function SceneFog() {
@@ -791,10 +790,13 @@ export default function EnglishMetroWorld({
   const [sliceComplete, setSliceComplete] = useState(false) // W5 beat 5
   const [showIntro, setShowIntro]           = useState(false)  // W6 VN cold-open
   const [portalIntroKey, setPortalIntroKey] = useState<string | null>(null) // W7
+  const [justEarned, setJustEarned]         = useState<string | null>(null) // W8 pager
   const startMs                             = useRef(Date.now())
   const announced                           = useRef('')
   // W5: persistent lamp progress (localStorage, frontend-only)
   const { completed, markComplete } = useLampProgress()
+  const completedRef = useRef(completed)
+  useEffect(() => { completedRef.current = completed }, [completed])
 
   // Refs mirror state so the keyboard handler stays subscribed once.
   const nearPortalRef     = useRef<string | null>(null)
@@ -865,7 +867,15 @@ export default function EnglishMetroWorld({
   }, [])
   const handleGameComplete = useCallback((key: string | null) => {
     // No-fail: the shell ended its round. Relight the lamp + return to the world.
-    if (key) markComplete(key)
+    if (key) {
+      const isNew = !completedRef.current.has(key)
+      markComplete(key)
+      // W8: celebrate a genuinely-new stamp on the pager (fades after ~2.6s).
+      if (isNew) {
+        setJustEarned(key)
+        setTimeout(() => setJustEarned((k) => (k === key ? null : k)), 2600)
+      }
+    }
     setActiveGame(null)
     setNearPortal(null)
     announced.current = '+1 light — the lamp remembers. Back in the city.'
@@ -1116,18 +1126,14 @@ export default function EnglishMetroWorld({
                 </button>
               )}
 
-              {/* W5: Lamp counter (top-left) */}
-              <div style={{
-                position: 'absolute', top: 22, left: 24,
-                display: 'flex', alignItems: 'center', gap: 7,
-                fontFamily: FONT_DISPLAY, fontSize: 13,
-                color: completed.size > 0 ? palette.lanternAmber : 'rgba(245,240,250,0.5)',
-                letterSpacing: '0.06em',
-                textShadow: completed.size > 0 ? `0 0 12px ${palette.lanternAmber}88` : 'none',
-                transition: 'color 0.6s ease, text-shadow 0.6s ease',
-              }}>
-                🕯 {completed.size} / {TOTAL_LAMPS}
-              </div>
+              {/* W8: the Metro Pager (bottom-right) replaces the old top-left
+                  counter — it shows the collected stamp seals + progress. */}
+              <Pager
+                order={PORTALS.map((p) => p.shellKey)}
+                completed={completed}
+                justEarned={justEarned}
+                reducedMotion={reducedMotion}
+              />
 
               {/* Controls hint (top-right) */}
               <div style={{
