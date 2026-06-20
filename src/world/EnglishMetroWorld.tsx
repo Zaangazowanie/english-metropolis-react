@@ -54,6 +54,9 @@ import type { PortalDef } from './WorldPortal'
 import { useWorldInput, readKeys } from './useWorldInput'
 import type { JoyVec } from './useWorldInput'
 import { useLampProgress } from './useLampProgress'
+import { useDialogue } from './useDialogue'
+import { DialogueBox } from './DialogueBox'
+import { INTRO_SCRIPT, hasSeenIntro, markIntroSeen } from './dialogue'
 
 // ─── Scratch (no per-frame allocations) ────────────────────────────────────
 const _obj  = new Object3D()
@@ -782,6 +785,7 @@ export default function EnglishMetroWorld({
   const [nearPortal, setNearPortal]     = useState<string | null>(null)  // W4
   const [activeGame, setActiveGame]     = useState<string | null>(null)  // W4
   const [sliceComplete, setSliceComplete] = useState(false) // W5 beat 5
+  const [showIntro, setShowIntro]       = useState(false)  // W6 VN cold-open
   const startMs                         = useRef(Date.now())
   const announced                       = useRef('')
   // W5: persistent lamp progress (localStorage, frontend-only)
@@ -790,11 +794,22 @@ export default function EnglishMetroWorld({
   // Refs mirror state so the keyboard handler stays subscribed once.
   const nearPortalRef = useRef<string | null>(null)
   const activeGameRef = useRef<string | null>(null)
+  const showIntroRef  = useRef(false)
+  const advanceRef    = useRef<() => void>(() => {})
   useEffect(() => { nearPortalRef.current = nearPortal }, [nearPortal])
   useEffect(() => { activeGameRef.current = activeGame }, [activeGame])
+  useEffect(() => { showIntroRef.current = showIntro }, [showIntro])
 
-  // ── Player input (movement paused while a game is open) ────────────────────
-  const { keysRef, joyRef } = useWorldInput(phase === 'ambient' && !activeGame)
+  // ── W6: VN dialogue (cold-open). Movement pauses while it plays. ───────────
+  const endIntro = useCallback(() => { setShowIntro(false); markIntroSeen() }, [])
+  const intro = useDialogue(showIntro ? INTRO_SCRIPT : null, {
+    reducedMotion,
+    onComplete: endIntro,
+  })
+  useEffect(() => { advanceRef.current = intro.advance }, [intro.advance])
+
+  // ── Player input (paused while a game is open OR the intro is playing) ─────
+  const { keysRef, joyRef } = useWorldInput(phase === 'ambient' && !activeGame && !showIntro)
 
   // ── W4: portal proximity + open/close game ──────────────────────────────────
   const handleNearPortalChange = useCallback((key: string | null) => setNearPortal(key), [])
@@ -837,13 +852,16 @@ export default function EnglishMetroWorld({
     onSessionComplete?.(result)
   }, [onSessionComplete])
 
-  // ── Begin the journey — triggers W3 arrival sequence ─────────────────────
+  // ── Begin the journey — triggers W3 arrival + W6 cold-open dialogue ───────
   const handleBegin = useCallback(() => {
     setPhase('ambient')
     announced.current = 'You have entered Lanterngate. Press Escape to leave.'
     // W3: Show "LANTERNGATE" district title for 3s then fade.
     setShowArrival(true)
     setTimeout(() => setShowArrival(false), 3200)
+    // W6: play the cold-open VN dialogue once per device (after a short beat
+    // so the scene establishes first). Skippable.
+    if (!hasSeenIntro()) setTimeout(() => setShowIntro(true), 700)
   }, [])
 
   // ── W3: Bajla flyby — triggers once 1s after entering the world ───────────
@@ -855,10 +873,17 @@ export default function EnglishMetroWorld({
   }, [phase])
 
   // ── Keyboard ───────────────────────────────────────────────────────────────
-  // Escape precedence: a game open → return to the city; else → exit the world.
-  // Enter/Space when near a portal (and no game open) → open that errand.
+  // Precedence: intro dialogue → game → portal/world.
+  //   • Intro playing: Enter/Space advances a line; Escape skips the intro.
+  //   • Game open: Escape returns to the city.
+  //   • Else near a portal: Enter/Space opens that errand; Escape exits world.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (showIntroRef.current) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advanceRef.current() }
+        else if (e.key === 'Escape') { e.preventDefault(); endIntro() }
+        return
+      }
       if (e.key === 'Escape') {
         if (activeGameRef.current) closeGame()
         else handleExit()
@@ -871,7 +896,7 @@ export default function EnglishMetroWorld({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [handleExit, closeGame, openNearPortal])
+  }, [handleExit, closeGame, openNearPortal, endIntro])
 
   // ── Animation flags ────────────────────────────────────────────────────────
   const motesActive = !reducedMotion
@@ -1206,6 +1231,19 @@ export default function EnglishMetroWorld({
                 Continue →
               </button>
             </div>
+          )}
+
+          {/* W6: VN cold-open dialogue (Bajla → Wren), once per device */}
+          {showIntro && intro.line && (
+            <DialogueBox
+              speaker={intro.line.speaker}
+              text={intro.shownText}
+              isTyping={intro.isTyping}
+              index={intro.index}
+              total={intro.total}
+              onAdvance={intro.advance}
+              onSkip={endIntro}
+            />
           )}
         </>
       }
