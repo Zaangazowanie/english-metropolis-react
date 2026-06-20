@@ -265,9 +265,12 @@ const WINDOWS_PER  = 4
 const WINDOW_TOTAL = BUILDING_COUNT * WINDOWS_PER
 const WIN_LIT = ['#fff1b8', '#ffce86', '#ffb347'] // warm lamp-lit panes
 const WIN_OFF = '#15282E'                          // dark / unlit pane (deep teal)
+// Red-brown pitched roofs (the em-spike's clay-tiled London rooftops).
+const ROOFS = ['#B5572E', '#A24B27', '#9C5333', '#8E4828', '#C2632F']
 function BuildingSkyline() {
   const ref = useRef<InstancedMesh>(null!)
   const winRef = useRef<InstancedMesh>(null!)
+  const roofRef = useRef<InstancedMesh>(null!)
 
   useEffect(() => {
     for (let i = 0; i < BUILDING_COUNT; i++) {
@@ -310,11 +313,25 @@ function BuildingSkyline() {
           k++
         }
       }
+
+      // Red-brown pitched roof cap — a 4-sided pyramid whose base corners match
+      // the building footprint (thetaStart=π/4 bakes the 45° so scale maps W×D
+      // cleanly). Sits on the building top.
+      const roofH = 0.9 + ((i * 1.7) % 1) * 0.8
+      _obj.position.set(x, height + roofH / 2, z)
+      _obj.scale.set(width, roofH, depthZ)
+      _obj.rotation.set(0, 0, 0)
+      _obj.updateMatrix()
+      roofRef.current.setMatrixAt(i, _obj.matrix)
+      _col.set(ROOFS[i % ROOFS.length])
+      roofRef.current.setColorAt(i, _col)
     }
     ref.current.instanceMatrix.needsUpdate = true
     if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true
     winRef.current.instanceMatrix.needsUpdate = true
     if (winRef.current.instanceColor) winRef.current.instanceColor.needsUpdate = true
+    roofRef.current.instanceMatrix.needsUpdate = true
+    if (roofRef.current.instanceColor) roofRef.current.instanceColor.needsUpdate = true
   }, [])
 
   return (
@@ -329,6 +346,12 @@ function BuildingSkyline() {
         frustumCulled={false}>
         <planeGeometry args={[1, 1]} />
         <meshBasicMaterial />
+      </instancedMesh>
+      {/* Red-brown pitched roofs — 4-sided pyramids matching each footprint */}
+      <instancedMesh ref={roofRef} args={[undefined, undefined, BUILDING_COUNT]}
+        frustumCulled={false}>
+        <coneGeometry args={[0.707, 1, 4, 1, false, Math.PI / 4]} />
+        <meshToonMaterial vertexColors />
       </instancedMesh>
     </>
   )
