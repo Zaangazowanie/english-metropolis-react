@@ -144,7 +144,10 @@ const BENCH_RANGE = 2.2
 function SceneFog() {
   const { scene } = useThree()
   useEffect(() => {
-    scene.fog = new FogExp2(palette.duskMid, 0.028)
+    // Canonical Dusk Teal (deep) — recedes distant geometry into a teal horizon
+    // and unifies the whole world to the "Dusk Teal & Amber" art bible (was the
+    // blue-violet palette.duskMid, which fought the teal canon).
+    scene.fog = new FogExp2('#234E5A', 0.028)
     return () => { scene.fog = null }
   }, [scene])
   return null
@@ -155,7 +158,8 @@ function Ground() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
       <planeGeometry args={[120, 120]} />
-      <meshToonMaterial color="#2A5560" />
+      {/* Canonical Dusk Teal #2B5F6E — the warm-lit teal street of the look-dev */}
+      <meshToonMaterial color="#2B5F6E" />
     </mesh>
   )
 }
@@ -246,12 +250,15 @@ function LampLights() {
   )
 }
 
-// ─── Building silhouette ──────────────────────────────────────────────────────
+// ─── Building skyline ─────────────────────────────────────────────────────────
 // 24 instanced boxes spread in an arc behind the lamp ring (z = -20 to -55).
-// Very dark (palette.night = #0a0418). Draw call: 1.
+// Reskinned to warm dusk-London facades (cream/sand/clay) per the "Dusk Teal &
+// Amber" look-dev — the teal fog recedes them into the horizon so they read as a
+// living warm city around the plaza, not flat black cutouts. Vertex-coloured,
+// 1 draw call.
+const FACADES = ['#D9CDB4', '#CDBA98', '#BFA079', '#D2C0A0', '#8E9BA0', '#C8AE90']
 function BuildingSkyline() {
   const ref = useRef<InstancedMesh>(null!)
-  _col.set(palette.night)
 
   useEffect(() => {
     for (let i = 0; i < BUILDING_COUNT; i++) {
@@ -269,15 +276,19 @@ function BuildingSkyline() {
       _obj.rotation.set(0, 0, 0)
       _obj.updateMatrix()
       ref.current.setMatrixAt(i, _obj.matrix)
+
+      _col.set(FACADES[i % FACADES.length])
+      ref.current.setColorAt(i, _col)
     }
     ref.current.instanceMatrix.needsUpdate = true
+    if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true
   }, [])
 
   return (
     <instancedMesh ref={ref} args={[undefined, undefined, BUILDING_COUNT]}
       frustumCulled={false}>
       <boxGeometry args={[1, 1, 1]} />
-      <meshToonMaterial color={palette.night} />
+      <meshToonMaterial vertexColors />
     </instancedMesh>
   )
 }
