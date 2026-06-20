@@ -42,26 +42,34 @@ export interface MetroMapProps {
 }
 
 export function MetroMap({ completed, onClose, reducedMotion = false }: MetroMapProps) {
+  // Live district states derived from lamp progress.
   const lanterngate: DistrictState = completed.has('labelleddiagram') ? 'lit' : 'active'
   const saffronLit = completed.has('matching') && completed.has('anagram')
   const saffronAny = completed.has('matching') || completed.has('anagram')
   const saffron: DistrictState = saffronLit ? 'lit' : saffronAny ? 'partial' : 'active'
+  // #46 errands: The Sorting Office (spellingbee) and Postcard Pier (gapfill)
+  // are now playable — show them as live nodes rather than "arriving".
+  const sorting: DistrictState = completed.has('spellingbee') ? 'lit' : 'active'
+  const postcard: DistrictState = completed.has('gapfill') ? 'lit' : 'active'
 
-  // Two live districts (top arc) + four "arriving" nodes around the Round.
+  // Five live districts on the Round + two "arriving" nodes.
   const nodes: Node[] = [
-    { id: 'lanterngate', label: 'Lanterngate',   angle: 0,   state: lanterngate },
-    { id: 'saffron',     label: 'Saffron Market', angle: 60,  state: saffron },
-    { id: 'underground', label: 'The Underground', angle: 120, state: 'soon' },
-    { id: 'camden',      label: 'Camden Market',  angle: 180, state: 'soon' },
-    { id: 'riverside',   label: 'The Riverside',  angle: 240, state: 'soon' },
-    { id: 'pier',        label: 'The Pier',       angle: 300, state: 'soon' },
+    { id: 'lanterngate', label: 'Lanterngate',      angle: 0,   state: lanterngate },
+    { id: 'saffron',     label: 'Saffron Market',   angle: 60,  state: saffron },
+    { id: 'sorting',     label: 'The Sorting Office', angle: 120, state: sorting },
+    { id: 'camden',      label: 'Camden Market',    angle: 180, state: 'soon' },
+    { id: 'riverside',   label: 'The Riverside',    angle: 240, state: 'soon' },
+    { id: 'postcard',    label: 'Postcard Pier',    angle: 300, state: postcard },
   ]
 
-  // The Lanterngate → Saffron arc wakes once the player has made progress on
-  // that line (the first lamp lit, or any Saffron errand done).
+  // Show arcs for all active/lit consecutive pairs.
   const litArc = lanterngate === 'lit' || saffron === 'lit' || saffron === 'partial'
+  const sortArc = sorting === 'lit' || sorting === 'active'
+  const postArc = postcard === 'lit' || postcard === 'active'
   const [ax, ay] = polar(0)
   const [bx, by] = polar(60)
+  const [cx2, cy2] = polar(120)
+  const [px, py] = polar(300)
 
   const backdrop: CSSProperties = {
     position: 'absolute', inset: 0, zIndex: 30,
@@ -116,6 +124,18 @@ export function MetroMap({ completed, onClose, reducedMotion = false }: MetroMap
                 <animate attributeName="opacity" values="0.55;0.95;0.55" dur="3s" repeatCount="indefinite" />
               )}
             </path>
+          )}
+          {/* arc Saffron → Sorting Office */}
+          {sortArc && (
+            <path
+              d={`M ${bx} ${by} A ${R} ${R} 0 0 1 ${cx2} ${cy2}`}
+              fill="none" stroke={palette.brass} strokeWidth="2"
+              strokeLinecap="round" opacity="0.6"
+            />
+          )}
+          {/* arc Postcard Pier (standalone active segment) */}
+          {postArc && (
+            <circle cx={px} cy={py} r="5" fill={palette.lanternAmber} opacity="0.35" />
           )}
 
           {/* spokes to centre hub */}
