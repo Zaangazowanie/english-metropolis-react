@@ -45,7 +45,7 @@ import type {
 import type { Game3DProps, SessionResult } from '../practice/shells3d/types'
 import { CityStage, useStageQuality } from '../practice/shells3d/kit/CityStage'
 import { palette } from '../practice/shells3d/kit/palette'
-import { Bajla } from '../practice/shells3d/kit/Bajla'
+import { BajlaCompanion } from './BajlaCompanion'
 import type { BajlaVariant } from '../practice/shells3d/kit/Bajla'
 import { findGame3D } from '../practice/shells3d/kit/registry'
 import { Wren } from './Wren'
@@ -492,8 +492,10 @@ interface WrenRigProps {
   onNearBenchChange: (near: boolean) => void
   /** Called on each stride beat while walking (soft footstep audio). */
   onFootstep: () => void
+  /** Wren's live world position, written each frame (for the Bajla companion). */
+  posOutRef: React.MutableRefObject<Vector3>
 }
-function WrenRig({ keysRef, joyRef, reducedMotion, onNearPortalChange, onNearBenchChange, onFootstep }: WrenRigProps) {
+function WrenRig({ keysRef, joyRef, reducedMotion, onNearPortalChange, onNearBenchChange, onFootstep, posOutRef }: WrenRigProps) {
   const { camera } = useThree()
   const groupRef = useRef<Group>(null!)
   const posRef = useRef(new Vector3(0, 0, 0))
@@ -548,6 +550,9 @@ function WrenRig({ keysRef, joyRef, reducedMotion, onNearPortalChange, onNearBen
     } else {
       speedRef.current = MathUtils.lerp(speedRef.current, 0, 0.25)
     }
+
+    // Publish Wren's ground position so the Bajla companion can trail him.
+    posOutRef.current.set(pos.x, 0, pos.z)
 
     // 5. Apply transform (+ a gentle walk bob unless reducedMotion).
     const bob = reducedMotion ? 0 : Math.abs(Math.sin(performance.now() * 0.012)) * 0.06 * speedRef.current
@@ -622,6 +627,8 @@ function WorldScene({
   keysRef, joyRef, onNearPortalChange, onNearBenchChange, onFootstep,
 }: SceneProps) {
   const ambient = phase === 'ambient'
+  // Wren's live position, written by WrenRig and read by the Bajla companion.
+  const wrenPosRef = useRef(new Vector3())
   return (
     <>
       <SceneFog />
@@ -649,6 +656,7 @@ function WorldScene({
             onNearPortalChange={onNearPortalChange}
             onNearBenchChange={onNearBenchChange}
             onFootstep={onFootstep}
+            posOutRef={wrenPosRef}
           />
           {/* Bench Beat — visible in ambient always; glows when Wren nears it */}
           <ReflectionBench
@@ -671,12 +679,11 @@ function WorldScene({
             const p = PORTALS.find((portal) => portal.shellKey === justEarned)
             return p ? <LampRelight key={justEarned} position={p.position} reducedMotion={reducedMotion} /> : null
           })()}
-          {/* Bajla: starts idle (perched), does one flyby on district entry. */}
-          <Bajla
+          {/* Bajla glides alongside Wren as his guide (celebrate = a flourish). */}
+          <BajlaCompanion
+            wrenPosRef={wrenPosRef}
             variant={bajlaVariant}
             reducedMotion={reducedMotion}
-            scale={0.6}
-            position={[0, 2.95, LAMP_RING_RADIUS]}
           />
         </>
       )}
