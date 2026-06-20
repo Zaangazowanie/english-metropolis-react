@@ -77,6 +77,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     district: 'Saffron Market',
     load: () => import('../Matching3D'),
   },
+  {
+    shellKey: 'anagram',
+    title: "Mr. Chen's Chalkboard",
+    district: 'Saffron Market',
+    load: () => import('../Anagram3D'),
+  },
 ]
 
 /** Look up a registered 3D game by its 2D shell route key. */
