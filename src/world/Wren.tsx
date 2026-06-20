@@ -1,14 +1,19 @@
-// Wren — the English Metro player character. An ORIGINAL human messenger:
-// oversized teal-grey coat, long amber scarf (the same warm amber as the
-// city's lamps — canon: "Wren's scarf is a lamp she carries"), leather
-// satchel. Procedural low-poly + MeshToonMaterial with the TremblingOutline
-// shader on the dominant silhouette (coat + head) — the hand-drawn graphite
-// ink look that is English Metro's signature style. Faces +Z at heading 0
-// so the controller's atan2 heading maps directly to rotation.y.
+// Wren — the English Metro player character, reskinned to the canonical WREN
+// character sheet ("WORLD PALETTE: DUSK-TEAL & AMBER"): an oversized dusk-teal
+// hooded coat with toggle buttons, a long amber scarf (canon: "Wren's scarf is
+// a lamp she carries"), a BROWN LEATHER crossbody messenger satchel slung at
+// the hip with little colored errand-tags, grey cuffed trousers, and brown
+// ankle boots. Messy dark hair.
+//
+// Procedural low-poly + MeshToonMaterial with the TremblingOutline shader on
+// the dominant silhouette (coat + head) — the hand-drawn graphite-ink look that
+// is English Metro's signature style. Faces +Z at heading 0 so the controller's
+// atan2 heading maps directly to rotation.y.
 //
 // Animation: arms swing and the scarf tail sways, scaled by a live `speedRef`
-// (0 idle → 1 walking) the parent rig updates each frame. reducedMotion stops
-// decorative sway and holds the outline static. No per-frame allocations.
+// (0 idle → 1 walking) the parent rig updates each frame; boots stride with the
+// legs. reducedMotion stops decorative sway and holds the outline static. No
+// per-frame allocations.
 
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
@@ -16,16 +21,20 @@ import type { Group, Mesh } from 'three'
 import { palette } from '../practice/shells3d/kit/palette'
 import { TremblingOutlineMesh } from './TremblingOutline'
 
-// Wren's palette — coat reads against the teal ground; scarf = lamp amber.
-const COAT   = '#54737D' // soft teal-grey wool
-const COAT_D = '#3E5860' // coat shadow / lower hem
-const SKIN   = '#E8C8A8'
-const HAIR   = '#3A2E2A'
-const SCARF  = palette.lanternAmber // ties Wren to the lamps
-const BAG    = palette.brass
-const TROUSER = '#2C3A42'
-// INK constant removed: coat + head outlines are now TremblingOutlineMesh,
-// which reads palette.night internally from TremblingOutline.tsx.
+// Wren's palette — keyed to the character sheet's dusk-teal & amber swatches.
+const COAT    = '#5E7378' // dusk teal-grey wool (reads against the teal street)
+const COAT_D  = '#43565B' // coat shadow / hem / hood
+const SKIN    = '#E8C8A8'
+const HAIR    = '#2E2622' // near-black espresso, messy
+const SCARF   = palette.lanternAmber // ties Wren to the lamps
+const LEATHER   = '#7A5A45' // satchel body — warm tan leather
+const LEATHER_D = '#553C2B' // satchel flap / strap — darker leather
+const BUTTON  = '#C8A86E' // toggle buttons / buckle — pale brass-tan
+const TROUSER = '#7E8079' // warm grey trousers
+const CUFF    = '#8E9088' // lighter trouser cuff
+const BOOT    = '#4A2F25' // dark brown ankle boots
+// Little colored errand-tags hanging from the satchel (red / teal / amber).
+const TAGS = ['#B5572E', '#2B5F6E', '#E8920A'] as const
 
 export interface WrenProps {
   /** Live 0..1 walk intensity (parent rig writes it each frame). */
@@ -75,17 +84,35 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
 
   return (
     <group>
-      {/* ── Legs (pivot at the hip; stride contralaterally with the walk) ── */}
+      {/* ── Legs (pivot at the hip; stride contralaterally) + boots + cuffs ── */}
       <group ref={lLeg} position={[-0.12, 0.56, 0]}>
-        <mesh position={[0, -0.28, 0]} castShadow>
-          <cylinderGeometry args={[0.09, 0.08, 0.56, 6]} />
+        <mesh position={[0, -0.26, 0]} castShadow>
+          <cylinderGeometry args={[0.09, 0.08, 0.52, 6]} />
           <meshToonMaterial color={TROUSER} />
+        </mesh>
+        {/* cuff */}
+        <mesh position={[0, -0.5, 0]}>
+          <cylinderGeometry args={[0.095, 0.095, 0.08, 6]} />
+          <meshToonMaterial color={CUFF} />
+        </mesh>
+        {/* brown ankle boot (toe forward, +Z) */}
+        <mesh position={[0, -0.57, 0.04]} castShadow>
+          <boxGeometry args={[0.15, 0.12, 0.26]} />
+          <meshToonMaterial color={BOOT} />
         </mesh>
       </group>
       <group ref={rLeg} position={[0.12, 0.56, 0]}>
-        <mesh position={[0, -0.28, 0]} castShadow>
-          <cylinderGeometry args={[0.09, 0.08, 0.56, 6]} />
+        <mesh position={[0, -0.26, 0]} castShadow>
+          <cylinderGeometry args={[0.09, 0.08, 0.52, 6]} />
           <meshToonMaterial color={TROUSER} />
+        </mesh>
+        <mesh position={[0, -0.5, 0]}>
+          <cylinderGeometry args={[0.095, 0.095, 0.08, 6]} />
+          <meshToonMaterial color={CUFF} />
+        </mesh>
+        <mesh position={[0, -0.57, 0.04]} castShadow>
+          <boxGeometry args={[0.15, 0.12, 0.26]} />
+          <meshToonMaterial color={BOOT} />
         </mesh>
       </group>
 
@@ -108,16 +135,49 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
         <cylinderGeometry args={[0.455, 0.46, 0.08, 10]} />
         <meshToonMaterial color={COAT_D} />
       </mesh>
-
-      {/* ── Satchel on the back (−Z) + strap ── */}
-      <mesh position={[0, 0.95, -0.34]} rotation={[0.08, 0, 0]} castShadow>
-        <boxGeometry args={[0.46, 0.38, 0.16]} />
-        <meshToonMaterial color={BAG} />
+      {/* Toggle buttons down the front placket (+Z face) */}
+      <mesh position={[0, 1.06, 0.28]}>
+        <boxGeometry args={[0.05, 0.05, 0.03]} />
+        <meshToonMaterial color={BUTTON} />
       </mesh>
-      <mesh position={[0, 1.16, 0]} rotation={[0, 0, Math.PI / 5]}>
-        <boxGeometry args={[0.62, 0.07, 0.5]} />
+      <mesh position={[0, 0.9, 0.31]}>
+        <boxGeometry args={[0.05, 0.05, 0.03]} />
+        <meshToonMaterial color={BUTTON} />
+      </mesh>
+      <mesh position={[0, 0.74, 0.345]}>
+        <boxGeometry args={[0.05, 0.05, 0.03]} />
+        <meshToonMaterial color={BUTTON} />
+      </mesh>
+
+      {/* ── Hood bunched behind the neck (−Z) ── */}
+      <mesh position={[0, 1.42, -0.12]} scale={[1, 0.8, 0.9]} castShadow>
+        <sphereGeometry args={[0.2, 10, 8]} />
         <meshToonMaterial color={COAT_D} />
       </mesh>
+
+      {/* ── Leather crossbody satchel: strap over the shoulder, bag at the hip ── */}
+      {/* Strap — left shoulder down to right hip, across the chest */}
+      <mesh position={[0.04, 1.04, 0.2]} rotation={[0, 0, 0.92]}>
+        <boxGeometry args={[0.06, 0.86, 0.04]} />
+        <meshToonMaterial color={LEATHER_D} />
+      </mesh>
+      {/* Bag body slung on the right hip */}
+      <mesh position={[0.4, 0.8, 0.12]} rotation={[0, -0.5, 0]} castShadow>
+        <boxGeometry args={[0.3, 0.32, 0.14]} />
+        <meshToonMaterial color={LEATHER} />
+      </mesh>
+      {/* Bag flap */}
+      <mesh position={[0.4, 0.95, 0.13]} rotation={[0, -0.5, 0]}>
+        <boxGeometry args={[0.31, 0.1, 0.15]} />
+        <meshToonMaterial color={LEATHER_D} />
+      </mesh>
+      {/* Little colored errand-tags hanging from the flap */}
+      {TAGS.map((c, i) => (
+        <mesh key={c} position={[0.3 + i * 0.07, 0.68, 0.2]}>
+          <boxGeometry args={[0.035, 0.1, 0.02]} />
+          <meshToonMaterial color={c} />
+        </mesh>
+      ))}
 
       {/* ── Arms (pivot at shoulder; swing with walk) ── */}
       <group ref={lArm} position={[-0.34, 1.28, 0]}>
@@ -160,6 +220,19 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
       {/* Hair cap */}
       <mesh position={[0, 1.7, -0.02]}>
         <sphereGeometry args={[0.205, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.62]} />
+        <meshToonMaterial color={HAIR} />
+      </mesh>
+      {/* Messy hair tufts */}
+      <mesh position={[-0.13, 1.74, 0.06]} rotation={[0.3, 0, 0.5]}>
+        <coneGeometry args={[0.06, 0.16, 5]} />
+        <meshToonMaterial color={HAIR} />
+      </mesh>
+      <mesh position={[0.12, 1.76, -0.02]} rotation={[-0.2, 0, -0.4]}>
+        <coneGeometry args={[0.055, 0.15, 5]} />
+        <meshToonMaterial color={HAIR} />
+      </mesh>
+      <mesh position={[0.02, 1.78, 0.12]} rotation={[0.5, 0, 0.05]}>
+        <coneGeometry args={[0.05, 0.13, 5]} />
         <meshToonMaterial color={HAIR} />
       </mesh>
     </group>
