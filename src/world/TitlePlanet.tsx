@@ -33,6 +33,9 @@ const GOLDEN = Math.PI * (3 - Math.sqrt(5))
 const PLANET = '#235A66'   // dusk-teal ocean
 const LAND   = palette.night
 const AMBER  = palette.lanternAmber
+// Warm dusk-London facades (match the reskinned world's BuildingSkyline) so the
+// menu planet's city studs read as the same cozy teal-&-amber town, not black.
+const STUD_TANS = ['#D9CDB4', '#CDBA98', '#BFA079', '#D2C0A0', '#8E9BA0', '#C8AE90']
 
 export function TitlePlanet({ reducedMotion = false }: { reducedMotion?: boolean }) {
   const { camera } = useThree()
@@ -55,7 +58,8 @@ export function TitlePlanet({ reducedMotion = false }: { reducedMotion?: boolean
       _o.scale.set(0.16, h, 0.16)
       _o.updateMatrix()
       studRef.current.setMatrixAt(i, _o.matrix)
-      _c.set(i % 4 === 0 ? AMBER : LAND)
+      // ~1 in 5 studs are amber-lit windows; the rest are warm facades.
+      _c.set(i % 5 === 0 ? AMBER : STUD_TANS[i % STUD_TANS.length])
       studRef.current.setColorAt(i, _c)
     }
     studRef.current.instanceMatrix.needsUpdate = true
