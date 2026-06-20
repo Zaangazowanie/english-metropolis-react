@@ -24,7 +24,8 @@
 //   • Keyboard (WASD/arrows + Escape) + pointer (touch joystick, Begin/Exit).
 //   • Canvas aria-hidden; live-region announces state changes.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense, Component } from 'react'
+import type { CSSProperties, ErrorInfo, ReactNode } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import {
   Color,
@@ -46,7 +47,10 @@ import { CityStage, useStageQuality } from '../practice/shells3d/kit/CityStage'
 import { palette } from '../practice/shells3d/kit/palette'
 import { Bajla } from '../practice/shells3d/kit/Bajla'
 import type { BajlaVariant } from '../practice/shells3d/kit/Bajla'
+import { findGame3D } from '../practice/shells3d/kit/registry'
 import { Wren } from './Wren'
+import { WorldPortal } from './WorldPortal'
+import type { PortalDef } from './WorldPortal'
 import { useWorldInput, readKeys } from './useWorldInput'
 import type { JoyVec } from './useWorldInput'
 
@@ -83,6 +87,17 @@ function lerpAngle(a: number, b: number, t: number): number {
   const d = Math.atan2(Math.sin(b - a), Math.cos(b - a))
   return a + d * t
 }
+
+// ─── W4: district portals ─────────────────────────────────────────────────────
+// Each portal links a world location to a registered game shell. Wren is
+// clamped to PLAY_RADIUS (7.4); a portal at the +Z lamp (radius 8.5) is reached
+// when Wren is within PORTAL_RANGE. W4 ships the first portal — Lanterngate's
+// "Light the First Lamp" → the labelleddiagram shell (canon Beat 2). W5 adds
+// the Saffron Market portals.
+const PORTAL_RANGE = 2.7  // proximity (world units) that opens the play prompt
+const PORTALS: PortalDef[] = [
+  { shellKey: 'labelleddiagram', title: 'Light the First Lamp', position: [0, 0, LAMP_RING_RADIUS] },
+]
 
 // ─── Fog ──────────────────────────────────────────────────────────────────────
 function SceneFog() {
@@ -430,13 +445,16 @@ interface WrenRigProps {
   keysRef: React.MutableRefObject<Set<string>>
   joyRef: React.MutableRefObject<JoyVec | null>
   reducedMotion: boolean
+  /** Called only when the nearest in-range portal changes (not every frame). */
+  onNearPortalChange: (shellKey: string | null) => void
 }
-function WrenRig({ keysRef, joyRef, reducedMotion }: WrenRigProps) {
+function WrenRig({ keysRef, joyRef, reducedMotion, onNearPortalChange }: WrenRigProps) {
   const { camera } = useThree()
   const groupRef = useRef<Group>(null!)
   const posRef = useRef(new Vector3(0, 0, 0))
   const headingRef = useRef(START_HEADING)
   const speedRef = useRef(0)
+  const nearRef = useRef<string | null>(null)
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05) // clamp long frames (tab refocus)
@@ -496,6 +514,21 @@ function WrenRig({ keysRef, joyRef, reducedMotion }: WrenRigProps) {
     camera.position.lerp(_camTarget, reducedMotion ? 1 : CAM_LERP)
     _lookTarget.set(pos.x, CAM_LOOK_Y, pos.z)
     camera.lookAt(_lookTarget)
+
+    // 7. Nearest in-range portal (notify parent only when it changes).
+    let near: string | null = null
+    let bestSq = PORTAL_RANGE * PORTAL_RANGE
+    for (let i = 0; i < PORTALS.length; i++) {
+      const p = PORTALS[i].position
+      const dx = pos.x - p[0]
+      const dz = pos.z - p[2]
+      const dSq = dx * dx + dz * dz
+      if (dSq < bestSq) { bestSq = dSq; near = PORTALS[i].shellKey }
+    }
+    if (near !== nearRef.current) {
+      nearRef.current = near
+      onNearPortalChange(near)
+    }
   })
 
   return (
@@ -511,10 +544,15 @@ interface SceneProps {
   motesActive: boolean
   reducedMotion: boolean
   bajlaVariant: BajlaVariant
+  nearPortal: string | null
   keysRef: React.MutableRefObject<Set<string>>
   joyRef: React.MutableRefObject<JoyVec | null>
+  onNearPortalChange: (shellKey: string | null) => void
 }
-function WorldScene({ phase, motesActive, reducedMotion, bajlaVariant, keysRef, joyRef }: SceneProps) {
+function WorldScene({
+  phase, motesActive, reducedMotion, bajlaVariant, nearPortal,
+  keysRef, joyRef, onNearPortalChange,
+}: SceneProps) {
   const ambient = phase === 'ambient'
   return (
     <>
@@ -531,7 +569,21 @@ function WorldScene({ phase, motesActive, reducedMotion, bajlaVariant, keysRef, 
       <CameraDrift active={!reducedMotion && !ambient} />
       {ambient && (
         <>
-          <WrenRig keysRef={keysRef} joyRef={joyRef} reducedMotion={reducedMotion} />
+          <WrenRig
+            keysRef={keysRef}
+            joyRef={joyRef}
+            reducedMotion={reducedMotion}
+            onNearPortalChange={onNearPortalChange}
+          />
+          {/* W4: district portals (walk up → play) */}
+          {PORTALS.map((p) => (
+            <WorldPortal
+              key={p.shellKey}
+              position={p.position}
+              active={nearPortal === p.shellKey}
+              reducedMotion={reducedMotion}
+            />
+          ))}
           {/* Bajla: starts idle (perched), does one flyby on district entry. */}
           <Bajla
             variant={bajlaVariant}
@@ -542,6 +594,78 @@ function WorldScene({ phase, motesActive, reducedMotion, bajlaVariant, keysRef, 
         </>
       )}
     </>
+  )
+}
+
+// ─── W4: GameMount — lazy-loads a per-game shell when Wren enters a portal ────
+// Single canvas guaranteed: EnglishMetroWorld renders EITHER the world OR this
+// mount, never both. The shell brings its own CityStage. onComplete fires when
+// the shell calls onSessionComplete (its own no-fail round end).
+class GameErrorBoundary extends Component<{ onBack: () => void; children: ReactNode }, { broken: boolean }> {
+  state = { broken: false }
+  static getDerivedStateFromError() { return { broken: true } }
+  componentDidCatch(_e: Error, _i: ErrorInfo) { /* swallowed; UI handles it */ }
+  render() {
+    if (this.state.broken) {
+      return (
+        <div style={{
+          position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: 16,
+          color: 'rgba(245,240,250,0.8)', fontFamily: FONT_DISPLAY, textAlign: 'center', padding: 24,
+        }}>
+          <div style={{ fontSize: 34 }}>🛠️</div>
+          <div>This errand is resting. Come back to it soon.</div>
+          <button type="button" onClick={this.props.onBack} style={backBtnStyle}>← Back to the city</button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+const backBtnStyle: CSSProperties = {
+  fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 13,
+  color: 'rgba(245,240,250,0.85)', background: 'rgba(10,4,24,0.7)',
+  border: '1px solid rgba(245,240,250,0.22)', borderRadius: 8,
+  padding: '9px 16px', cursor: 'pointer', letterSpacing: '0.05em',
+}
+
+function GameMount({
+  shellKey, onBack, onComplete,
+}: {
+  shellKey: string
+  onBack: () => void
+  onComplete: () => void
+}) {
+  const entry = useMemo(() => findGame3D(shellKey), [shellKey])
+  const Lazy = useMemo(() => (entry ? lazy(entry.load) : null), [entry])
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: palette.night }}>
+      {/* Back-to-world control (always available, above the shell) */}
+      <button type="button" onClick={onBack} aria-label="Back to the city"
+        style={{ ...backBtnStyle, position: 'absolute', top: 14, left: 14, zIndex: 5 }}>
+        ← Back to the city
+      </button>
+      <GameErrorBoundary onBack={onBack}>
+        <Suspense fallback={
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', color: 'rgba(245,240,250,0.6)',
+            fontFamily: FONT_DISPLAY, letterSpacing: '0.2em', fontSize: 13,
+          }}>
+            LIGHTING THE LAMP…
+          </div>
+        }>
+          {Lazy
+            ? <Lazy onSessionComplete={onComplete} fullscreen={false} />
+            : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+                justifyContent: 'center', color: 'rgba(245,240,250,0.7)', fontFamily: FONT_DISPLAY }}>
+                This errand hasn&apos;t arrived yet.
+              </div>}
+        </Suspense>
+      </GameErrorBoundary>
+    </div>
   )
 }
 
@@ -627,11 +751,40 @@ export default function EnglishMetroWorld({
   const [phase, setPhase]           = useState<WorldPhase>('title')
   const [bajlaVariant, setBajlaVariant] = useState<BajlaVariant>('idle')
   const [showArrival, setShowArrival]   = useState(false)  // W3 district overlay
+  const [nearPortal, setNearPortal]     = useState<string | null>(null)  // W4
+  const [activeGame, setActiveGame]     = useState<string | null>(null)  // W4
   const startMs                     = useRef(Date.now())
   const announced                   = useRef('')
 
-  // ── Player input (active only once Wren is in the world) ───────────────────
-  const { keysRef, joyRef } = useWorldInput(phase === 'ambient')
+  // Refs mirror state so the keyboard handler stays subscribed once.
+  const nearPortalRef = useRef<string | null>(null)
+  const activeGameRef = useRef<string | null>(null)
+  useEffect(() => { nearPortalRef.current = nearPortal }, [nearPortal])
+  useEffect(() => { activeGameRef.current = activeGame }, [activeGame])
+
+  // ── Player input (movement paused while a game is open) ────────────────────
+  const { keysRef, joyRef } = useWorldInput(phase === 'ambient' && !activeGame)
+
+  // ── W4: portal proximity + open/close game ──────────────────────────────────
+  const handleNearPortalChange = useCallback((key: string | null) => setNearPortal(key), [])
+  const openNearPortal = useCallback(() => {
+    if (!activeGameRef.current && nearPortalRef.current) {
+      setActiveGame(nearPortalRef.current)
+      setNearPortal(null) // hide prompt; world unmounts while playing
+      announced.current = 'Opening errand. Press Escape to return to the city.'
+    }
+  }, [])
+  const closeGame = useCallback(() => {
+    setActiveGame(null)
+    setNearPortal(null) // WrenRig re-detects on remount (Wren spawns away)
+    announced.current = 'Back in the city.'
+  }, [])
+  const handleGameComplete = useCallback(() => {
+    // No-fail: the shell ended its round. Return to the world (lamp "remembers").
+    setActiveGame(null)
+    setNearPortal(null)
+    announced.current = '+1 light — the lamp remembers. Back in the city.'
+  }, [])
 
   // ── Exit handler ──────────────────────────────────────────────────────────
   const handleExit = useCallback(() => {
@@ -662,16 +815,38 @@ export default function EnglishMetroWorld({
   }, [phase])
 
   // ── Keyboard ───────────────────────────────────────────────────────────────
+  // Escape precedence: a game open → return to the city; else → exit the world.
+  // Enter/Space when near a portal (and no game open) → open that errand.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleExit()
+      if (e.key === 'Escape') {
+        if (activeGameRef.current) closeGame()
+        else handleExit()
+      } else if (e.key === 'Enter') {
+        if (!activeGameRef.current && nearPortalRef.current) {
+          e.preventDefault()
+          openNearPortal()
+        }
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [handleExit])
+  }, [handleExit, closeGame, openNearPortal])
 
   // ── Animation flags ────────────────────────────────────────────────────────
   const motesActive = !reducedMotion
+
+  // ── W4: while an errand is open, render ONLY the game (single canvas) ───────
+  if (activeGame) {
+    const wrap: CSSProperties = fullscreen
+      ? { position: 'fixed', inset: 0, width: '100vw', height: '100vh' }
+      : { position: 'relative', width: '100%', height: '100%', minHeight: 320 }
+    return (
+      <div style={wrap}>
+        <GameMount shellKey={activeGame} onBack={closeGame} onComplete={handleGameComplete} />
+      </div>
+    )
+  }
 
   return (
     <CityStage
@@ -772,23 +947,65 @@ export default function EnglishMetroWorld({
                 Lanterngate · The City
               </div>
 
-              {/* Bajla hint */}
-              <div style={{
-                position: 'absolute', bottom: 80, left: '50%',
-                transform: 'translateX(-50%)',
-                background: 'rgba(10,4,24,0.72)',
-                backdropFilter: 'blur(8px)',
-                borderRadius: 12,
-                padding: '10px 20px',
-                fontFamily: FONT_DISPLAY,
-                fontSize: 'clamp(12px, 1.6vw, 15px)',
-                color: 'rgba(245,240,250,0.78)',
-                textAlign: 'center',
-                border: '1px solid rgba(107,79,160,0.35)',
-                maxWidth: 380,
-              }}>
-                🦉 &ldquo;The lamps remember every word you learn.&rdquo; — Bajla
-              </div>
+              {/* Bajla hint (hidden when a portal prompt is showing) */}
+              {!nearPortal && (
+                <div style={{
+                  position: 'absolute', bottom: 80, left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: 'rgba(10,4,24,0.72)',
+                  backdropFilter: 'blur(8px)',
+                  borderRadius: 12,
+                  padding: '10px 20px',
+                  fontFamily: FONT_DISPLAY,
+                  fontSize: 'clamp(12px, 1.6vw, 15px)',
+                  color: 'rgba(245,240,250,0.78)',
+                  textAlign: 'center',
+                  border: '1px solid rgba(107,79,160,0.35)',
+                  maxWidth: 380,
+                }}>
+                  🦉 &ldquo;The lamps remember every word you learn.&rdquo; — Bajla
+                </div>
+              )}
+
+              {/* W4: portal play-prompt — appears when Wren is in range ─────── */}
+              {nearPortal && (
+                <button
+                  type="button"
+                  onClick={openNearPortal}
+                  style={{
+                    position: 'absolute', bottom: 76, left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    background: 'rgba(10,4,24,0.82)',
+                    backdropFilter: 'blur(10px)',
+                    border: `1px solid ${palette.lanternAmber}88`,
+                    borderRadius: 14, padding: '12px 22px',
+                    cursor: 'pointer', pointerEvents: 'auto',
+                    boxShadow: `0 0 28px ${palette.lanternAmber}44`,
+                    animation: 'em-portal-rise 0.28s ease',
+                  }}
+                >
+                  <span style={{
+                    fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 13,
+                    color: palette.night, background: palette.lanternAmber,
+                    borderRadius: 6, padding: '3px 9px', letterSpacing: '0.04em',
+                  }}>
+                    ↵ Enter
+                  </span>
+                  <span style={{
+                    fontFamily: FONT_DISPLAY, fontWeight: 600,
+                    fontSize: 'clamp(13px, 1.7vw, 16px)', color: '#F5F0FA',
+                  }}>
+                    {PORTALS.find((p) => p.shellKey === nearPortal)?.title ?? 'Play'}
+                  </span>
+                  <style>{`
+                    @keyframes em-portal-rise {
+                      from { opacity: 0; transform: translate(-50%, 8px); }
+                      to   { opacity: 1; transform: translate(-50%, 0); }
+                    }
+                  `}</style>
+                </button>
+              )}
 
               {/* Controls hint (top-right) */}
               <div style={{
@@ -798,7 +1015,7 @@ export default function EnglishMetroWorld({
                 textAlign: 'right', textShadow: '0 1px 6px rgba(0,0,0,0.6)',
                 whiteSpace: 'nowrap',
               }}>
-                WASD / arrows to walk · drag the dial on touch
+                WASD / arrows to walk · Enter to play · drag the dial on touch
               </div>
 
               {/* Exit button */}
@@ -871,8 +1088,10 @@ export default function EnglishMetroWorld({
         motesActive={motesActive}
         reducedMotion={reducedMotion}
         bajlaVariant={bajlaVariant}
+        nearPortal={nearPortal}
         keysRef={keysRef}
         joyRef={joyRef}
+        onNearPortalChange={handleNearPortalChange}
       />
     </CityStage>
   )
