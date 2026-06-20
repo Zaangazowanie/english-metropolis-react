@@ -62,6 +62,7 @@ import { ReflectionBench } from './ReflectionBench'
 import { MetroTrain } from './MetroTrain'
 import { DuskClouds } from './DuskClouds'
 import { TitlePlanet } from './TitlePlanet'
+import { FestoonLights } from './FestoonLights'
 import { LampRelight } from './LampRelight'
 import { useWorldAudio } from './useWorldAudio'
 import {
@@ -704,6 +705,8 @@ function WorldScene({
       <LampRing />
       <LampLights />
       <BuildingSkyline />
+      {/* Amber festoon string-lights looped between lamp posts — the em-spike signature */}
+      <FestoonLights />
       {/* Soft watercolor clouds drifting high on the breeze */}
       <DuskClouds reducedMotion={reducedMotion} />
       {/* The elevated Round + slow last train, circling beyond the plaza */}
