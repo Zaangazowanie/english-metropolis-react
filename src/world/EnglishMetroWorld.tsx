@@ -62,6 +62,7 @@ import { ReflectionBench } from './ReflectionBench'
 import { MetroTrain } from './MetroTrain'
 import { DuskClouds } from './DuskClouds'
 import { TitlePlanet } from './TitlePlanet'
+import { LampRelight } from './LampRelight'
 import { useWorldAudio } from './useWorldAudio'
 import {
   INTRO_SCRIPT, PORTAL_INTROS,
@@ -609,6 +610,7 @@ interface SceneProps {
   bajlaVariant: BajlaVariant
   nearPortal: string | null
   completed: Set<string>
+  justEarned: string | null  // lamp-relight VFX
   keysRef: React.MutableRefObject<Set<string>>
   joyRef: React.MutableRefObject<JoyVec | null>
   onNearPortalChange: (shellKey: string | null) => void
@@ -616,7 +618,7 @@ interface SceneProps {
   onFootstep: () => void
 }
 function WorldScene({
-  phase, motesActive, reducedMotion, bajlaVariant, nearPortal, completed,
+  phase, motesActive, reducedMotion, bajlaVariant, nearPortal, completed, justEarned,
   keysRef, joyRef, onNearPortalChange, onNearBenchChange, onFootstep,
 }: SceneProps) {
   const ambient = phase === 'ambient'
@@ -664,6 +666,11 @@ function WorldScene({
               reducedMotion={reducedMotion}
             />
           ))}
+          {/* Lamp-relight bloom: brief amber burst at the just-earned portal. */}
+          {justEarned && (() => {
+            const p = PORTALS.find((portal) => portal.shellKey === justEarned)
+            return p ? <LampRelight key={justEarned} position={p.position} reducedMotion={reducedMotion} /> : null
+          })()}
           {/* Bajla: starts idle (perched), does one flyby on district entry. */}
           <Bajla
             variant={bajlaVariant}
@@ -936,7 +943,8 @@ export default function EnglishMetroWorld({
       // W8: celebrate a genuinely-new stamp on the pager (fades after ~2.6s).
       if (isNew) {
         setJustEarned(key)
-        audio.chime() // W9: warm bell on a new stamp
+        audio.chime()   // W9: pager stamp chime
+        audio.relight() // lamp relight arpeggio
         setTimeout(() => setJustEarned((k) => (k === key ? null : k)), 2600)
       }
     }
@@ -1478,6 +1486,7 @@ export default function EnglishMetroWorld({
         bajlaVariant={bajlaVariant}
         nearPortal={nearPortal}
         completed={completed}
+        justEarned={justEarned}
         keysRef={keysRef}
         joyRef={joyRef}
         onNearPortalChange={handleNearPortalChange}
