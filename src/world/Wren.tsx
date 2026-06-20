@@ -42,6 +42,8 @@ const OUTLINE_JITTER  = 0.007
 export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
   const lArm = useRef<Group>(null!)
   const rArm = useRef<Group>(null!)
+  const lLeg = useRef<Group>(null!)
+  const rLeg = useRef<Group>(null!)
   const scarfTail = useRef<Mesh>(null!)
   const t = useRef(0)
 
@@ -51,6 +53,8 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
       // Hold a neutral pose.
       if (lArm.current) lArm.current.rotation.x = 0
       if (rArm.current) rArm.current.rotation.x = 0
+      if (lLeg.current) lLeg.current.rotation.x = 0
+      if (rLeg.current) rLeg.current.rotation.x = 0
       if (scarfTail.current) scarfTail.current.rotation.x = 0.2
       return
     }
@@ -58,6 +62,11 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
     const swing = Math.sin(t.current) * 0.6 * sp
     if (lArm.current) lArm.current.rotation.x = swing
     if (rArm.current) rArm.current.rotation.x = -swing
+    // Legs stride contralaterally — each leg opposes its same-side arm so the
+    // gait reads as a natural walk. Amplitude scales with walk intensity.
+    const stride = Math.sin(t.current) * 0.5 * sp
+    if (lLeg.current) lLeg.current.rotation.x = -stride
+    if (rLeg.current) rLeg.current.rotation.x = stride
     // Scarf trails: lifts toward horizontal as Wren moves, with a flutter.
     if (scarfTail.current) {
       scarfTail.current.rotation.x = 0.2 + sp * (0.9 + Math.sin(t.current * 1.3) * 0.25)
@@ -66,15 +75,19 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
 
   return (
     <group>
-      {/* ── Legs ── */}
-      <mesh position={[-0.12, 0.28, 0]} castShadow>
-        <cylinderGeometry args={[0.09, 0.08, 0.56, 6]} />
-        <meshToonMaterial color={TROUSER} />
-      </mesh>
-      <mesh position={[0.12, 0.28, 0]} castShadow>
-        <cylinderGeometry args={[0.09, 0.08, 0.56, 6]} />
-        <meshToonMaterial color={TROUSER} />
-      </mesh>
+      {/* ── Legs (pivot at the hip; stride contralaterally with the walk) ── */}
+      <group ref={lLeg} position={[-0.12, 0.56, 0]}>
+        <mesh position={[0, -0.28, 0]} castShadow>
+          <cylinderGeometry args={[0.09, 0.08, 0.56, 6]} />
+          <meshToonMaterial color={TROUSER} />
+        </mesh>
+      </group>
+      <group ref={rLeg} position={[0.12, 0.56, 0]}>
+        <mesh position={[0, -0.28, 0]} castShadow>
+          <cylinderGeometry args={[0.09, 0.08, 0.56, 6]} />
+          <meshToonMaterial color={TROUSER} />
+        </mesh>
+      </group>
 
       {/* ── Coat (dominant silhouette, A-line) ── */}
       <mesh position={[0, 0.92, 0]} castShadow>
