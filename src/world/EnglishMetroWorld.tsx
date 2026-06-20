@@ -56,7 +56,11 @@ import type { JoyVec } from './useWorldInput'
 import { useLampProgress } from './useLampProgress'
 import { useDialogue } from './useDialogue'
 import { DialogueBox } from './DialogueBox'
-import { INTRO_SCRIPT, hasSeenIntro, markIntroSeen } from './dialogue'
+import {
+  INTRO_SCRIPT, PORTAL_INTROS,
+  hasSeenIntro, markIntroSeen,
+  hasSeenPortalIntro, markPortalIntroSeen,
+} from './dialogue'
 
 // ─── Scratch (no per-frame allocations) ────────────────────────────────────
 const _obj  = new Object3D()
@@ -785,20 +789,23 @@ export default function EnglishMetroWorld({
   const [nearPortal, setNearPortal]     = useState<string | null>(null)  // W4
   const [activeGame, setActiveGame]     = useState<string | null>(null)  // W4
   const [sliceComplete, setSliceComplete] = useState(false) // W5 beat 5
-  const [showIntro, setShowIntro]       = useState(false)  // W6 VN cold-open
-  const startMs                         = useRef(Date.now())
-  const announced                       = useRef('')
+  const [showIntro, setShowIntro]           = useState(false)  // W6 VN cold-open
+  const [portalIntroKey, setPortalIntroKey] = useState<string | null>(null) // W7
+  const startMs                             = useRef(Date.now())
+  const announced                           = useRef('')
   // W5: persistent lamp progress (localStorage, frontend-only)
   const { completed, markComplete } = useLampProgress()
 
   // Refs mirror state so the keyboard handler stays subscribed once.
-  const nearPortalRef = useRef<string | null>(null)
-  const activeGameRef = useRef<string | null>(null)
-  const showIntroRef  = useRef(false)
-  const advanceRef    = useRef<() => void>(() => {})
+  const nearPortalRef     = useRef<string | null>(null)
+  const activeGameRef     = useRef<string | null>(null)
+  const showIntroRef      = useRef(false)
+  const portalIntroKeyRef = useRef<string | null>(null)
+  const advanceRef        = useRef<() => void>(() => {})
   useEffect(() => { nearPortalRef.current = nearPortal }, [nearPortal])
   useEffect(() => { activeGameRef.current = activeGame }, [activeGame])
   useEffect(() => { showIntroRef.current = showIntro }, [showIntro])
+  useEffect(() => { portalIntroKeyRef.current = portalIntroKey }, [portalIntroKey])
 
   // ── W6: VN dialogue (cold-open). Movement pauses while it plays. ───────────
   const endIntro = useCallback(() => { setShowIntro(false); markIntroSeen() }, [])
@@ -806,16 +813,47 @@ export default function EnglishMetroWorld({
     reducedMotion,
     onComplete: endIntro,
   })
-  useEffect(() => { advanceRef.current = intro.advance }, [intro.advance])
 
-  // ── Player input (paused while a game is open OR the intro is playing) ─────
-  const { keysRef, joyRef } = useWorldInput(phase === 'ambient' && !activeGame && !showIntro)
+  // ── W7: per-portal NPC intro — plays once before the errand opens. ──────────
+  const endPortalIntro = useCallback(() => {
+    const key = portalIntroKeyRef.current
+    if (key) markPortalIntroSeen(key)
+    setPortalIntroKey(null)
+    // Actually open the game after the intro completes.
+    if (key) {
+      setActiveGame(key)
+      setNearPortal(null)
+      announced.current = 'Opening errand. Press Escape to return to the city.'
+    }
+  }, [])
+  const portalIntroScript = portalIntroKey ? (PORTAL_INTROS[portalIntroKey] ?? null) : null
+  const portalIntro = useDialogue(portalIntroScript, {
+    reducedMotion,
+    onComplete: endPortalIntro,
+  })
 
-  // ── W4: portal proximity + open/close game ──────────────────────────────────
+  // Master advance ref — whichever dialogue is active, keyboard drives it.
+  const activeAdvance = portalIntroKey ? portalIntro.advance : intro.advance
+  useEffect(() => { advanceRef.current = activeAdvance }, [activeAdvance])
+
+  // ── Player input (paused while a game or any dialogue is open) ──────────────
+  const anyDialogue = showIntro || !!portalIntroKey
+  const { keysRef, joyRef } = useWorldInput(phase === 'ambient' && !activeGame && !anyDialogue)
+
+  // ── W4/W7: portal proximity + open/close game ───────────────────────────────
   const handleNearPortalChange = useCallback((key: string | null) => setNearPortal(key), [])
   const openNearPortal = useCallback(() => {
-    if (!activeGameRef.current && nearPortalRef.current) {
-      setActiveGame(nearPortalRef.current)
+    if (activeGameRef.current || !nearPortalRef.current) return
+    const key = nearPortalRef.current
+    const introLines = PORTAL_INTROS[key]
+    if (introLines && !hasSeenPortalIntro(key)) {
+      // W7: show the NPC intro first (movement pauses; game opens after it ends)
+      setPortalIntroKey(key)
+      setNearPortal(null)
+      announced.current = 'An errand begins. Press Enter or Space to continue.'
+    } else {
+      // Skip directly to the game (intro already seen or no intro defined)
+      setActiveGame(key)
       setNearPortal(null) // hide prompt; world unmounts while playing
       announced.current = 'Opening errand. Press Escape to return to the city.'
     }
@@ -873,12 +911,18 @@ export default function EnglishMetroWorld({
   }, [phase])
 
   // ── Keyboard ───────────────────────────────────────────────────────────────
-  // Precedence: intro dialogue → game → portal/world.
-  //   • Intro playing: Enter/Space advances a line; Escape skips the intro.
+  // Precedence: portal-intro → cold-open → game → portal/world.
+  //   • Portal-intro playing: Enter/Space advances; Escape skips → opens game.
+  //   • Cold-open playing: Enter/Space advances; Escape skips the intro.
   //   • Game open: Escape returns to the city.
   //   • Else near a portal: Enter/Space opens that errand; Escape exits world.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (portalIntroKeyRef.current) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advanceRef.current() }
+        else if (e.key === 'Escape') { e.preventDefault(); endPortalIntro() }
+        return
+      }
       if (showIntroRef.current) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advanceRef.current() }
         else if (e.key === 'Escape') { e.preventDefault(); endIntro() }
@@ -896,7 +940,7 @@ export default function EnglishMetroWorld({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [handleExit, closeGame, openNearPortal, endIntro])
+  }, [handleExit, closeGame, openNearPortal, endIntro, endPortalIntro])
 
   // ── Animation flags ────────────────────────────────────────────────────────
   const motesActive = !reducedMotion
@@ -1243,6 +1287,19 @@ export default function EnglishMetroWorld({
               total={intro.total}
               onAdvance={intro.advance}
               onSkip={endIntro}
+            />
+          )}
+
+          {/* W7: per-portal NPC intro (Flora / Mr. Chen / Bajla) — once per errand */}
+          {portalIntroKey && portalIntro.line && (
+            <DialogueBox
+              speaker={portalIntro.line.speaker}
+              text={portalIntro.shownText}
+              isTyping={portalIntro.isTyping}
+              index={portalIntro.index}
+              total={portalIntro.total}
+              onAdvance={portalIntro.advance}
+              onSkip={endPortalIntro}
             />
           )}
         </>
