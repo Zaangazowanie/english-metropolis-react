@@ -71,6 +71,36 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     district: 'Camden Market',
     load: () => import('../WhackAMole3D'),
   },
+  {
+    shellKey: 'matching',
+    title: "Flora's Bouquets",
+    district: 'Saffron Market',
+    load: () => import('../Matching3D'),
+  },
+  {
+    shellKey: 'anagram',
+    title: "Mr. Chen's Chalkboard",
+    district: 'Saffron Market',
+    load: () => import('../Anagram3D'),
+  },
+  {
+    shellKey: 'labelleddiagram',
+    title: 'Light the First Lamp',
+    district: 'Lanterngate',
+    load: () => import('../LabelledDiagram3D'),
+  },
+  {
+    shellKey: 'gapfill',
+    title: "Posta's Smudged Postcard",
+    district: 'Postcard Pier',
+    load: () => import('../GapFill3D'),
+  },
+  {
+    shellKey: 'spellingbee',
+    title: "Mr. Frank's Address Board",
+    district: 'The Sorting Office',
+    load: () => import('../SpellingBee3D'),
+  },
   // ── English Metro WorldKit (Addendum A, approved 2026-06-20) ─────────────
   // The explorable dusk-London hub. "shellKey" intentionally uses the world
   // prefix so GameHome renders it as an "Enter the City" hero entry above
