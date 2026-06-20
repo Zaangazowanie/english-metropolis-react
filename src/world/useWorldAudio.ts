@@ -39,6 +39,8 @@ export interface WorldAudioApi {
   portalTone: () => void
   /** Soft low thud — a single footstep (call on stride beats while walking). */
   footstep: () => void
+  /** Rising three-note arpeggio — the "lamp relights" moment. */
+  relight: () => void
 }
 
 export function useWorldAudio(): WorldAudioApi {
@@ -162,6 +164,24 @@ export function useWorldAudio(): WorldAudioApi {
     o.start(t); o.stop(t + 0.14)
   }, [ensureCtx])
 
+  const relight = useCallback(() => {
+    const ctx = ensureCtx()
+    if (!ctx || mutedRef.current) return
+    // Three rising notes played in quick succession: E4 → G#4 → B4
+    // (a warm major-triad arpeggio — the lamp "lighting up").
+    const notes = [330, 415, 494]
+    notes.forEach((freq, i) => {
+      const t0 = ctx.currentTime + i * 0.12
+      const o = ctx.createOscillator()
+      o.type = 'sine'; o.frequency.value = freq
+      const g = ctx.createGain()
+      g.gain.value = 0.0001
+      g.gain.exponentialRampToValueAtTime(0.07, t0 + 0.018)
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.45)
+      o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + 0.5)
+    })
+  }, [ensureCtx])
+
   const toggleMute = useCallback(() => {
     setMuted((m) => {
       const next = !m
@@ -183,5 +203,5 @@ export function useWorldAudio(): WorldAudioApi {
     }
   }, [])
 
-  return { muted, toggleMute, startAmbient, stopAmbient, chime, portalTone, footstep }
+  return { muted, toggleMute, startAmbient, stopAmbient, chime, portalTone, footstep, relight }
 }
