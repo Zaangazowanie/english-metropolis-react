@@ -89,6 +89,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     district: 'Lanterngate',
     load: () => import('../LabelledDiagram3D'),
   },
+  {
+    shellKey: 'gapfill',
+    title: "Posta's Smudged Postcard",
+    district: 'Postcard Pier',
+    load: () => import('../GapFill3D'),
+  },
 ]
 
 /** Look up a registered 3D game by its 2D shell route key. */
