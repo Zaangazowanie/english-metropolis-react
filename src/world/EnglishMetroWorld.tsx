@@ -53,6 +53,7 @@ import { WorldPortal } from './WorldPortal'
 import type { PortalDef } from './WorldPortal'
 import { useWorldInput, readKeys } from './useWorldInput'
 import type { JoyVec } from './useWorldInput'
+import { useLampProgress } from './useLampProgress'
 
 // ─── Scratch (no per-frame allocations) ────────────────────────────────────
 const _obj  = new Object3D()
@@ -89,15 +90,38 @@ function lerpAngle(a: number, b: number, t: number): number {
 }
 
 // ─── W4: district portals ─────────────────────────────────────────────────────
-// Each portal links a world location to a registered game shell. Wren is
-// clamped to PLAY_RADIUS (7.4); a portal at the +Z lamp (radius 8.5) is reached
-// when Wren is within PORTAL_RANGE. W4 ships the first portal — Lanterngate's
-// "Light the First Lamp" → the labelleddiagram shell (canon Beat 2). W5 adds
-// the Saffron Market portals.
+// W4 + W5: district portals — one per errand. Evenly spaced 120° apart on
+// the lamp ring so Wren can reach any by walking a comfortable arc.
+// Lanterngate lamp (Beat 2): +Z. Saffron Market lamps (Beats 4a+4b): SE, SW.
+//
+// Positions on a unit circle × LAMP_RING_RADIUS at 0°, 120°, 240°:
+//   0°:   [0,   0, +R]  ← labelleddiagram "Light the First Lamp"
+//   120°: [+R*sin(2π/3), 0, R*cos(2π/3)] = [+R*0.866, 0, -R*0.5] ← matching
+//   240°: [+R*sin(4π/3), 0, R*cos(4π/3)] = [-R*0.866, 0, -R*0.5] ← anagram
+const _R = LAMP_RING_RADIUS
 const PORTAL_RANGE = 2.7  // proximity (world units) that opens the play prompt
 const PORTALS: PortalDef[] = [
-  { shellKey: 'labelleddiagram', title: 'Light the First Lamp', position: [0, 0, LAMP_RING_RADIUS] },
+  // Lanterngate — Beat 2: "Light the First Lamp"
+  {
+    shellKey: 'labelleddiagram',
+    title: 'Light the First Lamp',
+    position: [0, 0, _R],
+  },
+  // Saffron Market — Beat 4a: "Flora's Bouquet Gift-Tags"
+  {
+    shellKey: 'matching',
+    title: "Flora's Bouquets",
+    position: [_R * 0.866, 0, -_R * 0.5],
+  },
+  // Saffron Market — Beat 4b: "The Wind-Scattered Café Chalkboard"
+  {
+    shellKey: 'anagram',
+    title: "Mr. Chen's Chalkboard",
+    position: [-_R * 0.866, 0, -_R * 0.5],
+  },
 ]
+/** Total portals — used for the "X / N lamps lit" counter. */
+const TOTAL_LAMPS = PORTALS.length
 
 // ─── Fog ──────────────────────────────────────────────────────────────────────
 function SceneFog() {
@@ -545,12 +569,13 @@ interface SceneProps {
   reducedMotion: boolean
   bajlaVariant: BajlaVariant
   nearPortal: string | null
+  completed: Set<string>    // W5: which portals are lit
   keysRef: React.MutableRefObject<Set<string>>
   joyRef: React.MutableRefObject<JoyVec | null>
   onNearPortalChange: (shellKey: string | null) => void
 }
 function WorldScene({
-  phase, motesActive, reducedMotion, bajlaVariant, nearPortal,
+  phase, motesActive, reducedMotion, bajlaVariant, nearPortal, completed,
   keysRef, joyRef, onNearPortalChange,
 }: SceneProps) {
   const ambient = phase === 'ambient'
@@ -575,12 +600,13 @@ function WorldScene({
             reducedMotion={reducedMotion}
             onNearPortalChange={onNearPortalChange}
           />
-          {/* W4: district portals (walk up → play) */}
+          {/* W4/W5: district portals (walk up → play; lit = completed) */}
           {PORTALS.map((p) => (
             <WorldPortal
               key={p.shellKey}
               position={p.position}
               active={nearPortal === p.shellKey}
+              lit={completed.has(p.shellKey)}
               reducedMotion={reducedMotion}
             />
           ))}
@@ -635,7 +661,9 @@ function GameMount({
 }: {
   shellKey: string
   onBack: () => void
-  onComplete: () => void
+  /** Called when the shell's onSessionComplete fires; receives the shellKey so
+   *  the parent can mark the lamp complete. */
+  onComplete: (key: string) => void
 }) {
   const entry = useMemo(() => findGame3D(shellKey), [shellKey])
   const Lazy = useMemo(() => (entry ? lazy(entry.load) : null), [entry])
@@ -658,7 +686,7 @@ function GameMount({
           </div>
         }>
           {Lazy
-            ? <Lazy onSessionComplete={onComplete} fullscreen={false} />
+            ? <Lazy onSessionComplete={() => onComplete(shellKey)} fullscreen={false} />
             : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
                 justifyContent: 'center', color: 'rgba(245,240,250,0.7)', fontFamily: FONT_DISPLAY }}>
                 This errand hasn&apos;t arrived yet.
@@ -748,13 +776,16 @@ export default function EnglishMetroWorld({
   // when mounting outside PlayOverlay (e.g. a dedicated /world route in W4+).
   fullscreen = false,
 }: Game3DProps) {
-  const [phase, setPhase]           = useState<WorldPhase>('title')
+  const [phase, setPhase]               = useState<WorldPhase>('title')
   const [bajlaVariant, setBajlaVariant] = useState<BajlaVariant>('idle')
   const [showArrival, setShowArrival]   = useState(false)  // W3 district overlay
   const [nearPortal, setNearPortal]     = useState<string | null>(null)  // W4
   const [activeGame, setActiveGame]     = useState<string | null>(null)  // W4
-  const startMs                     = useRef(Date.now())
-  const announced                   = useRef('')
+  const [sliceComplete, setSliceComplete] = useState(false) // W5 beat 5
+  const startMs                         = useRef(Date.now())
+  const announced                       = useRef('')
+  // W5: persistent lamp progress (localStorage, frontend-only)
+  const { completed, markComplete } = useLampProgress()
 
   // Refs mirror state so the keyboard handler stays subscribed once.
   const nearPortalRef = useRef<string | null>(null)
@@ -779,12 +810,21 @@ export default function EnglishMetroWorld({
     setNearPortal(null) // WrenRig re-detects on remount (Wren spawns away)
     announced.current = 'Back in the city.'
   }, [])
-  const handleGameComplete = useCallback(() => {
-    // No-fail: the shell ended its round. Return to the world (lamp "remembers").
+  const handleGameComplete = useCallback((key: string | null) => {
+    // No-fail: the shell ended its round. Relight the lamp + return to the world.
+    if (key) markComplete(key)
     setActiveGame(null)
     setNearPortal(null)
     announced.current = '+1 light — the lamp remembers. Back in the city.'
-  }, [])
+  }, [markComplete])
+
+  // W5: trigger the vertical-slice completion beat when all portals are lit.
+  // Uses a useEffect so it reads the freshly-updated `completed` after state settles.
+  useEffect(() => {
+    if (!sliceComplete && PORTALS.every((p) => completed.has(p.shellKey))) {
+      setSliceComplete(true)
+    }
+  }, [completed, sliceComplete])
 
   // ── Exit handler ──────────────────────────────────────────────────────────
   const handleExit = useCallback(() => {
@@ -1007,6 +1047,19 @@ export default function EnglishMetroWorld({
                 </button>
               )}
 
+              {/* W5: Lamp counter (top-left) */}
+              <div style={{
+                position: 'absolute', top: 22, left: 24,
+                display: 'flex', alignItems: 'center', gap: 7,
+                fontFamily: FONT_DISPLAY, fontSize: 13,
+                color: completed.size > 0 ? palette.lanternAmber : 'rgba(245,240,250,0.5)',
+                letterSpacing: '0.06em',
+                textShadow: completed.size > 0 ? `0 0 12px ${palette.lanternAmber}88` : 'none',
+                transition: 'color 0.6s ease, text-shadow 0.6s ease',
+              }}>
+                🕯 {completed.size} / {TOTAL_LAMPS}
+              </div>
+
               {/* Controls hint (top-right) */}
               <div style={{
                 position: 'absolute', top: 22, right: 24,
@@ -1080,6 +1133,80 @@ export default function EnglishMetroWorld({
               </div>
             </div>
           )}
+
+          {/* W5: vertical-slice completion beat (canon Beat 5: "Good errand.") */}
+          {sliceComplete && (
+            <div
+              aria-live="polite"
+              role="status"
+              style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                background: 'radial-gradient(ellipse 80% 60% at 50% 60%, rgba(10,4,24,0.82) 0%, rgba(10,4,24,0.55) 100%)',
+                pointerEvents: 'auto',
+                gap: 16, padding: 24,
+                animation: 'em-beat5-in 0.9s ease forwards',
+              }}
+            >
+              <style>{`
+                @keyframes em-beat5-in {
+                  from { opacity: 0; }
+                  to   { opacity: 1; }
+                }
+              `}</style>
+              {/* Bajla quote chip — canon verbatim */}
+              <div style={{
+                background: 'rgba(10,4,24,0.82)',
+                backdropFilter: 'blur(12px)',
+                border: `1px solid ${palette.bajlaPurple}55`,
+                borderRadius: 16, padding: '18px 28px',
+                maxWidth: 420, textAlign: 'center',
+              }}>
+                <div style={{
+                  fontFamily: FONT_DISPLAY, fontWeight: 400,
+                  fontSize: 'clamp(16px, 2.4vw, 22px)',
+                  color: 'rgba(245,240,250,0.9)',
+                  lineHeight: 1.55, marginBottom: 12,
+                }}>
+                  &ldquo;Good errand.&rdquo;
+                </div>
+                <div style={{
+                  fontFamily: FONT_DISPLAY, fontSize: 13,
+                  color: `${palette.bajlaPurple}cc`,
+                  letterSpacing: '0.08em',
+                }}>
+                  — Bajla
+                </div>
+              </div>
+              {/* Lamp count badge */}
+              <div style={{
+                fontFamily: FONT_DISPLAY, fontWeight: 700,
+                fontSize: 'clamp(13px, 2vw, 18px)',
+                color: palette.lanternAmber,
+                textShadow: `0 0 18px ${palette.lanternAmber}88`,
+                letterSpacing: '0.12em',
+              }}>
+                🕯 3 lamps lit · the city breathes
+              </div>
+              {/* Continue button */}
+              <button
+                type="button"
+                onClick={() => setSliceComplete(false)}
+                style={{
+                  fontFamily: FONT_DISPLAY, fontWeight: 700,
+                  fontSize: 14, color: palette.night,
+                  background: palette.lanternAmber,
+                  border: 'none', borderRadius: 9999,
+                  padding: '11px 28px', cursor: 'pointer',
+                  letterSpacing: '0.04em', marginTop: 6,
+                  boxShadow: `0 0 24px ${palette.lanternAmber}66`,
+                }}
+              >
+                Continue →
+              </button>
+            </div>
+          )}
         </>
       }
     >
@@ -1089,6 +1216,7 @@ export default function EnglishMetroWorld({
         reducedMotion={reducedMotion}
         bajlaVariant={bajlaVariant}
         nearPortal={nearPortal}
+        completed={completed}
         keysRef={keysRef}
         joyRef={joyRef}
         onNearPortalChange={handleNearPortalChange}
