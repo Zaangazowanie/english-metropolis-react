@@ -94,10 +94,27 @@ const STAR_FRAG = /* glsl */ `
   }
 `
 
+// — Birds ──────────────────────────────────────────────────────────────────────
+// A small flock of dusk birds drifting high over the city in a loose V — distant
+// dark silhouettes whose formation + slow orbit read as "birds heading home".
+const BIRD_COUNT = 7
+const BIRD_COLOR = '#2A2622'
+const FLOCK_RADIUS = 26
+const FLOCK_Y = 14
+const FLOCK_SPEED = 0.03 // radians / second (slow)
+// V-formation offsets (local; +z trails behind the lead bird).
+const VEE: Array<[number, number, number]> = [
+  [0, 0, 0], [-0.5, 0.04, 0.45], [0.5, 0.04, 0.45],
+  [-1.0, 0.08, 0.9], [1.0, 0.08, 0.9], [-1.5, 0.12, 1.35], [1.5, 0.12, 1.35],
+]
+
 export function DuskClouds({ reducedMotion = false }: { reducedMotion?: boolean }) {
   const groupRef = useRef<Group>(null!)
   const meshRef = useRef<InstancedMesh>(null!)
   const starMatRef = useRef<ShaderMaterial>(null!)
+  const flockRef = useRef<Group>(null!)
+  const birdRef = useRef<InstancedMesh>(null!)
+  const flockA = useRef(0)
 
   const stars = useMemo(buildStars, [])
   const starUniforms = useMemo(
@@ -119,12 +136,27 @@ export function DuskClouds({ reducedMotion = false }: { reducedMotion?: boolean 
     })
     meshRef.current.instanceMatrix.needsUpdate = true
     if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true
+    // Place birds in their V formation (local to the flock group).
+    if (birdRef.current) {
+      VEE.forEach((v, i) => {
+        _o.position.set(v[0], v[1], v[2]); _o.rotation.set(0, 0, 0); _o.scale.set(1, 1, 1)
+        _o.updateMatrix(); birdRef.current.setMatrixAt(i, _o.matrix)
+      })
+      birdRef.current.instanceMatrix.needsUpdate = true
+    }
   }, [])
 
   useFrame((_, delta) => {
     if (reducedMotion) return
     if (groupRef.current) groupRef.current.rotation.y += delta * DRIFT_SPEED
     if (starMatRef.current) starMatRef.current.uniforms.uTime.value += delta
+    // Drift the flock on a slow high orbit, facing its direction of travel.
+    if (flockRef.current) {
+      flockA.current += delta * FLOCK_SPEED
+      const a = flockA.current
+      flockRef.current.position.set(Math.cos(a) * FLOCK_RADIUS, FLOCK_Y, Math.sin(a) * FLOCK_RADIUS)
+      flockRef.current.rotation.y = -a + Math.PI / 2
+    }
   })
 
   return (
@@ -152,6 +184,14 @@ export function DuskClouds({ reducedMotion = false }: { reducedMotion?: boolean 
         <instancedMesh ref={meshRef} args={[undefined, undefined, CLOUD_COUNT]} frustumCulled={false}>
           <sphereGeometry args={[1, 10, 8]} />
           <meshBasicMaterial transparent opacity={0.16} depthWrite={false} />
+        </instancedMesh>
+      </group>
+
+      {/* Distant dusk birds drifting in a loose V (1 instanced draw call). */}
+      <group ref={flockRef}>
+        <instancedMesh ref={birdRef} args={[undefined, undefined, BIRD_COUNT]} frustumCulled={false}>
+          <boxGeometry args={[0.3, 0.03, 0.1]} />
+          <meshBasicMaterial color={BIRD_COLOR} />
         </instancedMesh>
       </group>
     </>
