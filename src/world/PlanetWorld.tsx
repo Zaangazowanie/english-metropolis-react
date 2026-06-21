@@ -34,6 +34,7 @@ import type { Game3DProps, SessionResult } from '../practice/shells3d/types'
 import { CityStage } from '../practice/shells3d/kit/CityStage'
 import { palette } from '../practice/shells3d/kit/palette'
 import { Wren } from './Wren'
+import { InkOutline } from './InkOutline'
 import { useWorldInput, readKeys } from './useWorldInput'
 import type { JoyVec } from './useWorldInput'
 
@@ -411,6 +412,7 @@ export default function PlanetWorld({
     >
       <Planet />
       <PlayerRig keysRef={keysRef} joyRef={joyRef} reducedMotion={reducedMotion} />
+      <InkOutline />
     </CityStage>
   )
 }

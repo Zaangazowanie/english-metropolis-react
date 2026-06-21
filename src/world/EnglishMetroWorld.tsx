@@ -49,6 +49,7 @@ import { BajlaCompanion } from './BajlaCompanion'
 import type { BajlaVariant } from '../practice/shells3d/kit/Bajla'
 import { findGame3D } from '../practice/shells3d/kit/registry'
 import { Wren } from './Wren'
+import { InkOutline } from './InkOutline'
 import { WorldPortals } from './WorldPortals'
 import type { PortalDef } from './WorldPortal'
 import { useWorldInput, readKeys } from './useWorldInput'
@@ -1589,6 +1590,7 @@ export default function EnglishMetroWorld({
         onNearBenchChange={handleNearBenchChange}
         onFootstep={audio.footstep}
       />
+      <InkOutline />
     </CityStage>
   )
 }
