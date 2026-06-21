@@ -109,11 +109,11 @@ class StageErrorBoundary extends Component<BoundaryProps, BoundaryState> {
 function StageLights({ settings }: { settings: QualitySettings }) {
   return (
     <>
-      <hemisphereLight args={[palette.duskTop, palette.night, 0.5]} />
-      <ambientLight intensity={0.35} color={palette.skyGlow} />
+      <hemisphereLight args={[palette.duskTop, palette.night, 0.8]} />
+      <ambientLight intensity={0.5} color={palette.skyGlow} />
       <directionalLight
         position={[4, 6, 3]}
-        intensity={1}
+        intensity={1.15}
         color={palette.lanternCore}
         castShadow={settings.shadows}
         shadow-mapSize-width={1024}

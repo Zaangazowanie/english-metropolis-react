@@ -10,11 +10,14 @@
 // (e.g. `new THREE.Color(palette.duskTop)`).
 
 export const palette = {
-  // ── Dusk sky (top → horizon) ───────────────────────────────────────
-  duskTop: '#1a2348', // deep dusk blue (zenith)
-  duskMid: '#2d3a6b', // mid dusk blue
-  duskHorizon: '#6f3580', // violet horizon band
-  skyGlow: '#c57195', // warm pink horizon glow
+  // ── Dusk sky (top → horizon) — EARLY dusk, Ghibli-luminous ──────────
+  // Light still in the sky: a clear evening blue settling into a warm apricot
+  // horizon (not deep night). Tuned a touch saturated to match the painted
+  // English Metro concept sheets.
+  duskTop: '#35588f', // luminous early-dusk blue (zenith)
+  duskMid: '#7d93b4', // soft periwinkle haze
+  duskHorizon: '#e7a576', // warm apricot horizon band
+  skyGlow: '#f8dda6', // pale gold horizon glow
 
   // ── Warm light ─────────────────────────────────────────────────────
   lanternAmber: '#ffb347', // paper-lantern amber (key warm light)
