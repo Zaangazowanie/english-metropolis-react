@@ -124,6 +124,10 @@ export function PlanetNpcs() {
       <Npc url="/world/npc_flora.glb" dir={[0.52, 0.40, 0.76]} yaw={-0.5} />
       <Npc url="/world/npc_frank.glb" dir={[-0.42, 0.46, 0.78]} yaw={0.6} />
       <Npc url="/world/npc_marg.glb" dir={[0.10, 0.62, 0.78]} yaw={0.1} />
+      <Npc url="/world/npc_chen.glb" dir={[0.80, 0.30, 0.20]} yaw={-1.1} />
+      <Npc url="/world/npc_posta.glb" dir={[-0.55, 0.48, -0.45]} yaw={2.2} />
+      <Npc url="/world/npc_pell.glb" dir={[0.22, -0.30, 0.78]} yaw={0.3} />
+      <Npc url="/world/npc_penny.glb" dir={[-0.70, -0.10, 0.42]} yaw={1.4} />
     </group>
   )
 }
