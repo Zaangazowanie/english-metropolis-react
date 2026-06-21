@@ -70,6 +70,7 @@ import { FloraStall } from './FloraStall'
 import { ChenCafe } from './ChenCafe'
 import { SortingOffice } from './SortingOffice'
 import { PostcardPier } from './PostcardPier'
+import { Deliveries } from './Deliveries'
 import { NamedResidents } from './NamedResidents'
 import { GrassTufts } from './GrassTufts'
 import { CobbleRing } from './CobbleRing'
@@ -696,6 +697,8 @@ function WorldScene({
       <ChenCafe position={[3.0, 0, -7.0]} rotation={[0, -0.405, 0]} />
       {/* The Sorting Office — Mr. Frank's postal building */}
       <SortingOffice position={[-6.0, 0, -4.5]} rotation={[0, 0.93, 0]} />
+      {/* Outgoing post — the six parcels Wren delivers, piled by the office */}
+      <Deliveries position={[-4.5, 0, -3.1]} rotation={[0, 0.6, 0]} />
       {/* Postcard Pier — Posta's dock at the waterfront */}
       <PostcardPier position={[2.5, 0, 7.0]} rotation={[0, -2.80, 0]} />
       {/* Named canon NPCs standing at their district landmarks */}
