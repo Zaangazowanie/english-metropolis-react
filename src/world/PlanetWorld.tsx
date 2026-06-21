@@ -43,6 +43,7 @@ const _o = new Object3D()
 const _q = new Quaternion()
 const _dir = new Vector3()
 const _c = new Color()
+const _woff = new Vector3() // window wall-offset (mount-time only)
 const UP = new Vector3(0, 1, 0)
 const GOLDEN = Math.PI * (3 - Math.sqrt(5))
 // rig-only scratch (used in useFrame; never concurrent with the mount-effect set)
@@ -75,6 +76,8 @@ const ROOFS = ['#B5572E', '#A24B27', '#9C5333', '#8E4828', '#C2632F'] // clay-ti
 const CANOPY = ['#2E4A3A', '#3E5E3A', '#46583C', '#54603A', '#5E6E3A']
 const TRUNK = '#3A2C22'
 const POST = '#23303a'
+const WIN_LIT = ['#fff1b8', '#ffce86', '#ffb347'] // warm lit windows (cozy dusk glow)
+const WIN_OFF = '#15282E' // dark / unlit pane
 
 // ── Deterministic hash (GLSL-style; stable across reloads) ───────────────────
 const fract = (x: number) => x - Math.floor(x)
@@ -140,6 +143,7 @@ function placeOnSurface(b: Building | Tree | Lamp, dist: number, sx: number, sy:
 function Planet() {
   const buildings = useRef<InstancedMesh>(null!)
   const roofs = useRef<InstancedMesh>(null!)
+  const windows = useRef<InstancedMesh>(null!)
   const trunks = useRef<InstancedMesh>(null!)
   const canopyLo = useRef<InstancedMesh>(null!)
   const canopyHi = useRef<InstancedMesh>(null!)
@@ -159,8 +163,21 @@ function Planet() {
       roofs.current.setMatrixAt(i, _o.matrix)
       _c.set(ROOFS[b.roof])
       roofs.current.setColorAt(i, _c)
+      // one warm window on the +Z wall — the cozy lit-house glow (mostly lit)
+      _dir.set(b.x, b.y, b.z).normalize()
+      _q.setFromUnitVectors(UP, _dir)
+      _woff.set(0, 0, b.d / 2 + 0.02).applyQuaternion(_q)
+      _o.position.copy(_dir).multiplyScalar(R + b.h * 0.55).add(_woff)
+      _o.quaternion.copy(_q)
+      _o.scale.set(b.w * 0.42, b.h * 0.34, 1)
+      _o.updateMatrix()
+      windows.current.setMatrixAt(i, _o.matrix)
+      _c.set(i % 10 < 7 ? WIN_LIT[i % WIN_LIT.length] : WIN_OFF)
+      windows.current.setColorAt(i, _c)
     }
     buildings.current.instanceMatrix.needsUpdate = true
+    windows.current.instanceMatrix.needsUpdate = true
+    if (windows.current.instanceColor) windows.current.instanceColor.needsUpdate = true
     if (buildings.current.instanceColor) buildings.current.instanceColor.needsUpdate = true
     roofs.current.instanceMatrix.needsUpdate = true
     if (roofs.current.instanceColor) roofs.current.instanceColor.needsUpdate = true
@@ -213,6 +230,11 @@ function Planet() {
       <instancedMesh ref={roofs} args={[undefined, undefined, N_B]} frustumCulled={false}>
         <coneGeometry args={[0.707, 1, 4, 1, false, Math.PI / 4]} />
         <meshToonMaterial />
+      </instancedMesh>
+      {/* warm lit windows — one per house, glow on their own (unlit material) */}
+      <instancedMesh ref={windows} args={[undefined, undefined, N_B]} frustumCulled={false}>
+        <planeGeometry args={[1, 1]} />
+        <meshBasicMaterial />
       </instancedMesh>
       <instancedMesh ref={trunks} args={[undefined, undefined, N_T]} frustumCulled={false}>
         <boxGeometry args={[1, 1, 1]} />
