@@ -67,6 +67,7 @@ import { LampRelight } from './LampRelight'
 import { NpcResidents } from './NpcResidents'
 import { FloraStall } from './FloraStall'
 import { ChenCafe } from './ChenCafe'
+import { SortingOffice } from './SortingOffice'
 import { GrassTufts } from './GrassTufts'
 import { useWorldAudio } from './useWorldAudio'
 import {
@@ -668,6 +669,8 @@ function WorldScene({
       {/* Saffron Market landmarks — Flora's flower stall + Mr. Chen's café */}
       <FloraStall position={[-6.5, 0, 4.5]} rotation={[0, 2.18, 0]} reducedMotion={reducedMotion} />
       <ChenCafe position={[3.0, 0, -7.0]} rotation={[0, -0.405, 0]} />
+      {/* The Sorting Office — Mr. Frank's postal building */}
+      <SortingOffice position={[-6.0, 0, -4.5]} rotation={[0, 0.93, 0]} />
       {/* Tufts of dusk grass softening the plaza border */}
       <GrassTufts />
       {/* Title: gentle establishing drift. Ambient: Wren + follow-cam. */}
