@@ -78,6 +78,10 @@ const TRUNK = '#3A2C22'
 const POST = '#23303a'
 const WIN_LIT = ['#fff1b8', '#ffce86', '#ffb347'] // warm lit windows (cozy dusk glow)
 const WIN_OFF = '#15282E' // dark / unlit pane
+// 2050 English Metro — sleek glass skyscrapers + flashy neon, mixed in among the
+// rustic houses (modern-meets-cozy, dusk-lit).
+const GLASS = ['#33586F', '#2C6B86', '#3E5C72', '#37788C', '#445A6E'] // dusk-blue tower glass
+const NEON = ['#22D3EE', '#FF5FA2', '#E8920A', '#7CF2C8', '#C58CFF'] // cyan/pink/amber/mint/violet
 
 // ── Deterministic hash (GLSL-style; stable across reloads) ───────────────────
 const fract = (x: number) => x - Math.floor(x)
@@ -94,8 +98,11 @@ interface Building {
 }
 interface Tree { x: number; y: number; z: number; trunkH: number; rl: number; ru: number; green: number }
 interface Lamp { x: number; y: number; z: number }
+// A futuristic glass tower: tall, slim, with a neon top + a neon light strip.
+interface Tower { x: number; y: number; z: number; w: number; d: number; h: number; glass: number; neon: number }
 
 const BUILDINGS: Building[] = []
+const TOWERS: Tower[] = []
 const TREES: Tree[] = []
 const LAMPS: Lamp[] = []
 
@@ -108,14 +115,25 @@ for (let i = 0; i < SURFACE_N; i++) {
   const dz = Math.sin(theta) * rad
   const f = fract(i * 0.61803398875)
   if (f < 0.46) {
-    BUILDINGS.push({
-      x: dx, y: dy, z: dz,
-      w: 0.26 + hash(i, 2) * 0.16,   // chunky footprint (was a thin 0.2 column)
-      d: 0.24 + hash(i, 5) * 0.14,
-      h: 0.34 + hash(i, 1) * 0.5,    // shorter — houses, not towers
-      roofH: 0.12 + hash(i, 6) * 0.16,
-      tan: i % FACADES.length, roof: i % ROOFS.length, amber: i % 4 === 0,
-    })
+    // ~40% of built points rise into 2050 skyscrapers; the rest stay rustic houses.
+    if (hash(i, 7) > 0.6) {
+      TOWERS.push({
+        x: dx, y: dy, z: dz,
+        w: 0.16 + hash(i, 8) * 0.12,
+        d: 0.16 + hash(i, 9) * 0.12,
+        h: 1.1 + hash(i, 1) * 1.8,   // tall — 1.1 to 2.9 (vs houses ~0.34-0.84)
+        glass: i % GLASS.length, neon: i % NEON.length,
+      })
+    } else {
+      BUILDINGS.push({
+        x: dx, y: dy, z: dz,
+        w: 0.26 + hash(i, 2) * 0.16,
+        d: 0.24 + hash(i, 5) * 0.14,
+        h: 0.34 + hash(i, 1) * 0.5,
+        roofH: 0.12 + hash(i, 6) * 0.16,
+        tan: i % FACADES.length, roof: i % ROOFS.length, amber: i % 4 === 0,
+      })
+    }
   } else if (f < 0.72) {
     const rl = 0.16 + hash(i, 3) * 0.06
     TREES.push({ x: dx, y: dy, z: dz, trunkH: 0.2 + hash(i, 4) * 0.1, rl, ru: rl * 0.72, green: i % CANOPY.length })
@@ -125,12 +143,13 @@ for (let i = 0; i < SURFACE_N; i++) {
 }
 
 const N_B = BUILDINGS.length
+const N_TW = TOWERS.length
 const N_T = TREES.length
 const N_L = LAMPS.length
 
 // Orient an instance so local +Y follows the surface normal, then sit it at
 // `dist` from the centre with `(sx,sy,sz)` scale → matrix in module scratch _o.
-function placeOnSurface(b: Building | Tree | Lamp, dist: number, sx: number, sy: number, sz: number): void {
+function placeOnSurface(b: { x: number; y: number; z: number }, dist: number, sx: number, sy: number, sz: number): void {
   _dir.set(b.x, b.y, b.z).normalize()
   _o.position.copy(_dir).multiplyScalar(dist)
   _q.setFromUnitVectors(UP, _dir)
@@ -144,6 +163,9 @@ function Planet() {
   const buildings = useRef<InstancedMesh>(null!)
   const roofs = useRef<InstancedMesh>(null!)
   const windows = useRef<InstancedMesh>(null!)
+  const towers = useRef<InstancedMesh>(null!)
+  const towerTops = useRef<InstancedMesh>(null!)
+  const towerStrips = useRef<InstancedMesh>(null!)
   const trunks = useRef<InstancedMesh>(null!)
   const canopyLo = useRef<InstancedMesh>(null!)
   const canopyHi = useRef<InstancedMesh>(null!)
@@ -181,6 +203,32 @@ function Planet() {
     if (buildings.current.instanceColor) buildings.current.instanceColor.needsUpdate = true
     roofs.current.instanceMatrix.needsUpdate = true
     if (roofs.current.instanceColor) roofs.current.instanceColor.needsUpdate = true
+
+    // ── 2050 skyscrapers: glass body + neon roof cap + a neon light strip ──
+    for (let i = 0; i < N_TW; i++) {
+      const s = TOWERS[i]
+      placeOnSurface(s, R + s.h / 2, s.w, s.h, s.d)
+      towers.current.setMatrixAt(i, _o.matrix)
+      _c.set(GLASS[s.glass]); towers.current.setColorAt(i, _c)
+      // neon cap on the roof
+      placeOnSurface(s, R + s.h + 0.06, s.w * 0.92, 0.12, s.d * 0.92)
+      towerTops.current.setMatrixAt(i, _o.matrix)
+      _c.set(NEON[s.neon]); towerTops.current.setColorAt(i, _c)
+      // vertical neon light strip on the +Z face
+      _dir.set(s.x, s.y, s.z).normalize()
+      _q.setFromUnitVectors(UP, _dir)
+      _woff.set(0, 0, s.d / 2 + 0.015).applyQuaternion(_q)
+      _o.position.copy(_dir).multiplyScalar(R + s.h * 0.5).add(_woff)
+      _o.quaternion.copy(_q)
+      _o.scale.set(s.w * 0.12, s.h * 0.82, 1)
+      _o.updateMatrix()
+      towerStrips.current.setMatrixAt(i, _o.matrix)
+      _c.set(NEON[s.neon]); towerStrips.current.setColorAt(i, _c)
+    }
+    for (const r of [towers, towerTops, towerStrips]) {
+      r.current.instanceMatrix.needsUpdate = true
+      if (r.current.instanceColor) r.current.instanceColor.needsUpdate = true
+    }
 
     for (let i = 0; i < N_T; i++) {
       const t = TREES[i]
@@ -233,6 +281,21 @@ function Planet() {
       </instancedMesh>
       {/* warm lit windows — one per house, glow on their own (unlit material) */}
       <instancedMesh ref={windows} args={[undefined, undefined, N_B]} frustumCulled={false}>
+        <planeGeometry args={[1, 1]} />
+        <meshBasicMaterial />
+      </instancedMesh>
+      {/* 2050 skyscrapers — sleek dusk-glass towers */}
+      <instancedMesh ref={towers} args={[undefined, undefined, N_TW]} frustumCulled={false}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshToonMaterial />
+      </instancedMesh>
+      {/* neon roof caps (glow) */}
+      <instancedMesh ref={towerTops} args={[undefined, undefined, N_TW]} frustumCulled={false}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshBasicMaterial />
+      </instancedMesh>
+      {/* neon vertical light strips (glow) */}
+      <instancedMesh ref={towerStrips} args={[undefined, undefined, N_TW]} frustumCulled={false}>
         <planeGeometry args={[1, 1]} />
         <meshBasicMaterial />
       </instancedMesh>
