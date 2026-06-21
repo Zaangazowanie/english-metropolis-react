@@ -66,6 +66,7 @@ import { FestoonLights } from './FestoonLights'
 import { LampRelight } from './LampRelight'
 import { NpcResidents } from './NpcResidents'
 import { FloraStall } from './FloraStall'
+import { GrassTufts } from './GrassTufts'
 import { useWorldAudio } from './useWorldAudio'
 import {
   INTRO_SCRIPT, PORTAL_INTROS,
@@ -665,6 +666,8 @@ function WorldScene({
       <NpcResidents reducedMotion={reducedMotion} />
       {/* Saffron Market landmark — Flora's flower stall at the plaza edge */}
       <FloraStall position={[-6.5, 0, 4.5]} rotation={[0, 2.18, 0]} reducedMotion={reducedMotion} />
+      {/* Tufts of dusk grass softening the plaza border */}
+      <GrassTufts />
       {/* Title: gentle establishing drift. Ambient: Wren + follow-cam. */}
       {/* Title: the menu "tiny planet" (drives the title camera). Ambient: Wren. */}
       {!ambient && <TitlePlanet reducedMotion={reducedMotion} />}
