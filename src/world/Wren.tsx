@@ -17,11 +17,18 @@
 // reducedMotion stops decorative sway and holds the outline static. No per-frame
 // allocations.
 
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import type { Group, Mesh } from 'three'
+import { Object3D, Color } from 'three'
+import type { Group, InstancedMesh, Mesh } from 'three'
 import { palette } from '../practice/shells3d/kit/palette'
 import { TremblingOutlineMesh } from './TremblingOutline'
+
+// Module-scope scratch for one-shot instanced placement (no per-frame allocs).
+const _wb = new Object3D()
+const _wc = new Color()
+// Button positions (local y, z — all at x=0 on the coat front).
+const BTN_POS: Array<[number, number]> = [[1.06, 0.30], [0.9, 0.33], [0.74, 0.355]]
 
 // Wren's palette — keyed to the character sheet's dusk-teal & amber swatches.
 const COAT    = '#5E7378' // dusk teal-grey wool
@@ -59,7 +66,27 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
   const lLeg = useRef<Group>(null!)
   const rLeg = useRef<Group>(null!)
   const scarfTail = useRef<Mesh>(null!)
+  const btnRef = useRef<InstancedMesh>(null!)
+  const tagRef = useRef<InstancedMesh>(null!)
   const t = useRef(0)
+
+  // Place buttons + tags once (static geometry → no per-frame work).
+  useEffect(() => {
+    // Toggle buttons — 3 identical gold cubes down the placket.
+    BTN_POS.forEach(([y, z], i) => {
+      _wb.position.set(0, y, z); _wb.rotation.set(0, 0, 0); _wb.scale.setScalar(1)
+      _wb.updateMatrix(); btnRef.current.setMatrixAt(i, _wb.matrix)
+    })
+    btnRef.current.instanceMatrix.needsUpdate = true
+    // Errand-tags — 3 colored tags hanging from the satchel flap.
+    TAGS.forEach((c, i) => {
+      _wb.position.set(0.3 + i * 0.07, 0.68, 0.2); _wb.rotation.set(0, 0, 0); _wb.scale.setScalar(1)
+      _wb.updateMatrix(); tagRef.current.setMatrixAt(i, _wb.matrix)
+      _wc.set(c); tagRef.current.setColorAt(i, _wc)
+    })
+    tagRef.current.instanceMatrix.needsUpdate = true
+    if (tagRef.current.instanceColor) tagRef.current.instanceColor.needsUpdate = true
+  }, [])
 
   useFrame((_, delta) => {
     const sp = speedRef.current
@@ -145,19 +172,11 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
         <boxGeometry args={[0.04, 0.92, 0.04]} />
         <meshToonMaterial color={COAT_D} />
       </mesh>
-      {/* Toggle buttons down the placket */}
-      <mesh position={[0, 1.06, 0.30]}>
+      {/* Toggle buttons — 3 → 1 instanced draw call */}
+      <instancedMesh ref={btnRef} args={[undefined, undefined, 3]}>
         <boxGeometry args={[0.05, 0.05, 0.04]} />
         <meshToonMaterial color={BUTTON} />
-      </mesh>
-      <mesh position={[0, 0.9, 0.33]}>
-        <boxGeometry args={[0.05, 0.05, 0.04]} />
-        <meshToonMaterial color={BUTTON} />
-      </mesh>
-      <mesh position={[0, 0.74, 0.355]}>
-        <boxGeometry args={[0.05, 0.05, 0.04]} />
-        <meshToonMaterial color={BUTTON} />
-      </mesh>
+      </instancedMesh>
 
       {/* ── Hood bunched behind the neck (−Z) ── */}
       <mesh position={[0, 1.44, -0.13]} scale={[1, 0.82, 0.92]} castShadow>
@@ -183,12 +202,11 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
         <boxGeometry args={[0.31, 0.1, 0.15]} />
         <meshToonMaterial color={LEATHER_D} />
       </mesh>
-      {TAGS.map((c, i) => (
-        <mesh key={c} position={[0.3 + i * 0.07, 0.68, 0.2]}>
-          <boxGeometry args={[0.035, 0.1, 0.02]} />
-          <meshToonMaterial color={c} />
-        </mesh>
-      ))}
+      {/* Errand-tags — 3 → 1 instanced draw call (colors via instanceColor) */}
+      <instancedMesh ref={tagRef} args={[undefined, undefined, 3]}>
+        <boxGeometry args={[0.035, 0.1, 0.02]} />
+        <meshToonMaterial />
+      </instancedMesh>
 
       {/* ── Arms (shoulder-pivot; swing) + sleeves + hands ── */}
       <group ref={lArm} position={[-0.34, 1.28, 0]}>
