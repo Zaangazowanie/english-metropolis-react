@@ -49,7 +49,7 @@ import { BajlaCompanion } from './BajlaCompanion'
 import type { BajlaVariant } from '../practice/shells3d/kit/Bajla'
 import { findGame3D } from '../practice/shells3d/kit/registry'
 import { Wren } from './Wren'
-import { WorldPortal } from './WorldPortal'
+import { WorldPortals } from './WorldPortals'
 import type { PortalDef } from './WorldPortal'
 import { useWorldInput, readKeys } from './useWorldInput'
 import type { JoyVec } from './useWorldInput'
@@ -699,16 +699,14 @@ function WorldScene({
             rotation={[0, -Math.PI / 6, 0]}
             reducedMotion={reducedMotion}
           />
-          {/* W4/W5: district portals (walk up → play; lit = completed) */}
-          {PORTALS.map((p) => (
-            <WorldPortal
-              key={p.shellKey}
-              position={p.position}
-              active={nearPortal === p.shellKey}
-              lit={completed.has(p.shellKey)}
-              reducedMotion={reducedMotion}
-            />
-          ))}
+          {/* W4/W5: district portals (walk up → play; lit = completed) —
+              instanced-per-part: all portals cost ~4 draw calls total. */}
+          <WorldPortals
+            portals={PORTALS}
+            nearShellKey={nearPortal}
+            completed={completed}
+            reducedMotion={reducedMotion}
+          />
           {/* Lamp-relight bloom: brief amber burst at the just-earned portal. */}
           {justEarned && (() => {
             const p = PORTALS.find((portal) => portal.shellKey === justEarned)
