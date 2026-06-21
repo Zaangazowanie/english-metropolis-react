@@ -7,8 +7,9 @@
 //
 // Procedural geometry only (no textures/GLBs/URLs). Static prop — no per-frame
 // work, reducedMotion-agnostic. Now with a stovepipe + a STILL smoke plume
-// (frozen — "The Still Cup": the dusk air is still). Instancing for chalk
-// smudges + smoke puffs. ~9 draw calls.
+// (frozen — "The Still Cup": the dusk air is still). Plus an outdoor bistro
+// table + stools (canon: people sit at an outside table once the café opens).
+// Instancing for chalk smudges + smoke puffs + stools + cups. ~13 draw calls.
 
 import { useEffect, useRef } from 'react'
 import { Object3D } from 'three'
@@ -23,6 +24,12 @@ const AWNING = '#D9CDB4' // cream awning canvas
 const SLATE = '#1C2622'  // chalkboard slate
 const FRAME = '#5E4429'  // chalkboard wooden frame
 const CHALK = '#C9C4B8'  // faint chalk ghost
+const TABLE = '#6B4A30'  // bistro tabletop wood
+const STOOL = '#5A3E28'  // stool wood
+const CUP = '#E9DFC6'    // cream teacup
+// Outdoor table furniture (x, z) — two stools + two cups around the table.
+const STOOLS: Array<[number, number]> = [[-1.62, 0.92], [-1.02, 0.98]]
+const CUPS: Array<[number, number]> = [[-1.36, 0.86], [-1.24, 0.96]]
 
 // Wind-scattered chalk smudges on the slate face — abstract jumbled marks
 // (deterministic), each a thin little box at a small tilt.
@@ -49,6 +56,8 @@ export interface ChenCafeProps {
 export function ChenCafe({ position = [0, 0, 0], rotation = [0, 0, 0] }: ChenCafeProps) {
   const smudgeRef = useRef<InstancedMesh>(null!)
   const puffRef = useRef<InstancedMesh>(null!)
+  const stoolRef = useRef<InstancedMesh>(null!)
+  const cupRef = useRef<InstancedMesh>(null!)
 
   useEffect(() => {
     if (!smudgeRef.current) return
@@ -67,6 +76,17 @@ export function ChenCafe({ position = [0, 0, 0], rotation = [0, 0, 0] }: ChenCaf
       puffRef.current.setMatrixAt(i, _o.matrix)
     })
     puffRef.current.instanceMatrix.needsUpdate = true
+    // Stools + cups around the outdoor table.
+    STOOLS.forEach(([x, z], i) => {
+      _o.position.set(x, 0.2, z); _o.rotation.set(0, 0, 0); _o.scale.set(1, 1, 1)
+      _o.updateMatrix(); stoolRef.current.setMatrixAt(i, _o.matrix)
+    })
+    stoolRef.current.instanceMatrix.needsUpdate = true
+    CUPS.forEach(([x, z], i) => {
+      _o.position.set(x, 0.78, z); _o.rotation.set(0, 0, 0); _o.scale.set(1, 1, 1)
+      _o.updateMatrix(); cupRef.current.setMatrixAt(i, _o.matrix)
+    })
+    cupRef.current.instanceMatrix.needsUpdate = true
   }, [])
 
   return (
@@ -126,6 +146,24 @@ export function ChenCafe({ position = [0, 0, 0], rotation = [0, 0, 0] }: ChenCaf
           <meshToonMaterial color={CHALK} />
         </instancedMesh>
       </group>
+
+      {/* ── Outdoor bistro table + stools + cups (people sit outside) ── */}
+      <mesh position={[-1.3, 0.72, 0.9]} castShadow>
+        <cylinderGeometry args={[0.3, 0.3, 0.05, 12]} />
+        <meshToonMaterial color={TABLE} />
+      </mesh>
+      <mesh position={[-1.3, 0.36, 0.9]}>
+        <cylinderGeometry args={[0.04, 0.05, 0.72, 6]} />
+        <meshToonMaterial color={TABLE} />
+      </mesh>
+      <instancedMesh ref={stoolRef} args={[undefined, undefined, STOOLS.length]} frustumCulled={false} castShadow>
+        <cylinderGeometry args={[0.14, 0.13, 0.4, 8]} />
+        <meshToonMaterial color={STOOL} />
+      </instancedMesh>
+      <instancedMesh ref={cupRef} args={[undefined, undefined, CUPS.length]} frustumCulled={false}>
+        <cylinderGeometry args={[0.045, 0.04, 0.07, 8]} />
+        <meshToonMaterial color={CUP} />
+      </instancedMesh>
     </group>
   )
 }
