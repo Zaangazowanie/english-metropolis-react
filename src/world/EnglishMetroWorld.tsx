@@ -71,6 +71,7 @@ import { SortingOffice } from './SortingOffice'
 import { PostcardPier } from './PostcardPier'
 import { NamedResidents } from './NamedResidents'
 import { GrassTufts } from './GrassTufts'
+import { CobbleRing } from './CobbleRing'
 import { useWorldAudio } from './useWorldAudio'
 import {
   INTRO_SCRIPT, PORTAL_INTROS,
@@ -655,6 +656,8 @@ function WorldScene({
     <>
       <SceneFog />
       <Ground />
+      {/* Cobbled plaza floor over the teal ground */}
+      <CobbleRing />
       <LampRing />
       <LampLights />
       <BuildingSkyline />
