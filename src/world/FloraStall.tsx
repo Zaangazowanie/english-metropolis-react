@@ -6,10 +6,11 @@
 //
 // Procedural geometry only (no textures/GLBs/URLs). Static prop — no per-frame
 // work, no animation, reducedMotion-agnostic. Instancing for the repeated parts
-// (posts, buckets, blooms). ~7 draw calls total.
+// (posts, buckets, blooms) + a warm hanging paper lantern over the stall (canon:
+// "paper lanterns sway over the lanes"). ~10 draw calls total.
 
 import { useEffect, useRef } from 'react'
-import { Object3D, Color } from 'three'
+import { Object3D, Color, AdditiveBlending } from 'three'
 import type { InstancedMesh } from 'three'
 import { TremblingOutlineMesh } from './TremblingOutline'
 
@@ -22,6 +23,7 @@ const POST = '#4A3A28'
 const CREAM = '#E9DFC6'   // awning canvas
 const AMBER = '#E8920A'   // awning valance + sunflowers
 const ZINC = '#5E7E88'    // buckets (dusk-teal zinc)
+const LANTERN = '#FFE9B0' // warm paper-lantern glow
 
 // Bucket placements (2 on the counter, 2 on the ground in front) + flower color.
 const BUCKETS: Array<{ pos: [number, number, number]; bloom: string }> = [
@@ -133,6 +135,23 @@ export function FloraStall({
         <sphereGeometry args={[0.09, 8, 6]} />
         <meshToonMaterial />
       </instancedMesh>
+
+      {/* ── Warm hanging paper lantern under the awning front ── */}
+      {/* hanger wire */}
+      <mesh position={[0, 1.8, 0.36]}>
+        <cylinderGeometry args={[0.012, 0.012, 0.3, 4]} />
+        <meshToonMaterial color={POST} />
+      </mesh>
+      {/* paper lantern (glows on its own) */}
+      <mesh position={[0, 1.6, 0.36]} scale={[1, 0.9, 1]}>
+        <sphereGeometry args={[0.11, 10, 8]} />
+        <meshBasicMaterial color={LANTERN} />
+      </mesh>
+      {/* soft warm halo */}
+      <mesh position={[0, 1.6, 0.36]}>
+        <sphereGeometry args={[0.32, 12, 10]} />
+        <meshBasicMaterial color={AMBER} transparent opacity={0.13} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
     </group>
   )
 }
