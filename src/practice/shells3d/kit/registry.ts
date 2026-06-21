@@ -189,6 +189,17 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     district: 'All Districts',
     load: () => import('../../../world/EnglishMetroWorld'),
   },
+  // ── Directive B preview — the tiny-planet dimensional template ───────────
+  // A parallel, non-breaking preview of our dusk-London town wrapped over a
+  // small globe (abeto's spherical world template, rebuilt as our own art).
+  // Lives alongside the flat-plaza world (A) while the template matures; the
+  // walk-on-sphere controller lands in a later scoped PR. Same world chunk.
+  {
+    shellKey: 'world-planet',
+    title: 'English Metro — Tiny Planet (preview)',
+    district: 'All Districts',
+    load: () => import('../../../world/PlanetWorld'),
+  },
 ]
 
 /** Look up a registered 3D game by its 2D shell route key. */
