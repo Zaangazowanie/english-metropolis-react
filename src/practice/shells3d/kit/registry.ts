@@ -131,6 +131,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     district: 'The Election Hall',
     load: () => import('../RankOrder3D'),
   },
+  {
+    shellKey: 'sentencecorrection',
+    title: 'File the Proof',
+    district: "The Editor's Office",
+    load: () => import('../SentenceCorrection3D'),
+  },
   // ── English Metro WorldKit (Addendum A, approved 2026-06-20) ─────────────
   // The explorable dusk-London hub. "shellKey" intentionally uses the world
   // prefix so GameHome renders it as an "Enter the City" hero entry above
