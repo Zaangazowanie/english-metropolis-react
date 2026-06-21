@@ -6,7 +6,9 @@
 // on the 3D board (contract rule 9) — the chalk here is just abstract smudges.
 //
 // Procedural geometry only (no textures/GLBs/URLs). Static prop — no per-frame
-// work, reducedMotion-agnostic. Instancing for the chalk smudges. ~7 draw calls.
+// work, reducedMotion-agnostic. Now with a stovepipe + a STILL smoke plume
+// (frozen — "The Still Cup": the dusk air is still). Instancing for chalk
+// smudges + smoke puffs. ~9 draw calls.
 
 import { useEffect, useRef } from 'react'
 import { Object3D } from 'three'
@@ -30,6 +32,15 @@ const SMUDGES: Array<[number, number, number]> = [
   [0.22, -0.28, -0.3], [0.0, 0.2, 0.1],
 ]
 
+const STOVEPIPE = '#2A2622' // dark metal flue
+const SMOKE = '#9A9590'     // soft warm dusk-grey smoke
+// Still smoke plume rising + drifting from the stovepipe (frozen, per canon).
+// x, y, z, per-puff radius (bigger + higher = more diffuse).
+const PUFFS: Array<[number, number, number, number]> = [
+  [0.85, 2.96, -0.25, 0.12], [0.92, 3.2, -0.22, 0.16], [1.02, 3.44, -0.17, 0.2],
+  [1.15, 3.68, -0.1, 0.26], [1.3, 3.94, -0.02, 0.32],
+]
+
 export interface ChenCafeProps {
   position?: [number, number, number]
   rotation?: [number, number, number]
@@ -37,6 +48,7 @@ export interface ChenCafeProps {
 
 export function ChenCafe({ position = [0, 0, 0], rotation = [0, 0, 0] }: ChenCafeProps) {
   const smudgeRef = useRef<InstancedMesh>(null!)
+  const puffRef = useRef<InstancedMesh>(null!)
 
   useEffect(() => {
     if (!smudgeRef.current) return
@@ -48,6 +60,13 @@ export function ChenCafe({ position = [0, 0, 0], rotation = [0, 0, 0] }: ChenCaf
       smudgeRef.current.setMatrixAt(i, _o.matrix)
     })
     smudgeRef.current.instanceMatrix.needsUpdate = true
+    // Smoke puffs — a static plume from the stovepipe.
+    PUFFS.forEach((p, i) => {
+      _o.position.set(p[0], p[1], p[2]); _o.rotation.set(0, 0, 0); _o.scale.setScalar(p[3])
+      _o.updateMatrix()
+      puffRef.current.setMatrixAt(i, _o.matrix)
+    })
+    puffRef.current.instanceMatrix.needsUpdate = true
   }, [])
 
   return (
@@ -78,6 +97,16 @@ export function ChenCafe({ position = [0, 0, 0], rotation = [0, 0, 0] }: ChenCaf
         <boxGeometry args={[2.7, 0.06, 0.8]} />
         <meshToonMaterial color={AWNING} />
       </mesh>
+
+      {/* ── Stovepipe + still smoke plume on the roof ── */}
+      <mesh position={[0.85, 2.55, -0.25]} castShadow>
+        <cylinderGeometry args={[0.05, 0.06, 0.5, 6]} />
+        <meshToonMaterial color={STOVEPIPE} />
+      </mesh>
+      <instancedMesh ref={puffRef} args={[undefined, undefined, PUFFS.length]} frustumCulled={false}>
+        <sphereGeometry args={[1, 8, 6]} />
+        <meshBasicMaterial color={SMOKE} transparent opacity={0.16} depthWrite={false} />
+      </instancedMesh>
 
       {/* ── The wind-scattered chalkboard (A-frame, on the pavement out front) ── */}
       <group position={[0.1, 0, 1.05]} rotation={[0.1, 0.1, 0]}>
