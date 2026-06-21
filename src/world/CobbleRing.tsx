@@ -17,8 +17,10 @@ const _c = new Color()
 
 const COBBLES = 170
 const GOLDEN = Math.PI * (3 - Math.sqrt(5))
-// Subtle dusk-teal tones around the ground color (#2B5F6E) so seams read softly.
-const TONES = ['#2B5F6E', '#285862', '#306A78', '#244F58', '#2D6270']
+// Early-dusk paving tones around the lifted ground (#387986): mostly lighter
+// teal so seams read softly, plus a couple of warmer stones catching the golden
+// horizon / lamplight — the cobbles read as a warm-lit dusk street, not murk.
+const TONES = ['#387986', '#33707D', '#418490', '#2F6A75', '#4C8089', '#6E8076']
 
 export function CobbleRing() {
   const ref = useRef<InstancedMesh>(null!)
