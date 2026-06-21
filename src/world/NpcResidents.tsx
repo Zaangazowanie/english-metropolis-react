@@ -1,9 +1,10 @@
 // NpcResidents — the English Metro resident crowd, built INSTANCED-PER-PART so a
-// full cast costs a fixed ~10 draw calls regardless of headcount (vs 8 draw
+// full cast costs a fixed ~12 draw calls regardless of headcount (vs 8+ draw
 // calls PER character the naive way). Each body-part type is one InstancedMesh
-// (coat / hem / neck / head / hair / eyes / scarf / apron / collar / cap) whose
-// per-instance transform + color is composed each frame from the character's
-// orbit transform × the part's local offset.
+// (coat / hem / neck / head / hair / eyes / arms / hands / scarf / apron /
+// collar / cap) whose per-instance transform + color is composed each frame
+// from the character's orbit transform × the part's local offset. Arms swing
+// fwd/back at the shoulder (pivot compose) in opposite phase = a walking gait.
 //
 // 8 canon residents drawn from the Story Bible cast (Flora, Mr. Chen, Tomás,
 // Mr. Frank, Posta, Conductor Pell, Ines + a Lanterngate elder), each a fully-
@@ -13,8 +14,8 @@
 //
 // CONTRACT: zero new deps, no textures/GLBs/URLs. Procedural geometry only.
 // Per-frame work is allocation-free (module-scope scratch Object3D/Matrix4);
-// reducedMotion → composed once then frozen. Draw calls: 10 (one InstancedMesh
-// per part type). Accessory meshes hide non-matching characters via zero-scale.
+// reducedMotion → composed once then frozen (arms hang straight). Draw calls:
+// 12 (one InstancedMesh per part type). Accessories hide via zero-scale.
 
 import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
@@ -28,8 +29,13 @@ const BASE_SPEED = 0.14
 // Allocation-free scratch.
 const _parent = new Object3D()
 const _child = new Object3D()
+const _pivot = new Object3D() // shoulder pivot for the swinging arms
 const _mat = new Matrix4()
 const _col = new Color()
+
+// Arm geometry (shared; per-instance only transform + colour vary).
+const ARM_LEN = 0.55
+const ARM_SWING = 0.45 // radians, fwd/back at the shoulder while walking
 
 type Accessory = 'scarf' | 'apron' | 'collar' | 'cap'
 
@@ -79,6 +85,8 @@ export function NpcResidents({ reducedMotion }: NpcResidentsProps) {
   const headRef = useRef<InstancedMesh>(null!)
   const hairRef = useRef<InstancedMesh>(null!)
   const eyesRef = useRef<InstancedMesh>(null!)
+  const armRef = useRef<InstancedMesh>(null!)
+  const handRef = useRef<InstancedMesh>(null!)
   const scarfRef = useRef<InstancedMesh>(null!)
   const apronRef = useRef<InstancedMesh>(null!)
   const collarRef = useRef<InstancedMesh>(null!)
@@ -99,8 +107,11 @@ export function NpcResidents({ reducedMotion }: NpcResidentsProps) {
       apronRef.current.setColorAt(c, _col)
       collarRef.current.setColorAt(c, _col)
       capRef.current.setColorAt(c, _col)
+      // Arms (sleeves) take the coat colour; hands take skin — two per person.
+      _col.set(d.coat); armRef.current.setColorAt(c * 2, _col); armRef.current.setColorAt(c * 2 + 1, _col)
+      _col.set(d.skin); handRef.current.setColorAt(c * 2, _col); handRef.current.setColorAt(c * 2 + 1, _col)
     })
-    for (const r of [coatRef, hemRef, neckRef, headRef, hairRef, scarfRef, apronRef, collarRef, capRef]) {
+    for (const r of [coatRef, hemRef, neckRef, headRef, hairRef, scarfRef, apronRef, collarRef, capRef, armRef, handRef]) {
       if (r.current.instanceColor) r.current.instanceColor.needsUpdate = true
     }
   }, [])
@@ -126,6 +137,24 @@ export function NpcResidents({ reducedMotion }: NpcResidentsProps) {
     }
     const hide = (ref: React.MutableRefObject<InstancedMesh>, idx: number) =>
       place(ref, idx, 0, -100, 0, 0, 0, 0)
+
+    // Swinging limb: pivot at the shoulder (translate + fwd/back swing), the
+    // part hangs `childY` below it. matrix = parent × pivot × childLocal.
+    const placeArm = (
+      ref: React.MutableRefObject<InstancedMesh>, idx: number,
+      sx: number, sy: number, side: number, swing: number, childY: number,
+    ) => {
+      _pivot.position.set(side * sx, sy, 0)
+      _pivot.rotation.set(swing, 0, side * 0.12)
+      _pivot.updateMatrix()
+      _child.position.set(0, childY, 0)
+      _child.rotation.set(0, 0, 0)
+      _child.scale.set(1, 1, 1)
+      _child.updateMatrix()
+      _mat.multiplyMatrices(_parent.matrix, _pivot.matrix)
+      _mat.multiply(_child.matrix)
+      ref.current.setMatrixAt(idx, _mat)
+    }
 
     for (let c = 0; c < N; c++) {
       const d = RESIDENTS[c]
@@ -153,6 +182,15 @@ export function NpcResidents({ reducedMotion }: NpcResidentsProps) {
       place(eyesRef, c * 2,     -hr * 0.36, eyeY, hr * 0.9, hr * 0.15, hr * 0.15, hr * 0.15)
       place(eyesRef, c * 2 + 1,  hr * 0.36, eyeY, hr * 0.9, hr * 0.15, hr * 0.15, hr * 0.15)
 
+      // Swinging arms + hands — two per person, opposite phase = a walking gait.
+      const sw = reducedMotion ? 0 : Math.sin(t * 2.2 * d.speedMul + d.initAngle * 4) * ARM_SWING
+      const shX = 0.6 * g   // shoulders at the coat's top radius
+      const shY = top - 0.16
+      placeArm(armRef,  c * 2,     shX, shY, -1,  sw, -ARM_LEN / 2)
+      placeArm(armRef,  c * 2 + 1, shX, shY,  1, -sw, -ARM_LEN / 2)
+      placeArm(handRef, c * 2,     shX, shY, -1,  sw, -ARM_LEN)
+      placeArm(handRef, c * 2 + 1, shX, shY,  1, -sw, -ARM_LEN)
+
       // Accessory — set the matching mesh, hide the others.
       if (d.style === 'scarf') place(scarfRef, c, 0, top + 0.02, 0, g * 0.32, g * 0.32, g * 0.32, Math.PI / 2, 0, 0)
       else hide(scarfRef, c)
@@ -164,7 +202,7 @@ export function NpcResidents({ reducedMotion }: NpcResidentsProps) {
       else hide(capRef, c)
     }
 
-    for (const r of [coatRef, hemRef, neckRef, headRef, hairRef, eyesRef, scarfRef, apronRef, collarRef, capRef]) {
+    for (const r of [coatRef, hemRef, neckRef, headRef, hairRef, eyesRef, armRef, handRef, scarfRef, apronRef, collarRef, capRef]) {
       r.current.instanceMatrix.needsUpdate = true
     }
     doneRef.current = true
@@ -201,6 +239,16 @@ export function NpcResidents({ reducedMotion }: NpcResidentsProps) {
       <instancedMesh ref={eyesRef} args={[undefined, undefined, N * 2]} frustumCulled={false}>
         <sphereGeometry args={[1, 7, 6]} />
         <meshToonMaterial color={EYE} />
+      </instancedMesh>
+      {/* Arms — sleeves (coat colour), 2 per character, swing with the gait */}
+      <instancedMesh ref={armRef} args={[undefined, undefined, N * 2]} frustumCulled={false}>
+        <cylinderGeometry args={[0.058, 0.046, ARM_LEN, 6]} />
+        <meshToonMaterial />
+      </instancedMesh>
+      {/* Hands — skin, 2 per character, at the wrist end of each arm */}
+      <instancedMesh ref={handRef} args={[undefined, undefined, N * 2]} frustumCulled={false}>
+        <sphereGeometry args={[0.07, 8, 7]} />
+        <meshToonMaterial />
       </instancedMesh>
       {/* Accessory: scarf (torus) */}
       <instancedMesh ref={scarfRef} args={[undefined, undefined, N]} frustumCulled={false}>
