@@ -4,7 +4,9 @@
 // iconic red British pillar postbox out front, and a stack of waiting parcels.
 //
 // Procedural geometry only (no textures/GLBs/URLs). Static prop — no per-frame
-// work, reducedMotion-agnostic. Instancing for windows + parcels. ~7 draw calls.
+// work, reducedMotion-agnostic. Now with a brick chimney + a still smoke plume
+// (Mr. Frank works the night shift). Instancing for windows + parcels + smoke
+// puffs. ~9 draw calls.
 
 import { useEffect, useRef } from 'react'
 import { Object3D } from 'three'
@@ -29,6 +31,14 @@ const PARCELS: Array<[number, number, number, number]> = [
   [1.35, 0.16, 0.5, 0.32], [1.35, 0.46, 0.46, 0.3], [1.3, 0.72, 0.52, 0.26],
 ]
 
+const CHIMNEY = '#6E4A38' // brick chimney stack
+const SMOKE = '#9A9590'   // soft warm dusk-grey smoke
+// Still smoke plume drifting up from the chimney (frozen). x, y, z, radius.
+const PUFFS: Array<[number, number, number, number]> = [
+  [-1.0, 3.5, -0.25, 0.14], [-0.92, 3.78, -0.2, 0.18], [-0.8, 4.06, -0.12, 0.23],
+  [-0.64, 4.36, -0.03, 0.29], [-0.46, 4.68, 0.06, 0.36],
+]
+
 export interface SortingOfficeProps {
   position?: [number, number, number]
   rotation?: [number, number, number]
@@ -37,6 +47,7 @@ export interface SortingOfficeProps {
 export function SortingOffice({ position = [0, 0, 0], rotation = [0, 0, 0] }: SortingOfficeProps) {
   const winRef = useRef<InstancedMesh>(null!)
   const parcelRef = useRef<InstancedMesh>(null!)
+  const puffRef = useRef<InstancedMesh>(null!)
 
   useEffect(() => {
     WINDOWS.forEach((w, i) => {
@@ -49,6 +60,11 @@ export function SortingOffice({ position = [0, 0, 0], rotation = [0, 0, 0] }: So
       _o.updateMatrix(); parcelRef.current.setMatrixAt(i, _o.matrix)
     })
     parcelRef.current.instanceMatrix.needsUpdate = true
+    PUFFS.forEach((p, i) => {
+      _o.position.set(p[0], p[1], p[2]); _o.rotation.set(0, 0, 0); _o.scale.setScalar(p[3])
+      _o.updateMatrix(); puffRef.current.setMatrixAt(i, _o.matrix)
+    })
+    puffRef.current.instanceMatrix.needsUpdate = true
   }, [])
 
   return (
@@ -67,6 +83,16 @@ export function SortingOffice({ position = [0, 0, 0], rotation = [0, 0, 0] }: So
       <instancedMesh ref={winRef} args={[undefined, undefined, WINDOWS.length]} frustumCulled={false}>
         <boxGeometry args={[0.62, 0.7, 0.06]} />
         <meshBasicMaterial color={palette.lanternCore} />
+      </instancedMesh>
+
+      {/* ── Brick chimney + still smoke (Mr. Frank works the night shift) ── */}
+      <mesh position={[-1.0, 3.15, -0.25]} castShadow>
+        <boxGeometry args={[0.32, 0.55, 0.32]} />
+        <meshToonMaterial color={CHIMNEY} />
+      </mesh>
+      <instancedMesh ref={puffRef} args={[undefined, undefined, PUFFS.length]} frustumCulled={false}>
+        <sphereGeometry args={[1, 8, 6]} />
+        <meshBasicMaterial color={SMOKE} transparent opacity={0.16} depthWrite={false} />
       </instancedMesh>
 
       {/* ── Red pillar postbox out front ── */}
