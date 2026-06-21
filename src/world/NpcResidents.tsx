@@ -20,6 +20,7 @@ import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Object3D, Matrix4, Color } from 'three'
 import type { InstancedMesh } from 'three'
+import { ROSTER } from './wardrobe'
 
 const NPC_RADIUS = 12.5
 const BASE_SPEED = 0.14
@@ -40,25 +41,29 @@ interface ResidentDef {
   headR: number   // head radius (height/build)
 }
 
-// 8 canon residents — all original English Metro designs, Dusk-Teal & Amber.
-const RESIDENTS: ResidentDef[] = [
-  // 0. Lanterngate elder — plum coat, grey hair, amber shawl-scarf, stocky
-  { coat: '#6B4F70', hem: '#52305A', skin: '#E8C8A8', hair: '#8A7F7A', accent: '#C2913F', style: 'scarf',  initAngle: 0.20, speedMul: 0.86, girth: 0.44, headR: 0.215 },
-  // 1. Flora — sage green coat, auburn hair, cream apron (flower-seller)
-  { coat: '#5A7A5E', hem: '#3E5942', skin: '#E8C8A8', hair: '#7A4A2A', accent: '#D9CDB4', style: 'apron',  initAngle: 1.05, speedMul: 1.12, girth: 0.36, headR: 0.190 },
-  // 2. Mr. Chen — deep teal coat, grey hair, white collar (café-keeper)
-  { coat: '#2E5C65', hem: '#1F4048', skin: '#D2A77E', hair: '#6E6E6E', accent: '#F6EFE2', style: 'collar', initAngle: 1.90, speedMul: 1.02, girth: 0.40, headR: 0.220 },
-  // 3. Tomás — rust coat, espresso hair, bright amber scarf (young patron)
-  { coat: '#8A5A3A', hem: '#663E22', skin: '#F0D0B0', hair: '#2E2622', accent: '#E8920A', style: 'scarf',  initAngle: 2.70, speedMul: 1.30, girth: 0.30, headR: 0.180 },
-  // 4. Mr. Frank — navy-teal coat, grey hair, white collar (sorting clerk)
-  { coat: '#34506B', hem: '#243B52', skin: '#E8C8A8', hair: '#9A9590', accent: '#F2E9D6', style: 'collar', initAngle: 3.50, speedMul: 0.94, girth: 0.38, headR: 0.205 },
-  // 5. Posta — dusty mauve coat, dark hair, rose scarf (pier-keeper, dreamy)
-  { coat: '#7A5A6E', hem: '#5A3E50', skin: '#D2A77E', hair: '#3A2E2A', accent: '#C57195', style: 'scarf',  initAngle: 4.25, speedMul: 1.08, girth: 0.34, headR: 0.195 },
-  // 6. Conductor Pell — bottle-green coat, grey hair, peaked cap (Tannoy Cross)
-  { coat: '#3E5E3A', hem: '#2A4228', skin: '#E0B894', hair: '#7E7A74', accent: '#2B2540', style: 'cap',    initAngle: 5.00, speedMul: 0.90, girth: 0.42, headR: 0.210 },
-  // 7. Ines — soft teal coat, dark-brown hair, amber scarf (lamplighter's kid)
-  { coat: '#4E7A80', hem: '#345A60', skin: '#E8C8A8', hair: '#4A3B30', accent: '#E8920A', style: 'scarf',  initAngle: 5.70, speedMul: 1.18, girth: 0.32, headR: 0.185 },
-]
+// The drifting crowd is now driven by the SAME original 19-character ROSTER as
+// the named keepers (src/world/wardrobe.ts) — so the whole cast shares one
+// source of truth and we match abeto's ~19 NPC count. Each ROSTER spec maps
+// onto this instanced renderer's per-part fields (top→coat, bottom→hem,
+// shoes→accent, top-style→accessory) + an evenly-spread orbit. Rendering stays
+// instanced-per-part, so 19 residents still cost ~10 draw calls (vs ~150 naive).
+const ACCESSORY_FOR: Record<string, Accessory> = {
+  apron: 'apron', smock: 'apron',
+  uniform: 'collar', coat: 'collar', vest: 'collar',
+  shawl: 'scarf', cardigan: 'scarf', raincoat: 'scarf', pullover: 'scarf',
+}
+const RESIDENTS: ResidentDef[] = ROSTER.map((r, i) => ({
+  coat: r.topColor,
+  hem: r.bottomColor,
+  skin: r.skin,
+  hair: r.hairColor,
+  accent: r.shoeColor,
+  style: ACCESSORY_FOR[r.top] ?? 'scarf',
+  initAngle: (i / ROSTER.length) * Math.PI * 2,
+  speedMul: 0.80 + (i % 6) * 0.07,        // 0.80 .. 1.15 — varied gaits
+  girth: 0.30 + (r.girth - 0.78) * 0.20,  // map roster girth ~0.78..1.18 → ~0.30..0.40
+  headR: 0.180 + (r.height - 0.84) * 0.10, // map roster height ~0.84..1.10 → ~0.18..0.206
+}))
 
 const N = RESIDENTS.length
 const EYE = '#1A1410'
@@ -125,7 +130,9 @@ export function NpcResidents({ reducedMotion }: NpcResidentsProps) {
     for (let c = 0; c < N; c++) {
       const d = RESIDENTS[c]
       const angle = d.initAngle + t * BASE_SPEED * d.speedMul
-      _parent.position.set(Math.cos(angle) * NPC_RADIUS, 0, Math.sin(angle) * NPC_RADIUS)
+      // Gentle walking bob — a little vertical lilt per resident (frozen under reducedMotion).
+      const bob = reducedMotion ? 0 : Math.abs(Math.sin(t * 2.2 * d.speedMul + d.initAngle * 4)) * 0.06
+      _parent.position.set(Math.cos(angle) * NPC_RADIUS, bob, Math.sin(angle) * NPC_RADIUS)
       _parent.rotation.set(0, -angle + Math.PI / 2, 0)
       _parent.scale.setScalar(1)
       _parent.updateMatrix()
