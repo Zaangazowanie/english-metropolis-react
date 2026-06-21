@@ -107,6 +107,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     district: 'Tannoy Cross',
     load: () => import('../TrueFalse3D'),
   },
+  {
+    shellKey: 'multiplechoice',
+    title: 'Pin the Poster',
+    district: 'The Bulletin Board',
+    load: () => import('../MultipleChoice3D'),
+  },
   // ── English Metro WorldKit (Addendum A, approved 2026-06-20) ─────────────
   // The explorable dusk-London hub. "shellKey" intentionally uses the world
   // prefix so GameHome renders it as an "Enter the City" hero entry above
