@@ -8,7 +8,7 @@
 // ~7 draw calls. The pier's local -Z reaches "out to sea"; +Z faces the plaza.
 
 import { useEffect, useRef } from 'react'
-import { Object3D } from 'three'
+import { Object3D, AdditiveBlending } from 'three'
 import type { InstancedMesh } from 'three'
 
 const _o = new Object3D()
@@ -19,6 +19,8 @@ const WATER = '#1C4350'   // deep dusk-teal water
 const CARD = '#F2ECDD'    // cream postcards
 const RACK = '#5E4429'    // rack wood
 const BOLLARD = '#3A4A50' // dark metal mooring bollard
+const LAMP = '#FFE9B0'    // warm harbor-lamp glow
+const LAMP_AMBER = '#E8920A' // halo
 
 // Railing posts down both sides of the deck (instanced).
 const RAIL_POSTS: Array<[number, number]> = [
@@ -87,6 +89,22 @@ export function PostcardPier({ position = [0, 0, 0], rotation = [0, 0, 0] }: Pos
       <mesh position={[0.78, 0.22, 0.3]} castShadow>
         <cylinderGeometry args={[0.1, 0.12, 0.44, 8]} />
         <meshToonMaterial color={BOLLARD} />
+      </mesh>
+
+      {/* ── Harbor lamp at the seaward end (Posta keeps a light burning) ── */}
+      <mesh position={[-0.85, 0.85, -1.5]} castShadow>
+        <cylinderGeometry args={[0.045, 0.055, 1.7, 6]} />
+        <meshToonMaterial color={POST} />
+      </mesh>
+      {/* glowing lamp head */}
+      <mesh position={[-0.85, 1.78, -1.5]}>
+        <sphereGeometry args={[0.12, 10, 8]} />
+        <meshBasicMaterial color={LAMP} />
+      </mesh>
+      {/* soft warm halo over the water */}
+      <mesh position={[-0.85, 1.78, -1.5]}>
+        <sphereGeometry args={[0.38, 12, 10]} />
+        <meshBasicMaterial color={LAMP_AMBER} transparent opacity={0.13} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
   )
