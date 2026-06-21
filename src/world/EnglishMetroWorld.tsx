@@ -146,6 +146,9 @@ const PORTAL_DEFS: Array<{ shellKey: string; title: string; district: string }> 
   { shellKey: 'opencloze',           title: 'Ink the Page',               district: 'The Vellum Atelier' },
   { shellKey: 'flashcards',          title: 'Flip the Cards',             district: 'Café Spółdzielnia' },
   { shellKey: 'sentencetransform',   title: 'Key-Word Rewrite',           district: "The Translator's Booth" },
+  // Ring overflows 16-lamp capacity below — portals auto-distribute at 360/N°.
+  { shellKey: 'wordsearch',          title: 'Hunt the Word',              district: 'Neon Market' },
+  { shellKey: 'typingtest',          title: 'Tap the Dispatch',           district: 'The Telegraph Office' },
 ]
 const PORTALS: PortalDef[] = PORTAL_DEFS.map((d, i) => {
   const a = (i / PORTAL_DEFS.length) * Math.PI * 2 // 0 = +Z, clockwise
