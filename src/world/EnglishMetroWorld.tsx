@@ -142,6 +142,8 @@ const PORTAL_DEFS: Array<{ shellKey: string; title: string; district: string }> 
   { shellKey: 'rankorder',           title: 'Rank the Ballots',           district: 'The Election Hall' },
   { shellKey: 'sentencecorrection',  title: 'File the Proof',             district: "The Editor's Office" },
   { shellKey: 'wordformation',       title: 'Chisel the Form',            district: "The Mason's Yard" },
+  { shellKey: 'concentration',       title: 'Flip the Pairs',             district: 'The Memory Cellar' },
+  { shellKey: 'opencloze',           title: 'Ink the Page',               district: 'The Vellum Atelier' },
 ]
 const PORTALS: PortalDef[] = PORTAL_DEFS.map((d, i) => {
   const a = (i / PORTAL_DEFS.length) * Math.PI * 2 // 0 = +Z, clockwise
