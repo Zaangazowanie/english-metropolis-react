@@ -63,6 +63,7 @@ import { MetroTrain } from './MetroTrain'
 import { DuskClouds } from './DuskClouds'
 import { TitlePlanet } from './TitlePlanet'
 import { FestoonLights } from './FestoonLights'
+import { BuntingStrings } from './BuntingStrings'
 import { LampRelight } from './LampRelight'
 import { NpcResidents } from './NpcResidents'
 import { FloraStall } from './FloraStall'
@@ -665,6 +666,8 @@ function WorldScene({
       <BuildingSkyline />
       {/* Amber festoon string-lights looped between lamp posts — the em-spike signature */}
       <FestoonLights />
+      {/* Bunting pennant flags strung between lamp posts */}
+      <BuntingStrings />
       {/* Soft watercolor clouds drifting high on the breeze */}
       <DuskClouds reducedMotion={reducedMotion} />
       {/* The elevated Round + slow last train, circling beyond the plaza */}
