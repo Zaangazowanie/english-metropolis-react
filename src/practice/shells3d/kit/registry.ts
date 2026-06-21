@@ -143,6 +143,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     district: "The Mason's Yard",
     load: () => import('../WordFormation3D'),
   },
+  {
+    shellKey: 'concentration',
+    title: 'Flip the Pairs',
+    district: 'The Memory Cellar',
+    load: () => import('../Concentration3D'),
+  },
   // ── English Metro WorldKit (Addendum A, approved 2026-06-20) ─────────────
   // The explorable dusk-London hub. "shellKey" intentionally uses the world
   // prefix so GameHome renders it as an "Enter the City" hero entry above
