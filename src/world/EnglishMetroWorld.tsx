@@ -66,6 +66,7 @@ import { FestoonLights } from './FestoonLights'
 import { LampRelight } from './LampRelight'
 import { NpcResidents } from './NpcResidents'
 import { FloraStall } from './FloraStall'
+import { ChenCafe } from './ChenCafe'
 import { GrassTufts } from './GrassTufts'
 import { useWorldAudio } from './useWorldAudio'
 import {
@@ -664,8 +665,9 @@ function WorldScene({
       {/* W3: living zone — paper lanterns + fully-built canon residents */}
       <PaperLanterns reducedMotion={reducedMotion} />
       <NpcResidents reducedMotion={reducedMotion} />
-      {/* Saffron Market landmark — Flora's flower stall at the plaza edge */}
+      {/* Saffron Market landmarks — Flora's flower stall + Mr. Chen's café */}
       <FloraStall position={[-6.5, 0, 4.5]} rotation={[0, 2.18, 0]} reducedMotion={reducedMotion} />
+      <ChenCafe position={[3.0, 0, -7.0]} rotation={[0, -0.405, 0]} />
       {/* Tufts of dusk grass softening the plaza border */}
       <GrassTufts />
       {/* Title: gentle establishing drift. Ambient: Wren + follow-cam. */}
