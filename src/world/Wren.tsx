@@ -65,6 +65,7 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
   const rArm = useRef<Group>(null!)
   const lLeg = useRef<Group>(null!)
   const rLeg = useRef<Group>(null!)
+  const body = useRef<Group>(null!)
   const scarfTail = useRef<Mesh>(null!)
   const btnRef = useRef<InstancedMesh>(null!)
   const tagRef = useRef<InstancedMesh>(null!)
@@ -95,6 +96,7 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
       if (rArm.current) rArm.current.rotation.x = 0
       if (lLeg.current) lLeg.current.rotation.x = 0
       if (rLeg.current) rLeg.current.rotation.x = 0
+      if (body.current) body.current.position.y = 0
       if (scarfTail.current) scarfTail.current.rotation.x = 0.2
       return
     }
@@ -106,6 +108,12 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
     const stride = Math.sin(t.current) * 0.5 * sp
     if (lLeg.current) lLeg.current.rotation.x = -stride
     if (rLeg.current) rLeg.current.rotation.x = stride
+    // Idle breathing: a slow chest lift when standing still, faded out as Wren
+    // starts to walk (so it never fights the stride bob).
+    if (body.current) {
+      const idle = 1 - Math.min(1, sp * 2.2)
+      body.current.position.y = Math.sin(t.current * 0.13) * 0.02 * idle
+    }
     // Scarf trails: lifts toward horizontal as Wren moves, with a flutter.
     if (scarfTail.current) {
       scarfTail.current.rotation.x = 0.2 + sp * (0.9 + Math.sin(t.current * 1.3) * 0.25)
@@ -113,7 +121,7 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
   })
 
   return (
-    <group>
+    <group ref={body}>
       {/* ── Legs (hip-pivot; stride) + cuffs + brown boots ── */}
       <group ref={lLeg} position={[-0.12, 0.56, 0]}>
         <mesh position={[0, -0.26, 0]} castShadow>
