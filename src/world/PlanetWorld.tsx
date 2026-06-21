@@ -26,15 +26,17 @@
 // the only motion. reducedMotion → camera snaps, no walk-bob. Learner-facing
 // English lives in the DOM overlay (rule 9); canvas stays aria-hidden.
 
-import { useCallback, useEffect, useRef } from 'react'
+import { Suspense, useCallback, useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Object3D, Quaternion, Vector3, Color, Matrix4, MathUtils } from 'three'
 import type { Group, InstancedMesh } from 'three'
 import type { Game3DProps, SessionResult } from '../practice/shells3d/types'
 import { CityStage } from '../practice/shells3d/kit/CityStage'
 import { palette } from '../practice/shells3d/kit/palette'
-import { Wren } from './Wren'
+import { WrenMesh } from './WrenMesh'
 import { InkOutline } from './InkOutline'
+import { GlbCity, PlanetNpcs } from './GlbCity'
+import type { Placement } from './GlbCity'
 import { useWorldInput, readKeys } from './useWorldInput'
 import type { JoyVec } from './useWorldInput'
 
@@ -43,7 +45,6 @@ const _o = new Object3D()
 const _q = new Quaternion()
 const _dir = new Vector3()
 const _c = new Color()
-const _woff = new Vector3() // window wall-offset (mount-time only)
 const UP = new Vector3(0, 1, 0)
 const GOLDEN = Math.PI * (3 - Math.sqrt(5))
 // rig-only scratch (used in useFrame; never concurrent with the mount-effect set)
@@ -71,17 +72,9 @@ const CAM_LERP = 0.1 // follow-camera spring (snaps when reducedMotion)
 // ── Palettes (ours — match the reskinned plaza so it reads as the same town) ──
 const LAND = '#2B5F6E' // canon Dusk Teal land/ocean
 const ATMO = palette.lanternAmber // warm rim-glow + lit windows + lamp beads
-const FACADES = ['#D9CDB4', '#CDBA98', '#BFA079', '#D2C0A0', '#8E9BA0', '#C8AE90']
-const ROOFS = ['#B5572E', '#A24B27', '#9C5333', '#8E4828', '#C2632F'] // clay-tiled London rooftops
 const CANOPY = ['#2E4A3A', '#3E5E3A', '#46583C', '#54603A', '#5E6E3A']
 const TRUNK = '#3A2C22'
 const POST = '#23303a'
-const WIN_LIT = ['#fff1b8', '#ffce86', '#ffb347'] // warm lit windows (cozy dusk glow)
-const WIN_OFF = '#15282E' // dark / unlit pane
-// 2050 English Metro — sleek glass skyscrapers + flashy neon, mixed in among the
-// rustic houses (modern-meets-cozy, dusk-lit).
-const GLASS = ['#33586F', '#2C6B86', '#3E5C72', '#37788C', '#445A6E'] // dusk-blue tower glass
-const NEON = ['#22D3EE', '#FF5FA2', '#E8920A', '#7CF2C8', '#C58CFF'] // cyan/pink/amber/mint/violet
 
 // ── Deterministic hash (GLSL-style; stable across reloads) ───────────────────
 const fract = (x: number) => x - Math.floor(x)
@@ -91,18 +84,11 @@ const hash = (i: number, s: number) => fract(Math.sin((i + 1) * 12.9898 + s * 78
 // Buildings are real little houses now: a chunky box body (separate width/depth)
 // + a clay pitched roof, kept short so they read as a packed village, not the
 // thin slabs of the first pass.
-interface Building {
-  x: number; y: number; z: number
-  w: number; d: number; h: number; roofH: number
-  tan: number; roof: number; amber: boolean
-}
+interface Building { x: number; y: number; z: number; h: number }
 interface Tree { x: number; y: number; z: number; trunkH: number; rl: number; ru: number; green: number }
 interface Lamp { x: number; y: number; z: number }
-// A futuristic glass tower: tall, slim, with a neon top + a neon light strip.
-interface Tower { x: number; y: number; z: number; w: number; d: number; h: number; glass: number; neon: number }
 
 const BUILDINGS: Building[] = []
-const TOWERS: Tower[] = []
 const TREES: Tree[] = []
 const LAMPS: Lamp[] = []
 
@@ -115,25 +101,8 @@ for (let i = 0; i < SURFACE_N; i++) {
   const dz = Math.sin(theta) * rad
   const f = fract(i * 0.61803398875)
   if (f < 0.46) {
-    // ~40% of built points rise into 2050 skyscrapers; the rest stay rustic houses.
-    if (hash(i, 7) > 0.6) {
-      TOWERS.push({
-        x: dx, y: dy, z: dz,
-        w: 0.16 + hash(i, 8) * 0.12,
-        d: 0.16 + hash(i, 9) * 0.12,
-        h: 1.1 + hash(i, 1) * 1.8,   // tall — 1.1 to 2.9 (vs houses ~0.34-0.84)
-        glass: i % GLASS.length, neon: i % NEON.length,
-      })
-    } else {
-      BUILDINGS.push({
-        x: dx, y: dy, z: dz,
-        w: 0.26 + hash(i, 2) * 0.16,
-        d: 0.24 + hash(i, 5) * 0.14,
-        h: 0.34 + hash(i, 1) * 0.5,
-        roofH: 0.12 + hash(i, 6) * 0.16,
-        tan: i % FACADES.length, roof: i % ROOFS.length, amber: i % 4 === 0,
-      })
-    }
+    // a built point — height drives the mesh scale in GlbCity (tower vs house)
+    BUILDINGS.push({ x: dx, y: dy, z: dz, h: 0.34 + hash(i, 1) * 0.5 })
   } else if (f < 0.72) {
     const rl = 0.16 + hash(i, 3) * 0.06
     TREES.push({ x: dx, y: dy, z: dz, trunkH: 0.2 + hash(i, 4) * 0.1, rl, ru: rl * 0.72, green: i % CANOPY.length })
@@ -142,14 +111,25 @@ for (let i = 0; i < SURFACE_N; i++) {
   }
 }
 
-const N_B = BUILDINGS.length
-const N_TW = TOWERS.length
 const N_T = TREES.length
 const N_L = LAMPS.length
 
+// Real building MESHES (GlbCity) replace the procedural box houses. Split the
+// built points into 2050 skyscrapers vs rustic townhouses (deterministic by
+// position), scaled to a world height; plus one London Eye landmark.
+const TOWER_PLACE: Placement[] = []
+const HOUSE_PLACE: Placement[] = []
+for (const b of BUILDINGS) {
+  const isTower = fract(Math.abs(b.x) * 12.9898 + Math.abs(b.z) * 78.233) > 0.58
+  if (isTower) TOWER_PLACE.push({ x: b.x, y: b.y, z: b.z, scale: 1.3 + (b.h - 0.34) * 2.6 })
+  else HOUSE_PLACE.push({ x: b.x, y: b.y, z: b.z, scale: 0.72 + (b.h - 0.34) * 0.5 })
+}
+// London Eye landmark — on the near (+Z) hemisphere so it's in the opening view.
+const EYE_PLACE: Placement = { x: 0.32, y: 0.42, z: 0.85, scale: 2.9, yaw: 1.2 }
+
 // Orient an instance so local +Y follows the surface normal, then sit it at
 // `dist` from the centre with `(sx,sy,sz)` scale → matrix in module scratch _o.
-function placeOnSurface(b: { x: number; y: number; z: number }, dist: number, sx: number, sy: number, sz: number): void {
+function placeOnSurface(b: Building | Tree | Lamp, dist: number, sx: number, sy: number, sz: number): void {
   _dir.set(b.x, b.y, b.z).normalize()
   _o.position.copy(_dir).multiplyScalar(dist)
   _q.setFromUnitVectors(UP, _dir)
@@ -160,12 +140,6 @@ function placeOnSurface(b: { x: number; y: number; z: number }, dist: number, sx
 
 // ── The planet + its instanced town (fully static — the player is the motion) ─
 function Planet() {
-  const buildings = useRef<InstancedMesh>(null!)
-  const roofs = useRef<InstancedMesh>(null!)
-  const windows = useRef<InstancedMesh>(null!)
-  const towers = useRef<InstancedMesh>(null!)
-  const towerTops = useRef<InstancedMesh>(null!)
-  const towerStrips = useRef<InstancedMesh>(null!)
   const trunks = useRef<InstancedMesh>(null!)
   const canopyLo = useRef<InstancedMesh>(null!)
   const canopyHi = useRef<InstancedMesh>(null!)
@@ -173,63 +147,7 @@ function Planet() {
   const lampGlows = useRef<InstancedMesh>(null!)
 
   useEffect(() => {
-    for (let i = 0; i < N_B; i++) {
-      const b = BUILDINGS[i]
-      // box body (chunky, real depth)
-      placeOnSurface(b, R + b.h / 2, b.w, b.h, b.d)
-      buildings.current.setMatrixAt(i, _o.matrix)
-      _c.set(b.amber ? ATMO : FACADES[b.tan])
-      buildings.current.setColorAt(i, _c)
-      // clay pitched roof on top (4-sided pyramid; thetaStart bakes the 45°)
-      placeOnSurface(b, R + b.h + b.roofH / 2, b.w * 1.08, b.roofH, b.d * 1.08)
-      roofs.current.setMatrixAt(i, _o.matrix)
-      _c.set(ROOFS[b.roof])
-      roofs.current.setColorAt(i, _c)
-      // one warm window on the +Z wall — the cozy lit-house glow (mostly lit)
-      _dir.set(b.x, b.y, b.z).normalize()
-      _q.setFromUnitVectors(UP, _dir)
-      _woff.set(0, 0, b.d / 2 + 0.02).applyQuaternion(_q)
-      _o.position.copy(_dir).multiplyScalar(R + b.h * 0.55).add(_woff)
-      _o.quaternion.copy(_q)
-      _o.scale.set(b.w * 0.42, b.h * 0.34, 1)
-      _o.updateMatrix()
-      windows.current.setMatrixAt(i, _o.matrix)
-      _c.set(i % 10 < 7 ? WIN_LIT[i % WIN_LIT.length] : WIN_OFF)
-      windows.current.setColorAt(i, _c)
-    }
-    buildings.current.instanceMatrix.needsUpdate = true
-    windows.current.instanceMatrix.needsUpdate = true
-    if (windows.current.instanceColor) windows.current.instanceColor.needsUpdate = true
-    if (buildings.current.instanceColor) buildings.current.instanceColor.needsUpdate = true
-    roofs.current.instanceMatrix.needsUpdate = true
-    if (roofs.current.instanceColor) roofs.current.instanceColor.needsUpdate = true
-
-    // ── 2050 skyscrapers: glass body + neon roof cap + a neon light strip ──
-    for (let i = 0; i < N_TW; i++) {
-      const s = TOWERS[i]
-      placeOnSurface(s, R + s.h / 2, s.w, s.h, s.d)
-      towers.current.setMatrixAt(i, _o.matrix)
-      _c.set(GLASS[s.glass]); towers.current.setColorAt(i, _c)
-      // neon cap on the roof
-      placeOnSurface(s, R + s.h + 0.06, s.w * 0.92, 0.12, s.d * 0.92)
-      towerTops.current.setMatrixAt(i, _o.matrix)
-      _c.set(NEON[s.neon]); towerTops.current.setColorAt(i, _c)
-      // vertical neon light strip on the +Z face
-      _dir.set(s.x, s.y, s.z).normalize()
-      _q.setFromUnitVectors(UP, _dir)
-      _woff.set(0, 0, s.d / 2 + 0.015).applyQuaternion(_q)
-      _o.position.copy(_dir).multiplyScalar(R + s.h * 0.5).add(_woff)
-      _o.quaternion.copy(_q)
-      _o.scale.set(s.w * 0.12, s.h * 0.82, 1)
-      _o.updateMatrix()
-      towerStrips.current.setMatrixAt(i, _o.matrix)
-      _c.set(NEON[s.neon]); towerStrips.current.setColorAt(i, _c)
-    }
-    for (const r of [towers, towerTops, towerStrips]) {
-      r.current.instanceMatrix.needsUpdate = true
-      if (r.current.instanceColor) r.current.instanceColor.needsUpdate = true
-    }
-
+    // Buildings are now REAL meshes (see <GlbCity/>). Trees + lamps stay procedural.
     for (let i = 0; i < N_T; i++) {
       const t = TREES[i]
       placeOnSurface(t, R + t.trunkH / 2, 0.06, t.trunkH, 0.06)
@@ -270,35 +188,6 @@ function Planet() {
         <sphereGeometry args={[R, 64, 48]} />
         <meshToonMaterial color={LAND} />
       </mesh>
-      <instancedMesh ref={buildings} args={[undefined, undefined, N_B]} frustumCulled={false}>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshToonMaterial />
-      </instancedMesh>
-      {/* clay pitched roofs — 4-sided pyramids matching each footprint */}
-      <instancedMesh ref={roofs} args={[undefined, undefined, N_B]} frustumCulled={false}>
-        <coneGeometry args={[0.707, 1, 4, 1, false, Math.PI / 4]} />
-        <meshToonMaterial />
-      </instancedMesh>
-      {/* warm lit windows — one per house, glow on their own (unlit material) */}
-      <instancedMesh ref={windows} args={[undefined, undefined, N_B]} frustumCulled={false}>
-        <planeGeometry args={[1, 1]} />
-        <meshBasicMaterial />
-      </instancedMesh>
-      {/* 2050 skyscrapers — sleek dusk-glass towers */}
-      <instancedMesh ref={towers} args={[undefined, undefined, N_TW]} frustumCulled={false}>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshToonMaterial />
-      </instancedMesh>
-      {/* neon roof caps (glow) */}
-      <instancedMesh ref={towerTops} args={[undefined, undefined, N_TW]} frustumCulled={false}>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial />
-      </instancedMesh>
-      {/* neon vertical light strips (glow) */}
-      <instancedMesh ref={towerStrips} args={[undefined, undefined, N_TW]} frustumCulled={false}>
-        <planeGeometry args={[1, 1]} />
-        <meshBasicMaterial />
-      </instancedMesh>
       <instancedMesh ref={trunks} args={[undefined, undefined, N_T]} frustumCulled={false}>
         <boxGeometry args={[1, 1, 1]} />
         <meshToonMaterial color={TRUNK} />
@@ -393,9 +282,9 @@ function PlayerRig({ keysRef, joyRef, reducedMotion }: PlayerRigProps) {
 
   return (
     <group ref={groupRef}>
-      <group scale={0.9}>
-        <Wren speedRef={speedRef} reducedMotion={reducedMotion} />
-      </group>
+      <Suspense fallback={null}>
+        <WrenMesh speedRef={speedRef} reducedMotion={reducedMotion} height={1.55} />
+      </Suspense>
     </group>
   )
 }
@@ -524,6 +413,10 @@ export default function PlanetWorld({
       overlay={overlay}
     >
       <Planet />
+      <Suspense fallback={null}>
+        <GlbCity towers={TOWER_PLACE} houses={HOUSE_PLACE} eye={EYE_PLACE} />
+        <PlanetNpcs />
+      </Suspense>
       <PlayerRig keysRef={keysRef} joyRef={joyRef} reducedMotion={reducedMotion} />
       <InkOutline />
     </CityStage>
