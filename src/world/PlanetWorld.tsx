@@ -59,7 +59,11 @@ const _m = new Matrix4()
 
 // ── World dimensions ─────────────────────────────────────────────────────────
 const R = 6 // planet radius (surface = where the town + player's feet sit)
-const SURFACE_N = 220 // candidate surface points (golden-spiral) — denser village
+// Candidate surface points (golden-spiral). abeto's planet is fully built-up — a
+// dense city cluster wrapped in thick forest, NO bare ground. We match that
+// density with OUR meshes: a high point count, ~no empty band, forest-dominant
+// fill so the globe reads like a packed little world instead of a sparse scatter.
+const SURFACE_N = 820
 
 // ── Locomotion + camera tuning ───────────────────────────────────────────────
 const WALK_SPEED = 2.6 // surface units / sec
@@ -100,14 +104,21 @@ for (let i = 0; i < SURFACE_N; i++) {
   const dy = sy
   const dz = Math.sin(theta) * rad
   const f = fract(i * 0.61803398875)
-  if (f < 0.46) {
+  // Cluster buildings toward a "downtown" cap (near the +Z/+Y opening view) and
+  // let forest dominate everywhere else — like abeto's city-in-a-forest. `built`
+  // is the local probability of a building, highest near the cluster centre.
+  const toCentre = dx * 0.30 + dy * 0.42 + dz * 0.86 // dot with downtown axis
+  const built = 0.20 + 0.34 * Math.max(0, toCentre) // 0.20 far side → ~0.54 downtown
+  if (f < built) {
     // a built point — height drives the mesh scale in GlbCity (tower vs house)
     BUILDINGS.push({ x: dx, y: dy, z: dz, h: 0.34 + hash(i, 1) * 0.5 })
-  } else if (f < 0.72) {
-    const rl = 0.16 + hash(i, 3) * 0.06
-    TREES.push({ x: dx, y: dy, z: dz, trunkH: 0.2 + hash(i, 4) * 0.1, rl, ru: rl * 0.72, green: i % CANOPY.length })
-  } else if (f < 0.84) {
+  } else if (f < built + 0.06) {
     LAMPS.push({ x: dx, y: dy, z: dz })
+  } else {
+    // everything else is forest — big overlapping canopies so the globe reads as
+    // continuous woodland (abeto-dense), never bare teal between trees.
+    const rl = 0.30 + hash(i, 3) * 0.20
+    TREES.push({ x: dx, y: dy, z: dz, trunkH: 0.22 + hash(i, 4) * 0.14, rl, ru: rl * 0.78, green: i % CANOPY.length })
   }
 }
 
