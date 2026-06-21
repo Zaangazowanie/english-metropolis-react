@@ -72,6 +72,7 @@ import { PostcardPier } from './PostcardPier'
 import { NamedResidents } from './NamedResidents'
 import { GrassTufts } from './GrassTufts'
 import { CobbleRing } from './CobbleRing'
+import { PuddlePools } from './PuddlePools'
 import { useWorldAudio } from './useWorldAudio'
 import {
   INTRO_SCRIPT, PORTAL_INTROS,
@@ -656,8 +657,9 @@ function WorldScene({
     <>
       <SceneFog />
       <Ground />
-      {/* Cobbled plaza floor over the teal ground */}
+      {/* Cobbled plaza floor over the teal ground + puddles catching lamplight */}
       <CobbleRing />
+      <PuddlePools />
       <LampRing />
       <LampLights />
       <BuildingSkyline />
