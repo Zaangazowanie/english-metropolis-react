@@ -119,6 +119,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     district: 'The Puzzle Workshop',
     load: () => import('../Unjumble3D'),
   },
+  {
+    shellKey: 'groupsort',
+    title: 'Sort the Mail',
+    district: 'The Post Office',
+    load: () => import('../GroupSort3D'),
+  },
   // ── English Metro WorldKit (Addendum A, approved 2026-06-20) ─────────────
   // The explorable dusk-London hub. "shellKey" intentionally uses the world
   // prefix so GameHome renders it as an "Enter the City" hero entry above
