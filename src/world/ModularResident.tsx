@@ -6,10 +6,12 @@
 // Here every part is a small composition of toon-shaded primitives, so a
 // character is "code, not assets": readable, zero bytes, zero new deps.
 //
-// A character is a <group> of part meshes (base body + hair + top + bottom +
-// shoes). Mesh count per character ≈ 12-15; for a large cast this should be
-// merged to one BufferGeometry (planned: a charactergeoworker-equivalent
-// merge util) before scaling past ~12 on screen.
+// A character is a <group> of part meshes: base body (pelvis/torso/neck/head) +
+// a readable face (sclera+pupil eyes, brows, nose) + sleeved bent arms with
+// hands + hair + top + bottom + shoes. Mesh count per character ≈ 22-26 at full
+// detail (the `detail` flag drops the face + arms on low tiers); for a large
+// cast this should be merged to one BufferGeometry (planned: a
+// charactergeoworker-equivalent merge util) before scaling past ~12 on screen.
 //
 // Idle animation: a gentle breathing bob + weight-shift sway on an inner group
 // (per-character phase so the cast isn't synchronised). One transform write per
@@ -20,7 +22,8 @@ import { useFrame } from '@react-three/fiber'
 import type { Group } from 'three'
 import type { ResidentSpec, HairStyle, TopStyle, BottomStyle, ShoeStyle } from './wardrobe'
 
-const EYE = '#1A1410'
+const EYE = '#1A1410'        // pupil / dark of the eye
+const EYE_WHITE = '#F3ECDD'  // warm sclera (reads as a living eye, not a dot)
 
 /** Deterministic hash → stable 0..2π phase so residents don't breathe in sync. */
 function phaseOf(s: string): number {
@@ -192,6 +195,56 @@ function Shoes({ style, color, g, footY }: { style: ShoeStyle; color: string; g:
   }
 }
 
+// ── Arm (one side) — sleeved upper arm + forearm, bent at the elbow, with a
+// hand. side = −1 (left) | +1 (right). Posed at a natural rest; the shoulder
+// widens the upper-arm top so the limb reads as connected, not floating. ──────
+function Arm({ side, shoulderX, shoulderY, upperLen, foreLen, armR, sleeve, skin }: {
+  side: 1 | -1; shoulderX: number; shoulderY: number
+  upperLen: number; foreLen: number; armR: number; sleeve: string; skin: string
+}) {
+  return (
+    <group position={[side * shoulderX, shoulderY, 0]} rotation={[0.12, 0, side * 0.16]}>
+      {/* upper arm — sleeve; flared at the shoulder to imply a deltoid */}
+      <mesh position={[0, -upperLen / 2, 0]} castShadow>
+        <cylinderGeometry args={[armR * 1.3, armR, upperLen, 7]} />
+        <meshToonMaterial color={sleeve} />
+      </mesh>
+      {/* forearm + hand — bent slightly forward at the elbow */}
+      <group position={[0, -upperLen, 0]} rotation={[0.3, 0, side * -0.06]}>
+        <mesh position={[0, -foreLen / 2, 0]}>
+          <cylinderGeometry args={[armR * 0.92, armR * 0.78, foreLen, 7]} />
+          <meshToonMaterial color={sleeve} />
+        </mesh>
+        <mesh position={[0, -foreLen - armR * 0.5, 0]}>
+          <sphereGeometry args={[armR * 1.2, 9, 8]} />
+          <meshToonMaterial color={skin} />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
+// ── Face (detail tier) — sclera + pupil eyes, brows and a small nose. Lifts the
+// head from "two dots" to a readable little face. Positioned on the +Z front. ─
+function Face({ hr, hy, hairColor, skin }: { hr: number; hy: number; hairColor: string; skin: string }) {
+  const ex = hr * 0.36
+  const ey = hy + hr * 0.05
+  return (
+    <group>
+      {/* eyes: warm sclera + dark pupil set slightly proud */}
+      <mesh position={[-ex, ey, hr * 0.82]}><sphereGeometry args={[hr * 0.19, 9, 8]} /><meshToonMaterial color={EYE_WHITE} /></mesh>
+      <mesh position={[ex, ey, hr * 0.82]}><sphereGeometry args={[hr * 0.19, 9, 8]} /><meshToonMaterial color={EYE_WHITE} /></mesh>
+      <mesh position={[-ex, ey, hr * 0.95]}><sphereGeometry args={[hr * 0.1, 8, 7]} /><meshToonMaterial color={EYE} /></mesh>
+      <mesh position={[ex, ey, hr * 0.95]}><sphereGeometry args={[hr * 0.1, 8, 7]} /><meshToonMaterial color={EYE} /></mesh>
+      {/* brows — a touch of expression */}
+      <mesh position={[-ex, hy + hr * 0.3, hr * 0.84]} rotation={[0, 0, 0.12]}><boxGeometry args={[hr * 0.34, hr * 0.07, hr * 0.07]} /><meshToonMaterial color={hairColor} /></mesh>
+      <mesh position={[ex, hy + hr * 0.3, hr * 0.84]} rotation={[0, 0, -0.12]}><boxGeometry args={[hr * 0.34, hr * 0.07, hr * 0.07]} /><meshToonMaterial color={hairColor} /></mesh>
+      {/* nose */}
+      <mesh position={[0, hy - hr * 0.04, hr * 1.0]}><sphereGeometry args={[hr * 0.12, 8, 7]} /><meshToonMaterial color={skin} /></mesh>
+    </group>
+  )
+}
+
 // ── The assembled resident ────────────────────────────────────────────────────
 export function ModularResident({ spec, position = [0, 0, 0], rotation = [0, 0, 0], detail = true, reducedMotion = false }: ModularResidentProps) {
   const g = spec.girth
@@ -232,12 +285,11 @@ export function ModularResident({ spec, position = [0, 0, 0], rotation = [0, 0, 
       <mesh position={[0, hy, 0]} castShadow><sphereGeometry args={[hr, 14, 11]} /><meshToonMaterial color={spec.skin} /></mesh>
       {detail && (
         <>
-          {/* eyes (front, +Z) */}
-          <mesh position={[-hr * 0.36, hy + hr * 0.05, hr * 0.9]}><sphereGeometry args={[hr * 0.15, 7, 6]} /><meshToonMaterial color={EYE} /></mesh>
-          <mesh position={[hr * 0.36, hy + hr * 0.05, hr * 0.9]}><sphereGeometry args={[hr * 0.15, 7, 6]} /><meshToonMaterial color={EYE} /></mesh>
-          {/* arms (skin; sleeves read via the top's silhouette) */}
-          <mesh position={[-0.26 * g, torsoY, 0]} rotation={[0, 0, 0.12]}><cylinderGeometry args={[0.05, 0.05, torsoH * 1.05, 6]} /><meshToonMaterial color={spec.skin} /></mesh>
-          <mesh position={[0.26 * g, torsoY, 0]} rotation={[0, 0, -0.12]}><cylinderGeometry args={[0.05, 0.05, torsoH * 1.05, 6]} /><meshToonMaterial color={spec.skin} /></mesh>
+          {/* a readable little face */}
+          <Face hr={hr} hy={hy} hairColor={spec.hairColor} skin={spec.skin} />
+          {/* sleeved, bent arms with hands — replace the old floating cylinders */}
+          <Arm side={-1} shoulderX={0.22 * g + 0.03} shoulderY={torsoY + torsoH * 0.42} upperLen={torsoH * 0.6} foreLen={torsoH * 0.5} armR={0.055} sleeve={spec.topColor} skin={spec.skin} />
+          <Arm side={1} shoulderX={0.22 * g + 0.03} shoulderY={torsoY + torsoH * 0.42} upperLen={torsoH * 0.6} foreLen={torsoH * 0.5} armR={0.055} sleeve={spec.topColor} skin={spec.skin} />
         </>
       )}
 
