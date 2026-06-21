@@ -39,6 +39,7 @@ export interface WorldPortalProps {
 export function WorldPortal({ position, active = false, lit = false, reducedMotion = false }: WorldPortalProps) {
   const beamRef = useRef<Mesh>(null!)
   const ringRef = useRef<Mesh>(null!)
+  const chevRef = useRef<Mesh>(null!)
   const sparkGeo = useRef<BufferGeometry>(null!)
   const sparkPts = useRef<ThreePoints>(null!)
   const t = useRef(0)
@@ -85,6 +86,10 @@ export function WorldPortal({ position, active = false, lit = false, reducedMoti
         if (a[i * 3 + 1] > 2.3) a[i * 3 + 1] = 0.02
       }
       attr.needsUpdate = true
+    }
+    // Bob the "play here" chevron (faster + a touch higher when Wren is near).
+    if (chevRef.current) {
+      chevRef.current.position.y = 2.95 + Math.sin(t.current * (active ? 2.4 : 1.5)) * 0.14
     }
   })
 
@@ -141,6 +146,14 @@ export function WorldPortal({ position, active = false, lit = false, reducedMoti
           depthWrite={false}
         />
       </points>
+      {/* "Play here" chevron — a bobbing green down-arrow over the portal, the
+          abeto interaction cue. Hidden once the district is completed (lit). */}
+      {!lit && (
+        <mesh ref={chevRef} position={[0, 3.15, 0]} rotation={[Math.PI, 0, 0]}>
+          <coneGeometry args={[0.34, 0.58, 4]} />
+          <meshBasicMaterial color={active ? '#9CFFAC' : '#6FE08A'} />
+        </mesh>
+      )}
     </group>
   )
 }
