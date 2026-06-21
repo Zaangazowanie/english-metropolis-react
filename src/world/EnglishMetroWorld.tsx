@@ -188,8 +188,9 @@ function Ground() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
       <planeGeometry args={[120, 120]} />
-      {/* Canonical Dusk Teal #2B5F6E — the warm-lit teal street of the look-dev */}
-      <meshToonMaterial color="#2B5F6E" />
+      {/* Dusk Teal lifted to EARLY dusk (#387986) — lighter + a touch warmer so
+          the street catches the golden horizon light at the low plaza camera. */}
+      <meshToonMaterial color="#387986" />
     </mesh>
   )
 }
