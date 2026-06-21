@@ -30,23 +30,27 @@ export function DialogueBox({ speaker, text, isTyping, index, total, onAdvance, 
     fontFamily: FONT_DISPLAY,
     animation: 'em-dlg-in 0.26s ease',
   }
+  // Hand-drawn "inked" speech bubble — bold black outline + a comic offset
+  // shadow, to match the ink-outlined world (abeto's bubble register).
   const panel: CSSProperties = {
     position: 'relative',
     background: 'linear-gradient(180deg, #FBF6EC 0%, #F2E9D6 100%)',
     color: '#241a10',
-    borderRadius: 16,
+    border: '3px solid #14100a',
+    borderRadius: 14,
     padding: '22px 24px 20px',
-    boxShadow: '0 24px 60px -18px rgba(0,0,0,0.75), 0 0 0 1px rgba(0,0,0,0.06)',
+    boxShadow: '6px 7px 0 -1px rgba(20,16,10,0.22), 0 22px 48px -20px rgba(0,0,0,0.7)',
     cursor: 'pointer',
     minHeight: 92,
   }
   const chip: CSSProperties = {
-    position: 'absolute', top: -15, left: 20,
+    position: 'absolute', top: -16, left: 20,
     background: sp.color, color: sp.ink,
-    fontWeight: 700, fontSize: 13, letterSpacing: '0.08em',
+    fontWeight: 800, fontSize: 13, letterSpacing: '0.08em',
     textTransform: 'uppercase',
     padding: '5px 14px', borderRadius: 9,
-    boxShadow: `0 6px 18px -6px ${sp.color}`,
+    border: '2.5px solid #14100a',
+    boxShadow: '3px 3px 0 -0.5px rgba(20,16,10,0.22)',
   }
 
   return (
@@ -61,9 +65,21 @@ export function DialogueBox({ speaker, text, isTyping, index, total, onAdvance, 
       >
         <span style={chip}>{sp.name}</span>
 
+        {/* speech-bubble tail (inked) — black outer triangle + cream inner */}
+        <div aria-hidden style={{
+          position: 'absolute', left: 46, bottom: -20, width: 0, height: 0,
+          borderLeft: '15px solid transparent', borderRight: '15px solid transparent',
+          borderTop: '20px solid #14100a',
+        }} />
+        <div aria-hidden style={{
+          position: 'absolute', left: 49, bottom: -12, width: 0, height: 0,
+          borderLeft: '11px solid transparent', borderRight: '11px solid transparent',
+          borderTop: '15px solid #F2E9D6',
+        }} />
+
         <p aria-live="polite" style={{
           margin: '6px 0 0', fontSize: 'clamp(15px, 2vw, 18px)',
-          lineHeight: 1.55, fontWeight: 500, minHeight: 28,
+          lineHeight: 1.55, fontWeight: 600, minHeight: 28,
         }}>
           {text}
           {isTyping && <span className="em-dlg-caret" style={{ opacity: 0.5 }}>▍</span>}
