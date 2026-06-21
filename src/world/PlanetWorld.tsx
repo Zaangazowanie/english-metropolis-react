@@ -35,7 +35,7 @@ import { CityStage } from '../practice/shells3d/kit/CityStage'
 import { palette } from '../practice/shells3d/kit/palette'
 import { WrenMesh } from './WrenMesh'
 import { InkOutline } from './InkOutline'
-import { GlbCity } from './GlbCity'
+import { GlbCity, PlanetNpcs } from './GlbCity'
 import type { Placement } from './GlbCity'
 import { useWorldInput, readKeys } from './useWorldInput'
 import type { JoyVec } from './useWorldInput'
@@ -415,6 +415,7 @@ export default function PlanetWorld({
       <Planet />
       <Suspense fallback={null}>
         <GlbCity towers={TOWER_PLACE} houses={HOUSE_PLACE} eye={EYE_PLACE} />
+        <PlanetNpcs />
       </Suspense>
       <PlayerRig keysRef={keysRef} joyRef={joyRef} reducedMotion={reducedMotion} />
       <InkOutline />

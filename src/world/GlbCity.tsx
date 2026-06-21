@@ -96,4 +96,36 @@ export function GlbCity({ towers, houses, eye }: GlbCityProps) {
   )
 }
 
+// ── Named NPC keepers — real (static) character meshes standing on the sphere ──
+export interface NpcSpec { url: string; dir: [number, number, number]; height?: number; yaw?: number }
+
+function Npc({ url, dir, height = 1.45, yaw = 0 }: NpcSpec) {
+  const gltf = useLoader(GLTFLoader, url, withDraco)
+  const { s, lift, pos, quat } = useMemo(() => {
+    const box = new Box3().setFromObject(gltf.scene)
+    const size = new Vector3(); box.getSize(size)
+    const sc = height / (size.y || 1)
+    const d = new Vector3(dir[0], dir[1], dir[2]).normalize()
+    const q = new Quaternion().setFromUnitVectors(UP, d)
+    if (yaw) q.multiply(new Quaternion().setFromAxisAngle(UP, yaw))
+    return { s: sc, lift: -box.min.y * sc, pos: d.clone().multiplyScalar(R), quat: q }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gltf])
+  return (
+    <group position={[pos.x, pos.y, pos.z]} quaternion={[quat.x, quat.y, quat.z, quat.w]}>
+      <primitive object={gltf.scene} scale={s} position={[0, lift, 0]} />
+    </group>
+  )
+}
+
+export function PlanetNpcs() {
+  return (
+    <group>
+      <Npc url="/world/npc_flora.glb" dir={[0.52, 0.40, 0.76]} yaw={-0.5} />
+      <Npc url="/world/npc_frank.glb" dir={[-0.42, 0.46, 0.78]} yaw={0.6} />
+      <Npc url="/world/npc_marg.glb" dir={[0.10, 0.62, 0.78]} yaw={0.1} />
+    </group>
+  )
+}
+
 export default GlbCity
