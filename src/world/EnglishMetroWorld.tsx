@@ -196,43 +196,43 @@ function Ground() {
 // ─── Lamp ring ────────────────────────────────────────────────────────────────
 // 16 instanced posts (brass cylinders) + 16 instanced amber glow caps.
 // Draw calls: 2 (one InstancedMesh each).
+// A proper dusk-London street lantern (not a bare bulb on a stick): brass post
+// on a base, a collar, a six-pane glass lantern housing with the amber glow
+// burning inside it, a peaked brass cap and a finial knob. 7 InstancedMeshes →
+// 7 draw calls for all 16 lamps. The "Lantern Alley" signature, up close.
 function LampRing() {
-  const postRef  = useRef<InstancedMesh>(null!)
-  const glowRef  = useRef<InstancedMesh>(null!)
-  const baseRef  = useRef<InstancedMesh>(null!)
-  const { settings } = useStageQuality()
+  const postRef     = useRef<InstancedMesh>(null!)
+  const baseRef     = useRef<InstancedMesh>(null!)
+  const collarRef   = useRef<InstancedMesh>(null!)
+  const housingRef  = useRef<InstancedMesh>(null!)
+  const glowRef     = useRef<InstancedMesh>(null!)
+  const capRef      = useRef<InstancedMesh>(null!)
+  const finialRef   = useRef<InstancedMesh>(null!)
 
   useEffect(() => {
+    const refs = [postRef, baseRef, collarRef, housingRef, glowRef, capRef, finialRef]
     for (let i = 0; i < LAMP_COUNT; i++) {
       const angle = (i / LAMP_COUNT) * Math.PI * 2
       const x = Math.cos(angle) * LAMP_RING_RADIUS
       const z = Math.sin(angle) * LAMP_RING_RADIUS
-
-      // Post — stand at ground level
-      _obj.position.set(x, 1.4, z)
-      _obj.scale.setScalar(1)
-      _obj.rotation.set(0, 0, 0)
-      _obj.updateMatrix()
-      postRef.current.setMatrixAt(i, _obj.matrix)
-
-      // Base disc
-      _obj.position.set(x, 0.08, z)
-      _obj.scale.set(0.3, 1, 0.3)
-      _obj.rotation.set(0, 0, 0)
-      _obj.updateMatrix()
-      baseRef.current.setMatrixAt(i, _obj.matrix)
-
-      // Glow cap — sits on top of the post
-      _obj.position.set(x, 2.88, z)
-      _obj.scale.setScalar(settings.particles > 0 ? 0.28 : 0.22)
-      _obj.rotation.set(0, 0, 0)
-      _obj.updateMatrix()
-      glowRef.current.setMatrixAt(i, _obj.matrix)
+      // sizes are baked into geometry → every instance is scale 1, just placed.
+      const set = (ref: React.MutableRefObject<InstancedMesh>, y: number) => {
+        _obj.position.set(x, y, z)
+        _obj.rotation.set(0, 0, 0)
+        _obj.scale.setScalar(1)
+        _obj.updateMatrix()
+        ref.current.setMatrixAt(i, _obj.matrix)
+      }
+      set(postRef, 1.4)      // shaft (0 → 2.8)
+      set(baseRef, 0.08)     // ground base disc
+      set(collarRef, 2.85)   // brass collar where the lantern meets the post
+      set(housingRef, 3.04)  // glass lantern body
+      set(glowRef, 3.04)     // amber flame inside the glass
+      set(capRef, 3.29)      // peaked brass cap
+      set(finialRef, 3.42)   // finial knob
     }
-    postRef.current.instanceMatrix.needsUpdate = true
-    glowRef.current.instanceMatrix.needsUpdate = true
-    baseRef.current.instanceMatrix.needsUpdate  = true
-  }, [settings.particles])
+    for (const r of refs) r.current.instanceMatrix.needsUpdate = true
+  }, [])
 
   return (
     <>
@@ -245,14 +245,38 @@ function LampRing() {
       {/* Base disc */}
       <instancedMesh ref={baseRef} args={[undefined, undefined, LAMP_COUNT]}
         frustumCulled={false}>
-        <cylinderGeometry args={[1, 1.1, 0.15, 8]} />
+        <cylinderGeometry args={[0.3, 0.34, 0.15, 8]} />
         <meshToonMaterial color={palette.brass} />
       </instancedMesh>
-      {/* Amber glow cap — MeshBasicMaterial so it never goes dark */}
+      {/* Collar — brass cup the lantern sits in */}
+      <instancedMesh ref={collarRef} args={[undefined, undefined, LAMP_COUNT]}
+        frustumCulled={false}>
+        <cylinderGeometry args={[0.1, 0.13, 0.08, 6]} />
+        <meshToonMaterial color={palette.brass} />
+      </instancedMesh>
+      {/* Glass lantern housing — six warm panes; the glow burns through it */}
+      <instancedMesh ref={housingRef} args={[undefined, undefined, LAMP_COUNT]}
+        frustumCulled={false}>
+        <cylinderGeometry args={[0.16, 0.17, 0.36, 6]} />
+        <meshBasicMaterial color="#ffe2a6" transparent opacity={0.34} depthWrite={false} />
+      </instancedMesh>
+      {/* Amber flame inside — MeshBasicMaterial so it never goes dark */}
       <instancedMesh ref={glowRef} args={[undefined, undefined, LAMP_COUNT]}
         frustumCulled={false}>
-        <sphereGeometry args={[1, 8, 6]} />
-        <meshBasicMaterial color={palette.lanternAmber} />
+        <sphereGeometry args={[0.12, 8, 6]} />
+        <meshBasicMaterial color={palette.lanternCore} />
+      </instancedMesh>
+      {/* Peaked brass cap */}
+      <instancedMesh ref={capRef} args={[undefined, undefined, LAMP_COUNT]}
+        frustumCulled={false}>
+        <coneGeometry args={[0.22, 0.18, 6]} />
+        <meshToonMaterial color={palette.gold} />
+      </instancedMesh>
+      {/* Finial knob */}
+      <instancedMesh ref={finialRef} args={[undefined, undefined, LAMP_COUNT]}
+        frustumCulled={false}>
+        <sphereGeometry args={[0.035, 6, 5]} />
+        <meshToonMaterial color={palette.gold} />
       </instancedMesh>
     </>
   )
