@@ -135,10 +135,13 @@ const PORTAL_DEFS: Array<{ shellKey: string; title: string; district: string }> 
   { shellKey: 'spellingbee',     title: "Mr. Frank's Address Board",  district: 'The Sorting Office' },
   { shellKey: 'gapfill',         title: "Posta's Smudged Postcard",   district: 'Postcard Pier' },
   // Districts arc — shells registered in game3d/registry, now accessible from the plaza ring.
-  { shellKey: 'truefalse',       title: 'The Crossroads',             district: 'Tannoy Cross' },
-  { shellKey: 'multiplechoice',  title: 'Pin the Poster',             district: 'The Bulletin Board' },
-  { shellKey: 'unjumble',        title: 'Set the Line',               district: 'The Puzzle Workshop' },
-  { shellKey: 'groupsort',       title: 'Sort the Mail',              district: 'The Post Office' },
+  { shellKey: 'truefalse',           title: 'The Crossroads',             district: 'Tannoy Cross' },
+  { shellKey: 'multiplechoice',      title: 'Pin the Poster',             district: 'The Bulletin Board' },
+  { shellKey: 'unjumble',            title: 'Set the Line',               district: 'The Puzzle Workshop' },
+  { shellKey: 'groupsort',           title: 'Sort the Mail',              district: 'The Post Office' },
+  { shellKey: 'rankorder',           title: 'Rank the Ballots',           district: 'The Election Hall' },
+  { shellKey: 'sentencecorrection',  title: 'File the Proof',             district: "The Editor's Office" },
+  { shellKey: 'wordformation',       title: 'Chisel the Form',            district: "The Mason's Yard" },
 ]
 const PORTALS: PortalDef[] = PORTAL_DEFS.map((d, i) => {
   const a = (i / PORTAL_DEFS.length) * Math.PI * 2 // 0 = +Z, clockwise
