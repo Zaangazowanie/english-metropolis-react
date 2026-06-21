@@ -71,6 +71,7 @@ import { ChenCafe } from './ChenCafe'
 import { SortingOffice } from './SortingOffice'
 import { PostcardPier } from './PostcardPier'
 import { Deliveries } from './Deliveries'
+import { Emotes } from './Emotes'
 import { NamedResidents } from './NamedResidents'
 import { GrassTufts } from './GrassTufts'
 import { CobbleRing } from './CobbleRing'
@@ -703,6 +704,8 @@ function WorldScene({
       <PostcardPier position={[2.5, 0, 7.0]} rotation={[0, -2.80, 0]} />
       {/* Named canon NPCs standing at their district landmarks */}
       <NamedResidents reducedMotion={reducedMotion} />
+      {/* Ambient emote bubbles popping up over the landmarks */}
+      <Emotes reducedMotion={reducedMotion} />
       {/* Tufts of dusk grass softening the plaza border */}
       <GrassTufts />
       {/* Title: gentle establishing drift. Ambient: Wren + follow-cam. */}
