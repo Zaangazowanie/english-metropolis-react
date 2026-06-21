@@ -50,13 +50,19 @@ const FRAG = /* glsl */`
     c = max(c, 0.0);
     return mix(1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, c * 12.92, step(c, vec3(0.0031308)));
   }
+  // ACES filmic tone-map (Narkowicz) for richer, more cinematic contrast +
+  // graceful highlight roll-off (neon doesn't clip harshly). Operates in linear.
+  vec3 aces(vec3 x) {
+    x *= 1.28; // exposure lift (ACES compresses mids a touch)
+    return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+  }
 
   vec3 sCol(vec2 uv) { return lin2srgb(texture2D(tDiffuse, uv).rgb); }
 
   void main() {
     vec2 px = thickness / resolution;
     vec4 c = texture2D(tDiffuse, vUv);
-    vec3 col = lin2srgb(c.rgb); // correct display colour
+    vec3 col = lin2srgb(aces(c.rgb)); // ACES tone-map → sRGB (cinematic)
 
     // — depth edges (silhouettes + object overlaps) —
     float dC = linDepth(texture2D(tDepth, vUv).x);
