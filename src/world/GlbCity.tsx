@@ -84,14 +84,17 @@ export interface GlbCityProps {
   towers: Placement[]
   houses: Placement[]
   eye: Placement
+  /** Tower Bridge landmark (single instance). Optional so callers can omit it. */
+  bridge?: Placement
 }
 
-export function GlbCity({ towers, houses, eye }: GlbCityProps) {
+export function GlbCity({ towers, houses, eye, bridge }: GlbCityProps) {
   return (
     <group>
       <Instanced url="/world/skyscraper.glb" items={towers} />
       <Instanced url="/world/townhouse.glb" items={houses} />
       <Instanced url="/world/londoneye.glb" items={[eye]} />
+      {bridge && <Instanced url="/world/bridge.glb" items={[bridge]} />}
     </group>
   )
 }

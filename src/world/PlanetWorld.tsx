@@ -126,6 +126,9 @@ for (const b of BUILDINGS) {
 }
 // London Eye landmark — on the near (+Z) hemisphere so it's in the opening view.
 const EYE_PLACE: Placement = { x: 0.32, y: 0.42, z: 0.85, scale: 2.9, yaw: 1.2 }
+// Tower Bridge landmark — near hemisphere, opposite the Eye, low on the horizon
+// so its wide span reads against the globe curve. (Single GLB instance.)
+const BRIDGE_PLACE: Placement = { x: -0.46, y: 0.06, z: 0.88, scale: 2.0, yaw: 0.5 }
 
 // Orient an instance so local +Y follows the surface normal, then sit it at
 // `dist` from the centre with `(sx,sy,sz)` scale → matrix in module scratch _o.
@@ -414,7 +417,7 @@ export default function PlanetWorld({
     >
       <Planet />
       <Suspense fallback={null}>
-        <GlbCity towers={TOWER_PLACE} houses={HOUSE_PLACE} eye={EYE_PLACE} />
+        <GlbCity towers={TOWER_PLACE} houses={HOUSE_PLACE} eye={EYE_PLACE} bridge={BRIDGE_PLACE} />
         <PlanetNpcs />
       </Suspense>
       <PlayerRig keysRef={keysRef} joyRef={joyRef} reducedMotion={reducedMotion} />
