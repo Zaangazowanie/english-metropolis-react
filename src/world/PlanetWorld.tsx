@@ -57,7 +57,7 @@ const _m = new Matrix4()
 
 // ── World dimensions ─────────────────────────────────────────────────────────
 const R = 6 // planet radius (surface = where the town + player's feet sit)
-const SURFACE_N = 160 // candidate surface points (golden-spiral)
+const SURFACE_N = 220 // candidate surface points (golden-spiral) — denser village
 
 // ── Locomotion + camera tuning ───────────────────────────────────────────────
 const WALK_SPEED = 2.6 // surface units / sec
@@ -71,6 +71,7 @@ const CAM_LERP = 0.1 // follow-camera spring (snaps when reducedMotion)
 const LAND = '#2B5F6E' // canon Dusk Teal land/ocean
 const ATMO = palette.lanternAmber // warm rim-glow + lit windows + lamp beads
 const FACADES = ['#D9CDB4', '#CDBA98', '#BFA079', '#D2C0A0', '#8E9BA0', '#C8AE90']
+const ROOFS = ['#B5572E', '#A24B27', '#9C5333', '#8E4828', '#C2632F'] // clay-tiled London rooftops
 const CANOPY = ['#2E4A3A', '#3E5E3A', '#46583C', '#54603A', '#5E6E3A']
 const TRUNK = '#3A2C22'
 const POST = '#23303a'
@@ -80,7 +81,14 @@ const fract = (x: number) => x - Math.floor(x)
 const hash = (i: number, s: number) => fract(Math.sin((i + 1) * 12.9898 + s * 78.233) * 43758.5453)
 
 // ── Precompute the town layout once (module scope → constant instance counts) ─
-interface Building { x: number; y: number; z: number; h: number; w: number; tan: number; amber: boolean }
+// Buildings are real little houses now: a chunky box body (separate width/depth)
+// + a clay pitched roof, kept short so they read as a packed village, not the
+// thin slabs of the first pass.
+interface Building {
+  x: number; y: number; z: number
+  w: number; d: number; h: number; roofH: number
+  tan: number; roof: number; amber: boolean
+}
 interface Tree { x: number; y: number; z: number; trunkH: number; rl: number; ru: number; green: number }
 interface Lamp { x: number; y: number; z: number }
 
@@ -96,13 +104,19 @@ for (let i = 0; i < SURFACE_N; i++) {
   const dy = sy
   const dz = Math.sin(theta) * rad
   const f = fract(i * 0.61803398875)
-  if (f < 0.4) {
-    const h = 0.3 + hash(i, 1) * 0.85
-    BUILDINGS.push({ x: dx, y: dy, z: dz, h, w: 0.2 + hash(i, 2) * 0.12, tan: i % FACADES.length, amber: i % 5 === 0 })
-  } else if (f < 0.7) {
+  if (f < 0.46) {
+    BUILDINGS.push({
+      x: dx, y: dy, z: dz,
+      w: 0.26 + hash(i, 2) * 0.16,   // chunky footprint (was a thin 0.2 column)
+      d: 0.24 + hash(i, 5) * 0.14,
+      h: 0.34 + hash(i, 1) * 0.5,    // shorter — houses, not towers
+      roofH: 0.12 + hash(i, 6) * 0.16,
+      tan: i % FACADES.length, roof: i % ROOFS.length, amber: i % 4 === 0,
+    })
+  } else if (f < 0.72) {
     const rl = 0.16 + hash(i, 3) * 0.06
     TREES.push({ x: dx, y: dy, z: dz, trunkH: 0.2 + hash(i, 4) * 0.1, rl, ru: rl * 0.72, green: i % CANOPY.length })
-  } else if (f < 0.82) {
+  } else if (f < 0.84) {
     LAMPS.push({ x: dx, y: dy, z: dz })
   }
 }
@@ -125,6 +139,7 @@ function placeOnSurface(b: Building | Tree | Lamp, dist: number, sx: number, sy:
 // ── The planet + its instanced town (fully static — the player is the motion) ─
 function Planet() {
   const buildings = useRef<InstancedMesh>(null!)
+  const roofs = useRef<InstancedMesh>(null!)
   const trunks = useRef<InstancedMesh>(null!)
   const canopyLo = useRef<InstancedMesh>(null!)
   const canopyHi = useRef<InstancedMesh>(null!)
@@ -134,13 +149,21 @@ function Planet() {
   useEffect(() => {
     for (let i = 0; i < N_B; i++) {
       const b = BUILDINGS[i]
-      placeOnSurface(b, R + b.h / 2, b.w, b.h, b.w)
+      // box body (chunky, real depth)
+      placeOnSurface(b, R + b.h / 2, b.w, b.h, b.d)
       buildings.current.setMatrixAt(i, _o.matrix)
       _c.set(b.amber ? ATMO : FACADES[b.tan])
       buildings.current.setColorAt(i, _c)
+      // clay pitched roof on top (4-sided pyramid; thetaStart bakes the 45°)
+      placeOnSurface(b, R + b.h + b.roofH / 2, b.w * 1.08, b.roofH, b.d * 1.08)
+      roofs.current.setMatrixAt(i, _o.matrix)
+      _c.set(ROOFS[b.roof])
+      roofs.current.setColorAt(i, _c)
     }
     buildings.current.instanceMatrix.needsUpdate = true
     if (buildings.current.instanceColor) buildings.current.instanceColor.needsUpdate = true
+    roofs.current.instanceMatrix.needsUpdate = true
+    if (roofs.current.instanceColor) roofs.current.instanceColor.needsUpdate = true
 
     for (let i = 0; i < N_T; i++) {
       const t = TREES[i]
@@ -184,6 +207,11 @@ function Planet() {
       </mesh>
       <instancedMesh ref={buildings} args={[undefined, undefined, N_B]} frustumCulled={false}>
         <boxGeometry args={[1, 1, 1]} />
+        <meshToonMaterial />
+      </instancedMesh>
+      {/* clay pitched roofs — 4-sided pyramids matching each footprint */}
+      <instancedMesh ref={roofs} args={[undefined, undefined, N_B]} frustumCulled={false}>
+        <coneGeometry args={[0.707, 1, 4, 1, false, Math.PI / 4]} />
         <meshToonMaterial />
       </instancedMesh>
       <instancedMesh ref={trunks} args={[undefined, undefined, N_T]} frustumCulled={false}>
