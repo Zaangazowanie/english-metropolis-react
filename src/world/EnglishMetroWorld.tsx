@@ -65,6 +65,7 @@ import { TitlePlanet } from './TitlePlanet'
 import { FestoonLights } from './FestoonLights'
 import { LampRelight } from './LampRelight'
 import { NpcResidents } from './NpcResidents'
+import { FloraStall } from './FloraStall'
 import { useWorldAudio } from './useWorldAudio'
 import {
   INTRO_SCRIPT, PORTAL_INTROS,
@@ -662,6 +663,8 @@ function WorldScene({
       {/* W3: living zone — paper lanterns + fully-built canon residents */}
       <PaperLanterns reducedMotion={reducedMotion} />
       <NpcResidents reducedMotion={reducedMotion} />
+      {/* Saffron Market landmark — Flora's flower stall at the plaza edge */}
+      <FloraStall position={[-6.5, 0, 4.5]} rotation={[0, 2.18, 0]} reducedMotion={reducedMotion} />
       {/* Title: gentle establishing drift. Ambient: Wren + follow-cam. */}
       {/* Title: the menu "tiny planet" (drives the title camera). Ambient: Wren. */}
       {!ambient && <TitlePlanet reducedMotion={reducedMotion} />}
