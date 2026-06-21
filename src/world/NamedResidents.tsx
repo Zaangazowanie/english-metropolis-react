@@ -11,8 +11,9 @@
 // shared with the rest of the cast.
 //
 // CONTRACT: zero new deps, no textures/GLBs/URLs. Procedural geometry only.
-// Pure static — no useFrame, no per-frame allocations. reducedMotion-agnostic.
-// 4 figures × ~13 part meshes ≈ 52 draw calls (well within the <150 budget).
+// Each keeper has the kit's idle breathing/sway animation (frozen under
+// reducedMotion, threaded from the world). 4 figures × ~13 part meshes ≈ 52
+// draw calls (well within the <150 budget).
 
 import type { JSX } from 'react'
 import { ModularResident } from './ModularResident'
@@ -34,11 +35,11 @@ const PLACEMENTS: Array<{ name: string; position: [number, number, number]; rota
 ]
 
 /** Renders all four named keepers at their district landmarks, via the kit. */
-export function NamedResidents(): JSX.Element {
+export function NamedResidents({ reducedMotion = false }: { reducedMotion?: boolean }): JSX.Element {
   return (
     <>
       {PLACEMENTS.map((p) => (
-        <ModularResident key={p.name} spec={byName(p.name)} position={p.position} rotation={p.rotation} />
+        <ModularResident key={p.name} spec={byName(p.name)} position={p.position} rotation={p.rotation} reducedMotion={reducedMotion} />
       ))}
     </>
   )

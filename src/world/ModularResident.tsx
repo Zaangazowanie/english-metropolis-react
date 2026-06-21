@@ -9,12 +9,25 @@
 // A character is a <group> of part meshes (base body + hair + top + bottom +
 // shoes). Mesh count per character ≈ 12-15; for a large cast this should be
 // merged to one BufferGeometry (planned: a charactergeoworker-equivalent
-// merge util) before scaling past ~12 on screen. reducedMotion-agnostic
-// (this component is static; movement/orbit is the caller's job).
+// merge util) before scaling past ~12 on screen.
+//
+// Idle animation: a gentle breathing bob + weight-shift sway on an inner group
+// (per-character phase so the cast isn't synchronised). One transform write per
+// character per frame — allocation-free. Frozen under reducedMotion.
 
+import { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import type { Group } from 'three'
 import type { ResidentSpec, HairStyle, TopStyle, BottomStyle, ShoeStyle } from './wardrobe'
 
 const EYE = '#1A1410'
+
+/** Deterministic hash → stable 0..2π phase so residents don't breathe in sync. */
+function phaseOf(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
+  return ((Math.abs(h) % 1000) / 1000) * Math.PI * 2
+}
 
 export interface ModularResidentProps {
   spec: ResidentSpec
@@ -22,6 +35,8 @@ export interface ModularResidentProps {
   rotation?: [number, number, number]
   /** Drop eyes + arms at low quality to save draw calls. */
   detail?: boolean
+  /** Freeze the idle animation (accessibility). */
+  reducedMotion?: boolean
 }
 
 // ── Hair (7 styles) ───────────────────────────────────────────────────────────
@@ -178,9 +193,20 @@ function Shoes({ style, color, g, footY }: { style: ShoeStyle; color: string; g:
 }
 
 // ── The assembled resident ────────────────────────────────────────────────────
-export function ModularResident({ spec, position = [0, 0, 0], rotation = [0, 0, 0], detail = true }: ModularResidentProps) {
+export function ModularResident({ spec, position = [0, 0, 0], rotation = [0, 0, 0], detail = true, reducedMotion = false }: ModularResidentProps) {
   const g = spec.girth
   const h = spec.height
+  // Idle breathing bob + slow weight-shift sway on an inner group.
+  const anim = useRef<Group>(null!)
+  const t0 = useRef(phaseOf(spec.name))
+  useFrame((_, dt) => {
+    if (!anim.current) return
+    if (reducedMotion) { anim.current.position.y = 0; anim.current.rotation.z = 0; return }
+    t0.current += dt
+    const t = t0.current
+    anim.current.position.y = Math.sin(t * 1.6) * 0.012 * h        // breathe
+    anim.current.rotation.z = Math.sin(t * 0.7) * 0.02             // weight shift
+  })
   // Vertical layout (feet at y≈0), scaled by height. A height=1.0 resident
   // stands ~1.55 units tall — sized to the plaza lamps/stalls.
   const footY = 0.0
@@ -194,6 +220,7 @@ export function ModularResident({ spec, position = [0, 0, 0], rotation = [0, 0, 
 
   return (
     <group position={position} rotation={rotation}>
+      <group ref={anim}>
       {/* ── Base body (skin) ── */}
       {/* pelvis */}
       <mesh position={[0, hipY, 0]}><cylinderGeometry args={[0.16 * g, 0.16 * g, 0.14 * h, 8]} /><meshToonMaterial color={spec.skin} /></mesh>
@@ -219,6 +246,7 @@ export function ModularResident({ spec, position = [0, 0, 0], rotation = [0, 0, 
       <Top style={spec.top} color={spec.topColor} g={g} torsoY={torsoY} torsoH={torsoH} hy={hy} hr={hr} />
       <Hair style={spec.hair} color={spec.hairColor} hr={hr} hy={hy} />
       <Shoes style={spec.shoes} color={spec.shoeColor} g={g} footY={footY} />
+      </group>
     </group>
   )
 }
