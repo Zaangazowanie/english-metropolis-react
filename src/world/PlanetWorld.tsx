@@ -33,7 +33,7 @@ import type { Group, InstancedMesh } from 'three'
 import type { Game3DProps, SessionResult } from '../practice/shells3d/types'
 import { CityStage } from '../practice/shells3d/kit/CityStage'
 import { palette } from '../practice/shells3d/kit/palette'
-import { Wren } from './Wren'
+import { WrenMesh } from './WrenMesh'
 import { InkOutline } from './InkOutline'
 import { GlbCity } from './GlbCity'
 import type { Placement } from './GlbCity'
@@ -282,9 +282,9 @@ function PlayerRig({ keysRef, joyRef, reducedMotion }: PlayerRigProps) {
 
   return (
     <group ref={groupRef}>
-      <group scale={0.9}>
-        <Wren speedRef={speedRef} reducedMotion={reducedMotion} />
-      </group>
+      <Suspense fallback={null}>
+        <WrenMesh speedRef={speedRef} reducedMotion={reducedMotion} height={1.55} />
+      </Suspense>
     </group>
   )
 }
