@@ -74,6 +74,7 @@ import { Deliveries } from './Deliveries'
 import { Emotes } from './Emotes'
 import { NamedResidents } from './NamedResidents'
 import { GrassTufts } from './GrassTufts'
+import { Trees } from './Trees'
 import { CobbleRing } from './CobbleRing'
 import { PuddlePools } from './PuddlePools'
 import { useWorldAudio } from './useWorldAudio'
@@ -708,6 +709,8 @@ function WorldScene({
       <Emotes reducedMotion={reducedMotion} />
       {/* Tufts of dusk grass softening the plaza border */}
       <GrassTufts />
+      {/* Dusk plane-trees framing the plaza beyond the lamp ring */}
+      <Trees />
       {/* Title: gentle establishing drift. Ambient: Wren + follow-cam. */}
       {/* Title: the menu "tiny planet" (drives the title camera). Ambient: Wren. */}
       {!ambient && <TitlePlanet reducedMotion={reducedMotion} />}
