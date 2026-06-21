@@ -39,6 +39,7 @@ const CHEEK   = '#E0A07A' // warm rosy cheek
 const EYE     = '#241A16' // dark eye
 const HAIR    = '#2E2622' // near-black espresso, messy
 const SCARF   = palette.lanternAmber // ties Wren to the lamps
+const SCARF_D = '#D97E12' // scarf wrap shadow (deeper amber)
 const LEATHER   = '#7A5A45' // satchel body — warm tan leather
 const LEATHER_D = '#553C2B' // satchel flap / strap — darker leather
 const BUTTON  = '#C8A86E' // toggle buttons — pale brass-tan
@@ -239,14 +240,26 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
         </mesh>
       </group>
 
-      {/* ── Scarf: ring at the neck + trailing tail down the front ── */}
-      <mesh position={[0, 1.46, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.15, 0.06, 6, 14]} />
+      {/* ── Scarf — Wren's signature: a big chunky wrapped cowl + thick tail ── */}
+      {/* fat cowl wrapping the neck up to the chin */}
+      <mesh position={[0, 1.52, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.185, 0.12, 10, 18]} />
         <meshToonMaterial color={SCARF} />
       </mesh>
-      <mesh ref={scarfTail} position={[0.05, 1.4, 0.12]} rotation={[0.2, 0, 0.1]}>
-        <boxGeometry args={[0.14, 0.52, 0.04]} />
+      {/* a second offset wrap band for woolly volume */}
+      <mesh position={[0, 1.43, 0.03]} rotation={[Math.PI / 2 - 0.12, 0, 0]}>
+        <torusGeometry args={[0.2, 0.085, 9, 18]} />
+        <meshToonMaterial color={SCARF_D} />
+      </mesh>
+      {/* thick trailing tail down the front (animated sway) */}
+      <mesh ref={scarfTail} position={[0.07, 1.32, 0.2]} rotation={[0.26, 0, 0.08]}>
+        <boxGeometry args={[0.18, 0.62, 0.08]} />
         <meshToonMaterial color={SCARF} />
+      </mesh>
+      {/* tail fringe end (darker) */}
+      <mesh position={[0.1, 1.0, 0.27]} rotation={[0.26, 0, 0.08]}>
+        <boxGeometry args={[0.17, 0.12, 0.075]} />
+        <meshToonMaterial color={SCARF_D} />
       </mesh>
 
       {/* ── Neck ── */}
@@ -269,14 +282,23 @@ export function Wren({ speedRef, reducedMotion = false }: WrenProps) {
         <sphereGeometry args={[0.21, 16, 13]} />
       </TremblingOutlineMesh>
 
-      {/* Face — eyes, cheeks, a soft nose (front = +Z) */}
-      <mesh position={[-0.075, 1.76, 0.185]}>
-        <sphereGeometry args={[0.032, 8, 7]} />
+      {/* Face — eyes (smaller, softer), brows, cheeks, a soft nose (front = +Z) */}
+      <mesh position={[-0.078, 1.758, 0.188]} scale={[0.85, 1.15, 1]}>
+        <sphereGeometry args={[0.027, 8, 7]} />
         <meshToonMaterial color={EYE} />
       </mesh>
-      <mesh position={[0.075, 1.76, 0.185]}>
-        <sphereGeometry args={[0.032, 8, 7]} />
+      <mesh position={[0.078, 1.758, 0.188]} scale={[0.85, 1.15, 1]}>
+        <sphereGeometry args={[0.027, 8, 7]} />
         <meshToonMaterial color={EYE} />
+      </mesh>
+      {/* eyebrows — a touch of expression */}
+      <mesh position={[-0.078, 1.8, 0.185]} rotation={[0, 0, -0.12]}>
+        <boxGeometry args={[0.055, 0.014, 0.02]} />
+        <meshToonMaterial color={HAIR} />
+      </mesh>
+      <mesh position={[0.078, 1.8, 0.185]} rotation={[0, 0, 0.12]}>
+        <boxGeometry args={[0.055, 0.014, 0.02]} />
+        <meshToonMaterial color={HAIR} />
       </mesh>
       {/* eye highlights (tiny cream catchlights) */}
       <mesh position={[-0.065, 1.775, 0.207]}>
