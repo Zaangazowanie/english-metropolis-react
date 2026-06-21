@@ -4,14 +4,16 @@
 // tap lazy-loads the linked per-game shell.
 //
 // CONTRACT: procedural geometry only, MeshBasicMaterial (additive amber glow),
-// no textures/URLs/deps. 2 draw calls per portal (beam + ring). reducedMotion
-// → static (no pulse). No per-frame allocations.
+// no textures/URLs/deps. Quality-tiered: high → 4 draw calls (beam + core +
+// ring + sparks); medium/low → 3 draw calls (core skipped, ring + sparks kept).
+// reducedMotion → static (no pulse). No per-frame allocations.
 
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { AdditiveBlending, Float32BufferAttribute } from 'three'
 import type { Mesh, Points as ThreePoints, BufferGeometry } from 'three'
 import { palette } from '../practice/shells3d/kit/palette'
+import { useStageQuality } from '../practice/shells3d/kit/CityStage'
 
 const SPARKS = 9 // rising light-motes inside each beam ("words carry light")
 
@@ -40,6 +42,8 @@ export function WorldPortal({ position, active = false, lit = false, reducedMoti
   const sparkGeo = useRef<BufferGeometry>(null!)
   const sparkPts = useRef<ThreePoints>(null!)
   const t = useRef(0)
+  const { tier } = useStageQuality()
+  const highFx = tier === 'high'
 
   const baseOpacity = lit ? 0.5 : active ? 0.42 : 0.26
 
@@ -97,17 +101,19 @@ export function WorldPortal({ position, active = false, lit = false, reducedMoti
           depthWrite={false}
         />
       </mesh>
-      {/* Bright inner core */}
-      <mesh position={[0, 1.1, 0]}>
-        <cylinderGeometry args={[0.1, 0.14, 2.2, 8]} />
-        <meshBasicMaterial
-          color={palette.lanternCore}
-          transparent
-          opacity={baseOpacity + 0.2}
-          blending={AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
+      {/* Bright inner core — high quality only (saves 1 draw call × 5 portals on medium/low) */}
+      {highFx && (
+        <mesh position={[0, 1.1, 0]}>
+          <cylinderGeometry args={[0.1, 0.14, 2.2, 8]} />
+          <meshBasicMaterial
+            color={palette.lanternCore}
+            transparent
+            opacity={baseOpacity + 0.2}
+            blending={AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
       {/* Ground ring */}
       <mesh ref={ringRef} position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.72, 0.98, 28]} />
