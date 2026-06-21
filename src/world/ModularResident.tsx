@@ -107,43 +107,43 @@ function Top({ style, color, g, torsoY, torsoH, hy, hr }: {
   const mat = <meshToonMaterial color={color} />
   switch (style) {
     case 'coat':
-      return <mesh position={[0, torsoY - torsoH * 0.25, 0]} castShadow><cylinderGeometry args={[0.2 * g, 0.34 * g, torsoH * 1.5, 10]} />{mat}</mesh>
+      return <mesh position={[0, torsoY - torsoH * 0.25, 0]} castShadow><cylinderGeometry args={[0.17 * g, 0.285 * g, torsoH * 1.5, 12]} />{mat}</mesh>
     case 'apron':
       return (
         <group>
-          <mesh position={[0, torsoY, 0]}><cylinderGeometry args={[0.21 * g, 0.27 * g, torsoH, 10]} />{mat}</mesh>
-          <mesh position={[0, torsoY - torsoH * 0.1, 0.22 * g]}><boxGeometry args={[0.34 * g, torsoH * 1.1, 0.04]} />{mat}</mesh>
+          <mesh position={[0, torsoY, 0]}><cylinderGeometry args={[0.175 * g, 0.225 * g, torsoH, 12]} />{mat}</mesh>
+          <mesh position={[0, torsoY - torsoH * 0.1, 0.2 * g]}><boxGeometry args={[0.28 * g, torsoH * 1.1, 0.04]} />{mat}</mesh>
         </group>
       )
     case 'vest':
-      return <mesh position={[0, torsoY + torsoH * 0.05, 0]}><cylinderGeometry args={[0.22 * g, 0.25 * g, torsoH * 0.8, 10]} />{mat}</mesh>
+      return <mesh position={[0, torsoY + torsoH * 0.05, 0]}><cylinderGeometry args={[0.185 * g, 0.21 * g, torsoH * 0.8, 12]} />{mat}</mesh>
     case 'pullover':
-      return <mesh position={[0, torsoY, 0]}><cylinderGeometry args={[0.24 * g, 0.26 * g, torsoH * 1.05, 10]} />{mat}</mesh>
+      return <mesh position={[0, torsoY, 0]}><cylinderGeometry args={[0.2 * g, 0.22 * g, torsoH * 1.05, 12]} />{mat}</mesh>
     case 'shawl':
       return (
         <group>
-          <mesh position={[0, torsoY, 0]}><cylinderGeometry args={[0.22 * g, 0.27 * g, torsoH, 10]} />{mat}</mesh>
-          <mesh position={[0, torsoY + torsoH * 0.42, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.26 * g, 0.08 * g, 7, 14]} />{mat}</mesh>
+          <mesh position={[0, torsoY, 0]}><cylinderGeometry args={[0.185 * g, 0.23 * g, torsoH, 12]} />{mat}</mesh>
+          <mesh position={[0, torsoY + torsoH * 0.42, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.215 * g, 0.075 * g, 7, 14]} />{mat}</mesh>
         </group>
       )
     case 'uniform':
       return (
         <group>
-          <mesh position={[0, torsoY, 0]}><cylinderGeometry args={[0.22 * g, 0.26 * g, torsoH, 10]} />{mat}</mesh>
-          <mesh position={[0, torsoY + torsoH * 0.45, 0.16 * g]}><boxGeometry args={[0.34 * g, 0.08, 0.05]} />{mat}</mesh>
+          <mesh position={[0, torsoY, 0]}><cylinderGeometry args={[0.185 * g, 0.22 * g, torsoH, 12]} />{mat}</mesh>
+          <mesh position={[0, torsoY + torsoH * 0.45, 0.14 * g]}><boxGeometry args={[0.28 * g, 0.08, 0.05]} />{mat}</mesh>
         </group>
       )
     case 'raincoat':
       return (
         <group>
-          <mesh position={[0, torsoY - torsoH * 0.3, 0]} castShadow><cylinderGeometry args={[0.24 * g, 0.36 * g, torsoH * 1.7, 10]} />{mat}</mesh>
+          <mesh position={[0, torsoY - torsoH * 0.3, 0]} castShadow><cylinderGeometry args={[0.205 * g, 0.31 * g, torsoH * 1.7, 12]} />{mat}</mesh>
           <mesh position={[0, hy + hr * 0.2, -0.04]}><sphereGeometry args={[hr * 1.35, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.5]} />{mat}</mesh>
         </group>
       )
     case 'cardigan':
-      return <mesh position={[0, torsoY, 0]}><cylinderGeometry args={[0.23 * g, 0.27 * g, torsoH * 1.05, 10]} />{mat}</mesh>
+      return <mesh position={[0, torsoY, 0]}><cylinderGeometry args={[0.195 * g, 0.23 * g, torsoH * 1.05, 12]} />{mat}</mesh>
     case 'smock':
-      return <mesh position={[0, torsoY - torsoH * 0.05, 0]}><cylinderGeometry args={[0.28 * g, 0.32 * g, torsoH * 1.15, 10]} />{mat}</mesh>
+      return <mesh position={[0, torsoY - torsoH * 0.05, 0]}><cylinderGeometry args={[0.24 * g, 0.275 * g, torsoH * 1.15, 12]} />{mat}</mesh>
   }
 }
 
@@ -203,16 +203,16 @@ function Arm({ side, shoulderX, shoulderY, upperLen, foreLen, armR, sleeve, skin
   upperLen: number; foreLen: number; armR: number; sleeve: string; skin: string
 }) {
   return (
-    <group position={[side * shoulderX, shoulderY, 0]} rotation={[0.12, 0, side * 0.16]}>
-      {/* upper arm — sleeve; flared at the shoulder to imply a deltoid */}
+    <group position={[side * shoulderX, shoulderY, 0]} rotation={[0.08, 0, side * 0.04]}>
+      {/* upper arm — sleeve; gently tapered (no boxy shoulder pad) */}
       <mesh position={[0, -upperLen / 2, 0]} castShadow>
-        <cylinderGeometry args={[armR * 1.3, armR, upperLen, 7]} />
+        <cylinderGeometry args={[armR * 1.05, armR * 0.95, upperLen, 8]} />
         <meshToonMaterial color={sleeve} />
       </mesh>
       {/* forearm + hand — bent slightly forward at the elbow */}
       <group position={[0, -upperLen, 0]} rotation={[0.3, 0, side * -0.06]}>
         <mesh position={[0, -foreLen / 2, 0]}>
-          <cylinderGeometry args={[armR * 0.92, armR * 0.78, foreLen, 7]} />
+          <cylinderGeometry args={[armR * 0.92, armR * 0.78, foreLen, 8]} />
           <meshToonMaterial color={sleeve} />
         </mesh>
         <mesh position={[0, -foreLen - armR * 0.5, 0]}>
@@ -260,25 +260,26 @@ export function ModularResident({ spec, position = [0, 0, 0], rotation = [0, 0, 
     anim.current.position.y = Math.sin(t * 1.6) * 0.012 * h        // breathe
     anim.current.rotation.z = Math.sin(t * 0.7) * 0.02             // weight shift
   })
-  // Vertical layout (feet at y≈0), scaled by height. A height=1.0 resident
-  // stands ~1.55 units tall — sized to the plaza lamps/stalls.
+  // Vertical layout (feet at y≈0), scaled by height. Anime proportions: longer
+  // legs, a slimmer/taller torso and a smaller head (head ≈ 1/6 of body) so the
+  // figure reads as a person, not a stack of blocks. ~1.6 units tall at h=1.
   const footY = 0.0
-  const legLen = 0.60 * h
-  const hipY = 0.62 * h
-  const torsoH = 0.50 * h
+  const legLen = 0.74 * h
+  const hipY = 0.74 * h
+  const torsoH = 0.46 * h
   const torsoY = hipY + torsoH * 0.55
   const neckY = torsoY + torsoH * 0.55
-  const hr = 0.16 * (0.7 + 0.3 * g)
-  const hy = neckY + 0.06 + hr
+  const hr = 0.135 * (0.7 + 0.3 * g)
+  const hy = neckY + 0.07 + hr
 
   return (
     <group position={position} rotation={rotation}>
       <group ref={anim}>
       {/* ── Base body (skin) ── */}
       {/* pelvis */}
-      <mesh position={[0, hipY, 0]}><cylinderGeometry args={[0.16 * g, 0.16 * g, 0.14 * h, 8]} /><meshToonMaterial color={spec.skin} /></mesh>
-      {/* torso core (under the garment) */}
-      <mesh position={[0, torsoY, 0]}><cylinderGeometry args={[0.18 * g, 0.2 * g, torsoH, 9]} /><meshToonMaterial color={spec.skin} /></mesh>
+      <mesh position={[0, hipY, 0]}><cylinderGeometry args={[0.13 * g, 0.135 * g, 0.16 * h, 8]} /><meshToonMaterial color={spec.skin} /></mesh>
+      {/* torso core (under the garment) — slimmer, tapered to the waist */}
+      <mesh position={[0, torsoY, 0]}><cylinderGeometry args={[0.155 * g, 0.135 * g, torsoH, 9]} /><meshToonMaterial color={spec.skin} /></mesh>
       {/* neck */}
       <mesh position={[0, neckY, 0]}><cylinderGeometry args={[0.06, 0.07, 0.1, 7]} /><meshToonMaterial color={spec.skin} /></mesh>
       {/* head */}
@@ -287,9 +288,9 @@ export function ModularResident({ spec, position = [0, 0, 0], rotation = [0, 0, 
         <>
           {/* a readable little face */}
           <Face hr={hr} hy={hy} hairColor={spec.hairColor} skin={spec.skin} />
-          {/* sleeved, bent arms with hands — replace the old floating cylinders */}
-          <Arm side={-1} shoulderX={0.22 * g + 0.03} shoulderY={torsoY + torsoH * 0.42} upperLen={torsoH * 0.6} foreLen={torsoH * 0.5} armR={0.055} sleeve={spec.topColor} skin={spec.skin} />
-          <Arm side={1} shoulderX={0.22 * g + 0.03} shoulderY={torsoY + torsoH * 0.42} upperLen={torsoH * 0.6} foreLen={torsoH * 0.5} armR={0.055} sleeve={spec.topColor} skin={spec.skin} />
+          {/* sleeved, bent arms with hands — thicker, set to the slimmer torso */}
+          <Arm side={-1} shoulderX={0.165 * g + 0.015} shoulderY={torsoY + torsoH * 0.38} upperLen={torsoH * 0.66} foreLen={torsoH * 0.56} armR={0.06} sleeve={spec.topColor} skin={spec.skin} />
+          <Arm side={1} shoulderX={0.165 * g + 0.015} shoulderY={torsoY + torsoH * 0.38} upperLen={torsoH * 0.66} foreLen={torsoH * 0.56} armR={0.06} sleeve={spec.topColor} skin={spec.skin} />
         </>
       )}
 
