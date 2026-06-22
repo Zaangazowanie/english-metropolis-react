@@ -23,12 +23,10 @@ const _col = new Color()
 const UP = new Vector3(0, 1, 0)
 const R = 26 // planet radius (must match PlanetWorld)
 
-// Buildings are TEXTURELESS now — flat cel fills (abeto look) + the ink-outline
-// post pass. One shared toon material (white) for every building type; the actual
-// colour comes from each instance's instanceColor, so the whole city is one cheap
-// material with hundreds of per-instance colours. No textures → bulletproof load
-// (no webp/decoder dependency) + lowest GPU cost.
-const BUILDING_MAT = new MeshToonMaterial({ color: 0xffffff })
+// Buildings keep their painted TEXTURES (abeto-quality colour + facade detail:
+// windows, signage, brick, glass), rendered through a flat MeshToonMaterial so we
+// get the cel look + the ink-outline post pass on top — not glossy PBR. One toon
+// material per building type (reusing the GLB's baseColor map).
 
 let _draco: DRACOLoader | null = null
 function withDraco(loader: GLTFLoader) {
@@ -48,9 +46,10 @@ export interface Placement {
 }
 
 /** Load a GLB, pick its first mesh, bake world transform, and normalize so the
- *  geometry is centred on X/Z with its base at y=0 and a height of 1. Geometry
- *  only — the textureless GLBs render with the shared flat toon material. */
-function useNormalized(url: string): BufferGeometry {
+ *  geometry is centred on X/Z with its base at y=0 and a height of 1. Returns the
+ *  geometry + a flat toon material that reuses the GLB's baseColor texture (cel +
+ *  painted detail). */
+function useNormalized(url: string): { geometry: BufferGeometry; material: MeshToonMaterial } {
   const gltf = useLoader(GLTFLoader, url, withDraco)
   return useMemo(() => {
     gltf.scene.updateWorldMatrix(true, true)
@@ -68,12 +67,15 @@ function useNormalized(url: string): BufferGeometry {
     const h = bb.max.y - bb.min.y || 1
     geo.translate(-cx, -bb.min.y, -cz)
     geo.scale(1 / h, 1 / h, 1 / h)
-    return geo
+    const sm = (Array.isArray(src.material) ? src.material[0] : src.material) as { map?: unknown } | undefined
+    const map = sm && sm.map ? (sm.map as ConstructorParameters<typeof MeshToonMaterial>[0]['map']) : undefined
+    const material = new MeshToonMaterial({ map: map ?? null, color: map ? 0xffffff : 0xbfc4c9 })
+    return { geometry: geo, material }
   }, [gltf])
 }
 
 function Instanced({ url, items }: { url: string; items: Placement[] }) {
-  const geometry = useNormalized(url)
+  const { geometry, material } = useNormalized(url)
   const ref = useRef<InstancedMesh>(null!)
   useEffect(() => {
     for (let i = 0; i < items.length; i++) {
@@ -89,13 +91,10 @@ function Instanced({ url, items }: { url: string; items: Placement[] }) {
       _o.scale.set(it.scale, it.scale * (it.sy ?? 1), it.scale) // sy = height variety
       _o.updateMatrix()
       ref.current.setMatrixAt(i, _o.matrix)
-      const t = it.tint ?? [0.7, 0.7, 0.72]
-      _col.setRGB(t[0], t[1], t[2]); ref.current.setColorAt(i, _col)
     }
     ref.current.instanceMatrix.needsUpdate = true
-    if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true
   }, [geometry, items])
-  return <instancedMesh ref={ref} args={[geometry, BUILDING_MAT, items.length]} frustumCulled={false} castShadow receiveShadow />
+  return <instancedMesh ref={ref} args={[geometry, material, items.length]} frustumCulled={false} castShadow receiveShadow />
 }
 
 export interface GlbCityProps {

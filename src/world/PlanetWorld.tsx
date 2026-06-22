@@ -162,15 +162,18 @@ const RADIAL_MIN = 0.34      // radials start beyond the core so they don't carv
       // Moderate building footprints (player/trees are the tiny ones) so the city
       // packs densely in the small patch the close, low camera sees.
       if (ang < 0.72) {
-        // core: a real skyline — skyscrapers + apartment mid-rises + glass domes
-        if (pick < 0.62) put(TOWER_PLACE, 1.8 + ht * 0.9, 2.6 + ht * 5.0, [0.46, 0.56, 0.64])
-        else if (pick < 0.92) put(APT_PLACE, 2.0 + ht * 0.8, 1.8 + ht * 1.4, [0.80, 0.74, 0.60])
+        // core: varied + colourful (mostly cream apartments + brick mixed-use +
+        // domes), with a FEW skyscrapers for skyline — not a dark glass canyon.
+        if (pick < 0.30) put(APT_PLACE, 2.0 + ht * 0.8, 1.8 + ht * 1.2, [0.80, 0.74, 0.60])
+        else if (pick < 0.55) put(MIX_PLACE, 2.2 + ht * 0.8, 1.5 + ht * 0.9, [0.66, 0.42, 0.34])
+        else if (pick < 0.78) put(HOUSE_PLACE, 1.9 + ht * 0.8, 1.0 + ht * 0.6, [0.62, 0.36, 0.30])
+        else if (pick < 0.92) put(TOWER_PLACE, 1.8 + ht * 0.9, 2.2 + ht * 3.4, [0.46, 0.56, 0.64])
         else put(DOME_PLACE, 2.8 + ht * 1.2, 1.0, [0.78, 0.80, 0.82])
       } else if (ang < 1.16) {
-        // mid: apartments + brick-glass mixed-use + plenty of towers
-        if (pick < 0.36) put(APT_PLACE, 2.0 + ht * 0.8, 1.6 + ht * 1.0, [0.82, 0.72, 0.56])
-        else if (pick < 0.72) put(MIX_PLACE, 2.2 + ht * 0.8, 1.4 + ht * 0.8, [0.66, 0.42, 0.34])
-        else put(TOWER_PLACE, 1.8 + ht * 0.8, 2.4 + ht * 2.6, [0.44, 0.54, 0.62])
+        // mid: apartments + brick-glass mixed-use + a few towers
+        if (pick < 0.42) put(APT_PLACE, 2.0 + ht * 0.8, 1.6 + ht * 1.0, [0.82, 0.72, 0.56])
+        else if (pick < 0.80) put(MIX_PLACE, 2.2 + ht * 0.8, 1.4 + ht * 0.8, [0.66, 0.42, 0.34])
+        else put(TOWER_PLACE, 1.8 + ht * 0.8, 2.2 + ht * 2.2, [0.44, 0.54, 0.62])
       } else {
         // edge: brick-glass mixed-use + rustic townhouses (low-rise)
         if (pick < 0.5) put(MIX_PLACE, 2.2 + ht * 0.8, 1.2 + ht * 0.6, [0.70, 0.45, 0.36])
