@@ -62,7 +62,7 @@ const _m = new Matrix4()
 // tall (≈16:1), follow-cam FOV 45 sitting ~4 above the surface ~30 from centre.
 // At that ratio the local patch reads FLAT while you walk, but the whole map is
 // the globe. Must match GlbCity's R.
-const R = 26 // planet radius (abeto-matched)
+const R = 28 // planet radius (abeto-matched: measured ground radius = 28)
 const SURFACE_N = 1400 // golden-spiral candidates → planned downtown + organic outskirts
 
 // ── Locomotion + camera tuning (abeto follow-cam) ────────────────────────────
@@ -121,7 +121,7 @@ const DT_AXIS = new Vector3(0.0, 0.95, -0.32).normalize()
 const CAP_R = 1.5            // city extent (angular radius)
 const PLAZA_R = 0.10         // open plaza at the centre (the Eye)
 const SPAWN_CLEAR = 0.085    // clearing around the spawn pole so the player has room
-const LOT = 2.4              // world units / grid cell ≈ building footprint (neighbours touch)
+const LOT = 3.4              // world units / grid cell ≈ building footprint (wide low-rise blocks)
 const BLOCK = 4              // building cells per block
 const PERIOD = BLOCK + 1     // + a 1-cell street between blocks
 
@@ -173,20 +173,25 @@ const PERIOD = BLOCK + 1     // + a 1-cell street between blocks
     const yaw = Math.atan2(cr.dot(d), z0.dot(t)) // align the model's +Z to the street
     const pick = hash(key, 8)
     const put = (arr: Placement[], scale: number, syr: number) => arr.push({ x: d.x, y: d.y, z: d.z, scale, yaw, sy: syr })
-    if (ang < 0.7) {
-      // core: colourful mid-rise + a few skyscrapers for skyline
-      if (pick < 0.34) put(APT_PLACE, 2.3, 1.8 + ht * 1.2)
-      else if (pick < 0.62) put(MIX_PLACE, 2.4, 1.5 + ht * 0.9)
-      else if (pick < 0.82) put(HOUSE_PLACE, 2.2, 1.0 + ht * 0.5)
-      else if (pick < 0.93) put(TOWER_PLACE, 2.2, 2.4 + ht * 3.0)
-      else put(DOME_PLACE, 2.6, 1.0)
-    } else if (ang < 1.15) {
-      if (pick < 0.45) put(APT_PLACE, 2.3, 1.6 + ht * 0.9)
-      else if (pick < 0.82) put(MIX_PLACE, 2.4, 1.4 + ht * 0.7)
-      else put(TOWER_PLACE, 2.2, 2.2 + ht * 1.8)
+    // abeto-MATCHED low-rise profile: most buildings 1-2 storeys (~3-6u tall, WIDE
+    // footprints), apartments to ~3 storeys, only RARE landmark towers ~10-17u.
+    // height = footprint × sy.
+    if (ang < 0.6) {
+      // core: mix of low shops + apartments + the occasional landmark tower/dome
+      if (pick < 0.34) put(HOUSE_PLACE, 3.0 + ht * 0.5, 0.85 + ht * 0.45)   // ~2.6-4.5u
+      else if (pick < 0.62) put(MIX_PLACE, 3.2 + ht * 0.5, 1.0 + ht * 0.6)  // ~3.2-6u
+      else if (pick < 0.86) put(APT_PLACE, 3.0 + ht * 0.5, 1.7 + ht * 0.9)  // ~5-9u
+      else if (pick < 0.95) put(TOWER_PLACE, 2.8 + ht * 0.4, 3.5 + ht * 2.0) // RARE ~10-17u
+      else put(DOME_PLACE, 4.0 + ht * 1.0, 0.9)
+    } else if (ang < 1.12) {
+      // mid: shops + houses + some apartments
+      if (pick < 0.42) put(HOUSE_PLACE, 3.0 + ht * 0.5, 0.85 + ht * 0.4)
+      else if (pick < 0.78) put(MIX_PLACE, 3.2 + ht * 0.5, 0.95 + ht * 0.55)
+      else put(APT_PLACE, 3.0 + ht * 0.5, 1.6 + ht * 0.8)
     } else {
-      if (pick < 0.55) put(MIX_PLACE, 2.4, 1.2 + ht * 0.5)
-      else put(HOUSE_PLACE, 2.2, 1.0 + ht * 0.5)
+      // edge: low houses + low shops
+      if (pick < 0.6) put(HOUSE_PLACE, 3.0 + ht * 0.5, 0.8 + ht * 0.4)
+      else put(MIX_PLACE, 3.2 + ht * 0.5, 0.9 + ht * 0.45)
     }
   }
   // ── organic outskirts: forest + suburb cottages (golden-spiral, outside the city) ──
@@ -199,7 +204,7 @@ const PERIOD = BLOCK + 1     // + a 1-cell street between blocks
     if (ang < CAP_R + 0.06) continue // inside/near the city → handled by the grid
     const ht = hash(i, 1)
     const f = fract(i * 0.61803398875)
-    if (f < 0.12) HOUSE_PLACE.push({ x: dx, y: dy, z: dz, scale: 1.8 + ht * 0.6, yaw: hash(i, 5) * Math.PI * 2, sy: 1.0 + ht * 0.6 })
+    if (f < 0.12) HOUSE_PLACE.push({ x: dx, y: dy, z: dz, scale: 2.6 + ht * 0.6, yaw: hash(i, 5) * Math.PI * 2, sy: 0.85 + ht * 0.4 })
     else if (f < 0.18) LAMPS.push({ x: dx, y: dy, z: dz })
     else { const rl = 0.9 + hash(i, 3) * 0.7; TREES.push({ x: dx, y: dy, z: dz, trunkH: 0.6 + hash(i, 4) * 0.5, rl, ru: rl * 0.78, green: i % CANOPY.length }) }
   }

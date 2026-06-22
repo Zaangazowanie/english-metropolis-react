@@ -33,7 +33,7 @@ const _qy = new Quaternion()
 const _dir = new Vector3()
 const _col = new Color()
 const UP = new Vector3(0, 1, 0)
-const R = 26 // planet radius (must match PlanetWorld)
+const R = 28 // planet radius (must match PlanetWorld)
 
 // Buildings keep their painted TEXTURES (abeto-quality colour + facade detail:
 // windows, signage, brick, glass), rendered through a flat MeshToonMaterial so we
