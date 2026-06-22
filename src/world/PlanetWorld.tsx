@@ -103,6 +103,13 @@ const MIX_PLACE: Placement[] = []
 const DOME_PLACE: Placement[] = []
 const TREES: Tree[] = []
 const LAMPS: Lamp[] = []
+// Paved street tiles + abeto-style ground clutter (all procedural, instanced).
+interface Spot { x: number; y: number; z: number }
+const PAVE: Spot[] = []     // grey paving on streets + plaza
+const CONES: Spot[] = []    // traffic cones
+const BINS: Spot[] = []     // trash cans
+const PLANTERS: Spot[] = [] // street planters
+const POLES: Spot[] = []    // utility poles at intersections
 
 // AUTHORED CITY MAP — abeto-style connected blocks. Instead of scattering
 // buildings at random angles, we lay a block-and-street GRID on the downtown cap:
@@ -137,13 +144,23 @@ const PERIOD = BLOCK + 1     // + a 1-cell street between blocks
     const ci = ((gi % PERIOD) + PERIOD) % PERIOD
     const cj = ((gj % PERIOD) + PERIOD) % PERIOD
     const key = (gi + 999) * 2003 + (gj + 999)
-    if (ci === 0 || cj === 0) { // street cell — walkable
-      if (ci === 0 && cj === 0 && hash(key, 7) < 0.6) LAMPS.push({ x: d.x, y: d.y, z: d.z }) // lamps at intersections
+    if (ci === 0 || cj === 0) { // street cell — paved + walkable
+      PAVE.push({ x: d.x, y: d.y, z: d.z })
+      if (ci === 0 && cj === 0) { // intersection: pole / lamp / bin
+        if (hash(key, 7) < 0.5) POLES.push({ x: d.x, y: d.y, z: d.z })
+        else if (hash(key, 11) < 0.5) LAMPS.push({ x: d.x, y: d.y, z: d.z })
+        else if (hash(key, 13) < 0.5) BINS.push({ x: d.x, y: d.y, z: d.z })
+      } else { // mid-street kerb clutter (sparse)
+        const h3 = hash(key, 12)
+        if (h3 < 0.06) CONES.push({ x: d.x, y: d.y, z: d.z })
+        else if (h3 < 0.13) PLANTERS.push({ x: d.x, y: d.y, z: d.z })
+        else if (h3 < 0.16) BINS.push({ x: d.x, y: d.y, z: d.z })
+      }
       continue
     }
     const ang = Math.acos(clamp(d.dot(DT_AXIS)))
-    if (ang < PLAZA_R) continue // central plaza open (the Eye)
-    if (Math.acos(clamp(d.y)) < SPAWN_CLEAR) continue // spawn clearing at the pole
+    if (ang < PLAZA_R) { PAVE.push({ x: d.x, y: d.y, z: d.z }); continue } // central plaza (paved, the Eye)
+    if (Math.acos(clamp(d.y)) < SPAWN_CLEAR) { PAVE.push({ x: d.x, y: d.y, z: d.z }); continue } // spawn clearing (paved)
     if (hash(key, 2) < 0.07) continue // occasional courtyard gap
     const ht = hash(key, 1)
     // face the NEAREST street so blocks present streetfronts on every side
@@ -190,6 +207,13 @@ const PERIOD = BLOCK + 1     // + a 1-cell street between blocks
 
 const N_T = TREES.length
 const N_L = LAMPS.length
+const N_PAVE = PAVE.length
+const N_CONE = CONES.length
+const N_BIN = BINS.length
+const N_PLANT = PLANTERS.length
+const N_POLE = POLES.length
+// Prop palette
+const PAVE_COL = '#9a9b93', CONE_COL = '#d8702e', BIN_COL = '#3a4a40', PLANT_COL = '#6f5440', POLE_COL = '#54595f'
 
 // Landmarks (single GLB instances) at scenic focal points the avenues lead to.
 // Spawn faces −Z, so the Eye sits just ahead at the plaza edge; the Bridge is a
@@ -215,6 +239,12 @@ function Planet() {
   const canopyHi = useRef<InstancedMesh>(null!)
   const lampPosts = useRef<InstancedMesh>(null!)
   const lampGlows = useRef<InstancedMesh>(null!)
+  const pave = useRef<InstancedMesh>(null!)
+  const cones = useRef<InstancedMesh>(null!)
+  const bins = useRef<InstancedMesh>(null!)
+  const planters = useRef<InstancedMesh>(null!)
+  const poles = useRef<InstancedMesh>(null!)
+  const planterGreen = useRef<InstancedMesh>(null!)
 
   useEffect(() => {
     // Buildings are now REAL meshes (see <GlbCity/>). Trees + lamps stay procedural.
@@ -246,6 +276,25 @@ function Planet() {
     }
     lampPosts.current.instanceMatrix.needsUpdate = true
     lampGlows.current.instanceMatrix.needsUpdate = true
+
+    // paved street tiles (flat, just above the grass surface, LOT-sized → they meet)
+    for (let i = 0; i < N_PAVE; i++) { placeOnSurface(PAVE[i], R + 0.03, 2.5, 0.06, 2.5); pave.current.setMatrixAt(i, _o.matrix) }
+    pave.current.instanceMatrix.needsUpdate = true
+    // traffic cones
+    for (let i = 0; i < N_CONE; i++) { placeOnSurface(CONES[i], R + 0.28, 0.34, 0.56, 0.34); cones.current.setMatrixAt(i, _o.matrix) }
+    if (N_CONE) cones.current.instanceMatrix.needsUpdate = true
+    // trash bins
+    for (let i = 0; i < N_BIN; i++) { placeOnSurface(BINS[i], R + 0.34, 0.28, 0.68, 0.28); bins.current.setMatrixAt(i, _o.matrix) }
+    if (N_BIN) bins.current.instanceMatrix.needsUpdate = true
+    // planters (box) + a green bush block on top
+    for (let i = 0; i < N_PLANT; i++) {
+      placeOnSurface(PLANTERS[i], R + 0.3, 0.55, 0.6, 0.55); planters.current.setMatrixAt(i, _o.matrix)
+      placeOnSurface(PLANTERS[i], R + 0.75, 0.5, 0.35, 0.5); planterGreen.current.setMatrixAt(i, _o.matrix)
+    }
+    if (N_PLANT) { planters.current.instanceMatrix.needsUpdate = true; planterGreen.current.instanceMatrix.needsUpdate = true }
+    // utility poles (tall thin)
+    for (let i = 0; i < N_POLE; i++) { placeOnSurface(POLES[i], R + 2.0, 0.08, 4.0, 0.08); poles.current.setMatrixAt(i, _o.matrix) }
+    if (N_POLE) poles.current.instanceMatrix.needsUpdate = true
   }, [])
 
   return (
@@ -282,6 +331,31 @@ function Planet() {
       <instancedMesh ref={lampGlows} args={[undefined, undefined, N_L]} frustumCulled={false}>
         <sphereGeometry args={[1, 8, 6]} />
         <meshBasicMaterial color={ATMO} />
+      </instancedMesh>
+      {/* ── paved streets + abeto-style ground clutter ── */}
+      <instancedMesh ref={pave} args={[undefined, undefined, Math.max(1, N_PAVE)]} frustumCulled={false} receiveShadow>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshToonMaterial color={PAVE_COL} />
+      </instancedMesh>
+      <instancedMesh ref={cones} args={[undefined, undefined, Math.max(1, N_CONE)]} frustumCulled={false} castShadow>
+        <coneGeometry args={[1, 1, 10]} />
+        <meshToonMaterial color={CONE_COL} />
+      </instancedMesh>
+      <instancedMesh ref={bins} args={[undefined, undefined, Math.max(1, N_BIN)]} frustumCulled={false} castShadow>
+        <cylinderGeometry args={[1, 0.9, 1, 10]} />
+        <meshToonMaterial color={BIN_COL} />
+      </instancedMesh>
+      <instancedMesh ref={planters} args={[undefined, undefined, Math.max(1, N_PLANT)]} frustumCulled={false} castShadow>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshToonMaterial color={PLANT_COL} />
+      </instancedMesh>
+      <instancedMesh ref={planterGreen} args={[undefined, undefined, Math.max(1, N_PLANT)]} frustumCulled={false} castShadow>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshToonMaterial color={CANOPY[2]} />
+      </instancedMesh>
+      <instancedMesh ref={poles} args={[undefined, undefined, Math.max(1, N_POLE)]} frustumCulled={false} castShadow>
+        <cylinderGeometry args={[1, 1, 1, 8]} />
+        <meshToonMaterial color={POLE_COL} />
       </instancedMesh>
     </group>
   )
