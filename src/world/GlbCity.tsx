@@ -10,10 +10,22 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import { useLoader } from '@react-three/fiber'
-import { Object3D, Quaternion, Vector3, Box3, Color, MeshToonMaterial } from 'three'
+import { Object3D, Quaternion, Vector3, Box3, Color, MeshToonMaterial, DataTexture, RGBAFormat, LinearFilter } from 'three'
 import type { InstancedMesh, Mesh, BufferGeometry } from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
+
+// Soft multi-step toon ramp (the default toon is a HARSH 2-tone split). A 5-level
+// ramp that never goes dark (lit floor ~0.5) gives gentle cel bands → the soft,
+// airy abeto look instead of rough high-contrast shading.
+const SOFT_GRADIENT = (() => {
+  const lv = [124, 168, 202, 230, 250]
+  const data = new Uint8Array(lv.length * 4)
+  for (let i = 0; i < lv.length; i++) { data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = lv[i]; data[i * 4 + 3] = 255 }
+  const t = new DataTexture(data, lv.length, 1, RGBAFormat)
+  t.minFilter = LinearFilter; t.magFilter = LinearFilter; t.needsUpdate = true
+  return t
+})()
 
 const _o = new Object3D()
 const _q = new Quaternion()
@@ -69,7 +81,7 @@ function useNormalized(url: string): { geometry: BufferGeometry; material: MeshT
     geo.scale(1 / h, 1 / h, 1 / h)
     const sm = (Array.isArray(src.material) ? src.material[0] : src.material) as { map?: unknown } | undefined
     const map = sm && sm.map ? (sm.map as ConstructorParameters<typeof MeshToonMaterial>[0]['map']) : undefined
-    const material = new MeshToonMaterial({ map: map ?? null, color: map ? 0xffffff : 0xbfc4c9 })
+    const material = new MeshToonMaterial({ map: map ?? null, color: map ? 0xffffff : 0xbfc4c9, gradientMap: SOFT_GRADIENT })
     return { geometry: geo, material }
   }, [gltf])
 }

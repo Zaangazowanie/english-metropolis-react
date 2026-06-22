@@ -80,8 +80,10 @@ const FRAG = /* glsl */`
 
     if (debug > 0.5) { gl_FragColor = vec4(de, le, 0.0, 1.0); return; }
 
-    float edge = max(de, le);
-    vec3 rgb = mix(col, inkColor, edge);
+    // keep clean silhouettes (depth) but let interior colour lines be much softer
+    // and lighter overall — abeto's outlines are gentle, not a harsh scribble.
+    float edge = max(de, le * 0.45);
+    vec3 rgb = mix(col, inkColor, edge * 0.78);
     // silhouette lines stay opaque even over the transparent sky; elsewhere keep
     // the scene's own alpha so the DOM dusk-gradient shows through.
     float a = max(c.a, de);
@@ -103,10 +105,10 @@ export interface InkOutlineProps {
 }
 
 export function InkOutline({
-  thickness = 2.2,
-  depthThreshold = 0.014,
-  lumaThreshold = 0.17,
-  color = '#0a0806',
+  thickness = 1.5,
+  depthThreshold = 0.02,
+  lumaThreshold = 0.44,
+  color = '#43392f',
   debug = false,
 }: InkOutlineProps) {
   const { gl, scene, camera, size } = useThree()
