@@ -104,94 +104,87 @@ const DOME_PLACE: Placement[] = []
 const TREES: Tree[] = []
 const LAMPS: Lamp[] = []
 
-// Downtown plan parameters (angular, radians on the unit sphere). The city is
-// centred on the player's SPAWN (the north pole) so you start in the plaza and
-// the streets + skyline open up around you — scenic, abeto-style.
-// Downtown centre sits a bit AHEAD of the spawn (spawn = north pole, facing −Z),
-// so the player starts among the core towers looking INTO the dense skyline + Eye.
+// AUTHORED CITY MAP — abeto-style connected blocks. Instead of scattering
+// buildings at random angles, we lay a block-and-street GRID on the downtown cap:
+// buildings sit one-per-cell, TOUCH their neighbours (footprint ≈ cell) and FACE
+// the nearest street, so each block reads as a solid run of joined streetfronts
+// lining walkable streets — a real little city, not freestanding boxes. Centred
+// just ahead of the spawn; a clearing at the spawn pole gives the player room.
 const DT_AXIS = new Vector3(0.0, 0.95, -0.32).normalize()
-const CAP_R = 1.5            // downtown angular radius (≈ the whole near hemisphere)
-const PLAZA_R = 0.06         // open plaza at the core centre (Eye there, ahead of spawn)
-const RINGS = [0.34, 0.62, 0.92, 1.22]
-const ROAD_W = 0.055         // road half-width → ~3-unit (≈2-char-wide) walkable streets on R26
-const N_RADIAL = 7           // avenues radiating outward (scenic sightlines)
-const RADIAL_MIN = 0.34      // radials start beyond the core so they don't carve it hollow
+const CAP_R = 1.5            // city extent (angular radius)
+const PLAZA_R = 0.10         // open plaza at the centre (the Eye)
+const SPAWN_CLEAR = 0.085    // clearing around the spawn pole so the player has room
+const LOT = 2.4              // world units / grid cell ≈ building footprint (neighbours touch)
+const BLOCK = 4              // building cells per block
+const PERIOD = BLOCK + 1     // + a 1-cell street between blocks
 
 ;(() => {
-  // Robust tangent basis (DT_AXIS ≈ +Y, so seed from +X to avoid a degenerate cross).
   const seed = Math.abs(DT_AXIS.y) > 0.9 ? new Vector3(1, 0, 0) : UP
   const right = new Vector3().crossVectors(seed, DT_AXIS).normalize()
   const fwd = new Vector3().crossVectors(DT_AXIS, right).normalize()
-  const radialN: Vector3[] = []
-  for (let k = 0; k < N_RADIAL; k++) {
-    const a = (k * Math.PI) / N_RADIAL
-    const tan = right.clone().multiplyScalar(Math.cos(a)).addScaledVector(fwd, Math.sin(a))
-    radialN.push(new Vector3().crossVectors(DT_AXIS, tan).normalize())
+  const STEP = LOT / R
+  const NG = Math.ceil(CAP_R / STEP)
+  const clamp = (x: number) => Math.max(-1, Math.min(1, x))
+  const v = new Vector3(), d = new Vector3(), q0 = new Quaternion(), z0 = new Vector3(), t = new Vector3(), cr = new Vector3()
+  const tangentAt = (base: Vector3, p: Vector3, out: Vector3) => out.copy(base).addScaledVector(p, -base.dot(p)).normalize()
+  // ── grid downtown ──
+  for (let gi = -NG; gi <= NG; gi++) for (let gj = -NG; gj <= NG; gj++) {
+    v.copy(right).multiplyScalar(gi * STEP).addScaledVector(fwd, gj * STEP)
+    const r = v.length()
+    if (r > CAP_R) continue
+    if (r < 1e-5) d.copy(DT_AXIS)
+    else d.copy(DT_AXIS).multiplyScalar(Math.cos(r)).addScaledVector(v, Math.sin(r) / r) // exp-map → sphere
+    const ci = ((gi % PERIOD) + PERIOD) % PERIOD
+    const cj = ((gj % PERIOD) + PERIOD) % PERIOD
+    const key = (gi + 999) * 2003 + (gj + 999)
+    if (ci === 0 || cj === 0) { // street cell — walkable
+      if (ci === 0 && cj === 0 && hash(key, 7) < 0.6) LAMPS.push({ x: d.x, y: d.y, z: d.z }) // lamps at intersections
+      continue
+    }
+    const ang = Math.acos(clamp(d.dot(DT_AXIS)))
+    if (ang < PLAZA_R) continue // central plaza open (the Eye)
+    if (Math.acos(clamp(d.y)) < SPAWN_CLEAR) continue // spawn clearing at the pole
+    if (hash(key, 2) < 0.07) continue // occasional courtyard gap
+    const ht = hash(key, 1)
+    // face the NEAREST street so blocks present streetfronts on every side
+    const di = Math.min(ci, PERIOD - ci), dj = Math.min(cj, PERIOD - cj)
+    if (di <= dj) tangentAt(right, d, t).multiplyScalar(ci <= PERIOD / 2 ? -1 : 1)
+    else tangentAt(fwd, d, t).multiplyScalar(cj <= PERIOD / 2 ? -1 : 1)
+    q0.setFromUnitVectors(UP, d)
+    z0.set(0, 0, 1).applyQuaternion(q0)
+    cr.crossVectors(z0, t)
+    const yaw = Math.atan2(cr.dot(d), z0.dot(t)) // align the model's +Z to the street
+    const pick = hash(key, 8)
+    const put = (arr: Placement[], scale: number, syr: number) => arr.push({ x: d.x, y: d.y, z: d.z, scale, yaw, sy: syr })
+    if (ang < 0.7) {
+      // core: colourful mid-rise + a few skyscrapers for skyline
+      if (pick < 0.34) put(APT_PLACE, 2.3, 1.8 + ht * 1.2)
+      else if (pick < 0.62) put(MIX_PLACE, 2.4, 1.5 + ht * 0.9)
+      else if (pick < 0.82) put(HOUSE_PLACE, 2.2, 1.0 + ht * 0.5)
+      else if (pick < 0.93) put(TOWER_PLACE, 2.2, 2.4 + ht * 3.0)
+      else put(DOME_PLACE, 2.6, 1.0)
+    } else if (ang < 1.15) {
+      if (pick < 0.45) put(APT_PLACE, 2.3, 1.6 + ht * 0.9)
+      else if (pick < 0.82) put(MIX_PLACE, 2.4, 1.4 + ht * 0.7)
+      else put(TOWER_PLACE, 2.2, 2.2 + ht * 1.8)
+    } else {
+      if (pick < 0.55) put(MIX_PLACE, 2.4, 1.2 + ht * 0.5)
+      else put(HOUSE_PLACE, 2.2, 1.0 + ht * 0.5)
+    }
   }
-  const P = new Vector3()
-  const clamp = (v: number) => Math.max(-1, Math.min(1, v))
+  // ── organic outskirts: forest + suburb cottages (golden-spiral, outside the city) ──
   for (let i = 0; i < SURFACE_N; i++) {
     const sy = 1 - (i / (SURFACE_N - 1)) * 2
     const rad = Math.sqrt(Math.max(0, 1 - sy * sy))
     const th = i * GOLDEN
     const dx = Math.cos(th) * rad, dy = sy, dz = Math.sin(th) * rad
-    P.set(dx, dy, dz)
-    const ang = Math.acos(clamp(P.dot(DT_AXIS)))
+    const ang = Math.acos(clamp(dx * DT_AXIS.x + dy * DT_AXIS.y + dz * DT_AXIS.z))
+    if (ang < CAP_R + 0.06) continue // inside/near the city → handled by the grid
     const ht = hash(i, 1)
-
-    if (ang < CAP_R) {
-      // ── planned downtown ──
-      if (ang < PLAZA_R) continue // open plaza — the Eye is the centrepiece
-      // organic wobble so streets curve rather than run mechanically straight
-      const wob = 0.7 + 0.55 * (0.5 + 0.5 * Math.sin(dx * 7.0 + dz * 5.0 + dy * 3.0))
-      let onRoad = false
-      for (const rr of RINGS) if (Math.abs(ang - rr) < ROAD_W * wob) { onRoad = true; break }
-      // radial avenues only beyond the core (so the converging spokes don't hollow the centre)
-      if (!onRoad && ang > RADIAL_MIN) for (const n of radialN) if (Math.abs(Math.asin(clamp(P.dot(n)))) < ROAD_W * wob) { onRoad = true; break }
-      if (onRoad) {
-        if (hash(i, 7) < 0.10) LAMPS.push({ x: dx, y: dy, z: dz }) // street lamps line the roads
-        continue
-      }
-      if (hash(i, 2) < 0.14) continue // pocket plazas / gaps within the blocks
-      const yaw = Math.floor(hash(i, 5) * 8) * (Math.PI / 4) + (hash(i, 6) - 0.5) * 0.22
-      const b = 0.86 + hash(i, 9) * 0.26 // per-instance brightness
-      const pick = hash(i, 8)
-      // flat cel colour per building type (× brightness) — varied, abeto-bright.
-      const put = (arr: Placement[], scale: number, syr: number, c: [number, number, number]) =>
-        arr.push({ x: dx, y: dy, z: dz, scale, yaw, sy: syr, tint: [c[0] * b, c[1] * b, c[2] * b] })
-      // Moderate building footprints (player/trees are the tiny ones) so the city
-      // packs densely in the small patch the close, low camera sees.
-      if (ang < 0.72) {
-        // core: varied + colourful (mostly cream apartments + brick mixed-use +
-        // domes), with a FEW skyscrapers for skyline — not a dark glass canyon.
-        if (pick < 0.30) put(APT_PLACE, 2.0 + ht * 0.8, 1.8 + ht * 1.2, [0.80, 0.74, 0.60])
-        else if (pick < 0.55) put(MIX_PLACE, 2.2 + ht * 0.8, 1.5 + ht * 0.9, [0.66, 0.42, 0.34])
-        else if (pick < 0.78) put(HOUSE_PLACE, 1.9 + ht * 0.8, 1.0 + ht * 0.6, [0.62, 0.36, 0.30])
-        else if (pick < 0.92) put(TOWER_PLACE, 1.8 + ht * 0.9, 2.2 + ht * 3.4, [0.46, 0.56, 0.64])
-        else put(DOME_PLACE, 2.8 + ht * 1.2, 1.0, [0.78, 0.80, 0.82])
-      } else if (ang < 1.16) {
-        // mid: apartments + brick-glass mixed-use + a few towers
-        if (pick < 0.42) put(APT_PLACE, 2.0 + ht * 0.8, 1.6 + ht * 1.0, [0.82, 0.72, 0.56])
-        else if (pick < 0.80) put(MIX_PLACE, 2.2 + ht * 0.8, 1.4 + ht * 0.8, [0.66, 0.42, 0.34])
-        else put(TOWER_PLACE, 1.8 + ht * 0.8, 2.2 + ht * 2.2, [0.44, 0.54, 0.62])
-      } else {
-        // edge: brick-glass mixed-use + rustic townhouses (low-rise)
-        if (pick < 0.5) put(MIX_PLACE, 2.2 + ht * 0.8, 1.2 + ht * 0.6, [0.70, 0.45, 0.36])
-        else put(HOUSE_PLACE, 1.8 + ht * 0.8, 1.0 + ht * 0.6, [0.62, 0.36, 0.30])
-      }
-    } else {
-      // ── organic outskirts: forest + scattered suburb cottages ──
-      const f = fract(i * 0.61803398875)
-      if (f < 0.13) {
-        const b2 = 0.86 + hash(i, 9) * 0.26
-        HOUSE_PLACE.push({ x: dx, y: dy, z: dz, scale: 1.7 + ht * 0.7, yaw: hash(i, 5) * Math.PI * 2, sy: 1.1 + ht * 0.7, tint: [0.60 * b2, 0.40 * b2, 0.32 * b2] })
-      } else if (f < 0.19) {
-        LAMPS.push({ x: dx, y: dy, z: dz })
-      } else {
-        const rl = 0.9 + hash(i, 3) * 0.7 // street trees (~1-2x character)
-        TREES.push({ x: dx, y: dy, z: dz, trunkH: 0.6 + hash(i, 4) * 0.5, rl, ru: rl * 0.78, green: i % CANOPY.length })
-      }
-    }
+    const f = fract(i * 0.61803398875)
+    if (f < 0.12) HOUSE_PLACE.push({ x: dx, y: dy, z: dz, scale: 1.8 + ht * 0.6, yaw: hash(i, 5) * Math.PI * 2, sy: 1.0 + ht * 0.6 })
+    else if (f < 0.18) LAMPS.push({ x: dx, y: dy, z: dz })
+    else { const rl = 0.9 + hash(i, 3) * 0.7; TREES.push({ x: dx, y: dy, z: dz, trunkH: 0.6 + hash(i, 4) * 0.5, rl, ru: rl * 0.78, green: i % CANOPY.length }) }
   }
 })()
 
