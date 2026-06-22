@@ -57,33 +57,32 @@ const _look = new Vector3()
 const _qa = new Quaternion()
 const _m = new Matrix4()
 
-// ── World dimensions ─────────────────────────────────────────────────────────
-const R = 6 // planet radius (surface = where the town + player's feet sit). Stays
-// small (abeto-scale) — buildings are kept small so a DENSE city packs in with
-// room for streets. Must match GlbCity.
-// Dense golden-spiral candidate points; classified into a planned downtown
-// (radial avenues + ring roads + packed blocks) vs organic forest/suburb outskirts.
-const SURFACE_N = 2200
+// ── World dimensions — MATCHED to abeto's measured scale ─────────────────────
+// abeto (read from its live scene): planet surface radius ~26, character 1.66
+// tall (≈16:1), follow-cam FOV 45 sitting ~4 above the surface ~30 from centre.
+// At that ratio the local patch reads FLAT while you walk, but the whole map is
+// the globe. Must match GlbCity's R.
+const R = 26 // planet radius (abeto-matched)
+const SURFACE_N = 1400 // golden-spiral candidates → planned downtown + organic outskirts
 
-// ── Locomotion + camera tuning ───────────────────────────────────────────────
-// Everything on the planet is TINY relative to R=6, and the camera sits LOW and
-// CLOSE to the little player — so the visible patch is small vs the sphere and
-// the ground reads FLAT while you walk (abeto feel), even though the whole map is
-// the globe. (Horizon ≈ sqrt(2·R·camHeight) ≈ 1.9 units → a flat-looking field.)
-const WALK_SPEED = 0.34 // surface units / sec (tiny player → small linear speed)
+// ── Locomotion + camera tuning (abeto follow-cam) ────────────────────────────
+const WALK_SPEED = 4.0 // surface units / sec (1.66-tall character, brisk walk)
 const TURN_RATE = 2.0 // rad / sec
-const CAM_BACK = 0.50 // camera distance behind the player (along −heading)
-const CAM_UP = 0.27 // camera height above the player — low, so the patch reads FLAT
-const LOOK_UP = 0.11 // look forward down the street at the skyline, not at bare ground
+const CAM_BACK = 5.0 // camera distance behind the player (along −heading)
+const CAM_UP = 4.0 // camera height above the player (≈2.4× char, like abeto)
+const LOOK_UP = 1.5 // look at the street/skyline ahead
 const CAM_LERP = 0.12 // follow-camera spring (snaps when reducedMotion)
-const PLAYER_H = 0.12 // player height (≈ abeto-tiny vs the planet)
+const CAM_FOV = 45 // abeto's gameplay FOV
+const PLAYER_H = 1.66 // character height (abeto-matched)
 
-// ── Palettes (ours — match the reskinned plaza so it reads as the same town) ──
-const LAND = '#2B5F6E' // canon Dusk Teal land/ocean
-const ATMO = palette.lanternAmber // warm rim-glow + lit windows + lamp beads
-const CANOPY = ['#2E4A3A', '#3E5E3A', '#46583C', '#54603A', '#5E6E3A']
-const TRUNK = '#3A2C22'
-const POST = '#23303a'
+// ── Palettes — DAYTIME (abeto is bright sunny daylight, not dusk) ────────────
+const LAND = '#8aa861' // sunny grass-green ground
+const SKY_TOP = '#5fa8e8' // daytime sky (dome top)
+const SKY_LOW = '#cfeaf6' // pale horizon
+const ATMO = '#eaf6ff' // bright atmosphere rim
+const CANOPY = ['#5f9a44', '#6fae4e', '#7cb85a', '#88c065', '#6aa84c']
+const TRUNK = '#6b4a32'
+const POST = '#4a5560'
 
 // ── Deterministic hash (GLSL-style; stable across reloads) ───────────────────
 const fract = (x: number) => x - Math.floor(x)
@@ -112,9 +111,9 @@ const LAMPS: Lamp[] = []
 // so the player starts among the core towers looking INTO the dense skyline + Eye.
 const DT_AXIS = new Vector3(0.0, 0.95, -0.32).normalize()
 const CAP_R = 1.5            // downtown angular radius (≈ the whole near hemisphere)
-const PLAZA_R = 0.05         // tiny open plaza at the core centre (Eye there, ahead of spawn)
+const PLAZA_R = 0.06         // open plaza at the core centre (Eye there, ahead of spawn)
 const RINGS = [0.34, 0.62, 0.92, 1.22]
-const ROAD_W = 0.03          // road half-width → tight, walkable streets between blocks
+const ROAD_W = 0.055         // road half-width → ~3-unit (≈2-char-wide) walkable streets on R26
 const N_RADIAL = 7           // avenues radiating outward (scenic sightlines)
 const RADIAL_MIN = 0.34      // radials start beyond the core so they don't carve it hollow
 
@@ -164,30 +163,30 @@ const RADIAL_MIN = 0.34      // radials start beyond the core so they don't carv
       // packs densely in the small patch the close, low camera sees.
       if (ang < 0.72) {
         // core: a real skyline — skyscrapers + apartment mid-rises + glass domes
-        if (pick < 0.62) put(TOWER_PLACE, 0.34 + ht * 0.18, 3.0 + ht * 3.2, [0.46, 0.56, 0.64])
-        else if (pick < 0.92) put(APT_PLACE, 0.38 + ht * 0.14, 2.0 + ht * 1.3, [0.80, 0.74, 0.60])
-        else put(DOME_PLACE, 0.52 + ht * 0.20, 1.0, [0.78, 0.80, 0.82])
+        if (pick < 0.62) put(TOWER_PLACE, 1.8 + ht * 0.9, 2.6 + ht * 5.0, [0.46, 0.56, 0.64])
+        else if (pick < 0.92) put(APT_PLACE, 2.0 + ht * 0.8, 1.8 + ht * 1.4, [0.80, 0.74, 0.60])
+        else put(DOME_PLACE, 2.8 + ht * 1.2, 1.0, [0.78, 0.80, 0.82])
       } else if (ang < 1.16) {
         // mid: apartments + brick-glass mixed-use + plenty of towers
-        if (pick < 0.36) put(APT_PLACE, 0.38 + ht * 0.14, 1.8 + ht * 1.1, [0.82, 0.72, 0.56])
-        else if (pick < 0.72) put(MIX_PLACE, 0.40 + ht * 0.14, 1.5 + ht * 0.9, [0.66, 0.42, 0.34])
-        else put(TOWER_PLACE, 0.34 + ht * 0.16, 2.6 + ht * 2.2, [0.44, 0.54, 0.62])
+        if (pick < 0.36) put(APT_PLACE, 2.0 + ht * 0.8, 1.6 + ht * 1.0, [0.82, 0.72, 0.56])
+        else if (pick < 0.72) put(MIX_PLACE, 2.2 + ht * 0.8, 1.4 + ht * 0.8, [0.66, 0.42, 0.34])
+        else put(TOWER_PLACE, 1.8 + ht * 0.8, 2.4 + ht * 2.6, [0.44, 0.54, 0.62])
       } else {
         // edge: brick-glass mixed-use + rustic townhouses (low-rise)
-        if (pick < 0.5) put(MIX_PLACE, 0.40 + ht * 0.14, 1.3 + ht * 0.6, [0.70, 0.45, 0.36])
-        else put(HOUSE_PLACE, 0.34 + ht * 0.16, 1.0 + ht * 0.5, [0.62, 0.36, 0.30])
+        if (pick < 0.5) put(MIX_PLACE, 2.2 + ht * 0.8, 1.2 + ht * 0.6, [0.70, 0.45, 0.36])
+        else put(HOUSE_PLACE, 1.8 + ht * 0.8, 1.0 + ht * 0.6, [0.62, 0.36, 0.30])
       }
     } else {
-      // ── organic outskirts: forest + scattered suburb cottages (all tiny) ──
+      // ── organic outskirts: forest + scattered suburb cottages ──
       const f = fract(i * 0.61803398875)
       if (f < 0.13) {
         const b2 = 0.86 + hash(i, 9) * 0.26
-        HOUSE_PLACE.push({ x: dx, y: dy, z: dz, scale: 0.32 + ht * 0.14, yaw: hash(i, 5) * Math.PI * 2, sy: 1.2 + ht * 0.8, tint: [0.60 * b2, 0.40 * b2, 0.32 * b2] })
+        HOUSE_PLACE.push({ x: dx, y: dy, z: dz, scale: 1.7 + ht * 0.7, yaw: hash(i, 5) * Math.PI * 2, sy: 1.1 + ht * 0.7, tint: [0.60 * b2, 0.40 * b2, 0.32 * b2] })
       } else if (f < 0.19) {
         LAMPS.push({ x: dx, y: dy, z: dz })
       } else {
-        const rl = 0.06 + hash(i, 3) * 0.05 // small street trees (tiny vs buildings)
-        TREES.push({ x: dx, y: dy, z: dz, trunkH: 0.04 + hash(i, 4) * 0.03, rl, ru: rl * 0.78, green: i % CANOPY.length })
+        const rl = 0.9 + hash(i, 3) * 0.7 // street trees (~1-2x character)
+        TREES.push({ x: dx, y: dy, z: dz, trunkH: 0.6 + hash(i, 4) * 0.5, rl, ru: rl * 0.78, green: i % CANOPY.length })
       }
     }
   }
@@ -199,8 +198,8 @@ const N_L = LAMPS.length
 // Landmarks (single GLB instances) at scenic focal points the avenues lead to.
 // Spawn faces −Z, so the Eye sits just ahead at the plaza edge; the Bridge is a
 // mid-distance landmark off to the side that an avenue leads toward.
-const EYE_PLACE: Placement = { x: 0.12, y: 0.90, z: -0.42, scale: 0.9, yaw: 0, tint: [0.74, 0.78, 0.84] }      // core centre, ahead of spawn
-const BRIDGE_PLACE: Placement = { x: 0.50, y: 0.66, z: -0.56, scale: 0.7, yaw: 0.4, tint: [0.60, 0.55, 0.62] }  // scenic mid landmark
+const EYE_PLACE: Placement = { x: 0.12, y: 0.90, z: -0.42, scale: 7, yaw: 0, tint: [0.74, 0.78, 0.84] }      // core centre, ahead of spawn
+const BRIDGE_PLACE: Placement = { x: 0.50, y: 0.66, z: -0.56, scale: 5, yaw: 0.4, tint: [0.60, 0.55, 0.62] }  // scenic mid landmark
 
 // Orient an instance so local +Y follows the surface normal, then sit it at
 // `dist` from the centre with `(sx,sy,sz)` scale → matrix in module scratch _o.
@@ -225,7 +224,7 @@ function Planet() {
     // Buildings are now REAL meshes (see <GlbCity/>). Trees + lamps stay procedural.
     for (let i = 0; i < N_T; i++) {
       const t = TREES[i]
-      placeOnSurface(t, R + t.trunkH / 2, 0.018, t.trunkH, 0.018)
+      placeOnSurface(t, R + t.trunkH / 2, 0.12, t.trunkH, 0.12)
       trunks.current.setMatrixAt(i, _o.matrix)
       placeOnSurface(t, R + t.trunkH + t.rl * 0.6, t.rl, t.rl, t.rl)
       canopyLo.current.setMatrixAt(i, _o.matrix)
@@ -244,9 +243,9 @@ function Planet() {
 
     for (let i = 0; i < N_L; i++) {
       const l = LAMPS[i]
-      placeOnSurface(l, R + 0.035, 0.012, 0.07, 0.012)
+      placeOnSurface(l, R + 0.16, 0.05, 0.32, 0.05)
       lampPosts.current.setMatrixAt(i, _o.matrix)
-      placeOnSurface(l, R + 0.085, 0.024, 0.024, 0.024)
+      placeOnSurface(l, R + 0.38, 0.11, 0.11, 0.11)
       lampGlows.current.setMatrixAt(i, _o.matrix)
     }
     lampPosts.current.instanceMatrix.needsUpdate = true
@@ -255,12 +254,17 @@ function Planet() {
 
   return (
     <group>
+      {/* Daytime sky dome — bright blue, drawn behind everything (abeto daylight). */}
       <mesh>
-        <sphereGeometry args={[R + 0.7, 32, 24]} />
-        <meshBasicMaterial color={ATMO} transparent opacity={0.07} side={1 /* BackSide */} depthWrite={false} />
+        <sphereGeometry args={[R + 30, 32, 20]} />
+        <meshBasicMaterial color={SKY_TOP} side={1 /* BackSide */} depthWrite={false} fog={false} />
       </mesh>
       <mesh>
-        <sphereGeometry args={[R, 64, 48]} />
+        <sphereGeometry args={[R + 2.5, 32, 24]} />
+        <meshBasicMaterial color={ATMO} transparent opacity={0.12} side={1 /* BackSide */} depthWrite={false} />
+      </mesh>
+      <mesh receiveShadow>
+        <sphereGeometry args={[R, 96, 64]} />
         <meshToonMaterial color={LAND} />
       </mesh>
       <instancedMesh ref={trunks} args={[undefined, undefined, N_T]} frustumCulled={false}>
@@ -483,16 +487,29 @@ export default function PlanetWorld({
       quality={quality}
       reducedMotion={reducedMotion}
       fullscreen={fullscreen}
-      cameraPosition={[0, 6 + CAM_UP, CAM_BACK]}
-      cameraFov={42}
+      cameraPosition={[0, R + CAM_UP, CAM_BACK]}
+      cameraFov={CAM_FOV}
       overlay={overlay}
     >
-      {/* Flat-cel cities want broad even light (not one harsh sun) so buildings
-          keep their colour whichever way the player faces around the globe. A
-          strong hemisphere (warm dusk sky over teal ground) + ambient does that;
-          the ink-outline pass supplies the form. */}
-      <hemisphereLight args={['#dbe7f6', '#3c5e50', 1.15]} />
-      <ambientLight intensity={0.55} />
+      {/* abeto-matched daylight: ONE strong sun (casts shadows) + a soft sky/ground
+          hemisphere fill so cel faces keep colour as the player turns. */}
+      <hemisphereLight args={['#eaf4ff', '#6f8a55', 0.65]} />
+      <ambientLight intensity={0.35} />
+      <directionalLight
+        position={[R * 1.4, R * 1.9, R * 0.8]}
+        intensity={2.6}
+        color={'#fff6e8'}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-near={1}
+        shadow-camera-far={R * 4}
+        shadow-camera-left={-R}
+        shadow-camera-right={R}
+        shadow-camera-top={R}
+        shadow-camera-bottom={-R}
+        shadow-bias={-0.0005}
+      />
       <Planet />
       <Suspense fallback={null}>
         <GlbCity

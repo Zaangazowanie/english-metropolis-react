@@ -21,7 +21,7 @@ const _qy = new Quaternion()
 const _dir = new Vector3()
 const _col = new Color()
 const UP = new Vector3(0, 1, 0)
-const R = 6 // planet radius (must match PlanetWorld)
+const R = 26 // planet radius (must match PlanetWorld)
 
 // Buildings are TEXTURELESS now — flat cel fills (abeto look) + the ink-outline
 // post pass. One shared toon material (white) for every building type; the actual
@@ -95,7 +95,7 @@ function Instanced({ url, items }: { url: string; items: Placement[] }) {
     ref.current.instanceMatrix.needsUpdate = true
     if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true
   }, [geometry, items])
-  return <instancedMesh ref={ref} args={[geometry, BUILDING_MAT, items.length]} frustumCulled={false} />
+  return <instancedMesh ref={ref} args={[geometry, BUILDING_MAT, items.length]} frustumCulled={false} castShadow receiveShadow />
 }
 
 export interface GlbCityProps {
