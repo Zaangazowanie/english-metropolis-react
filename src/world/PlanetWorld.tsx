@@ -58,12 +58,12 @@ const _qa = new Quaternion()
 const _m = new Matrix4()
 
 // ── World dimensions ─────────────────────────────────────────────────────────
-const R = 6 // planet radius (surface = where the town + player's feet sit)
-// Candidate surface points (golden-spiral). abeto's planet is fully built-up — a
-// dense city cluster wrapped in thick forest, NO bare ground. We match that
-// density with OUR meshes: a high point count, ~no empty band, forest-dominant
-// fill so the globe reads like a packed little world instead of a sparse scatter.
-const SURFACE_N = 820
+const R = 6 // planet radius (surface = where the town + player's feet sit). Stays
+// small (abeto-scale) — buildings are kept small so a DENSE city packs in with
+// room for streets. Must match GlbCity.
+// Dense golden-spiral candidate points; classified into a planned downtown
+// (radial avenues + ring roads + packed blocks) vs organic forest/suburb outskirts.
+const SURFACE_N = 2200
 
 // ── Locomotion + camera tuning ───────────────────────────────────────────────
 const WALK_SPEED = 2.6 // surface units / sec
@@ -84,66 +84,118 @@ const POST = '#23303a'
 const fract = (x: number) => x - Math.floor(x)
 const hash = (i: number, s: number) => fract(Math.sin((i + 1) * 12.9898 + s * 78.233) * 43758.5453)
 
-// ── Precompute the town layout once (module scope → constant instance counts) ─
-// Buildings are real little houses now: a chunky box body (separate width/depth)
-// + a clay pitched roof, kept short so they read as a packed village, not the
-// thin slabs of the first pass.
-interface Building { x: number; y: number; z: number; h: number }
+// ── Precompute the dense town once (module scope → constant instance counts) ──
+// A PLANNED downtown — radial avenues + concentric ring roads carve dynamic,
+// gently-curving streets through densely-packed SMALL buildings (5 mesh types) —
+// wrapped in an organic forest/suburb ring. All deterministic (golden-spiral
+// candidates + hash) so the instance counts are stable across reloads.
 interface Tree { x: number; y: number; z: number; trunkH: number; rl: number; ru: number; green: number }
 interface Lamp { x: number; y: number; z: number }
 
-const BUILDINGS: Building[] = []
+const TOWER_PLACE: Placement[] = []
+const HOUSE_PLACE: Placement[] = []
+const APT_PLACE: Placement[] = []
+const MIX_PLACE: Placement[] = []
+const DOME_PLACE: Placement[] = []
 const TREES: Tree[] = []
 const LAMPS: Lamp[] = []
 
-for (let i = 0; i < SURFACE_N; i++) {
-  const sy = 1 - (i / (SURFACE_N - 1)) * 2
-  const rad = Math.sqrt(Math.max(0, 1 - sy * sy))
-  const theta = i * GOLDEN
-  const dx = Math.cos(theta) * rad
-  const dy = sy
-  const dz = Math.sin(theta) * rad
-  const f = fract(i * 0.61803398875)
-  // Cluster buildings toward a "downtown" cap (near the +Z/+Y opening view) and
-  // let forest dominate everywhere else — like abeto's city-in-a-forest. `built`
-  // is the local probability of a building, highest near the cluster centre.
-  const toCentre = dx * 0.30 + dy * 0.42 + dz * 0.86 // dot with downtown axis
-  const built = 0.20 + 0.34 * Math.max(0, toCentre) // 0.20 far side → ~0.54 downtown
-  if (f < built) {
-    // a built point — height drives the mesh scale in GlbCity (tower vs house)
-    BUILDINGS.push({ x: dx, y: dy, z: dz, h: 0.34 + hash(i, 1) * 0.5 })
-  } else if (f < built + 0.06) {
-    LAMPS.push({ x: dx, y: dy, z: dz })
-  } else {
-    // everything else is forest — big overlapping canopies so the globe reads as
-    // continuous woodland (abeto-dense), never bare teal between trees.
-    const rl = 0.30 + hash(i, 3) * 0.20
-    TREES.push({ x: dx, y: dy, z: dz, trunkH: 0.22 + hash(i, 4) * 0.14, rl, ru: rl * 0.78, green: i % CANOPY.length })
+// Downtown plan parameters (angular, radians on the unit sphere). The city is
+// centred on the player's SPAWN (the north pole) so you start in the plaza and
+// the streets + skyline open up around you — scenic, abeto-style.
+const DT_AXIS = new Vector3(0.06, 1.0, 0.10).normalize() // ≈ north pole = spawn
+const CAP_R = 1.5            // downtown angular radius (≈ the whole near hemisphere)
+const PLAZA_R = 0.16         // open central plaza (the player spawns here, Eye nearby)
+const RINGS = [0.5, 0.86, 1.22]
+const ROAD_W = 0.055         // road half-width → ~0.65-unit streets, walkable
+const N_RADIAL = 7           // avenues radiating outward (scenic sightlines)
+const RADIAL_MIN = 0.34      // radials start beyond the core so they don't carve it hollow
+
+;(() => {
+  // Robust tangent basis (DT_AXIS ≈ +Y, so seed from +X to avoid a degenerate cross).
+  const seed = Math.abs(DT_AXIS.y) > 0.9 ? new Vector3(1, 0, 0) : UP
+  const right = new Vector3().crossVectors(seed, DT_AXIS).normalize()
+  const fwd = new Vector3().crossVectors(DT_AXIS, right).normalize()
+  const radialN: Vector3[] = []
+  for (let k = 0; k < N_RADIAL; k++) {
+    const a = (k * Math.PI) / N_RADIAL
+    const tan = right.clone().multiplyScalar(Math.cos(a)).addScaledVector(fwd, Math.sin(a))
+    radialN.push(new Vector3().crossVectors(DT_AXIS, tan).normalize())
   }
-}
+  const P = new Vector3()
+  const clamp = (v: number) => Math.max(-1, Math.min(1, v))
+  for (let i = 0; i < SURFACE_N; i++) {
+    const sy = 1 - (i / (SURFACE_N - 1)) * 2
+    const rad = Math.sqrt(Math.max(0, 1 - sy * sy))
+    const th = i * GOLDEN
+    const dx = Math.cos(th) * rad, dy = sy, dz = Math.sin(th) * rad
+    P.set(dx, dy, dz)
+    const ang = Math.acos(clamp(P.dot(DT_AXIS)))
+    const ht = hash(i, 1)
+
+    if (ang < CAP_R) {
+      // ── planned downtown ──
+      if (ang < PLAZA_R) continue // open plaza — the Eye is the centrepiece
+      // organic wobble so streets curve rather than run mechanically straight
+      const wob = 0.7 + 0.55 * (0.5 + 0.5 * Math.sin(dx * 7.0 + dz * 5.0 + dy * 3.0))
+      let onRoad = false
+      for (const rr of RINGS) if (Math.abs(ang - rr) < ROAD_W * wob) { onRoad = true; break }
+      // radial avenues only beyond the core (so the converging spokes don't hollow the centre)
+      if (!onRoad && ang > RADIAL_MIN) for (const n of radialN) if (Math.abs(Math.asin(clamp(P.dot(n)))) < ROAD_W * wob) { onRoad = true; break }
+      if (onRoad) {
+        if (hash(i, 7) < 0.10) LAMPS.push({ x: dx, y: dy, z: dz }) // street lamps line the roads
+        continue
+      }
+      if (hash(i, 2) < 0.14) continue // pocket plazas / gaps within the blocks
+      const yaw = Math.floor(hash(i, 5) * 8) * (Math.PI / 4) + (hash(i, 6) - 0.5) * 0.22
+      const tv = 0.82 + hash(i, 9) * 0.30 // brightness variety
+      const tint: [number, number, number] = [tv, tv, tv]
+      const pick = hash(i, 8)
+      const put = (arr: Placement[], scale: number, syr: number) =>
+        arr.push({ x: dx, y: dy, z: dz, scale, yaw, sy: syr, tint })
+      if (ang < 0.72) {
+        // core: a real skyline — mostly skyscrapers + apartment mid-rises + domes
+        if (pick < 0.62) put(TOWER_PLACE, 0.40 + ht * 0.24, 2.8 + ht * 2.4)
+        else if (pick < 0.92) put(APT_PLACE, 0.42 + ht * 0.18, 1.9 + ht * 1.1)
+        else put(DOME_PLACE, 0.6 + ht * 0.25, 1.0)
+      } else if (ang < 1.16) {
+        // mid: apartments + brick-glass mixed-use + plenty of towers
+        if (pick < 0.36) put(APT_PLACE, 0.42 + ht * 0.18, 1.7 + ht * 1.0)
+        else if (pick < 0.72) put(MIX_PLACE, 0.44 + ht * 0.16, 1.5 + ht * 0.8)
+        else put(TOWER_PLACE, 0.40 + ht * 0.20, 2.3 + ht * 1.6)
+      } else {
+        // edge: brick-glass mixed-use + rustic townhouses (low-rise)
+        if (pick < 0.5) put(MIX_PLACE, 0.44 + ht * 0.16, 1.3 + ht * 0.6)
+        else put(HOUSE_PLACE, 0.40 + ht * 0.18, 1.0 + ht * 0.5)
+      }
+    } else {
+      // ── organic outskirts: forest + scattered suburb cottages ──
+      const f = fract(i * 0.61803398875)
+      if (f < 0.13) {
+        const tv = 0.88 + hash(i, 9) * 0.22
+        HOUSE_PLACE.push({ x: dx, y: dy, z: dz, scale: 0.4 + ht * 0.16, yaw: hash(i, 5) * Math.PI * 2, sy: 1.0 + ht * 0.5, tint: [tv, tv, tv] })
+      } else if (f < 0.19) {
+        LAMPS.push({ x: dx, y: dy, z: dz })
+      } else {
+        const rl = 0.26 + hash(i, 3) * 0.20
+        TREES.push({ x: dx, y: dy, z: dz, trunkH: 0.2 + hash(i, 4) * 0.14, rl, ru: rl * 0.78, green: i % CANOPY.length })
+      }
+    }
+  }
+})()
 
 const N_T = TREES.length
 const N_L = LAMPS.length
 
-// Real building MESHES (GlbCity) replace the procedural box houses. Split the
-// built points into 2050 skyscrapers vs rustic townhouses (deterministic by
-// position), scaled to a world height; plus one London Eye landmark.
-const TOWER_PLACE: Placement[] = []
-const HOUSE_PLACE: Placement[] = []
-for (const b of BUILDINGS) {
-  const isTower = fract(Math.abs(b.x) * 12.9898 + Math.abs(b.z) * 78.233) > 0.58
-  if (isTower) TOWER_PLACE.push({ x: b.x, y: b.y, z: b.z, scale: 1.3 + (b.h - 0.34) * 2.6 })
-  else HOUSE_PLACE.push({ x: b.x, y: b.y, z: b.z, scale: 0.72 + (b.h - 0.34) * 0.5 })
-}
-// London Eye landmark — on the near (+Z) hemisphere so it's in the opening view.
-const EYE_PLACE: Placement = { x: 0.32, y: 0.42, z: 0.85, scale: 2.9, yaw: 1.2 }
-// Tower Bridge landmark — near hemisphere, opposite the Eye, low on the horizon
-// so its wide span reads against the globe curve. (Single GLB instance.)
-const BRIDGE_PLACE: Placement = { x: -0.46, y: 0.06, z: 0.88, scale: 2.0, yaw: 0.5 }
+// Landmarks (single GLB instances) at scenic focal points the avenues lead to.
+// Spawn faces −Z, so the Eye sits just ahead at the plaza edge; the Bridge is a
+// mid-distance landmark off to the side that an avenue leads toward.
+const EYE_PLACE: Placement = { x: 0.05, y: 0.95, z: -0.31, scale: 2.6, yaw: 0 }     // ahead of spawn, plaza edge
+const BRIDGE_PLACE: Placement = { x: 0.62, y: 0.62, z: -0.30, scale: 2.0, yaw: 0.4 } // scenic mid landmark
 
 // Orient an instance so local +Y follows the surface normal, then sit it at
 // `dist` from the centre with `(sx,sy,sz)` scale → matrix in module scratch _o.
-function placeOnSurface(b: Building | Tree | Lamp, dist: number, sx: number, sy: number, sz: number): void {
+function placeOnSurface(b: { x: number; y: number; z: number }, dist: number, sx: number, sy: number, sz: number): void {
   _dir.set(b.x, b.y, b.z).normalize()
   _o.position.copy(_dir).multiplyScalar(dist)
   _q.setFromUnitVectors(UP, _dir)
@@ -428,7 +480,15 @@ export default function PlanetWorld({
     >
       <Planet />
       <Suspense fallback={null}>
-        <GlbCity towers={TOWER_PLACE} houses={HOUSE_PLACE} eye={EYE_PLACE} bridge={BRIDGE_PLACE} />
+        <GlbCity
+          towers={TOWER_PLACE}
+          houses={HOUSE_PLACE}
+          apartments={APT_PLACE}
+          mixed={MIX_PLACE}
+          domes={DOME_PLACE}
+          eye={EYE_PLACE}
+          bridge={BRIDGE_PLACE}
+        />
         <PlanetNpcs />
       </Suspense>
       <PlayerRig keysRef={keysRef} joyRef={joyRef} reducedMotion={reducedMotion} />

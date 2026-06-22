@@ -10,7 +10,7 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import { useLoader } from '@react-three/fiber'
-import { Object3D, Quaternion, Vector3, Box3 } from 'three'
+import { Object3D, Quaternion, Vector3, Box3, Color } from 'three'
 import type { InstancedMesh, Mesh, BufferGeometry, Material } from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
@@ -19,6 +19,7 @@ const _o = new Object3D()
 const _q = new Quaternion()
 const _qy = new Quaternion()
 const _dir = new Vector3()
+const _col = new Color()
 const UP = new Vector3(0, 1, 0)
 const R = 6 // planet radius (must match PlanetWorld)
 
@@ -31,7 +32,13 @@ function withDraco(loader: GLTFLoader) {
   loader.setDRACOLoader(_draco)
 }
 
-export interface Placement { x: number; y: number; z: number; scale: number; yaw?: number }
+export interface Placement {
+  x: number; y: number; z: number; scale: number; yaw?: number
+  /** Height multiplier (footprint = scale; height = scale*sy) — proportion variety. */
+  sy?: number
+  /** Per-instance RGB multiply (subtle brightness/hue variety). */
+  tint?: [number, number, number]
+}
 
 /** Load a GLB, merge-pick its first mesh, bake world transform, and normalize so
  *  the geometry is centred on X/Z with its base at y=0 and a height of 1. */
@@ -71,11 +78,13 @@ function Instanced({ url, items }: { url: string; items: Placement[] }) {
       }
       _o.position.copy(_dir).multiplyScalar(R) // base sits on the surface
       _o.quaternion.copy(_q)
-      _o.scale.setScalar(it.scale)
+      _o.scale.set(it.scale, it.scale * (it.sy ?? 1), it.scale) // sy = height variety
       _o.updateMatrix()
       ref.current.setMatrixAt(i, _o.matrix)
+      if (it.tint) { _col.setRGB(it.tint[0], it.tint[1], it.tint[2]); ref.current.setColorAt(i, _col) }
     }
     ref.current.instanceMatrix.needsUpdate = true
+    if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true
   }, [geometry, items])
   return <instancedMesh ref={ref} args={[geometry, material, items.length]} frustumCulled={false} />
 }
@@ -86,13 +95,21 @@ export interface GlbCityProps {
   eye: Placement
   /** Tower Bridge landmark (single instance). Optional so callers can omit it. */
   bridge?: Placement
+  /** Extra building variations — only rendered when a non-empty array is passed
+   *  (so the matching GLB must exist under public/world/). */
+  apartments?: Placement[]
+  domes?: Placement[]
+  mixed?: Placement[]
 }
 
-export function GlbCity({ towers, houses, eye, bridge }: GlbCityProps) {
+export function GlbCity({ towers, houses, eye, bridge, apartments, domes, mixed }: GlbCityProps) {
   return (
     <group>
       <Instanced url="/world/skyscraper.glb" items={towers} />
       <Instanced url="/world/townhouse.glb" items={houses} />
+      {apartments && apartments.length > 0 && <Instanced url="/world/apartment.glb" items={apartments} />}
+      {mixed && mixed.length > 0 && <Instanced url="/world/mixed.glb" items={mixed} />}
+      {domes && domes.length > 0 && <Instanced url="/world/dome.glb" items={domes} />}
       <Instanced url="/world/londoneye.glb" items={[eye]} />
       {bridge && <Instanced url="/world/bridge.glb" items={[bridge]} />}
     </group>
