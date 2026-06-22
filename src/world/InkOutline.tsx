@@ -58,7 +58,12 @@ const FRAG = /* glsl */`
     // Bright flat-cel fills (a gentle exposure lift, NO darkening tone-map) — the
     // earlier ACES filmic curve crushed the shadows and made the whole city read
     // black; abeto stays bright + flat. The ink edges below draw over this.
-    vec3 col = lin2srgb(c.rgb * 1.15);
+    vec3 col = lin2srgb(c.rgb * 1.12);
+    // — warm Ghibli grade + very fine paper grain (painterly texture comes from the
+    // facade canvas, NOT a screen-space pattern, to avoid a "filter" look) —
+    float grain = fract(sin(dot(vUv * resolution, vec2(12.9898, 78.233))) * 43758.5453);
+    col *= 0.985 + 0.025 * grain;
+    col = mix(col, col * vec3(1.05, 1.005, 0.92), 0.5);
 
     // — depth edges (silhouettes + object overlaps) —
     float dC = linDepth(texture2D(tDepth, vUv).x);
@@ -66,8 +71,12 @@ const FRAG = /* glsl */`
     float dD = linDepth(texture2D(tDepth, vUv + vec2(0.0, -px.y)).x);
     float dL = linDepth(texture2D(tDepth, vUv + vec2(-px.x, 0.0)).x);
     float dR = linDepth(texture2D(tDepth, vUv + vec2( px.x, 0.0)).x);
-    float depthEdge = (abs(dC - dU) + abs(dC - dD) + abs(dC - dL) + abs(dC - dR)) / max(dC, 0.001);
-    float de = smoothstep(depthThreshold, depthThreshold * 2.2, depthEdge);
+    // SECOND difference (Laplacian) not first difference: a flat surface seen at a
+    // grazing angle has a big *linear* depth gradient (which 1st-diff wrongly inks
+    // as a dark blob across the road) but ~zero curvature; only real depth
+    // DISCONTINUITIES (silhouettes/overlaps) spike the Laplacian.
+    float depthEdge = (abs(dU + dD - 2.0 * dC) + abs(dL + dR - 2.0 * dC)) / max(dC, 0.001);
+    float de = smoothstep(depthThreshold, depthThreshold * 2.4, depthEdge);
 
     // — luminance edges on DISPLAY colour (collar, satchel strap, panes) —
     float lC = luma(col);
@@ -80,10 +89,10 @@ const FRAG = /* glsl */`
 
     if (debug > 0.5) { gl_FragColor = vec4(de, le, 0.0, 1.0); return; }
 
-    // keep clean silhouettes (depth) but let interior colour lines be much softer
-    // and lighter overall — abeto's outlines are gentle, not a harsh scribble.
-    float edge = max(de, le * 0.45);
-    vec3 rgb = mix(col, inkColor, edge * 0.78);
+    // BOLD hand-inked anime outlines: strong on silhouettes/structure (our facades
+    // are clean canvas now, so bold lines read as anime ink, not a scribble).
+    float edge = max(de, le * 0.8);
+    vec3 rgb = mix(col, inkColor, edge * 0.96);
     // silhouette lines stay opaque even over the transparent sky; elsewhere keep
     // the scene's own alpha so the DOM dusk-gradient shows through.
     float a = max(c.a, de);
@@ -105,10 +114,10 @@ export interface InkOutlineProps {
 }
 
 export function InkOutline({
-  thickness = 1.5,
-  depthThreshold = 0.02,
-  lumaThreshold = 0.44,
-  color = '#43392f',
+  thickness = 2.4,
+  depthThreshold = 0.013,
+  lumaThreshold = 0.30,
+  color = '#241b14',
   debug = false,
 }: InkOutlineProps) {
   const { gl, scene, camera, size } = useThree()
