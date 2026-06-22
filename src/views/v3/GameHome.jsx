@@ -284,7 +284,7 @@ function PlayOverlay({ game, onClose }) {
 function DeparturesBoard({ onPlay }) {
   const playable3d = new Set(game3dRegistry.map((e) => e.shellKey))
   const rows = [
-    ...game3dRegistry.map((e) => ({ key: `3d-${e.shellKey}`, title: e.title, dest: e.district,
+    ...game3dRegistry.filter((e) => !e.shellKey.startsWith('world-')).map((e) => ({ key: `3d-${e.shellKey}`, title: e.title, dest: e.district,
       status: 'NOW PLAYING · 3D', live: true, game: { ...e, title: e.title, is3d: true, load3d: e.load, color: C.amber } })),
     ...ARRIVING.filter((a) => !playable3d.has(a.key)).map((a) => ({
       key: `soon-${a.key}`, title: a.title, dest: a.district, status: 'ARRIVING SOON · 3D', live: false })),
@@ -402,6 +402,9 @@ export default function GameHome() {
             </div>
           </div>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Link to="/" style={{ textDecoration: 'none' }}>
+              <Btn variant="ghost" size="md" icon="travel_explore">Enter the City</Btn>
+            </Link>
             <Link to="/login" style={{ textDecoration: 'none' }}>
               <Btn variant="ghost" size="md">Sign in</Btn>
             </Link>

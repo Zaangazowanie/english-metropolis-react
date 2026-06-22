@@ -1,6 +1,6 @@
-import { StrictMode, Component } from 'react'
+import { StrictMode, Component, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import './index.css'
 
 import App from './App.jsx'
@@ -77,6 +77,27 @@ class RootErrorBoundary extends Component {
   }
 }
 
+// englishmetro.com root: the explorable 3D PLANET city IS the landing (Mike 2026-06-22).
+// PlanetWorld — the dense GlbCity planet from #138 — mounted fullscreen as the home
+// experience. "Exit city" fires onSessionComplete -> drop the visitor to the arcade list.
+const PlanetWorld = lazy(() => import('./world/PlanetWorld'))
+function WorldLanding() {
+  const navigate = useNavigate()
+  return (
+    <RootErrorBoundary>
+      <Suspense fallback={
+        <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', background: '#030208', color: '#9a8fb8',
+          fontFamily: 'ui-monospace, monospace', fontSize: 13, letterSpacing: '0.2em' }}>
+          ENTERING THE CITY…
+        </div>
+      }>
+        <PlanetWorld fullscreen onSessionComplete={() => navigate('/arcade')} />
+      </Suspense>
+    </RootErrorBoundary>
+  )
+}
+
 // Gate the teacher portal: redirect to the magic-link login if no teacher session.
 function TeacherGuard({ children }) {
   const { teacher, loading } = useTeacherAuth()
@@ -94,11 +115,12 @@ function RootRouter() {
         <Route path="/cookies" element={<CookiePolicy />} />
         <Route path="/terms" element={<Terms />} />
 
-        {/* englishmetro.com landing — game-first public home (2026-06-12).
-            The sign-in form lives at /login only; / is the playable arcade. */}
+        {/* englishmetro.com landing — the explorable 3D planet city is the home (2026-06-22).
+            The arcade list moved to /arcade; the sign-in form lives at /login only. */}
         <Route path="/login" element={<LoginComponent />} />
         <Route path="/logout" element={<Logout />} />
-        {IS_ENGLISHMETRO && <Route path="/" element={<GameHome />} />}
+        {IS_ENGLISHMETRO && <Route path="/" element={<WorldLanding />} />}
+        {IS_ENGLISHMETRO && <Route path="/arcade" element={<GameHome />} />}
 
         <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/superadmin" element={
