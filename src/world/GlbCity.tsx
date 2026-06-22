@@ -10,8 +10,8 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import { useLoader } from '@react-three/fiber'
-import { Object3D, Quaternion, Vector3, Box3, Color } from 'three'
-import type { InstancedMesh, Mesh, BufferGeometry, Material } from 'three'
+import { Object3D, Quaternion, Vector3, Box3, Color, MeshToonMaterial } from 'three'
+import type { InstancedMesh, Mesh, BufferGeometry } from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 
@@ -22,6 +22,13 @@ const _dir = new Vector3()
 const _col = new Color()
 const UP = new Vector3(0, 1, 0)
 const R = 6 // planet radius (must match PlanetWorld)
+
+// Buildings are TEXTURELESS now — flat cel fills (abeto look) + the ink-outline
+// post pass. One shared toon material (white) for every building type; the actual
+// colour comes from each instance's instanceColor, so the whole city is one cheap
+// material with hundreds of per-instance colours. No textures → bulletproof load
+// (no webp/decoder dependency) + lowest GPU cost.
+const BUILDING_MAT = new MeshToonMaterial({ color: 0xffffff })
 
 let _draco: DRACOLoader | null = null
 function withDraco(loader: GLTFLoader) {
@@ -40,9 +47,10 @@ export interface Placement {
   tint?: [number, number, number]
 }
 
-/** Load a GLB, merge-pick its first mesh, bake world transform, and normalize so
- *  the geometry is centred on X/Z with its base at y=0 and a height of 1. */
-function useNormalized(url: string): { geometry: BufferGeometry; material: Material } {
+/** Load a GLB, pick its first mesh, bake world transform, and normalize so the
+ *  geometry is centred on X/Z with its base at y=0 and a height of 1. Geometry
+ *  only — the textureless GLBs render with the shared flat toon material. */
+function useNormalized(url: string): BufferGeometry {
   const gltf = useLoader(GLTFLoader, url, withDraco)
   return useMemo(() => {
     gltf.scene.updateWorldMatrix(true, true)
@@ -60,12 +68,12 @@ function useNormalized(url: string): { geometry: BufferGeometry; material: Mater
     const h = bb.max.y - bb.min.y || 1
     geo.translate(-cx, -bb.min.y, -cz)
     geo.scale(1 / h, 1 / h, 1 / h)
-    return { geometry: geo, material: src.material as Material }
+    return geo
   }, [gltf])
 }
 
 function Instanced({ url, items }: { url: string; items: Placement[] }) {
-  const { geometry, material } = useNormalized(url)
+  const geometry = useNormalized(url)
   const ref = useRef<InstancedMesh>(null!)
   useEffect(() => {
     for (let i = 0; i < items.length; i++) {
@@ -81,12 +89,13 @@ function Instanced({ url, items }: { url: string; items: Placement[] }) {
       _o.scale.set(it.scale, it.scale * (it.sy ?? 1), it.scale) // sy = height variety
       _o.updateMatrix()
       ref.current.setMatrixAt(i, _o.matrix)
-      if (it.tint) { _col.setRGB(it.tint[0], it.tint[1], it.tint[2]); ref.current.setColorAt(i, _col) }
+      const t = it.tint ?? [0.7, 0.7, 0.72]
+      _col.setRGB(t[0], t[1], t[2]); ref.current.setColorAt(i, _col)
     }
     ref.current.instanceMatrix.needsUpdate = true
     if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true
   }, [geometry, items])
-  return <instancedMesh ref={ref} args={[geometry, material, items.length]} frustumCulled={false} />
+  return <instancedMesh ref={ref} args={[geometry, BUILDING_MAT, items.length]} frustumCulled={false} />
 }
 
 export interface GlbCityProps {
@@ -119,7 +128,7 @@ export function GlbCity({ towers, houses, eye, bridge, apartments, domes, mixed 
 // ── Named NPC keepers — real (static) character meshes standing on the sphere ──
 export interface NpcSpec { url: string; dir: [number, number, number]; height?: number; yaw?: number }
 
-function Npc({ url, dir, height = 1.45, yaw = 0 }: NpcSpec) {
+function Npc({ url, dir, height = 0.11, yaw = 0 }: NpcSpec) {
   const gltf = useLoader(GLTFLoader, url, withDraco)
   const { s, lift, pos, quat } = useMemo(() => {
     const box = new Box3().setFromObject(gltf.scene)
@@ -138,16 +147,18 @@ function Npc({ url, dir, height = 1.45, yaw = 0 }: NpcSpec) {
   )
 }
 
+// Keepers stand IN the city now (downtown is centred on the +Y spawn), spread
+// around the plaza + nearby streets so the town feels populated.
 export function PlanetNpcs() {
   return (
     <group>
-      <Npc url="/world/npc_flora.glb" dir={[0.52, 0.40, 0.76]} yaw={-0.5} />
-      <Npc url="/world/npc_frank.glb" dir={[-0.42, 0.46, 0.78]} yaw={0.6} />
-      <Npc url="/world/npc_marg.glb" dir={[0.10, 0.62, 0.78]} yaw={0.1} />
-      <Npc url="/world/npc_chen.glb" dir={[0.80, 0.30, 0.20]} yaw={-1.1} />
-      <Npc url="/world/npc_posta.glb" dir={[-0.55, 0.48, -0.45]} yaw={2.2} />
-      <Npc url="/world/npc_pell.glb" dir={[0.22, -0.30, 0.78]} yaw={0.3} />
-      <Npc url="/world/npc_penny.glb" dir={[-0.70, -0.10, 0.42]} yaw={1.4} />
+      <Npc url="/world/npc_flora.glb" dir={[0.10, 0.975, -0.20]} yaw={-0.5} />
+      <Npc url="/world/npc_frank.glb" dir={[-0.18, 0.965, 0.12]} yaw={0.6} />
+      <Npc url="/world/npc_marg.glb" dir={[0.24, 0.955, 0.10]} yaw={0.1} />
+      <Npc url="/world/npc_chen.glb" dir={[-0.06, 0.945, -0.32]} yaw={-1.1} />
+      <Npc url="/world/npc_posta.glb" dir={[0.32, 0.935, -0.14]} yaw={2.2} />
+      <Npc url="/world/npc_pell.glb" dir={[-0.30, 0.935, -0.18]} yaw={0.3} />
+      <Npc url="/world/npc_penny.glb" dir={[0.12, 0.95, 0.29]} yaw={1.4} />
     </group>
   )
 }
