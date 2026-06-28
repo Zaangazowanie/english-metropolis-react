@@ -81,6 +81,7 @@ class RootErrorBoundary extends Component {
 // PlanetWorld — the dense GlbCity planet from #138 — mounted fullscreen as the home
 // experience. "Exit city" fires onSessionComplete -> drop the visitor to the arcade list.
 const PlanetWorld = lazy(() => import('./world/PlanetWorld'))
+const WorldNext = lazy(() => import('./engine/WorldNext'))
 function WorldLanding() {
   const navigate = useNavigate()
   return (
@@ -121,6 +122,11 @@ function RootRouter() {
         <Route path="/logout" element={<Logout />} />
         {IS_ENGLISHMETRO && <Route path="/" element={<WorldLanding />} />}
         {IS_ENGLISHMETRO && <Route path="/arcade" element={<GameHome />} />}
+        <Route path="/world-next" element={
+          <RootErrorBoundary>
+            <WorldNext />
+          </RootErrorBoundary>
+        } />
 
         <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/superadmin" element={
