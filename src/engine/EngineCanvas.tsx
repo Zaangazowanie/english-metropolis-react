@@ -55,7 +55,6 @@ type ObstacleSpec = {
 
 const PLANET_RADIUS = 6
 const LAND = '#2b5f6e'
-const LAND_DARK = '#143944'
 const LAND_EDGE = '#38798a'
 const SKY_DUSK = '#071321'
 const SKY_WARM = '#edbd82'
