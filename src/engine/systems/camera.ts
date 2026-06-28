@@ -8,11 +8,11 @@ const lookTarget = new Vector3()
 const up = new Vector3()
 const forward = new Vector3()
 
-const CAMERA_BACK = 1.55
-const CAMERA_UP = 0.72
-const LOOK_UP = 0.28
-const LOOK_FORWARD = 0.32
-const CAMERA_LERP = 0.13
+const CAMERA_BACK = 2.45
+const CAMERA_UP = 1.08
+const LOOK_UP = 0.42
+const LOOK_FORWARD = 0.58
+const CAMERA_LERP = 0.11
 
 export function cameraSystem(world: World, state: RootState) {
   const player = world.queryFirst(PlayerControlled, PlayerController, Transform)

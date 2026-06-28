@@ -6,6 +6,7 @@ import {
   BoxGeometry,
   BufferAttribute,
   BufferGeometry,
+  ConeGeometry,
   CylinderGeometry,
   Group,
   IcosahedronGeometry,
@@ -49,14 +50,23 @@ type ObstacleSpec = {
   height: number
   depth: number
   color: string
+  roof: string
 }
 
 const PLANET_RADIUS = 6
 const LAND = '#2b5f6e'
 const LAND_DARK = '#143944'
+const LAND_EDGE = '#38798a'
+const SKY_DUSK = '#071321'
+const SKY_WARM = '#edbd82'
 const AMBER = '#e8920a'
 const AMBER_CORE = '#ffd38a'
 const PURPLE = '#6b4fa0'
+const PLAYER_COAT = '#5f77b4'
+const PLAYER_COAT_LIGHT = '#8ca7d8'
+const PLAYER_FACE = '#f1cfa4'
+const INK = '#172233'
+const WINDOW_GLOW = '#ffe0a5'
 const tmpNormal = new Vector3()
 const tmpForward = new Vector3()
 const tmpRight = new Vector3()
@@ -67,11 +77,11 @@ const tmpQuaternion = new Quaternion()
 const tmpScale = new Vector3()
 
 const OBSTACLES: ObstacleSpec[] = [
-  { normal: [0.0, 1.0, -0.18], yaw: 0.0, width: 1.55, height: 0.78, depth: 0.22, color: '#c47a36' },
-  { normal: [-0.36, 0.92, -0.18], yaw: 0.72, width: 1.05, height: 0.92, depth: 0.24, color: '#7d8da3' },
-  { normal: [0.42, 0.89, -0.18], yaw: -0.62, width: 1.18, height: 0.72, depth: 0.24, color: '#b85945' },
-  { normal: [0.08, 0.92, -0.38], yaw: 1.35, width: 0.34, height: 1.15, depth: 0.34, color: PURPLE },
-  { normal: [-0.2, 0.95, 0.24], yaw: -0.25, width: 1.35, height: 0.52, depth: 0.22, color: '#496d78' },
+  { normal: [0.0, 1.0, -0.18], yaw: 0.0, width: 1.55, height: 0.78, depth: 0.24, color: '#496d78', roof: '#203847' },
+  { normal: [-0.36, 0.92, -0.18], yaw: 0.72, width: 1.05, height: 0.92, depth: 0.26, color: '#6f8793', roof: '#263a4a' },
+  { normal: [0.42, 0.89, -0.18], yaw: -0.62, width: 1.18, height: 0.72, depth: 0.25, color: '#8a665f', roof: '#382f42' },
+  { normal: [0.08, 0.92, -0.38], yaw: 1.35, width: 0.38, height: 1.15, depth: 0.38, color: PURPLE, roof: '#2b2443' },
+  { normal: [-0.2, 0.95, 0.24], yaw: -0.25, width: 1.35, height: 0.52, depth: 0.22, color: '#3f6370', roof: '#1e3440' },
 ]
 
 function readKeyboard(keys: Set<string>, input: InputState) {
@@ -152,7 +162,7 @@ function EngineLoop({ world, inputRef, keysRef, reducedMotion, onMotion }: {
   return null
 }
 
-function makeSurfaceMatrix(normalTuple: [number, number, number], yaw: number, width: number, height: number, depth: number) {
+function buildSurfaceBasis(normalTuple: [number, number, number], yaw: number) {
   tmpNormal.set(normalTuple[0], normalTuple[1], normalTuple[2]).normalize()
   tmpForward.set(0, 0, -1).addScaledVector(tmpNormal, -tmpForward.dot(tmpNormal))
   if (tmpForward.lengthSq() < 0.000001) tmpForward.set(1, 0, 0).addScaledVector(tmpNormal, -tmpNormal.x)
@@ -160,9 +170,32 @@ function makeSurfaceMatrix(normalTuple: [number, number, number], yaw: number, w
   tmpQuaternion.setFromAxisAngle(tmpNormal, yaw)
   tmpForward.applyQuaternion(tmpQuaternion).normalize()
   tmpRight.copy(tmpNormal).cross(tmpForward).normalize()
-  tmpPosition.copy(tmpNormal).multiplyScalar(PLANET_RADIUS + height * 0.5)
   tmpBasis.makeBasis(tmpRight, tmpNormal, tmpForward)
   tmpQuaternion.setFromRotationMatrix(tmpBasis)
+}
+
+function makeSurfaceMatrix(normalTuple: [number, number, number], yaw: number, width: number, height: number, depth: number) {
+  buildSurfaceBasis(normalTuple, yaw)
+  tmpPosition.copy(tmpNormal).multiplyScalar(PLANET_RADIUS + height * 0.5)
+  tmpScale.set(width, height, depth)
+  tmpMatrix.compose(tmpPosition, tmpQuaternion, tmpScale)
+  return tmpMatrix.clone()
+}
+
+function makeSurfaceOffsetMatrix(
+  normalTuple: [number, number, number],
+  yaw: number,
+  width: number,
+  height: number,
+  depth: number,
+  rightOffset: number,
+  upOffset: number,
+  forwardOffset: number,
+) {
+  buildSurfaceBasis(normalTuple, yaw)
+  tmpPosition.copy(tmpNormal).multiplyScalar(PLANET_RADIUS + upOffset + height * 0.5)
+  tmpPosition.addScaledVector(tmpRight, rightOffset)
+  tmpPosition.addScaledVector(tmpForward, forwardOffset)
   tmpScale.set(width, height, depth)
   tmpMatrix.compose(tmpPosition, tmpQuaternion, tmpScale)
   return tmpMatrix.clone()
@@ -255,13 +288,14 @@ function TouchPad({ inputRef }: { inputRef: MutableRefObject<InputState> }) {
         width: JOY_RADIUS * 2,
         height: JOY_RADIUS * 2,
         borderRadius: '50%',
-        background: 'rgba(10,4,24,0.46)',
-        border: '1px solid rgba(248,239,226,0.18)',
+        background: 'rgba(7,13,28,0.55)',
+        border: '1px solid rgba(255,224,165,0.24)',
         touchAction: 'none',
         pointerEvents: 'auto',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        boxShadow: '0 12px 36px rgba(0,0,0,0.22)',
       }}
     >
       <div
@@ -284,16 +318,26 @@ function SeedScene({ world }: { world: World }) {
   const playerRef = useRef<Group>(null)
   const colliderGeometry = useMemo(() => mergeWorldColliderGeometry(), [])
   const planetGeometry = useMemo(() => new SphereGeometry(PLANET_RADIUS, 64, 40), [])
-  const atmosphereGeometry = useMemo(() => new SphereGeometry(PLANET_RADIUS + 0.55, 32, 20), [])
+  const atmosphereGeometry = useMemo(() => new SphereGeometry(PLANET_RADIUS + 0.62, 32, 20), [])
   const obstacleGeometry = useMemo(() => new BoxGeometry(1, 1, 1), [])
-  const bodyGeometry = useMemo(() => new CylinderGeometry(0.14, 0.16, 0.44, 10), [])
-  const headGeometry = useMemo(() => new IcosahedronGeometry(0.19, 1), [])
-  const footGeometry = useMemo(() => new SphereGeometry(0.1, 10, 8), [])
+  const windowGeometry = useMemo(() => new BoxGeometry(1, 1, 1), [])
+  const bodyGeometry = useMemo(() => new IcosahedronGeometry(0.22, 1), [])
+  const headGeometry = useMemo(() => new IcosahedronGeometry(0.18, 1), [])
+  const eyeGeometry = useMemo(() => new SphereGeometry(0.026, 8, 6), [])
+  const noseGeometry = useMemo(() => new ConeGeometry(0.04, 0.12, 8), [])
+  const armGeometry = useMemo(() => new CylinderGeometry(0.032, 0.038, 0.2, 8), [])
+  const footGeometry = useMemo(() => new SphereGeometry(0.085, 10, 8), [])
   const planetMaterial = useMemo(() => new MeshToonMaterial({ color: LAND }), [])
-  const atmosphereMaterial = useMemo(() => new MeshBasicMaterial({ color: AMBER, transparent: true, opacity: 0.08, side: BackSide, depthWrite: false }), [])
+  const planetEdgeMaterial = useMemo(() => new MeshBasicMaterial({ color: LAND_EDGE, transparent: true, opacity: 0.08, side: BackSide, depthWrite: false }), [])
+  const atmosphereMaterial = useMemo(() => new MeshBasicMaterial({ color: AMBER, transparent: true, opacity: 0.07, side: BackSide, depthWrite: false }), [])
   const obstacleMaterials = useMemo(() => OBSTACLES.map((obstacle) => new MeshToonMaterial({ color: obstacle.color })), [])
-  const playerMaterial = useMemo(() => new MeshToonMaterial({ color: AMBER }), [])
+  const roofMaterials = useMemo(() => OBSTACLES.map((obstacle) => new MeshToonMaterial({ color: obstacle.roof })), [])
+  const windowMaterial = useMemo(() => new MeshBasicMaterial({ color: WINDOW_GLOW, transparent: true, opacity: 0.78 }), [])
+  const bodyMaterial = useMemo(() => new MeshToonMaterial({ color: PLAYER_COAT }), [])
+  const bellyMaterial = useMemo(() => new MeshToonMaterial({ color: PLAYER_COAT_LIGHT }), [])
+  const headMaterial = useMemo(() => new MeshToonMaterial({ color: PLAYER_FACE }), [])
   const scarfMaterial = useMemo(() => new MeshBasicMaterial({ color: PURPLE }), [])
+  const inkMaterial = useMemo(() => new MeshBasicMaterial({ color: INK }), [])
 
   useEffect(() => {
     const player = world.spawn(
@@ -324,37 +368,87 @@ function SeedScene({ world }: { world: World }) {
     planetGeometry.dispose()
     atmosphereGeometry.dispose()
     obstacleGeometry.dispose()
+    windowGeometry.dispose()
     bodyGeometry.dispose()
     headGeometry.dispose()
+    eyeGeometry.dispose()
+    noseGeometry.dispose()
+    armGeometry.dispose()
     footGeometry.dispose()
     planetMaterial.dispose()
+    planetEdgeMaterial.dispose()
     atmosphereMaterial.dispose()
     for (const material of obstacleMaterials) material.dispose()
-    playerMaterial.dispose()
+    for (const material of roofMaterials) material.dispose()
+    windowMaterial.dispose()
+    bodyMaterial.dispose()
+    bellyMaterial.dispose()
+    headMaterial.dispose()
     scarfMaterial.dispose()
-  }, [atmosphereGeometry, atmosphereMaterial, bodyGeometry, colliderGeometry, footGeometry, headGeometry, obstacleGeometry, obstacleMaterials, planetGeometry, planetMaterial, playerMaterial, scarfMaterial])
+    inkMaterial.dispose()
+  }, [atmosphereGeometry, atmosphereMaterial, bellyMaterial, bodyGeometry, bodyMaterial, colliderGeometry, eyeGeometry, footGeometry, headGeometry, headMaterial, inkMaterial, noseGeometry, obstacleGeometry, obstacleMaterials, planetEdgeMaterial, planetGeometry, planetMaterial, roofMaterials, scarfMaterial, windowGeometry, windowMaterial])
 
   return (
     <group>
-      <hemisphereLight args={['#dbe7f6', LAND_DARK, 1.15]} />
-      <ambientLight intensity={0.48} />
-      <directionalLight position={[3, 7, 4]} intensity={0.95} color={AMBER_CORE} />
+      <hemisphereLight args={[SKY_WARM, '#25465a', 1.2]} />
+      <ambientLight intensity={0.34} color="#7d91b7" />
+      <directionalLight position={[-4.5, 3.1, 2.5]} intensity={1.15} color={AMBER_CORE} />
+      <directionalLight position={[2.0, 4.4, -5.0]} intensity={0.24} color="#7fa6d9" />
       <mesh geometry={atmosphereGeometry} material={atmosphereMaterial} />
+      <mesh geometry={atmosphereGeometry} material={planetEdgeMaterial} scale={[0.985, 0.985, 0.985]} />
       <mesh geometry={planetGeometry} material={planetMaterial} />
-      {OBSTACLES.map((obstacle, index) => (
-        <mesh
-          key={`${obstacle.normal.join(':')}:${index}`}
-          geometry={obstacleGeometry}
-          material={obstacleMaterials[index]}
-          matrixAutoUpdate={false}
-          matrix={makeSurfaceMatrix(obstacle.normal, obstacle.yaw, obstacle.width, obstacle.height, obstacle.depth)}
-        />
-      ))}
+      {OBSTACLES.map((obstacle, index) => {
+        const rowY = Math.max(0.14, obstacle.height * 0.36)
+        const windowW = Math.max(0.08, obstacle.width * 0.12)
+        const gap = obstacle.width * 0.18
+        return (
+          <group key={`${obstacle.normal.join(':')}:${index}`}>
+            <mesh
+              geometry={obstacleGeometry}
+              material={obstacleMaterials[index]}
+              matrixAutoUpdate={false}
+              matrix={makeSurfaceMatrix(obstacle.normal, obstacle.yaw, obstacle.width, obstacle.height, obstacle.depth)}
+            />
+            <mesh
+              geometry={obstacleGeometry}
+              material={roofMaterials[index]}
+              matrixAutoUpdate={false}
+              matrix={makeSurfaceOffsetMatrix(obstacle.normal, obstacle.yaw, obstacle.width * 1.04, 0.055, obstacle.depth * 1.08, 0, obstacle.height, 0)}
+            />
+            <mesh
+              geometry={windowGeometry}
+              material={windowMaterial}
+              matrixAutoUpdate={false}
+              matrix={makeSurfaceOffsetMatrix(obstacle.normal, obstacle.yaw, windowW, Math.max(0.06, obstacle.height * 0.16), 0.014, -gap, rowY, obstacle.depth * 0.53)}
+            />
+            <mesh
+              geometry={windowGeometry}
+              material={windowMaterial}
+              matrixAutoUpdate={false}
+              matrix={makeSurfaceOffsetMatrix(obstacle.normal, obstacle.yaw, windowW, Math.max(0.06, obstacle.height * 0.16), 0.014, gap, rowY, obstacle.depth * 0.53)}
+            />
+            {obstacle.width > 0.75 && (
+              <mesh
+                geometry={windowGeometry}
+                material={windowMaterial}
+                matrixAutoUpdate={false}
+                matrix={makeSurfaceOffsetMatrix(obstacle.normal, obstacle.yaw, windowW * 0.9, Math.max(0.05, obstacle.height * 0.12), 0.014, 0, rowY + obstacle.height * 0.26, obstacle.depth * 0.53)}
+              />
+            )}
+          </group>
+        )
+      })}
       <group ref={playerRef}>
-        <mesh geometry={bodyGeometry} material={playerMaterial} position={[0, 0.36, 0]} />
-        <mesh geometry={headGeometry} material={playerMaterial} position={[0, 0.68, 0]} />
-        <mesh geometry={footGeometry} material={scarfMaterial} position={[-0.08, 0.1, 0.04]} />
-        <mesh geometry={footGeometry} material={scarfMaterial} position={[0.08, 0.1, 0.04]} />
+        <mesh geometry={bodyGeometry} material={bodyMaterial} position={[0, 0.34, 0]} scale={[1.1, 1.28, 0.95]} />
+        <mesh geometry={bodyGeometry} material={bellyMaterial} position={[0, 0.36, 0.145]} scale={[0.46, 0.58, 0.16]} />
+        <mesh geometry={headGeometry} material={headMaterial} position={[0, 0.66, 0]} scale={[1.04, 1.0, 0.96]} />
+        <mesh geometry={eyeGeometry} material={inkMaterial} position={[-0.055, 0.705, 0.155]} />
+        <mesh geometry={eyeGeometry} material={inkMaterial} position={[0.055, 0.705, 0.155]} />
+        <mesh geometry={noseGeometry} material={scarfMaterial} position={[0, 0.675, 0.2]} rotation={[Math.PI / 2, 0, 0]} />
+        <mesh geometry={armGeometry} material={bodyMaterial} position={[-0.22, 0.37, 0.02]} rotation={[0.15, 0, -0.42]} />
+        <mesh geometry={armGeometry} material={bodyMaterial} position={[0.22, 0.37, 0.02]} rotation={[0.15, 0, 0.42]} />
+        <mesh geometry={footGeometry} material={scarfMaterial} position={[-0.09, 0.11, 0.055]} scale={[1.2, 0.65, 1]} />
+        <mesh geometry={footGeometry} material={scarfMaterial} position={[0.09, 0.11, 0.055]} scale={[1.2, 0.65, 1]} />
       </group>
     </group>
   )
@@ -367,20 +461,21 @@ export default function EngineCanvas({ quality = 'medium', reducedMotion = false
   const [moving, setMoving] = useState(false)
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#030208' }}>
-      <div style={{ position: 'absolute', zIndex: 1, left: 24, top: 24, maxWidth: 440, color: '#f8efe2', fontFamily: 'Inter, system-ui, sans-serif', textShadow: '0 2px 14px rgba(3,2,8,0.7)' }}>
-        <p style={{ margin: 0, fontSize: 12, letterSpacing: '0.24em', textTransform: 'uppercase', color: AMBER }}>World Next</p>
-        <h1 style={{ margin: '6px 0 8px', fontSize: 28, lineHeight: 1.05 }}>Walkable ECS planet</h1>
+    <div style={{ position: 'fixed', inset: 0, background: SKY_DUSK }}>
+      <div style={{ position: 'absolute', zIndex: 1, left: 24, top: 24, maxWidth: 440, color: '#f8efe2', fontFamily: 'Inter, system-ui, sans-serif', textShadow: '0 2px 14px rgba(3,2,8,0.72)' }}>
+        <p style={{ margin: 0, fontSize: 12, letterSpacing: '0.24em', textTransform: 'uppercase', color: AMBER_CORE }}>World Next</p>
+        <h1 style={{ margin: '6px 0 8px', fontSize: 28, lineHeight: 1.05 }}>Cozy dusk courier test</h1>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: '#e7d9f5' }}>
-          Use WASD or arrow keys to walk and turn. Press Space to hop. The capsule player collides with the planet and test walls through the engine systems.
+          Use WASD or arrow keys to walk and turn. Press Space to hop. The little courier now reads against a warm English Metro dusk planet with building-like collision blocks.
         </p>
       </div>
       <div aria-live="polite" style={{ position: 'absolute', left: -9999, width: 1, height: 1, overflow: 'hidden' }}>
-        {moving ? 'The courier is walking through World Next.' : 'World Next is a walkable test scene. Use keyboard controls to explore the planet.'}
+        {moving ? 'The courier is walking through World Next.' : 'World Next is a walkable dusk city test scene. Use keyboard controls to explore the planet.'}
       </div>
       <TouchPad inputRef={inputRef} />
-      <Canvas aria-hidden dpr={dpr} camera={{ position: [0, PLANET_RADIUS + 1.0, 1.8], fov: 45 }} frameloop="always">
-        <color attach="background" args={['#030208']} />
+      <Canvas aria-hidden dpr={dpr} camera={{ position: [0, PLANET_RADIUS + 1.35, 2.65], fov: 46 }} frameloop="always">
+        <color attach="background" args={[SKY_DUSK]} />
+        <fog attach="fog" args={[SKY_DUSK, 9, 18]} />
         <SeedScene world={world} />
         <EngineLoop world={world} inputRef={inputRef} keysRef={keysRef} reducedMotion={reducedMotion} onMotion={setMoving} />
       </Canvas>
