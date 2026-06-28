@@ -6,8 +6,8 @@ import { movementSystem } from './movement'
 import { renderBindingSystem } from './renderBinding'
 import { updateTime } from './time'
 
-export function runEngineSystems(world: World, state: RootState, delta: number) {
-  updateTime(world, delta, state.clock.elapsedTime)
+export function runEngineSystems(world: World, state: RootState, delta: number, reducedMotion = false) {
+  updateTime(world, delta, state.clock.elapsedTime, reducedMotion)
   movementSystem(world)
   collisionSystem(world)
   cameraSystem(world, state)
