@@ -2,7 +2,7 @@ import { Link, NavLink, Outlet, useLocation, Navigate } from 'react-router-dom'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext.jsx'
 
 const navigation = [
-  { to: '/admin/superadmin', label: 'Overview', icon: 'dashboard', end: true },
+  { to: '/admin/superadmin', label: 'Console', icon: 'dashboard', end: true },
   { to: '/admin/superadmin/ingest', label: 'Ingest Lesson', icon: 'upload_file' },
   { to: '/admin/superadmin/jobs', label: 'Queue', icon: 'pending_actions' },
   { to: '/admin/superadmin/students', label: 'All Students', icon: 'person' },

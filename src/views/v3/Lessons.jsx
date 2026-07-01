@@ -212,6 +212,19 @@ function SectionLabel({ children, icon, tone = 'brand', T }) {
 /* ============================================================================
    KeywordCard — rich keyword display with TTS, YouGlish, collocations
    ============================================================================ */
+function materialHref(material) {
+  return String(material?.url || '').trim()
+}
+
+function materialIcon(type) {
+  const t = String(type || '').toLowerCase()
+  if (t.includes('video')) return 'smart_display'
+  if (t.includes('audio')) return 'headphones'
+  if (t.includes('image')) return 'image'
+  if (t.includes('pdf')) return 'picture_as_pdf'
+  return 'attachment'
+}
+
 function KeywordCard({ keyword, onYouglish, forceExpanded = false }) {
   const { T, mode } = useV3Theme()
   const isDay = mode === 'day'
@@ -1122,6 +1135,38 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
             ))}
           </div>
         </div>
+      )}
+
+      {lesson.materials?.some(materialHref) && (
+        <Glass padding={18}>
+          <SectionLabel T={T} icon="attachment" tone="sky">Published materials</SectionLabel>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {lesson.materials.filter(materialHref).map((m, i) => (
+              <a
+                key={`${m.url}-${i}`}
+                href={materialHref(m)}
+                target="_blank"
+                rel="noopener"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  padding: '8px 12px',
+                  borderRadius: 999,
+                  textDecoration: 'none',
+                  background: isDay ? '#EFF6FF' : 'rgba(96,165,250,0.10)',
+                  border: `1px solid ${isDay ? '#BFDBFE' : 'rgba(96,165,250,0.28)'}`,
+                  color: T.sky,
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{materialIcon(m.type)}</span>
+                {m.name || 'Lesson material'}
+              </a>
+            ))}
+          </div>
+        </Glass>
       )}
 
       {/* Per-metric mini score cards */}

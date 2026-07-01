@@ -163,6 +163,26 @@ const DISTRICT_BY_KEY: Record<string, string> = Object.fromEntries(
   PORTAL_DEFS.map((d) => [d.shellKey, d.district])
 )
 
+const MEDIA_BASE = '/english-metro-media'
+const TITLE_VIDEO = `${MEDIA_BASE}/video/em-bg-h264.mp4`
+const TITLE_POSTER = `${MEDIA_BASE}/01-world-foundation.jpg`
+const LANTERNGATE_ART = `${MEDIA_BASE}/02-wren-third-person.jpg`
+const BAJLA_ART = `${MEDIA_BASE}/bajla.png`
+
+const ILLUSTRATED_HOTSPOTS: Array<{
+  key: string
+  label: string
+  icon: string
+  left: string
+  top: string
+}> = [
+  { key: 'labelleddiagram', label: 'Lamp',     icon: '🏮', left: '50%', top: '23%' },
+  { key: 'matching',        label: 'Bouquet',  icon: '🌻', left: '71%', top: '45%' },
+  { key: 'anagram',         label: 'Café',     icon: '🍵', left: '29%', top: '46%' },
+  { key: 'spellingbee',     label: 'Address',  icon: '📮', left: '84%', top: '64%' },
+  { key: 'gapfill',         label: 'Postcard', icon: '💌', left: '16%', top: '64%' },
+]
+
 // ─── Reflection bench — "Watch the Last Train" (canon Beat 5) ─────────────────
 // The bench sits just inside the lamp ring at +X (perpendicular to Lanterngate),
 // facing south-west toward the plaza. Wren reaches it by walking left from the
@@ -439,7 +459,8 @@ function FloatingMotes({ active }: { active: boolean }) {
 
   useFrame((_, delta) => {
     if (!active || !geomRef.current) return
-    const attr = geomRef.current.attributes.position as Float32BufferAttribute
+    const attr = geomRef.current.getAttribute('position') as Float32BufferAttribute | undefined
+    if (!attr?.array) return
     const arr  = attr.array as Float32Array
     const rise = delta * 0.35
     for (let i = 0; i < MOTE_COUNT; i++) {
@@ -470,6 +491,178 @@ function FloatingMotes({ active }: { active: boolean }) {
 // 16 oval lanterns in amber, one hanging midway between each pair of adjacent
 // posts. Each sways around its Z-axis with a unique phase. InstancedMesh → 1
 // draw call. reducedMotion → static (no sway). No per-frame allocations.
+function IllustratedWorldLayer({
+  phase,
+  completed,
+  nearPortal,
+  reducedMotion,
+  onOpenPortal,
+}: {
+  phase: WorldPhase
+  completed: Set<string>
+  nearPortal: string | null
+  reducedMotion: boolean
+  onOpenPortal: (shellKey: string) => void
+}) {
+  const ambient = phase === 'ambient'
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        overflow: 'hidden',
+        pointerEvents: 'none',
+        background: '#10152a',
+      }}
+    >
+      {phase === 'title' && (
+        <>
+          <video
+            src={TITLE_VIDEO}
+            poster={TITLE_POSTER}
+            autoPlay
+            muted
+            loop
+            playsInline
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              filter: 'saturate(1.18) contrast(1.06)',
+              transform: reducedMotion ? 'none' : 'scale(1.03)',
+            }}
+          />
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(180deg, rgba(9,12,31,0.1), rgba(9,12,31,0.64) 76%, rgba(9,12,31,0.86))',
+          }} />
+        </>
+      )}
+
+      {ambient && (
+        <>
+          <img
+            src={LANTERNGATE_ART}
+            alt=""
+            draggable={false}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center center',
+              filter: 'saturate(1.1) contrast(1.04)',
+              transform: reducedMotion ? 'none' : 'scale(1.015)',
+            }}
+          />
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: [
+              'radial-gradient(circle at 50% 39%, rgba(255,197,96,0.22), transparent 16%)',
+              'radial-gradient(circle at 18% 12%, rgba(255,202,122,0.18), transparent 12%)',
+              'radial-gradient(circle at 88% 12%, rgba(255,202,122,0.16), transparent 12%)',
+              'linear-gradient(180deg, rgba(11,14,33,0.06), rgba(11,14,33,0.16) 62%, rgba(11,14,33,0.5))',
+            ].join(', '),
+            mixBlendMode: 'screen',
+            opacity: 0.92,
+          }} />
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            boxShadow: 'inset 0 0 120px rgba(8,10,25,0.72), inset 0 -110px 120px rgba(8,10,25,0.72)',
+          }} />
+
+          {!reducedMotion && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: 'radial-gradient(circle, rgba(255,205,118,0.74) 0 1px, transparent 2px)',
+              backgroundSize: '118px 92px',
+              animation: 'em-illustrated-motes 14s linear infinite',
+              opacity: 0.42,
+            }} />
+          )}
+
+          <img
+            src={BAJLA_ART}
+            alt=""
+            draggable={false}
+            style={{
+              position: 'absolute',
+              left: '7%',
+              top: '13%',
+              width: 'clamp(54px, 7vw, 104px)',
+              filter: 'drop-shadow(0 14px 20px rgba(39,24,74,0.45))',
+              animation: reducedMotion ? 'none' : 'em-bajla-float 5.2s ease-in-out infinite',
+            }}
+          />
+
+          {ILLUSTRATED_HOTSPOTS.map((hotspot) => {
+            const done = completed.has(hotspot.key)
+            const active = nearPortal === hotspot.key
+            return (
+              <button
+                key={hotspot.key}
+                type="button"
+                onClick={() => onOpenPortal(hotspot.key)}
+                aria-label={`Open ${hotspot.label}`}
+                style={{
+                  position: 'absolute',
+                  left: hotspot.left,
+                  top: hotspot.top,
+                  transform: 'translate(-50%, -50%)',
+                  pointerEvents: 'auto',
+                  display: 'grid',
+                  gridTemplateColumns: 'auto auto',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  border: active
+                    ? '2px solid rgba(255,217,130,0.96)'
+                    : '1px solid rgba(255,245,214,0.58)',
+                  background: done
+                    ? 'rgba(255,207,103,0.92)'
+                    : 'rgba(246,248,239,0.9)',
+                  color: '#26313d',
+                  fontFamily: FONT_DISPLAY,
+                  fontWeight: 800,
+                  fontSize: 'clamp(11px, 1.2vw, 14px)',
+                  letterSpacing: '0.02em',
+                  boxShadow: active
+                    ? '0 0 0 4px rgba(255,190,74,0.18), 0 10px 26px rgba(16,18,36,0.35)'
+                    : '0 8px 18px rgba(16,18,36,0.28)',
+                  cursor: 'pointer',
+                }}
+              >
+                <span style={{ fontSize: '1.05em', lineHeight: 1 }}>{hotspot.icon}</span>
+                <span>{hotspot.label}</span>
+              </button>
+            )
+          })}
+
+          <style>{`
+            @keyframes em-illustrated-motes {
+              from { background-position: 0 0; }
+              to { background-position: 118px -184px; }
+            }
+            @keyframes em-bajla-float {
+              0%, 100% { transform: translateY(0); }
+              50% { transform: translateY(-9px); }
+            }
+          `}</style>
+        </>
+      )}
+    </div>
+  )
+}
+
 function PaperLanterns({ reducedMotion }: { reducedMotion: boolean }) {
   const ref = useRef<InstancedMesh>(null!)
   const t   = useRef(0)
@@ -1011,9 +1204,8 @@ export default function EnglishMetroWorld({
     if (key && DISTRICT_BY_KEY[key]) setCurrentDistrict(DISTRICT_BY_KEY[key])
   }, [])
   const handleNearBenchChange  = useCallback((near: boolean) => setNearBench(near), [])
-  const openNearPortal = useCallback(() => {
-    if (activeGameRef.current || !nearPortalRef.current) return
-    const key = nearPortalRef.current
+  const openPortalByKey = useCallback((key: string) => {
+    if (activeGameRef.current) return
     audio.portalTone() // W9: soft rising tone on errand open
     const introLines = PORTAL_INTROS[key]
     if (introLines && !hasSeenPortalIntro(key)) {
@@ -1028,6 +1220,10 @@ export default function EnglishMetroWorld({
       announced.current = 'Opening errand. Press Escape to return to the city.'
     }
   }, [audio])
+  const openNearPortal = useCallback(() => {
+    if (!nearPortalRef.current) return
+    openPortalByKey(nearPortalRef.current)
+  }, [openPortalByKey])
   const closeGame = useCallback(() => {
     setActiveGame(null)
     setNearPortal(null) // WrenRig re-detects on remount (Wren spawns away)
@@ -1167,6 +1363,14 @@ export default function EnglishMetroWorld({
               clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
             {announced.current}
           </div>
+
+          <IllustratedWorldLayer
+            phase={phase}
+            completed={completed}
+            nearPortal={nearPortal}
+            reducedMotion={reducedMotion}
+            onOpenPortal={openPortalByKey}
+          />
 
           {/* Title screen — wordmark sits in the lower band so the menu planet
               reads in the open upper-centre; scrim darkens only toward the text. */}

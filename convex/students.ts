@@ -3,6 +3,13 @@ import { v } from "convex/values";
 import { collocationsField } from "./validators.js";
 import { requireAdmin, requireSuperadmin, requireAdminOrPipelineKey, isSuperadmin } from "./authHelpers";
 
+const lessonMaterialField = v.object({
+  name: v.string(),
+  storageId: v.optional(v.id("_storage")),
+  url: v.optional(v.string()),
+  type: v.optional(v.string()),
+});
+
 // One-shot sweep to strip garbage tokens that the pre-2026-04-17 naive
 // capitalised-phrase extractor in ingestionProcess.deriveTopics wrote
 // into lesson.topics. Keeps filtering logic in sync with deriveTopics.
@@ -535,6 +542,7 @@ export const listUpcomingLessons = query({
 
 export const listLessons = query({
   args: {
+    sessionToken: v.optional(v.string()),
     studentId: v.optional(v.id("students")),
     organizationId: v.optional(v.id("organizations")),
     limit: v.optional(v.number()),
@@ -590,13 +598,24 @@ export const createLesson = mutation({
     transcriptFile: v.optional(v.string()),
     duration: v.optional(v.number()),
     difficulty: v.optional(v.string()),
+    materials: v.optional(v.array(lessonMaterialField)),
     order: v.number(),
   },
   handler: async (ctx, args) => {
-    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+    const actor = await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     const { sessionToken, apiKey, ...rest } = args;
     const now = Date.now();
-    return await ctx.db.insert("lessons", { ...rest, createdAt: now, updatedAt: now });
+    const lessonId = await ctx.db.insert("lessons", { ...rest, createdAt: now, updatedAt: now });
+    await ctx.db.insert("auditLog", {
+      organizationId: rest.organizationId,
+      userId: actor.kind === "admin" ? actor.user?._id : undefined,
+      action: "lesson.created",
+      targetType: "lesson",
+      targetId: String(lessonId),
+      details: JSON.stringify({ title: rest.title, studentId: String(rest.studentId), date: rest.date }),
+      timestamp: now,
+    });
+    return lessonId;
   },
 });
 
@@ -611,14 +630,27 @@ export const updateLesson = mutation({
     duration: v.optional(v.number()),
     difficulty: v.optional(v.string()),
     status: v.optional(v.string()),
+    materials: v.optional(v.array(lessonMaterialField)),
   },
   handler: async (ctx, args) => {
-    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+    const actor = await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     const { sessionToken, apiKey, lessonId, ...updates } = args;
+    const lesson = await ctx.db.get(lessonId);
+    if (!lesson) throw new Error("Lesson not found");
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, val]) => val !== undefined)
     );
-    await ctx.db.patch(lessonId, { ...cleanUpdates, updatedAt: Date.now() });
+    const now = Date.now();
+    await ctx.db.patch(lessonId, { ...cleanUpdates, updatedAt: now });
+    await ctx.db.insert("auditLog", {
+      organizationId: lesson.organizationId,
+      userId: actor.kind === "admin" ? actor.user?._id : undefined,
+      action: cleanUpdates.materials !== undefined ? "lesson.materials_updated" : "lesson.updated",
+      targetType: "lesson",
+      targetId: String(lessonId),
+      details: JSON.stringify({ fields: Object.keys(cleanUpdates), title: lesson.title, date: lesson.date }),
+      timestamp: now,
+    });
   },
 });
 
@@ -650,6 +682,7 @@ export const getLessonsWithKeywordCount = query({
 
 export const listKeywords = query({
   args: {
+    sessionToken: v.optional(v.string()),
     lessonId: v.optional(v.id("lessons")),
     studentId: v.optional(v.id("students")),
     limit: v.optional(v.number()),
@@ -849,14 +882,24 @@ export const createKeyword = mutation({
     youglishCaption: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+    const actor = await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     const { sessionToken, apiKey, ...rest } = args;
-    return await ctx.db.insert("keywords", {
+    const keywordId = await ctx.db.insert("keywords", {
       ...rest,
       mastery: 0,
       reviewCount: 0,
       createdAt: Date.now(),
     });
+    await ctx.db.insert("auditLog", {
+      organizationId: rest.organizationId,
+      userId: actor.kind === "admin" ? actor.user?._id : undefined,
+      action: "keyword.created",
+      targetType: "keyword",
+      targetId: String(keywordId),
+      details: JSON.stringify({ word: rest.word, lessonId: String(rest.lessonId), studentId: String(rest.studentId) }),
+      timestamp: Date.now(),
+    });
+    return keywordId;
   },
 });
 
@@ -1118,8 +1161,18 @@ export const deleteKeyword = mutation({
     keywordId: v.id("keywords"),
   },
   handler: async (ctx, args) => {
-    await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+    const actor = await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
+    const keyword = await ctx.db.get(args.keywordId);
     await ctx.db.delete(args.keywordId);
+    await ctx.db.insert("auditLog", {
+      organizationId: keyword?.organizationId,
+      userId: actor.kind === "admin" ? actor.user?._id : undefined,
+      action: "keyword.deleted",
+      targetType: "keyword",
+      targetId: String(args.keywordId),
+      details: JSON.stringify({ word: keyword?.word || "" }),
+      timestamp: Date.now(),
+    });
   },
 });
 

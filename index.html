@@ -29,7 +29,7 @@
         var m = path.match(/^\/app\/([^\/]+)/) || path.match(/^\/admin\/students\/([^\/]+)/);
         window.__STUDENT_SLUG = m ? m[1] : null;
         window.__EM_ADMIN_MODE = /^\/admin\//.test(path);
-        window.__EM_HIDE_TUTOR = (path === '/' || path === '/login' || /^\/(privacy|cookies|terms)\/?$/.test(path));
+        window.__EM_HIDE_TUTOR = (path === '/' || path === '/login' || /^\/(lessons|pricing|signup|privacy|cookies|terms)\/?$/.test(path));
       })();
     </script>
 

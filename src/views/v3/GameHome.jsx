@@ -402,8 +402,11 @@ export default function GameHome() {
             </div>
           </div>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Link to="/" style={{ textDecoration: 'none' }}>
+            <Link to="/city" style={{ textDecoration: 'none' }}>
               <Btn variant="ghost" size="md" icon="travel_explore">Enter the City</Btn>
+            </Link>
+            <Link to="/lessons" style={{ textDecoration: 'none' }}>
+              <Btn variant="ghost" size="md">Lessons</Btn>
             </Link>
             <Link to="/login" style={{ textDecoration: 'none' }}>
               <Btn variant="ghost" size="md">Sign in</Btn>
@@ -556,6 +559,7 @@ export default function GameHome() {
             © {new Date().getFullYear()} englishmetro.com — Warszawa → The World
           </div>
           <div style={{ display: 'flex', gap: 16 }}>
+            <Link to="/lessons" style={{ color: C.mute, textDecoration: 'none' }}>Lessons</Link>
             <Link to="/privacy" style={{ color: C.mute, textDecoration: 'none' }}>Privacy</Link>
             <Link to="/cookies" style={{ color: C.mute, textDecoration: 'none' }}>Cookies</Link>
             <Link to="/terms" style={{ color: C.mute, textDecoration: 'none' }}>Terms</Link>

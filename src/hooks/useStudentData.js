@@ -249,6 +249,7 @@ function buildLessonsFromConvex(convexLessons, convexKeywords) {
     status: l.status || '',
     lessonType: l.lessonType || '',
     duration: l.duration,
+    materials: Array.isArray(l.materials) ? l.materials : [],
   }))
 }
 

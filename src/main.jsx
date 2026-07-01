@@ -40,6 +40,8 @@ import Terms from './views/legal/Terms.jsx'
 import Login from './views/Login.jsx'
 import LoginV3 from './views/v3/Login.jsx'
 import GameHome from './views/v3/GameHome.jsx'
+import EnglishMetroWorld from './world/EnglishMetroWorld'
+import LessonPricingSignup from './views/public/LessonPricingSignup.jsx'
 import Logout from './views/Logout.jsx'
 import Settings from './views/Settings.jsx'
 import { I18nProvider } from './i18n'
@@ -53,7 +55,9 @@ const LoginComponent = USE_V3 ? LoginV3 : Login
 
 // Domain-based routing: englishmetro.com gets the new marketing/login landing
 // at the root; existing lexicon deployment keeps its default student-first flow.
-const IS_ENGLISHMETRO = typeof window !== 'undefined' && /englishmetro\.com/i.test(window.location.hostname)
+const IS_ENGLISHMETRO = typeof window !== 'undefined'
+  && (/englishmetro\.com/i.test(window.location.hostname)
+    || /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname))
 
 class RootErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null, info: null } }
@@ -116,18 +120,21 @@ function RootRouter() {
         <Route path="/cookies" element={<CookiePolicy />} />
         <Route path="/terms" element={<Terms />} />
 
-        {/* englishmetro.com landing — the explorable 3D planet city is the home (2026-06-22).
-            The arcade list moved to /arcade; the sign-in form lives at /login only. */}
+        {/* englishmetro.com landing - arcade home first.
+            Keep the 3D world available explicitly, but do not make it the homepage. */}
         <Route path="/login" element={<LoginComponent />} />
         <Route path="/logout" element={<Logout />} />
-        {IS_ENGLISHMETRO && <Route path="/" element={<WorldLanding />} />}
+        {IS_ENGLISHMETRO && <Route path="/" element={<GameHome />} />}
         {IS_ENGLISHMETRO && <Route path="/arcade" element={<GameHome />} />}
+        {IS_ENGLISHMETRO && <Route path="/city" element={<EnglishMetroWorld fullscreen />} />}
+        {IS_ENGLISHMETRO && <Route path="/lessons" element={<LessonPricingSignup />} />}
+        {IS_ENGLISHMETRO && <Route path="/pricing" element={<LessonPricingSignup />} />}
+        {IS_ENGLISHMETRO && <Route path="/signup" element={<LessonPricingSignup />} />}
         <Route path="/world-next" element={
           <RootErrorBoundary>
             <WorldNext />
           </RootErrorBoundary>
         } />
-
         <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/superadmin" element={
           <RootErrorBoundary>
