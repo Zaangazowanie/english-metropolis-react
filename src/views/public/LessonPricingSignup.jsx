@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { Skyline } from '../../design/v3/primitives.jsx'
 import './lesson-pricing-signup.css'
 
-const PACKAGES = [
+const PRIVATE_PACKAGES = [
   {
     id: 'single',
     name: 'One-off 1:1',
@@ -59,6 +59,9 @@ const PACKAGES = [
     badge: 'Best value',
     accent: 'sky',
   },
+]
+
+const SPECIALIST_PACKAGES = [
   {
     id: 'specialist',
     name: 'Specialist Sprint',
@@ -70,7 +73,31 @@ const PACKAGES = [
     badge: 'Focused',
     accent: 'ember',
   },
+  {
+    id: 'specialist-12',
+    name: 'Specialist Track',
+    pace: '12 specialist lessons',
+    price: '1,560 PLN',
+    perLesson: '130 PLN / lesson',
+    bestFor: 'A focused plan for exam, interview, or business outcomes',
+    features: ['Diagnostic interview', '12 x 60 min specialist 1:1 lessons', 'Two writing or speaking reviews', 'Priority reschedule window'],
+    badge: 'Deeper focus',
+    accent: 'ember',
+  },
+  {
+    id: 'specialist-24',
+    name: 'Specialist Mastery',
+    pace: '24 specialist lessons',
+    price: '2,640 PLN',
+    perLesson: '110 PLN / lesson',
+    bestFor: 'The best value for long-term specialist coaching',
+    features: ['Diagnostic interview', '24 x 60 min specialist 1:1 lessons', 'Monthly progress review', 'Priority reschedule window'],
+    badge: 'Best specialist value',
+    accent: 'ember',
+  },
 ]
+
+const PACKAGES = [...PRIVATE_PACKAGES, ...SPECIALIST_PACKAGES]
 
 const SUMMER_COURSES = [
   {
@@ -101,19 +128,34 @@ const FORMATS = [
 
 const POLICIES = [
   {
-    icon: 'event_repeat',
-    title: 'Schedule changes',
-    copy: 'You can move a lesson with at least 24 hours notice. Late cancellations may count as used unless we agree otherwise.',
+    icon: 'hourglass_top',
+    title: 'Lesson validity',
+    copy: 'One-off lessons are valid for 90 days. Private packs are valid for 6 months for 4-8 lessons and 12 months for 16-24 lessons. Specialist packs are valid for 6, 9, and 12 months.',
+  },
+  {
+    icon: 'more_time',
+    title: 'Extensions',
+    copy: 'Ask before expiry and we will normally extend unused lessons once at no extra charge: 3 months for smaller packs and 6 months for 16-24 lesson packs.',
+  },
+  {
+    icon: 'verified_user',
+    title: 'Student protection',
+    copy: 'If lessons cannot happen because of EnglishMetro availability, teacher cancellation, or another reason on our side, the affected validity is extended or the unused lesson is credited or refunded.',
   },
   {
     icon: 'undo',
-    title: 'Refunds',
-    copy: 'Our refund policy follows EU consumer rules. Completed lessons are payable; unused lessons can be refunded or credited where the policy applies.',
+    title: 'Refunds and credits',
+    copy: 'Unused lessons can be refunded pro-rata or kept as credit while the package is valid or extended. Lessons already delivered are charged proportionally, and statutory withdrawal rights are always respected.',
+  },
+  {
+    icon: 'event_repeat',
+    title: 'Schedule changes',
+    copy: 'Move a lesson with at least 24 hours notice. If there is illness, emergency, or a serious work or family conflict, contact us and we will try to protect the lesson fairly.',
   },
   {
     icon: 'receipt_long',
     title: 'Clear billing',
-    copy: 'You see the price, package length, invoice details, and payment route before paying. No card details are collected on this page.',
+    copy: 'Before paying, you see the price, package length, expiry date, extension route, invoice details, and payment method. No card details are collected on this page.',
   },
   {
     icon: 'lock',
@@ -165,6 +207,20 @@ const PACKAGE_PL = {
     features: ['Rozmowa diagnostyczna', '6 x 60 min lekcje specjalistyczne 1:1', 'Przeglad pisania lub mowienia', 'Platnosc online albo faktura'],
     badge: 'Celowany',
   },
+  'specialist-12': {
+    pace: '12 lekcji specjalistycznych',
+    perLesson: '130 PLN / lekcja',
+    bestFor: 'Konkretny plan pod egzamin, rozmowe kwalifikacyjna albo angielski w pracy',
+    features: ['Rozmowa diagnostyczna', '12 x 60 min lekcje specjalistyczne 1:1', 'Dwa przeglady pisania lub mowienia', 'Priorytet przy zmianie terminu'],
+    badge: 'Glebszy cel',
+  },
+  'specialist-24': {
+    pace: '24 lekcje specjalistyczne',
+    perLesson: '110 PLN / lekcja',
+    bestFor: 'Najlepsza wartosc przy dluzszym coachingu specjalistycznym',
+    features: ['Rozmowa diagnostyczna', '24 x 60 min lekcje specjalistyczne 1:1', 'Miesieczny przeglad postepu', 'Priorytet przy zmianie terminu'],
+    badge: 'Najlepsza cena specjalistyczna',
+  },
 }
 
 const COURSE_PL = {
@@ -189,17 +245,29 @@ const FORMAT_PL = {
 }
 
 const POLICY_PL = {
+  'Lesson validity': {
+    title: 'Waznosc lekcji',
+    copy: 'Lekcja jednorazowa jest wazna 90 dni. Pakiety prywatne sa wazne 6 miesiecy dla 4-8 lekcji i 12 miesiecy dla 16-24 lekcji. Pakiety specjalistyczne sa wazne 6, 9 i 12 miesiecy.',
+  },
+  Extensions: {
+    title: 'Przedluzenia',
+    copy: 'Napisz przed koncem waznosci. Zwykle przedluzymy niewykorzystane lekcje raz bez oplaty: o 3 miesiace dla mniejszych pakietow i o 6 miesiecy dla pakietow 16-24 lekcji.',
+  },
+  'Student protection': {
+    title: 'Ochrona ucznia',
+    copy: 'Jesli lekcje nie moga sie odbyc z powodu dostepnosci EnglishMetro, odwolania przez nauczyciela albo innej przyczyny po naszej stronie, waznosc jest przedluzana albo niewykorzystana lekcja jest kredytowana lub zwracana.',
+  },
+  'Refunds and credits': {
+    title: 'Zwroty i kredyt',
+    copy: 'Niewykorzystane lekcje moga zostac zwrocone proporcjonalnie albo zostac jako kredyt w czasie waznosci lub przedluzenia pakietu. Odbyte lekcje sa rozliczane proporcjonalnie, a ustawowe prawa odstapienia sa zawsze respektowane.',
+  },
   'Schedule changes': {
     title: 'Zmiana terminu',
-    copy: 'Mozesz przelozyc lekcje z co najmniej 24-godzinnym wyprzedzeniem. Pozniejsze odwolanie moze oznaczac wykorzystanie lekcji, chyba ze ustalimy inaczej.',
-  },
-  Refunds: {
-    title: 'Zwroty',
-    copy: 'Nasza polityka zwrotow jest zgodna z zasadami konsumenckimi UE. Odbyte lekcje sa platne; niewykorzystane lekcje moga zostac zwrocone albo przeniesione zgodnie z polityka.',
+    copy: 'Mozesz przelozyc lekcje z co najmniej 24-godzinnym wyprzedzeniem. Przy chorobie, naglej sytuacji albo powaznym konflikcie rodzinnym lub zawodowym napisz do nas, a postaramy sie uczciwie ochronyc lekcje.',
   },
   'Clear billing': {
     title: 'Jasne platnosci',
-    copy: 'Przed platnoscia widzisz cene, dlugosc pakietu, dane do faktury i sposob platnosci. Ta strona nie zbiera danych karty.',
+    copy: 'Przed platnoscia widzisz cene, dlugosc pakietu, date waznosci, sposob przedluzenia, dane do faktury i metode platnosci. Ta strona nie zbiera danych karty.',
   },
   'Online payments': {
     title: 'Platnosci online',
@@ -229,7 +297,7 @@ export default function LessonPricingSignup() {
   const location = useLocation()
   const pricingRef = useRef(null)
   const signupRef = useRef(null)
-  const [lang, setLang] = useState('en')
+  const [lang, setLang] = useState('pl')
   const [packageId, setPackageId] = useState('momentum')
   const [formatId, setFormatId] = useState('one-to-one')
   const [learnerName, setLearnerName] = useState('')
@@ -242,7 +310,7 @@ export default function LessonPricingSignup() {
   const [copied, setCopied] = useState(false)
 
   const selectedPackage = useMemo(
-    () => PACKAGES.find((pkg) => pkg.id === packageId) || PACKAGES[1],
+    () => PACKAGES.find((pkg) => pkg.id === packageId) || PRIVATE_PACKAGES[2],
     [packageId],
   )
   const selectedFormat = useMemo(
@@ -391,7 +459,7 @@ export default function LessonPricingSignup() {
         </div>
 
         <div className="lp-package-grid">
-          {PACKAGES.map((pkg) => (
+          {PRIVATE_PACKAGES.map((pkg) => (
             <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}>
               <div className="lp-package-top">
                 <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
@@ -414,6 +482,44 @@ export default function LessonPricingSignup() {
               </ul>
             </article>
           ))}
+        </div>
+
+        <div className="lp-specialist-block" aria-labelledby="specialist-title">
+          <div className="lp-specialist-head">
+            <p className="lp-section-label">{t('Specialist 1:1', 'Lekcje specjalistyczne 1:1')}</p>
+            <h3 id="specialist-title">{t('Exam, interview, relocation, and business English.', 'Egzamin, rozmowa kwalifikacyjna, relokacja i angielski biznesowy.')}</h3>
+            <p>
+              {t(
+                'These packs are separate from normal fluency coaching because they include diagnostic targeting, review work, and tighter outcomes.',
+                'Te pakiety sa oddzielone od zwyklych lekcji plynnej komunikacji, bo obejmuja diagnoze, przeglady pracy i konkretniejsze cele.',
+              )}
+            </p>
+          </div>
+          <div className="lp-package-grid lp-specialist-grid">
+            {SPECIALIST_PACKAGES.map((pkg) => (
+              <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}>
+                <div className="lp-package-top">
+                  <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
+                  <button type="button" onClick={() => setPackageId(pkg.id)} aria-pressed={pkg.id === packageId}>
+                    {pkg.id === packageId ? t('Selected', 'Wybrany') : t('Choose', 'Wybierz')}
+                  </button>
+                </div>
+                <h3>{pkg.name}</h3>
+                <p className="lp-package-pace">{isPl ? (PACKAGE_PL[pkg.id]?.pace || pkg.pace) : pkg.pace}</p>
+                <div className="lp-price">{pkg.price}</div>
+                <p className="lp-per-lesson">{isPl ? (PACKAGE_PL[pkg.id]?.perLesson || pkg.perLesson) : pkg.perLesson}</p>
+                <p className="lp-best">{isPl ? (PACKAGE_PL[pkg.id]?.bestFor || pkg.bestFor) : pkg.bestFor}</p>
+                <ul>
+                  {(isPl ? (PACKAGE_PL[pkg.id]?.features || pkg.features) : pkg.features).map((feature) => (
+                    <li key={feature}>
+                      <span className="material-symbols-outlined" aria-hidden>check_circle</span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -480,7 +586,10 @@ export default function LessonPricingSignup() {
             <h2 id="policy-title">{t('Simple terms before payment.', 'Proste zasady przed platnoscia.')}</h2>
           </div>
           <p>
-            {t('Clear scheduling, billing, and refund rules are confirmed before payment.', 'Terminy, platnosci i zwroty sa jasno potwierdzane przed zaplata.')}
+            {t(
+              'Expiry, extensions, scheduling, billing, and refunds are shown before payment and stay more generous than the minimum where we can be.',
+              'Waznosc, przedluzenia, terminy, platnosci i zwroty sa pokazane przed platnoscia i sa mozliwie bardziej przyjazne niz minimum.',
+            )}
           </p>
         </div>
         <div className="lp-policy-grid">
@@ -568,8 +677,8 @@ export default function LessonPricingSignup() {
             <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />
             <span>
               {t(
-                'I understand this is a signup request, not a card payment. I have reviewed the cancellation, refund, and payment summary.',
-                'Rozumiem, ze to prosba o zapis, a nie platnosc karta. Znam podsumowanie zasad odwolania, zwrotow i platnosci.',
+                'I understand this is a signup request, not a card payment. I have reviewed the lesson validity, extension, cancellation, refund, and payment summary.',
+                'Rozumiem, ze to prosba o zapis, a nie platnosc karta. Znam podsumowanie waznosci lekcji, przedluzen, odwolania, zwrotow i platnosci.',
               )}
             </span>
           </label>

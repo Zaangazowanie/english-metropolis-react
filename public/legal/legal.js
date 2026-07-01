@@ -33,8 +33,8 @@
     }
   }
 
-  // initial: stored preference > browser language
-  setLang(storedLang() || browserLang(), false);
+  // initial: stored preference > Polish default for the Polish market
+  setLang(storedLang() || 'pl', false);
 
   document.addEventListener('click', function (e) {
     var btn = e.target.closest && e.target.closest('.lang-toggle button');

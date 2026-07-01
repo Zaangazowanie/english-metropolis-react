@@ -29,7 +29,7 @@ function EnglishBody() {
           before production launch. Polish Ustawa o świadczeniu usług drogą elektroniczną (UŚŚU)
           requires a publicly accessible regulamin for any service provided electronically.
           Consumer-protection rules (Ustawa o prawach konsumenta) and the 14-day withdrawal right
-          apply to subscriptions purchased online.
+          apply to lesson packages purchased online.
         </p>
       </div>
 
@@ -89,7 +89,33 @@ function EnglishBody() {
         </p>
       </Section>
 
-      <Section title="7. Intellectual property">
+      <Section title="7. Lesson package validity, extensions, and unused lessons">
+        <p>
+          Lesson packages are valid from the date of payment confirmation. The validity period is
+          shown before payment and repeated in the confirmation email. One-off lessons are valid for
+          90 days. Private 4-8 lesson packages and the 6-lesson specialist package are valid for
+          6 months. The 12-lesson specialist package is valid for 9 months. Private 16-24 lesson
+          packages and the 24-lesson specialist package are valid for 12 months.
+        </p>
+        <p>
+          If you need more time, you may request one extension before the package expires. We will
+          normally grant one free extension: up to 3 months for smaller packages and up to 6 months
+          for 16-24 lesson packages, especially in cases of illness, travel, scheduling difficulty,
+          or other reasonable circumstances.
+        </p>
+        <p>
+          If a lesson cannot take place because of teacher unavailability, cancellation by
+          EnglishMetro, or another reason on our side, the package validity period will be extended
+          accordingly or the unused lesson will be credited or refunded.
+        </p>
+        <p>
+          Unused lessons can be refunded pro-rata or kept as credit while the package is valid or
+          extended. Lessons already delivered are payable proportionally. Nothing in these Terms
+          limits your statutory consumer rights.
+        </p>
+      </Section>
+
+      <Section title="8. Intellectual property">
         <p>
           Lesson materials, AI-generated drills, analyses, and site design are the intellectual property
           of English Metropolis or its licensors, provided to you under a limited, non-exclusive,
@@ -102,7 +128,7 @@ function EnglishBody() {
         </p>
       </Section>
 
-      <Section title="8. Liability">
+      <Section title="9. Liability">
         <p>
           We use reasonable care to provide accurate tuition. The AI tutor's outputs are educational
           suggestions — we do not guarantee zero errors. For important decisions (e.g. exam prep),
@@ -112,7 +138,7 @@ function EnglishBody() {
         </p>
       </Section>
 
-      <Section title="9. Termination">
+      <Section title="10. Termination">
         <p>
           You can close your account at any time by emailing {'{PRIVACY_EMAIL}'}. We may terminate
           your account for violations of these Terms with 14 days' notice (immediately for severe
@@ -120,7 +146,7 @@ function EnglishBody() {
         </p>
       </Section>
 
-      <Section title="10. Governing law and disputes">
+      <Section title="11. Governing law and disputes">
         <p>
           These Terms are governed by Polish law. Disputes are resolved first by informal
           discussion; if that fails, by the courts of the Republic of Poland with jurisdiction over
@@ -129,14 +155,14 @@ function EnglishBody() {
         </p>
       </Section>
 
-      <Section title="11. Changes">
+      <Section title="12. Changes">
         <p>
           We may update these Terms. Material changes will be notified via email and a banner on
           the Service at least 14 days before they take effect.
         </p>
       </Section>
 
-      <Section title="12. Contact">
+      <Section title="13. Contact">
         <p>
           <a href="mailto:hello@englishmetro.com">hello@englishmetro.com</a> ·
           privacy: <a href="mailto:privacy@englishmetro.com">privacy@englishmetro.com</a>
@@ -158,7 +184,7 @@ function PolishBody() {
           o świadczeniu usług drogą elektroniczną (UŚUDE) wymaga publicznie dostępnego regulaminu
           dla każdej usługi świadczonej drogą elektroniczną. Stosują się przepisy konsumenckie
           (Ustawa o prawach konsumenta) oraz prawo do odstąpienia od umowy w terminie 14 dni
-          w odniesieniu do subskrypcji zakupionych przez Internet.
+          w odniesieniu do pakietów lekcji zakupionych przez Internet.
         </p>
       </div>
 
@@ -223,7 +249,33 @@ function PolishBody() {
         </p>
       </Section>
 
-      <Section title="7. Własność intelektualna">
+      <Section title="7. Ważność pakietów lekcji, przedłużenia i niewykorzystane lekcje">
+        <p>
+          Pakiety lekcji są ważne od daty potwierdzenia płatności. Okres ważności jest pokazany
+          przed płatnością i powtórzony w potwierdzeniu email. Lekcja jednorazowa jest ważna 90 dni.
+          Pakiety prywatne 4-8 lekcji oraz specjalistyczny pakiet 6 lekcji są ważne 6 miesięcy.
+          Specjalistyczny pakiet 12 lekcji jest ważny 9 miesięcy. Pakiety prywatne 16-24 lekcji
+          oraz specjalistyczny pakiet 24 lekcji są ważne 12 miesięcy.
+        </p>
+        <p>
+          Jeśli potrzebujesz więcej czasu, możesz poprosić o jedno przedłużenie przed upływem
+          ważności pakietu. Zwykle przyznamy jedno bezpłatne przedłużenie: do 3 miesięcy dla
+          mniejszych pakietów i do 6 miesięcy dla pakietów 16-24 lekcji, szczególnie w przypadku
+          choroby, wyjazdu, trudności z terminami albo innych rozsądnych okoliczności.
+        </p>
+        <p>
+          Jeśli lekcja nie może się odbyć z powodu niedostępności nauczyciela, odwołania przez
+          EnglishMetro albo innej przyczyny po naszej stronie, okres ważności pakietu zostanie
+          odpowiednio przedłużony albo niewykorzystana lekcja zostanie skredytowana lub zwrócona.
+        </p>
+        <p>
+          Niewykorzystane lekcje mogą zostać zwrócone proporcjonalnie albo zachowane jako kredyt
+          w okresie ważności lub przedłużenia pakietu. Lekcje już przeprowadzone są płatne
+          proporcjonalnie. Nic w tym Regulaminie nie ogranicza ustawowych praw konsumenta.
+        </p>
+      </Section>
+
+      <Section title="8. Własność intelektualna">
         <p>
           Materiały lekcyjne, ćwiczenia generowane przez AI, analizy oraz projekt graficzny
           serwisu stanowią własność intelektualną English Metropolis lub jej licencjodawców
@@ -237,7 +289,7 @@ function PolishBody() {
         </p>
       </Section>
 
-      <Section title="8. Odpowiedzialność">
+      <Section title="9. Odpowiedzialność">
         <p>
           Dokładamy należytej staranności, aby zapewnić rzetelne nauczanie. Wyniki tutora AI są
           sugestiami edukacyjnymi — nie gwarantujemy ich pełnej bezbłędności. W przypadku istotnych
@@ -248,7 +300,7 @@ function PolishBody() {
         </p>
       </Section>
 
-      <Section title="9. Rozwiązanie umowy">
+      <Section title="10. Rozwiązanie umowy">
         <p>
           Możesz w dowolnej chwili zamknąć swoje konto, wysyłając wiadomość na adres
           {' '}{'{PRIVACY_EMAIL}'}. Możemy rozwiązać Twoje konto z powodu naruszenia Regulaminu
@@ -257,7 +309,7 @@ function PolishBody() {
         </p>
       </Section>
 
-      <Section title="10. Prawo właściwe i spory">
+      <Section title="11. Prawo właściwe i spory">
         <p>
           Niniejszy Regulamin podlega prawu polskiemu. Spory rozwiązywane są w pierwszej
           kolejności w drodze nieformalnych negocjacji; w razie ich niepowodzenia — przez sądy
@@ -267,7 +319,7 @@ function PolishBody() {
         </p>
       </Section>
 
-      <Section title="11. Zmiany">
+      <Section title="12. Zmiany">
         <p>
           Możemy aktualizować niniejszy Regulamin. O zmianach istotnych poinformujemy drogą
           mailową oraz poprzez baner w Serwisie z co najmniej 14-dniowym wyprzedzeniem przed
@@ -275,7 +327,7 @@ function PolishBody() {
         </p>
       </Section>
 
-      <Section title="12. Kontakt">
+      <Section title="13. Kontakt">
         <p>
           <a href="mailto:hello@englishmetro.com">hello@englishmetro.com</a> ·
           sprawy prywatności: <a href="mailto:privacy@englishmetro.com">privacy@englishmetro.com</a>
