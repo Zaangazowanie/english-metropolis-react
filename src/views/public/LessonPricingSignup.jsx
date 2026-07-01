@@ -10,8 +10,8 @@ const PRIVATE_PACKAGES = [
     pace: '1 live lesson',
     price: '135 PLN',
     perLesson: '135 PLN / lesson',
-    bestFor: 'A single private lesson before choosing a package',
-    features: ['1 x 60 min 1:1 lesson', 'Goal check', 'EnglishMetro practice suggestion', 'Option to continue into a package'],
+    bestFor: 'A focused first session with a clear next-step plan',
+    features: ['Placement and goal check', '1 x 60 min 1:1 lesson', 'Personal CEFR snapshot', 'Lesson notes and practice path'],
     badge: 'Once off',
     accent: 'sky',
   },
@@ -21,8 +21,8 @@ const PRIVATE_PACKAGES = [
     pace: '4 live lessons',
     price: '480 PLN',
     perLesson: '120 PLN / lesson',
-    bestFor: 'A first month of steady B1/B2 speaking work',
-    features: ['Placement call', '4 x 60 min 1:1 lessons', 'EnglishMetro practice path', 'Lesson notes after each session'],
+    bestFor: 'A compact first month for regular speaking progress',
+    features: ['Placement and goal check', 'Personal CEFR plan', '4 x 60 min 1:1 lessons', 'Lesson notes after each session'],
     badge: 'Start here',
     accent: 'sky',
   },
@@ -32,8 +32,8 @@ const PRIVATE_PACKAGES = [
     pace: '8 live lessons',
     price: '880 PLN',
     perLesson: '110 PLN / lesson',
-    bestFor: 'The strongest routine for fluency work',
-    features: ['Personal CEFR plan', '8 x 60 min 1:1 lessons', 'Weekly speaking targets', 'Priority reschedule window'],
+    bestFor: 'The strongest routine for steady fluency work',
+    features: ['Placement and goal check', 'Personal CEFR plan', '8 x 60 min 1:1 lessons', 'Lesson notes and weekly targets'],
     badge: 'Most chosen',
     accent: 'brand',
   },
@@ -43,8 +43,8 @@ const PRIVATE_PACKAGES = [
     pace: '16 live lessons',
     price: '1,600 PLN',
     perLesson: '100 PLN / lesson',
-    bestFor: 'A longer routine for visible speaking progress',
-    features: ['Personal CEFR plan', '16 x 60 min 1:1 lessons', 'Progress checkpoints', 'Lesson notes after each session'],
+    bestFor: 'A deeper programme for visible speaking progress',
+    features: ['Placement and goal check', 'Personal CEFR plan', '16 x 60 min 1:1 lessons', 'Lesson notes and progress reviews'],
     badge: 'Best rhythm',
     accent: 'brand',
   },
@@ -55,7 +55,7 @@ const PRIVATE_PACKAGES = [
     price: '2,160 PLN',
     perLesson: '90 PLN / lesson',
     bestFor: 'The best value for sustained private coaching',
-    features: ['Personal CEFR plan', '24 x 60 min 1:1 lessons', 'Monthly progress review', 'Priority reschedule window'],
+    features: ['Placement and goal check', 'Personal CEFR plan', '24 x 60 min 1:1 lessons', 'Lesson notes and monthly reviews'],
     badge: 'Best value',
     accent: 'sky',
   },
@@ -69,7 +69,7 @@ const SPECIALIST_PACKAGES = [
     price: '900 PLN',
     perLesson: '150 PLN / lesson',
     bestFor: 'Interview, exam, relocation, and business pressure',
-    features: ['Diagnostic interview', '6 x 60 min specialist 1:1 lessons', 'Writing or speaking review', 'Checkout or invoice option'],
+    features: ['Diagnostic placement call', 'Specialist CEFR outcome plan', '6 x 60 min specialist lessons', 'Review notes after each session'],
     badge: 'Focused',
     accent: 'ember',
   },
@@ -80,7 +80,7 @@ const SPECIALIST_PACKAGES = [
     price: '1,560 PLN',
     perLesson: '130 PLN / lesson',
     bestFor: 'A focused plan for exam, interview, or business outcomes',
-    features: ['Diagnostic interview', '12 x 60 min specialist 1:1 lessons', 'Two writing or speaking reviews', 'Priority reschedule window'],
+    features: ['Diagnostic placement call', 'Specialist CEFR outcome plan', '12 x 60 min specialist lessons', 'Two writing or speaking reviews'],
     badge: 'Deeper focus',
     accent: 'ember',
   },
@@ -91,7 +91,7 @@ const SPECIALIST_PACKAGES = [
     price: '2,640 PLN',
     perLesson: '110 PLN / lesson',
     bestFor: 'The best value for long-term specialist coaching',
-    features: ['Diagnostic interview', '24 x 60 min specialist 1:1 lessons', 'Monthly progress review', 'Priority reschedule window'],
+    features: ['Diagnostic placement call', 'Specialist CEFR outcome plan', '24 x 60 min specialist lessons', 'Monthly review and lesson notes'],
     badge: 'Best specialist value',
     accent: 'ember',
   },
@@ -168,57 +168,57 @@ const PACKAGE_PL = {
   single: {
     pace: '1 lekcja online',
     perLesson: '135 PLN / lekcja',
-    bestFor: 'Jedna prywatna lekcja przed wyborem pakietu',
-    features: ['1 x 60 min lekcja 1:1', 'Sprawdzenie celu', 'Sugestia praktyki EnglishMetro', 'Mozliwosc przejscia do pakietu'],
+    bestFor: 'Jedna konkretna lekcja z jasnym planem kolejnego kroku',
+    features: ['Sprawdzenie poziomu i celu', '1 x 60 min lekcja 1:1', 'Osobisty obraz poziomu CEFR', 'Notatki i sciezka praktyki'],
     badge: 'Jednorazowo',
   },
   'private-core': {
     pace: '4 lekcje online',
     perLesson: '120 PLN / lekcja',
-    bestFor: 'Pierwszy miesiac regularnej pracy nad mowieniem na poziomie B1/B2',
-    features: ['Rozmowa poziomujaca', '4 x 60 min lekcje 1:1', 'Sciezka praktyki EnglishMetro', 'Notatki po kazdej lekcji'],
+    bestFor: 'Kompaktowy pierwszy miesiac regularnej pracy nad mowieniem',
+    features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '4 x 60 min lekcje 1:1', 'Notatki po kazdej lekcji'],
     badge: 'Dobry start',
   },
   momentum: {
     pace: '8 lekcji online',
     perLesson: '110 PLN / lekcja',
-    bestFor: 'Najmocniejszy rytm pracy nad plynnoscia',
-    features: ['Osobisty plan CEFR', '8 x 60 min lekcje 1:1', 'Cotygodniowe cele mowienia', 'Priorytet przy zmianie terminu'],
+    bestFor: 'Najmocniejszy rytm stalej pracy nad plynnoscia',
+    features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '8 x 60 min lekcje 1:1', 'Notatki i cele tygodniowe'],
     badge: 'Najczesciej wybierany',
   },
   'fluency-16': {
     pace: '16 lekcji online',
     perLesson: '100 PLN / lekcja',
-    bestFor: 'Dluzszy rytm pracy dla widocznego postepu w mowieniu',
-    features: ['Osobisty plan CEFR', '16 x 60 min lekcje 1:1', 'Kontrole postepu', 'Notatki po kazdej lekcji'],
+    bestFor: 'Glebszy program dla widocznego postepu w mowieniu',
+    features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '16 x 60 min lekcje 1:1', 'Notatki i przeglady postepu'],
     badge: 'Dobry rytm',
   },
   'fluency-24': {
     pace: '24 lekcje online',
     perLesson: '90 PLN / lekcja',
     bestFor: 'Najlepsza wartosc przy stalej pracy indywidualnej',
-    features: ['Osobisty plan CEFR', '24 x 60 min lekcje 1:1', 'Miesieczny przeglad postepu', 'Priorytet przy zmianie terminu'],
+    features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '24 x 60 min lekcje 1:1', 'Notatki i miesieczne przeglady'],
     badge: 'Najlepsza cena',
   },
   specialist: {
     pace: '6 lekcji specjalistycznych',
     perLesson: '150 PLN / lekcja',
     bestFor: 'Rozmowy kwalifikacyjne, egzaminy, relokacja i angielski w pracy',
-    features: ['Rozmowa diagnostyczna', '6 x 60 min lekcje specjalistyczne 1:1', 'Przeglad pisania lub mowienia', 'Platnosc online albo faktura'],
+    features: ['Diagnostyczna rozmowa poziomujaca', 'Specjalistyczny plan CEFR', '6 x 60 min lekcje specjalistyczne', 'Notatki po kazdej lekcji'],
     badge: 'Celowany',
   },
   'specialist-12': {
     pace: '12 lekcji specjalistycznych',
     perLesson: '130 PLN / lekcja',
     bestFor: 'Konkretny plan pod egzamin, rozmowe kwalifikacyjna albo angielski w pracy',
-    features: ['Rozmowa diagnostyczna', '12 x 60 min lekcje specjalistyczne 1:1', 'Dwa przeglady pisania lub mowienia', 'Priorytet przy zmianie terminu'],
+    features: ['Diagnostyczna rozmowa poziomujaca', 'Specjalistyczny plan CEFR', '12 x 60 min lekcje specjalistyczne', 'Dwa przeglady pisania lub mowienia'],
     badge: 'Glebszy cel',
   },
   'specialist-24': {
     pace: '24 lekcje specjalistyczne',
     perLesson: '110 PLN / lekcja',
     bestFor: 'Najlepsza wartosc przy dluzszym coachingu specjalistycznym',
-    features: ['Rozmowa diagnostyczna', '24 x 60 min lekcje specjalistyczne 1:1', 'Miesieczny przeglad postepu', 'Priorytet przy zmianie terminu'],
+    features: ['Diagnostyczna rozmowa poziomujaca', 'Specjalistyczny plan CEFR', '24 x 60 min lekcje specjalistyczne', 'Miesieczne przeglady i notatki'],
     badge: 'Najlepsza cena specjalistyczna',
   },
 }
@@ -308,6 +308,7 @@ export default function LessonPricingSignup() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const [polishKey, setPolishKey] = useState(0)
 
   const selectedPackage = useMemo(
     () => PACKAGES.find((pkg) => pkg.id === packageId) || PRIVATE_PACKAGES[2],
@@ -320,7 +321,6 @@ export default function LessonPricingSignup() {
   const isPl = lang === 'pl'
   const t = (en, pl) => (isPl ? pl : en)
   const packageCopy = PACKAGE_PL[selectedPackage.id] || {}
-  const formatCopy = FORMAT_PL[selectedFormat.id] || {}
   const summary = useMemo(
     () => buildSummary({ selectedPackage, format: selectedFormat, learnerName, email, level, goals, lang }),
     [selectedPackage, selectedFormat, learnerName, email, level, goals, lang],
@@ -374,8 +374,28 @@ export default function LessonPricingSignup() {
     }
   }
 
+  function triggerPolish() {
+    setPolishKey((current) => current + 1)
+  }
+
+  function chooseLanguage(nextLang) {
+    setLang(nextLang)
+    triggerPolish()
+  }
+
+  function choosePackage(nextPackageId) {
+    setPackageId(nextPackageId)
+    triggerPolish()
+  }
+
+  function chooseFormat(nextFormatId) {
+    setFormatId(nextFormatId)
+    triggerPolish()
+  }
+
   return (
     <main className="lp-page">
+      {polishKey > 0 && <span key={polishKey} className="lp-click-bloom" aria-hidden />}
       <header className="lp-nav">
         <Link to="/" className="lp-brand" aria-label="EnglishMetro home">
           <Skyline size={30} />
@@ -388,8 +408,8 @@ export default function LessonPricingSignup() {
           <Link to="/login">{t('Sign in', 'Logowanie')}</Link>
         </nav>
         <div className="lp-lang-toggle" role="group" aria-label="Language">
-          <button type="button" className={lang === 'en' ? 'is-active' : ''} onClick={() => setLang('en')}>EN</button>
-          <button type="button" className={lang === 'pl' ? 'is-active' : ''} onClick={() => setLang('pl')}>PL</button>
+          <button type="button" className={lang === 'en' ? 'is-active' : ''} onClick={() => chooseLanguage('en')}>EN</button>
+          <button type="button" className={lang === 'pl' ? 'is-active' : ''} onClick={() => chooseLanguage('pl')}>PL</button>
         </div>
       </header>
 
@@ -463,7 +483,7 @@ export default function LessonPricingSignup() {
             <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}>
               <div className="lp-package-top">
                 <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
-                <button type="button" onClick={() => setPackageId(pkg.id)} aria-pressed={pkg.id === packageId}>
+                <button type="button" onClick={() => choosePackage(pkg.id)} aria-pressed={pkg.id === packageId}>
                   {pkg.id === packageId ? t('Selected', 'Wybrany') : t('Choose', 'Wybierz')}
                 </button>
               </div>
@@ -500,7 +520,7 @@ export default function LessonPricingSignup() {
               <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}>
                 <div className="lp-package-top">
                   <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
-                  <button type="button" onClick={() => setPackageId(pkg.id)} aria-pressed={pkg.id === packageId}>
+                  <button type="button" onClick={() => choosePackage(pkg.id)} aria-pressed={pkg.id === packageId}>
                     {pkg.id === packageId ? t('Selected', 'Wybrany') : t('Choose', 'Wybierz')}
                   </button>
                 </div>
@@ -631,7 +651,7 @@ export default function LessonPricingSignup() {
                   key={format.id}
                   type="button"
                   className={format.id === formatId ? 'is-active' : ''}
-                  onClick={() => setFormatId(format.id)}
+                  onClick={() => chooseFormat(format.id)}
                   aria-pressed={format.id === formatId}
                 >
                   <strong>{isPl ? (FORMAT_PL[format.id]?.label || format.label) : format.label}</strong>
