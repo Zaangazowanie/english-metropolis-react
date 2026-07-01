@@ -5,11 +5,22 @@ import './lesson-pricing-signup.css'
 
 const PACKAGES = [
   {
+    id: 'single',
+    name: 'One-off 1:1',
+    pace: '1 live lesson',
+    price: '135 PLN',
+    perLesson: '135 PLN / lesson',
+    bestFor: 'A single private lesson before choosing a package',
+    features: ['1 x 60 min 1:1 lesson', 'Goal check', 'EnglishMetro practice suggestion', 'Option to continue into a package'],
+    badge: 'Once off',
+    accent: 'sky',
+  },
+  {
     id: 'private-core',
     name: 'Private Core',
     pace: '4 live lessons',
-    price: '420 PLN',
-    perLesson: '105 PLN / lesson',
+    price: '480 PLN',
+    perLesson: '120 PLN / lesson',
     bestFor: 'A first month of steady B1/B2 speaking work',
     features: ['Placement call', '4 x 60 min 1:1 lessons', 'EnglishMetro practice path', 'Lesson notes after each session'],
     badge: 'Start here',
@@ -19,19 +30,41 @@ const PACKAGES = [
     id: 'momentum',
     name: 'Fluency Momentum',
     pace: '8 live lessons',
-    price: '920 PLN',
-    perLesson: '115 PLN / lesson',
+    price: '880 PLN',
+    perLesson: '110 PLN / lesson',
     bestFor: 'The strongest routine for fluency work',
     features: ['Personal CEFR plan', '8 x 60 min 1:1 lessons', 'Weekly speaking targets', 'Priority reschedule window'],
     badge: 'Most chosen',
     accent: 'brand',
   },
   {
+    id: 'fluency-16',
+    name: 'Fluency Builder',
+    pace: '16 live lessons',
+    price: '1,600 PLN',
+    perLesson: '100 PLN / lesson',
+    bestFor: 'A longer routine for visible speaking progress',
+    features: ['Personal CEFR plan', '16 x 60 min 1:1 lessons', 'Progress checkpoints', 'Lesson notes after each session'],
+    badge: 'Best rhythm',
+    accent: 'brand',
+  },
+  {
+    id: 'fluency-24',
+    name: 'Fluency Mastery',
+    pace: '24 live lessons',
+    price: '2,160 PLN',
+    perLesson: '90 PLN / lesson',
+    bestFor: 'The best value for sustained private coaching',
+    features: ['Personal CEFR plan', '24 x 60 min 1:1 lessons', 'Monthly progress review', 'Priority reschedule window'],
+    badge: 'Best value',
+    accent: 'sky',
+  },
+  {
     id: 'specialist',
     name: 'Specialist Sprint',
     pace: '6 specialist lessons',
-    price: '780 PLN',
-    perLesson: '130 PLN / lesson',
+    price: '900 PLN',
+    perLesson: '150 PLN / lesson',
     bestFor: 'Interview, exam, relocation, and business pressure',
     features: ['Diagnostic interview', '6 x 60 min specialist 1:1 lessons', 'Writing or speaking review', 'Checkout or invoice option'],
     badge: 'Focused',
@@ -43,20 +76,20 @@ const SUMMER_COURSES = [
   {
     id: 'august',
     name: 'August Summer Course',
-    price: '890 PLN',
-    detail: 'Group course - 60 min lessons - max 4 students',
+    price: '200 PLN / student',
+    detail: 'August only - 4 weekly lessons - max 4 students',
   },
   {
     id: 'september',
     name: 'September Summer Course',
-    price: '890 PLN',
-    detail: 'Group course - 60 min lessons - max 4 students',
+    price: '200 PLN / student',
+    detail: 'September only - 4 weekly lessons - max 4 students',
   },
   {
     id: 'two-month-bundle',
     name: 'August + September Bundle',
-    price: '1,490 PLN',
-    detail: 'Two group courses - 60 min lessons - max 4 students',
+    price: '400 PLN / student',
+    detail: 'August and September - 8 weekly lessons - max 4 students',
   },
 ]
 
@@ -90,23 +123,44 @@ const POLICIES = [
 ]
 
 const PACKAGE_PL = {
+  single: {
+    pace: '1 lekcja online',
+    perLesson: '135 PLN / lekcja',
+    bestFor: 'Jedna prywatna lekcja przed wyborem pakietu',
+    features: ['1 x 60 min lekcja 1:1', 'Sprawdzenie celu', 'Sugestia praktyki EnglishMetro', 'Mozliwosc przejscia do pakietu'],
+    badge: 'Jednorazowo',
+  },
   'private-core': {
     pace: '4 lekcje online',
-    perLesson: '105 PLN / lekcja',
+    perLesson: '120 PLN / lekcja',
     bestFor: 'Pierwszy miesiac regularnej pracy nad mowieniem na poziomie B1/B2',
     features: ['Rozmowa poziomujaca', '4 x 60 min lekcje 1:1', 'Sciezka praktyki EnglishMetro', 'Notatki po kazdej lekcji'],
     badge: 'Dobry start',
   },
   momentum: {
     pace: '8 lekcji online',
-    perLesson: '115 PLN / lekcja',
+    perLesson: '110 PLN / lekcja',
     bestFor: 'Najmocniejszy rytm pracy nad plynnoscia',
     features: ['Osobisty plan CEFR', '8 x 60 min lekcje 1:1', 'Cotygodniowe cele mowienia', 'Priorytet przy zmianie terminu'],
     badge: 'Najczesciej wybierany',
   },
+  'fluency-16': {
+    pace: '16 lekcji online',
+    perLesson: '100 PLN / lekcja',
+    bestFor: 'Dluzszy rytm pracy dla widocznego postepu w mowieniu',
+    features: ['Osobisty plan CEFR', '16 x 60 min lekcje 1:1', 'Kontrole postepu', 'Notatki po kazdej lekcji'],
+    badge: 'Dobry rytm',
+  },
+  'fluency-24': {
+    pace: '24 lekcje online',
+    perLesson: '90 PLN / lekcja',
+    bestFor: 'Najlepsza wartosc przy stalej pracy indywidualnej',
+    features: ['Osobisty plan CEFR', '24 x 60 min lekcje 1:1', 'Miesieczny przeglad postepu', 'Priorytet przy zmianie terminu'],
+    badge: 'Najlepsza cena',
+  },
   specialist: {
     pace: '6 lekcji specjalistycznych',
-    perLesson: '130 PLN / lekcja',
+    perLesson: '150 PLN / lekcja',
     bestFor: 'Rozmowy kwalifikacyjne, egzaminy, relokacja i angielski w pracy',
     features: ['Rozmowa diagnostyczna', '6 x 60 min lekcje specjalistyczne 1:1', 'Przeglad pisania lub mowienia', 'Platnosc online albo faktura'],
     badge: 'Celowany',
@@ -116,15 +170,15 @@ const PACKAGE_PL = {
 const COURSE_PL = {
   august: {
     name: 'Kurs sierpniowy',
-    detail: 'Kurs grupowy - lekcje 60 min - maks. 4 osoby',
+    detail: 'Tylko sierpien - 4 lekcje raz w tygodniu - maks. 4 osoby',
   },
   september: {
     name: 'Kurs wrzesniowy',
-    detail: 'Kurs grupowy - lekcje 60 min - maks. 4 osoby',
+    detail: 'Tylko wrzesien - 4 lekcje raz w tygodniu - maks. 4 osoby',
   },
   'two-month-bundle': {
     name: 'Pakiet sierpien + wrzesien',
-    detail: 'Dwa kursy grupowe - lekcje 60 min - maks. 4 osoby',
+    detail: 'Sierpien i wrzesien - 8 lekcji raz w tygodniu - maks. 4 osoby',
   },
 }
 
@@ -327,38 +381,6 @@ export default function LessonPricingSignup() {
         </p>
       </section>
 
-      <section className="lp-section lp-market" aria-labelledby="market-title">
-        <div className="lp-section-head">
-          <div>
-            <p className="lp-section-label">{t('Prices', 'Ceny')}</p>
-            <h2 id="market-title">{t('Clear pricing before payment.', 'Jasne ceny przed platnoscia.')}</h2>
-          </div>
-          <p>
-            {t(
-              'All lessons are 60 minutes. Private packages are flexible; group places are for the August and September courses.',
-              'Wszystkie lekcje trwaja 60 minut. Pakiety indywidualne sa elastyczne; miejsca grupowe dotycza kursow sierpniowych i wrzesniowych.',
-            )}
-          </p>
-        </div>
-        <div className="lp-market-strip">
-          <div>
-            <span>{t('Single 1:1', 'Pojedyncza 1:1')}</span>
-            <strong>110-130 PLN</strong>
-            <p>{t('Level and focus dependent', 'Zalezy od poziomu i celu')}</p>
-          </div>
-          <div>
-            <span>{t('Package range', 'Pakiety')}</span>
-            <strong>105-130 PLN</strong>
-            <p>{t('Per 60 min lesson', 'Za lekcje 60 min')}</p>
-          </div>
-          <div>
-            <span>{t('Group courses', 'Kursy grupowe')}</span>
-            <strong>890 PLN</strong>
-            <p>{t('August or September', 'Sierpien albo wrzesien')}</p>
-          </div>
-        </div>
-      </section>
-
       <section id="pricing" ref={pricingRef} className="lp-section" aria-labelledby="pricing-title">
         <div className="lp-section-head">
           <div>
@@ -403,8 +425,8 @@ export default function LessonPricingSignup() {
           </div>
           <p>
             {t(
-              'Summer lessons are group courses only: B1 pre, B1 inter, B2, and B2/C1. Each group is capped at 4 students and each lesson is 60 minutes.',
-              'Lekcje wakacyjne sa kursami grupowymi: B1 pre, B1 inter, B2 i B2/C1. Kazda grupa ma maksymalnie 4 osoby, a lekcja trwa 60 minut.',
+              'Summer lessons are group courses only: B1 pre, B1 inter, B2, and B2/C1. Choose August, September, or both. Each group is capped at 4 students and each lesson is 60 minutes.',
+              'Lekcje wakacyjne sa kursami grupowymi: B1 pre, B1 inter, B2 i B2/C1. Wybierz sierpien, wrzesien albo oba miesiace. Kazda grupa ma maksymalnie 4 osoby, a lekcja trwa 60 minut.',
             )}
           </p>
         </div>
