@@ -716,6 +716,11 @@
   min-height: 118px;
 }
 
+.lp-field select option {
+  color: #171025;
+  background: #ffffff;
+}
+
 .lp-field input::placeholder,
 .lp-field textarea::placeholder {
   color: rgba(238, 229, 255, 0.34);
