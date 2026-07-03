@@ -12,7 +12,7 @@
 // calm "backend not live yet" panel. Rows are never mocked (KICKOFF.md rule 4).
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { Link, useOutletContext } from 'react-router-dom'
 import { getTeacherMaterials, teacherConsoleFetchBlob } from './consoleApi.js'
 import { BackendNotLive, SectionError, SectionLoading } from './TeacherPanels.jsx'
 
@@ -157,6 +157,16 @@ export default function TeacherMaterials() {
               Download
             </button>
           </>
+        )}
+        {row?.student_slug && (
+          <Link
+            to={`/teacher/keywords?student=${encodeURIComponent(row.student_slug)}${row?.lesson_id ? `&lesson=${encodeURIComponent(row.lesson_id)}` : ''}`}
+            title="Open the keyword editor for this student & lesson"
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-sky-300 hover:text-sky-700 transition"
+          >
+            <span className="material-symbols-outlined text-sm">translate</span>
+            Keywords
+          </Link>
         )}
       </div>
     </div>
