@@ -87,13 +87,20 @@ export function addDuskWindows(material) {
         {
           vec3 nrm = normalize(cross(dFdx(vEmWorldPos), dFdy(vEmWorldPos)));
           float facade = 1.0 - abs(nrm.y);                       // walls only
+          float hFade = smoothstep(2.6, 5.5, vEmWorldPos.y);
           vec2 grid = vec2((vEmWorldPos.x + vEmWorldPos.z) * 0.55, vEmWorldPos.y * 0.42);
           vec2 cell = floor(grid);
           vec2 f = fract(grid);
-          float inWin = step(0.22, f.x) * step(f.x, 0.78) * step(0.28, f.y) * step(f.y, 0.72);
-          float lit = step(0.55, emHash(cell));                  // ~45% of windows lit
-          float glow = inWin * lit * facade * smoothstep(3.0, 6.0, vEmWorldPos.y);
-          outgoingLight += vec3(1.0, 0.72, 0.35) * glow * 0.85;
+          // mullioned panes with real margins so wall reads between windows
+          float inWin = step(0.30, f.x) * step(f.x, 0.72) * step(0.34, f.y) * step(f.y, 0.70);
+          float win = inWin * facade * hFade;
+          // every window is glass — cool dark pane even when nobody's home
+          outgoingLight = mix(outgoingLight, outgoingLight * 0.35 + vec3(0.05, 0.07, 0.10), win * 0.85);
+          // floor-slab shadow line for structure
+          float band = smoothstep(0.93, 1.0, f.y) * facade * hFade;
+          outgoingLight *= 1.0 - band * 0.16;
+          float lit = step(0.62, emHash(cell));                  // ~38% of windows lit
+          outgoingLight += vec3(1.0, 0.72, 0.35) * win * lit * 0.9;
         }
         #include <opaque_fragment>`);
   };

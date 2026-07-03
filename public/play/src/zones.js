@@ -3,6 +3,7 @@
 // player zone detection. Content comes from src/gamedata/zones.json.
 import * as THREE from 'three';
 import { toonMat, blobShadow, PALETTE } from './materials.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { assignGrammar, grammarForLap } from './grammar.js';
 import { instanceRig } from './rig.js';
 import { attachMarker } from './markers.js';
@@ -235,52 +236,22 @@ export class ZoneManager {
       g.add(curb);
     }
 
-    // buildings: bigger block — 3×4 grid around a courtyard, walls + roofs
+    // buildings: bigger block — 3×4 grid around a courtyard. Real facades
+    // (plinth, window grids, cornices, setbacks, storefronts) merged into a
+    // handful of meshes per district — Abeto-grade streets, still cheap.
     const slots = [];
     for (let ix = -1; ix <= 1; ix++) for (let iz = -2; iz <= 1; iz++) {
       if (ix === 0 && (iz === 0 || iz === -1)) continue;   // central courtyard
       if (rng() < 0.18) continue;                           // gaps = alleys
       slots.push([ix, iz]);
     }
-    const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), toonMat(0xffffff), slots.length);
-    const roofs = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), toonMat(0xffffff), slots.length);
-    const M = new THREE.Matrix4(), col = new THREE.Color();
-    const zoneColliders = [];
-    slots.forEach(([ix, iz], i) => {
-      const w = 8 + rng() * 4.5, dpt = 7 + rng() * 4;
-      const h = 4.5 + rng() * 7.5;
-      const x = ix * 15 + (rng() - 0.5) * 2.2;
-      const zz = iz * 13 + 6.5 + (rng() - 0.5) * 1.8;
-      M.makeScale(w, h, dpt).setPosition(x, h / 2, zz);
-      walls.setMatrixAt(i, M);
-      walls.setColorAt(i, col.copy(rng() < 0.5 ? cPrimary : cSecondary));
-      M.makeScale(w + 0.7, 0.55, dpt + 0.7).setPosition(x, h + 0.27, zz);
-      roofs.setMatrixAt(i, M);
-      roofs.setColorAt(i, col.copy(cRoof));
-      zoneColliders.push({ localX: x, localZ: zz, hw: w / 2 + 0.2, hd: dpt / 2 + 0.2 });
-    });
-    walls.instanceMatrix.needsUpdate = roofs.instanceMatrix.needsUpdate = true;
-    if (walls.instanceColor) walls.instanceColor.needsUpdate = true;
-    if (roofs.instanceColor) roofs.instanceColor.needsUpdate = true;
-    walls.castShadow = walls.receiveShadow = true;
-    roofs.castShadow = true;
-    g.add(walls, roofs);
+    const zoneColliders = this.buildFacadeBlock(g, slots, rng, { cPrimary, cSecondary, cAccent, cRoof });
 
     // landmark in the courtyard — variant by zone hash
     const lm = this.buildLandmark(hash(z.data.code) % 3, cAccent, cRoof, rng);
     lm.position.set(0, 0, 0);
     g.add(lm);
     zoneColliders.push({ localX: 0, localZ: 0, hw: 1.6, hd: 1.6 });
-
-    // awning accents on courtyard-facing walls
-    for (let k = 0; k < 4; k++) {
-      const aw = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.18, 1.2), toonMat(cAccent));
-      const ang = rng() * Math.PI * 2;
-      aw.position.set(Math.cos(ang) * 6.5, 2.4 + rng() * 1.2, Math.sin(ang) * 5.5);
-      aw.rotation.y = -ang;
-      aw.rotation.z = 0.18;
-      g.add(aw);
-    }
 
     // orient district: face the boulevard
     const yaw = Math.atan2(z.perp.x * z.side, z.perp.y * z.side);
@@ -376,6 +347,126 @@ export class ZoneManager {
       });
       this._npcTag.set(z.data.code, spawned);
     }
+  }
+
+  // ---------- facade architecture ----------
+  // Build every slot's building as composed low-poly architecture: plinth,
+  // pastel body (setback tier on tall ones), regular window grids with lit
+  // panes, cornice + parapet + roof clutter, and a storefront (door, awning,
+  // sign) on the courtyard face. Everything merges into ~8 meshes/district.
+  buildFacadeBlock(g, slots, rng, { cPrimary, cSecondary, cAccent, cRoof }) {
+    const CREAM = new THREE.Color(0xe9dcc4);
+    const wallTones = [
+      cPrimary.clone().lerp(CREAM, 0.52),
+      cSecondary.clone().lerp(CREAM, 0.56),
+      CREAM.clone().lerp(cPrimary, 0.16),
+    ];
+    const trimTone = cPrimary.clone().multiplyScalar(0.5).lerp(new THREE.Color(0x4a3826), 0.45);
+    const roofTone = cRoof.clone().lerp(CREAM, 0.18);
+
+    const B = { wall0: [], wall1: [], wall2: [], trim: [], roof: [], paneLit: [], paneDark: [], accent: [] };
+    const boxG = (bucket, w, h, d, x, y, z) => {
+      const geo = new THREE.BoxGeometry(w, h, d);
+      geo.translate(x, y, z);
+      bucket.push(geo);
+    };
+    const quad = (bucket, w, h, x, y, z, ry) => {
+      const geo = new THREE.PlaneGeometry(w, h);
+      if (ry) geo.rotateY(ry);
+      geo.translate(x, y, z);
+      bucket.push(geo);
+    };
+
+    // window grids on all four faces of one body tier
+    const FACES = [
+      { nx: 0, nz: 1, tx: 1, tz: 0, ry: 0 },
+      { nx: 0, nz: -1, tx: -1, tz: 0, ry: Math.PI },
+      { nx: 1, nz: 0, tx: 0, tz: -1, ry: Math.PI / 2 },
+      { nx: -1, nz: 0, tx: 0, tz: 1, ry: -Math.PI / 2 },
+    ];
+    const addWindows = (bx, bz, w, d, yBase, yTop, skipFace) => {
+      for (const F of FACES) {
+        if (skipFace && F === skipFace) continue;
+        const ext = (F.nx ? w : d) / 2;
+        const span = F.nx ? d : w;
+        const cols = Math.min(4, Math.max(1, Math.floor((span - 1.7) / 2.05)));
+        const total = cols * 2.05;
+        for (let y = yBase; y <= yTop; y += 2.55) {
+          for (let c = 0; c < cols; c++) {
+            const u = -total / 2 + 2.05 * (c + 0.5);
+            const fx = bx + F.tx * u, fz = bz + F.tz * u;
+            quad(B.trim, 1.22, 1.42, fx + F.nx * (ext + 0.03), y, fz + F.nz * (ext + 0.03), F.ry);
+            quad(rng() < 0.34 ? B.paneLit : B.paneDark, 0.95, 1.15,
+              fx + F.nx * (ext + 0.06), y, fz + F.nz * (ext + 0.06), F.ry);
+          }
+        }
+      }
+    };
+
+    const zoneColliders = [];
+    slots.forEach(([ix, iz], i) => {
+      const w = 8 + rng() * 4.5, dpt = 7 + rng() * 4;
+      const h = 4.5 + rng() * 7.5;
+      const x = ix * 15 + (rng() - 0.5) * 2.2;
+      const zz = iz * 13 + 6.5 + (rng() - 0.5) * 1.8;
+      const wallBucket = B[`wall${i % 3}`];
+
+      // face the courtyard (local origin) for the storefront
+      let front = FACES[0], best = -Infinity;
+      for (const F of FACES) {
+        const dot = F.nx * -x + F.nz * -zz;
+        if (dot > best) { best = dot; front = F; }
+      }
+
+      // plinth + body (+ setback tier on tall buildings)
+      boxG(B.trim, w + 0.18, 1.0, dpt + 0.18, x, 0.5, zz);
+      const tall = h > 8.6;
+      const h1 = tall ? h * 0.62 : h;
+      boxG(wallBucket, w, h1 - 1.0, dpt, x, 1.0 + (h1 - 1.0) / 2, zz);
+      boxG(B.trim, w + 0.36, 0.28, dpt + 0.36, x, h1 + 0.14, zz);         // cornice
+      addWindows(x, zz, w, dpt, 2.15, h1 - 1.25, front);
+      let wTop = w, dTop = dpt, topY = h1;
+      if (tall) {
+        wTop = w - 1.6; dTop = dpt - 1.6;
+        boxG(wallBucket, wTop, h - h1 - 0.3, dTop, x, h1 + 0.28 + (h - h1 - 0.3) / 2, zz);
+        addWindows(x, zz, wTop, dTop, h1 + 1.5, h - 1.2, null);
+        topY = h;
+        boxG(B.trim, wTop + 0.36, 0.28, dTop + 0.36, x, h + 0.14, zz);    // top cornice
+      }
+      // parapet ring + roof slab + clutter
+      boxG(B.roof, wTop - 0.3, 0.22, dTop - 0.3, x, topY + 0.11, zz);
+      if (rng() < 0.45) boxG(B.trim, 1.5, 1.0, 1.3, x + (rng() - 0.5) * (wTop * 0.4), topY + 0.7, zz + (rng() - 0.5) * (dTop * 0.4));
+      if (!tall && rng() < 0.5) boxG(B.trim, 0.55, 1.35, 0.55, x + wTop * 0.32, topY + 0.55, zz - dTop * 0.28);
+
+      // storefront on the courtyard face: door + awning + sign
+      const ext = (front.nx ? w : dpt) / 2;
+      const dx = x + front.nx * (ext + 0.04), dz = zz + front.nz * (ext + 0.04);
+      quad(B.trim, 1.4, 2.35, dx, 1.18, dz, front.ry);                     // doorway
+      quad(B.paneDark, 1.05, 1.5, x + front.nx * (ext + 0.07), 1.45, zz + front.nz * (ext + 0.07), front.ry);
+      boxG(B.accent, 2.6, 0.16, 1.05,
+        x + front.nx * (ext + 0.55), 2.62, zz + front.nz * (ext + 0.55)); // awning
+      quad(B.accent, 2.0, 0.55, x + front.nx * (ext + 0.05), 3.35, zz + front.nz * (ext + 0.05), front.ry);
+
+      zoneColliders.push({ localX: x, localZ: zz, hw: w / 2 + 0.2, hd: dpt / 2 + 0.2 });
+    });
+
+    // merge each bucket into one mesh
+    const litMat = toonMat(0x33271c);
+    litMat.emissive = new THREE.Color(0xffbe6e);
+    litMat.emissiveIntensity = 0.85;
+    const mats = {
+      wall0: toonMat(wallTones[0]), wall1: toonMat(wallTones[1]), wall2: toonMat(wallTones[2]),
+      trim: toonMat(trimTone), roof: toonMat(roofTone),
+      paneLit: litMat, paneDark: toonMat(0x232a33), accent: toonMat(cAccent),
+    };
+    for (const [key, list] of Object.entries(B)) {
+      if (!list.length) continue;
+      const mesh = new THREE.Mesh(mergeGeometries(list, false), mats[key]);
+      if (key.startsWith('pane')) { mesh.castShadow = false; }
+      else { mesh.castShadow = true; mesh.receiveShadow = true; }
+      g.add(mesh);
+    }
+    return zoneColliders;
   }
 
   buildLandmark(variant, cAccent, cRoof, rng) {

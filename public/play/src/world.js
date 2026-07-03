@@ -297,16 +297,33 @@ export class World {
     const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3();
     const col = new THREE.Color();
     let i = 0;
+    // districts are human-scale streets — towers stay OUT of them, and get
+    // shorter the closer they stand, so nothing bare looms over a street.
+    // (The old 46-80m mid-rise ring is gone: dialect districts fill it now.)
+    const distToDistrict = (x, z) => {
+      let best = Infinity;
+      for (const zn of (this.zoneMgr?.zones || [])) {
+        const dx = x - zn.center.x, dz = z - zn.center.y;
+        const d2 = dx * dx + dz * dz;
+        if (d2 < best) best = d2;
+      }
+      return Math.sqrt(best);
+    };
     const place = (r0, r1, n, hMin, hMax, wMin, wMax) => {
+      let attempts = 0;
       for (let k = 0; k < n && i < count; k++, i++) {
+        if (++attempts > n * 40) break;                 // packed — settle for fewer towers
         const a = Math.random() * Math.PI * 2;
         const r = r0 + Math.random() * (r1 - r0);
         const x = Math.cos(a) * r, z = Math.sin(a) * r;
-        // keep boulevards + zone district bands clear
+        // keep boulevards clear
         const clear = [Math.PI / 2, Math.PI / 2 + 2.094, Math.PI / 2 - 2.094]
-          .some(ba => Math.abs(((a - ba + Math.PI * 3) % (Math.PI * 2)) - Math.PI) < 0.7);
-        if (clear) { k--; i--; continue; }
-        const h = hMin + Math.random() * (hMax - hMin);
+          .some(ba => Math.abs(((a - ba + Math.PI * 3) % (Math.PI * 2)) - Math.PI) < 0.34);
+        const dd = distToDistrict(x, z);
+        if (clear || dd < 38) { k--; i--; continue; }
+        let h = hMin + Math.random() * (hMax - hMin);
+        h = Math.min(h, (dd - 30) * 2.2);               // height falls off near streets
+        if (h < hMin * 0.65) { k--; i--; continue; }
         const w = wMin + Math.random() * (wMax - wMin);
         const gy = heightAt(x, z);
         P.set(x, gy + h / 2 - 0.4, z);
@@ -318,8 +335,8 @@ export class World {
         if (r < 90) this.colliders.push({ minX: x - w * 0.7, maxX: x + w * 0.7, minZ: z - w * 0.7, maxZ: z + w * 0.7 });
       }
     };
-    place(46, 80, 80, 8, 20, 5, 9);        // mid-rise ring around hub
-    place(88, 165, 160, 24, 78, 8, 17);    // dense skyscraper downtown, up to ~78m
+    place(88, 175, 150, 24, 78, 8, 17);    // skyscraper downtown between districts
+    inst.count = i;                        // only render what found a legal spot
     inst.instanceMatrix.needsUpdate = true;
     if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
     inst.castShadow = true;
