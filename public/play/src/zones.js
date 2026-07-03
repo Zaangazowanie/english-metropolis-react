@@ -326,9 +326,12 @@ export class ZoneManager {
       const spawned = [];
       const zoneProg = this.progressFor(z.data.code);
       const locals = [[-5.5, 4.5], [5.5, -4.5]];
-      const baseHash = hash(z.data.code);
+      // body assignment is unique PER STOP: the two zones flanking a station
+      // (side ±1) draw four consecutive pool slots, so no two teachers you can
+      // see from one platform share a body
+      const stopSlot = hash(`${z.lineKey}:${z.stopIdx}`);
       z.data.npcs.slice(0, 2).forEach((npcData, i) => {
-        const base = this.npcBases[(baseHash + i * 3) % this.npcBases.length];
+        const base = this.npcBases[(stopSlot + (z.side > 0 ? 0 : 2) + i) % this.npcBases.length];
         const tint = new THREE.Color(i === 0 ? z.data.palette.accent : z.data.palette.secondary);
         const s = 0.95 + rng() * 0.12;
         const wrap = new THREE.Group();

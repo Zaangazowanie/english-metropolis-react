@@ -49,10 +49,12 @@ scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffe3ae, 1.7);
 sun.position.set(35, 42, -60);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+// big displays get a 4K shadow map; potato tier sheds shadows entirely anyway
+const SHADOW_RES = (screen.width * (window.devicePixelRatio || 1)) >= 1900 ? 4096 : 2048;
+sun.shadow.mapSize.set(SHADOW_RES, SHADOW_RES);
 sun.shadow.camera.near = 1;
-sun.shadow.camera.far = 220;
-const S = 48;
+sun.shadow.camera.far = 170;
+const S = 38;
 sun.shadow.camera.left = -S; sun.shadow.camera.right = S;
 sun.shadow.camera.top = S; sun.shadow.camera.bottom = -S;
 sun.shadow.bias = -0.0004;
@@ -60,11 +62,15 @@ sun.shadow.normalBias = 0.02;
 scene.add(sun, sun.target);
 scene.add(makeSky());
 
-// shadow frustum follows the player so 2048px covers only ~96m — crisp + cheap
+// shadow frustum follows the player so the map covers only ~76m — crisp + cheap.
+// Position snaps to shadow-texel-sized steps so edges don't crawl/shimmer.
 const SUN_OFF = new THREE.Vector3(35, 42, -60).normalize().multiplyScalar(90);
+const SHADOW_TEXEL = (2 * S) / SHADOW_RES;
 function updateSun(playerPos) {
-  sun.target.position.copy(playerPos);
-  sun.position.copy(playerPos).add(SUN_OFF);
+  const sx = Math.round(playerPos.x / SHADOW_TEXEL) * SHADOW_TEXEL;
+  const sz = Math.round(playerPos.z / SHADOW_TEXEL) * SHADOW_TEXEL;
+  sun.target.position.set(sx, 0, sz);
+  sun.position.set(sx + SUN_OFF.x, SUN_OFF.y, sz + SUN_OFF.z);
 }
 
 // ---------- load ----------
@@ -168,11 +174,11 @@ Promise.all([
   player = new Player(rig.object, scene, rig);
   window.__RIG = rig;   // live hand-tuning handle
 
-  // the city lives: trams on every line, and a crowd drawn from 9 distinct bodies
-  // (Wren's mocap rig + the 8 code-rigged Meshy townsfolk) strolling the streets
+  // the city lives: trams on every line, and a crowd of the 8 Meshy townsfolk
+  // strolling the boulevards — each body at most once, so no character twins
   trains = new Trains(scene, zoneMgr, audio);
   citizens = new Citizens(scene, rig, npcBases);
-  citizens.spawn(14);
+  citizens.spawn(8);                                   // one of each body, never twins
   window.__EM = { player, world, zones: zoneMgr, camera: followCam, renderer, scene, camera3: camera, ui, audio, trains, citizens };
   // deterministic frame pump for headless verification (background tabs throttle rAF)
   window.__EM.step = (n = 1, dt = 1 / 60) => {

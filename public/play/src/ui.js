@@ -15,6 +15,10 @@ export class UI {
     this._toastTimer = null;
     this.$('dialog').querySelector('.close').addEventListener('click', () => this.closeDialog());
     this.$('guide-close').addEventListener('click', () => this.showGuide(false));
+    this.$('guide-replay')?.addEventListener('click', () => {
+      this.showGuide(false);
+      this.showWelcome({ force: true });
+    });
     this.$('metro-close').addEventListener('click', () => { this.$('metro').style.display = 'none'; });
     this.$('citymap-close').addEventListener('click', () => { this.$('citymap').style.display = 'none'; });
     window.addEventListener('keydown', (e) => {

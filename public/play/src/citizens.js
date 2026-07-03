@@ -1,9 +1,8 @@
-// Living city: ambient pedestrians drawn from a POOL of distinct bodies — Wren's
-// Mixamo mocap rig plus the 8 code-rigged Meshy townsfolk (tutor, vendor, tourist,
-// rival, announcer, inspector, bookshop owner, robot). Tinted + scale-varied and
-// streamed around the player, so the crowd reads as many different people.
+// Living city: ambient pedestrians drawn from the 8 code-rigged Meshy townsfolk.
+// EVERY BODY IS USED AT MOST ONCE (no duplicate characters on screen — Mike,
+// 2026-07-03), no Wren clones (the player IS Wren), and citizens keep to the
+// boulevards so they never loiter next to their hub-teacher twin on the plaza.
 import * as THREE from 'three';
-import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 import { instanceRig } from './rig.js';
 import { blobShadow } from './materials.js';
 import { heightAt } from './terrain.js';
@@ -13,21 +12,15 @@ const WALK_SPEED = 1.35;
 const RESPAWN_DIST = 175, SPAWN_NEAR = 110;
 const TINTS = [0xc96f4a, 0x7ba05b, 0x8fb4c9, 0x6b4fa0, 0xe8a13d, 0xa2707f, 0x5e7b54, 0xb8452f];
 
+// boulevard sidewalks only — the plaza belongs to the (unique) hub teachers
 function randomSidewalkPoint(nearX = 0, nearZ = 0, spread = 999) {
   for (let tries = 0; tries < 12; tries++) {
-    let x, z;
-    if (Math.random() < 0.25) {                    // plaza ring
-      const a = Math.random() * Math.PI * 2;
-      const r = 11 + Math.random() * 8;
-      x = Math.cos(a) * r; z = Math.sin(a) * r;
-    } else {                                        // boulevard sidewalks
-      const L = Object.values(LINES)[(Math.random() * 3) | 0];
-      const d = 20 + Math.random() * 380;
-      const lat = (Math.random() < 0.5 ? -1 : 1) * (7 + Math.random() * 9);
-      const dirX = Math.cos(L.angle), dirZ = -Math.sin(L.angle);
-      x = dirX * d + -dirZ * lat;
-      z = dirZ * d + dirX * lat;
-    }
+    const L = Object.values(LINES)[(Math.random() * 3) | 0];
+    const d = 45 + Math.random() * 355;
+    const lat = (Math.random() < 0.5 ? -1 : 1) * (7 + Math.random() * 9);
+    const dirX = Math.cos(L.angle), dirZ = -Math.sin(L.angle);
+    const x = dirX * d + -dirZ * lat;
+    const z = dirZ * d + dirX * lat;
     if (Math.hypot(x - nearX, z - nearZ) < spread) return { x, z };
   }
   return { x: nearX, z: nearZ };
@@ -37,61 +30,58 @@ export class Citizens {
   constructor(scene, heroRig, npcBases = []) {
     this.scene = scene;
     this.list = [];
-    this.density = 12;
-    // body pool: Wren (mocap) + every code-rigged Meshy townsperson
-    this.bodies = [{ type: 'hero', root: heroRig.root, walkClip: heroRig.actions.walk.getClip() }];
+    this.density = 8;
+    // body pool: the code-rigged Meshy townsfolk, each spawnable ONCE
+    this.bodies = [];
     for (const b of npcBases) {
       if (b.rigged && b.clips?.walk) this.bodies.push({ type: 'meshy', mesh: b.mesh, clips: b.clips });
     }
+    // shuffled free-list of body indices (assignment without replacement)
+    this.free = this.bodies.map((_, i) => i);
+    for (let i = this.free.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [this.free[i], this.free[j]] = [this.free[j], this.free[i]];
+    }
   }
 
-  spawn(n) { this.density = n; while (this.list.length < n) this.addOne(); }
+  spawn(n) {
+    this.density = Math.min(n, this.bodies.length);
+    while (this.list.length < this.density && this.free.length) this.addOne();
+  }
 
   setDensity(n) {
-    this.density = n;
-    while (this.list.length > n) { const c = this.list.pop(); this.scene.remove(c.wrap); }
+    this.density = Math.min(n, this.bodies.length);
+    while (this.list.length > this.density) {
+      const c = this.list.pop();
+      this.scene.remove(c.wrap);
+      this.free.push(c.bodyIdx);                       // body becomes available again
+    }
   }
 
   addOne(nearX = 0, nearZ = 0) {
-    const body = this.bodies[(Math.random() * this.bodies.length) | 0];
+    if (!this.free.length) return;                     // every body already walking
+    const bodyIdx = this.free.pop();
+    const body = this.bodies[bodyIdx];
     const wrap = new THREE.Group();
-    let model, mixer, hands = [], bind = new Map();
 
-    if (body.type === 'hero') {
-      // Wren clone — tint hard so identical bodies read as different people
-      model = cloneSkinned(body.root);
-      const tint = new THREE.Color(TINTS[(Math.random() * TINTS.length) | 0]);
-      model.traverse((o) => {
-        if (o.isSkinnedMesh) {
-          o.material = o.material.clone();
-          o.material.color.lerp(tint, 0.5);
-          o.castShadow = true; o.frustumCulled = false;
-        }
-        if (o.isBone && /Hand$/.test(o.name)) { hands.push(o); bind.set(o, o.quaternion.clone()); }
-      });
-      mixer = new THREE.AnimationMixer(model);
-      const walk = mixer.clipAction(body.walkClip);
-      walk.timeScale = 0.85 + Math.random() * 0.3;
-      walk.play();
-      wrap.add(model);
-    } else {
-      // distinct Meshy townsperson — keep their own texture, light tint only
-      const inst = instanceRig(body.mesh, body.clips);
-      model = inst.object;
-      mixer = inst.mixer;
-      const walk = inst.actions.walk;
-      walk.timeScale = 0.82 + Math.random() * 0.32;
-      walk.play();
-      inst.actions.idle?.stop();
-      model.traverse((o) => {
-        if (o.isSkinnedMesh) {
-          o.material = o.material.clone();
-          o.material.color.lerp(new THREE.Color(TINTS[(Math.random() * TINTS.length) | 0]), 0.12);
-          o.castShadow = true; o.frustumCulled = false;
-        }
-      });
-      wrap.add(model);
-    }
+    // distinct Meshy townsperson — own texture, wardrobe tint to set them
+    // apart from their teaching twin working elsewhere in the city
+    const inst = instanceRig(body.mesh, body.clips);
+    const model = inst.object;
+    const mixer = inst.mixer;
+    const walk = inst.actions.walk;
+    walk.timeScale = 0.82 + Math.random() * 0.32;
+    walk.play();
+    inst.actions.idle?.stop();
+    const tint = new THREE.Color(TINTS[bodyIdx % TINTS.length]);
+    model.traverse((o) => {
+      if (o.isSkinnedMesh) {
+        o.material = o.material.clone();
+        o.material.color.lerp(tint, 0.28);
+        o.castShadow = true; o.frustumCulled = false;
+      }
+    });
+    wrap.add(model);
 
     wrap.add(blobShadow(0.5));
     wrap.scale.setScalar(0.9 + Math.random() * 0.2);   // height variance
@@ -101,7 +91,7 @@ export class Citizens {
 
     mixer.update(Math.random() * 2);                    // desync strides
     const target = randomSidewalkPoint(p.x, p.z, 70);
-    this.list.push({ wrap, mixer, hands, bind, target, heading: Math.random() * Math.PI * 2 });
+    this.list.push({ wrap, mixer, bodyIdx, target, heading: Math.random() * Math.PI * 2 });
   }
 
   update(dt, playerPos) {
@@ -123,7 +113,6 @@ export class Citizens {
         c.wrap.rotation.y = c.heading;
       }
       c.mixer.update(dt);
-      for (const h of c.hands) h.quaternion.copy(c.bind.get(h));   // Wren wrist lock
 
       const pd = Math.hypot(pos.x - playerPos.x, pos.z - playerPos.z);
       if (pd > RESPAWN_DIST) {
