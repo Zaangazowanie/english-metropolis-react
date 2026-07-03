@@ -15,16 +15,16 @@ never renamed. Endpoint missing or shape wrong for your feature? Open a GitHub i
 - All writes are audit-logged server-side.
 
 ## P1 — Library
-### `GET /api/console/library`
+### ✅ LIVE `GET /api/console/library`
 Query: `q=` (search title/topics/keywords) · `level=A2|B1|B2|C1` · `course=` (e.g. GEN-B1-IDEAS) ·
 `basket=IDEAS|PLACES|SOCIETY|SPEC|SUM` · `per=` (default 50, max 200) · `offset=`
 → `{ total, courses:[{course_id, title, level, count}], rows:[{ lesson_id, course_id, lesson_number, title,
 level, basket, topic, keywords:[...], video_url, pdf_url, html_url, assigned_count }] }`
 - `pdf_url` = `/api/console/library/{lesson_id}/pdf` · `html_url` = `/api/console/library/{lesson_id}/html`.
 
-### `GET /api/console/library/{lesson_id}/pdf` → the deck PDF (inline; `?download=1` = attachment).
-### `GET /api/console/library/{lesson_id}/html` → the deck HTML (for iframe preview; images remote-loaded).
-### `GET /api/console/library/{lesson_id}` → `{ manifest:{...full manifest.json...}, registry:{topics, questions_count}, assignments:[{student_slug, group_id?, date, assigned_at}] }`
+### ✅ LIVE `GET /api/console/library/{lesson_id}/pdf` → the deck PDF (inline; `?download=1` = attachment).
+### ✅ LIVE `GET /api/console/library/{lesson_id}/html` → the deck HTML (for iframe preview; images remote-loaded).
+### ✅ LIVE `GET /api/console/library/{lesson_id}` → `{ manifest:{...full manifest.json...}, registry:{topics, questions_count}, assignments:[{student_slug, group_id?, date, assigned_at}] }`
 
 ## P1 — Assignment
 ### `POST /api/console/assign`
@@ -50,7 +50,7 @@ Backend stores the file, creates/updates the `lessons` record (materials[]), and
 - `POST /api/console/teacher/keywords/delete` — `{ id }` → `{ ok }`
 
 ## P3 — Pipelines & Ops
-### `GET /api/console/pipelines`
+### ✅ LIVE (partial: services+library real; ingestion/practice/publishes null until next slice) `GET /api/console/pipelines`
 → `{ services:[{name, port?, unit, status:"up"|"down"|"degraded", latency_ms?, last_error?}],
 ingestion:{queued, running, failed_24h, done_24h}, library:{deck_count, last_sync, gate_last_cycle, open_prs},
 practice:{sessions_7d, active_students_7d}, publishes_7d:[{student_slug, date, title}] }`
