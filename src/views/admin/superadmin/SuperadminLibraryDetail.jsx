@@ -1,16 +1,20 @@
-// Superadmin › Library › lesson detail — in-console deck preview + download.
+// Superadmin › Library › lesson detail — in-console deck preview + download,
+// plus assign / unassign (P1 slice 2).
 //
 // Data: GET /api/console/library/{lesson_id} (manifest + registry +
 // assignments), GET …/{lesson_id}/html (iframe preview; decks are fixed
-// 1920×1080, so the iframe renders at native size and is scaled to fit) and
-// GET …/{lesson_id}/pdf (embedded viewer + download). All three per
-// docs/console/API-CONTRACT.md. Assign/unassign controls land in the next
-// console slice — assignments render read-only here.
+// 1920×1080, so the iframe renders at native size and is scaled to fit),
+// GET …/{lesson_id}/pdf (embedded viewer + download), and the P1 writes
+// POST /api/console/assign / POST /api/console/unassign — all per
+// docs/console/API-CONTRACT.md. Student/group pickers reuse the existing
+// Convex queries the other superadmin screens already read (BRIEF: Convex for
+// what it has; the console API only for what it doesn't).
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { consoleGet, consoleGetBlob, saveBlob, libraryHtmlPath, libraryPdfPath } from './consoleApi.js'
+import { consoleGet, consoleGetBlob, consolePost, saveBlob, libraryHtmlPath, libraryPdfPath } from './consoleApi.js'
 import { ConsoleLoading, ConsoleNotLive, ConsoleErrorPanel, LevelBadge, BasketBadge } from './ConsoleStates.jsx'
+import { queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
 
 // Decks are authored at exactly 1920×1080. Render the iframe at native size
 // and scale it down to the card width so the preview is layout-true.
@@ -81,6 +85,20 @@ export default function SuperadminLibraryDetail() {
   const [downloading, setDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState(null)
 
+  // ── Assign / unassign (P1 slice 2) ─────────────────────────────────────
+  const [students, setStudents] = useState(null) // null = still loading
+  const [groups, setGroups] = useState(null)
+  const [pickersError, setPickersError] = useState(null)
+  const [assignMode, setAssignMode] = useState('student') // 'student' | 'group'
+  const [assignStudent, setAssignStudent] = useState('')
+  const [assignGroup, setAssignGroup] = useState('')
+  const [assignDate, setAssignDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [assignBusy, setAssignBusy] = useState(false)
+  const [assignError, setAssignError] = useState(null)
+  const [assignResult, setAssignResult] = useState(null) // { ok, assigned:[...] }
+  const [unassignBusy, setUnassignBusy] = useState(null) // student_slug in flight
+  const [unassignError, setUnassignError] = useState(null)
+
   useEffect(() => {
     let alive = true
     setLoading(true)
@@ -91,6 +109,19 @@ export default function SuperadminLibraryDetail() {
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
   }, [lessonId, reloadKey])
+
+  // Pickers come from the existing Convex queries (same reads as the
+  // All Students / Groups screens) — loaded once, independent of the lesson.
+  useEffect(() => {
+    let alive = true
+    queryAdminConvex('students:listStudents', {})
+      .then(d => { if (alive) setStudents(Array.isArray(d) ? d : []) })
+      .catch(e => { if (alive) { setStudents([]); setPickersError(e.message) } })
+    queryAdminConvex('groups:listGroupsWithCounts', {})
+      .then(d => { if (alive) setGroups(Array.isArray(d) ? d : []) })
+      .catch(e => { if (alive) { setGroups([]); setPickersError(e.message) } })
+    return () => { alive = false }
+  }, [])
 
   const fetchPreview = useCallback((which) => {
     if (startedRef.current[which]) return
@@ -144,6 +175,56 @@ export default function SuperadminLibraryDetail() {
   const topics = Array.isArray(registry?.topics) ? registry.topics : null
   const videoUrl = typeof manifest?.video_url === 'string' ? manifest.video_url : null
   const preview = previews[tab]
+
+  // Pickers: active first, then by name. Non-active entries stay pickable but
+  // labelled, so an admin can still assign to a paused student on purpose.
+  const byActiveThenName = (a, b) => {
+    const activeDiff = (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1)
+    return activeDiff !== 0 ? activeDiff : String(a.name).localeCompare(String(b.name))
+  }
+  const studentOptions = (students || []).slice().sort(byActiveThenName)
+  const groupOptions = (groups || []).slice().sort(byActiveThenName)
+  const assignReady = assignMode === 'student' ? Boolean(assignStudent) : Boolean(assignGroup)
+
+  async function submitAssign(event) {
+    event.preventDefault()
+    if (!assignReady || assignBusy) return
+    const payload = { lesson_id: lessonId }
+    if (assignMode === 'student') payload.student_slug = assignStudent
+    else payload.group_id = assignGroup
+    if (assignDate) payload.date = assignDate
+    setAssignBusy(true)
+    setAssignError(null)
+    setAssignResult(null)
+    try {
+      const result = await consolePost('/api/console/assign', payload)
+      if (!result?.ok) throw new Error('Backend answered without ok:true — check the audit log before retrying')
+      setAssignResult(result)
+      setReloadKey(k => k + 1) // refresh the assignments list below
+    } catch (e) {
+      setAssignError(e)
+    } finally {
+      setAssignBusy(false)
+    }
+  }
+
+  async function submitUnassign(studentSlug) {
+    const ok = window.confirm(
+      `Unassign ${lessonId} from ${studentSlug}? The copied PDF stays on disk; the curriculum link is removed.`
+    )
+    if (!ok) return
+    setUnassignBusy(studentSlug)
+    setUnassignError(null)
+    try {
+      const result = await consolePost('/api/console/unassign', { lesson_id: lessonId, student_slug: studentSlug })
+      if (!result?.ok) throw new Error('Backend answered without ok:true — check the audit log before retrying')
+      setReloadKey(k => k + 1)
+    } catch (e) {
+      setUnassignError(e)
+    } finally {
+      setUnassignBusy(null)
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -301,6 +382,96 @@ export default function SuperadminLibraryDetail() {
           <div className="sa-card">
             <div className="sa-card-header"><h2>Assignments · {assignments.length}</h2></div>
             <div className="sa-card-body">
+              {/* Assign form — student XOR group + lesson date (POST /api/console/assign) */}
+              <form onSubmit={submitAssign} className="mb-5 space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className={`sa-btn ${assignMode === 'student' ? 'sa-btn-primary' : 'sa-btn-ghost'}`}
+                    onClick={() => setAssignMode('student')}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>person</span>
+                    Student
+                  </button>
+                  <button
+                    type="button"
+                    className={`sa-btn ${assignMode === 'group' ? 'sa-btn-primary' : 'sa-btn-ghost'}`}
+                    onClick={() => setAssignMode('group')}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>groups</span>
+                    Group
+                  </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {assignMode === 'student' ? (
+                    <select
+                      className="sa-input"
+                      value={assignStudent}
+                      onChange={e => setAssignStudent(e.target.value)}
+                      style={{ maxWidth: 300, width: 'auto', flex: '1 1 220px' }}
+                      aria-label="Choose a student"
+                    >
+                      <option value="">{students === null ? 'Loading students…' : 'Choose a student…'}</option>
+                      {studentOptions.map(s => (
+                        <option key={s.slug || s._id} value={s.slug}>
+                          {s.name} ({s.slug}){s.status !== 'active' ? ` · ${s.status}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <select
+                      className="sa-input"
+                      value={assignGroup}
+                      onChange={e => setAssignGroup(e.target.value)}
+                      style={{ maxWidth: 300, width: 'auto', flex: '1 1 220px' }}
+                      aria-label="Choose a group"
+                    >
+                      <option value="">{groups === null ? 'Loading groups…' : 'Choose a group…'}</option>
+                      {groupOptions.map(g => (
+                        <option key={g._id} value={g._id}>
+                          {g.name} · {g.activeCount ?? g.memberCount ?? 0} active{g.status !== 'active' ? ` · ${g.status}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <input
+                    type="date"
+                    className="sa-input"
+                    value={assignDate}
+                    onChange={e => setAssignDate(e.target.value)}
+                    style={{ maxWidth: 170, width: 'auto' }}
+                    aria-label="Lesson date"
+                  />
+                  <button
+                    type="submit"
+                    className="sa-btn sa-btn-primary"
+                    disabled={!assignReady || assignBusy}
+                    style={!assignReady || assignBusy ? { opacity: 0.5, cursor: assignBusy ? 'wait' : 'not-allowed' } : undefined}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>assignment_add</span>
+                    {assignBusy ? 'Assigning…' : 'Assign'}
+                  </button>
+                </div>
+                {pickersError && (
+                  <p className="text-xs" style={{ color: '#fcd34d' }}>
+                    Loading students/groups from Convex failed: {pickersError} — reload the page, or check the
+                    All Students / Groups screens.
+                  </p>
+                )}
+                {assignError && <p className="text-sm" style={{ color: '#fca5a5' }}>{assignError.message}</p>}
+                {assignResult && (
+                  <p className="text-sm" style={{ color: '#86efac' }}>
+                    Assigned to {assignResult.assigned?.length ?? 0} student
+                    {(assignResult.assigned?.length ?? 0) === 1 ? '' : 's'}
+                    {assignResult.assigned?.length
+                      ? `: ${assignResult.assigned.map(a => a.student_slug).join(', ')}`
+                      : ''}.
+                  </p>
+                )}
+              </form>
+
+              {unassignError && <p className="mb-3 text-sm" style={{ color: '#fca5a5' }}>{unassignError.message}</p>}
+
               {assignments.length === 0 ? (
                 <p style={{ color: 'rgba(148, 163, 184, 0.6)' }}>Not assigned to anyone yet.</p>
               ) : (
@@ -315,19 +486,34 @@ export default function SuperadminLibraryDetail() {
                         {a.group_id ? 'groups' : 'person'}
                       </span>
                       <span className="font-semibold">{a.student_slug || a.group_id}</span>
+                      {a.group_id && a.student_slug && (
+                        <span style={{ color: 'rgba(148, 163, 184, 0.55)', fontSize: '0.72rem' }}>via group</span>
+                      )}
                       {a.date && <span style={{ color: 'rgba(203, 213, 225, 0.7)' }}>lesson {a.date}</span>}
                       {a.assigned_at && (
                         <span style={{ color: 'rgba(148, 163, 184, 0.55)', fontSize: '0.72rem' }}>
                           assigned {new Date(a.assigned_at).toLocaleString()}
                         </span>
                       )}
+                      {a.student_slug && (
+                        <button
+                          type="button"
+                          onClick={() => submitUnassign(a.student_slug)}
+                          disabled={unassignBusy === a.student_slug}
+                          className="ml-auto text-[11px] font-bold uppercase tracking-widest"
+                          style={{
+                            color: '#fca5a5',
+                            opacity: unassignBusy === a.student_slug ? 0.5 : 1,
+                            cursor: unassignBusy === a.student_slug ? 'wait' : 'pointer',
+                          }}
+                        >
+                          {unassignBusy === a.student_slug ? 'Removing…' : 'Unassign'}
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>
               )}
-              <p className="mt-4 text-[11px] uppercase tracking-widest" style={{ color: 'rgba(148, 163, 184, 0.55)' }}>
-                Assign / unassign controls land in the next console slice.
-              </p>
             </div>
           </div>
         </div>

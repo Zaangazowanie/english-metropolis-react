@@ -6,6 +6,7 @@ const navigation = [
   { to: '/admin/superadmin/ingest', label: 'Ingest Lesson', icon: 'upload_file' },
   { to: '/admin/superadmin/jobs', label: 'Queue', icon: 'pending_actions' },
   { to: '/admin/superadmin/library', label: 'Library', icon: 'local_library' },
+  { to: '/admin/superadmin/assignments', label: 'Assignments', icon: 'assignment_ind' },
   { to: '/admin/superadmin/students', label: 'All Students', icon: 'person' },
   { to: '/admin/superadmin/groups', label: 'Groups', icon: 'groups' },
   { to: '/admin/superadmin/availability', label: 'Availability', icon: 'event_available' },
