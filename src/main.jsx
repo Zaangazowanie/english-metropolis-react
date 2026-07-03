@@ -34,6 +34,7 @@ import TeacherSchedule from './views/teacher/TeacherSchedule.jsx'
 import TeacherStudents from './views/teacher/TeacherStudents.jsx'
 import TeacherMaterials from './views/teacher/TeacherMaterials.jsx'
 import TeacherUpload from './views/teacher/TeacherUpload.jsx'
+import TeacherKeywords from './views/teacher/TeacherKeywords.jsx'
 import TeacherAvailability from './views/teacher/TeacherAvailability.jsx'
 import { TeacherAuthProvider, useTeacherAuth } from './contexts/TeacherAuthContext.jsx'
 import { OrgThemeProvider } from './contexts/OrgThemeContext.jsx'
@@ -218,6 +219,7 @@ function RootRouter() {
           <Route path="students" element={<TeacherStudents />} />
           <Route path="materials" element={<TeacherMaterials />} />
           <Route path="upload" element={<TeacherUpload />} />
+          <Route path="keywords" element={<TeacherKeywords />} />
           <Route path="availability" element={<TeacherAvailability />} />
         </Route>
 

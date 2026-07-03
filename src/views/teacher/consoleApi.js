@@ -102,6 +102,35 @@ export function getTeacherMaterials({ studentSlug } = {}) {
   return teacherConsoleFetch(`/api/console/teacher/materials${suffix}`)
 }
 
+// ── Keywords (teacher-scoped; 9-col shape + read-only mastery) ─────────────
+// GET /api/console/teacher/keywords?student_slug=&lesson_id=
+// → { rows:[{id, word, translation, ipa, definitionEn, definitionPl,
+//            exampleEn, examplePl, wordType, difficulty, mastery}] }
+export function getTeacherKeywords({ studentSlug, lessonId } = {}) {
+  const qs = new URLSearchParams()
+  if (studentSlug) qs.set('student_slug', studentSlug)
+  if (lessonId) qs.set('lesson_id', lessonId)
+  const suffix = qs.toString() ? `?${qs.toString()}` : ''
+  return teacherConsoleFetch(`/api/console/teacher/keywords${suffix}`)
+}
+
+// POST /api/console/teacher/keywords/add — { student_slug, lesson_id?, word,
+// translation?, ...optional fields } → { ok, id }. The backend enriches
+// missing fields asynchronously via the existing enrichment pipeline.
+export function addTeacherKeyword(payload) {
+  return teacherConsoleFetch('/api/console/teacher/keywords/add', { method: 'POST', body: payload })
+}
+
+// POST /api/console/teacher/keywords/update — { id, ...changed fields } → { ok }
+export function updateTeacherKeyword(payload) {
+  return teacherConsoleFetch('/api/console/teacher/keywords/update', { method: 'POST', body: payload })
+}
+
+// POST /api/console/teacher/keywords/delete — { id } → { ok }
+export function deleteTeacherKeyword(id) {
+  return teacherConsoleFetch('/api/console/teacher/keywords/delete', { method: 'POST', body: { id } })
+}
+
 // POST /api/console/teacher/upload — multipart: file (pdf / txt / vtt), fields
 // student_slug, date, title?, kind=finished_lesson|transcript.
 // → { ok, lesson_id?, ingestion_job_id?, url }
