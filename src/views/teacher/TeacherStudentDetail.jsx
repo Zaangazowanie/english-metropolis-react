@@ -18,8 +18,9 @@
 // Until the endpoint flips live: the labelled "backend not live yet" panel —
 // nothing on this screen is ever mocked (KICKOFF.md rule 4).
 //
-// Everything here is READ-ONLY by design; the one edit affordance is a
-// hand-off link into the Keywords tab (?student= preselect). Charts and
+// Everything here is READ-ONLY by design; the edit affordances are hand-off
+// links into the Keywords tab (?student= preselect; per-lesson cards add
+// &lesson= so the editor opens pre-filtered to that lesson). Charts and
 // prose formatting reuse the shared analytics primitives (KICKOFF rule 6).
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -101,7 +102,7 @@ function FactList({ tone, icon, title, items }) {
 }
 
 // One analysis = one expandable card (latest is expanded by default).
-function AnalysisCard({ analysis, expanded, onToggle }) {
+function AnalysisCard({ analysis, expanded, onToggle, keywordsHref }) {
   return (
     <div className="rounded-[1.25rem] border border-white/70 bg-white/80 transition hover:border-sky-200">
       <button
@@ -139,6 +140,18 @@ function AnalysisCard({ analysis, expanded, onToggle }) {
           <FactList tone="amber" icon="trending_up" title="Areas to improve" items={analysis.improvements} />
           <FactList tone="rose" icon="error" title="Key errors" items={analysis.keyErrors} />
           <FactList tone="sky" icon="tips_and_updates" title="Practice advice" items={analysis.practiceAdvice} />
+
+          {keywordsHref && (
+            <div className="pt-1">
+              <Link
+                to={keywordsHref}
+                className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-100"
+              >
+                <span className="material-symbols-outlined text-sm" aria-hidden>translate</span>
+                Keywords for this lesson
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -305,7 +318,15 @@ export default function TeacherStudentDetail() {
           </p>
           <div className="mt-2 space-y-2">
             {enriched.map(a => (
-              <AnalysisCard key={a._key} analysis={a} expanded={expanded.has(a._key)} onToggle={() => toggle(a._key)} />
+              <AnalysisCard
+                key={a._key}
+                analysis={a}
+                expanded={expanded.has(a._key)}
+                onToggle={() => toggle(a._key)}
+                keywordsHref={a.lesson_id
+                  ? `/teacher/keywords?student=${encodeURIComponent(slug)}&lesson=${encodeURIComponent(a.lesson_id)}`
+                  : null}
+              />
             ))}
           </div>
         </div>

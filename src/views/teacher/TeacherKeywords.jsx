@@ -70,15 +70,17 @@ export default function TeacherKeywords() {
   )
   const rosterLive = students.length > 0
 
-  // ?student=<slug> preselects the student — used by the read-only student
-  // detail view's "Edit keywords" hand-off. Server-side scoping still applies
-  // regardless of what the URL carries.
+  // ?student=<slug> preselects the student and ?lesson=<id> pre-fills the
+  // lesson filter — used by the student detail view's "Edit keywords"
+  // hand-off and the Materials rows' "Keywords" links. Server-side scoping
+  // still applies regardless of what the URL carries.
   const [searchParams] = useSearchParams()
   const presetSlug = (searchParams.get('student') || '').trim()
+  const presetLesson = (searchParams.get('lesson') || '').trim()
 
   const [studentSlug, setStudentSlug] = useState(presetSlug)
   const [manualSlug, setManualSlug] = useState(presetSlug)
-  const [lessonId, setLessonId] = useState('')
+  const [lessonId, setLessonId] = useState(presetLesson)
   const activeSlug = (rosterLive ? studentSlug : manualSlug).trim()
 
   const [state, setState] = useState({ loading: false, error: null, rows: null })
