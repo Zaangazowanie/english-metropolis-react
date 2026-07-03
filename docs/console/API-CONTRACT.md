@@ -27,13 +27,13 @@ level, basket, topic, keywords:[...], video_url, pdf_url, html_url, assigned_cou
 ### ✅ LIVE `GET /api/console/library/{lesson_id}` → `{ manifest:{...full manifest.json...}, registry:{topics, questions_count}, assignments:[{student_slug, group_id?, date, assigned_at}] }`
 
 ## P1 — Assignment
-### `POST /api/console/assign`
+### ✅ LIVE (student assign; group_id → 501 until next slice) `POST /api/console/assign`
 Body: `{ lesson_id, student_slug?, group_id?, date? }` (exactly one of student_slug/group_id; date = lesson date,
 default today). Backend: copies `deck-web.pdf` → `/students/<Name>/pdfs/`, updates `lesson-pdfs.json`, writes a
 `curriculumItems` row (via the pipeline-key path), audit-logs.
 → `{ ok, assigned:[{student_slug, pdf_url}], curriculum_item_ids:[...] }`
-### `POST /api/console/unassign` — `{ lesson_id, student_slug }` → `{ ok }` (removes pdf entry + curriculum link; file kept on disk, audit-logged).
-### `GET /api/console/assignments?student_slug=&course=` → `{ rows:[{ lesson_id, title, student_slug, date, pdf_url, source:"library"|"published" }] }`
+### ✅ LIVE `POST /api/console/unassign` — `{ lesson_id, student_slug }` → `{ ok }` (removes pdf entry + curriculum link; file kept on disk, audit-logged).
+### ✅ LIVE `GET /api/console/assignments?student_slug=&course=` → `{ rows:[{ lesson_id, title, student_slug, date, pdf_url, source:"library"|"published" }] }`
 (`published` = legacy per-student lesson PDFs already in `lesson-pdfs.json` that didn't come from the library.)
 
 ## P2 — Teacher
