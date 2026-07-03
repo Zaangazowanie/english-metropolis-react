@@ -10,6 +10,7 @@ export class UI {
     this.$('xp').textContent = `✦ ${this.xp} XP`;
     this.dialogOpen = false;
     this.guideOpen = false;
+    this.welcomeOpen = false;
     this._guideSeen = localStorage.getItem('em_guide_seen') === '1';
     this._toastTimer = null;
     this.$('dialog').querySelector('.close').addEventListener('click', () => this.closeDialog());
@@ -42,6 +43,95 @@ export class UI {
     this.guideOpen = open;
     this.$('guide').style.display = open ? 'flex' : 'none';
     if (!open) { this._guideSeen = true; localStorage.setItem('em_guide_seen', '1'); }
+  }
+
+  // ---------- first-visit welcome tour (paged) ----------
+  // Warm multi-page onboarding right after BEGIN. Shows once (em_welcome=1);
+  // the H guide stays available for reference any time.
+  showWelcome({ force = false } = {}) {
+    if (!force && localStorage.getItem('em_welcome') === '1') return false;
+    const touch = document.body.classList.contains('touch');
+    const PAGES = [
+      {
+        art: '🚇', eyebrow: 'WELCOME TO', title: 'English Metropolis',
+        body: `You've just stepped off the train, and the whole city is glad you're here.
+          <br/><br/>This is a living, open city where <b>every district speaks its own English</b> —
+          Cockney to Texan, Glasgow to Jamaica. You play <b>Wren</b>, the newest arrival,
+          and the locals can't wait to teach you how they really talk.
+          <div class="tip">Take the two-minute tour — it'll make you a local faster. 🦉</div>`,
+      },
+      {
+        art: '🧭', eyebrow: 'STEP 1', title: 'Find your feet',
+        body: touch
+          ? `<div class="krow"><span class="k">drag left</span> walk around</div>
+             <div class="krow"><span class="k">drag right</span> look around</div>
+             <div class="krow"><span class="k">buttons</span> talk · metro · map — bottom right</div>
+             <div class="tip">Take a stroll around the plaza first — the city rewards the curious.</div>`
+          : `<div class="krow"><span class="k">W A S D</span> walk (arrow keys work too)</div>
+             <div class="krow"><span class="k">Shift</span> run like you're late for the train</div>
+             <div class="krow"><span class="k">drag</span> look around · <b>scroll</b> to zoom</div>
+             <div class="krow"><span class="k">Space</span> hop</div>
+             <div class="tip">Take a stroll around the plaza first — the city rewards the curious.</div>`,
+      },
+      {
+        art: '❗', eyebrow: 'STEP 2', title: 'Learn from the locals',
+        body: `See a golden <b>❗</b> floating over someone's head? That's a teacher with
+          exercises for you.
+          <div class="krow"><span class="k">${touch ? '💬 button' : 'E'}</span> talk to them</div>
+          <div class="krow"><span class="k">their drill</span> 7 quick questions on real grammar</div>
+          <div class="krow"><span class="k">✓</span> means they're done for this round</div>
+          <div class="tip">Finish <b>every</b> teacher in a district and the round completes —
+          they all come back with new, harder exercises. That's how you level up.</div>`,
+      },
+      {
+        art: '🗺️', eyebrow: 'STEP 3', title: 'Ride, track, explore',
+        body: `<div class="krow"><span class="k">${touch ? '🚇 button' : 'T'}</span> ride the metro from any platform</div>
+          <div class="krow"><span class="k">${touch ? '🗺️ button' : 'M'}</span> the city map — click a station to travel</div>
+          <div class="krow"><span class="k">${touch ? 'mini-map' : 'J'}</span> ${touch ? 'bottom-left shows where you are' : 'your journal — quests, mastery, progress'}</div>
+          <div class="krow"><span class="k">🎤</span> answer questions with your voice</div>
+          <div class="tip">The little map in the corner starts foggy — exploring reveals the city,
+          and it remembers what you've discovered.</div>`,
+      },
+      {
+        art: '🌇', eyebrow: 'READY?', title: 'The city is yours',
+        body: `That's everything you need. Your first teachers are waiting right here on
+          <b>Metropolis Central plaza</b> — look for the <b>❗</b> marks.
+          <br/><br/>Earn XP, close out districts, and collect every dialect on the map.
+          <div class="tip">Press <b>H</b> any time for the full how-to guide. Welcome aboard. 🚉</div>`,
+      },
+    ];
+    this.welcomeOpen = true;
+    const el = this.$('welcome');
+    const body = this.$('welcome-body'), dots = this.$('welcome-dots');
+    const art = this.$('welcome-art'), eyebrow = this.$('welcome-eyebrow'), title = this.$('welcome-title');
+    const back = this.$('welcome-back'), next = this.$('welcome-next'), skip = this.$('welcome-skip');
+    let pi = 0;
+    const render = () => {
+      const p = PAGES[pi];
+      art.textContent = p.art;
+      eyebrow.textContent = p.eyebrow;
+      title.textContent = p.title;
+      body.innerHTML = `<div class="w-page">${p.body}</div>`;
+      dots.innerHTML = PAGES.map((_, i) => `<span class="${i === pi ? 'on' : ''}"></span>`).join('');
+      back.style.visibility = pi === 0 ? 'hidden' : 'visible';
+      next.textContent = pi === PAGES.length - 1 ? '🚉 Start exploring' : 'Next →';
+      skip.style.display = pi === PAGES.length - 1 ? 'none' : 'block';
+    };
+    const done = () => {
+      localStorage.setItem('em_welcome', '1');
+      localStorage.setItem('em_guide_seen', '1');   // the tour covers the auto-guide
+      this._guideSeen = true;
+      this.welcomeOpen = false;
+      el.style.display = 'none';
+      this.audio?.fanfare?.();
+      this.toast('🦉 Welcome to the Metropolis — find the ❗ teachers!');
+    };
+    back.onclick = () => { if (pi > 0) { pi--; render(); } };
+    next.onclick = () => { this.audio?.click?.(); if (pi < PAGES.length - 1) { pi++; render(); } else done(); };
+    skip.onclick = done;
+    render();
+    el.style.display = 'flex';
+    return true;
   }
 
   setPrompt(text) {

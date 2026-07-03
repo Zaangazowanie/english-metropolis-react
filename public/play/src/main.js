@@ -184,7 +184,12 @@ Promise.all([
   };
   window.__EM.minimap = minimap;
   ui.setProgress(1);
-  ui.showBegin(() => { started = true; ui.showGuide(true, { auto: true }); audio.start(); });
+  ui.showBegin(() => {
+    started = true;
+    audio.start();
+    // first visit: the warm paged tour; afterwards H opens the reference guide
+    if (!ui.showWelcome()) ui.showGuide(true, { auto: true });
+  });
 }).catch((err) => {
   console.error('[EM] load failed:', err);
   document.querySelector('#loading .sub').textContent = 'Load error — check console.';
@@ -266,7 +271,7 @@ renderer.setAnimationLoop(() => {
     while (accumulator >= SIM_DT) { simTick(SIM_DT); accumulator -= SIM_DT; }
 
     // render-side: camera follows every frame for smoothness
-    const blocked = ui.dialogOpen || ui.guideOpen || ui.journalOpen || ui.metroOpen || ui.mapOpen;
+    const blocked = ui.dialogOpen || ui.guideOpen || ui.welcomeOpen || ui.journalOpen || ui.metroOpen || ui.mapOpen;
     followCam.update(rdt, player.pos, blocked ? { dx: 0, dy: 0, wheel: 0 } : mouse);
 
     // sprint FOV kick (cinematic juice)

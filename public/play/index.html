@@ -240,6 +240,55 @@
     #metro .mrow em { margin-left: auto; font-size: 12px; opacity: 0.6; }
   </style>
 
+  <div id="welcome">
+    <div class="panel">
+      <div class="w-art" id="welcome-art">🚇</div>
+      <div class="w-eyebrow" id="welcome-eyebrow">WELCOME TO</div>
+      <h2 id="welcome-title">English Metropolis</h2>
+      <div class="w-body" id="welcome-body"></div>
+      <div class="w-dots" id="welcome-dots"></div>
+      <div class="w-btns">
+        <button id="welcome-back">← Back</button>
+        <button id="welcome-next">Next →</button>
+      </div>
+      <button id="welcome-skip">skip the tour</button>
+    </div>
+  </div>
+  <style>
+    #welcome { position: fixed; inset: 0; z-index: 42; display: none; align-items: center;
+      justify-content: center; background: rgba(26, 20, 16, 0.6); backdrop-filter: blur(3px); }
+    #welcome .panel { width: min(560px, 92vw); background: var(--panel); color: var(--cream);
+      border: 2px solid rgba(232,161,61,0.55); border-radius: 16px; padding: 30px 34px 22px;
+      text-align: center; box-shadow: 0 30px 90px -30px rgba(0,0,0,0.8); }
+    #welcome .w-art { font-size: 44px; margin-bottom: 6px; }
+    #welcome .w-eyebrow { font-size: 10px; letter-spacing: 0.42em; color: var(--amber); opacity: 0.9; }
+    #welcome h2 { font-size: 26px; letter-spacing: 0.06em; margin: 6px 0 14px; color: var(--cream); }
+    #welcome .w-body { font-size: 14.5px; line-height: 1.65; opacity: 0.92; min-height: 128px;
+      text-align: left; }
+    #welcome .w-body b { color: var(--amber); }
+    #welcome .w-body .krow { display: flex; gap: 10px; align-items: baseline; margin: 7px 0; }
+    #welcome .w-body .krow .k { flex: none; min-width: 86px; color: var(--amber); font-weight: bold;
+      letter-spacing: 0.04em; }
+    #welcome .w-body .tip { margin-top: 12px; font-size: 12.5px; font-style: italic; opacity: 0.75;
+      border-top: 1px dashed rgba(246,234,210,0.25); padding-top: 10px; }
+    #welcome .w-page { animation: wpage 0.35s ease; }
+    @keyframes wpage { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    #welcome .w-dots { display: flex; gap: 8px; justify-content: center; margin: 16px 0 14px; }
+    #welcome .w-dots span { width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(246,234,210,0.25); transition: all 0.25s ease; }
+    #welcome .w-dots span.on { background: var(--amber); transform: scale(1.25); }
+    #welcome .w-btns { display: flex; gap: 12px; justify-content: center; }
+    #welcome .w-btns button { cursor: pointer; font-family: inherit; font-size: 14px;
+      letter-spacing: 0.12em; border-radius: 8px; padding: 10px 24px; border: none; }
+    #welcome #welcome-back { background: transparent; color: var(--cream);
+      border: 1px solid rgba(246,234,210,0.35); }
+    #welcome #welcome-next { background: var(--terra); color: var(--cream);
+      box-shadow: 0 3px 0 #8f4a2e; }
+    #welcome #welcome-skip { margin-top: 12px; background: none; border: none; cursor: pointer;
+      color: rgba(246,234,210,0.45); font-family: inherit; font-size: 11px; letter-spacing: 0.08em;
+      font-style: italic; }
+  </style>
+
   <div id="guide">
     <div class="panel">
       <h2>HOW TO PLAY</h2>
