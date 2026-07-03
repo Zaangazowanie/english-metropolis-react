@@ -28,6 +28,9 @@ import AdminTeachers from './views/admin/Teachers.jsx'
 import TeacherLogin from './views/teacher/TeacherLogin.jsx'
 import TeacherVerify from './views/teacher/TeacherVerify.jsx'
 import TeacherPortal from './views/teacher/TeacherPortal.jsx'
+import TeacherSchedule from './views/teacher/TeacherSchedule.jsx'
+import TeacherStudents from './views/teacher/TeacherStudents.jsx'
+import TeacherAvailability from './views/teacher/TeacherAvailability.jsx'
 import { TeacherAuthProvider, useTeacherAuth } from './contexts/TeacherAuthContext.jsx'
 import { OrgThemeProvider } from './contexts/OrgThemeContext.jsx'
 import { AdminAuthProvider } from './contexts/AdminAuthContext.jsx'
@@ -196,14 +199,19 @@ function RootRouter() {
           } />
         </Route>
 
-        {/* Teacher portal (magic-link auth) */}
+        {/* Teacher portal (magic-link auth) — shell with nested section tabs
+            (P2 console buildout, docs/console/BRIEF.md) */}
         <Route path="/teacher/login" element={<TeacherLogin />} />
         <Route path="/teacher/verify" element={<TeacherVerify />} />
         <Route path="/teacher" element={
           <RootErrorBoundary>
             <TeacherGuard><TeacherPortal /></TeacherGuard>
           </RootErrorBoundary>
-        } />
+        }>
+          <Route index element={<TeacherSchedule />} />
+          <Route path="students" element={<TeacherStudents />} />
+          <Route path="availability" element={<TeacherAvailability />} />
+        </Route>
 
         <Route path="/settings" element={<Settings />} />
         <Route path="/app/:slug/settings" element={<Settings />} />
