@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>English Metropolis</title>
+  <meta name="description" content="An open-world English-learning city. Ride three metro lines through 44 dialect neighbourhoods — from The Queen's Mile to Kingston Yard — and learn how the whole world speaks English." />
+  <meta property="og:title" content="English Metropolis" />
+  <meta property="og:description" content="It's a big city. Someone's gotta learn the lingo. 44 dialect neighbourhoods, 3 metro lines, one traveller." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%236b4fa0'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='%23f6ead2' font-family='Georgia'%3EM%3C/text%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --cream: #f6ead2; --ink: #4a3826; --amber: #e8a13d; --terra: #c96f4a;
+      --sage: #7ba05b; --purple: #6b4fa0; --panel: rgba(42, 30, 18, 0.82);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1410;
+      font-family: Georgia, 'Times New Roman', serif; }
+    #app { position: fixed; inset: 0; }
+    canvas { display: block; }
+
+    /* ---------- loading ---------- */
+    #loading { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 22px;
+      background: linear-gradient(180deg, #8fb4c9 0%, #d9c9a8 55%, #e8b06a 100%); }
+    #loading h1 { font-size: clamp(34px, 7vw, 64px); letter-spacing: 0.12em; color: var(--ink);
+      text-shadow: 0 2px 0 rgba(255,255,255,0.35); font-weight: normal; }
+    #loading h1 span { color: var(--purple); }
+    #loading .sub { color: #6a5236; font-style: italic; font-size: clamp(13px, 2.2vw, 17px); }
+    #beta-title { margin-top: -12px; padding: 4px 14px; border-radius: 999px;
+      border: 1.5px solid var(--purple); color: var(--purple); background: rgba(107,79,160,0.1);
+      font-size: 11px; letter-spacing: 0.34em; font-weight: bold; }
+    #bar-wrap { width: min(420px, 70vw); height: 10px; border-radius: 6px;
+      background: rgba(74, 56, 38, 0.25); overflow: hidden; }
+    #bar { width: 0%; height: 100%; border-radius: 6px; background: var(--amber);
+      transition: width 0.2s ease; }
+    #begin { display: none; border: none; cursor: pointer; padding: 13px 46px;
+      font-family: inherit; font-size: 20px; letter-spacing: 0.22em; color: var(--cream);
+      background: var(--terra); border-radius: 4px; box-shadow: 0 5px 0 #8f4a2e;
+      transform: translateY(0); transition: transform 0.08s, box-shadow 0.08s; }
+    #begin:active { transform: translateY(4px); box-shadow: 0 1px 0 #8f4a2e; }
+
+    /* ---------- HUD ---------- */
+    #hud { position: fixed; inset: 0; z-index: 20; pointer-events: none; opacity: 0;
+      transition: opacity 0.6s; }
+    #hud.on { opacity: 1; }
+    #zone-card { position: absolute; top: 26px; left: 50%; transform: translateX(-50%);
+      color: var(--cream); text-align: center; text-shadow: 0 2px 6px rgba(30,20,10,0.55); }
+    #zone-card .line { font-size: 11px; letter-spacing: 0.3em; opacity: 0.85; }
+    #zone-card .name { font-size: 26px; letter-spacing: 0.08em; }
+    #zone-card.flash .name { animation: zonein 1.5s ease; }
+    #zone-card.flash .line { animation: zonein 1.5s ease 0.12s backwards; }
+    @keyframes zonein {
+      0% { opacity: 0; transform: translateY(16px) scale(1.35); letter-spacing: 0.3em; }
+      60% { opacity: 1; }
+      100% { opacity: 1; transform: none; }
+    }
+    #xp { position: absolute; top: 22px; right: 24px; color: var(--cream); font-size: 15px;
+      background: var(--panel); padding: 8px 14px; border-radius: 20px;
+      border: 1px solid rgba(246,234,210,0.25); }
+    #beta-tag { position: absolute; top: 62px; right: 24px; color: var(--purple);
+      background: rgba(246,234,210,0.85); font-size: 10px; font-weight: bold;
+      letter-spacing: 0.28em; padding: 3px 10px 3px 12px; border-radius: 10px;
+      border: 1px solid var(--purple); }
+    #objective { position: absolute; top: 88px; left: 50%; transform: translateX(-50%);
+      display: none; color: var(--cream); background: var(--panel); font-size: 13px;
+      padding: 6px 16px; border-radius: 16px; border: 1px solid rgba(232,161,61,0.4);
+      white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+    #objective b { color: var(--amber); }
+    body.touch #objective { font-size: 11px; top: 74px; }
+    #prompt { position: absolute; bottom: 15%; left: 50%; transform: translateX(-50%);
+      color: var(--cream); background: var(--panel); padding: 9px 18px; border-radius: 20px;
+      font-size: 15px; border: 1px solid rgba(246,234,210,0.25); display: none; }
+    #prompt b { color: var(--amber); }
+    #hint { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+      color: rgba(246,234,210,0.55); font-size: 12px; letter-spacing: 0.05em; }
+    #toast { position: absolute; top: 96px; left: 50%; transform: translateX(-50%);
+      color: var(--cream); background: rgba(107, 79, 160, 0.92); padding: 10px 22px;
+      border-radius: 22px; font-size: 15px; opacity: 0; transition: opacity 0.35s; }
+
+    /* ---------- dialog ---------- */
+    #dialog { position: fixed; z-index: 25; left: 50%; bottom: 6%;
+      transform: translateX(-50%); width: min(620px, 92vw); background: var(--panel);
+      border: 2px solid rgba(232, 161, 61, 0.55); border-radius: 14px; padding: 20px 24px;
+      color: var(--cream); display: none; backdrop-filter: blur(3px); }
+    #dialog .who { color: var(--amber); font-size: 14px; letter-spacing: 0.12em;
+      margin-bottom: 6px; }
+    #dialog .text { font-size: 17px; line-height: 1.45; margin-bottom: 14px; }
+    #dialog .opts { display: flex; flex-direction: column; gap: 8px; }
+    #dialog .opts button { pointer-events: auto; cursor: pointer; text-align: left;
+      font-family: inherit; font-size: 15px; color: var(--cream); padding: 9px 14px;
+      background: rgba(246,234,210,0.10); border: 1px solid rgba(246,234,210,0.22);
+      border-radius: 8px; transition: background 0.12s; }
+    #dialog .opts button:hover { background: rgba(232,161,61,0.28); }
+    #dialog .opts button.right { background: rgba(123,160,91,0.55); border-color: #9fc27e; }
+    #dialog .opts button.wrong { background: rgba(201,111,74,0.55); border-color: #d98a66; }
+    #dialog .close { position: absolute; top: 8px; right: 14px; background: none; border: none;
+      color: rgba(246,234,210,0.6); font-size: 20px; cursor: pointer; pointer-events: auto; }
+    #dialog .explain { margin-top: 10px; font-size: 13.5px; line-height: 1.4;
+      color: #f3dca6; background: rgba(232,161,61,0.14); border-left: 3px solid var(--amber);
+      padding: 8px 12px; border-radius: 0 6px 6px 0; }
+    #dialog .explain i { color: rgba(246,234,210,0.7); font-size: 12.5px; }
+    #fps { position: fixed; z-index: 21; bottom: 8px; right: 10px; color: rgba(246,234,210,0.4);
+      font: 11px monospace; }
+    #minimap { position: absolute; left: 16px; bottom: 46px; width: 124px; height: 124px;
+      pointer-events: auto; cursor: pointer; filter: drop-shadow(0 3px 8px rgba(20,12,6,0.4)); }
+    body.touch #minimap { width: 100px; height: 100px; bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <!-- cinematic grade: vignette + warm lift, zero GPU cost -->
+  <div id="grade"></div>
+  <div id="fade"></div>
+  <style>
+    #grade { position: fixed; inset: 0; z-index: 14; pointer-events: none;
+      background:
+        radial-gradient(ellipse at 50% 42%, rgba(0,0,0,0) 52%, rgba(28,14,4,0.34) 100%),
+        linear-gradient(180deg, rgba(255,180,80,0.05) 0%, rgba(0,0,0,0) 30%);
+      mix-blend-mode: multiply; }
+    #fade { position: fixed; inset: 0; z-index: 45; pointer-events: none;
+      background: #1a1410; opacity: 0; transition: opacity 0.45s ease; }
+    #fade.on { opacity: 1; }
+  </style>
+
+  <div id="loading">
+    <h1>ENGLISH <span>METROPOLIS</span></h1>
+    <div id="beta-title">OPEN WORLD · BETA</div>
+    <div class="sub">It's a big city. Someone's gotta learn the lingo.</div>
+    <div id="bar-wrap"><div id="bar"></div></div>
+    <button id="begin">B E G I N</button>
+  </div>
+
+  <div id="hud">
+    <div id="zone-card"><div class="line">CENTRAL HUB</div><div class="name">Metropolis Central</div></div>
+    <div id="objective"></div>
+    <div id="xp">✦ 0 XP</div>
+    <div id="beta-tag">BETA</div>
+    <div id="prompt">Press <b>E</b> to talk</div>
+    <div id="hint">WASD move · Shift sprint · drag look · E talk · T metro · M map · J journal · H help</div>
+    <canvas id="minimap" width="176" height="176"></canvas>
+    <div id="toast"></div>
+    <div id="touch-ui">
+      <button id="tb-jump">⤒</button>
+      <button id="tb-talk">💬</button>
+      <button id="tb-metro">🚇</button>
+      <button id="tb-map">🗺️</button>
+      <button id="tb-journal">📖</button>
+    </div>
+  </div>
+  <style>
+    #touch-ui { display: none; position: absolute; right: 18px; bottom: 12%;
+      flex-direction: column; gap: 12px; pointer-events: none; }
+    body.touch #touch-ui { display: flex; }
+    body.touch #hint { display: none; }
+    #touch-ui button { pointer-events: auto; width: 54px; height: 54px; border-radius: 50%;
+      border: 1px solid rgba(246,234,210,0.35); background: var(--panel); color: var(--cream);
+      font-size: 22px; touch-action: manipulation; }
+    #touch-ui button:active { background: rgba(232,161,61,0.5); }
+  </style>
+
+  <div id="dialog">
+    <button class="close">✕</button>
+    <div class="who"></div>
+    <div class="text"></div>
+    <div class="opts"></div>
+  </div>
+  <div id="fps"></div>
+
+  <div id="journal">
+    <div class="panel">
+      <h2>TRAVELLER'S JOURNAL <button id="journal-close">✕</button></h2>
+      <div class="rows"></div>
+    </div>
+  </div>
+  <style>
+    #journal { position: fixed; inset: 0; z-index: 38; display: none; align-items: center;
+      justify-content: center; background: rgba(26,20,16,0.45); }
+    #journal .panel { width: min(480px, 92vw); max-height: 76vh; overflow-y: auto;
+      background: var(--panel); color: var(--cream); border: 2px solid rgba(232,161,61,0.55);
+      border-radius: 14px; padding: 22px 26px; }
+    #journal h2 { letter-spacing: 0.2em; font-size: 16px; color: var(--amber);
+      margin-bottom: 12px; display: flex; justify-content: space-between; }
+    #journal h2 button { background: none; border: none; color: rgba(246,234,210,0.6);
+      font-size: 18px; cursor: pointer; }
+    #journal .jxp { font-size: 15px; margin-bottom: 10px; color: var(--amber); }
+    #journal .jline { font-size: 12px; letter-spacing: 0.18em; margin: 12px 0 4px; opacity: 0.8; }
+    #journal .jrow { font-size: 14px; padding: 3px 0; display: flex; gap: 8px; align-items: baseline; }
+    #journal .jrow em { margin-left: auto; font-size: 12px; opacity: 0.6; }
+    #journal .jnote { font-size: 12.5px; line-height: 1.45; opacity: 0.75; padding: 4px 0 2px;
+      border-bottom: 1px dashed rgba(246,234,210,0.2); margin-bottom: 4px; }
+    #journal .jnote b { color: var(--amber); }
+  </style>
+
+  <div id="citymap">
+    <div class="panel">
+      <h2>🗺️ ENGLISH METROPOLIS <button id="citymap-close">✕</button></h2>
+      <canvas id="citymap-canvas" width="520" height="520"></canvas>
+      <div class="caption">Hover a station · click to ride the metro from a platform</div>
+    </div>
+  </div>
+  <style>
+    #citymap { position: fixed; inset: 0; z-index: 40; display: none; align-items: center;
+      justify-content: center; background: rgba(26,20,16,0.55); }
+    #citymap .panel { background: var(--panel); color: var(--cream);
+      border: 2px solid rgba(232,161,61,0.55); border-radius: 14px; padding: 18px 22px; }
+    #citymap h2 { letter-spacing: 0.2em; font-size: 15px; color: var(--amber);
+      margin-bottom: 10px; display: flex; justify-content: space-between; gap: 30px; }
+    #citymap h2 button { background: none; border: none; color: rgba(246,234,210,0.6);
+      font-size: 18px; cursor: pointer; }
+    #citymap canvas { display: block; border-radius: 10px; width: min(520px, 82vw);
+      height: auto; cursor: crosshair; }
+    #citymap .caption { font-size: 12px; opacity: 0.6; margin-top: 8px; font-style: italic;
+      text-align: center; }
+  </style>
+
+  <div id="metro">
+    <div class="panel">
+      <h2>🚇 METRO MAP <button id="metro-close">✕</button></h2>
+      <p class="tip">Pick a station to ride there.</p>
+      <div class="rows"></div>
+    </div>
+  </div>
+  <style>
+    #metro { position: fixed; inset: 0; z-index: 39; display: none; align-items: center;
+      justify-content: center; background: rgba(26,20,16,0.5); }
+    #metro .panel { width: min(520px, 92vw); max-height: 78vh; overflow-y: auto;
+      background: var(--panel); color: var(--cream); border: 2px solid rgba(232,161,61,0.55);
+      border-radius: 14px; padding: 22px 26px; }
+    #metro h2 { letter-spacing: 0.2em; font-size: 16px; color: var(--amber);
+      margin-bottom: 4px; display: flex; justify-content: space-between; }
+    #metro h2 button { background: none; border: none; color: rgba(246,234,210,0.6);
+      font-size: 18px; cursor: pointer; }
+    #metro .tip { font-size: 12px; opacity: 0.65; margin-bottom: 10px; font-style: italic; }
+    #metro .jline { font-size: 12px; letter-spacing: 0.18em; margin: 12px 0 4px; opacity: 0.8; }
+    #metro .mrow { font-size: 14px; padding: 6px 8px; display: flex; gap: 8px; cursor: pointer;
+      border-radius: 6px; align-items: baseline; }
+    #metro .mrow:hover { background: rgba(232,161,61,0.22); }
+    #metro .mrow em { margin-left: auto; font-size: 12px; opacity: 0.6; }
+  </style>
+
+  <div id="guide">
+    <div class="panel">
+      <h2>HOW TO PLAY</h2>
+      <table>
+        <tr><td><b>W A S D</b></td><td>walk (hold <b>Shift</b> to sprint)</td></tr>
+        <tr><td><b>Space</b></td><td>jump</td></tr>
+        <tr><td><b>drag</b></td><td>orbit the camera (trackpad: one-finger drag)</td></tr>
+        <tr><td><b>scroll</b></td><td>zoom (trackpad: two-finger swipe)</td></tr>
+        <tr><td><b>E</b></td><td>talk to characters — local expressions + grammar drills for XP</td></tr>
+        <tr><td><b>❗ / ✓</b></td><td>❗ = teacher with exercises for you · ✓ = done this round.
+          Finish <b>every</b> teacher in a district to complete the round — then they all
+          get new, harder exercises</td></tr>
+        <tr><td><b>T</b></td><td>ride the metro (at any station platform or the hub)</td></tr>
+        <tr><td><b>M</b></td><td>city map — every region and dialect, click a station to ride</td></tr>
+        <tr><td><b>J</b></td><td>open your traveller's journal</td></tr>
+        <tr><td><b>H</b></td><td>toggle this guide</td></tr>
+      </table>
+      <p>Ride the three metro lines out of Central Station — every stop is a
+      neighbourhood with its own English dialect. Talk to the locals, learn their
+      words, earn XP.</p>
+      <button id="guide-close">GOT IT</button>
+    </div>
+  </div>
+  <style>
+    #guide { position: fixed; inset: 0; z-index: 40; display: none; align-items: center;
+      justify-content: center; background: rgba(26, 20, 16, 0.55); backdrop-filter: blur(2px); }
+    #guide .panel { width: min(560px, 92vw); background: var(--panel); color: var(--cream);
+      border: 2px solid rgba(232,161,61,0.55); border-radius: 14px; padding: 26px 30px; }
+    #guide h2 { letter-spacing: 0.25em; font-size: 18px; color: var(--amber); margin-bottom: 14px; }
+    #guide table { border-collapse: collapse; margin-bottom: 12px; }
+    #guide td { padding: 5px 14px 5px 0; font-size: 15px; }
+    #guide td b { color: var(--amber); }
+    #guide p { font-size: 14px; line-height: 1.5; opacity: 0.85; margin-bottom: 16px; }
+    #guide button { cursor: pointer; font-family: inherit; font-size: 15px; letter-spacing: 0.15em;
+      color: var(--cream); background: var(--terra); border: none; border-radius: 6px;
+      padding: 9px 26px; box-shadow: 0 3px 0 #8f4a2e; }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./public/vendor/three/three.module.js",
+      "three/addons/": "./public/vendor/three/addons/"
+    }
+  }
+  </script>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

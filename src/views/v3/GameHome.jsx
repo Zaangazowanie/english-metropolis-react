@@ -1,36 +1,25 @@
-// GameHome — the public home page of englishmetro.com (2026-06-12).
+// GameHome — the public home page of englishmetro.com (redesigned 2026-07-03).
 //
-// The site leads with PLAY: an instantly-playable featured game, a London
-// Underground "departures board" of every game, and a stations grid. No
-// student/school/admin framing anywhere — one "Sign in" and one "Play free"
-// path. 3D games from the Fluent City arcade (src/practice/shells3d) appear
-// automatically as build PRs land: the grid merges game3dRegistry at render
-// time, and Wave-1 titles show as "arriving soon" until then.
+// The page now leads with the OPEN WORLD (beta): a cinematic hero with an
+// animated city postcard and one unmissable call-to-action — Play the World.
+// Beneath it, the "two ways in" choice (world vs quick practice), then the
+// whole 39-game practice catalog folded into four expandable metro-line
+// sections plus a 3D Districts section fed by game3dRegistry. Instant
+// anonymous play via PlayOverlay is unchanged: every 2D shell falls back to
+// its built-in demo puzzle; first completed round raises the sign-up CTA
+// (Mike, SPEC 2026-06-06).
 //
-// Anonymous play is free by design: every 2D shell falls back to its built-in
-// demo puzzle when `puzzle` is undefined (the `?? DEMO_PUZZLE` ternary in each
-// shell). After the first completed round we raise the sign-up CTA; the
-// fullscreen control is also gated behind sign-up (Mike, SPEC 2026-06-06).
-import { Suspense, lazy, useEffect, useMemo, useRef, useState, Component } from 'react'
+// Unlike the old dusk-only page, the whole home now rides the v3 design
+// system's DAY and NIGHT themes (useV3Theme + tokens.js) with a sun/moon
+// toggle in the header — golden-hour by day, neon London by night.
+import { Suspense, lazy, useMemo, useRef, useState, useEffect, Component } from 'react'
 import { Link } from 'react-router-dom'
 import { FONT, G, EASE } from '../../design/v3/tokens.js'
 import { Btn, Skyline } from '../../design/v3/primitives.jsx'
+import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { game3dRegistry } from '../../practice/shells3d/kit/registry'
 import { usePrefersReducedMotion } from '../../practice/lib/usePrefersReducedMotion'
 import './game-home.css'
-
-// ── Dusk-always palette (the arcade never sees daylight) ──────────────────
-const C = {
-  bg: '#050309',
-  text: '#F5F0FA',
-  dim: 'rgba(228, 218, 244, 0.62)',
-  mute: 'rgba(228, 218, 244, 0.38)',
-  emerald: '#34D399',
-  ember: '#FB923C',
-  pink: '#D946EF',
-  line: 'rgba(255,255,255,0.09)',
-  amber: '#FFB347',
-}
 
 // ── The catalog — every playable 2D shell, as a metro "line" map ───────────
 // Venue names follow src/practice/lib/shell-selector.ts. `load` mirrors the
@@ -40,6 +29,8 @@ const LINES = [
   {
     line: 'Arcade Line',
     color: '#D946EF',
+    icon: 'sports_esports',
+    tag: 'Fast hands, faster words',
     games: [
       { key: 'snake',        title: 'Snake',          venue: 'The Park Path',      blurb: 'Steer. Snack on the right words.', load: () => import('../../practice/shells/Snake') },
       { key: 'mazechase',    title: 'Maze Chase',     venue: 'The Backstreets',    blurb: 'Outrun the streets, grab the answers.', load: () => import('../../practice/shells/MazeChase') },
@@ -55,6 +46,8 @@ const LINES = [
   {
     line: 'Word Line',
     color: '#8B5CF6',
+    icon: 'match_word',
+    tag: 'Letters into language',
     games: [
       { key: 'hangman',       title: 'Hangman',        venue: 'Lantern Alley',       blurb: 'Keep the lanterns lit.', load: () => import('../../practice/shells/Hangman') },
       { key: 'crossword',     title: 'Crossword',      venue: 'The Print Shop',      blurb: 'Across, down, fluent.', load: () => import('../../practice/shells/Crossword') },
@@ -69,6 +62,8 @@ const LINES = [
   {
     line: 'Quiz Line',
     color: '#F472B6',
+    icon: 'quiz',
+    tag: 'Think quick, answer quicker',
     games: [
       { key: 'multiplechoice', title: 'Multiple Choice', venue: 'The Bulletin Board', blurb: 'Four doors. One right answer.', load: () => import('../../practice/shells/MultipleChoice') },
       { key: 'quizshow',       title: 'Quiz Show',       venue: 'The Auditorium',     blurb: 'Lights, camera, vocabulary.', load: () => import('../../practice/shells/QuizShow') },
@@ -83,6 +78,8 @@ const LINES = [
   {
     line: 'City Line',
     color: '#34D399',
+    icon: 'location_city',
+    tag: 'Real skills, street level',
     games: [
       { key: 'flashcards',         title: 'Flashcards',          venue: 'The Reading Room',     blurb: 'Flip. Learn. Repeat.', load: () => import('../../practice/shells/Flashcards') },
       { key: 'matching',           title: 'Matching',            venue: 'The String Board',     blurb: 'Connect the dots between words.', load: () => import('../../practice/shells/Matching') },
@@ -116,13 +113,31 @@ const ARRIVING = [
 
 const ALL_GAMES = LINES.flatMap((l) => l.games.map((g) => ({ ...g, line: l.line, color: l.color })))
 
-// Featured cabinet candidates: arcade-feel shells that demo brilliantly cold.
+// Daily quick-pick candidates: arcade-feel shells that demo brilliantly cold.
 const FEATURED_KEYS = ['balloonpop', 'snake', 'whackamole', 'spinthewheel', 'openthebox', 'mazechase', 'quizshow', 'battleship']
 
-function StarField({ count = 70 }) {
+// The world game lives OUTSIDE the SPA as static files (own loader, own
+// three.js build) — a plain anchor, not a router Link.
+const WORLD_URL = '/play/'
+
+// Games are art-directed for dusk; the play overlay keeps the night palette
+// in both site themes.
+const DUSK = {
+  bg: 'rgba(5, 3, 9, 0.96)',
+  text: '#F5F0FA',
+  dim: 'rgba(228, 218, 244, 0.62)',
+  mute: 'rgba(228, 218, 244, 0.38)',
+  line: 'rgba(255,255,255,0.09)',
+  pink: '#D946EF',
+  amber: '#FFB347',
+  emerald: '#34D399',
+}
+
+// ── Atmosphere ─────────────────────────────────────────────────────────────
+function StarField({ count = 60 }) {
   const stars = useMemo(() =>
     Array.from({ length: count }, (_, i) => ({
-      left: ((i * 73) % 100), top: ((i * 37) % 62),
+      left: ((i * 73) % 100), top: ((i * 37) % 58),
       size: 1 + ((i * 13) % 10) / 7, delay: (i % 9) * 0.45,
     })), [count])
   return (
@@ -136,48 +151,157 @@ function StarField({ count = 70 }) {
   )
 }
 
-function SkylineBand() {
+function DayClouds() {
+  const clouds = useMemo(() => [
+    { top: '6%', w: 340, dur: 90, delay: 0, o: 0.5 },
+    { top: '16%', w: 220, dur: 120, delay: -40, o: 0.35 },
+    { top: '3%', w: 180, dur: 105, delay: -70, o: 0.4 },
+    { top: '24%', w: 280, dur: 140, delay: -20, o: 0.28 },
+  ], [])
   return (
-    <svg viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice" aria-hidden
-      style={{ position: 'absolute', bottom: 0, left: 0, right: 0, width: '100%', height: '52%',
-        opacity: 0.4, pointerEvents: 'none' }}>
-      <defs>
-        <linearGradient id="ghsky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#0A0618" stopOpacity="0"/>
-          <stop offset="50%" stopColor="#12082A" stopOpacity="0.5"/>
-          <stop offset="100%" stopColor="#1A0B3A" stopOpacity="1"/>
-        </linearGradient>
-      </defs>
-      <g fill="url(#ghsky)">
-        {[[0,280,80],[90,220,70],[170,260,60],[240,180,90],[340,240,65],[415,140,100],[525,200,75],
-          [610,260,55],[675,120,85],[770,220,70],[850,260,60],[920,150,95],[1025,210,70],[1105,250,58],
-          [1173,160,80],[1263,220,72],[1345,260,62],[1417,180,88],[1515,240,68],[1593,270,55],
-        ].map(([x, y, h], i) => <rect key={i} x={x} y={y} width={h * 0.75} height={400 - y} rx="1"/>)}
-      </g>
-      <g fill="#FBCFE8" opacity={0.35}>
-        {Array.from({ length: 60 }).map((_, i) => (
-          <rect key={i} x={80 + (i * 27) % 1440} y={180 + (i * 17) % 200} width="2" height="3"/>
-        ))}
-      </g>
-    </svg>
+    <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+      {clouds.map((c, i) => (
+        <span key={i} className="gh-cloud" style={{ top: c.top, width: c.w, height: c.w * 0.28,
+          opacity: c.o, animationDuration: `${c.dur}s`, animationDelay: `${c.delay}s` }}/>
+      ))}
+    </div>
   )
 }
 
-// Ambient attract video: renders only if /home/attract.webm exists (the
-// Hyperagent video directive delivers it). onError unmounts — zero risk.
-function AttractVideo() {
-  const [ok, setOk] = useState(true)
-  const reduced = usePrefersReducedMotion()
-  if (!ok || reduced) return null
+// ── The hero postcard: a living miniature of the open world ───────────────
+// Pure SVG + CSS (GDPR-safe, zero assets): layered skyline, a metro train
+// crossing the viaduct on a loop, twinkling windows at night, sun/moon and
+// weather that follow the site theme, and a passport-style BETA stamp.
+function CityPostcard({ mode, still }) {
+  const night = mode !== 'day'
+  const sky = night
+    ? ['#0B0620', '#221040', '#5B2A86', '#B14E9B']
+    : ['#7FB4E8', '#BFD9F2', '#F6CE8C', '#F49E5C']
+  const backSil = night ? '#2A1650' : '#B58FC9'
+  const frontSil = night ? '#150A30' : '#7E5CA8'
+  const winOn = night ? '#FFD9A0' : '#FFF4DC'
+  const trainBody = '#3FBF8F'
+  const windows = useMemo(() =>
+    Array.from({ length: 46 }, (_, i) => ({
+      x: 28 + (i * 61) % 650, y: 236 + ((i * 29) % 96),
+      d: (i % 7) * 0.7,
+    })), [])
   return (
-    <video aria-hidden muted loop autoPlay playsInline preload="metadata"
-      src="/home/attract.webm" poster="/home/attract-poster.jpg"
-      onError={() => setOk(false)}
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
-        objectFit: 'cover', opacity: 0.26, pointerEvents: 'none' }}/>
+    <div className={`gh-postcard ${still ? 'gh-still' : ''}`} aria-hidden>
+      <svg viewBox="0 0 720 430" style={{ display: 'block', width: '100%', height: 'auto' }}>
+        <defs>
+          <linearGradient id="ghp-sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={sky[0]}/>
+            <stop offset="46%" stopColor={sky[1]}/>
+            <stop offset="78%" stopColor={sky[2]}/>
+            <stop offset="100%" stopColor={sky[3]}/>
+          </linearGradient>
+          <radialGradient id="ghp-glow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0%" stopColor={night ? '#F8E9C8' : '#FFF7E0'} stopOpacity="0.95"/>
+            <stop offset="100%" stopColor={night ? '#F8E9C8' : '#FFD98A'} stopOpacity="0"/>
+          </radialGradient>
+          <clipPath id="ghp-clip"><rect x="0" y="0" width="720" height="430" rx="22"/></clipPath>
+        </defs>
+        <g clipPath="url(#ghp-clip)">
+          <rect width="720" height="430" fill="url(#ghp-sky)"/>
+
+          {/* celestial body */}
+          <g className="gh-float">
+            <circle cx="588" cy="86" r={night ? 30 : 42} fill="url(#ghp-glow)" opacity="0.9" transform="scale(2.2)" style={{ transformOrigin: '588px 86px' }}/>
+            {night
+              ? <path d="M 588 58 a 28 28 0 1 0 14 52 a 22 22 0 1 1 -14 -52" fill="#F6ECD4"/>
+              : <circle cx="588" cy="86" r="26" fill="#FFE9B8"/>}
+          </g>
+
+          {night && (
+            <g fill="#F9E8FF">
+              {Array.from({ length: 26 }).map((_, i) => (
+                <circle key={i} className="gh-twinkle" cx={(i * 137) % 700 + 10} cy={(i * 53) % 150 + 12}
+                  r={i % 3 ? 1.1 : 1.7} style={{ animationDelay: `${(i % 8) * 0.5}s` }}/>
+              ))}
+            </g>
+          )}
+          {!night && (
+            <g stroke="#5F5780" strokeWidth="2" fill="none" opacity="0.55">
+              <path d="M 120 92 q 8 -9 16 0 q 8 -9 16 0"/>
+              <path d="M 186 64 q 6 -7 12 0 q 6 -7 12 0"/>
+            </g>
+          )}
+
+          {/* skyline — back rank */}
+          <g fill={backSil} opacity="0.75">
+            {[[0,206,58],[52,178,44],[112,222,66],[168,150,52],[224,196,60],[300,132,72],[362,208,48],[420,168,58],[488,190,64],[540,140,54],[600,212,60],[656,178,64]
+            ].map(([x, y, w], i) => <rect key={i} x={x} y={y} width={w} height={430 - y} rx="2"/>)}
+            <circle cx="336" cy="120" r="9"/>
+            <rect x="332" y="120" width="8" height="30"/>
+          </g>
+
+          {/* skyline — front rank */}
+          <g fill={frontSil}>
+            {[[8,262,74],[92,232,58],[160,276,88],[258,244,70],[338,286,64],[412,238,84],[506,268,72],[588,246,92],[688,270,32]
+            ].map(([x, y, w], i) => <rect key={i} x={x} y={y} width={w} height={430 - y} rx="3"/>)}
+            {/* clock tower */}
+            <rect x="452" y="176" width="26" height="80" rx="2"/>
+            <polygon points="452,176 465,152 478,176"/>
+            <circle cx="465" cy="196" r="8" fill={night ? '#FFEBC4' : '#FDF3DE'} opacity="0.95"/>
+          </g>
+
+          {/* windows */}
+          <g fill={winOn} opacity={night ? 1 : 0.55}>
+            {windows.map((w, i) => (
+              <rect key={i} className={night ? 'gh-win' : undefined} x={w.x} y={w.y} width="4.5" height="6"
+                style={night ? { animationDelay: `${w.d}s` } : undefined}/>
+            ))}
+          </g>
+
+          {/* viaduct */}
+          <g>
+            <rect x="0" y="352" width="720" height="18" fill={frontSil}/>
+            <g fill={night ? '#0E0724' : '#6A4B94'}>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <path key={i} d={`M ${i * 62} 430 v -48 a 24 24 0 0 1 48 0 v 48 z`}/>
+              ))}
+            </g>
+          </g>
+
+          {/* the metro train, forever bound for the next district */}
+          <g className="gh-train">
+            <rect x="-6" y="330" width="190" height="26" rx="12" fill={trainBody}/>
+            <rect x="-6" y="330" width="190" height="10" rx="5" fill="#FFFFFF" opacity="0.28"/>
+            {[14, 46, 78, 110, 142].map((x, i) => (
+              <rect key={i} x={x} y="337" width="18" height="11" rx="3" fill={night ? '#FFF3D0' : '#F0FBFF'} opacity="0.95"/>
+            ))}
+            <circle cx="182" cy="343" r="5" fill="#FFE9A8"/>
+            {night && <ellipse cx="204" cy="343" rx="20" ry="7" fill="#FFE9A8" opacity="0.35"/>}
+          </g>
+
+          {/* lamppost + glow */}
+          <g>
+            <rect x="656" y="300" width="4" height="54" fill={frontSil}/>
+            <circle cx="658" cy="296" r="6" fill={winOn}/>
+            {night && <circle cx="658" cy="296" r="20" fill="url(#ghp-glow)" opacity="0.7"/>}
+          </g>
+        </g>
+
+        {/* postcard frame */}
+        <rect x="1.5" y="1.5" width="717" height="427" rx="21" fill="none"
+          stroke={night ? 'rgba(255,255,255,0.22)' : 'rgba(16,10,40,0.18)'} strokeWidth="3"/>
+      </svg>
+
+      {/* passport-style beta stamp */}
+      <div className="gh-stamp" style={{ borderColor: night ? 'rgba(255,217,160,0.8)' : 'rgba(124,45,18,0.55)',
+        color: night ? '#FFD9A0' : '#7C2D12' }}>
+        OPEN WORLD<br/>· BETA ·
+      </div>
+      <div className="gh-postcard-caption">
+        <span className="gh-live-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399', display: 'inline-block' }}/>
+        &nbsp;44 districts · 3 metro lines · live now
+      </div>
+    </div>
   )
 }
 
+// ── Error boundary around lazy-loaded shells ───────────────────────────────
 class ShellBoundary extends Component {
   constructor(props) { super(props); this.state = { broken: false } }
   static getDerivedStateFromError() { return { broken: true } }
@@ -185,7 +309,7 @@ class ShellBoundary extends Component {
   render() {
     if (this.state.broken) {
       return (
-        <div style={{ padding: 48, textAlign: 'center', color: C.dim, fontFamily: FONT.body }}>
+        <div style={{ padding: 48, textAlign: 'center', color: DUSK.dim, fontFamily: FONT.body }}>
           <div style={{ fontSize: 34, marginBottom: 12 }}>🛠️</div>
           This station is under maintenance — pick another game.
         </div>
@@ -195,7 +319,7 @@ class ShellBoundary extends Component {
   }
 }
 
-// ── Full-screen play overlay ───────────────────────────────────────────────
+// ── Full-screen play overlay (kept from v1 — games are dusk-native) ────────
 function PlayOverlay({ game, onClose }) {
   const [LazyShell] = useState(() => lazy(game.is3d ? game.load3d : game.load))
   const [doneOnce, setDoneOnce] = useState(false)
@@ -210,26 +334,26 @@ function PlayOverlay({ game, onClose }) {
   return (
     <div role="dialog" aria-modal="true" aria-label={`Playing ${game.title}`}
       style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column',
-        background: 'rgba(5, 3, 9, 0.96)', backdropFilter: 'blur(14px)' }}>
+        background: DUSK.bg, backdropFilter: 'blur(14px)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 20px', borderBottom: `1px solid ${C.line}` }}>
+        padding: '14px 20px', borderBottom: `1px solid ${DUSK.line}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: game.color || C.pink, flex: 'none' }}/>
-          <div style={{ fontFamily: FONT.display, fontWeight: 700, color: C.text, fontSize: 16,
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: game.color || DUSK.pink, flex: 'none' }}/>
+          <div style={{ fontFamily: FONT.display, fontWeight: 700, color: DUSK.text, fontSize: 16,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {game.title}
-            <span style={{ color: C.mute, fontWeight: 400, fontSize: 12, marginLeft: 10 }}>{game.venue || game.district}</span>
+            <span style={{ color: DUSK.mute, fontWeight: 400, fontSize: 12, marginLeft: 10 }}>{game.venue || game.district}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button type="button" onClick={() => setShowCta(true)}
             aria-label="Fullscreen (free account)"
-            style={{ background: 'transparent', border: `1px solid ${C.line}`, color: C.dim,
+            style={{ background: 'transparent', border: `1px solid ${DUSK.line}`, color: DUSK.dim,
               borderRadius: 8, padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>fullscreen</span>
           </button>
           <button type="button" onClick={onClose} aria-label="Close game"
-            style={{ background: 'transparent', border: `1px solid ${C.line}`, color: C.dim,
+            style={{ background: 'transparent', border: `1px solid ${DUSK.line}`, color: DUSK.dim,
               borderRadius: 8, padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
           </button>
@@ -240,7 +364,7 @@ function PlayOverlay({ game, onClose }) {
         <ShellBoundary>
           <Suspense fallback={
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%',
-              color: C.dim, fontFamily: FONT.mono, fontSize: 13, letterSpacing: '0.2em' }}>
+              color: DUSK.dim, fontFamily: FONT.mono, fontSize: 13, letterSpacing: '0.2em' }}>
               NEXT TRAIN APPROACHING…
             </div>
           }>
@@ -256,10 +380,10 @@ function PlayOverlay({ game, onClose }) {
               border: '1px solid rgba(217,70,239,0.35)', borderRadius: 20, padding: '36px 32px',
               boxShadow: '0 30px 80px -20px rgba(0,0,0,0.7), 0 0 60px -20px rgba(217,70,239,0.3)' }}>
               <div style={{ fontSize: 36, marginBottom: 10 }}>🦉</div>
-              <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 24, color: C.text, marginBottom: 10 }}>
+              <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 24, color: DUSK.text, marginBottom: 10 }}>
                 {doneOnce ? 'Nice round.' : 'Go full screen?'}
               </div>
-              <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.6, margin: '0 0 22px' }}>
+              <p style={{ color: DUSK.dim, fontSize: 14, lineHeight: 1.6, margin: '0 0 22px' }}>
                 {doneOnce
                   ? 'Create a free account to save your progress, build a streak, and unlock every district of the city.'
                   : 'Full-screen play comes with a free account — along with saved progress and streaks.'}
@@ -268,7 +392,7 @@ function PlayOverlay({ game, onClose }) {
                 <Btn variant="primary" size="lg" full trailingIcon="arrow_forward">Create free account</Btn>
               </Link>
               <button type="button" onClick={() => setShowCta(false)}
-                style={{ marginTop: 14, background: 'transparent', border: 'none', color: C.mute,
+                style={{ marginTop: 14, background: 'transparent', border: 'none', color: DUSK.mute,
                   fontSize: 12, cursor: 'pointer', letterSpacing: '0.06em' }}>
                 Keep playing
               </button>
@@ -280,84 +404,94 @@ function PlayOverlay({ game, onClose }) {
   )
 }
 
-// ── Departures board ───────────────────────────────────────────────────────
-function DeparturesBoard({ onPlay }) {
-  const playable3d = new Set(game3dRegistry.map((e) => e.shellKey))
-  const rows = [
-    ...game3dRegistry.filter((e) => !e.shellKey.startsWith('world-')).map((e) => ({ key: `3d-${e.shellKey}`, title: e.title, dest: e.district,
-      status: 'NOW PLAYING · 3D', live: true, game: { ...e, title: e.title, is3d: true, load3d: e.load, color: C.amber } })),
-    ...ARRIVING.filter((a) => !playable3d.has(a.key)).map((a) => ({
-      key: `soon-${a.key}`, title: a.title, dest: a.district, status: 'ARRIVING SOON · 3D', live: false })),
-    ...ALL_GAMES.slice(0, 10).map((g) => ({ key: g.key, title: g.title, dest: g.venue, status: 'NOW PLAYING', live: true, game: g })),
-  ]
+// ── Small parts ────────────────────────────────────────────────────────────
+function BetaPill({ T }) {
   return (
-    <div style={{ borderRadius: 18, overflow: 'hidden', border: `1px solid ${C.line}`,
-      background: 'linear-gradient(180deg, rgba(14,9,30,0.92) 0%, rgba(8,5,18,0.95) 100%)',
-      boxShadow: '0 30px 80px -30px rgba(0,0,0,0.8)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 22px', borderBottom: `1px solid ${C.line}`, background: 'rgba(217,70,239,0.05)' }}>
-        <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: '0.3em', color: C.amber }}>
-          DEPARTURES — THE FLUENT CITY
-        </div>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FONT.mono,
-          fontSize: 10, letterSpacing: '0.2em', color: C.emerald }}>
-          <span className="gh-live-dot" style={{ width: 7, height: 7, borderRadius: '50%', background: C.emerald }}/>
-          ALL LINES RUNNING
-        </div>
-      </div>
-      <div role="list">
-        {rows.map((r, i) => (
-          <div role="listitem" key={r.key} className="gh-board-row"
-            onClick={r.live && r.game ? () => onPlay(r.game) : undefined}
-            onKeyDown={r.live && r.game ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPlay(r.game) } } : undefined}
-            tabIndex={r.live && r.game ? 0 : -1}
-            aria-label={r.live ? `Play ${r.title}` : `${r.title} — arriving soon`}
-            style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1fr) auto',
-              gap: 12, alignItems: 'center', padding: '13px 22px',
-              borderBottom: i < rows.length - 1 ? `1px solid rgba(255,255,255,0.05)` : 'none',
-              cursor: r.live && r.game ? 'pointer' : 'default', opacity: r.live ? 1 : 0.55 }}>
-            <div className="gh-flap" style={{ fontFamily: FONT.mono, fontSize: 14, fontWeight: 700,
-              color: r.live ? C.text : C.dim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {r.title}
-            </div>
-            <div style={{ fontFamily: FONT.mono, fontSize: 12, color: C.mute,
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.dest}</div>
-            <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: '0.14em',
-              color: r.live ? C.emerald : C.amber, whiteSpace: 'nowrap' }}>{r.status}</div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <span className="gh-beta-pill" style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.35)' }}>
+      BETA
+    </span>
   )
 }
 
-// ── Featured cabinet (instantly playable hero game) ────────────────────────
-function FeaturedCabinet({ game, onPlay }) {
+function ThemeToggle({ mode, setMode, T }) {
+  const isDay = mode === 'day'
   return (
-    <div className="gh-cab" style={{ position: 'relative', borderRadius: 24,
-      border: '1px solid rgba(217,70,239,0.3)', overflow: 'hidden',
-      background: 'linear-gradient(180deg, rgba(30,20,60,0.6) 0%, rgba(12,7,28,0.85) 100%)',
-      boxShadow: '0 40px 100px -30px rgba(217,70,239,0.35), 0 30px 60px -30px rgba(0,0,0,0.8)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 18px', borderBottom: `1px solid ${C.line}` }}>
-        <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: '0.28em', color: C.amber }}>
-          ★ TONIGHT&apos;S FEATURE
-        </div>
-        <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: '0.18em', color: C.mute }}>
-          FREE PLAY · NO COIN NEEDED
-        </div>
+    <button type="button" className="gh-theme-btn"
+      aria-label={isDay ? 'Switch to night mode' : 'Switch to day mode'}
+      onClick={() => setMode(isDay ? 'night' : 'day')}
+      style={{ border: `1px solid ${T.border}`, background: T.surface, color: isDay ? T.amber : T.brandInk }}>
+      <span className="material-symbols-outlined" style={{ fontSize: 19 }}>
+        {isDay ? 'dark_mode' : 'light_mode'}
+      </span>
+    </button>
+  )
+}
+
+function GameCard({ g, color, T, night, onPlay, index, soon }) {
+  return (
+    <button type="button" className="gh-card" disabled={soon}
+      onClick={soon ? undefined : () => onPlay(g)}
+      aria-label={soon ? `${g.title} — arriving soon` : `Play ${g.title}`}
+      style={{ textAlign: 'left', cursor: soon ? 'default' : 'pointer', borderRadius: 16,
+        border: `1px solid ${T.border}`, padding: '18px 18px 16px',
+        background: night
+          ? 'linear-gradient(180deg, rgba(30,20,60,0.34) 0%, rgba(12,7,28,0.5) 100%)'
+          : 'linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(245,242,252,0.9) 100%)',
+        color: T.text, fontFamily: FONT.body, opacity: soon ? 0.55 : 1,
+        animationDelay: `${Math.min(index * 45, 450)}ms`, '--gh-card-glow': `${color}44` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <span aria-hidden style={{ width: 14, height: 14, borderRadius: '50%',
+          border: `3px solid ${color}`, background: 'transparent', flex: 'none' }}/>
+        <span style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 16 }}>{g.title}</span>
       </div>
-      <div style={{ padding: '26px 24px 24px' }}>
-        <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 30, color: C.text, lineHeight: 1.05 }}>
-          {game.title}
-        </div>
-        <div style={{ marginTop: 6, fontSize: 13, color: C.dim }}>{game.venue} · {game.line}</div>
-        <p style={{ margin: '14px 0 22px', fontSize: 14, color: C.dim, lineHeight: 1.55 }}>{game.blurb}</p>
-        <Btn variant="primary" size="lg" full trailingIcon="play_arrow" onClick={() => onPlay(game)}>
-          Play now — it&apos;s instant
-        </Btn>
-        <div style={{ marginTop: 12, textAlign: 'center', fontSize: 11, color: C.mute, letterSpacing: '0.08em' }}>
-          No download. No sign-up to try.
+      <div style={{ fontSize: 11, color: T.textMute, letterSpacing: '0.06em', marginBottom: 8 }}>
+        {g.venue || g.district}
+      </div>
+      <div style={{ fontSize: 12.5, color: T.textDim, lineHeight: 1.5, minHeight: 36 }}>
+        {g.blurb || (soon ? 'A new 3D district under construction.' : 'A Fluent City 3D district.')}
+      </div>
+      <div className="gh-card-play" style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center',
+        gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
+        color: soon ? T.textMute : color }}>
+        {soon ? 'Arriving soon' : 'Play'}
+        {!soon && <span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_forward</span>}
+      </div>
+    </button>
+  )
+}
+
+// One expandable metro line of the practice catalog.
+function LineSection({ line, T, night, open, onToggle, onPlay, count, subtitle, children }) {
+  return (
+    <div className="gh-acc" data-open={open}
+      style={{ border: `1px solid ${open ? T.borderHi : T.border}`, borderRadius: 20,
+        background: night ? 'rgba(14,9,30,0.55)' : 'rgba(255,255,255,0.7)',
+        boxShadow: open ? T.shadowSm : 'none' }}>
+      <button type="button" className="gh-acc-head" onClick={onToggle} aria-expanded={open}
+        style={{ color: T.text }}>
+        <span className="gh-acc-badge" style={{ background: line.color }} aria-hidden>
+          <span className="material-symbols-outlined" style={{ fontSize: 19, color: '#fff' }}>{line.icon}</span>
+        </span>
+        <span style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
+          <span style={{ display: 'block', fontFamily: FONT.display, fontWeight: 700, fontSize: 18 }}>
+            {line.line}
+            <span style={{ marginLeft: 10, fontSize: 11, fontWeight: 600, letterSpacing: '0.14em',
+              color: T.textMute }}>{count}</span>
+          </span>
+          <span style={{ display: 'block', fontSize: 12.5, color: T.textDim, marginTop: 2,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {subtitle}
+          </span>
+        </span>
+        <span className="material-symbols-outlined gh-acc-chev" aria-hidden
+          style={{ color: T.textDim, fontSize: 24 }}>expand_more</span>
+      </button>
+      <div className="gh-acc-body">
+        <div className="gh-acc-inner">
+          <div style={{ display: 'grid', gap: 14, padding: '4px 18px 20px',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(225px, 1fr))' }}>
+            {children}
+          </div>
         </div>
       </div>
     </div>
@@ -365,213 +499,291 @@ function FeaturedCabinet({ game, onPlay }) {
 }
 
 export default function GameHome() {
+  const { T, mode, setMode } = useV3Theme()
+  const night = mode !== 'day'
+  const reduced = usePrefersReducedMotion()
   const [playing, setPlaying] = useState(null)
-  const arcadeRef = useRef(null)
-  const featured = useMemo(() => {
+  const [openLines, setOpenLines] = useState(() => new Set([LINES[0].line]))
+  const practiceRef = useRef(null)
+
+  const quickPick = useMemo(() => {
     const day = Math.floor(Date.now() / 86400000)
     const key = FEATURED_KEYS[day % FEATURED_KEYS.length]
     return ALL_GAMES.find((g) => g.key === key) || ALL_GAMES[0]
   }, [])
-  const tickerNames = useMemo(() => {
-    const names = [...ARRIVING.map((a) => `${a.title} — soon`), ...ALL_GAMES.map((g) => g.title)]
-    return [...names, ...names] // doubled for a seamless -50% loop
+
+  const playable3d = useMemo(() =>
+    game3dRegistry.filter((e) => !e.shellKey.startsWith('world-'))
+      .map((e) => ({ ...e, is3d: true, load3d: e.load, color: DUSK.amber })), [])
+  const arrivingSoon = useMemo(() => {
+    const live = new Set(game3dRegistry.map((e) => e.shellKey))
+    return ARRIVING.filter((a) => !live.has(a.key))
   }, [])
 
+  const tickerNames = useMemo(() => {
+    const names = ['EnglishMetro World — OPEN BETA', ...playable3d.map((e) => `${e.title} — 3D`),
+      ...ALL_GAMES.map((g) => g.title)]
+    return [...names, ...names] // doubled for a seamless -50% loop
+  }, [playable3d])
+
+  const toggleLine = (name) => setOpenLines((prev) => {
+    const next = new Set(prev)
+    if (next.has(name)) next.delete(name); else next.add(name)
+    return next
+  })
+  const scrollToPractice = () => practiceRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', background: C.bg, color: C.text,
-      fontFamily: FONT.body, overflowX: 'hidden' }}>
+    <div className={reduced ? 'gh-still' : ''} style={{ position: 'relative', minHeight: '100vh',
+      background: T.pageBg, color: T.text, fontFamily: FONT.body, overflowX: 'hidden',
+      transition: 'background 500ms ease, color 500ms ease' }}>
       {/* Atmosphere */}
-      <div aria-hidden style={{ position: 'absolute', inset: 0,
-        background: `radial-gradient(ellipse 140% 80% at 50% 120%, rgba(139,92,246,0.28), transparent 60%),
-          radial-gradient(ellipse 80% 60% at 80% 10%, rgba(217,70,239,0.16), transparent 60%),
-          linear-gradient(180deg, #030208 0%, #0A0618 45%, #120929 100%)` }}/>
-      <AttractVideo/>
-      <StarField/>
-      <SkylineBand/>
+      <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: night ? G.aurora : G.auroraDay, transition: 'opacity 500ms ease' }}/>
+      {night ? <StarField/> : <DayClouds/>}
 
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
         {/* ── Header ── */}
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '22px 0' }}>
+          padding: '22px 0', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Skyline size={30}/>
             <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 19, letterSpacing: '-0.02em' }}>
               English <span style={{ background: G.brand, WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Metro</span>
-              <span style={{ color: C.ember }}>.</span>
+              <span style={{ color: T.ember }}>.</span>
             </div>
           </div>
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Link to="/city" style={{ textDecoration: 'none' }}>
-              <Btn variant="ghost" size="md" icon="travel_explore">Enter the City</Btn>
-            </Link>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <Link to="/lessons" style={{ textDecoration: 'none' }}>
               <Btn variant="ghost" size="md">Lessons</Btn>
             </Link>
             <Link to="/login" style={{ textDecoration: 'none' }}>
               <Btn variant="ghost" size="md">Sign in</Btn>
             </Link>
-            <Link to="/login" style={{ textDecoration: 'none' }}>
-              <Btn variant="primary" size="md" trailingIcon="arrow_forward">Play free</Btn>
-            </Link>
+            <ThemeToggle mode={mode} setMode={setMode} T={T}/>
+            <a href={WORLD_URL} style={{ textDecoration: 'none' }}>
+              <Btn variant="primary" size="md" trailingIcon="play_arrow"
+                style={{ whiteSpace: 'nowrap' }}>Play the World</Btn>
+            </a>
           </nav>
         </header>
 
-        {/* ── Hero ── */}
-        <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 0.85fr)',
-          gap: 56, alignItems: 'center', padding: '54px 0 70px' }}
-          className="gh-hero-grid">
+        {/* ── Hero: the open world ── */}
+        <section className="gh-hero-grid" style={{ display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1.02fr) minmax(0, 0.98fr)',
+          gap: 52, alignItems: 'center', padding: '46px 0 64px' }}>
           <div style={{ minWidth: 0 }}>
-            <div className="gh-rise gh-rise-1" style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 700,
-              letterSpacing: '0.3em', textTransform: 'uppercase', color: C.emerald,
-              marginBottom: 22, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <span className="gh-live-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: C.emerald }}/>
-              The Fluent City · open all night
+            <div className="gh-rise gh-rise-1" style={{ display: 'inline-flex', alignItems: 'center', gap: 10,
+              marginBottom: 20 }}>
+              <BetaPill T={T}/>
+              <span style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+                textTransform: 'uppercase', color: T.emerald }}>
+                open world · now boarding
+              </span>
             </div>
             <h1 className="gh-rise gh-rise-2" style={{ fontFamily: FONT.display, fontWeight: 700,
-              fontSize: 'clamp(44px, 6.5vw, 84px)', lineHeight: 0.98, letterSpacing: '-0.04em', margin: 0 }}>
-              English is a city.
+              fontSize: 'clamp(42px, 6.4vw, 82px)', lineHeight: 0.98, letterSpacing: '-0.04em', margin: 0 }}>
+              One city.
               <br/>
               <span style={{ background: G.brand, WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Play your way in</span>
-              <span style={{ color: C.ember, textShadow: `0 0 20px ${C.ember}aa` }}>.</span>
+                WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Every English</span>
+              <span style={{ color: T.ember }}>.</span>
             </h1>
-            <p className="gh-rise gh-rise-3" style={{ marginTop: 26, fontSize: 'clamp(15px, 1.6vw, 18px)',
-              color: C.dim, lineHeight: 1.6, maxWidth: 520 }}>
-              Dozens of fast, beautiful word games set in a neon-lit London.
-              Press play, learn real English, and watch new 3D districts open
-              every week. Free to start — right now, right here.
+            <p className="gh-rise gh-rise-3" style={{ marginTop: 24, fontSize: 'clamp(15px, 1.6vw, 18px)',
+              color: T.textDim, lineHeight: 1.65, maxWidth: 540 }}>
+              Walk into <b style={{ color: T.textSoft }}>EnglishMetro World</b> — a living, open city
+              with 44 dialect districts on three metro lines. Talk to the locals, take their
+              grammar challenges, answer with your voice, and learn the English people
+              actually speak. Free in your browser — no download.
             </p>
-            <div className="gh-rise gh-rise-4" style={{ marginTop: 32, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-              <Btn variant="primary" size="lg" trailingIcon="sports_esports"
-                onClick={() => arcadeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-                Enter the arcade
+            <div className="gh-rise gh-rise-4" style={{ marginTop: 30, display: 'flex', gap: 14,
+              flexWrap: 'wrap', alignItems: 'center' }}>
+              <a href={WORLD_URL} style={{ textDecoration: 'none' }}>
+                <Btn variant="primary" size="lg" trailingIcon="arrow_forward"
+                  style={{ fontSize: 15, padding: '18px 32px' }}>
+                  ▶&nbsp; Play the World — free beta
+                </Btn>
+              </a>
+              <Btn variant="secondary" size="lg" trailingIcon="expand_more" onClick={scrollToPractice}>
+                Quick practice instead
               </Btn>
-              <Link to="/login" style={{ textDecoration: 'none' }}>
-                <Btn variant="ghost" size="lg">Create free account</Btn>
-              </Link>
+            </div>
+            <div className="gh-rise gh-rise-4" style={{ marginTop: 22, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+              {['44 dialect districts', 'voice answers', 'quests & XP', 'runs on any laptop'].map((f) => (
+                <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 7,
+                  fontSize: 12, color: T.textDim, letterSpacing: '0.04em' }}>
+                  <span className="material-symbols-outlined" aria-hidden
+                    style={{ fontSize: 15, color: T.emerald }}>check_circle</span>
+                  {f}
+                </span>
+              ))}
             </div>
           </div>
+
           <div className="gh-rise gh-rise-3" style={{ minWidth: 0 }}>
-            <FeaturedCabinet game={featured} onPlay={setPlaying}/>
+            <a href={WORLD_URL} aria-label="Play EnglishMetro World — open beta"
+              style={{ textDecoration: 'none', display: 'block' }}>
+              <div className="gh-hero-frame">
+                <CityPostcard mode={mode} still={reduced}/>
+                <div className="gh-hero-cta" style={{ fontFamily: FONT.display }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>play_arrow</span>
+                  Step into the city
+                </div>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        {/* ── Two ways in ── */}
+        <section style={{ paddingBottom: 58 }}>
+          <div className="gh-doors" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+            <a href={WORLD_URL} className="gh-door" style={{ textDecoration: 'none',
+              border: `1px solid ${T.border}`, color: T.text,
+              background: night
+                ? 'linear-gradient(135deg, rgba(139,92,246,0.16) 0%, rgba(12,7,28,0.65) 100%)'
+                : 'linear-gradient(135deg, rgba(139,92,246,0.10) 0%, rgba(255,255,255,0.9) 100%)' }}>
+              <div className="gh-door-ribbon">BETA</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <span className="material-symbols-outlined" aria-hidden
+                  style={{ fontSize: 26, color: T.violet }}>public</span>
+                <span style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 20 }}>The Open World</span>
+              </div>
+              <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: T.textDim }}>
+                The full adventure. Explore the city as Wren, ride the metro between
+                dialect districts, help the locals and level up your English district by district.
+              </p>
+              <span className="gh-door-go" style={{ color: T.violet }}>
+                Start exploring <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_forward</span>
+              </span>
+            </a>
+            <button type="button" className="gh-door" onClick={scrollToPractice}
+              style={{ textAlign: 'left', cursor: 'pointer', border: `1px solid ${T.border}`, color: T.text,
+                background: night
+                  ? 'linear-gradient(135deg, rgba(52,211,153,0.10) 0%, rgba(12,7,28,0.65) 100%)'
+                  : 'linear-gradient(135deg, rgba(52,211,153,0.10) 0%, rgba(255,255,255,0.9) 100%)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <span className="material-symbols-outlined" aria-hidden
+                  style={{ fontSize: 26, color: T.emerald }}>bolt</span>
+                <span style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 20 }}>Quick Practice</span>
+              </div>
+              <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: T.textDim }}>
+                {ALL_GAMES.length} instant games across four metro lines — vocabulary, grammar,
+                listening, speaking. Two minutes or twenty, zero setup.
+              </p>
+              <span className="gh-door-go" style={{ color: T.emerald }}>
+                Tonight&apos;s pick: {quickPick.title} <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_forward</span>
+              </span>
+            </button>
           </div>
         </section>
 
         {/* ── Ticker ── */}
-        <div className="gh-ticker" style={{ overflow: 'hidden', borderTop: `1px solid ${C.line}`,
-          borderBottom: `1px solid ${C.line}`, padding: '12px 0', marginBottom: 64 }}>
+        <div className="gh-ticker" style={{ overflow: 'hidden', borderTop: `1px solid ${T.border}`,
+          borderBottom: `1px solid ${T.border}`, padding: '12px 0', marginBottom: 58 }}>
           <div className="gh-ticker-track">
             {tickerNames.map((n, i) => (
               <span key={i} style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: '0.18em',
-                textTransform: 'uppercase', color: i % 2 ? C.mute : C.dim, padding: '0 28px' }}>
-                {n} <span style={{ color: C.pink, marginLeft: 28 }}>●</span>
+                textTransform: 'uppercase', color: i % 2 ? T.textMute : T.textDim, padding: '0 28px' }}>
+                {n} <span style={{ color: T.fuchsia, marginLeft: 28 }}>●</span>
               </span>
             ))}
           </div>
         </div>
 
-        {/* ── Departures board ── */}
-        <section style={{ marginBottom: 80 }}>
+        {/* ── Practice catalog: expandable metro lines ── */}
+        <section ref={practiceRef} style={{ scrollMarginTop: 24, paddingBottom: 36 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-            flexWrap: 'wrap', gap: 12, marginBottom: 22 }}>
+            flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: 0 }}>
-              Now departing
+              Quick practice, four lines
             </h2>
-            <div style={{ fontSize: 12, color: C.mute, letterSpacing: '0.08em' }}>
-              New 3D games land here as they ship — no app updates, ever.
+            <div style={{ fontSize: 12, color: T.textMute, letterSpacing: '0.08em' }}>
+              Tap a line to open it · every game plays instantly
             </div>
           </div>
-          <DeparturesBoard onPlay={setPlaying}/>
-        </section>
-
-        {/* ── Stations grid ── */}
-        <section ref={arcadeRef} style={{ scrollMarginTop: 24, paddingBottom: 30 }}>
-          <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
-            letterSpacing: '-0.03em', margin: '0 0 8px' }}>
-            Every station, every game
-          </h2>
-          <p style={{ color: C.dim, fontSize: 14, margin: '0 0 36px', maxWidth: 560 }}>
-            Four lines. {ALL_GAMES.length} games tonight, and the 3D districts arriving with every update.
-            Tap any station to play instantly.
+          <p style={{ color: T.textDim, fontSize: 14, margin: '0 0 26px', maxWidth: 560 }}>
+            The whole catalog, folded neatly. Pick a line, pick a station, play —
+            no account needed for a first ride.
           </p>
 
-          {LINES.map((line) => (
-            <div key={line.line} style={{ marginBottom: 44 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-                <span style={{ width: 26, height: 8, borderRadius: 999, background: line.color }}/>
-                <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: '0.3em',
-                  textTransform: 'uppercase', color: C.dim }}>{line.line}</div>
-                <div style={{ flex: 1, height: 1, background: C.line }}/>
-              </div>
-              <div style={{ display: 'grid', gap: 14,
-                gridTemplateColumns: 'repeat(auto-fill, minmax(225px, 1fr))' }}>
-                {line.games.map((g) => (
-                  <button key={g.key} type="button" className="gh-card"
-                    onClick={() => setPlaying({ ...g, color: line.color })}
-                    aria-label={`Play ${g.title}`}
-                    style={{ textAlign: 'left', cursor: 'pointer', borderRadius: 16,
-                      border: `1px solid ${C.line}`, padding: '18px 18px 16px',
-                      background: 'linear-gradient(180deg, rgba(30,20,60,0.34) 0%, rgba(12,7,28,0.5) 100%)',
-                      color: C.text, fontFamily: FONT.body }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                      <span aria-hidden style={{ width: 14, height: 14, borderRadius: '50%',
-                        border: `3px solid ${line.color}`, background: 'transparent', flex: 'none' }}/>
-                      <span style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 16 }}>{g.title}</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: C.mute, letterSpacing: '0.06em', marginBottom: 8 }}>{g.venue}</div>
-                    <div style={{ fontSize: 12.5, color: C.dim, lineHeight: 1.5, minHeight: 36 }}>{g.blurb}</div>
-                    <div className="gh-card-play" style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center',
-                      gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
-                      color: line.color }}>
-                      Play <span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_forward</span>
-                    </div>
-                  </button>
+          <div style={{ display: 'grid', gap: 14 }}>
+            {LINES.map((line) => (
+              <LineSection key={line.line} line={line} T={T} night={night}
+                open={openLines.has(line.line)} onToggle={() => toggleLine(line.line)}
+                count={`${line.games.length} games`}
+                subtitle={`${line.tag} — ${line.games.slice(0, 3).map((g) => g.title).join(', ')}…`}>
+                {line.games.map((g, i) => (
+                  <GameCard key={g.key} g={g} color={line.color} T={T} night={night} index={i}
+                    onPlay={(game) => setPlaying({ ...game, color: line.color })}/>
                 ))}
-              </div>
-            </div>
-          ))}
+              </LineSection>
+            ))}
+
+            {/* 3D districts from the Fluent City arcade */}
+            <LineSection
+              line={{ line: '3D Districts', color: '#FFB347', icon: 'view_in_ar' }}
+              T={T} night={night}
+              open={openLines.has('3D Districts')} onToggle={() => toggleLine('3D Districts')}
+              count={`${playable3d.length} live · ${arrivingSoon.length} arriving`}
+              subtitle="The Fluent City in 3D — new districts land here automatically with every update">
+              {playable3d.map((e, i) => (
+                <GameCard key={`3d-${e.shellKey}`} g={{ ...e, venue: e.district }} color="#FFB347"
+                  T={T} night={night} index={i} onPlay={(game) => setPlaying(game)}/>
+              ))}
+              {arrivingSoon.map((a, i) => (
+                <GameCard key={`soon-${a.key}`} g={{ title: a.title, district: a.district }} color="#FFB347"
+                  T={T} night={night} index={playable3d.length + i} soon/>
+              ))}
+            </LineSection>
+          </div>
         </section>
 
         {/* ── Bottom CTA ── */}
         <section style={{ margin: '40px 0 90px', textAlign: 'center', padding: '64px 28px',
-          borderRadius: 26, border: '1px solid rgba(217,70,239,0.25)',
-          background: `radial-gradient(ellipse 90% 130% at 50% 130%, rgba(217,70,239,0.16), transparent 65%),
-            linear-gradient(180deg, rgba(30,20,60,0.5) 0%, rgba(12,7,28,0.7) 100%)` }}>
+          borderRadius: 26, border: `1px solid ${T.borderHi}`, position: 'relative', overflow: 'hidden',
+          background: night
+            ? `radial-gradient(ellipse 90% 130% at 50% 130%, rgba(217,70,239,0.16), transparent 65%),
+               linear-gradient(180deg, rgba(30,20,60,0.5) 0%, rgba(12,7,28,0.7) 100%)`
+            : `radial-gradient(ellipse 90% 130% at 50% 130%, rgba(217,70,239,0.10), transparent 65%),
+               linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(245,242,252,0.95) 100%)` }}>
           <div style={{ fontSize: 38, marginBottom: 14 }}>🦉</div>
           <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(28px, 4vw, 46px)',
             letterSpacing: '-0.03em', margin: '0 0 12px' }}>
             The city remembers its players.
           </h2>
-          <p style={{ color: C.dim, fontSize: 15, lineHeight: 1.6, maxWidth: 480, margin: '0 auto 28px' }}>
+          <p style={{ color: T.textDim, fontSize: 15, lineHeight: 1.6, maxWidth: 480, margin: '0 auto 28px' }}>
             A free account keeps your streaks, tracks every word you master, and
-            opens full-screen play across all districts.
+            opens full-screen play across all districts — in the world and the arcade.
           </p>
-          <Link to="/login" style={{ textDecoration: 'none' }}>
-            <Btn variant="primary" size="lg" trailingIcon="arrow_forward">Start playing free</Btn>
-          </Link>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to="/login" style={{ textDecoration: 'none' }}>
+              <Btn variant="primary" size="lg" trailingIcon="arrow_forward">Start playing free</Btn>
+            </Link>
+            <a href={WORLD_URL} style={{ textDecoration: 'none' }}>
+              <Btn variant="secondary" size="lg" trailingIcon="public">Try the beta world</Btn>
+            </a>
+          </div>
         </section>
 
         {/* ── Footer ── */}
         <footer style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexWrap: 'wrap', gap: 14, padding: '0 0 34px', fontSize: 11, color: C.mute }}>
+          flexWrap: 'wrap', gap: 14, padding: '0 0 34px', fontSize: 11, color: T.textMute }}>
           <div style={{ letterSpacing: '0.24em', textTransform: 'uppercase' }}>
             © {new Date().getFullYear()} englishmetro.com — Warszawa → The World
           </div>
           <div style={{ display: 'flex', gap: 16 }}>
-            <Link to="/lessons" style={{ color: C.mute, textDecoration: 'none' }}>Lessons</Link>
-            <Link to="/privacy" style={{ color: C.mute, textDecoration: 'none' }}>Privacy</Link>
-            <Link to="/cookies" style={{ color: C.mute, textDecoration: 'none' }}>Cookies</Link>
-            <Link to="/terms" style={{ color: C.mute, textDecoration: 'none' }}>Terms</Link>
-            <a href="mailto:hello@englishmetro.com" style={{ color: C.mute, textDecoration: 'none' }}>Contact</a>
+            <Link to="/lessons" style={{ color: T.textMute, textDecoration: 'none' }}>Lessons</Link>
+            <Link to="/privacy" style={{ color: T.textMute, textDecoration: 'none' }}>Privacy</Link>
+            <Link to="/cookies" style={{ color: T.textMute, textDecoration: 'none' }}>Cookies</Link>
+            <Link to="/terms" style={{ color: T.textMute, textDecoration: 'none' }}>Terms</Link>
+            <a href="mailto:hello@englishmetro.com" style={{ color: T.textMute, textDecoration: 'none' }}>Contact</a>
           </div>
         </footer>
       </div>
 
       {playing && <PlayOverlay game={playing} onClose={() => setPlaying(null)}/>}
-
-      {/* Narrow screens: stack the hero (inline <style> keeps this file self-contained) */}
-      <style>{`@media (max-width: 920px) { .gh-hero-grid { grid-template-columns: 1fr !important; gap: 36px !important; padding: 30px 0 50px !important; } }`}</style>
     </div>
   )
 }

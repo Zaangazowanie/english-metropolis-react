@@ -1,72 +1,219 @@
-/* GameHome — "Fluent City arcade" public landing (2026-06-12).
-   All motion lives here so prefers-reduced-motion can kill it wholesale.
-   Dusk-always palette; matches the v3 login aesthetic (tokens.js). */
+/* GameHome — animation & gloss layer (redesign 2026-07-03).
+   Colors come from the v3 tokens inline; MOTION lives here so
+   prefers-reduced-motion can kill it wholesale. Works in day + night. */
 
+/* ── entrance staggers ── */
 @keyframes gh-rise {
   from { opacity: 0; transform: translateY(22px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-@keyframes gh-glow {
-  0%, 100% { opacity: 0.55; }
-  50%      { opacity: 1; }
-}
-@keyframes gh-twinkle {
-  0%, 100% { opacity: 0.18; }
-  50%      { opacity: 0.7; }
-}
-@keyframes gh-marquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-@keyframes gh-flap {
-  0%   { transform: rotateX(0deg); filter: brightness(1); }
-  45%  { transform: rotateX(86deg); filter: brightness(1.6); }
-  100% { transform: rotateX(0deg); filter: brightness(1); }
-}
+.gh-rise   { animation: gh-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.gh-rise-1 { animation-delay: 0.05s; }
+.gh-rise-2 { animation-delay: 0.14s; }
+.gh-rise-3 { animation-delay: 0.24s; }
+.gh-rise-4 { animation-delay: 0.36s; }
+
+/* ── ambient ── */
+@keyframes gh-twinkle { 0%, 100% { opacity: 0.18; } 50% { opacity: 0.8; } }
+.gh-star { animation: gh-twinkle 3.4s ease-in-out infinite; }
+.gh-twinkle { animation: gh-twinkle 2.8s ease-in-out infinite; }
+
 @keyframes gh-pulse-dot {
   0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55); }
   60%      { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }
 }
-
-.gh-rise { animation: gh-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.gh-rise-1 { animation-delay: 60ms; }
-.gh-rise-2 { animation-delay: 140ms; }
-.gh-rise-3 { animation-delay: 220ms; }
-.gh-rise-4 { animation-delay: 320ms; }
-
-.gh-star { animation: gh-twinkle 3.4s ease-in-out infinite; }
 .gh-live-dot { animation: gh-pulse-dot 2.2s ease-out infinite; }
 
-.gh-ticker-track {
-  display: inline-flex;
-  white-space: nowrap;
-  animation: gh-marquee 46s linear infinite;
+@keyframes gh-cloud-drift { from { transform: translateX(-40%); } to { transform: translateX(120vw); } }
+.gh-cloud {
+  position: absolute; left: 0; border-radius: 999px;
+  background: radial-gradient(ellipse at 35% 45%, rgba(255,255,255,0.95), rgba(255,255,255,0.3) 70%, transparent);
+  filter: blur(7px);
+  animation: gh-cloud-drift linear infinite;
 }
+
+/* ── ticker ── */
+@keyframes gh-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.gh-ticker-track { display: inline-flex; white-space: nowrap; animation: gh-marquee 70s linear infinite; }
 .gh-ticker:hover .gh-ticker-track { animation-play-state: paused; }
 
-.gh-board-row { transition: background 180ms ease, transform 180ms ease; }
-.gh-board-row:hover {
-  background: rgba(217, 70, 239, 0.07) !important;
-  transform: translateX(4px);
+/* ── BETA pill: glossy shimmer sweep ── */
+@keyframes gh-shimmer { from { background-position: 200% 0, 0 0; } to { background-position: -200% 0, 0 0; } }
+.gh-beta-pill {
+  display: inline-flex; align-items: center;
+  padding: 5px 13px; border-radius: 999px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.3em; text-indent: 0.15em;
+  background:
+    linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.5) 50%, transparent 70%),
+    linear-gradient(135deg, #8B5CF6 0%, #D946EF 55%, #F472B6 100%);
+  background-size: 250% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  box-shadow: 0 4px 18px -6px rgba(217,70,239,0.55), inset 0 1px 0 rgba(255,255,255,0.3);
+  animation: gh-shimmer 3.2s ease-in-out infinite;
 }
-.gh-board-row:hover .gh-flap { animation: gh-flap 420ms ease; }
 
-.gh-card { transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1), border-color 240ms ease, box-shadow 240ms ease; }
-.gh-card:hover {
-  transform: translateY(-5px);
+/* ── hero postcard frame: rotating conic halo + glass sheen ── */
+@property --gh-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+@keyframes gh-spin { to { --gh-angle: 360deg; } }
+.gh-hero-frame {
+  position: relative; border-radius: 26px; padding: 5px; isolation: isolate;
+  background: linear-gradient(135deg, rgba(139,92,246,0.55), rgba(217,70,239,0.4), rgba(244,114,182,0.55));
+  box-shadow: 0 40px 110px -35px rgba(139,92,246,0.5), 0 24px 60px -30px rgba(0,0,0,0.55);
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms ease;
+}
+.gh-hero-frame::before {
+  content: ''; position: absolute; inset: -3px; border-radius: 29px; z-index: -1;
+  background: conic-gradient(from var(--gh-angle),
+    rgba(139,92,246,0) 0%, rgba(217,70,239,0.8) 18%, rgba(255,179,71,0.65) 32%, rgba(139,92,246,0) 55%);
+  filter: blur(15px); opacity: 0.75;
+  animation: gh-spin 7s linear infinite;
+}
+.gh-hero-frame::after {
+  content: ''; position: absolute; inset: 5px; border-radius: 22px; pointer-events: none;
+  background: linear-gradient(165deg, rgba(255,255,255,0.26) 0%, transparent 34%);
+}
+.gh-hero-frame:hover { transform: translateY(-4px) scale(1.008); }
+.gh-postcard { position: relative; border-radius: 22px; overflow: hidden; display: block; }
+
+.gh-hero-cta {
+  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 8px; z-index: 2;
+  padding: 11px 22px; border-radius: 999px; white-space: nowrap;
+  font-weight: 700; font-size: 14px; letter-spacing: 0.05em; color: #fff;
+  background: linear-gradient(135deg, #8B5CF6 0%, #D946EF 55%, #F472B6 100%);
+  border: 1px solid rgba(255,255,255,0.35);
+  box-shadow: 0 14px 40px -12px rgba(217,70,239,0.7), inset 0 1px 0 rgba(255,255,255,0.35);
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms ease;
+}
+.gh-hero-frame:hover .gh-hero-cta {
+  transform: translateX(-50%) translateY(-3px) scale(1.045);
+  box-shadow: 0 20px 55px -12px rgba(217,70,239,0.85), inset 0 1px 0 rgba(255,255,255,0.45);
+}
+
+/* postcard internals */
+@keyframes gh-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.gh-float { animation: gh-float 7s ease-in-out infinite; }
+
+@keyframes gh-win-flicker { 0%, 91% { opacity: 1; } 95% { opacity: 0.25; } 100% { opacity: 1; } }
+.gh-win { animation: gh-win-flicker 6s steps(1) infinite; }
+
+@keyframes gh-train-run { from { transform: translateX(-230px); } to { transform: translateX(790px); } }
+.gh-train { animation: gh-train-run 13s linear infinite; }
+
+.gh-stamp {
+  position: absolute; top: 16px; right: 16px; transform: rotate(7deg);
+  padding: 8px 12px; border: 2px dashed; border-radius: 10px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.28em; line-height: 1.7;
+  text-align: center; text-indent: 0.14em;
+  background: rgba(10, 6, 24, 0.25); backdrop-filter: blur(3px);
+}
+.gh-postcard-caption {
+  position: absolute; left: 18px; bottom: 66px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px; letter-spacing: 0.22em; color: rgba(255,255,255,0.88);
+  text-shadow: 0 1px 8px rgba(0,0,0,0.55);
+}
+
+/* ── the two doors ── */
+.gh-door {
+  position: relative; display: block; border-radius: 20px; padding: 26px 26px 58px;
+  overflow: hidden; font-family: inherit;
+  backdrop-filter: blur(10px);
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms ease, border-color 260ms ease;
+}
+.gh-door::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(165deg, rgba(255,255,255,0.14) 0%, transparent 38%);
+}
+.gh-door:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 26px 60px -24px rgba(139,92,246,0.45);
+}
+.gh-door-go {
+  position: absolute; left: 26px; bottom: 20px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  transition: gap 200ms ease;
+}
+.gh-door:hover .gh-door-go { gap: 11px; }
+.gh-door-ribbon {
+  position: absolute; top: 15px; right: -35px; transform: rotate(38deg); z-index: 1;
+  padding: 4px 42px; font-size: 10px; font-weight: 800; letter-spacing: 0.3em; text-indent: 0.15em;
+  color: #fff; background: linear-gradient(135deg, #FB923C 0%, #F97316 100%);
+  box-shadow: 0 4px 14px -4px rgba(249,115,22,0.6);
+}
+
+/* ── expandable metro lines (0fr→1fr grid trick, no JS measuring) ── */
+.gh-acc { overflow: hidden; backdrop-filter: blur(8px); transition: border-color 300ms ease, box-shadow 300ms ease; }
+.gh-acc-head {
+  display: flex; align-items: center; gap: 16px; width: 100%;
+  padding: 16px 18px; background: transparent; border: none; cursor: pointer;
+  font-family: inherit;
+}
+.gh-acc-badge {
+  width: 40px; height: 40px; border-radius: 13px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 6px 18px -6px rgba(0,0,0,0.4);
+}
+.gh-acc-chev { transition: transform 340ms cubic-bezier(0.16, 1, 0.3, 1); }
+.gh-acc[data-open="true"] .gh-acc-chev { transform: rotate(180deg); }
+.gh-acc-body {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows 460ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gh-acc[data-open="true"] .gh-acc-body { grid-template-rows: 1fr; }
+.gh-acc-inner { overflow: hidden; min-height: 0; }
+
+@keyframes gh-card-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.gh-acc[data-open="true"] .gh-card { animation: gh-card-in 480ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* ── game cards ── */
+.gh-card { transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms ease, border-color 220ms ease; }
+.gh-card:not(:disabled):hover {
+  transform: translateY(-4px);
   border-color: rgba(217, 70, 239, 0.45) !important;
-  box-shadow: 0 22px 50px -18px rgba(217, 70, 239, 0.35), 0 0 0 1px rgba(217, 70, 239, 0.18);
+  box-shadow: 0 18px 44px -18px var(--gh-card-glow, rgba(217,70,239,0.35));
 }
-.gh-card:hover .gh-card-play { opacity: 1; transform: translateY(0); }
-.gh-card-play { opacity: 0; transform: translateY(5px); transition: all 220ms ease; }
+.gh-card .gh-card-play { opacity: 0; transform: translateY(5px); transition: all 220ms ease; }
+.gh-card:not(:disabled):hover .gh-card-play, .gh-card:disabled .gh-card-play { opacity: 1; transform: translateY(0); }
+.gh-card:disabled .gh-card-play { opacity: 0.7; }
+.gh-card .gh-card-play .material-symbols-outlined { transition: transform 200ms ease; }
+.gh-card:not(:disabled):hover .gh-card-play .material-symbols-outlined { transform: translateX(4px); }
 
-.gh-cab { transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1); }
-.gh-cab:hover { transform: perspective(1200px) rotateY(-2deg) rotateX(1deg); }
+/* ── theme toggle ── */
+.gh-theme-btn {
+  width: 38px; height: 38px; border-radius: 12px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), background 200ms ease;
+}
+.gh-theme-btn:hover { transform: rotate(18deg) scale(1.08); }
 
+/* ── responsive ── */
+@media (max-width: 920px) {
+  .gh-hero-grid { grid-template-columns: 1fr !important; gap: 34px !important; padding: 28px 0 48px !important; }
+}
+@media (max-width: 760px) {
+  .gh-doors { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 560px) {
+  .gh-postcard-caption { display: none; }
+  .gh-stamp { transform: rotate(7deg) scale(0.82); top: 8px; right: 8px; }
+}
+
+/* ── reduced motion: freeze the theatre, keep the content ── */
 @media (prefers-reduced-motion: reduce) {
-  .gh-rise, .gh-star, .gh-live-dot, .gh-ticker-track, .gh-board-row, .gh-card, .gh-cab {
+  .gh-rise, .gh-star, .gh-cloud, .gh-ticker-track, .gh-beta-pill, .gh-hero-frame,
+  .gh-hero-frame::before, .gh-float, .gh-twinkle, .gh-win, .gh-train, .gh-live-dot,
+  .gh-acc[data-open="true"] .gh-card, .gh-card, .gh-door, .gh-theme-btn {
     animation: none !important;
     transition: none !important;
   }
   .gh-rise { opacity: 1; transform: none; }
 }
+.gh-still .gh-star, .gh-still .gh-cloud, .gh-still .gh-ticker-track, .gh-still .gh-beta-pill,
+.gh-still .gh-float, .gh-still .gh-twinkle, .gh-still .gh-win, .gh-still .gh-train,
+.gh-still .gh-hero-frame::before { animation: none !important; }

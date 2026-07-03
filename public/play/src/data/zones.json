@@ -1,0 +1,2904 @@
+{
+ "zones": [
+  {
+   "code": "uk_rp",
+   "dialect": "Received Pronunciation",
+   "zoneName": "The Queen's Mile",
+   "line": "isles",
+   "architecture": "Immaculate cream Georgian terraces with black wrought-iron railings, gas lamps, clipped box hedges, and a scarlet pillar box on every corner.",
+   "landmark": "Clarence Arch — a honey-stone arch draped in wisteria where a brass band plays every day at teatime.",
+   "palette": {
+    "primary": "#F4E8CE",
+    "secondary": "#E6D6B4",
+    "accent": "#B8452F",
+    "roof": "#7C6F64"
+   },
+   "npcs": [
+    {
+     "name": "Mrs. Pemberton-Smythe",
+     "role": "tearoom proprietor",
+     "greeting": "Good afternoon! Do come in — the kettle has just boiled and the scones are frightfully good today."
+    },
+    {
+     "name": "Rupert Fothergill",
+     "role": "park warden",
+     "greeting": "How do you do? Splendid weather for a stroll — do mind the roses, there's a good fellow."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "A Fortnight Away",
+     "type": "vocabulary",
+     "prompt": "Your British pen-friend invites you to visit 'in a fortnight'. When should you arrive?",
+     "options": [
+      "In four days",
+      "In two weeks",
+      "In two months"
+     ],
+     "answerIndex": 1,
+     "reward": 10
+    },
+    {
+     "title": "Mind the Queue",
+     "type": "vocabulary",
+     "prompt": "At the bakery you're asked to 'join the queue'. What should you do?",
+     "options": [
+      "Order the daily special",
+      "Sit at a corner table",
+      "Stand in line and wait your turn",
+      "Pay before ordering"
+     ],
+     "answerIndex": 2,
+     "reward": 10
+    },
+    {
+     "title": "Half Seven",
+     "type": "conversation",
+     "prompt": "Your host suggests meeting at 'half seven'. What time do they mean?",
+     "options": [
+      "6:30",
+      "7:30",
+      "7:00",
+      "3:30"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "uk_cockney",
+   "dialect": "Cockney",
+   "zoneName": "Pearly Court",
+   "line": "isles",
+   "architecture": "Snug Victorian brick terraces crowd around a cobbled market court strung with bunting, where costermongers' barrows overflow with fruit and flowers.",
+   "landmark": "The Bow Bells Belfry — a chiming church tower whose bells ring loudest at sunset; anyone born within earshot is a true Cockney.",
+   "palette": {
+    "primary": "#BE7048",
+    "secondary": "#F0DFBE",
+    "accent": "#DFAF4E",
+    "roof": "#70635B"
+   },
+   "npcs": [
+    {
+     "name": "Pearly Queen Vera",
+     "role": "market matriarch",
+     "greeting": "Awright, me old china! Have a butcher's at these apples — lovely jubbly, they are."
+    },
+    {
+     "name": "Alfie",
+     "role": "barrow boy",
+     "greeting": "Wotcha, treacle! Everything on the barrow's fresh this morning, straight up."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Dog and Bone",
+     "type": "vocabulary",
+     "prompt": "In Cockney rhyming slang, what is a 'dog and bone'?",
+     "options": [
+      "A pet shop",
+      "A sandwich",
+      "A telephone",
+      "A doorbell"
+     ],
+     "answerIndex": 2,
+     "reward": 15
+    },
+    {
+     "title": "Use Your Loaf",
+     "type": "vocabulary",
+     "prompt": "'Use your loaf' comes from 'loaf of bread'. What is a Cockney telling you to use?",
+     "options": [
+      "Your head",
+      "Your money",
+      "Your hands"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Me Old China",
+     "type": "conversation",
+     "prompt": "A market trader calls you 'me old china' (from 'china plate'). What are they calling you?",
+     "options": [
+      "A fragile customer",
+      "Their mate",
+      "A tourist",
+      "Their boss"
+     ],
+     "answerIndex": 1,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "uk_estuary",
+   "dialect": "Estuary English",
+   "zoneName": "Cockle Wharf",
+   "line": "isles",
+   "architecture": "Pastel seaside terraces and whitewashed cockle sheds line a breezy promenade of fairy-lit amusement arcades and candy-striped beach huts.",
+   "landmark": "The Mile-Long Pier — a timber pleasure pier stretching into the golden estuary, with a tiny train trundling out to the tearoom at the far end.",
+   "palette": {
+    "primary": "#F2DCAE",
+    "secondary": "#E9C08D",
+    "accent": "#C96F4A",
+    "roof": "#8B7365"
+   },
+   "npcs": [
+    {
+     "name": "Kelly",
+     "role": "ice-cream van owner",
+     "greeting": "Alright, mate? Ninety-nine with a flake, is it? Lovely — cheers!"
+    },
+    {
+     "name": "Dave",
+     "role": "amusement arcade owner",
+     "greeting": "You alright, love? Grab a cup of 2ps and have a go on the penny pushers."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Alright?",
+     "type": "conversation",
+     "prompt": "A friend in Essex greets you with 'Alright?' What's the most natural reply?",
+     "options": [
+      "Alright what, exactly?",
+      "I am extremely well, thank you for asking.",
+      "Yeah, not bad — you alright?"
+     ],
+     "answerIndex": 2,
+     "reward": 15
+    },
+    {
+     "title": "Cheers, Mate",
+     "type": "vocabulary",
+     "prompt": "You hold the door open and someone says 'Cheers!' What do they mean?",
+     "options": [
+      "Thanks",
+      "To your health!",
+      "Hurry up",
+      "Goodbye forever"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "The Ninety-Nine",
+     "type": "vocabulary",
+     "prompt": "At the seaside you order 'a ninety-nine'. What arrives?",
+     "options": [
+      "Ninety-nine chips",
+      "An ice cream cone with a chocolate flake",
+      "A lottery ticket"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "uk_scouse",
+   "dialect": "Liverpool (Scouse)",
+   "zoneName": "The Mersey Beat",
+   "line": "isles",
+   "architecture": "Red-brick terraces roll downhill to cast-iron dock warehouses, every gable pasted with gig posters and every railing claimed by a hopeful seagull.",
+   "landmark": "The Liver Bird Perch — a clocktower crowned by two copper birds, one watching over the sea and one watching over the city.",
+   "palette": {
+    "primary": "#C25E43",
+    "secondary": "#EFE0C0",
+    "accent": "#E8B33C",
+    "roof": "#6E7F62"
+   },
+   "npcs": [
+    {
+     "name": "Rita",
+     "role": "chippy owner",
+     "greeting": "Alright, la! After some scran? The chips are boss today, honest."
+    },
+    {
+     "name": "Tommo",
+     "role": "dockside busker",
+     "greeting": "Y'alright, mate? Stick around — this next tune's a belter, I'm made up with it."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Made Up",
+     "type": "vocabulary",
+     "prompt": "A Scouser says they're 'made up' about your visit. How do they feel?",
+     "options": [
+      "Exhausted",
+      "Confused",
+      "Really pleased"
+     ],
+     "answerIndex": 2,
+     "reward": 15
+    },
+    {
+     "title": "Time for Scran",
+     "type": "vocabulary",
+     "prompt": "In Liverpool, what is 'scran'?",
+     "options": [
+      "Food",
+      "Loose change",
+      "Drizzle",
+      "A song"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "That's Boss",
+     "type": "conversation",
+     "prompt": "Your new friend says the gig was 'boss'. What did they think of it?",
+     "options": [
+      "The manager showed up",
+      "It was excellent",
+      "It was far too loud",
+      "It got cancelled"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "uk_geordie",
+   "dialect": "Newcastle (Geordie)",
+   "zoneName": "The Canny Toon",
+   "line": "isles",
+   "architecture": "Grand honey-stone crescents sweep down to a lantern-lit quayside where iron bridges stack one above another across the river.",
+   "landmark": "The Coaly Tyne Arch — a great green iron bridge strung with lanterns that hums softly when the wind comes off the river.",
+   "palette": {
+    "primary": "#E3C084",
+    "secondary": "#D3A868",
+    "accent": "#5E7B54",
+    "roof": "#77675A"
+   },
+   "npcs": [
+    {
+     "name": "Big Norm",
+     "role": "stottie bakery owner",
+     "greeting": "Howay in, pet — the stotties are straight out the oven and they're proper canny."
+    },
+    {
+     "name": "Bella",
+     "role": "quayside fiddler",
+     "greeting": "Areet, hinny? Gan on, stay for one more song — it's a canny night for it."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Canny Good",
+     "type": "vocabulary",
+     "prompt": "In Newcastle, if something is 'canny', it is usually...",
+     "options": [
+      "Sneaky",
+      "Tinned",
+      "Nice or good"
+     ],
+     "answerIndex": 2,
+     "reward": 15
+    },
+    {
+     "title": "Howay!",
+     "type": "vocabulary",
+     "prompt": "A Geordie shouts 'Howay!' What are they saying?",
+     "options": [
+      "Go away!",
+      "Come on!",
+      "How are you?",
+      "Watch out!"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "The Bairn",
+     "type": "vocabulary",
+     "prompt": "In the North East, who or what is a 'bairn'?",
+     "options": [
+      "A child",
+      "A barn owl",
+      "A river boat"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    }
+   ]
+  },
+  {
+   "code": "uk_yorkshire",
+   "dialect": "Yorkshire",
+   "zoneName": "Wuthering Rise",
+   "line": "isles",
+   "architecture": "Dark gritstone cottages with mossy slate roofs climb a windswept hillside, stitched together by dry-stone walls and purple heather.",
+   "landmark": "T'Owd Mill — a proud stone woollen mill whose tall chimney catches the last light over the moor, its looms still clacking away inside.",
+   "palette": {
+    "primary": "#9C8563",
+    "secondary": "#B9A27C",
+    "accent": "#A2707F",
+    "roof": "#6B6155"
+   },
+   "npcs": [
+    {
+     "name": "Doris",
+     "role": "tearoom owner",
+     "greeting": "Ey up, love! Sit thee down — tea's in t'pot and the parkin's fresh from t'oven."
+    },
+    {
+     "name": "Stan",
+     "role": "shepherd",
+     "greeting": "Nah then! Grand day for t'moor, in't it? Mind the sheep — they're right nosy."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Ey Up!",
+     "type": "vocabulary",
+     "prompt": "'Ey up!' is a classic Yorkshire way to say what?",
+     "options": [
+      "Look above you",
+      "Hello",
+      "Hurry along"
+     ],
+     "answerIndex": 1,
+     "reward": 10
+    },
+    {
+     "title": "Down the Ginnel",
+     "type": "vocabulary",
+     "prompt": "What is a 'ginnel' in Yorkshire?",
+     "options": [
+      "A ginger biscuit",
+      "A moorland pond",
+      "A narrow alley between buildings",
+      "A woolly jumper"
+     ],
+     "answerIndex": 2,
+     "reward": 15
+    },
+    {
+     "title": "Don't Be Mardy",
+     "type": "vocabulary",
+     "prompt": "If a Yorkshire friend says you're being 'mardy', you are being...",
+     "options": [
+      "Grumpy and sulky",
+      "Overly generous",
+      "Suspiciously quiet"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "uk_west_country",
+   "dialect": "West Country",
+   "zoneName": "Scrumpy Hollow",
+   "line": "isles",
+   "architecture": "Thatched cob cottages the colour of clotted cream doze among apple orchards, with cider barrels stacked beside every crooked gate.",
+   "landmark": "The Wassail Oak — an ancient apple tree hung with toast and ribbons, where the whole village gathers to sing to the orchard each winter.",
+   "palette": {
+    "primary": "#F5E3BC",
+    "secondary": "#EAC98F",
+    "accent": "#C4552F",
+    "roof": "#A8834F"
+   },
+   "npcs": [
+    {
+     "name": "Farmer Yeo",
+     "role": "cider-press keeper",
+     "greeting": "Alright, me babber! This year's apple pressing is proper job — come and have a look."
+    },
+    {
+     "name": "Demelza",
+     "role": "pasty baker",
+     "greeting": "Mornin', my 'ansome! Pasties are still warm — crimped proper, like me gran taught me."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Gert Lush",
+     "type": "vocabulary",
+     "prompt": "In Bristol, if the view is 'gert lush', it is...",
+     "options": [
+      "Really lovely",
+      "Very overgrown",
+      "Slightly foggy"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Dreckly",
+     "type": "vocabulary",
+     "prompt": "A Cornish friend promises to fix your gate 'dreckly'. When will it happen?",
+     "options": [
+      "Right this second",
+      "Tomorrow at nine sharp",
+      "At some point — in its own good time"
+     ],
+     "answerIndex": 2,
+     "reward": 20
+    },
+    {
+     "title": "Proper Job",
+     "type": "conversation",
+     "prompt": "A Devon farmer says 'Proper job!' after you stack the apple crates. What do they mean?",
+     "options": [
+      "Do it again, properly",
+      "Well done — excellent work",
+      "You should get a real job",
+      "The crates are the wrong size"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "uk_brummie",
+   "dialect": "Birmingham (Brummie)",
+   "zoneName": "The Bostin Basin",
+   "line": "isles",
+   "architecture": "Red-brick canalside warehouses with arched white-lipped windows overlook narrowboats painted with roses and castles, all linked by humpback bridges.",
+   "landmark": "The Golden Rotunda — a round tower glowing like a fresh mug of tea above the canal junction, where more waterways meet than in Venice.",
+   "palette": {
+    "primary": "#B4593B",
+    "secondary": "#E8CFA4",
+    "accent": "#D08C2E",
+    "roof": "#6D5E52"
+   },
+   "npcs": [
+    {
+     "name": "Baljit",
+     "role": "balti house chef",
+     "greeting": "Alright, bab? Sit yourself down — the balti's bubbling and the naan's bigger than the table."
+    },
+    {
+     "name": "Vera",
+     "role": "lock-keeper",
+     "greeting": "Y'alright, bab? Bostin day on the cut, ain't it? Mind the gates as you cross."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Bostin!",
+     "type": "vocabulary",
+     "prompt": "In Birmingham, if the weather is 'bostin', it is...",
+     "options": [
+      "About to storm",
+      "Brilliant",
+      "Freezing"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "Alright, Bab?",
+     "type": "vocabulary",
+     "prompt": "A Brummie calls you 'bab'. What is that?",
+     "options": [
+      "A friendly term of endearment",
+      "A type of kebab",
+      "A rude nickname"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "Along the Cut",
+     "type": "vocabulary",
+     "prompt": "Locals say they're walking along 'the cut'. Where are they?",
+     "options": [
+      "In a shortcut tunnel",
+      "At the barber's",
+      "In the market hall",
+      "Beside the canal"
+     ],
+     "answerIndex": 3,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "uk_mancunian",
+   "dialect": "Manchester (Mancunian)",
+   "zoneName": "Madchester Mills",
+   "line": "isles",
+   "architecture": "Towering red-brick cotton mills with rows of arched windows shelter glass-canopied arcades, worker-bee mosaics underfoot and rain-polished cobbles glowing gold.",
+   "landmark": "The Beehive Ballroom — a converted cotton mill turned dancehall, its chimney painted with a giant golden worker bee.",
+   "palette": {
+    "primary": "#B05A3E",
+    "secondary": "#DCB584",
+    "accent": "#E4A82F",
+    "roof": "#75695E"
+   },
+   "npcs": [
+    {
+     "name": "Liam",
+     "role": "record shop owner",
+     "greeting": "Y'alright, our kid? Have a nosey through the vinyl — some proper mint tunes in there."
+    },
+    {
+     "name": "Shelley",
+     "role": "tea-van barista",
+     "greeting": "Hiya, love! Fancy a brew? It's chucking it down out there — come and get warm."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Put a Brew On",
+     "type": "vocabulary",
+     "prompt": "A Mancunian offers to 'put a brew on'. What are they making?",
+     "options": [
+      "Soup",
+      "A cup of tea",
+      "Toast"
+     ],
+     "answerIndex": 1,
+     "reward": 10
+    },
+    {
+     "title": "Our Kid",
+     "type": "vocabulary",
+     "prompt": "In Manchester, who is 'our kid'?",
+     "options": [
+      "The youngest in the class",
+      "A stranger's child",
+      "Your brother, sister, or closest mate"
+     ],
+     "answerIndex": 2,
+     "reward": 15
+    },
+    {
+     "title": "Chucking It Down",
+     "type": "conversation",
+     "prompt": "Your mate says it's 'chucking it down' outside. What should you grab?",
+     "options": [
+      "An umbrella — it's raining hard",
+      "Sunglasses — it's blazing",
+      "A sledge — it's snowing",
+      "A kite — it's windy"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "uk_mle",
+   "dialect": "Multicultural London English",
+   "zoneName": "The Ends",
+   "line": "isles",
+   "architecture": "Brick railway viaducts glow with murals, their arches packed with studios, barbers and street-food stalls beneath rooftops bristling with radio aerials.",
+   "landmark": "The Arches — a glowing run of railway arches housing recording studios, barbershops, and the best jerk chicken in the city.",
+   "palette": {
+    "primary": "#C0714A",
+    "secondary": "#EAD2A6",
+    "accent": "#A34A63",
+    "roof": "#6B5B52"
+   },
+   "npcs": [
+    {
+     "name": "Kayla",
+     "role": "street-food chef",
+     "greeting": "Wagwan! You hungry, yeah? This plantain is peng, trust me."
+    },
+    {
+     "name": "AJ",
+     "role": "youth-club DJ",
+     "greeting": "Safe, fam! Studio's open — come through, these beats are cold."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "That's Peng",
+     "type": "vocabulary",
+     "prompt": "In Multicultural London English, if the food is 'peng', it is...",
+     "options": [
+      "Cold",
+      "Really delicious",
+      "Sold out"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "Bare People",
+     "type": "vocabulary",
+     "prompt": "'There were bare people at the carnival' means there were...",
+     "options": [
+      "Hardly any people",
+      "Barefoot dancers",
+      "Lots of people"
+     ],
+     "answerIndex": 2,
+     "reward": 15
+    },
+    {
+     "title": "The Ends",
+     "type": "vocabulary",
+     "prompt": "When Londoners talk about 'the ends', they mean...",
+     "options": [
+      "The last bus stop",
+      "Their home neighbourhood",
+      "The end credits",
+      "Shoelace tips"
+     ],
+     "answerIndex": 1,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "sco_scots",
+   "dialect": "Scots",
+   "zoneName": "The Braw Brae",
+   "line": "isles",
+   "architecture": "Crow-stepped gables and harled stone cottages with pantile roofs cluster along a chattering burn, with rowan trees, dry-stane dykes, and shop signs hand-lettered in Scots.",
+   "landmark": "The Makar's Mercat Cross — a carved honey-stone market cross where the town's poets take turns reciting Burns at the gloaming.",
+   "palette": {
+    "primary": "#E3B584",
+    "secondary": "#C08D5F",
+    "accent": "#A87FA0",
+    "roof": "#7B6265"
+   },
+   "npcs": [
+    {
+     "name": "Senga MacNab",
+     "role": "Greengrocer",
+     "greeting": "Awright, pal! Come awa in — the tatties are braw the day."
+    },
+    {
+     "name": "Rabbie Tamson",
+     "role": "Street poet (makar)",
+     "greeting": "Bide a wee and I'll gie ye a verse — the gloaming's bonnie for poems."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Braw Basics",
+     "type": "vocabulary",
+     "prompt": "In Scots, what does 'braw' mean?",
+     "options": [
+      "Broken",
+      "Fine or excellent",
+      "Cold",
+      "Loud"
+     ],
+     "answerIndex": 1,
+     "reward": 10
+    },
+    {
+     "title": "Wee Ones",
+     "type": "vocabulary",
+     "prompt": "In Scots, what is a 'bairn'?",
+     "options": [
+      "A barn",
+      "A hill",
+      "A child",
+      "A boot"
+     ],
+     "answerIndex": 2,
+     "reward": 15
+    },
+    {
+     "title": "Dreich Day",
+     "type": "conversation",
+     "prompt": "A neighbour sighs, 'It's gey dreich the day.' What are they saying about the weather?",
+     "options": [
+      "It's dull, damp and grey",
+      "It's bright and sunny",
+      "It's windy but warm",
+      "It's snowing"
+     ],
+     "answerIndex": 0,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "sco_glaswegian",
+   "dialect": "Glaswegian",
+   "zoneName": "Glesga Yards",
+   "line": "isles",
+   "architecture": "Grand red-and-blond sandstone tenements with bay windows and tiled 'wally closes' line broad streets, while shipyard gantries glow on the skyline above the river.",
+   "landmark": "The Duke's Cone — a bronze statue of a horseback duke wearing a proudly painted traffic cone, garlanded with fairy lights at dusk.",
+   "palette": {
+    "primary": "#C96F4F",
+    "secondary": "#E9C48E",
+    "accent": "#E89A3C",
+    "roof": "#6E5F68"
+   },
+   "npcs": [
+    {
+     "name": "Big Aggie",
+     "role": "Chip shop owner",
+     "greeting": "Awright, hen? Sit yersel doon — these chips are pure roastin, so they are."
+    },
+    {
+     "name": "Wee Davie",
+     "role": "Busker",
+     "greeting": "Gonnae gie us a listen? The patter's free, but a smile's the ticket, pal."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Gallus Patter",
+     "type": "vocabulary",
+     "prompt": "In Glasgow, a person described as 'gallus' is…",
+     "options": [
+      "Shy and quiet",
+      "Bold, confident and stylish",
+      "Always late",
+      "Very tall"
+     ],
+     "answerIndex": 1,
+     "reward": 20
+    },
+    {
+     "title": "Pure Dead Brilliant",
+     "type": "conversation",
+     "prompt": "Your pal calls last night's gig 'pure dead brilliant'. How was it?",
+     "options": [
+      "Absolutely fantastic",
+      "Dangerously crowded",
+      "Sadly cancelled",
+      "A bit boring"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "The Messages",
+     "type": "vocabulary",
+     "prompt": "In Glasgow, 'going for the messages' means going…",
+     "options": [
+      "To check your phone",
+      "To the post office",
+      "Grocery shopping",
+      "To band practice"
+     ],
+     "answerIndex": 2,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "sco_edinburgh",
+   "dialect": "Edinburgh",
+   "zoneName": "Auld Reekie Close",
+   "line": "isles",
+   "architecture": "Steep cobbled wynds squeeze between tall Old Town lands stacked seven storeys high, opening onto sweeping Georgian crescents lit by gas lamps beneath a castle crag.",
+   "landmark": "The Kindly Clock — a grand hotel clock tower kept three minutes fast, just like the real Balmoral clock, so no traveller ever misses their train.",
+   "palette": {
+    "primary": "#D9BC8C",
+    "secondary": "#8F7862",
+    "accent": "#C75F49",
+    "roof": "#5F5566"
+   },
+   "npcs": [
+    {
+     "name": "Morag Dunbar",
+     "role": "Bookshop keeper",
+     "greeting": "Come in oot the haar, dear — I ken just the story for ye."
+    },
+    {
+     "name": "Fergus MacRae",
+     "role": "Festival juggler",
+     "greeting": "Braw evening for a show! Edinburgh's aye got room for one more act."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Haar Watch",
+     "type": "vocabulary",
+     "prompt": "In Edinburgh, what rolls in off the Firth of Forth when folk mention the 'haar'?",
+     "options": [
+      "A cold sea mist",
+      "A festival parade",
+      "A flock of gulls",
+      "A warm breeze"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Auld Reekie",
+     "type": "vocabulary",
+     "prompt": "Edinburgh's affectionate nickname 'Auld Reekie' translates to…",
+     "options": [
+      "Old Rocky",
+      "Old Smoky",
+      "Grand Old Lady",
+      "High City"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "Do Ye Ken?",
+     "type": "conversation",
+     "prompt": "A bookseller says, 'Aye, I ken that author.' What does 'ken' mean?",
+     "options": [
+      "To sell",
+      "To dislike",
+      "To meet",
+      "To know"
+     ],
+     "answerIndex": 3,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "sco_highland",
+   "dialect": "Highland",
+   "zoneName": "The Cairngorm Wilds",
+   "line": "isles",
+   "architecture": "Whitewashed crofts with slate and heather-thatch roofs scatter across braes of pine and purple heather, joined by dry-stane dykes and a single-track road with passing places.",
+   "landmark": "The Ceilidh Bothy — a candle-lit stone shelter on the brae where fiddles, whistles and dancing feet strike up every evening.",
+   "palette": {
+    "primary": "#F0E3CB",
+    "secondary": "#B7A283",
+    "accent": "#AE86AC",
+    "roof": "#786A5F"
+   },
+   "npcs": [
+    {
+     "name": "Eilidh NicAoidh",
+     "role": "Croft shop keeper",
+     "greeting": "Fàilte! Come away in — the kettle's just boiled and the scones are warm."
+    },
+    {
+     "name": "Hamish Munro",
+     "role": "Mountain guide",
+     "greeting": "A fine soft morning, is it not? We'll take the bonnie path up the ben together."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Up the Ben",
+     "type": "vocabulary",
+     "prompt": "In the Highlands, if you climb a 'ben', what are you climbing?",
+     "options": [
+      "A fence",
+      "A lighthouse",
+      "A mountain",
+      "A ladder"
+     ],
+     "answerIndex": 2,
+     "reward": 10
+    },
+    {
+     "title": "Ceilidh Night",
+     "type": "vocabulary",
+     "prompt": "What happens at a ceilidh?",
+     "options": [
+      "A silent reading hour",
+      "Music, dancing and storytelling",
+      "A fishing contest",
+      "A sheep auction"
+     ],
+     "answerIndex": 1,
+     "reward": 20
+    },
+    {
+     "title": "Fàilte!",
+     "type": "conversation",
+     "prompt": "A crofter welcomes you with the Gaelic word 'Fàilte'. What does it mean?",
+     "options": [
+      "Welcome",
+      "Farewell",
+      "Hurry up",
+      "Watch out"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "ie_irish",
+   "dialect": "Irish (general)",
+   "zoneName": "The Craic Commons",
+   "line": "isles",
+   "architecture": "Rainbow-painted shopfronts with hand-lettered gilt signs ring a village green, while thatched cottages and low stone walls thread out into golden hedgerowed fields.",
+   "landmark": "The Whistling Round Tower — an ivy-wrapped honey-stone round tower whose wind-holes play tin-whistle notes on the hour.",
+   "palette": {
+    "primary": "#F2E2C0",
+    "secondary": "#A3A26B",
+    "accent": "#DD7E33",
+    "roof": "#C7A155"
+   },
+   "npcs": [
+    {
+     "name": "Nuala Byrne",
+     "role": "Tea-shop owner",
+     "greeting": "Ah, you're very welcome! Sit down there — the kettle's on. What's the craic?"
+    },
+    {
+     "name": "Séamus O'Dea",
+     "role": "Tin-whistle busker",
+     "greeting": "Grand evening for a tune! Stay for a reel — sure it'd be rude not to."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "What's the Craic?",
+     "type": "vocabulary",
+     "prompt": "In Irish English, 'craic' (pronounced 'crack') means…",
+     "options": [
+      "A crack in the wall",
+      "Fun, news and good company",
+      "A loud argument",
+      "A type of stew"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "Grand, So",
+     "type": "conversation",
+     "prompt": "You ask an Irish friend how they are and they answer, 'Ah sure, I'm grand.' How are they?",
+     "options": [
+      "Feeling important",
+      "Unwell",
+      "Perfectly fine",
+      "Angry"
+     ],
+     "answerIndex": 2,
+     "reward": 10
+    },
+    {
+     "title": "Giving Out",
+     "type": "vocabulary",
+     "prompt": "If your Irish landlady is 'giving out' about the weather, what is she doing?",
+     "options": [
+      "Handing out umbrellas",
+      "Complaining about it",
+      "Forecasting it",
+      "Enjoying it"
+     ],
+     "answerIndex": 1,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "ie_dublin",
+   "dialect": "Dublin",
+   "zoneName": "Molly's Liffey",
+   "line": "isles",
+   "architecture": "Candy-coloured Georgian doors with fanlights punctuate warm brick terraces along the quays, where iron footbridges arch over a river that glitters like poured amber.",
+   "landmark": "The Ha'penny Arch — a white cast-iron footbridge strung with round lamps, where buskers pay the old half-penny toll in songs.",
+   "palette": {
+    "primary": "#C77052",
+    "secondary": "#F0DEBB",
+    "accent": "#E2A73E",
+    "roof": "#6B5D68"
+   },
+   "npcs": [
+    {
+     "name": "Máire Malone",
+     "role": "Fishmonger with a barrow cart",
+     "greeting": "Howya! Cockles and mussels, alive alive-o — the freshest on the quay, I'm not messing."
+    },
+    {
+     "name": "Deco Nolan",
+     "role": "Liffey boatman",
+     "greeting": "Story, bud? Hop aboard — the river's only gorgeous this evening."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Story, Bud?",
+     "type": "conversation",
+     "prompt": "A Dubliner greets you with 'What's the story?' What are they asking?",
+     "options": [
+      "What book you're reading",
+      "How you are and any news",
+      "The time of day",
+      "Directions to the river"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "Gas Craic",
+     "type": "vocabulary",
+     "prompt": "In Dublin slang, a person who is 'gas' is…",
+     "options": [
+      "Very funny",
+      "Full of hot air",
+      "Quick-tempered",
+      "Hard to find"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Deadly!",
+     "type": "vocabulary",
+     "prompt": "If a Dubliner says your song was 'deadly', they thought it was…",
+     "options": [
+      "Too loud",
+      "Dangerous",
+      "Brilliant",
+      "Sad"
+     ],
+     "answerIndex": 2,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "ie_belfast",
+   "dialect": "Belfast",
+   "zoneName": "Samson's Slipway",
+   "line": "isles",
+   "architecture": "Red-brick terraced streets painted with bright gable murals run down to the lough, where two colossal yellow gantry cranes tower over glass-roofed Victorian arcades.",
+   "landmark": "The Twin Gantries — two colossal golden shipyard cranes, Samson and Goliath, framing the sunset like a city gate.",
+   "palette": {
+    "primary": "#BB6045",
+    "secondary": "#EFDCB6",
+    "accent": "#E6B63D",
+    "roof": "#6D5C60"
+   },
+   "npcs": [
+    {
+     "name": "Sadie Magee",
+     "role": "Bakery owner",
+     "greeting": "'Bout ye! Sit down and have a wee bap — you'll be foundered after that wind."
+    },
+    {
+     "name": "Marty Doran",
+     "role": "Tour-boat guide",
+     "greeting": "What about ye! Grand view of the cranes from the water — dead on, so it is."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "'Bout Ye!",
+     "type": "conversation",
+     "prompt": "In Belfast, the greeting ''Bout ye!' is a friendly way of saying…",
+     "options": [
+      "Watch out behind you!",
+      "How are you doing?",
+      "You're in the way",
+      "About time you arrived"
+     ],
+     "answerIndex": 1,
+     "reward": 10
+    },
+    {
+     "title": "Dead On",
+     "type": "vocabulary",
+     "prompt": "If a Belfast local says the café owner is 'dead on', the owner is…",
+     "options": [
+      "Sound, decent and likeable",
+      "Always punctual",
+      "Very tired",
+      "Strict"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Foundered",
+     "type": "vocabulary",
+     "prompt": "After a windy walk along the lough, a Belfast friend says they're 'foundered'. They are…",
+     "options": [
+      "Lost",
+      "Soaked",
+      "Freezing cold",
+      "Out of breath"
+     ],
+     "answerIndex": 2,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "ie_cork",
+   "dialect": "Cork",
+   "zoneName": "The Rebel Quay",
+   "line": "isles",
+   "architecture": "Steep stacks of candy-bright terraced houses tumble down hills to the River Lee, where covered market arcades glow with butter-gold facades and fish-stall lanterns.",
+   "landmark": "The Four-Faced Liar — Shandon's gilded clock tower whose four faces each tell a slightly different time, just like the real one.",
+   "palette": {
+    "primary": "#F0DFC0",
+    "secondary": "#DC8460",
+    "accent": "#C1503F",
+    "roof": "#77655C"
+   },
+   "npcs": [
+    {
+     "name": "Bridie Twomey",
+     "role": "English Market fishmonger",
+     "greeting": "How's it going, girl? This hake is only massive — straight off the boat, like."
+    },
+    {
+     "name": "Donncha Buckley",
+     "role": "Shandon bell-ringer",
+     "greeting": "C'mere to me, boy — climb the tower and ring the bells yourself, 'tis a grand view."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Massive Compliments",
+     "type": "vocabulary",
+     "prompt": "In Cork, if someone says your coat is 'massive', they mean it is…",
+     "options": [
+      "Far too big",
+      "Gorgeous and lovely",
+      "Heavy",
+      "Second-hand"
+     ],
+     "answerIndex": 1,
+     "reward": 20
+    },
+    {
+     "title": "Boy and Girl",
+     "type": "conversation",
+     "prompt": "A Cork stallholder says, 'How's it going, boy?' What does the word 'boy' mean here?",
+     "options": [
+      "An insult about your age",
+      "A friendly way to address someone",
+      "It's only used for children",
+      "A request for help"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "C'mere to Me",
+     "type": "conversation",
+     "prompt": "When a Corkonian says 'C'mere to me…', what do they usually want?",
+     "options": [
+      "To tell you something and have your attention",
+      "To measure your height",
+      "To say goodbye",
+      "To borrow money"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "us_general",
+   "dialect": "General American",
+   "zoneName": "Anytown Junction",
+   "line": "liberty",
+   "architecture": "Tidy Main Street brick storefronts with striped awnings line up beside a gleaming chrome diner, a whitewashed bandstand, and a water tower painted with a smiling sun.",
+   "landmark": "The Golden Hour Diner — a gleaming chrome diner whose neon OPEN sign glows in every season, famous for bottomless coffee and apple pie.",
+   "palette": {
+    "primary": "#EFD8B0",
+    "secondary": "#B65C3F",
+    "accent": "#6FA8A0",
+    "roof": "#7A4B33"
+   },
+   "npcs": [
+    {
+     "name": "Patty Melton",
+     "role": "diner owner",
+     "greeting": "Hi there, hon! Grab a booth — coffee's fresh and the pie just came out of the oven."
+    },
+    {
+     "name": "Dale Fairview",
+     "role": "radio-host busker",
+     "greeting": "Hey, good evening, folks! You're just in time for the friendliest hour in the city."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Riding Up",
+     "type": "vocabulary",
+     "prompt": "In American English, what do you call the machine that carries people between floors of a building?",
+     "options": [
+      "A lift",
+      "An elevator",
+      "An escalator",
+      "A dumbwaiter"
+     ],
+     "answerIndex": 1,
+     "reward": 10
+    },
+    {
+     "title": "Under the Hood",
+     "type": "vocabulary",
+     "prompt": "An American mechanic says to check 'under the hood.' Which part of the car do they mean?",
+     "options": [
+      "The trunk",
+      "The dashboard",
+      "The cover over the engine"
+     ],
+     "answerIndex": 2,
+     "reward": 15
+    },
+    {
+     "title": "Casual Hello",
+     "type": "conversation",
+     "prompt": "A friend greets you with 'What's up?' What is the most natural casual reply?",
+     "options": [
+      "Not much — how about you?",
+      "The ceiling, of course.",
+      "I am extremely well, thank you kindly, sir."
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    }
+   ]
+  },
+  {
+   "code": "us_southern",
+   "dialect": "Southern US",
+   "zoneName": "Dixie Veranda",
+   "line": "liberty",
+   "architecture": "Grand houses with wraparound verandas and haint-blue porch ceilings doze under live oaks hung with Spanish moss, ceiling fans turning slow above rocking chairs.",
+   "landmark": "The Sweet Tea Gazebo — a white lattice gazebo where a copper urn of sweet tea never runs dry and fireflies gather at dusk.",
+   "palette": {
+    "primary": "#F6E3C5",
+    "secondary": "#E8B48C",
+    "accent": "#9CC3BE",
+    "roof": "#8A5A3B"
+   },
+   "npcs": [
+    {
+     "name": "Miss Georgia Mae",
+     "role": "porch hostess",
+     "greeting": "Well hey there, sugar! Come sit a spell — the tea's sweet and the shade is free."
+    },
+    {
+     "name": "Beau Tucker",
+     "role": "banjo busker",
+     "greeting": "Hey y'all! I'm fixin' to play one more tune — stay a while, now."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Y'all Means All",
+     "type": "vocabulary",
+     "prompt": "In the American South, who does 'y'all' refer to?",
+     "options": [
+      "One specific person only",
+      "You all — the person or people you're talking to",
+      "A type of sweet tea"
+     ],
+     "answerIndex": 1,
+     "reward": 10
+    },
+    {
+     "title": "Fixin' to Go",
+     "type": "conversation",
+     "prompt": "Your Southern friend says, 'I'm fixin' to head to the store.' What are they telling you?",
+     "options": [
+      "They are repairing their car",
+      "They are about to go to the store",
+      "They refuse to go to the store"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "Come Sit a Spell",
+     "type": "vocabulary",
+     "prompt": "If a porch hostess invites you to 'sit a spell', she wants you to...",
+     "options": [
+      "Sit down and stay for a while",
+      "Recite the alphabet",
+      "Sit very quietly"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "us_aave",
+   "dialect": "African American Vernacular English",
+   "zoneName": "Soul Boulevard",
+   "line": "liberty",
+   "architecture": "Proud brownstone stoops step down to a boulevard of record shops, barbershops, and jazz murals, where brass streetlamps glow like trumpet bells at dusk.",
+   "landmark": "The Harmony Record Hall — a domed music hall and record store crowned with a trumpet-shaped weathervane, where a new legend takes the stage every night.",
+   "palette": {
+    "primary": "#C98A5B",
+    "secondary": "#8E4A3D",
+    "accent": "#E8B84A",
+    "roof": "#5E3A4A"
+   },
+   "npcs": [
+    {
+     "name": "Marcus 'Smooth' Bell",
+     "role": "record shop owner",
+     "greeting": "Hey now, welcome! We got everything from Motown to right now — come see."
+    },
+    {
+     "name": "Nia Carter",
+     "role": "mural artist",
+     "greeting": "What's good? Pull up a crate and watch — this wall's finna be beautiful."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "The Habitual 'Be'",
+     "type": "conversation",
+     "prompt": "In African American Vernacular English, 'She be singing on Saturdays' means...",
+     "options": [
+      "She is singing at this exact moment",
+      "She sings regularly or habitually",
+      "She sang only one time"
+     ],
+     "answerIndex": 1,
+     "reward": 25
+    },
+    {
+     "title": "Finna Go",
+     "type": "vocabulary",
+     "prompt": "'Finna', as in 'I'm finna leave', is a shortened form of...",
+     "options": [
+      "Finally",
+      "Fixing to — meaning 'about to'",
+      "Finding a"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "What's Good?",
+     "type": "conversation",
+     "prompt": "A friendly neighbor greets you with 'What's good?' What are they asking?",
+     "options": [
+      "What food do you have?",
+      "How are you? What's happening?",
+      "What is morally right?"
+     ],
+     "answerIndex": 1,
+     "reward": 10
+    }
+   ]
+  },
+  {
+   "code": "us_nyc",
+   "dialect": "New York City",
+   "zoneName": "The Bodega Block",
+   "line": "liberty",
+   "architecture": "Brick walk-ups zigzagged with iron fire escapes crowd over corner bodegas and pizza counters, steam curling from the cobbles while pigeons supervise everything.",
+   "landmark": "The All-Night Bodega — a glowing corner store that has never once closed, guarded by Reggie, the city's most famous bodega cat.",
+   "palette": {
+    "primary": "#B25B3F",
+    "secondary": "#D9B489",
+    "accent": "#F0B429",
+    "roof": "#6E5F4B"
+   },
+   "npcs": [
+    {
+     "name": "Tony Marino",
+     "role": "bodega owner",
+     "greeting": "How ya doin'? Grab what ya need — and say hi to the cat, he runs the place."
+    },
+    {
+     "name": "Deja Rivera",
+     "role": "subway busker",
+     "greeting": "Hey! You're just in time — next song's a good one, no charge for smiling."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Corner Store Basics",
+     "type": "vocabulary",
+     "prompt": "In New York City, what is a 'bodega'?",
+     "options": [
+      "A small corner grocery and convenience store",
+      "An underground train",
+      "A style of pizza",
+      "A city park"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "Waiting On Line",
+     "type": "conversation",
+     "prompt": "A New Yorker says, 'I waited on line for an hour.' What were they doing?",
+     "options": [
+      "Chatting on the internet",
+      "Standing in a queue",
+      "Balancing on a rope"
+     ],
+     "answerIndex": 1,
+     "reward": 20
+    },
+    {
+     "title": "Grab a Slice",
+     "type": "vocabulary",
+     "prompt": "If a New Yorker invites you to 'grab a slice', what will you eat?",
+     "options": [
+      "A piece of cake",
+      "A bagel",
+      "A slice of pizza"
+     ],
+     "answerIndex": 2,
+     "reward": 10
+    }
+   ]
+  },
+  {
+   "code": "us_boston",
+   "dialect": "Boston",
+   "zoneName": "The Wicked Common",
+   "line": "liberty",
+   "architecture": "Crooked cobblestone lanes climb between red-brick row houses with gas lamps, ivy, and green shutters, opening onto a leafy common ringed by chowder carts.",
+   "landmark": "The Green Monstah — a towering emerald ballpark wall at the edge of the common where kids play catch until the gas lamps come on.",
+   "palette": {
+    "primary": "#A94E3A",
+    "secondary": "#E9D3AC",
+    "accent": "#4E7A5A",
+    "roof": "#5F5648"
+   },
+   "npcs": [
+    {
+     "name": "Fitzy Doyle",
+     "role": "chowder cart vendor",
+     "greeting": "How are ya? The chowder's wicked good today — first cup's on me."
+    },
+    {
+     "name": "Nora Callahan",
+     "role": "T conductor",
+     "greeting": "Welcome aboard! Next stop, the Common — it's a wicked nice day for it."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Wicked Smart",
+     "type": "vocabulary",
+     "prompt": "In Boston, 'wicked' is most often used to mean...",
+     "options": [
+      "Evil",
+      "Very or really",
+      "Cold and windy"
+     ],
+     "answerIndex": 1,
+     "reward": 10
+    },
+    {
+     "title": "Riding the T",
+     "type": "vocabulary",
+     "prompt": "When Bostonians say they're 'taking the T', what are they using?",
+     "options": [
+      "A taxi",
+      "The subway system",
+      "A ferry boat",
+      "A golf cart"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "Frappe Time",
+     "type": "vocabulary",
+     "prompt": "In Boston, if you order a 'frappe', you'll get...",
+     "options": [
+      "A thick milkshake blended with ice cream",
+      "A frozen coffee with whipped cream",
+      "A plain glass of milk"
+     ],
+     "answerIndex": 0,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "us_midwestern",
+   "dialect": "Midwestern",
+   "zoneName": "Ope Corners",
+   "line": "liberty",
+   "architecture": "Wide, friendly streets of clapboard houses with big porches and bigger lawns roll toward a butter-yellow grain elevator, a supper club glowing on every corner.",
+   "landmark": "The Hotdish Pavilion — a barn-red community hall where a potluck is always underway and nobody leaves without leftovers.",
+   "palette": {
+    "primary": "#F0DCAE",
+    "secondary": "#D9A05B",
+    "accent": "#9C4A3C",
+    "roof": "#7C6A4F"
+   },
+   "npcs": [
+    {
+     "name": "Marge Lundquist",
+     "role": "supper-club hostess",
+     "greeting": "Ope, didn't see ya there! Come on in — the hotdish is hot and there's plenty."
+    },
+    {
+     "name": "Gary Novak",
+     "role": "hardware store owner",
+     "greeting": "Well hey there! Need anything? You betcha we've got it — or we'll chat till we find it."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Ope!",
+     "type": "conversation",
+     "prompt": "A Midwesterner squeezing past you says, 'Ope! Just gonna sneak right past ya.' What does 'ope' express?",
+     "options": [
+      "Anger",
+      "A quick, friendly 'oops / excuse me'",
+      "A call for help"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "Pop Quiz",
+     "type": "vocabulary",
+     "prompt": "In much of the Midwest, what do people call a sweet fizzy drink?",
+     "options": [
+      "Pop",
+      "Fizzy juice",
+      "Squash",
+      "Tonic"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "Hotdish Supper",
+     "type": "vocabulary",
+     "prompt": "In Minnesota and the Upper Midwest, a 'hotdish' is...",
+     "options": [
+      "A spicy salsa",
+      "A baked casserole shared at gatherings",
+      "A very warm plate"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "us_californian",
+   "dialect": "Californian",
+   "zoneName": "Stoked Shores",
+   "line": "liberty",
+   "architecture": "Pastel surf shacks, taco stands, and juice bars string along a palm-lined boardwalk where skateboards click past murals of endless golden waves.",
+   "landmark": "Endless Summer Pier — a long wooden pier with a slow ferris wheel that catches fire-orange light every single sunset.",
+   "palette": {
+    "primary": "#F2DEB3",
+    "secondary": "#F4A259",
+    "accent": "#78C0B8",
+    "roof": "#C15B3F"
+   },
+   "npcs": [
+    {
+     "name": "Kai Nakamura",
+     "role": "surf instructor",
+     "greeting": "Hey, what's up! Waves are super mellow today — perfect day to get stoked."
+    },
+    {
+     "name": "Sierra Gomez",
+     "role": "smoothie stand owner",
+     "greeting": "Hey hey! You have to try the mango — it's hella good, I promise."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Totally Stoked",
+     "type": "vocabulary",
+     "prompt": "If a Californian says they're 'stoked', they are...",
+     "options": [
+      "Very excited",
+      "Sunburned",
+      "Stuck in traffic"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "Gnarly Waves",
+     "type": "vocabulary",
+     "prompt": "In California surf slang, 'gnarly' can describe something that is...",
+     "options": [
+      "Quiet and boring",
+      "Neatly organized",
+      "Wild, extreme, or impressive"
+     ],
+     "answerIndex": 2,
+     "reward": 15
+    },
+    {
+     "title": "Take The 101",
+     "type": "conversation",
+     "prompt": "A Southern Californian tells you, 'Just take the 101.' What are they talking about?",
+     "options": [
+      "A beginner's class",
+      "A freeway — Californians put 'the' before highway numbers",
+      "A bus ticket price",
+      "An apartment number"
+     ],
+     "answerIndex": 1,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "us_appalachian",
+   "dialect": "Appalachian",
+   "zoneName": "Holler Ridge",
+   "line": "liberty",
+   "architecture": "Weathered timber cabins and quilt-square barns tuck along a misty blue ridgeline, joined by split-rail fences, porch swings, and creaky footbridges over cold creeks.",
+   "landmark": "The Dulcimer Porch — a long shared porch stage where fiddle and dulcimer tunes drift down the holler every evening.",
+   "palette": {
+    "primary": "#C9A87C",
+    "secondary": "#A98467",
+    "accent": "#B5533C",
+    "roof": "#5F6F52"
+   },
+   "npcs": [
+    {
+     "name": "Delie Mae Combs",
+     "role": "quilt shop keeper",
+     "greeting": "Hey there, young'un! Come look at the new quilts — I reckon you'll find one you love."
+    },
+    {
+     "name": "Otis Hensley",
+     "role": "dulcimer player",
+     "greeting": "Evenin'! Set a spell — this next tune's an old one from up the holler."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Up the Holler",
+     "type": "vocabulary",
+     "prompt": "In Appalachia, a 'holler' is...",
+     "options": [
+      "A loud shout only",
+      "A small valley between hills",
+      "A wooden cabin"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "A Poke of Candy",
+     "type": "vocabulary",
+     "prompt": "In traditional Appalachian speech, a 'poke' is...",
+     "options": [
+      "A paper bag or sack",
+      "A gentle push",
+      "A garden tool",
+      "A type of pie"
+     ],
+     "answerIndex": 0,
+     "reward": 20
+    },
+    {
+     "title": "I Reckon",
+     "type": "conversation",
+     "prompt": "When your neighbor says, 'I reckon it'll rain tonight,' they mean...",
+     "options": [
+      "They demand rain",
+      "They think or suppose it will rain",
+      "They are afraid of rain"
+     ],
+     "answerIndex": 1,
+     "reward": 10
+    }
+   ]
+  },
+  {
+   "code": "us_texan",
+   "dialect": "Texan",
+   "zoneName": "Lone Star Mesa",
+   "line": "liberty",
+   "architecture": "Limestone-and-stucco storefronts with shady arcades face a wide dusty plaza strung with lights, where windmills spin slow and a tin-roofed dance hall hums till late.",
+   "landmark": "The Bluebonnet Dance Hall — a tin-roofed hall where two-steppers twirl beneath a giant lone-star lantern.",
+   "palette": {
+    "primary": "#EAD8B7",
+    "secondary": "#C1683C",
+    "accent": "#7C8FC4",
+    "roof": "#8F4A33"
+   },
+   "npcs": [
+    {
+     "name": "Rosa 'Tex' Delgado",
+     "role": "barbecue pitmaster",
+     "greeting": "Howdy, y'all! Brisket's been smoking since sunup — come get you a plate."
+    },
+    {
+     "name": "Hank Whitfield",
+     "role": "ranch hand",
+     "greeting": "Howdy! I'm fixin' to ride out yonder, but I've always got time for a howdy."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Howdy, Friend",
+     "type": "conversation",
+     "prompt": "In Texas, 'howdy' is best used to...",
+     "options": [
+      "Say a friendly hello",
+      "Say goodbye",
+      "Ask for the bill"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "All Hat, No Cattle",
+     "type": "vocabulary",
+     "prompt": "If a Texan says someone is 'all hat and no cattle', that person...",
+     "options": [
+      "Owns a large ranch",
+      "Talks big but doesn't back it up",
+      "Loves fashion",
+      "Is an excellent cowboy"
+     ],
+     "answerIndex": 1,
+     "reward": 25
+    },
+    {
+     "title": "Over Yonder",
+     "type": "vocabulary",
+     "prompt": "'The dance hall is over yonder' means the dance hall is...",
+     "options": [
+      "Closed for the night",
+      "Over there, a little way off",
+      "Brand new"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "us_pacific_nw",
+   "dialect": "Pacific Northwest",
+   "zoneName": "The Drizzle District",
+   "line": "liberty",
+   "architecture": "Cedar-shingled coffee roasteries and cozy bookshops glow through silver drizzle, moss trimming every gutter and ferns sprouting from window boxes beneath a distant snowy peak.",
+   "landmark": "The Evergreen Roastery — a lighthouse-shaped coffee roaster whose chimney sends the smell of fresh espresso out over the drizzle.",
+   "palette": {
+    "primary": "#C8A87C",
+    "secondary": "#8FA678",
+    "accent": "#E3A857",
+    "roof": "#4F6A54"
+   },
+   "npcs": [
+    {
+     "name": "Wren Kowalski",
+     "role": "barista",
+     "greeting": "Hey there! Don't mind the drizzle — it's basically sunshine here. Pour-over?"
+    },
+    {
+     "name": "Forrest Lee",
+     "role": "trail guide",
+     "greeting": "Hey, welcome! The Mountain's out today — you picked a good one to visit."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "The Mountain Is Out",
+     "type": "conversation",
+     "prompt": "In Seattle, when someone happily says 'The Mountain is out!', they mean...",
+     "options": [
+      "A volcano is erupting",
+      "Mount Rainier is visible because the sky is clear",
+      "A new hiking trail just opened"
+     ],
+     "answerIndex": 1,
+     "reward": 20
+    },
+    {
+     "title": "Sunbreak",
+     "type": "vocabulary",
+     "prompt": "Northwest weather reports love the word 'sunbreak'. It means...",
+     "options": [
+      "A short period of sunshine between clouds",
+      "A power outage",
+      "A beach holiday",
+      "Sunrise"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "A Bit Spendy",
+     "type": "vocabulary",
+     "prompt": "If a Portlander calls a coffee 'spendy', the coffee is...",
+     "options": [
+      "Expensive",
+      "Extra strong",
+      "Served very quickly"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "ca_canadian",
+   "dialect": "Canadian (general)",
+   "zoneName": "Maple Hollow",
+   "line": "liberty",
+   "architecture": "Snug timber-frame cottages with canoe racks and maple-red doors gather around a frozen pond, cedar boardwalks dusted with leaves and sugar-shack steam drifting through the pines.",
+   "landmark": "The Sugar Shack Rink — a steaming maple-syrup cabin beside a frozen pond where a friendly hockey game never quite ends.",
+   "palette": {
+    "primary": "#F0E1C2",
+    "secondary": "#C89B6D",
+    "accent": "#B23A2E",
+    "roof": "#5E4633"
+   },
+   "npcs": [
+    {
+     "name": "Gord MacKenzie",
+     "role": "sugar shack keeper",
+     "greeting": "Oh hey, welcome, eh! Syrup's fresh off the boil — grab a toque, it's chilly out."
+    },
+    {
+     "name": "Priya Sandhu",
+     "role": "pond hockey coach",
+     "greeting": "Hey there! Grab a stick and hop on, eh — it's just a friendly skate, no worries."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Grab Your Toque",
+     "type": "vocabulary",
+     "prompt": "In Canada, a 'toque' is...",
+     "options": [
+      "A knitted winter hat",
+      "A hockey stick",
+      "A maple pastry",
+      "A snowshoe"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "Eh?",
+     "type": "conversation",
+     "prompt": "Canadians often end a sentence with 'eh?', as in 'Nice day, eh?' What does it do?",
+     "options": [
+      "It shows anger",
+      "It invites agreement, like 'right?'",
+      "It means 'no'"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "Double-Double",
+     "type": "vocabulary",
+     "prompt": "At a Canadian coffee shop, ordering a 'double-double' gets you...",
+     "options": [
+      "Two doughnuts",
+      "Coffee with two creams and two sugars",
+      "Two large coffees",
+      "A double espresso"
+     ],
+     "answerIndex": 1,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "ca_quebec",
+   "dialect": "Quebec English",
+   "zoneName": "The Dep Steps",
+   "line": "liberty",
+   "architecture": "Winding wrought-iron staircases spiral up the faces of grey-stone triplexes with silver mansard roofs, dep signs glowing on the corners and woodsmoke drifting from a bagel oven.",
+   "landmark": "La Grande Spirale — a triple-twist iron staircase strung with fairy lights, climbing the tallest rose-stone triplex in the zone.",
+   "palette": {
+    "primary": "#C9B79C",
+    "secondary": "#B96A4B",
+    "accent": "#4E8F8B",
+    "roof": "#7A6E63"
+   },
+   "npcs": [
+    {
+     "name": "Chantal Tremblay",
+     "role": "dep owner",
+     "greeting": "Bonjour-hi! Come in, come in — the sesame bagels just arrived, still warm."
+    },
+    {
+     "name": "Marc-André Roy",
+     "role": "bagel baker",
+     "greeting": "Salut, my friend! Take one for the walk — best bagels in the country, I promise."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Run to the Dep",
+     "type": "vocabulary",
+     "prompt": "In Montreal English, a 'dep' is...",
+     "options": [
+      "A corner convenience store, from the French 'dépanneur'",
+      "A metro station",
+      "A snow shovel",
+      "A parking spot"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "All-Dressed",
+     "type": "vocabulary",
+     "prompt": "If you order an 'all-dressed' pizza in Quebec, it comes with...",
+     "options": [
+      "No toppings at all",
+      "The classic full set of toppings — pepperoni, mushrooms, and green peppers",
+      "Only cheese",
+      "Maple syrup"
+     ],
+     "answerIndex": 1,
+     "reward": 20
+    },
+    {
+     "title": "At the Guichet",
+     "type": "conversation",
+     "prompt": "A Montrealer says, 'I'll stop at the guichet for some cash.' A 'guichet' is...",
+     "options": [
+      "A bakery",
+      "An ATM (bank machine)",
+      "A speeding ticket"
+     ],
+     "answerIndex": 1,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "ca_newfoundland",
+   "dialect": "Newfoundland",
+   "zoneName": "Jellybean Cove",
+   "line": "liberty",
+   "architecture": "Candy-bright jellybean row houses stack down a steep lane to a foggy harbour of fishing stages on stilts, lobster pots, and laundry lines snapping in the sea wind.",
+   "landmark": "Mummers' Wharf — a crooked harbour stage where masked mummers dance and accordions play whenever the fog rolls in.",
+   "palette": {
+    "primary": "#E9B44C",
+    "secondary": "#C95D4A",
+    "accent": "#4E8DA6",
+    "roof": "#5B4A68"
+   },
+   "npcs": [
+    {
+     "name": "Bride Furlong",
+     "role": "fish-and-chips shop owner",
+     "greeting": "What are ya at, my love? Sit down — the fish is fresh off the boat and some good."
+    },
+    {
+     "name": "Con Power",
+     "role": "accordion-playing mummer",
+     "greeting": "Yes b'y, welcome! Stay for a tune — the music sounds better in the fog, I swears."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "What Are Ya At?",
+     "type": "conversation",
+     "prompt": "In Newfoundland, the friendly greeting 'What are ya at?' means...",
+     "options": [
+      "What are you holding?",
+      "What's up? / How's it going?",
+      "Where do you live?"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "Some Good",
+     "type": "vocabulary",
+     "prompt": "If a Newfoundlander says the fish and chips were 'some good', the meal was...",
+     "options": [
+      "Slightly disappointing",
+      "Really, really good",
+      "Just okay"
+     ],
+     "answerIndex": 1,
+     "reward": 15
+    },
+    {
+     "title": "Yes B'y!",
+     "type": "vocabulary",
+     "prompt": "In Newfoundland speech, 'b'y' (from 'boy') is...",
+     "options": [
+      "An insult",
+      "A friendly word like 'buddy', used for anyone",
+      "A word for the sea",
+      "A small boat"
+     ],
+     "answerIndex": 1,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "au_australian",
+   "dialect": "Australian (general)",
+   "zoneName": "The Outback Outpost",
+   "line": "sunward",
+   "architecture": "Sun-baked weatherboard pubs and shopfronts with wide shaded verandahs and corrugated-iron awnings line a dusty ochre main street dotted with silvery gum trees.",
+   "landmark": "The Big Galah — a cheerfully oversized pink-and-grey cockatoo statue in the town square, honouring Australia's grand tradition of roadside 'Big Things'.",
+   "palette": {
+    "primary": "#E0A96D",
+    "secondary": "#C4713B",
+    "accent": "#A8B79A",
+    "roof": "#A64B2A"
+   },
+   "npcs": [
+    {
+     "name": "Bazza",
+     "role": "pub-and-tucker shop owner",
+     "greeting": "G'day, mate! Grab a seat in the shade — the arvo sun's a scorcher today."
+    },
+    {
+     "name": "Shazza",
+     "role": "street busker with a battered guitar",
+     "greeting": "How ya going? Chuck a coin in the case and I'll play you a ripper of a tune."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Arvo Time",
+     "type": "vocabulary",
+     "prompt": "In Australian English, what does 'arvo' mean?",
+     "options": [
+      "Afternoon",
+      "Avocado",
+      "A close friend",
+      "A barbecue"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "How Ya Going?",
+     "type": "conversation",
+     "prompt": "A friend in Sydney greets you with 'How ya going?' What are they asking?",
+     "options": [
+      "How are you?",
+      "Where are you going?",
+      "How will you travel there?"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Heaps Good",
+     "type": "vocabulary",
+     "prompt": "If an Australian says a meal is 'heaps good', what do they mean?",
+     "options": [
+      "It is very good",
+      "It is only slightly good",
+      "It is too big",
+      "It is expensive"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "au_broad",
+   "dialect": "Broad Australian",
+   "zoneName": "Fair Dinkum Flats",
+   "line": "sunward",
+   "architecture": "Sun-bleached fibro cottages and tin-roofed sheds stand along a wide red-dirt street where utes park nose-in under strings of festival lights.",
+   "landmark": "The Squeaky Mill — a towering old Southern Cross windmill that creaks with every breeze; locals swear its squeak predicts rain.",
+   "palette": {
+    "primary": "#CC7A4E",
+    "secondary": "#E3B778",
+    "accent": "#7FA08C",
+    "roof": "#8F4A2E"
+   },
+   "npcs": [
+    {
+     "name": "Davo",
+     "role": "cattle-station stockman",
+     "greeting": "Fair dinkum, you made it all the way out here! Good on ya, mate."
+    },
+    {
+     "name": "Nolene",
+     "role": "tuckshop owner",
+     "greeting": "Strewth, you look knackered — come in for a cuppa and a bikkie, love."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "The Real Dinkum",
+     "type": "vocabulary",
+     "prompt": "What does 'fair dinkum' mean in Australian English?",
+     "options": [
+      "Genuine, the real thing",
+      "Fairly priced",
+      "A type of bird",
+      "Quite far away"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Lizard Logic",
+     "type": "conversation",
+     "prompt": "Davo says he's been 'flat out like a lizard drinking' all week. What does he mean?",
+     "options": [
+      "He has been extremely busy",
+      "He has been very thirsty",
+      "He has been resting in the sun",
+      "He has been swimming"
+     ],
+     "answerIndex": 0,
+     "reward": 25
+    },
+    {
+     "title": "She'll Be Right",
+     "type": "conversation",
+     "prompt": "Your ute gets a flat tyre and Nolene says 'She'll be right, mate.' What is she telling you?",
+     "options": [
+      "Everything will turn out fine",
+      "A woman is correct",
+      "You should turn right ahead"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    }
+   ]
+  },
+  {
+   "code": "au_cultivated",
+   "dialect": "Cultivated Australian",
+   "zoneName": "Toorak Terrace",
+   "line": "sunward",
+   "architecture": "Cream-stone Victorian terraces trimmed with iron lacework and manicured rose hedges face a plane-tree boulevard where a heritage tram glides past.",
+   "landmark": "The Elocution Hall — a domed sandstone conservatorium where the wireless announcers of old once polished their vowels, now home to afternoon recitals.",
+   "palette": {
+    "primary": "#EFDDB8",
+    "secondary": "#D8C39A",
+    "accent": "#5F7A61",
+    "roof": "#7A6455"
+   },
+   "npcs": [
+    {
+     "name": "Ms. Beaumont",
+     "role": "antiquarian bookshop owner",
+     "greeting": "Good afternoon — do come in and browse; the first editions are simply marvellous."
+    },
+    {
+     "name": "Professor Whitcombe",
+     "role": "retired tram conductor and local historian",
+     "greeting": "Delighted you could join us. Mind the tram tracks as you cross, won't you?"
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Know Your Accent",
+     "type": "conversation",
+     "prompt": "Cultivated Australian is best described as which of the following?",
+     "options": [
+      "A prestige Australian accent historically close to British RP",
+      "A rural outback accent",
+      "A New Zealand accent",
+      "American-influenced slang"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Famous Voices",
+     "type": "conversation",
+     "prompt": "Which famous Australian actors are often cited as speakers of a Cultivated Australian accent?",
+     "options": [
+      "Cate Blanchett and Geoffrey Rush",
+      "Steve Irwin and Crocodile Dundee",
+      "The cast of a rural cattle station"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "On the Wireless",
+     "type": "vocabulary",
+     "prompt": "When an older Cultivated Australian speaker mentions 'the wireless', what are they talking about?",
+     "options": [
+      "The radio",
+      "Wi-Fi internet",
+      "A mobile phone",
+      "A hearing aid"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "nz_nze",
+   "dialect": "New Zealand English",
+   "zoneName": "Jandal Junction",
+   "line": "sunward",
+   "architecture": "Cheerful weatherboard villas with bay windows and corrugated roofs sit behind fern-draped picket fences, with a friendly corner dairy anchoring every block.",
+   "landmark": "The Giant Jandal — a beloved oversized flip-flop arching over the town square, a monument to endless summers at the bach.",
+   "palette": {
+    "primary": "#E7D8A7",
+    "secondary": "#9DB48A",
+    "accent": "#D97B4F",
+    "roof": "#6E7F5C"
+   },
+   "npcs": [
+    {
+     "name": "Bex",
+     "role": "dairy (corner shop) owner",
+     "greeting": "Kia ora! Sweet as — grab an ice block from the chiller, eh."
+    },
+    {
+     "name": "Callum",
+     "role": "surf instructor and bach caretaker",
+     "greeting": "Chur! Chuck your togs on — the water's choice today."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Jandal Genius",
+     "type": "vocabulary",
+     "prompt": "In New Zealand English, what are 'jandals'?",
+     "options": [
+      "Flip-flops (sandals)",
+      "Winter boots",
+      "Sunglasses",
+      "Beach shorts"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "Dairy Run",
+     "type": "vocabulary",
+     "prompt": "What is a 'dairy' in New Zealand English?",
+     "options": [
+      "A small corner convenience shop",
+      "A milk-bottling factory",
+      "A cheese platter",
+      "A farm animal"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Choice, Bro",
+     "type": "conversation",
+     "prompt": "A Kiwi friend says the surf is 'choice' today. What do they mean?",
+     "options": [
+      "It is excellent",
+      "It is optional",
+      "It is dangerous",
+      "It is crowded"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "nz_maori",
+   "dialect": "NZ Maori English",
+   "zoneName": "Te Marae",
+   "line": "sunward",
+   "architecture": "Grand carved timber wharenui with swooping gables and red-ochre koru spirals gather around a wide grass courtyard, pāua-shell inlays glinting in the low sun.",
+   "landmark": "Te Wharenui o Ngā Reo — a magnificent carved meeting house whose ancestral figures seem to hum with stories as the evening light turns gold.",
+   "palette": {
+    "primary": "#B5492F",
+    "secondary": "#C89B6B",
+    "accent": "#3E8E7E",
+    "roof": "#7B3F2A"
+   },
+   "npcs": [
+    {
+     "name": "Aunty Mere",
+     "role": "kai stall cook",
+     "greeting": "Haere mai, e hoa! Come have some kai with the whānau."
+    },
+    {
+     "name": "Rangi",
+     "role": "master carver and kapa haka tutor",
+     "greeting": "Kia ora, cuz! Ka pai — you found the marae. Come watch us practise."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Whānau First",
+     "type": "vocabulary",
+     "prompt": "In NZ Māori English, what does 'whānau' mean?",
+     "options": [
+      "Family",
+      "House",
+      "Ocean",
+      "Song"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Time for Kai",
+     "type": "vocabulary",
+     "prompt": "Aunty Mere invites you to share some 'kai'. What is she offering?",
+     "options": [
+      "Food",
+      "Money",
+      "A canoe ride",
+      "A blanket"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "Ka Pai!",
+     "type": "conversation",
+     "prompt": "You finish your first carving lesson and Rangi says 'Ka pai!' What is he telling you?",
+     "options": [
+      "Well done!",
+      "Goodbye!",
+      "Watch out!",
+      "Hurry up!"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "za_white",
+   "dialect": "White South African English",
+   "zoneName": "Howzit Heights",
+   "line": "sunward",
+   "architecture": "Whitewashed Cape Dutch houses with sculpted gables and green shutters line jacaranda-shaded streets, wood smoke curling from stoep-side weekend braais.",
+   "landmark": "The Great Braai Stand — a terraced amphitheatre of glowing braai fires circling an ancient jacaranda that seems forever caught in golden bloom.",
+   "palette": {
+    "primary": "#F2E8D5",
+    "secondary": "#D9B382",
+    "accent": "#9B7FB8",
+    "roof": "#6E5B3E"
+   },
+   "npcs": [
+    {
+     "name": "Pieter",
+     "role": "braai master and butcher",
+     "greeting": "Howzit! The boerewors is nearly done — it's going to be lekker, hey."
+    },
+    {
+     "name": "Elna",
+     "role": "farm-stall owner with a trusty bakkie",
+     "greeting": "Ag, welcome! Sit down and rest — I'll bring you koeksisters now-now."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Robot Rules",
+     "type": "vocabulary",
+     "prompt": "In South African English, what is a 'robot'?",
+     "options": [
+      "A traffic light",
+      "A machine helper",
+      "A security guard",
+      "A minibus taxi"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Lekker Lesson",
+     "type": "vocabulary",
+     "prompt": "Pieter says the boerewors is going to be 'lekker'. What does 'lekker' mean?",
+     "options": [
+      "Nice or great",
+      "Leaking",
+      "Very spicy",
+      "Nearly ready"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "Now-Now or Never",
+     "type": "conversation",
+     "prompt": "Elna says she'll bring the koeksisters 'now-now'. When should you expect them?",
+     "options": [
+      "Very soon, but not this exact instant",
+      "Immediately, right this second",
+      "Tomorrow morning",
+      "Only if you ask twice"
+     ],
+     "answerIndex": 0,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "za_black",
+   "dialect": "Black South African English",
+   "zoneName": "Kasi Crossing",
+   "line": "sunward",
+   "architecture": "Brightly painted kasi houses and container spaza shops cluster around a lively taxi rank, murals of dancing figures glowing warm while music drifts from the shisa nyama grill.",
+   "landmark": "The Shisa Nyama Circle — an open-air grill pavilion where the whole neighbourhood gathers when the coals glow gold at sunset.",
+   "palette": {
+    "primary": "#E8B23A",
+    "secondary": "#C75B39",
+    "accent": "#4E8F6B",
+    "roof": "#8A5A44"
+   },
+   "npcs": [
+    {
+     "name": "Gogo Thandi",
+     "role": "spaza shop keeper",
+     "greeting": "Yebo, my child! Come in, come in — the vetkoek are still warm."
+    },
+    {
+     "name": "Sipho",
+     "role": "taxi-rank harmony singer",
+     "greeting": "Sharp sharp, my friend! You're just in time for the chorus."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Yebo!",
+     "type": "vocabulary",
+     "prompt": "'Yebo', borrowed from isiZulu into South African English, means what?",
+     "options": [
+      "Yes",
+      "No",
+      "Maybe",
+      "Please"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "Spaza Stop",
+     "type": "vocabulary",
+     "prompt": "What is a 'spaza shop' in South Africa?",
+     "options": [
+      "A small informal neighbourhood shop",
+      "A car repair garage",
+      "A dance hall",
+      "A train station kiosk only"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Eish!",
+     "type": "conversation",
+     "prompt": "Your friend drops their ice cream and you hear 'Eish!' What does this expression convey?",
+     "options": [
+      "Surprise or sympathy, like 'oh no!'",
+      "A cheerful greeting",
+      "Full agreement",
+      "A formal goodbye"
+     ],
+     "answerIndex": 0,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "za_indian",
+   "dialect": "South African Indian English",
+   "zoneName": "Bunny Chow Lane",
+   "line": "sunward",
+   "architecture": "Scalloped pastel arcade shopfronts hung with strings of marigolds shelter spice stalls and curry houses, with temple spires and a minaret warm in the golden haze beyond.",
+   "landmark": "The Spice Emporium Clocktower — a rose-pink market tower said to be dusted with a full century's worth of drifting masala.",
+   "palette": {
+    "primary": "#F2D6A2",
+    "secondary": "#E9A03B",
+    "accent": "#C24D5E",
+    "roof": "#8C5A2B"
+   },
+   "npcs": [
+    {
+     "name": "Aunty Farida",
+     "role": "curry-house cook",
+     "greeting": "Howzit, my dear! Sit, sit — the bunny chow is hot and the gravy is proper."
+    },
+    {
+     "name": "Ravi",
+     "role": "spice merchant",
+     "greeting": "Come look, come look! Fresh masala, my friend — you won't find better in the whole lane, I'm telling you."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "The Famous Bunny",
+     "type": "vocabulary",
+     "prompt": "What is a 'bunny chow', Durban's most famous dish?",
+     "options": [
+      "Curry served inside a hollowed-out loaf of bread",
+      "A rabbit stew",
+      "A chocolate dessert",
+      "A cold noodle salad"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Isit?",
+     "type": "conversation",
+     "prompt": "You share surprising news and your Durban friend replies, 'Isit?' What do they mean?",
+     "options": [
+      "Really? Is that so?",
+      "Where is it?",
+      "Yes, it certainly is",
+      "Please stop talking"
+     ],
+     "answerIndex": 0,
+     "reward": 20
+    },
+    {
+     "title": "Looking Larney",
+     "type": "vocabulary",
+     "prompt": "In South African English, if a restaurant is described as 'larney', it is...",
+     "options": [
+      "Fancy or posh",
+      "Closed for the day",
+      "Cheap and cheerful",
+      "Very noisy"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    }
+   ]
+  },
+  {
+   "code": "za_cape_flats",
+   "dialect": "Cape Flats",
+   "zoneName": "Bo-Kaap Steps",
+   "line": "sunward",
+   "architecture": "Candy-bright flat-roofed row houses climb steep cobbled steps, every façade a different colour, with ghoema drum rhythms echoing between the washing lines.",
+   "landmark": "The Klopse Bandstand — a striped pavilion where the Kaapse Klopse minstrels rehearse their ghoema beat all year long for Tweede Nuwe Jaar.",
+   "palette": {
+    "primary": "#E86A5E",
+    "secondary": "#F2B33D",
+    "accent": "#4FA3A5",
+    "roof": "#9C4B3C"
+   },
+   "npcs": [
+    {
+     "name": "Boeta Achmat",
+     "role": "gatsby shop owner",
+     "greeting": "Awê! You hungry? One gatsby here feeds the whole family, ek sê."
+    },
+    {
+     "name": "Aunty Gadija",
+     "role": "koesister baker",
+     "greeting": "Môre, my child! Come try a koesister — still warm, and duidelik lekker."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Gatsby Feast",
+     "type": "vocabulary",
+     "prompt": "On the Cape Flats, what is a 'gatsby'?",
+     "options": [
+      "A huge filled bread roll usually shared between friends",
+      "A fancy dress party",
+      "A vintage motorcar",
+      "A carnival dance move"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Kwaai Talk",
+     "type": "vocabulary",
+     "prompt": "In Cape Town slang, if your new takkies (sneakers) are 'kwaai', they are...",
+     "options": [
+      "Cool and impressive",
+      "Angry",
+      "Too quiet",
+      "Too expensive"
+     ],
+     "answerIndex": 0,
+     "reward": 20
+    },
+    {
+     "title": "Awê!",
+     "type": "conversation",
+     "prompt": "Someone calls 'Awê!' as you walk up the steps. How should you understand it?",
+     "options": [
+      "As a friendly greeting",
+      "As an apology",
+      "As a warning to be careful",
+      "As a goodbye"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    }
+   ]
+  },
+  {
+   "code": "car_caribbean",
+   "dialect": "Caribbean (general)",
+   "zoneName": "Limin' Lane",
+   "line": "sunward",
+   "architecture": "Pastel gingerbread cottages with lacy fretwork balconies and louvred shutters face a sea-almond-shaded promenade where fishing boats rest on the golden sand.",
+   "landmark": "The Sea Grape Gazebo — a wide wooden bandstand on the waterfront where every island's rhythm gets its turn as the sun goes down.",
+   "palette": {
+    "primary": "#F2D992",
+    "secondary": "#E88D67",
+    "accent": "#57A99A",
+    "roof": "#C25B4A"
+   },
+   "npcs": [
+    {
+     "name": "Miss Althea",
+     "role": "fruit stall vendor",
+     "greeting": "Good afternoon, darlin'! Come lime with us — the mangoes sweet too bad today."
+    },
+    {
+     "name": "Fitzroy",
+     "role": "waterfront busker",
+     "greeting": "Wha' happening, friend? Cool yourself in the shade and catch this riddim."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Time to Lime",
+     "type": "vocabulary",
+     "prompt": "Across the Caribbean, what does it mean 'to lime'?",
+     "options": [
+      "To hang out and relax with friends",
+      "To paint a wall white",
+      "To squeeze citrus fruit",
+      "To hurry somewhere"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Vex or Not",
+     "type": "vocabulary",
+     "prompt": "If a Caribbean friend tells you they are 'vex', how are they feeling?",
+     "options": [
+      "Annoyed or angry",
+      "Excited",
+      "Confused",
+      "Sleepy"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Sweet Too Bad",
+     "type": "conversation",
+     "prompt": "Miss Althea says 'the mango sweet too bad'. What is she telling you about the mango?",
+     "options": [
+      "It is extremely sweet and delicious",
+      "It is overripe and spoiled",
+      "It is not sweet at all"
+     ],
+     "answerIndex": 0,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "car_jamaican",
+   "dialect": "Jamaican",
+   "zoneName": "Kingston Yard",
+   "line": "sunward",
+   "architecture": "Zinc-and-timber verandah shops painted in red, gold, and green cluster around a common yard, sound-system speaker boxes stacked like furniture beneath bougainvillea-draped gates.",
+   "landmark": "The Sound System Wall — a mural-covered stack of speaker boxes in the yard square that plays warm golden-hour dub every single evening.",
+   "palette": {
+    "primary": "#E9B93E",
+    "secondary": "#C64A3A",
+    "accent": "#4C8C4A",
+    "roof": "#9B8464"
+   },
+   "npcs": [
+    {
+     "name": "Miss Cherry",
+     "role": "patty shop owner",
+     "greeting": "Wah gwaan, likkle one! Come nyam a patty before they're all done."
+    },
+    {
+     "name": "Delroy",
+     "role": "sound-system selector",
+     "greeting": "Big up yourself! Everything irie — the next tune soon come."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Wah Gwaan?",
+     "type": "conversation",
+     "prompt": "'Wah gwaan?' is a friendly Jamaican greeting. What does it mean?",
+     "options": [
+      "What's going on?",
+      "Where are you going?",
+      "What do you want?"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "Everything Irie",
+     "type": "vocabulary",
+     "prompt": "Delroy says everything is 'irie'. What is he telling you?",
+     "options": [
+      "Everything is good and at peace",
+      "Everything is urgent",
+      "Everything is confusing",
+      "Everything is expensive"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Nyam Up",
+     "type": "vocabulary",
+     "prompt": "The word 'nyam', which has West African roots, means what in Jamaican speech?",
+     "options": [
+      "To eat",
+      "To sleep",
+      "To dance",
+      "To sing"
+     ],
+     "answerIndex": 0,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "car_trinidadian",
+   "dialect": "Trinidadian",
+   "zoneName": "Carnival Avenue",
+   "line": "sunward",
+   "architecture": "Gingerbread houses with lacy fretwork in soca-bright colours line the avenue, wire-and-sequin carnival costumes glittering from balconies while steelpan chimes drift from the panyards.",
+   "landmark": "The Grand Panyard — an open-air steelpan orchestra yard whose chrome pans catch the sunset like a hundred small suns.",
+   "palette": {
+    "primary": "#F5C542",
+    "secondary": "#E4573D",
+    "accent": "#7C4FA3",
+    "roof": "#B0763B"
+   },
+   "npcs": [
+    {
+     "name": "Uncle Boyo",
+     "role": "doubles vendor",
+     "greeting": "Aye, allyuh reach! Two doubles with slight pepper, coming right up."
+    },
+    {
+     "name": "Anisa",
+     "role": "steelpan tutor",
+     "greeting": "Good evening! Come beat a pan with us — practice starting now, and it going to be sweet."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Allyuh Together",
+     "type": "vocabulary",
+     "prompt": "In Trinidadian English, what does 'allyuh' mean?",
+     "options": [
+      "All of you (plural 'you')",
+      "Alone",
+      "Everything",
+      "Always"
+     ],
+     "answerIndex": 0,
+     "reward": 10
+    },
+    {
+     "title": "Doubles Please",
+     "type": "vocabulary",
+     "prompt": "What are 'doubles', Trinidad's beloved street food?",
+     "options": [
+      "Fried flatbreads filled with curried chickpeas",
+      "Two scoops of coconut ice cream",
+      "A pair of dumplings in soup",
+      "Twin roasted corn cobs"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Bacchanal!",
+     "type": "conversation",
+     "prompt": "A Trini friend sighs, 'It had real bacchanal at the meeting.' What most likely happened?",
+     "options": [
+      "There was commotion, drama, and confusion",
+      "It was a quiet, orderly dinner",
+      "Everyone left early",
+      "A drum solo was performed"
+     ],
+     "answerIndex": 0,
+     "reward": 20
+    }
+   ]
+  },
+  {
+   "code": "car_barbadian",
+   "dialect": "Barbadian",
+   "zoneName": "Flying Fish Wharf",
+   "line": "sunward",
+   "architecture": "Coral-stone shops and tidy little chattel houses — movable wooden homes with steep peaked roofs and jalousie windows — line the wharf in cane-sugar pastels.",
+   "landmark": "The Chattel House Parade — a curved row of perfect chattel houses, each roof a different sunset shade, all facing the fishing boats coming home.",
+   "palette": {
+    "primary": "#F6E3B4",
+    "secondary": "#E39A5B",
+    "accent": "#4FA0B5",
+    "roof": "#C15E50"
+   },
+   "npcs": [
+    {
+     "name": "Mr. Grantley",
+     "role": "fish-fry cook",
+     "greeting": "How you going on, friend? The flying fish fresh today — stay for a cutter and a cool drink."
+    },
+    {
+     "name": "Esme",
+     "role": "chattel-house shopkeeper and Crop Over costume maker",
+     "greeting": "Cheese-on-bread, look who reach! Come see the Crop Over costumes, nuh."
+    }
+   ],
+   "sampleExercises": [
+    {
+     "title": "Wunna Know",
+     "type": "vocabulary",
+     "prompt": "In Bajan speech, what does 'wunna' mean?",
+     "options": [
+      "You all (plural 'you')",
+      "The winner",
+      "Wonderful",
+      "The number one"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    },
+    {
+     "title": "Cheese-on-Bread!",
+     "type": "conversation",
+     "prompt": "Esme exclaims 'Cheese-on-bread!' when you walk in. What is she expressing?",
+     "options": [
+      "Surprise or amazement",
+      "A lunch order",
+      "A formal welcome speech",
+      "Agreement with your plan"
+     ],
+     "answerIndex": 0,
+     "reward": 20
+    },
+    {
+     "title": "Cutter Time",
+     "type": "vocabulary",
+     "prompt": "Mr. Grantley offers you a 'cutter'. What is he offering in Barbados?",
+     "options": [
+      "A salt-bread roll sandwich",
+      "A fishing knife",
+      "A haircut",
+      "A ride on a speedboat"
+     ],
+     "answerIndex": 0,
+     "reward": 15
+    }
+   ]
+  }
+ ]
+}
