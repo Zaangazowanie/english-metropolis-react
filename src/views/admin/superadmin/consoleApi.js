@@ -14,6 +14,10 @@
 //   • 429/503 — nginx limit_req over-bursts are generated locally before the
 //               request reaches any upstream (same rationale as postAdminApi
 //               in AdminAuthContext), so a bounded retry is safe for GETs.
+//   • Writes  — consolePost sends JSON with the same auth/error conventions
+//               but never auto-retries: replaying an assign that 503'd
+//               mid-flight could duplicate curriculumItems rows, so screens
+//               surface the error and keep retry as an explicit user click.
 //   • Blobs   — deck HTML/PDF previews render in <iframe>s and <a download>
 //               can't carry an Authorization header, so consoleGetBlob fetches
 //               the bytes WITH the header and hands back a Blob; screens turn
@@ -76,6 +80,21 @@ export async function consoleGet(path, params) {
 export async function consoleGetBlob(path, params) {
   const response = await consoleFetch(path, params)
   return response.blob()
+}
+
+// POST a JSON console endpoint (assign / unassign — the P1 writes).
+// Deliberately no auto-retry — see the Writes note in the header comment.
+export async function consolePost(path, body) {
+  const headers = { 'Content-Type': 'application/json' }
+  const token = getAdminSessionToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+  const response = await fetch(path, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body || {}),
+  })
+  if (!response.ok) throw consoleError(response.status, path)
+  return response.json()
 }
 
 // Contract URL builders. Browse rows carry pdf_url/html_url and callers should
