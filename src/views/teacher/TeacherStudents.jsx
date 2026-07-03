@@ -9,7 +9,7 @@
 // Until the endpoint is live: calm "backend not live yet" panel, never mocks.
 
 import { useMemo, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { Link, useOutletContext } from 'react-router-dom'
 import { BackendNotLive, LevelChip, SectionError, SectionLoading } from './TeacherPanels.jsx'
 
 function initialsOf(name) {
@@ -61,29 +61,47 @@ export default function TeacherStudents() {
           />
         </label>
         <div className="mt-4 space-y-2">
-          {students.length ? students.map(s => (
-            <div
-              key={s?.slug || s?.name}
-              className="flex flex-wrap items-center gap-3 rounded-[1.25rem] border border-white/60 bg-white/70 px-4 py-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_38px_-30px_rgba(2,132,199,0.55)]"
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-sky-200 bg-sky-50 text-sm font-bold text-sky-700">
-                {initialsOf(s?.name || s?.slug)}
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-900">{s?.name || s?.slug}</p>
-                {s?.slug && <p className="text-xs text-slate-400">{s.slug}</p>}
-              </div>
-              <div className="ml-auto flex flex-wrap items-center gap-2">
-                {s?.group && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
-                    <span className="material-symbols-outlined text-sm">workspaces</span>
-                    {s.group}
-                  </span>
-                )}
-                <LevelChip level={s?.level} />
-              </div>
-            </div>
-          )) : (
+          {students.length ? students.map(s => {
+            const rowCls = 'group flex flex-wrap items-center gap-3 rounded-[1.25rem] border border-white/60 bg-white/70 px-4 py-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_38px_-30px_rgba(2,132,199,0.55)]'
+            const inner = (
+              <>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-sky-200 bg-sky-50 text-sm font-bold text-sky-700">
+                  {initialsOf(s?.name || s?.slug)}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900">{s?.name || s?.slug}</p>
+                  {s?.slug && <p className="text-xs text-slate-400">{s.slug}</p>}
+                </div>
+                <div className="ml-auto flex flex-wrap items-center gap-2">
+                  {s?.group && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                      <span className="material-symbols-outlined text-sm">workspaces</span>
+                      {s.group}
+                    </span>
+                  )}
+                  <LevelChip level={s?.level} />
+                  {s?.slug && (
+                    <span className="material-symbols-outlined text-lg text-slate-300 transition group-hover:text-sky-500" aria-hidden>
+                      chevron_right
+                    </span>
+                  )}
+                </div>
+              </>
+            )
+            // Rows with a slug link to the read-only student detail (analyses).
+            return s?.slug ? (
+              <Link
+                key={s.slug}
+                to={`/teacher/students/${encodeURIComponent(s.slug)}`}
+                title={`Open ${s?.name || s.slug} — analyses (read-only)`}
+                className={rowCls}
+              >
+                {inner}
+              </Link>
+            ) : (
+              <div key={s?.name} className={rowCls}>{inner}</div>
+            )
+          }) : (
             <p className="text-sm text-slate-500 py-2">No students match &ldquo;{query}&rdquo;.</p>
           )}
         </div>
@@ -103,6 +121,7 @@ export default function TeacherStudents() {
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
           Everyone you teach — scoped to you on the server, so this list only ever contains your own students.
+          Click a student to open their progress analyses (read-only).
         </p>
         <div className="mt-4">{rosterBody()}</div>
       </section>

@@ -17,8 +17,10 @@ export function SectionLoading() {
 }
 
 // The endpoint is in the contract but Ricky hasn't flipped it live yet — an
-// expected state during the console rollout, not an error.
-export function BackendNotLive({ endpoint }) {
+// expected state during the console rollout, not an error. `note` (optional)
+// adds one extra honest line — e.g. when the endpoint is still a PROPOSED
+// console-backend-gap issue rather than a contract entry.
+export function BackendNotLive({ endpoint, note }) {
   return (
     <div className="rounded-[1.25rem] border border-dashed border-sky-300 bg-sky-50/50 px-5 py-4">
       <div className="flex items-start gap-3">
@@ -31,6 +33,7 @@ export function BackendNotLive({ endpoint }) {
             from the console contract. The endpoint isn&apos;t switched on yet — your real data will
             appear here the moment it is. Nothing on this screen is simulated.
           </p>
+          {note && <p className="mt-2 text-sm leading-relaxed text-slate-500">{note}</p>}
         </div>
       </div>
     </div>

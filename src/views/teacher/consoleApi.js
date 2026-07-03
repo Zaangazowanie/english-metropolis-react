@@ -102,6 +102,25 @@ export function getTeacherMaterials({ studentSlug } = {}) {
   return teacherConsoleFetch(`/api/console/teacher/materials${suffix}`)
 }
 
+// GET /api/console/teacher/student?student_slug=
+// → { student:{slug,name,level,targetLevel?,group?},
+//     analyses:[{lesson_id, date, title, cefrBand, overallScore,
+//                vocabularyRange, grammaticalAccuracy, fluencyAndCoherence,
+//                pronunciation, communicativeEffectiveness, lessonSummary,
+//                strengths:[...], improvements:[...], keyErrors:[...],
+//                practiceAdvice:[...]}],
+//     level_history:[{timestamp, from, to}] }
+// PROPOSED endpoint — not in API-CONTRACT.md yet; requested in
+// console-backend-gap issue #149. Field names mirror what the admin
+// StudentDetail already renders from Convex (students:getStudentDashboard /
+// getStudentLevelHistory), scoped server-side to the teacher's own students
+// (403 otherwise). Until it flips live this 404s → kind='not-live'.
+export function getTeacherStudentDetail({ studentSlug }) {
+  const qs = new URLSearchParams()
+  if (studentSlug) qs.set('student_slug', studentSlug)
+  return teacherConsoleFetch(`/api/console/teacher/student?${qs.toString()}`)
+}
+
 // ── Keywords (teacher-scoped; 9-col shape + read-only mastery) ─────────────
 // GET /api/console/teacher/keywords?student_slug=&lesson_id=
 // → { rows:[{id, word, translation, ipa, definitionEn, definitionPl,

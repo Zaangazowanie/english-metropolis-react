@@ -32,6 +32,7 @@ import TeacherVerify from './views/teacher/TeacherVerify.jsx'
 import TeacherPortal from './views/teacher/TeacherPortal.jsx'
 import TeacherSchedule from './views/teacher/TeacherSchedule.jsx'
 import TeacherStudents from './views/teacher/TeacherStudents.jsx'
+import TeacherStudentDetail from './views/teacher/TeacherStudentDetail.jsx'
 import TeacherMaterials from './views/teacher/TeacherMaterials.jsx'
 import TeacherUpload from './views/teacher/TeacherUpload.jsx'
 import TeacherKeywords from './views/teacher/TeacherKeywords.jsx'
@@ -217,6 +218,7 @@ function RootRouter() {
         }>
           <Route index element={<TeacherSchedule />} />
           <Route path="students" element={<TeacherStudents />} />
+          <Route path="students/:slug" element={<TeacherStudentDetail />} />
           <Route path="materials" element={<TeacherMaterials />} />
           <Route path="upload" element={<TeacherUpload />} />
           <Route path="keywords" element={<TeacherKeywords />} />
