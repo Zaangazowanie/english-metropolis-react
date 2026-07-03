@@ -27,7 +27,7 @@ level, basket, topic, keywords:[...], video_url, pdf_url, html_url, assigned_cou
 ### ✅ LIVE `GET /api/console/library/{lesson_id}` → `{ manifest:{...full manifest.json...}, registry:{topics, questions_count}, assignments:[{student_slug, group_id?, date, assigned_at}] }`
 
 ## P1 — Assignment
-### ✅ LIVE (student assign; group_id → 501 until next slice) `POST /api/console/assign`
+### ✅ LIVE (student AND group fan-out) `POST /api/console/assign`
 Body: `{ lesson_id, student_slug?, group_id?, date? }` (exactly one of student_slug/group_id; date = lesson date,
 default today). Backend: copies `deck-web.pdf` → `/students/<Name>/pdfs/`, updates `lesson-pdfs.json`, writes a
 `curriculumItems` row (via the pipeline-key path), audit-logs.
@@ -50,7 +50,7 @@ Backend stores the file, creates/updates the `lessons` record (materials[]), and
 - `POST /api/console/teacher/keywords/delete` — `{ id }` → `{ ok }`
 
 ## P3 — Pipelines & Ops
-### ✅ LIVE (partial: services+library real; ingestion/practice/publishes null until next slice) `GET /api/console/pipelines`
+### ✅ LIVE (services+library+ingestion+publishes_7d real; practice pending a new Convex read) `GET /api/console/pipelines`
 → `{ services:[{name, port?, unit, status:"up"|"down"|"degraded", latency_ms?, last_error?}],
 ingestion:{queued, running, failed_24h, done_24h}, library:{deck_count, last_sync, gate_last_cycle, open_prs},
 practice:{sessions_7d, active_students_7d}, publishes_7d:[{student_slug, date, title}] }`
