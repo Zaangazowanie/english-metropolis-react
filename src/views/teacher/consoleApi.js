@@ -102,6 +102,21 @@ export function getTeacherMaterials({ studentSlug } = {}) {
   return teacherConsoleFetch(`/api/console/teacher/materials${suffix}`)
 }
 
+// POST /api/console/teacher/upload — multipart: file (pdf / txt / vtt), fields
+// student_slug, date, title?, kind=finished_lesson|transcript.
+// → { ok, lesson_id?, ingestion_job_id?, url }
+// (The browser sets the multipart boundary itself — teacherConsoleFetch
+// deliberately does NOT set Content-Type for FormData bodies.)
+export function postTeacherUpload({ file, studentSlug, date, title, kind }) {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('student_slug', studentSlug)
+  form.append('date', date)
+  if (title) form.append('title', title)
+  form.append('kind', kind)
+  return teacherConsoleFetch('/api/console/teacher/upload', { method: 'POST', body: form })
+}
+
 // Fetch a binary resource (e.g. a deck PDF) with the teacher bearer header —
 // a plain <a href> cannot carry Authorization. Returns a Blob. Same error
 // mapping as teacherConsoleFetch, except non-HTML content types are accepted
