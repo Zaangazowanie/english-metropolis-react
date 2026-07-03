@@ -87,8 +87,8 @@ const refreshObjective = () => {
   const code = zoneMgr.current ? zoneMgr.current.data.code : 'hub';
   const st = zoneMgr.roundStatus(code);
   ui.setObjective(st.remaining > 0
-    ? `❗ Round ${st.round} — take the drill of <b>${st.remaining} more teacher${st.remaining > 1 ? 's' : ''}</b> here (${st.done}/${st.total})`
-    : `✓ Round ${st.round} — all teachers helped here, ride on!`);
+    ? `❗ Round ${st.round} — help <b>${st.remaining} more local${st.remaining > 1 ? 's' : ''}</b> here (${st.done}/${st.total})`
+    : `✓ Round ${st.round} — every local here is helped, ride on!`);
 };
 zoneMgr.onEnter = (z) => {
   const lineEl = zoneCard.querySelector('.line');
@@ -308,10 +308,10 @@ renderer.setAnimationLoop(() => {
             const r = zoneMgr.recordDone(n);
             if (r?.roundComplete) {
               ui.addXP(r.bonus);
-              ui.toast(`🏆 Round ${r.laps} complete at ${r.zoneName}! Every teacher there has new, harder exercises (+${r.bonus} XP)`);
+              ui.toast(`🏆 Round ${r.laps} complete at ${r.zoneName}! The locals there have new, harder exercises (+${r.bonus} XP)`);
               audio.fanfare();
             } else if (r && r.remaining > 0) {
-              ui.toast(`✦ ${r.remaining} more teacher${r.remaining > 1 ? 's' : ''} to close the round here — look for the ❗`);
+              ui.toast(`✦ ${r.remaining} more local${r.remaining > 1 ? 's' : ''} to close the round here — look for the ❗`);
             }
             refreshObjective();
           },

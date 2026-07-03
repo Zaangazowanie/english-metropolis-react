@@ -79,12 +79,12 @@ export class UI {
       },
       {
         art: '❗', eyebrow: 'STEP 2', title: 'Learn from the locals',
-        body: `See a golden <b>❗</b> floating over someone's head? That's a teacher with
+        body: `See a golden <b>❗</b> floating over someone's head? That's a local with
           exercises for you.
           <div class="krow"><span class="k">${touch ? '💬 button' : 'E'}</span> talk to them</div>
           <div class="krow"><span class="k">their drill</span> 7 quick questions on real grammar</div>
           <div class="krow"><span class="k">✓</span> means they're done for this round</div>
-          <div class="tip">Finish <b>every</b> teacher in a district and the round completes —
+          <div class="tip">Help <b>every</b> local in a district and the round completes —
           they all come back with new, harder exercises. That's how you level up.</div>`,
       },
       {
@@ -98,7 +98,7 @@ export class UI {
       },
       {
         art: '🌇', eyebrow: 'READY?', title: 'The city is yours',
-        body: `That's everything you need. Your first teachers are waiting right here on
+        body: `That's everything you need. Your first locals are waiting right here on
           <b>Metropolis Central plaza</b> — look for the <b>❗</b> marks.
           <br/><br/>Earn XP, close out districts, and collect every dialect on the map.
           <div class="tip">Press <b>H</b> any time for the full how-to guide. Welcome aboard. 🚉</div>`,
@@ -128,7 +128,7 @@ export class UI {
       this.welcomeOpen = false;
       el.style.display = 'none';
       this.audio?.fanfare?.();
-      this.toast('🦉 Welcome to the Metropolis — find the ❗ teachers!');
+      this.toast('🦉 Welcome to the Metropolis — find the ❗ locals!');
     };
     back.onclick = () => { if (pi > 0) { pi--; render(); } };
     next.onclick = () => { this.audio?.click?.(); if (pi < PAGES.length - 1) { pi++; render(); } else done(); };
@@ -183,11 +183,11 @@ export class UI {
       d.querySelector('.text').textContent =
         `You've aced my exercises this round! ` +
         (st && st.remaining > 0
-          ? `Help the other teacher${st.remaining > 1 ? 's' : ''} around here — once everyone's had a turn, I'll have new, harder ones for you.`
+          ? `Help the other local${st.remaining > 1 ? 's' : ''} around here — once everyone's had a turn, I'll have new, harder ones for you.`
           : `Come back soon — I'll have new, harder ones for you.`);
       const b = document.createElement('button');
       b.textContent = st
-        ? `🔁 Round ${st.round} here: ${st.done}/${st.total} teachers helped — keep going!`
+        ? `🔁 Round ${st.round} here: ${st.done}/${st.total} locals helped — keep going!`
         : '✦ See you around!';
       b.addEventListener('click', () => this.closeDialog());
       opts.appendChild(b);
@@ -200,7 +200,7 @@ export class UI {
       const drillBtn = document.createElement('button');
       drillBtn.innerHTML = `❗ <b>${npc.grammar.conceptName}</b> — ${DRILL_N} questions · ${npc.grammar.level}` +
         (m.seen ? ` <span style="opacity:.6">(${m.pct}% so far)</span>` : '') +
-        ` <span style="opacity:.7">→ completes this teacher</span>`;
+        ` <span style="opacity:.7">→ helps this local</span>`;
       drillBtn.addEventListener('click', () => this.openDrill(npc, hooks));
       opts.append(drillBtn);
     }
@@ -224,7 +224,7 @@ export class UI {
               setTimeout(() => {
                 if (!this.dialogOpen) return;
                 this.closeDialog();
-                this.toast('📖 Warm-up done — now take their drill to complete this teacher!');
+                this.toast('📖 Warm-up done — now take their drill to finish helping them!');
               }, 900);
             } else {
               ob.classList.add('wrong');
@@ -265,8 +265,8 @@ export class UI {
         passed ? 'Nice work. Your English is levelling up.' : 'Good effort. Practice makes perfect.');
       who.textContent = `${npc.name} — grammar`;
       text.innerHTML = `<b>${session.conceptName}</b><br>You scored <b>${correct}/${N}</b>. ` +
-        (passed ? 'Sharp! This teacher is done for the round. ✓' :
-          `You need ${PASS}/${N} to complete this teacher — have another go!`);
+        (passed ? 'Sharp! You\'ve helped this local for the round. ✓' :
+          `You need ${PASS}/${N} to fully help this local — have another go!`);
       opts.innerHTML = '';
       const reward = 6 * correct + (passed ? 15 : 0);
       this.addXP(reward);
@@ -513,9 +513,9 @@ export class UI {
     const st = zoneMgr.roundStatus(hereCode);
     html += `<div class="jline">🎯 YOUR MISSION</div>`;
     html += `<div class="jrow"><span>❗</span> <b>${hereName}</b> — Round ${st.round}` +
-      `<em>${st.done}/${st.total} teachers helped</em></div>`;
-    html += `<div class="jnote">Take the <b>drill</b> of every ❗-marked teacher in a district. ` +
-      `When all of them are done, the round completes and every teacher there gets ` +
+      `<em>${st.done}/${st.total} locals helped</em></div>`;
+    html += `<div class="jnote">Take the <b>drill</b> of every ❗-marked local in a district. ` +
+      `When all of them are done, the round completes and all the locals there get ` +
       `<b>new, harder exercises</b>. ✓ = done till next round.</div>`;
 
     // ---- city goal ----
