@@ -562,8 +562,11 @@ export default function GameHome() {
               <Btn variant="ghost" size="md">Sign in</Btn>
             </Link>
             <ThemeToggle mode={mode} setMode={setMode} T={T}/>
+            {/* NB: a <button> nested in an <a> does NOT activate the link —
+                every Btn that leads to the world navigates via onClick. */}
             <a href={WORLD_URL} style={{ textDecoration: 'none' }}>
               <Btn variant="primary" size="md" trailingIcon="play_arrow"
+                onClick={() => window.location.assign(WORLD_URL)}
                 style={{ whiteSpace: 'nowrap' }}>Play the World</Btn>
             </a>
           </nav>
@@ -601,6 +604,7 @@ export default function GameHome() {
               flexWrap: 'wrap', alignItems: 'center' }}>
               <a href={WORLD_URL} style={{ textDecoration: 'none' }}>
                 <Btn variant="primary" size="lg" trailingIcon="arrow_forward"
+                  onClick={() => window.location.assign(WORLD_URL)}
                   style={{ fontSize: 15, padding: '18px 32px' }}>
                   ▶&nbsp; Play the World — free beta
                 </Btn>
@@ -762,7 +766,8 @@ export default function GameHome() {
               <Btn variant="primary" size="lg" trailingIcon="arrow_forward">Start playing free</Btn>
             </Link>
             <a href={WORLD_URL} style={{ textDecoration: 'none' }}>
-              <Btn variant="secondary" size="lg" trailingIcon="public">Try the beta world</Btn>
+              <Btn variant="secondary" size="lg" trailingIcon="public"
+                onClick={() => window.location.assign(WORLD_URL)}>Try the beta world</Btn>
             </a>
           </div>
         </section>

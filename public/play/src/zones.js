@@ -1,6 +1,6 @@
 // 44 dialect zones along the three metro boulevards: layout, procedural district
 // architecture tinted from each zone's palette, station signs, streaming, and
-// player zone detection. Content comes from src/data/zones.json.
+// player zone detection. Content comes from src/gamedata/zones.json.
 import * as THREE from 'three';
 import { toonMat, blobShadow, PALETTE } from './materials.js';
 import { assignGrammar, grammarForLap } from './grammar.js';
@@ -153,7 +153,7 @@ export class ZoneManager {
   }
 
   async init() {
-    const { zones } = await (await fetch('src/data/zones.json')).json();
+    const { zones } = await (await fetch('src/gamedata/zones.json')).json();
     const perLine = { isles: [], liberty: [], sunward: [] };
     for (const z of zones) perLine[z.line]?.push(z);
     for (const [lineKey, list] of Object.entries(perLine)) {

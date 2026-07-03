@@ -2,7 +2,9 @@
 // Each teaching NPC runs a short multiple-choice drill on one grammar concept;
 // concepts spread across the city and difficulty rises along each metro line, so
 // touring the map is a full grammar course. Mastery persists in localStorage.
-import BANK from './data/grammar_bank.js';
+// NOTE: dir is named gamedata (not data) — the prod deployer's rsync excludes
+// bare "data" path components for student-data safety, which would strip it.
+import BANK from './gamedata/grammar_bank.js';
 
 // concepts a learner meets first → last (rough CEFR progression)
 export const CONCEPT_ORDER = [
