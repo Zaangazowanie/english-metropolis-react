@@ -24,6 +24,7 @@ import { ConsoleApiError, getTeacherMe } from './consoleApi.js'
 const TABS = [
   { to: '/teacher', end: true, icon: 'calendar_month', label: 'Schedule' },
   { to: '/teacher/students', end: false, icon: 'group', label: 'My Students' },
+  { to: '/teacher/materials', end: false, icon: 'menu_book', label: 'Materials' },
   { to: '/teacher/availability', end: false, icon: 'edit_calendar', label: 'Availability' },
 ]
 

@@ -90,3 +90,49 @@ export function getTeacherSchedule({ from, to } = {}) {
   const suffix = qs.toString() ? `?${qs.toString()}` : ''
   return teacherConsoleFetch(`/api/console/teacher/schedule${suffix}`)
 }
+
+// GET /api/console/teacher/materials?student_slug=
+// → { rows:[{ lesson_id, title, student_slug, date, pdf_url, source:"library"|"published" }] }
+// (assigned decks + published PDFs for THIS teacher's students only; row shape
+// identical to the admin /assignments endpoint.)
+export function getTeacherMaterials({ studentSlug } = {}) {
+  const qs = new URLSearchParams()
+  if (studentSlug) qs.set('student_slug', studentSlug)
+  const suffix = qs.toString() ? `?${qs.toString()}` : ''
+  return teacherConsoleFetch(`/api/console/teacher/materials${suffix}`)
+}
+
+// Fetch a binary resource (e.g. a deck PDF) with the teacher bearer header —
+// a plain <a href> cannot carry Authorization. Returns a Blob. Same error
+// mapping as teacherConsoleFetch, except non-HTML content types are accepted
+// (PDFs arrive as application/pdf or octet-stream; HTML = SPA fallback = the
+// endpoint isn't live).
+export async function teacherConsoleFetchBlob(path) {
+  const token = getTeacherSessionToken()
+  if (!token) {
+    throw new ConsoleApiError('auth', 0, 'No teacher session found — please sign in again via your magic link.')
+  }
+  let response
+  try {
+    response = await fetch(path, { headers: { Authorization: `Bearer ${token}` } })
+  } catch {
+    throw new ConsoleApiError('network', 0, 'Network error — check your connection and try again.')
+  }
+  if (response.status === 404) {
+    throw new ConsoleApiError('not-live', 404, `${path} is not live yet`)
+  }
+  if (response.status === 401) {
+    throw new ConsoleApiError('auth', 401, 'Your session has expired — sign out and use a fresh magic link.')
+  }
+  if (response.status === 403) {
+    throw new ConsoleApiError('auth', 403, 'This account is not allowed to fetch this file.')
+  }
+  if (!response.ok) {
+    throw new ConsoleApiError('http', response.status, `The console backend answered ${response.status} — try again in a moment.`)
+  }
+  const contentType = response.headers.get('content-type') || ''
+  if (contentType.includes('text/html')) {
+    throw new ConsoleApiError('not-live', response.status, `${path} did not return a file — backend not live yet`)
+  }
+  return response.blob()
+}
