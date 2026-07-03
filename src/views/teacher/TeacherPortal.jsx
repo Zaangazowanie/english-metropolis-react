@@ -26,6 +26,7 @@ const TABS = [
   { to: '/teacher/students', end: false, icon: 'group', label: 'My Students' },
   { to: '/teacher/materials', end: false, icon: 'menu_book', label: 'Materials' },
   { to: '/teacher/upload', end: false, icon: 'upload_file', label: 'Upload' },
+  { to: '/teacher/keywords', end: false, icon: 'translate', label: 'Keywords' },
   { to: '/teacher/availability', end: false, icon: 'edit_calendar', label: 'Availability' },
 ]
 
