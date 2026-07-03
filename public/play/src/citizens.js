@@ -12,18 +12,73 @@ const WALK_SPEED = 1.35;
 const RESPAWN_DIST = 175, SPAWN_NEAR = 110;
 const TINTS = [0xc96f4a, 0x7ba05b, 0x8fb4c9, 0x6b4fa0, 0xe8a13d, 0xa2707f, 0x5e7b54, 0xb8452f];
 
-// boulevard sidewalks only — the plaza belongs to the (unique) hub teachers
-function randomSidewalkPoint(nearX = 0, nearZ = 0, spread = 999) {
-  for (let tries = 0; tries < 12; tries++) {
+// boulevard sidewalks only — the plaza belongs to the (unique) hub teachers.
+// minDist keeps (re)spawns OUT OF SIGHT: nobody may pop into existence in
+// front of the player (Mike, 2026-07-03). Returns null when no legal point
+// exists — callers must handle it, never dump a citizen at the fallback spot.
+function randomSidewalkPoint(nearX = 0, nearZ = 0, spread = 999, minDist = 0) {
+  for (let tries = 0; tries < 16; tries++) {
     const L = Object.values(LINES)[(Math.random() * 3) | 0];
     const d = 45 + Math.random() * 355;
     const lat = (Math.random() < 0.5 ? -1 : 1) * (7 + Math.random() * 9);
     const dirX = Math.cos(L.angle), dirZ = -Math.sin(L.angle);
     const x = dirX * d + -dirZ * lat;
     const z = dirZ * d + dirX * lat;
-    if (Math.hypot(x - nearX, z - nearZ) < spread) return { x, z };
+    const dist = Math.hypot(x - nearX, z - nearZ);
+    if (dist < spread && dist >= minDist) return { x, z };
   }
-  return { x: nearX, z: nearZ };
+  return null;
+}
+
+// ── ambient chatter: speech + thought bubbles over strolling citizens ──────
+const SAY = [
+  'Lovely evening, innit?', 'Mind the gap!', 'Which way to Kingston Yard?',
+  'Two stops on the Sunward line.', "Y'alright, love?", 'Cracking sunset tonight.',
+  'The bookshop had one copy left!', 'Fancy a cuppa after this?',
+  'I missed the last train. Again.', 'New round of drills, they say.',
+];
+const THINK = [
+  '…coffee…', 'left at the station… no, right…', '♪ ♫',
+  'did I lock the flat?', '…that word again…', 'tickets… tickets…',
+  'nearly rush hour…', '…one more drill…',
+];
+const bubbleCache = new Map();
+function bubbleMaterial(text, thought) {
+  const key = (thought ? 'T:' : 'S:') + text;
+  if (bubbleCache.has(key)) return bubbleCache.get(key);
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 224;
+  const ctx = c.getContext('2d');
+  const r = 26, x0 = 14, y0 = 12, w = 484, h = 132;
+  ctx.fillStyle = 'rgba(250,248,255,0.96)';
+  ctx.strokeStyle = 'rgba(139,92,246,0.55)';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.roundRect(x0, y0, w, h, r);
+  ctx.fill(); ctx.stroke();
+  if (thought) {           // trailing thought dots
+    for (const [cx, cy, cr] of [[150, 168, 15], [118, 196, 9]]) {
+      ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+  } else {                 // speech tail
+    ctx.beginPath();
+    ctx.moveTo(150, y0 + h - 3); ctx.lineTo(122, 200); ctx.lineTo(196, y0 + h - 3);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(150, y0 + h - 2); ctx.lineTo(122, 200); ctx.lineTo(196, y0 + h - 2); ctx.stroke();
+  }
+  ctx.fillStyle = '#1b1030';
+  ctx.font = `${thought ? 'italic ' : ''}600 34px 'Space Grotesk', sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  // naive two-line wrap
+  const words = text.split(' ');
+  let l1 = '', l2 = '';
+  for (const wd of words) ((l1 + wd).length <= 24 && !l2 ? (l1 += wd + ' ') : (l2 += wd + ' '));
+  if (l2) { ctx.fillText(l1.trim(), x0 + w / 2, y0 + h / 2 - 22); ctx.fillText(l2.trim(), x0 + w / 2, y0 + h / 2 + 22); }
+  else ctx.fillText(l1.trim(), x0 + w / 2, y0 + h / 2);
+  const tex = new THREE.CanvasTexture(c);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+  bubbleCache.set(key, mat);
+  return mat;
 }
 
 export class Citizens {
@@ -85,13 +140,25 @@ export class Citizens {
 
     wrap.add(blobShadow(0.5));
     wrap.scale.setScalar(0.9 + Math.random() * 0.2);   // height variance
-    const p = randomSidewalkPoint(nearX, nearZ, nearX || nearZ ? SPAWN_NEAR : 999);
+
+    // chatter bubble (hidden until this citizen has something to say)
+    const bubble = new THREE.Sprite(bubbleMaterial(SAY[0], false));
+    bubble.scale.set(2.3, 1.0, 1);
+    bubble.position.y = 2.5;
+    bubble.visible = false;
+    wrap.add(bubble);
+
+    const p = randomSidewalkPoint(nearX, nearZ, nearX || nearZ ? SPAWN_NEAR : 999)
+      || { x: 60, z: -120 };                            // safe far default
     wrap.position.set(p.x, heightAt(p.x, p.z), p.z);
     this.scene.add(wrap);
 
     mixer.update(Math.random() * 2);                    // desync strides
-    const target = randomSidewalkPoint(p.x, p.z, 70);
-    this.list.push({ wrap, mixer, bodyIdx, target, heading: Math.random() * Math.PI * 2 });
+    const target = randomSidewalkPoint(p.x, p.z, 70) || { x: p.x, z: p.z };
+    this.list.push({
+      wrap, mixer, bodyIdx, target, heading: Math.random() * Math.PI * 2,
+      bubble, bubbleTimer: 6 + Math.random() * 16, bubbleShow: 0,
+    });
   }
 
   update(dt, playerPos) {
@@ -100,7 +167,7 @@ export class Citizens {
       const dx = c.target.x - pos.x, dz = c.target.z - pos.z;
       const dist = Math.hypot(dx, dz);
       if (dist < 1.2) {
-        c.target = randomSidewalkPoint(pos.x, pos.z, 70);
+        c.target = randomSidewalkPoint(pos.x, pos.z, 70) || c.target;
       } else {
         const want = Math.atan2(dx, dz);
         let diff = want - c.heading;
@@ -115,10 +182,35 @@ export class Citizens {
       c.mixer.update(dt);
 
       const pd = Math.hypot(pos.x - playerPos.x, pos.z - playerPos.z);
+
+      // ambient chatter: nearby citizens occasionally speak or muse
+      if (c.bubbleShow > 0) {
+        c.bubbleShow -= dt;
+        c.bubble.position.y = 2.5 + Math.sin(c.bubbleShow * 3) * 0.03;
+        if (c.bubbleShow <= 0) c.bubble.visible = false;
+      } else {
+        c.bubbleTimer -= dt;
+        if (c.bubbleTimer <= 0) {
+          c.bubbleTimer = 9 + Math.random() * 18;
+          if (pd < 38) {                               // only worth saying if seen
+            const thought = Math.random() < 0.3;
+            const pool = thought ? THINK : SAY;
+            c.bubble.material = bubbleMaterial(pool[(Math.random() * pool.length) | 0], thought);
+            c.bubble.visible = true;
+            c.bubbleShow = 3.6;
+          }
+        }
+      }
+
+      // drifted out of range: move them back OUT OF SIGHT (50-110m ring),
+      // never into view — if no legal point exists this frame, wait.
       if (pd > RESPAWN_DIST) {
-        const p = randomSidewalkPoint(playerPos.x, playerPos.z, SPAWN_NEAR);
-        pos.set(p.x, heightAt(p.x, p.z), p.z);
-        c.target = randomSidewalkPoint(p.x, p.z, 70);
+        const p = randomSidewalkPoint(playerPos.x, playerPos.z, SPAWN_NEAR, 50);
+        if (p) {
+          pos.set(p.x, heightAt(p.x, p.z), p.z);
+          c.target = randomSidewalkPoint(p.x, p.z, 70) || c.target;
+          c.bubble.visible = false; c.bubbleShow = 0;
+        }
       }
     }
   }

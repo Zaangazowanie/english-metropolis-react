@@ -8,38 +8,53 @@
   <meta property="og:title" content="English Metropolis" />
   <meta property="og:description" content="It's a big city. Someone's gotta learn the lingo. 44 dialect neighbourhoods, 3 metro lines, one traveller." />
   <meta property="og:type" content="website" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%236b4fa0'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='%23f6ead2' font-family='Georgia'%3EM%3C/text%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%23D946EF'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='%23ffffff' font-family='sans-serif' font-weight='bold'%3EM%3C/text%3E%3C/svg%3E" />
   <style>
+    /* EnglishMetro v3 design system (tokens.js): deep violet glass, Space
+       Grotesk, purple->fuchsia->pink brand, amber accent. Fonts self-hosted. */
+    @font-face { font-family: 'Space Grotesk'; font-weight: 400; font-style: normal;
+      font-display: swap; src: url('public/assets/fonts/space-grotesk-latin-400-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Space Grotesk'; font-weight: 600; font-style: normal;
+      font-display: swap; src: url('public/assets/fonts/space-grotesk-latin-600-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Space Grotesk'; font-weight: 700; font-style: normal;
+      font-display: swap; src: url('public/assets/fonts/space-grotesk-latin-700-normal.woff2') format('woff2'); }
     :root {
-      --cream: #f6ead2; --ink: #4a3826; --amber: #e8a13d; --terra: #c96f4a;
-      --sage: #7ba05b; --purple: #6b4fa0; --panel: rgba(42, 30, 18, 0.82);
+      --cream: #F4F0FF; --ink: #0E0A1B; --amber: #FCD34D; --terra: #C026D3;
+      --sage: #34D399; --purple: #A855F7; --panel: rgba(16, 9, 32, 0.9);
+      --brand: linear-gradient(135deg, #8B5CF6 0%, #D946EF 55%, #F472B6 100%);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1410;
-      font-family: Georgia, 'Times New Roman', serif; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #060410;
+      font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; }
     #app { position: fixed; inset: 0; }
     canvas { display: block; }
 
     /* ---------- loading ---------- */
     #loading { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 22px;
-      background: linear-gradient(180deg, #8fb4c9 0%, #d9c9a8 55%, #e8b06a 100%); }
-    #loading h1 { font-size: clamp(34px, 7vw, 64px); letter-spacing: 0.12em; color: var(--ink);
-      text-shadow: 0 2px 0 rgba(255,255,255,0.35); font-weight: normal; }
-    #loading h1 span { color: var(--purple); }
-    #loading .sub { color: #6a5236; font-style: italic; font-size: clamp(13px, 2.2vw, 17px); }
-    #beta-title { margin-top: -12px; padding: 4px 14px; border-radius: 999px;
-      border: 1.5px solid var(--purple); color: var(--purple); background: rgba(107,79,160,0.1);
-      font-size: 11px; letter-spacing: 0.34em; font-weight: bold; }
+      background:
+        radial-gradient(ellipse 100% 80% at 50% -10%, rgba(139,92,246,0.28), transparent 60%),
+        radial-gradient(ellipse 80% 60% at 80% 30%, rgba(217,70,239,0.16), transparent 60%),
+        linear-gradient(180deg, #060410 0%, #0A0718 45%, #1a0f36 100%); }
+    #loading h1 { font-size: clamp(34px, 7vw, 64px); letter-spacing: -0.02em; color: var(--cream);
+      font-weight: 700; }
+    #loading h1 span { background: var(--brand); -webkit-background-clip: text;
+      background-clip: text; color: transparent; }
+    #loading .sub { color: rgba(206,200,232,0.75); font-style: italic; font-size: clamp(13px, 2.2vw, 17px); }
+    #beta-title { margin-top: -12px; padding: 5px 15px; border-radius: 999px; border: none;
+      color: #fff; background: var(--brand); font-size: 11px; letter-spacing: 0.34em;
+      font-weight: 700; box-shadow: 0 4px 18px -6px rgba(217,70,239,0.55); }
     #bar-wrap { width: min(420px, 70vw); height: 10px; border-radius: 6px;
-      background: rgba(74, 56, 38, 0.25); overflow: hidden; }
-    #bar { width: 0%; height: 100%; border-radius: 6px; background: var(--amber);
+      background: rgba(255,255,255,0.08); overflow: hidden; }
+    #bar { width: 0%; height: 100%; border-radius: 6px; background: var(--brand);
       transition: width 0.2s ease; }
-    #begin { display: none; border: none; cursor: pointer; padding: 13px 46px;
-      font-family: inherit; font-size: 20px; letter-spacing: 0.22em; color: var(--cream);
-      background: var(--terra); border-radius: 4px; box-shadow: 0 5px 0 #8f4a2e;
-      transform: translateY(0); transition: transform 0.08s, box-shadow 0.08s; }
-    #begin:active { transform: translateY(4px); box-shadow: 0 1px 0 #8f4a2e; }
+    #begin { display: none; border: 1px solid rgba(255,255,255,0.22); cursor: pointer;
+      padding: 15px 52px; font-family: inherit; font-size: 18px; font-weight: 700;
+      letter-spacing: 0.22em; color: #fff; background: var(--brand); border-radius: 999px;
+      box-shadow: 0 12px 34px -10px rgba(217,70,239,0.6);
+      transform: translateY(0); transition: transform 0.15s, box-shadow 0.15s; }
+    #begin:hover { transform: translateY(-2px); box-shadow: 0 16px 44px -10px rgba(217,70,239,0.8); }
+    #begin:active { transform: translateY(1px); }
 
     /* ---------- HUD ---------- */
     #hud { position: fixed; inset: 0; z-index: 20; pointer-events: none; opacity: 0;
@@ -58,23 +73,23 @@
     }
     #xp { position: absolute; top: 22px; right: 24px; color: var(--cream); font-size: 15px;
       background: var(--panel); padding: 8px 14px; border-radius: 20px;
-      border: 1px solid rgba(246,234,210,0.25); }
-    #beta-tag { position: absolute; top: 62px; right: 24px; color: var(--purple);
-      background: rgba(246,234,210,0.85); font-size: 10px; font-weight: bold;
-      letter-spacing: 0.28em; padding: 3px 10px 3px 12px; border-radius: 10px;
-      border: 1px solid var(--purple); }
+      border: 1px solid rgba(244,240,255,0.25); }
+    #beta-tag { position: absolute; top: 62px; right: 24px; color: #fff;
+      background: var(--brand); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.28em; padding: 3px 10px 3px 12px; border-radius: 999px;
+      border: none; box-shadow: 0 4px 14px -6px rgba(217,70,239,0.55); }
     #objective { position: absolute; top: 88px; left: 50%; transform: translateX(-50%);
       display: none; color: var(--cream); background: var(--panel); font-size: 13px;
-      padding: 6px 16px; border-radius: 16px; border: 1px solid rgba(232,161,61,0.4);
+      padding: 6px 16px; border-radius: 16px; border: 1px solid rgba(217,70,239,0.4);
       white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
     #objective b { color: var(--amber); }
     body.touch #objective { font-size: 11px; top: 74px; }
     #prompt { position: absolute; bottom: 15%; left: 50%; transform: translateX(-50%);
       color: var(--cream); background: var(--panel); padding: 9px 18px; border-radius: 20px;
-      font-size: 15px; border: 1px solid rgba(246,234,210,0.25); display: none; }
+      font-size: 15px; border: 1px solid rgba(244,240,255,0.25); display: none; }
     #prompt b { color: var(--amber); }
     #hint { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
-      color: rgba(246,234,210,0.55); font-size: 12px; letter-spacing: 0.05em; }
+      color: rgba(244,240,255,0.55); font-size: 12px; letter-spacing: 0.05em; }
     #toast { position: absolute; top: 96px; left: 50%; transform: translateX(-50%);
       color: var(--cream); background: rgba(107, 79, 160, 0.92); padding: 10px 22px;
       border-radius: 22px; font-size: 15px; opacity: 0; transition: opacity 0.35s; }
@@ -90,18 +105,18 @@
     #dialog .opts { display: flex; flex-direction: column; gap: 8px; }
     #dialog .opts button { pointer-events: auto; cursor: pointer; text-align: left;
       font-family: inherit; font-size: 15px; color: var(--cream); padding: 9px 14px;
-      background: rgba(246,234,210,0.10); border: 1px solid rgba(246,234,210,0.22);
+      background: rgba(244,240,255,0.10); border: 1px solid rgba(244,240,255,0.22);
       border-radius: 8px; transition: background 0.12s; }
-    #dialog .opts button:hover { background: rgba(232,161,61,0.28); }
+    #dialog .opts button:hover { background: rgba(217,70,239,0.28); }
     #dialog .opts button.right { background: rgba(123,160,91,0.55); border-color: #9fc27e; }
     #dialog .opts button.wrong { background: rgba(201,111,74,0.55); border-color: #d98a66; }
     #dialog .close { position: absolute; top: 8px; right: 14px; background: none; border: none;
-      color: rgba(246,234,210,0.6); font-size: 20px; cursor: pointer; pointer-events: auto; }
+      color: rgba(244,240,255,0.6); font-size: 20px; cursor: pointer; pointer-events: auto; }
     #dialog .explain { margin-top: 10px; font-size: 13.5px; line-height: 1.4;
-      color: #f3dca6; background: rgba(232,161,61,0.14); border-left: 3px solid var(--amber);
+      color: #f3dca6; background: rgba(217,70,239,0.14); border-left: 3px solid var(--amber);
       padding: 8px 12px; border-radius: 0 6px 6px 0; }
-    #dialog .explain i { color: rgba(246,234,210,0.7); font-size: 12.5px; }
-    #fps { position: fixed; z-index: 21; bottom: 8px; right: 10px; color: rgba(246,234,210,0.4);
+    #dialog .explain i { color: rgba(244,240,255,0.7); font-size: 12.5px; }
+    #fps { position: fixed; z-index: 21; bottom: 8px; right: 10px; color: rgba(244,240,255,0.4);
       font: 11px monospace; }
     #minimap { position: absolute; left: 16px; bottom: 46px; width: 124px; height: 124px;
       pointer-events: auto; cursor: pointer; filter: drop-shadow(0 3px 8px rgba(20,12,6,0.4)); }
@@ -155,9 +170,9 @@
     body.touch #touch-ui { display: flex; }
     body.touch #hint { display: none; }
     #touch-ui button { pointer-events: auto; width: 54px; height: 54px; border-radius: 50%;
-      border: 1px solid rgba(246,234,210,0.35); background: var(--panel); color: var(--cream);
+      border: 1px solid rgba(244,240,255,0.35); background: var(--panel); color: var(--cream);
       font-size: 22px; touch-action: manipulation; }
-    #touch-ui button:active { background: rgba(232,161,61,0.5); }
+    #touch-ui button:active { background: rgba(217,70,239,0.5); }
   </style>
 
   <div id="dialog">
@@ -178,18 +193,18 @@
     #journal { position: fixed; inset: 0; z-index: 38; display: none; align-items: center;
       justify-content: center; background: rgba(26,20,16,0.45); }
     #journal .panel { width: min(480px, 92vw); max-height: 76vh; overflow-y: auto;
-      background: var(--panel); color: var(--cream); border: 2px solid rgba(232,161,61,0.55);
+      background: var(--panel); color: var(--cream); border: 2px solid rgba(217,70,239,0.55);
       border-radius: 14px; padding: 22px 26px; }
     #journal h2 { letter-spacing: 0.2em; font-size: 16px; color: var(--amber);
       margin-bottom: 12px; display: flex; justify-content: space-between; }
-    #journal h2 button { background: none; border: none; color: rgba(246,234,210,0.6);
+    #journal h2 button { background: none; border: none; color: rgba(244,240,255,0.6);
       font-size: 18px; cursor: pointer; }
     #journal .jxp { font-size: 15px; margin-bottom: 10px; color: var(--amber); }
     #journal .jline { font-size: 12px; letter-spacing: 0.18em; margin: 12px 0 4px; opacity: 0.8; }
     #journal .jrow { font-size: 14px; padding: 3px 0; display: flex; gap: 8px; align-items: baseline; }
     #journal .jrow em { margin-left: auto; font-size: 12px; opacity: 0.6; }
     #journal .jnote { font-size: 12.5px; line-height: 1.45; opacity: 0.75; padding: 4px 0 2px;
-      border-bottom: 1px dashed rgba(246,234,210,0.2); margin-bottom: 4px; }
+      border-bottom: 1px dashed rgba(244,240,255,0.2); margin-bottom: 4px; }
     #journal .jnote b { color: var(--amber); }
   </style>
 
@@ -204,10 +219,10 @@
     #citymap { position: fixed; inset: 0; z-index: 40; display: none; align-items: center;
       justify-content: center; background: rgba(26,20,16,0.55); }
     #citymap .panel { background: var(--panel); color: var(--cream);
-      border: 2px solid rgba(232,161,61,0.55); border-radius: 14px; padding: 18px 22px; }
+      border: 2px solid rgba(217,70,239,0.55); border-radius: 14px; padding: 18px 22px; }
     #citymap h2 { letter-spacing: 0.2em; font-size: 15px; color: var(--amber);
       margin-bottom: 10px; display: flex; justify-content: space-between; gap: 30px; }
-    #citymap h2 button { background: none; border: none; color: rgba(246,234,210,0.6);
+    #citymap h2 button { background: none; border: none; color: rgba(244,240,255,0.6);
       font-size: 18px; cursor: pointer; }
     #citymap canvas { display: block; border-radius: 10px; width: min(520px, 82vw);
       height: auto; cursor: crosshair; }
@@ -226,17 +241,17 @@
     #metro { position: fixed; inset: 0; z-index: 39; display: none; align-items: center;
       justify-content: center; background: rgba(26,20,16,0.5); }
     #metro .panel { width: min(520px, 92vw); max-height: 78vh; overflow-y: auto;
-      background: var(--panel); color: var(--cream); border: 2px solid rgba(232,161,61,0.55);
+      background: var(--panel); color: var(--cream); border: 2px solid rgba(217,70,239,0.55);
       border-radius: 14px; padding: 22px 26px; }
     #metro h2 { letter-spacing: 0.2em; font-size: 16px; color: var(--amber);
       margin-bottom: 4px; display: flex; justify-content: space-between; }
-    #metro h2 button { background: none; border: none; color: rgba(246,234,210,0.6);
+    #metro h2 button { background: none; border: none; color: rgba(244,240,255,0.6);
       font-size: 18px; cursor: pointer; }
     #metro .tip { font-size: 12px; opacity: 0.65; margin-bottom: 10px; font-style: italic; }
     #metro .jline { font-size: 12px; letter-spacing: 0.18em; margin: 12px 0 4px; opacity: 0.8; }
     #metro .mrow { font-size: 14px; padding: 6px 8px; display: flex; gap: 8px; cursor: pointer;
       border-radius: 6px; align-items: baseline; }
-    #metro .mrow:hover { background: rgba(232,161,61,0.22); }
+    #metro .mrow:hover { background: rgba(217,70,239,0.22); }
     #metro .mrow em { margin-left: auto; font-size: 12px; opacity: 0.6; }
   </style>
 
@@ -258,7 +273,7 @@
     #welcome { position: fixed; inset: 0; z-index: 42; display: none; align-items: center;
       justify-content: center; background: rgba(26, 20, 16, 0.6); backdrop-filter: blur(3px); }
     #welcome .panel { width: min(760px, 94vw); background: var(--panel); color: var(--cream);
-      border: 2px solid rgba(232,161,61,0.55); border-radius: 20px;
+      border: 2px solid rgba(217,70,239,0.55); border-radius: 20px;
       padding: clamp(28px, 3.4vh, 44px) clamp(30px, 3.6vw, 56px) clamp(22px, 2.6vh, 32px);
       text-align: center; box-shadow: 0 30px 90px -30px rgba(0,0,0,0.8);
       font-size: clamp(16px, 1.15vw, 20px); }
@@ -272,22 +287,22 @@
     #welcome .w-body .krow .k { flex: none; min-width: 7em; color: var(--amber); font-weight: bold;
       letter-spacing: 0.04em; }
     #welcome .w-body .tip { margin-top: 0.9em; font-size: 0.88em; font-style: italic; opacity: 0.8;
-      border-top: 1px dashed rgba(246,234,210,0.25); padding-top: 0.75em; }
+      border-top: 1px dashed rgba(244,240,255,0.25); padding-top: 0.75em; }
     #welcome .w-page { animation: wpage 0.35s ease; }
     @keyframes wpage { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
     #welcome .w-dots { display: flex; gap: 10px; justify-content: center; margin: 1.1em 0 1em; }
     #welcome .w-dots span { width: 10px; height: 10px; border-radius: 50%;
-      background: rgba(246,234,210,0.25); transition: all 0.25s ease; }
+      background: rgba(244,240,255,0.25); transition: all 0.25s ease; }
     #welcome .w-dots span.on { background: var(--amber); transform: scale(1.3); }
     #welcome .w-btns { display: flex; gap: 14px; justify-content: center; }
     #welcome .w-btns button { cursor: pointer; font-family: inherit; font-size: 1em;
       letter-spacing: 0.12em; border-radius: 10px; padding: 0.75em 1.8em; border: none; }
     #welcome #welcome-back { background: transparent; color: var(--cream);
-      border: 1px solid rgba(246,234,210,0.35); }
-    #welcome #welcome-next { background: var(--terra); color: var(--cream);
-      box-shadow: 0 3px 0 #8f4a2e; }
+      border: 1px solid rgba(244,240,255,0.35); }
+    #welcome #welcome-next { background: var(--brand); color: #fff; font-weight: 700;
+      border-radius: 999px; box-shadow: 0 8px 22px -8px rgba(217,70,239,0.55); }
     #welcome #welcome-skip { margin-top: 1em; background: none; border: none; cursor: pointer;
-      color: rgba(246,234,210,0.5); font-family: inherit; font-size: 0.78em; letter-spacing: 0.08em;
+      color: rgba(244,240,255,0.5); font-family: inherit; font-size: 0.78em; letter-spacing: 0.08em;
       font-style: italic; }
   </style>
 
@@ -319,18 +334,19 @@
     #guide { position: fixed; inset: 0; z-index: 40; display: none; align-items: center;
       justify-content: center; background: rgba(26, 20, 16, 0.55); backdrop-filter: blur(2px); }
     #guide .panel { width: min(560px, 92vw); background: var(--panel); color: var(--cream);
-      border: 2px solid rgba(232,161,61,0.55); border-radius: 14px; padding: 26px 30px; }
+      border: 2px solid rgba(217,70,239,0.55); border-radius: 14px; padding: 26px 30px; }
     #guide h2 { letter-spacing: 0.25em; font-size: 18px; color: var(--amber); margin-bottom: 14px; }
     #guide table { border-collapse: collapse; margin-bottom: 12px; }
     #guide td { padding: 5px 14px 5px 0; font-size: 15px; }
     #guide td b { color: var(--amber); }
     #guide p { font-size: 14px; line-height: 1.5; opacity: 0.85; margin-bottom: 16px; }
     #guide button { cursor: pointer; font-family: inherit; font-size: 15px; letter-spacing: 0.15em;
-      color: var(--cream); background: var(--terra); border: none; border-radius: 6px;
-      padding: 9px 26px; box-shadow: 0 3px 0 #8f4a2e; }
+      color: #fff; font-weight: 700; background: var(--brand); border: none;
+      border-radius: 999px; padding: 9px 28px;
+      box-shadow: 0 8px 22px -8px rgba(217,70,239,0.55); }
     #guide #guide-replay { margin-left: 14px; background: transparent; box-shadow: none;
-      border: 1px solid rgba(246,234,210,0.3); font-size: 12.5px; font-style: italic;
-      letter-spacing: 0.06em; color: rgba(246,234,210,0.75); padding: 9px 18px; }
+      border: 1px solid rgba(244,240,255,0.3); font-size: 12.5px; font-style: italic;
+      letter-spacing: 0.06em; color: rgba(244,240,255,0.75); padding: 9px 18px; }
   </style>
 
   <script type="importmap">
