@@ -26,6 +26,7 @@ import SuperadminGroupDetail from './views/admin/superadmin/SuperadminGroupDetai
 import SuperadminLibrary from './views/admin/superadmin/SuperadminLibrary.jsx'
 import SuperadminLibraryDetail from './views/admin/superadmin/SuperadminLibraryDetail.jsx'
 import SuperadminAssignments from './views/admin/superadmin/SuperadminAssignments.jsx'
+import SuperadminPipelines from './views/admin/superadmin/SuperadminPipelines.jsx'
 import StudentHeatmap from './views/admin/teacher/StudentHeatmap.jsx'
 import AdminTeachers from './views/admin/Teachers.jsx'
 import TeacherLogin from './views/teacher/TeacherLogin.jsx'
@@ -157,6 +158,7 @@ function RootRouter() {
           <Route path="library" element={<SuperadminLibrary />} />
           <Route path="library/:lessonId" element={<SuperadminLibraryDetail />} />
           <Route path="assignments" element={<SuperadminAssignments />} />
+          <Route path="pipelines" element={<SuperadminPipelines />} />
           <Route path="students" element={<SuperadminStudents />} />
           <Route path="students/:slug/heatmap" element={<StudentHeatmap />} />
           <Route path="groups" element={<SuperadminGroups />} />
