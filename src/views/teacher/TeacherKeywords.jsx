@@ -16,7 +16,7 @@
 // "backend not live yet" panel — rows are never mocked (KICKOFF.md rule 4).
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useOutletContext, useSearchParams } from 'react-router-dom'
 import {
   addTeacherKeyword,
   deleteTeacherKeyword,
@@ -70,8 +70,14 @@ export default function TeacherKeywords() {
   )
   const rosterLive = students.length > 0
 
-  const [studentSlug, setStudentSlug] = useState('')
-  const [manualSlug, setManualSlug] = useState('')
+  // ?student=<slug> preselects the student — used by the read-only student
+  // detail view's "Edit keywords" hand-off. Server-side scoping still applies
+  // regardless of what the URL carries.
+  const [searchParams] = useSearchParams()
+  const presetSlug = (searchParams.get('student') || '').trim()
+
+  const [studentSlug, setStudentSlug] = useState(presetSlug)
+  const [manualSlug, setManualSlug] = useState(presetSlug)
   const [lessonId, setLessonId] = useState('')
   const activeSlug = (rosterLive ? studentSlug : manualSlug).trim()
 
