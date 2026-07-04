@@ -201,6 +201,7 @@ export const addKeyword = mutation({
       definitionEn: args.definitionEn ?? "", definitionPl: args.definitionPl ?? "",
       exampleEn: args.exampleEn ?? "", examplePl: args.examplePl ?? "",
       ipa: args.ipa ?? "", stressUK: "", stressUS: "",
+      topics: [], createdAt: Date.now(),
       wordType: args.wordType ?? "", difficulty: args.difficulty ?? "",
     } as any);
     await ctx.db.insert("auditLog", {
