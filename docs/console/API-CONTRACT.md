@@ -36,14 +36,14 @@ default today). Backend: copies `deck-web.pdf` → `/students/<Name>/pdfs/`, upd
 ### ✅ LIVE `GET /api/console/assignments?student_slug=&course=` → `{ rows:[{ lesson_id, title, student_slug, date, pdf_url, source:"library"|"published" }] }`
 (`published` = legacy per-student lesson PDFs already in `lesson-pdfs.json` that didn't come from the library.)
 
-## P2 — Teacher
-### `GET /api/console/teacher/me` → `{ teacher:{id,name,email}, students:[{slug,name,level,group}], groups:[...] }`
-### `GET /api/console/teacher/schedule?from=&to=` → `{ lessons:[{date,time,student_slug|group_id,title,status}], bookings:[...] }`
-### `GET /api/console/teacher/materials?student_slug=` → assigned decks + published PDFs for THEIR students only, same row shape as `assignments`.
-### `POST /api/console/teacher/upload` — multipart: `file` (pdf/txt/vtt transcript), fields `student_slug, date, title?, kind=finished_lesson|transcript`.
+## P2 — Teacher (ALL ✅ LIVE 2026-07-04; convex consoleTeacher deployed)
+### ✅ LIVE `GET /api/console/teacher/me` → `{ teacher:{id,name,email}, students:[{slug,name,level,group}], groups:[...] }`
+### ✅ LIVE `GET /api/console/teacher/schedule?from=&to=` → `{ lessons:[{date,time,student_slug|group_id,title,status}], bookings:[...] }`
+### ✅ LIVE `GET /api/console/teacher/materials?student_slug=` → assigned decks + published PDFs for THEIR students only, same row shape as `assignments`.
+### ✅ LIVE (stores file + audits; transcript auto-ingestion stays superadmin-side — Convex guard) `POST /api/console/teacher/upload` — multipart: `file` (pdf/txt/vtt transcript), fields `student_slug, date, title?, kind=finished_lesson|transcript`.
 Backend stores the file, creates/updates the `lessons` record (materials[]), and for transcripts creates an
 `ingestionJob`. → `{ ok, lesson_id?, ingestion_job_id?, url }`
-### Keywords (teacher-scoped; admin may call too):
+### Keywords — ✅ LIVE (add requires lesson_id; write round-trip verified on prod):
 - `GET /api/console/teacher/keywords?student_slug=&lesson_id=` → `{ rows:[{id, word, translation, ipa, definitionEn, definitionPl, exampleEn, examplePl, wordType, difficulty, mastery}] }`
 - `POST /api/console/teacher/keywords/add` — `{ student_slug, lesson_id?, word, translation?, ...optional fields }` → `{ ok, id }` (backend enriches missing fields async via the existing enrichment pipeline).
 - `POST /api/console/teacher/keywords/update` — `{ id, ...changed fields }` → `{ ok }`
