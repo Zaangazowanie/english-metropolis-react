@@ -4,7 +4,8 @@
 //   GET  /api/console/teacher/keywords?student_slug=&lesson_id=
 //        → { rows:[{id, word, translation, ipa, definitionEn, definitionPl,
 //                   exampleEn, examplePl, wordType, difficulty, mastery}] }
-//   POST /api/console/teacher/keywords/add    { student_slug, lesson_id?, word, ... } → { ok, id }
+//   POST /api/console/teacher/keywords/add    { student_slug, lesson_id, word, ... } → { ok, id }
+//        (LIVE 2026-07-04: lesson_id is REQUIRED on add — the backend rejects adds without one)
 //   POST /api/console/teacher/keywords/update { id, ...changed fields }              → { ok }
 //   POST /api/console/teacher/keywords/delete { id }                                 → { ok }
 //
@@ -135,10 +136,16 @@ export default function TeacherKeywords() {
   const submitAdd = async () => {
     const word = String(addDraft.word || '').trim()
     if (!word) { setNotice({ kind: 'err', text: 'A new keyword needs at least the word itself.' }); return }
+    // The live backend REQUIRES lesson_id on add (contract ✅ note, 2026-07-04).
+    const lesson = lessonId.trim()
+    if (!lesson) {
+      setNotice({ kind: 'err', text: 'Adding a keyword needs a Lesson ID — set the lesson filter above, or arrive via a lesson’s “Keywords” link from Materials or a student’s analyses so it’s pre-filled.' })
+      return
+    }
     const ok = await runMutation(
       () => addTeacherKeyword({
         student_slug: activeSlug,
-        ...(lessonId.trim() ? { lesson_id: lessonId.trim() } : {}),
+        lesson_id: lesson,
         ...nonEmptyFields(addDraft),
       }),
       `“${word}” added — missing fields are enriched automatically in the background.`,
@@ -194,9 +201,9 @@ export default function TeacherKeywords() {
           <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">Keywords</p>
           <h2 className="mt-1 font-headline text-3xl text-slate-900">Vocabulary <span className="italic text-sky-600">Editor</span></h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-            Add, correct or remove keywords on your students’ lessons. Only the word is required when
-            adding — the enrichment pipeline fills in IPA, definitions and examples in the background.
-            Mastery is learned from practice and is read-only.
+            Add, correct or remove keywords on your students’ lessons. Adding needs a Lesson ID plus
+            the word itself — the enrichment pipeline fills in IPA, definitions and examples in the
+            background. Mastery is learned from practice and is read-only.
           </p>
         </div>
         <button
@@ -229,7 +236,7 @@ export default function TeacherKeywords() {
           </label>
         )}
         <label className="flex min-w-[12rem] flex-col gap-1">
-          <span className="font-label text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Lesson ID (optional)</span>
+          <span className="font-label text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Lesson ID (filters · required to add)</span>
           <input type="text" value={lessonId} onChange={e => setLessonId(e.target.value)}
             placeholder="filter to one lesson" className={inputCls} />
         </label>

@@ -133,9 +133,10 @@ export function getTeacherKeywords({ studentSlug, lessonId } = {}) {
   return teacherConsoleFetch(`/api/console/teacher/keywords${suffix}`)
 }
 
-// POST /api/console/teacher/keywords/add — { student_slug, lesson_id?, word,
-// translation?, ...optional fields } → { ok, id }. The backend enriches
-// missing fields asynchronously via the existing enrichment pipeline.
+// POST /api/console/teacher/keywords/add — { student_slug, lesson_id, word,
+// translation?, ...optional fields } → { ok, id }. lesson_id is REQUIRED —
+// the live backend (contract ✅, 2026-07-04) rejects adds without one. The
+// backend enriches missing fields asynchronously via the enrichment pipeline.
 export function addTeacherKeyword(payload) {
   return teacherConsoleFetch('/api/console/teacher/keywords/add', { method: 'POST', body: payload })
 }
