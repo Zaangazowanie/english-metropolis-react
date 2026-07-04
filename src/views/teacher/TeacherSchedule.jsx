@@ -11,6 +11,10 @@
 //
 // Student slugs / group ids in console rows are resolved to display names via
 // the /me lookup maps shared by the shell (best effort — raw slug/id fallback).
+// LIVE shape note (2026-07-04): console lesson rows arrive as {date, time,
+// startUtc, status, student_slug, student_name} — the server-sent
+// student_name wins over lookup resolution, and startUtc (ms epoch) is the
+// preferred sort key; title/group_id stay optional and render only if sent.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
@@ -80,8 +84,11 @@ export default function TeacherSchedule() {
   }, [presetKey])
   useEffect(() => { loadConsole() }, [loadConsole])
 
-  // Resolve a console row's student/group to a display name (slug/id fallback).
+  // Resolve a console row's student/group to a display name. The live backend
+  // sends student_name on schedule rows — trust it first, then fall back to
+  // the /me lookup, then the raw slug/id.
   const whoFor = useCallback((row) => {
+    if (row?.student_name) return row.student_name
     if (row?.student_slug) return studentBySlug?.[row.student_slug]?.name || row.student_slug
     if (row?.group_id !== undefined && row?.group_id !== null) {
       const group = groupById?.[String(row.group_id)]
@@ -93,7 +100,13 @@ export default function TeacherSchedule() {
 
   const lessons = useMemo(() => {
     const rows = Array.isArray(consoleState.data?.lessons) ? [...consoleState.data.lessons] : []
-    return rows.sort((a, b) => `${a?.date || ''} ${a?.time || ''}`.localeCompare(`${b?.date || ''} ${b?.time || ''}`))
+    return rows.sort((a, b) => {
+      // Prefer the precise epoch the live backend sends; fall back to date+time strings.
+      const au = Number(a?.startUtc)
+      const bu = Number(b?.startUtc)
+      if (Number.isFinite(au) && Number.isFinite(bu) && au !== bu) return au - bu
+      return `${a?.date || ''} ${a?.time || ''}`.localeCompare(`${b?.date || ''} ${b?.time || ''}`)
+    })
   }, [consoleState.data])
 
   const consoleBookings = Array.isArray(consoleState.data?.bookings) ? consoleState.data.bookings : []
