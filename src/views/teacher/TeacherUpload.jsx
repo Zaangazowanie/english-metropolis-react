@@ -3,8 +3,11 @@
 // POST /api/console/teacher/upload (docs/console/API-CONTRACT.md) — multipart:
 //   file (pdf / txt / vtt), fields student_slug, date, title?, kind =
 //   finished_lesson | transcript.
-// The backend stores the file, creates/updates the `lessons` record
-// (materials[]), and for transcripts creates an ingestionJob.
+// The backend stores the file and creates/updates the `lessons` record
+// (materials[]). LIVE behaviour (2026-07-04): transcript auto-ingestion
+// stays superadmin-side (a Convex guard) — teacher uploads are stored and
+// audited, and the school starts AI ingestion from the admin console, so
+// ingestion_job_id only appears if the backend actually queued a job.
 //   → { ok, lesson_id?, ingestion_job_id?, url }
 //
 // The endpoint is POST-only, so there is no mount-time probe: the form always
@@ -32,7 +35,7 @@ const KINDS = [
     key: 'transcript',
     icon: 'description',
     label: 'Transcript (txt / vtt)',
-    hint: 'A lesson transcript — queued into the AI ingestion pipeline after upload.',
+    hint: 'A lesson transcript — stored on the student’s record; the school starts AI ingestion from the admin console.',
     accept: '.txt,.vtt',
     pattern: /\.(txt|vtt)$/i,
     patternHint: 'a .txt or .vtt file',
@@ -108,7 +111,9 @@ export default function TeacherUpload() {
         setNotice({
           kind: 'ok',
           text: kind.key === 'transcript'
-            ? 'Transcript uploaded — it’s now queued for the ingestion pipeline.'
+            ? (res?.ingestion_job_id
+              ? 'Transcript uploaded — it’s now queued for the ingestion pipeline.'
+              : 'Transcript uploaded and stored — the school starts AI ingestion from the admin console.')
             : 'Lesson uploaded — it’s stored on the student’s record.',
           lessonId: res?.lesson_id,
           jobId: res?.ingestion_job_id,
@@ -150,8 +155,9 @@ export default function TeacherUpload() {
       <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">Upload</p>
       <h2 className="mt-1 font-headline text-3xl text-slate-900">Hand in a <span className="italic text-sky-600">Lesson</span></h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-        Upload the finished lesson PDF for a student’s record, or a transcript for the AI ingestion
-        pipeline. Everything lands on your own students only — scope is enforced on the server.
+        Upload the finished lesson PDF for a student’s record, or a lesson transcript — transcripts
+        are stored on the record and the school starts AI ingestion from the admin console.
+        Everything lands on your own students only — scope is enforced on the server.
       </p>
 
       {notLive && (
