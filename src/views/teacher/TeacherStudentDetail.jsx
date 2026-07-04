@@ -2,8 +2,9 @@
 // (P2, slice 5). BRIEF P2: "My Students (roster w/ links to a teacher-scoped
 // student view: analyses read-only, keywords editable)" — this is that view.
 //
-// Data seam: GET /api/console/teacher/student?student_slug= — a PROPOSED
-// endpoint (console-backend-gap issue #149, not yet in API-CONTRACT.md).
+// Data seam: GET /api/console/teacher/student?student_slug= — LIVE since
+// 2026-07-04, served by convex consoleTeacher:teacherStudentDetail
+// (console-backend-gap issue #149, closed; shape as specced there).
 // Teacher magic-link tokens cannot call the admin Convex queries that power
 // /admin/student/:slug, and convex/** is off-limits to the fleet, so the
 // analyses must arrive through the console seam. Field names mirror what the
@@ -15,7 +16,8 @@
 //              strengths[], improvements[], keyErrors[], practiceAdvice[]}]
 //   level_history:[{timestamp, from, to}]
 // Scoping is SERVER-side (403 for students who aren't this teacher's own).
-// Until the endpoint flips live: the labelled "backend not live yet" panel —
+// If the endpoint ever answers 404/non-JSON again, the labelled "backend not
+// live yet" panel shows (an outage signal now, not a missing feature) —
 // nothing on this screen is ever mocked (KICKOFF.md rule 4).
 //
 // Everything here is READ-ONLY by design; the edit affordances are hand-off
@@ -221,7 +223,7 @@ export default function TeacherStudentDetail() {
       return (
         <BackendNotLive
           endpoint="GET /api/console/teacher/student"
-          note="This endpoint is proposed in console-backend-gap issue #149 (it isn't in the contract yet) — Ricky implements it on the VPS, and this page fills in with real analyses the moment it flips live."
+          note="This endpoint went live 2026-07-04 (console-backend-gap #149, served by consoleTeacher:teacherStudentDetail) — if you're seeing this panel, the console API is temporarily unreachable, not unbuilt. Real analyses return the moment it answers again."
         />
       )
     }
