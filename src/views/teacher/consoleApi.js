@@ -110,11 +110,12 @@ export function getTeacherMaterials({ studentSlug } = {}) {
 //                strengths:[...], improvements:[...], keyErrors:[...],
 //                practiceAdvice:[...]}],
 //     level_history:[{timestamp, from, to}] }
-// PROPOSED endpoint — not in API-CONTRACT.md yet; requested in
-// console-backend-gap issue #149. Field names mirror what the admin
-// StudentDetail already renders from Convex (students:getStudentDashboard /
-// getStudentLevelHistory), scoped server-side to the teacher's own students
-// (403 otherwise). Until it flips live this 404s → kind='not-live'.
+// LIVE since 2026-07-04 — served by convex consoleTeacher:teacherStudentDetail
+// (console-backend-gap #149, closed; shape exactly as specced there). Field
+// names mirror what the admin StudentDetail renders from Convex
+// (students:getStudentDashboard / getStudentLevelHistory), scoped server-side
+// to the teacher's own students (403 otherwise). A 404/non-JSON here now
+// means the console API is unreachable — not that the feature is unbuilt.
 export function getTeacherStudentDetail({ studentSlug }) {
   const qs = new URLSearchParams()
   if (studentSlug) qs.set('student_slug', studentSlug)
