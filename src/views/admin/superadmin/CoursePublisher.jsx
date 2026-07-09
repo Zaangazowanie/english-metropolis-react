@@ -18,8 +18,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { consoleGet, consoleGetBlob, consolePost, libraryPdfPath } from './consoleApi.js'
-import { mutateAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
-import MiniCalendar from './MiniCalendar.jsx'
+import SchedulePlanner from './SchedulePlanner.jsx'
 
 const BASKET_ICON = { IDEAS: 'psychology', PLACES: 'public', SOCIETY: 'newspaper', SPEC: 'work', SUM: 'sunny' }
 const BASKET_LABEL = { IDEAS: 'Ideas & Ambition', PLACES: 'Places & Culture', SOCIETY: 'News & Society' }
@@ -101,70 +100,6 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
   const [publishing, setPublishing] = useState(null)       // {done, total, log:[]}
   const [busyRow, setBusyRow] = useState(null)
   const [pdfBusy, setPdfBusy] = useState(null)
-  // Scheduling (real bookings — fires the confirmation email + Meet pipeline)
-  const [schedMode, setSchedMode] = useState('weekly')     // 'weekly' | 'flexible'
-  const [weekly, setWeekly] = useState({ start: '', time: '17:00', count: 4 })
-  const [flexRows, setFlexRows] = useState([''])
-  const [booking, setBooking] = useState(null)             // {done,total,log:[],finished}
-  const [calOpen, setCalOpen] = useState(null)             // 'weekly' | flex row index | null
-
-  // Warsaw wall-clock → UTC ms (matches the platform's Europe/Warsaw slots).
-  function warsawToUtcMs(dateStr, timeStr) {
-    const [y, m, d] = dateStr.split('-').map(Number)
-    const [hh, mm] = timeStr.split(':').map(Number)
-    // Find the UTC instant whose Warsaw wall-clock equals the requested time.
-    const guess = Date.UTC(y, m - 1, d, hh, mm)
-    for (const offsetH of [2, 1, 0, 3]) {   // CEST first, then CET
-      const t = guess - offsetH * 3600000
-      const w = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Warsaw',
-        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
-        .formatToParts(new Date(t)).reduce((a, p) => (a[p.type] = p.value, a), {})
-      if (Number(w.year) === y && Number(w.month) === m && Number(w.day) === d &&
-          Number(w.hour) === hh && Number(w.minute) === mm) return t
-    }
-    return guess - 2 * 3600000
-  }
-
-  async function bookSchedule() {
-    if (!student) return
-    let starts = []
-    if (schedMode === 'weekly') {
-      if (!weekly.start || !weekly.time || !weekly.count) return
-      for (let i = 0; i < Math.min(Number(weekly.count) || 1, 24); i++) {
-        const d = new Date(`${weekly.start}T12:00:00Z`)
-        d.setUTCDate(d.getUTCDate() + 7 * i)
-        starts.push(warsawToUtcMs(d.toISOString().slice(0, 10), weekly.time))
-      }
-    } else {
-      starts = flexRows.filter(v => v && v.split('T')[0]).map(v => {
-        const [date, time] = v.split('T')
-        return warsawToUtcMs(date, (time || '17:00').slice(0, 5))
-      })
-    }
-    if (!starts.length) return
-    setBooking({ done: 0, total: starts.length, log: [], finished: false })
-    const fmt = ms => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Warsaw',
-      weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(ms))
-    for (const startUtc of starts) {
-      try {
-        const res = await mutateAdminConvex('scheduling:bookLesson', {
-          organizationId: student.organizationId,
-          studentId: student._id,
-          startUtc,
-          bookedBy: 'superadmin',
-          bookedByName: 'Superadmin console',
-          force: true,
-        })
-        setBooking(b => ({ ...b, done: b.done + 1,
-          log: [...b.log, { ok: true, when: fmt(startUtc), meet: res?.meetLink }] }))
-      } catch (e) {
-        setBooking(b => ({ ...b, done: b.done + 1,
-          log: [...b.log, { ok: false, when: fmt(startUtc), err: String(e.message || e).replace(/^.*Error: /, '') }] }))
-      }
-    }
-    setBooking(b => ({ ...b, finished: true }))
-  }
-
   // Authenticated PDF preview — a bare <a href> carries no console token, so
   // fetch the deck as a blob and hand it to the browser's PDF viewer.
   async function previewPdf(lessonId) {
@@ -459,138 +394,8 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
         </div>
       )}
 
-      {/* ── Schedule — real bookings (confirmation emails + Meet fire automatically) ── */}
-      {student && layer >= 3 && (
-        <div className="mt-2 space-y-3 rounded-2xl border p-4"
-          style={{ borderColor: 'rgba(96,165,250,0.25)', background: 'rgba(96,165,250,0.04)' }}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black"
-                style={{ background: 'linear-gradient(135deg, #60A5FA, #3B82F6)', color: '#fff' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>calendar_add_on</span>
-              </span>
-              <span className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: '#F4F0FF' }}>
-                Schedule lessons for {student.name.split(' ')[0]}
-              </span>
-            </div>
-            <div className="flex gap-1 rounded-full border p-0.5" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-              {['weekly', 'flexible'].map(m => (
-                <button key={m} type="button" onClick={() => setSchedMode(m)}
-                  className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]"
-                  style={{ cursor: 'pointer', border: 'none',
-                    background: schedMode === m ? 'linear-gradient(135deg, #60A5FA, #3B82F6)' : 'transparent',
-                    color: schedMode === m ? '#fff' : '#8A83AE' }}>
-                  {m}
-                </button>
-              ))}
-            </div>
-          </div>
-          <p className="text-xs" style={{ color: '#8A83AE', lineHeight: 1.55 }}>
-            Superadmin bookings <strong style={{ color: '#CEC8E8' }}>override teacher availability</strong> —
-            only a clash with an already-booked lesson can refuse a time. Every confirmed lesson automatically
-            emails the teacher, English Metro support and the student (with an add-to-calendar button), and
-            books the video room. Times are Europe/Warsaw; lessons are 60 minutes.
-          </p>
-
-          {schedMode === 'weekly' ? (
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="flex flex-col gap-1" style={{ position: 'relative' }}>
-                <span className="sa-stat-label">First lesson</span>
-                <button type="button" className="sa-input" style={{ textAlign: 'left', cursor: 'pointer', minWidth: '10rem' }}
-                  onClick={() => setCalOpen(calOpen === 'weekly' ? null : 'weekly')}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 15, verticalAlign: '-3px', marginRight: 6, color: '#A855F7' }}>calendar_month</span>
-                  {weekly.start || 'Pick a date'}
-                </button>
-                {calOpen === 'weekly' && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 40, marginTop: 6 }}>
-                    <MiniCalendar value={weekly.start}
-                      onPick={d => { setWeekly(w => ({ ...w, start: d })); setCalOpen(null) }} />
-                  </div>
-                )}
-              </div>
-              <label className="flex flex-col gap-1">
-                <span className="sa-stat-label">Time</span>
-                <input type="time" className="sa-input" value={weekly.time}
-                  onChange={e => setWeekly(w => ({ ...w, time: e.target.value }))} />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="sa-stat-label">Weeks</span>
-                <input type="number" min="1" max="24" className="sa-input" style={{ width: '5.5rem' }} value={weekly.count}
-                  onChange={e => setWeekly(w => ({ ...w, count: e.target.value }))} />
-              </label>
-              <span className="pb-2 text-xs" style={{ color: '#8A83AE' }}>
-                same weekday &amp; time, every week
-              </span>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {flexRows.map((v, i) => {
-                const [dPart, tPart] = (v || 'T').split('T')
-                return (
-                  <div key={i} className="flex items-center gap-2" style={{ position: 'relative' }}>
-                    <button type="button" className="sa-input" style={{ textAlign: 'left', cursor: 'pointer', minWidth: '10rem', maxWidth: '11rem' }}
-                      onClick={() => setCalOpen(calOpen === i ? null : i)}>
-                      <span className="material-symbols-outlined" style={{ fontSize: 15, verticalAlign: '-3px', marginRight: 6, color: '#A855F7' }}>calendar_month</span>
-                      {dPart || 'Pick a date'}
-                    </button>
-                    {calOpen === i && (
-                      <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 40, marginTop: 6 }}>
-                        <MiniCalendar value={dPart}
-                          onPick={d => { setFlexRows(rows => rows.map((r, idx) => idx === i ? `${d}T${tPart || '17:00'}` : r)); setCalOpen(null) }} />
-                      </div>
-                    )}
-                    <input type="time" className="sa-input" style={{ width: '7rem' }} value={tPart || '17:00'}
-                      onChange={e => setFlexRows(rows => rows.map((r, idx) => idx === i ? `${dPart || ''}T${e.target.value}` : r))} />
-                    <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.3rem 0.6rem' }}
-                      onClick={() => setFlexRows(rows => rows.length === 1 ? [''] : rows.filter((_, idx) => idx !== i))}>
-                      <span className="material-symbols-outlined" style={{ fontSize: 15 }}>close</span>
-                    </button>
-                  </div>
-                )
-              })}
-              <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.35rem 0.8rem' }}
-                onClick={() => setFlexRows(rows => [...rows, ''])}>
-                <span className="material-symbols-outlined" style={{ fontSize: 15 }}>add</span>
-                Another time
-              </button>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-xs" style={{ color: '#8A83AE' }}>
-              {schedMode === 'weekly'
-                ? (weekly.start ? `${weekly.count || 1} weekly lesson${(weekly.count || 1) == 1 ? '' : 's'} from ${weekly.start} at ${weekly.time}` : 'pick the first lesson date')
-                : `${flexRows.filter(Boolean).length} time${flexRows.filter(Boolean).length === 1 ? '' : 's'} chosen`}
-            </span>
-            <button type="button" className="sa-btn sa-btn-primary" onClick={bookSchedule}
-              disabled={(booking && !booking.finished) || (schedMode === 'weekly' ? !weekly.start : !flexRows.some(Boolean))}>
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>event_available</span>
-              {booking && !booking.finished ? `Booking ${booking.done}/${booking.total}…` : 'Confirm & book'}
-            </button>
-          </div>
-
-          {booking && (
-            <div className="space-y-1">
-              {booking.log.map((r, i) => (
-                <div key={i} className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="material-symbols-outlined" style={{ fontSize: 14, color: r.ok ? '#34D399' : '#FB7185' }}>
-                    {r.ok ? 'event_available' : 'error'}
-                  </span>
-                  <span style={{ color: '#F4F0FF', fontWeight: 600 }}>{r.when}</span>
-                  {r.ok
-                    ? <span style={{ color: '#34D399' }}>booked · confirmations sent</span>
-                    : <span style={{ color: '#FB7185' }}>{r.err}</span>}
-                </div>
-              ))}
-              {booking.finished && (
-                <p className="text-[11px]" style={{ color: '#8A83AE' }}>
-                  Emails go to the teacher, support@englishmetro.com and the student's own address.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      {/* ── Schedule planner — calendar with availability/taught/upcoming + allocation budget ── */}
+      {student && layer >= 3 && <SchedulePlanner student={student} />}
     </div>
   )
 }
