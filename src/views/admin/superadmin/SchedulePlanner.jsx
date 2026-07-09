@@ -53,7 +53,7 @@ function TimeSelect({ value, onChange }) {
   )
 }
 
-export default function SchedulePlanner({ student, allocVersion = 0 }) {
+export default function SchedulePlanner({ student, allocVersion = 0, onBooked = null }) {
   const now = new Date()
   const [view, setView] = useState({ y: now.getFullYear(), m: now.getMonth() })
   const [mode, setMode] = useState('weekly')
@@ -177,6 +177,7 @@ export default function SchedulePlanner({ student, allocVersion = 0 }) {
     setBooking(b => ({ ...b, finished: true }))
     setFlex([]); setWeekly(w => ({ ...w, start: '' }))
     reloadBookings(); reloadPackages()
+    if (onBooked) onBooked()
   }
 
   async function allocate() {

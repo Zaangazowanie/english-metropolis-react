@@ -86,7 +86,7 @@ function KeywordPreview({ lessonId }) {
   )
 }
 
-export default function CoursePublisher({ students, selectedStudentId, setSelectedStudentId, fixedStudent = null, allocVersion = 0 }) {
+export default function CoursePublisher({ students, selectedStudentId, setSelectedStudentId, fixedStudent = null, allocVersion = 0, onBookingsChanged = null }) {
   const roster = useMemo(() => (students || []).filter(s => s.status !== 'archived'), [students])
   const student = fixedStudent || roster.find(s => s._id === selectedStudentId) || null
 
@@ -100,6 +100,37 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
   const [publishing, setPublishing] = useState(null)       // {done, total, log:[]}
   const [busyRow, setBusyRow] = useState(null)
   const [pdfBusy, setPdfBusy] = useState(null)
+  const [stuBookings, setStuBookings] = useState([])
+  const [bookVersion, setBookVersion] = useState(0)
+
+  // The student's committed lessons (scheduled + completed), chronological —
+  // mapped SEQUENTIALLY onto the in-course lessons so each course lesson
+  // shows its date.
+  useEffect(() => {
+    if (!student?._id) { setStuBookings([]); return }
+    let alive = true
+    import('../../../contexts/AdminAuthContext.jsx').then(({ queryAdminConvex }) =>
+      queryAdminConvex('scheduling:listBookings', { studentId: student._id }))
+      .then(rows => {
+        if (!alive) return
+        setStuBookings((rows || [])
+          .filter(b => b.status === 'scheduled' || b.status === 'completed')
+          .sort((a, b) => a.startUtc - b.startUtc))
+      })
+      .catch(() => { if (alive) setStuBookings([]) })
+    return () => { alive = false }
+  }, [student?._id, bookVersion])
+
+  const dateByLesson = useMemo(() => {
+    if (!course) return {}
+    const inCourse = course.lessons.filter(l => l.assigned)
+      .sort((a, b) => (a.lesson_number || 0) - (b.lesson_number || 0))
+    const map = {}
+    inCourse.forEach((l, i) => { if (stuBookings[i]) map[l.lesson_id] = stuBookings[i] })
+    return map
+  }, [course, stuBookings])
+
+  const handleBooked = () => { setBookVersion(v => v + 1); if (onBookingsChanged) onBookingsChanged() }
   // Authenticated PDF preview — a bare <a href> carries no console token, so
   // fetch the deck as a blob and hand it to the browser's PDF viewer.
   async function previewPdf(lessonId) {
@@ -283,8 +314,20 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
                   background: l.assigned ? 'rgba(52,211,153,0.05)' : 'rgba(255,255,255,0.025)' }}>
                 <div className="flex items-center gap-3">
                   {l.assigned ? (
-                    <span className="sa-badge sa-badge-committed" style={{ flexShrink: 0 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check</span>in course
+                    <span className="flex items-center gap-1.5" style={{ flexShrink: 0 }}>
+                      <span className="sa-badge sa-badge-committed">
+                        <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check</span>in course
+                      </span>
+                      {dateByLesson[l.lesson_id] && (
+                        <span className="sa-badge"
+                          title={dateByLesson[l.lesson_id].status === 'completed' ? 'taught' : 'scheduled'}
+                          style={{
+                            background: dateByLesson[l.lesson_id].endUtc < Date.now() ? 'rgba(138,131,174,0.14)' : 'rgba(52,211,153,0.12)',
+                            color: dateByLesson[l.lesson_id].endUtc < Date.now() ? '#8A83AE' : '#34D399' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 12 }}>event</span>
+                          {dateByLesson[l.lesson_id].dateWarsaw} · {dateByLesson[l.lesson_id].timeWarsaw}
+                        </span>
+                      )}
                     </span>
                   ) : (
                     <input type="checkbox" checked={picked.has(l.lesson_id)} onChange={() => togglePick(l.lesson_id)}
@@ -395,7 +438,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
       )}
 
       {/* ── Schedule planner — calendar with availability/taught/upcoming + allocation budget ── */}
-      {student && layer >= 3 && <SchedulePlanner student={student} allocVersion={allocVersion} />}
+      {student && layer >= 3 && <SchedulePlanner student={student} allocVersion={allocVersion} onBooked={handleBooked} />}
     </div>
   )
 }

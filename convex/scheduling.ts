@@ -594,7 +594,9 @@ export const getBookingInternal = internalQuery({
       durationMin,
       meetLink: b.meetLink ?? null,
       studentName: student?.name ?? "Student",
-      studentEmail: student?.email ?? null,
+      // Students log in with their record email but their REAL personal
+      // address lives in googleEmail — confirmations go there when present.
+      studentEmail: (student as any)?.googleEmail ?? student?.email ?? null,
       teacherName,
       teacherEmail,
     };

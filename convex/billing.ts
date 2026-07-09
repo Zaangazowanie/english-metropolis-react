@@ -32,17 +32,26 @@ async function billableUnitsForStudent(ctx: any, studentId: any): Promise<number
     .query("lessons")
     .withIndex("by_student", (q: any) => q.eq("studentId", studentId))
     .collect();
-  for (const lesson of lessons) {
-    if (lesson.status === "cancelled" || lesson.status === "planned") continue;
-    if (!lesson.date) continue;
-    units.push(new Date(lesson.date + "T12:00:00Z").getTime());
-  }
+  // Scheduled bookings consume allocation IMMEDIATELY (Mike, 2026-07-09):
+  // a booked slot is a committed lesson. Completed + late-cancelled count too.
+  // Taught `lessons` rows only count when no booking covers the same date
+  // (avoids double-charging once a booking is taught and a lesson row lands).
   const bookings = await ctx.db
     .query("lessonBookings")
     .withIndex("by_student", (q: any) => q.eq("studentId", studentId))
     .collect();
+  const bookedDates = new Set<string>();
   for (const b of bookings) {
-    if (b.status === "cancelled_late") units.push(b.startUtc);
+    if (b.status === "scheduled" || b.status === "completed" || b.status === "cancelled_late") {
+      units.push(b.startUtc);
+      bookedDates.add(b.dateWarsaw);
+    }
+  }
+  for (const lesson of lessons) {
+    if (lesson.status === "cancelled" || lesson.status === "planned") continue;
+    if (!lesson.date) continue;
+    if (bookedDates.has(lesson.date)) continue;
+    units.push(new Date(lesson.date + "T12:00:00Z").getTime());
   }
   return units.sort((a, b) => a - b);
 }

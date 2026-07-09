@@ -164,7 +164,8 @@ export default function SuperadminCourses() {
             </div>
             <div className="sa-card-body">
               <CoursePublisher students={students} selectedStudentId={studentId}
-                setSelectedStudentId={setStudentId} fixedStudent={student} allocVersion={allocVersion} />
+                setSelectedStudentId={setStudentId} fixedStudent={student} allocVersion={allocVersion}
+                onBookingsChanged={() => setAllocVersion(v => v + 1)} />
             </div>
           </div>
 
