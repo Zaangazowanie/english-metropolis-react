@@ -143,15 +143,28 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
     const ids = [...picked]
     setLayer(4)
     setPublishing({ done: 0, total: ids.length, log: [] })
-    for (const lid of ids) {
-      try {
-        const res = await consolePost('/api/console/assign', { lesson_id: lid, student_slug: student.slug })
+    const sleep = ms => new Promise(r => setTimeout(r, ms))
+    for (let i = 0; i < ids.length; i++) {
+      const lid = ids[i]
+      // nginx rate-limits /api/console/ — pace bulk adds and retry 503s with
+      // backoff instead of failing half the course (2026-07-09 incident).
+      let res = null, err = null
+      for (let attempt = 0; attempt < 4; attempt++) {
+        try { res = await consolePost('/api/console/assign', { lesson_id: lid, student_slug: student.slug }); err = null; break }
+        catch (e) {
+          err = e
+          if (e.status === 503 || e.status === 429) { await sleep(2500 * (attempt + 1)); continue }
+          break
+        }
+      }
+      if (res) {
         setPublishing(p => ({ ...p, done: p.done + 1,
           log: [...p.log, { lid, ok: true, warn: res.warning || null, yg: res.youglish_queued || 0 }] }))
-      } catch (e) {
+      } else {
         setPublishing(p => ({ ...p, done: p.done + 1,
-          log: [...p.log, { lid, ok: false, warn: String(e.message || e) }] }))
+          log: [...p.log, { lid, ok: false, warn: String(err?.message || err) }] }))
       }
+      if (i < ids.length - 1) await sleep(2200)   // stay under the console rate limit
     }
     setPicked(new Set())
     setPublishing(p => ({ ...p, finished: true }))
