@@ -7,8 +7,8 @@
 // every console screen, instead of red text (and never mock rows).
 
 const TONES = {
-  muted: { border: 'rgba(148, 163, 184, 0.2)', icon: 'rgba(148, 163, 184, 0.8)', title: '#e2e8f0' },
-  error: { border: 'rgba(248, 113, 113, 0.35)', icon: '#fca5a5', title: '#fecaca' },
+  muted: { border: 'rgba(255, 255, 255, 0.10)', icon: '#8A83AE', title: '#CEC8E8' },
+  error: { border: 'rgba(251, 113, 133, 0.35)', icon: '#FB7185', title: '#FDA4AF' },
 }
 
 function Panel({ icon, tone = 'muted', title, children }) {
@@ -16,11 +16,11 @@ function Panel({ icon, tone = 'muted', title, children }) {
   return (
     <div
       className="mx-auto my-8 flex max-w-xl flex-col items-center gap-3 rounded-2xl border px-8 py-10 text-center"
-      style={{ borderColor: t.border, background: 'rgba(15, 23, 42, 0.45)' }}
+      style={{ borderColor: t.border, background: 'rgba(8, 4, 20, 0.55)', backdropFilter: 'blur(14px)' }}
     >
       <span className="material-symbols-outlined" style={{ fontSize: 34, color: t.icon }}>{icon}</span>
       <p className="text-sm font-bold uppercase tracking-[0.14em]" style={{ color: t.title }}>{title}</p>
-      <div className="space-y-2 text-sm" style={{ color: 'rgba(203, 213, 225, 0.75)', lineHeight: 1.55 }}>
+      <div className="space-y-2 text-sm" style={{ color: '#8A83AE', lineHeight: 1.55 }}>
         {children}
       </div>
     </div>
@@ -28,7 +28,7 @@ function Panel({ icon, tone = 'muted', title, children }) {
 }
 
 export function ConsoleLoading({ label = 'Loading…' }) {
-  return <p className="p-6" style={{ color: 'rgba(203, 213, 225, 0.7)' }}>{label}</p>
+  return <p className="p-6" style={{ color: '#8A83AE' }}>{label}</p>
 }
 
 export function ConsoleNotLive({ endpoint }) {

@@ -149,7 +149,7 @@ export default function LoginV3() {
         if (result.sessionToken) {
           try {
             window.sessionStorage.setItem(
-              'conversa-admin-session',
+              'em-admin-session',
               JSON.stringify({
                 user: { email: result.email, role: 'super_admin' },
                 sessionToken: result.sessionToken,
@@ -164,7 +164,7 @@ export default function LoginV3() {
         if (result.sessionToken) {
           try {
             window.sessionStorage.setItem(
-              'conversa-admin-session',
+              'em-admin-session',
               JSON.stringify({
                 user: { email: result.email, role: 'admin' },
                 sessionToken: result.sessionToken,

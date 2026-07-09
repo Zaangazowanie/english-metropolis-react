@@ -67,41 +67,46 @@ export default function SuperadminDashboard() {
   useEffect(() => {
     let cancelled = false
     async function load() {
-      try {
-        const [
-          globalStats,
-          pipelineStats,
-          studentRows,
-          lessonRows,
-          jobs,
-          organizations,
-          audit,
-        ] = await Promise.all([
-          queryAdminConvex('students:getGlobalStats', {}),
-          queryAdminConvex('ingestion:getIngestionStats', {}),
-          queryAdminConvex('students:listStudents', {}),
-          queryAdminConvex('students:listLessons', { limit: 24 }),
-          queryAdminConvex('ingestion:listIngestionJobs', { limit: 8 }),
-          queryAdminConvex('students:listOrganizations', {}),
-          queryAdminConvex('ingestion:listAuditLog', { limit: 12 }),
-        ])
-        if (cancelled) return
-        setStats(globalStats)
-        setIngestionStats(pipelineStats)
-        setStudents(studentRows)
-        setRecentLessons(lessonRows)
-        setRecentJobs(jobs)
-        setOrgs(organizations)
-        setAuditEvents(audit)
-        const firstActive = studentRows.find(s => s.status === 'active') || studentRows[0]
-        if (firstActive) setSelectedStudentId(firstActive._id)
-        setLoading(false)
-      } catch (e) {
-        if (!cancelled) {
-          setError(e.message || String(e))
-          setLoading(false)
-        }
+      // allSettled: one failing stat must never blank the whole console
+      // (the 2026-07-09 outage was getGlobalStats alone taking the page down).
+      const results = await Promise.allSettled([
+        queryAdminConvex('students:getGlobalStats', {}),
+        queryAdminConvex('ingestion:getIngestionStats', {}),
+        queryAdminConvex('students:listStudents', {}),
+        queryAdminConvex('students:listLessons', { limit: 24 }),
+        queryAdminConvex('ingestion:listIngestionJobs', { limit: 8 }),
+        queryAdminConvex('students:listOrganizations', {}),
+        queryAdminConvex('ingestion:listAuditLog', { limit: 12 }),
+      ])
+      if (cancelled) return
+      const [globalStats, pipelineStats, studentRows, lessonRows, jobs, organizations, audit] =
+        results.map(r => (r.status === 'fulfilled' ? r.value : null))
+      setStats(globalStats)
+      setIngestionStats(pipelineStats)
+      setStudents(studentRows || [])
+      setRecentLessons(lessonRows || [])
+      setRecentJobs(jobs || [])
+      setOrgs(organizations || [])
+      setAuditEvents(audit || [])
+      const firstActive = (studentRows || []).find(s => s.status === 'active') || (studentRows || [])[0]
+      if (firstActive) setSelectedStudentId(firstActive._id)
+      const failures = results.filter(r => r.status === 'rejected')
+      if (failures.length) {
+        setError(`${failures.length} console panel(s) failed to load: ${failures.map(f => String(f.reason?.message || f.reason).slice(0, 80)).join(' · ')}`)
       }
+      setLoading(false)
+      // Keyword total: fat enriched docs can't be counted in one Convex
+      // execution — sum the paginated counter in the background instead.
+      try {
+        let cursor = null, total = 0
+        for (let i = 0; i < 60; i++) {
+          const page = await queryAdminConvex('students:countKeywordsPage', cursor ? { cursor } : {})
+          total += page.count
+          if (page.isDone || cancelled) break
+          cursor = page.cursor
+        }
+        if (!cancelled) setStats(s => ({ ...(s || {}), totalKeywords: total }))
+      } catch { /* tile keeps its fallback */ }
     }
     load()
     return () => { cancelled = true }
@@ -204,10 +209,19 @@ export default function SuperadminDashboard() {
   }
 
   if (loading) return <p style={{ color: 'rgba(203,213,225,0.7)' }}>Loading console...</p>
-  if (error) return <p style={{ color: '#fca5a5' }}>Error: {error}</p>
+  // A partial failure renders as a banner over the working panels — never a
+  // blank page (the console must degrade, not disappear).
+  const errorBanner = error ? (
+    <div className="sa-card" style={{ padding: '0.8rem 1.1rem', marginBottom: '1rem',
+      borderColor: 'rgba(248,113,113,0.4)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+      <span className="material-symbols-outlined" style={{ color: '#fca5a5', fontSize: 18 }}>warning</span>
+      <span style={{ color: '#fca5a5', fontSize: '0.85rem' }}>{error}</span>
+    </div>
+  ) : null
 
   return (
     <div className="space-y-6">
+      {errorBanner}
       <section className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
         <div className="sa-card overflow-hidden">
           <div className="sa-card-body" style={{ padding: 0 }}>
@@ -226,7 +240,7 @@ export default function SuperadminDashboard() {
               {[
                 ['Active students', activeStudents],
                 ['Lessons', stats?.totalLessons ?? recentLessons.length],
-                ['Keywords', stats?.totalKeywords ?? 0],
+                ['Keywords', stats?.totalKeywords ?? '…'],
                 ['Pipeline', latestJobStatus],
               ].map(([label, value]) => (
                 <div key={label} className="p-5" style={{ borderRight: '1px solid rgba(148,163,184,0.08)' }}>

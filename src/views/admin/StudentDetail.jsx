@@ -779,7 +779,7 @@ async function generateStudentReport(student, assessment, feedback, enrichedAnal
     })),
   }
   let sessionToken = null
-  try { sessionToken = JSON.parse(sessionStorage.getItem('conversa-admin-session') || '{}')?.sessionToken || null } catch { /* ignore */ }
+  try { sessionToken = JSON.parse(sessionStorage.getItem('em-admin-session') || '{}')?.sessionToken || null } catch { /* ignore */ }
   const resp = await fetch('/api/report', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

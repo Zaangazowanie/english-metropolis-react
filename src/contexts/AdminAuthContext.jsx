@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
-const ADMIN_SESSION_KEY = 'conversa-admin-session'
+const ADMIN_SESSION_KEY = 'em-admin-session'
 
 const AdminAuthContext = createContext(null)
 

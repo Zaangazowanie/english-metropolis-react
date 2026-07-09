@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useLocation, Navigate } from 'react-router-dom'
 import { useAdminAuth } from '../../../contexts/AdminAuthContext.jsx'
+import { FONT, G, NIGHT as T } from '../../../design/v3/tokens.js'
 
 const navigation = [
   { to: '/admin/superadmin', label: 'Console', icon: 'dashboard', end: true },
@@ -15,6 +16,9 @@ const navigation = [
   { to: '/admin/superadmin/salary', label: 'Salary', icon: 'payments' },
 ]
 
+// Superadmin console chrome — Metropolis v3 (deep violet night, glossy glass,
+// purple→fuchsia→pink). All tab screens style themselves with the sa-* classes
+// defined here, so this file IS the console's design system.
 export default function SuperadminLayout() {
   const { adminUser, isSuperadmin, adminLogout } = useAdminAuth()
   const location = useLocation()
@@ -27,12 +31,12 @@ export default function SuperadminLayout() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #0b1220 0%, #0f172a 60%, #0b1220 100%)' }}>
+    <div className="min-h-screen" style={{ background: T.pageBg, fontFamily: FONT.body }}>
       <header
         className="sticky top-0 z-30 border-b"
         style={{
-          background: 'rgba(10, 14, 25, 0.88)',
-          borderColor: 'rgba(148, 163, 184, 0.12)',
+          background: 'rgba(6, 4, 16, 0.82)',
+          borderColor: T.border,
           backdropFilter: 'blur(18px) saturate(140%)',
           WebkitBackdropFilter: 'blur(18px) saturate(140%)',
         }}
@@ -41,25 +45,25 @@ export default function SuperadminLayout() {
           <Link to="/admin/superadmin" className="flex items-center gap-3 min-w-0">
             <div
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-              style={{ background: 'linear-gradient(135deg, #d946ef 0%, #8b5cf6 50%, #38bdf8 100%)', boxShadow: '0 12px 32px -12px rgba(139, 92, 246, 0.55)' }}
+              style={{ background: G.brand, boxShadow: '0 12px 32px -12px rgba(217, 70, 239, 0.6)' }}
             >
               <span className="material-symbols-outlined text-white" style={{ fontSize: 24 }}>shield_person</span>
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.28em]" style={{ color: 'rgba(216, 180, 254, 0.85)' }}>Superadmin</p>
-              <h1 className="text-xl font-bold truncate" style={{ color: '#f8fafc', letterSpacing: '-0.01em' }}>English Metropolis</h1>
+              <p className="text-[10px] font-bold uppercase tracking-[0.28em]" style={{ color: T.brandInk }}>Superadmin</p>
+              <h1 className="text-xl font-bold truncate" style={{ color: T.text, letterSpacing: '-0.01em', fontFamily: FONT.display }}>English Metro</h1>
             </div>
           </Link>
           <div className="flex items-center gap-3">
             <div className="hidden sm:block text-right">
-              <p className="text-[11px] uppercase tracking-widest" style={{ color: 'rgba(148, 163, 184, 0.7)' }}>Signed in as</p>
-              <p className="text-sm font-semibold" style={{ color: '#f1f5f9' }}>{adminUser.name}</p>
+              <p className="text-[11px] uppercase tracking-widest" style={{ color: T.textDim }}>Signed in as</p>
+              <p className="text-sm font-semibold" style={{ color: T.text }}>{adminUser.name}</p>
             </div>
             <button
               type="button"
               onClick={() => { adminLogout(); window.location.assign('/login') }}
               className="rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-widest transition hover:scale-[1.03]"
-              style={{ borderColor: 'rgba(248, 113, 113, 0.35)', color: 'rgba(254, 202, 202, 0.95)', background: 'rgba(239, 68, 68, 0.08)' }}
+              style={{ borderColor: 'rgba(251, 113, 133, 0.35)', color: T.rose, background: 'rgba(251, 113, 133, 0.08)' }}
             >
               Sign out
             </button>
@@ -86,29 +90,31 @@ export default function SuperadminLayout() {
 
       <style>{`
         .nav-pill-idle {
-          color: rgba(203, 213, 225, 0.75);
-          background: rgba(148, 163, 184, 0.08);
-          border: 1px solid rgba(148, 163, 184, 0.15);
+          color: ${T.textSoft};
+          background: ${T.surface};
+          border: 1px solid ${T.border};
         }
         .nav-pill-idle:hover {
-          color: #f1f5f9;
-          background: rgba(148, 163, 184, 0.14);
+          color: ${T.text};
+          background: ${T.surfaceHi};
+          border-color: ${T.borderHi};
         }
         .nav-pill-active {
-          color: #0b1220;
-          background: linear-gradient(135deg, #c4b5fd, #a5f3fc);
-          border: 1px solid rgba(168, 85, 247, 0.4);
-          box-shadow: 0 10px 30px -10px rgba(139, 92, 246, 0.55);
+          color: #fff;
+          background: ${G.brand};
+          border: 1px solid rgba(240, 171, 252, 0.45);
+          box-shadow: 0 10px 30px -10px rgba(217, 70, 239, 0.6);
         }
         .sa-card {
-          background: linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
-          border: 1px solid rgba(148, 163, 184, 0.15);
+          background: ${G.glass}, ${T.surface};
+          border: 1px solid ${T.border};
           border-radius: 1.25rem;
-          backdrop-filter: blur(12px);
+          backdrop-filter: blur(14px);
+          box-shadow: ${T.shadowSm};
         }
         .sa-card-header {
           padding: 1rem 1.25rem;
-          border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+          border-bottom: 1px solid ${T.borderSoft};
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -119,25 +125,31 @@ export default function SuperadminLayout() {
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.14em;
-          color: rgba(203, 213, 225, 0.8);
+          color: ${T.textDim};
         }
-        .sa-card-body { padding: 1.25rem; color: #e2e8f0; }
-        .sa-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(148, 163, 184, 0.8); }
-        .sa-stat-value { font-size: 1.75rem; font-weight: 800; color: #f8fafc; margin-top: 0.25rem; }
+        .sa-card-body { padding: 1.25rem; color: ${T.textSoft}; }
+        .sa-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.14em; color: ${T.textDim}; }
+        .sa-stat-value {
+          font-size: 1.75rem; font-weight: 700; margin-top: 0.25rem;
+          font-family: ${FONT.display};
+          background: ${G.brand};
+          -webkit-background-clip: text; background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
         .sa-input {
           width: 100%;
-          background: rgba(15, 23, 42, 0.7);
-          border: 1px solid rgba(148, 163, 184, 0.22);
-          color: #e2e8f0;
+          background: ${T.surfaceLo};
+          border: 1px solid ${T.border};
+          color: ${T.text};
           border-radius: 0.75rem;
           padding: 0.7rem 0.9rem;
           font-size: 0.9rem;
           font-family: inherit;
           outline: none;
-          transition: border-color 0.2s, background 0.2s;
+          transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
         }
-        .sa-input:focus { border-color: #a78bfa; background: rgba(15, 23, 42, 0.9); }
-        .sa-input::placeholder { color: rgba(148, 163, 184, 0.55); }
+        .sa-input:focus { border-color: ${T.fuchsia}; box-shadow: 0 0 0 1px rgba(217,70,239,0.35); }
+        .sa-input::placeholder { color: ${T.textMute}; }
         .sa-textarea { min-height: 7rem; line-height: 1.55; font-size: 0.85rem; }
         .sa-btn {
           display: inline-flex;
@@ -154,18 +166,18 @@ export default function SuperadminLayout() {
           transition: transform 0.15s, box-shadow 0.15s;
         }
         .sa-btn-primary {
-          background: linear-gradient(135deg, #c4b5fd, #7dd3fc);
-          color: #0b1220;
-          box-shadow: 0 12px 30px -10px rgba(139, 92, 246, 0.5);
+          background: ${G.brand};
+          color: #fff;
+          box-shadow: 0 12px 30px -10px rgba(217, 70, 239, 0.55);
         }
         .sa-btn-primary:hover { transform: translateY(-1px) scale(1.02); }
         .sa-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .sa-btn-ghost {
-          background: rgba(148, 163, 184, 0.1);
-          color: #e2e8f0;
-          border-color: rgba(148, 163, 184, 0.2);
+          background: ${T.surface};
+          color: ${T.textSoft};
+          border-color: ${T.border};
         }
-        .sa-btn-ghost:hover { background: rgba(148, 163, 184, 0.18); }
+        .sa-btn-ghost:hover { background: ${T.surfaceHi}; color: ${T.text}; }
         .sa-badge {
           display: inline-flex;
           align-items: center;
@@ -177,11 +189,11 @@ export default function SuperadminLayout() {
           text-transform: uppercase;
           letter-spacing: 0.1em;
         }
-        .sa-badge-queued { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; }
-        .sa-badge-processing { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; }
-        .sa-badge-awaiting_review { background: rgba(251, 191, 36, 0.18); color: #fcd34d; }
-        .sa-badge-committed { background: rgba(74, 222, 128, 0.18); color: #86efac; }
-        .sa-badge-failed { background: rgba(248, 113, 113, 0.18); color: #fca5a5; }
+        .sa-badge-queued { background: ${T.surfaceHi}; color: ${T.textSoft}; }
+        .sa-badge-processing { background: rgba(96, 165, 250, 0.16); color: ${T.sky}; }
+        .sa-badge-awaiting_review { background: rgba(252, 211, 77, 0.14); color: ${T.amber}; }
+        .sa-badge-committed { background: rgba(52, 211, 153, 0.14); color: ${T.emerald}; }
+        .sa-badge-failed { background: rgba(251, 113, 133, 0.14); color: ${T.rose}; }
       `}</style>
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">

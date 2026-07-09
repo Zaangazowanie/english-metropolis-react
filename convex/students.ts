@@ -1665,23 +1665,33 @@ export const getGlobalStats = query({
     const students = await ctx.db.query("students").collect();
     const activeStudents = students.filter(s => s.status === "active").length;
     const allLessons = await ctx.db.query("lessons").collect();
-    const allKeywords = await ctx.db.query("keywords").collect();
-
-    const keywordsPerStudent: Record<string, number> = {};
-    for (const kw of allKeywords) {
-      const student = students.find(s => s._id === kw.studentId);
-      if (student) {
-        keywordsPerStudent[student.slug] = (keywordsPerStudent[student.slug] || 0) + 1;
-      }
-    }
-
+    // Keywords are NOT collected here: enriched keyword docs are several KB
+    // each, so a full-table collect() exceeds Convex's per-execution read
+    // limit (the 2026-07-09 superadmin console outage). Clients sum
+    // countKeywordsPage pages instead. keywordsPerStudent retired (unused).
     return {
       totalStudents: students.length,
       activeStudents,
       totalLessons: allLessons.length,
-      totalKeywords: allKeywords.length,
-      keywordsPerStudent,
+      totalKeywords: null,
+      keywordsPerStudent: {},
     };
+  },
+});
+
+// One page of the global keyword count. Enriched keyword docs are too fat to
+// count in a single execution, so callers iterate cursors and sum the pages.
+export const countKeywordsPage = query({
+  args: {
+    sessionToken: v.string(),
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
+    const page = await ctx.db
+      .query("keywords")
+      .paginate({ cursor: args.cursor ?? null, numItems: 400 });
+    return { count: page.page.length, cursor: page.continueCursor, isDone: page.isDone };
   },
 });
 
