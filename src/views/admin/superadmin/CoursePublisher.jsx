@@ -86,7 +86,7 @@ function KeywordPreview({ lessonId }) {
   )
 }
 
-export default function CoursePublisher({ students, selectedStudentId, setSelectedStudentId, fixedStudent = null }) {
+export default function CoursePublisher({ students, selectedStudentId, setSelectedStudentId, fixedStudent = null, allocVersion = 0 }) {
   const roster = useMemo(() => (students || []).filter(s => s.status !== 'archived'), [students])
   const student = fixedStudent || roster.find(s => s._id === selectedStudentId) || null
 
@@ -395,7 +395,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
       )}
 
       {/* ── Schedule planner — calendar with availability/taught/upcoming + allocation budget ── */}
-      {student && layer >= 3 && <SchedulePlanner student={student} />}
+      {student && layer >= 3 && <SchedulePlanner student={student} allocVersion={allocVersion} />}
     </div>
   )
 }

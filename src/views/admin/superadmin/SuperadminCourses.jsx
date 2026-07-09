@@ -19,6 +19,10 @@ export default function SuperadminCourses() {
   const [taught, setTaught] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [packages, setPackages] = useState(null)
+  const [allocOpen, setAllocOpen] = useState(false)
+  const [allocN, setAllocN] = useState(10)
+  const [allocVersion, setAllocVersion] = useState(0)
 
   useEffect(() => {
     let alive = true
@@ -45,6 +49,28 @@ export default function SuperadminCourses() {
 
   const student = students.find(s => s._id === studentId) || null
 
+  useEffect(() => {
+    if (!student?.organizationId) { setPackages(null); return }
+    let cancelled = false
+    queryAdminConvex('billing:listPackages', { organizationId: student.organizationId })
+      .then(rows => { if (!cancelled) setPackages((rows || []).filter(p => p.studentSlug === student.slug && p.status !== 'cancelled')) })
+      .catch(() => { if (!cancelled) setPackages([]) })
+    return () => { cancelled = true }
+  }, [student?._id, allocVersion])
+
+  const allocated = (packages || []).reduce((n, p) => n + (p.totalLessons || 0), 0)
+  const remaining = (packages || []).reduce((n, p) => n + (p.remainingLessons ?? 0), 0)
+
+  async function allocate() {
+    const n = Math.max(1, Math.min(Number(allocN) || 0, 200))
+    await mutateAdminConvex('billing:createPackage', {
+      organizationId: student.organizationId, studentId: student._id,
+      name: `${n}-lesson allocation (superadmin)`, totalLessons: n,
+    })
+    setAllocOpen(false)
+    setAllocVersion(v => v + 1)
+  }
+
   if (loading) return <p style={{ color: '#8A83AE' }}>Loading…</p>
 
   return (
@@ -55,30 +81,8 @@ export default function SuperadminCourses() {
         </div>
       )}
 
-      {/* ── Student picker — always visible, one row of cards ── */}
-      <div className="flex flex-wrap gap-2">
-        {students.map(s => (
-          <button key={s._id} type="button" onClick={() => setStudentId(s._id)}
-            className="flex items-center gap-2.5 rounded-2xl border px-4 py-2.5 text-left transition hover:-translate-y-0.5"
-            style={{
-              cursor: 'pointer',
-              borderColor: s._id === studentId ? 'rgba(217,70,239,0.55)' : 'rgba(255,255,255,0.09)',
-              background: s._id === studentId ? 'rgba(217,70,239,0.08)' : 'rgba(255,255,255,0.03)',
-            }}>
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black"
-              style={{ background: s._id === studentId ? 'linear-gradient(135deg, #8B5CF6, #D946EF)' : 'rgba(255,255,255,0.08)',
-                color: s._id === studentId ? '#fff' : '#8A83AE' }}>
-              {(s.name || '?').slice(0, 1)}
-            </span>
-            <span>
-              <span className="block text-sm font-bold" style={{ color: s._id === studentId ? '#F4F0FF' : '#CEC8E8' }}>{s.name}</span>
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: '#8A83AE' }}>
-                {s.level || '?'} · {s.slug}
-              </span>
-            </span>
-          </button>
-        ))}
-      </div>
+      {/* ── Student selector — search-first, scales to hundreds ── */}
+      <StudentSelect students={students} value={studentId} onPick={setStudentId} />
 
       {student && (
         <>
@@ -91,6 +95,30 @@ export default function SuperadminCourses() {
             </div>
             <div><p className="sa-stat-label">CEFR</p><p className="sa-stat-value" style={{ fontSize: '1.2rem' }}>{student.level || '—'}</p></div>
             <div><p className="sa-stat-label">Taught lessons</p><p className="sa-stat-value" style={{ fontSize: '1.2rem' }}>{taught.length}</p></div>
+            <div>
+              <p className="sa-stat-label">Lesson allocation</p>
+              <p style={{ marginTop: '0.25rem', fontSize: '0.95rem', fontWeight: 700,
+                color: remaining > 0 ? '#34D399' : '#FB7185' }}>
+                {packages === null ? '…' : `${remaining} of ${allocated} remaining`}
+              </p>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.45rem 1rem' }}
+                onClick={() => setAllocOpen(o => !o)}>
+                <span className="material-symbols-outlined" style={{ fontSize: 15 }}>token</span>
+                Allocate lessons
+              </button>
+              {allocOpen && (
+                <span className="absolute left-0 top-full z-40 mt-1 flex items-center gap-2 rounded-xl border p-2"
+                  style={{ background: 'rgba(10,6,24,0.97)', borderColor: 'rgba(255,255,255,0.12)' }}>
+                  <input type="number" min="1" max="200" className="sa-input" style={{ width: '4.5rem', padding: '0.35rem 0.5rem' }}
+                    value={allocN} onChange={e => setAllocN(e.target.value)} />
+                  <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.3rem 0.7rem' }} onClick={allocate}>
+                    Add
+                  </button>
+                </span>
+              )}
+            </div>
             <div className="ml-auto flex gap-2">
               <Link to={`/admin/superadmin/students/${student.slug}/heatmap`} className="sa-btn sa-btn-ghost" style={{ padding: '0.4rem 0.9rem', textDecoration: 'none' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 15 }}>local_fire_department</span>
@@ -114,7 +142,7 @@ export default function SuperadminCourses() {
             </div>
             <div className="sa-card-body">
               <CoursePublisher students={students} selectedStudentId={studentId}
-                setSelectedStudentId={setStudentId} fixedStudent={student} />
+                setSelectedStudentId={setStudentId} fixedStudent={student} allocVersion={allocVersion} />
             </div>
           </div>
 
@@ -239,6 +267,77 @@ function TaughtLessonRow({ lesson, student }) {
               </form>
             </>
           )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+// Search-first student selector — built for hundreds of students. Type to
+// filter by name / slug / CEFR; click to select. The selected student stays
+// visible in the closed control.
+function StudentSelect({ students, value, onPick }) {
+  const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
+  const selected = students.find(s => s._id === value)
+  const needle = q.trim().toLowerCase()
+  const filtered = needle
+    ? students.filter(s => `${s.name} ${s.slug} ${s.level}`.toLowerCase().includes(needle))
+    : students
+  return (
+    <div style={{ position: 'relative', maxWidth: 460 }}>
+      <button type="button" onClick={() => { setOpen(o => !o); setQ('') }}
+        className="flex w-full items-center gap-3 rounded-2xl border px-4 py-2.5 text-left"
+        style={{ cursor: 'pointer', borderColor: 'rgba(217,70,239,0.4)', background: 'rgba(255,255,255,0.03)' }}>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black"
+          style={{ background: 'linear-gradient(135deg, #8B5CF6, #D946EF)', color: '#fff' }}>
+          {(selected?.name || '?').slice(0, 1)}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-bold" style={{ color: '#F4F0FF' }}>
+            {selected ? selected.name : 'Choose a student…'}
+          </span>
+          {selected && (
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: '#8A83AE' }}>
+              {selected.level || '?'} · {selected.slug}
+            </span>
+          )}
+        </span>
+        <span className="text-xs" style={{ color: '#8A83AE' }}>{students.length} students</span>
+        <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#8A83AE' }}>
+          {open ? 'expand_less' : 'expand_more'}
+        </span>
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-40 mt-1 rounded-2xl border"
+          style={{ background: 'rgba(10,6,24,0.98)', borderColor: 'rgba(255,255,255,0.12)',
+            boxShadow: '0 18px 50px -18px rgba(0,0,0,0.7)' }}>
+          <div className="p-2">
+            <input autoFocus type="search" className="sa-input" placeholder="Search name, slug or level…"
+              value={q} onChange={e => setQ(e.target.value)} />
+          </div>
+          <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+            {filtered.length === 0 && <p className="p-3 text-xs" style={{ color: '#8A83AE' }}>No students match.</p>}
+            {filtered.map(s => (
+              <button key={s._id} type="button"
+                onClick={() => { onPick(s._id); setOpen(false); setQ('') }}
+                className="flex w-full items-center gap-3 px-3 py-2 text-left"
+                style={{ background: s._id === value ? 'rgba(217,70,239,0.1)' : 'none', border: 'none', cursor: 'pointer' }}>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: '#CEC8E8' }}>
+                  {(s.name || '?').slice(0, 1)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold" style={{ color: '#F4F0FF' }}>{s.name}</span>
+                  <span className="text-[10px] uppercase tracking-[0.12em]" style={{ color: '#8A83AE' }}>
+                    {s.level || '?'} · {s.slug}
+                  </span>
+                </span>
+                {s._id === value && <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#D946EF' }}>check</span>}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

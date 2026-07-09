@@ -53,7 +53,7 @@ function TimeSelect({ value, onChange }) {
   )
 }
 
-export default function SchedulePlanner({ student }) {
+export default function SchedulePlanner({ student, allocVersion = 0 }) {
   const now = new Date()
   const [view, setView] = useState({ y: now.getFullYear(), m: now.getMonth() })
   const [mode, setMode] = useState('weekly')
@@ -99,7 +99,7 @@ export default function SchedulePlanner({ student }) {
       .then(rows => setPackages((rows || []).filter(p => p.studentSlug === student.slug && p.status !== 'cancelled')))
       .catch(() => setPackages([]))
   }
-  useEffect(reloadPackages, [student?._id])
+  useEffect(reloadPackages, [student?._id, allocVersion])
 
   const allocated = (packages || []).reduce((n, p) => n + (p.totalLessons || 0), 0)
   const remaining = (packages || []).reduce((n, p) => n + (p.remainingLessons ?? 0), 0)
