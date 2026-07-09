@@ -1,0 +1,340 @@
+// CoursePublisher — the "Publish lesson material" wizard (2026-07-09, Mike's spec).
+//
+// Publishing is COURSE-FIRST and PDF-ONLY. The Hyperagent-built course library
+// (em-course-library, served by em-console-api) is preloaded — there is no
+// manual URL entry anywhere. Onion UX: four layers, each collapsing to a
+// summary chip once answered, so the operator always sees where they are.
+//
+//   1 · Student   — active roster, CEFR shown
+//   2 · Course    — recommended for the student's CEFR first, then everything
+//   3 · Lessons   — numbered decks; add/remove, download PDF, preview keywords
+//                   (each keyword shows its YouGlish cache state)
+//   4 · Publish   — review + sequential assign with live progress
+//
+// Publishing copies each deck's PDF into the student's webroot folder and
+// appends a curriculum item (em-console-api /assign); the API also queues a
+// YouGlish index build for any keyword not yet cached, so freshly published
+// lessons are always watchable.
+
+import { useEffect, useMemo, useState } from 'react'
+import { consoleGet, consolePost, libraryPdfPath } from './consoleApi.js'
+
+const BASKET_ICON = { IDEAS: 'psychology', PLACES: 'public', SOCIETY: 'newspaper', SPEC: 'work', SUM: 'sunny' }
+const BASKET_LABEL = { IDEAS: 'Ideas & Ambition', PLACES: 'Places & Culture', SOCIETY: 'News & Society' }
+
+function courseBlurb(c) {
+  if (c.course_id.startsWith('SPEC-')) return `Specialist track · ${c.lesson_count} lessons`
+  if (c.course_id.startsWith('SUM-')) return `Summer intensive · ${c.lesson_count} lessons`
+  return `${BASKET_LABEL[c.basket] || c.basket} · ${c.lesson_count} lessons`
+}
+
+// One answered wizard layer, collapsed to a chip row. Click re-opens it.
+function LayerChip({ step, label, value, onEdit }) {
+  return (
+    <button type="button" onClick={onEdit} className="flex w-full items-center gap-3 rounded-2xl border px-4 py-2.5 text-left transition hover:scale-[1.005]"
+      style={{ borderColor: 'rgba(52,211,153,0.28)', background: 'rgba(52,211,153,0.05)' }}>
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black"
+        style={{ background: 'rgba(52,211,153,0.16)', color: '#34D399' }}>{step}</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: '#8A83AE' }}>{label}</span>
+      <span className="truncate text-sm font-semibold" style={{ color: '#F4F0FF' }}>{value}</span>
+      <span className="material-symbols-outlined ml-auto" style={{ fontSize: 16, color: '#8A83AE' }}>edit</span>
+    </button>
+  )
+}
+
+function LayerHeading({ step, label, hint }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black"
+        style={{ background: 'linear-gradient(135deg, #8B5CF6, #D946EF)', color: '#fff' }}>{step}</span>
+      <span className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: '#F4F0FF' }}>{label}</span>
+      {hint && <span className="text-xs" style={{ color: '#8A83AE' }}>{hint}</span>}
+    </div>
+  )
+}
+
+// Lazy keyword preview for one lesson — words + PL + YouGlish cache state.
+function KeywordPreview({ lessonId }) {
+  const [state, setState] = useState({ loading: true, keywords: [], cached: 0, total: 0 })
+  useEffect(() => {
+    let alive = true
+    consoleGet(`/api/console/library/${encodeURIComponent(lessonId)}/keywords`)
+      .then(d => { if (alive) setState({ loading: false, ...d }) })
+      .catch(() => { if (alive) setState({ loading: false, keywords: [], cached: 0, total: 0 }) })
+    return () => { alive = false }
+  }, [lessonId])
+  if (state.loading) return <p className="px-1 py-2 text-xs" style={{ color: '#8A83AE' }}>Loading keywords…</p>
+  if (!state.keywords.length) return <p className="px-1 py-2 text-xs" style={{ color: '#8A83AE' }}>No keyword table in this deck.</p>
+  return (
+    <div className="mt-2 space-y-1.5 rounded-xl border p-3" style={{ borderColor: 'rgba(255,255,255,0.07)', background: 'rgba(8,4,20,0.45)' }}>
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: '#8A83AE' }}>
+        {state.total} keywords · {state.cached}/{state.total} YouGlish-cached
+      </p>
+      {state.keywords.map(k => (
+        <div key={k.word} className="flex flex-wrap items-baseline gap-x-2 text-xs">
+          <span className="material-symbols-outlined" title={k.youglish_cached ? 'YouGlish clips cached' : 'YouGlish caching queued'}
+            style={{ fontSize: 13, color: k.youglish_cached ? '#34D399' : '#FCD34D' }}>
+            {k.youglish_cached ? 'check_circle' : 'hourglass_top'}
+          </span>
+          <span className="font-bold" style={{ color: '#F4F0FF' }}>{k.word}</span>
+          {k.ipa && <span style={{ color: '#5E567C', fontFamily: 'monospace' }}>{k.ipa}</span>}
+          <span style={{ color: '#8A83AE', fontStyle: 'italic' }}>{k.pl}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export default function CoursePublisher({ students, selectedStudentId, setSelectedStudentId }) {
+  const roster = useMemo(() => students.filter(s => s.status !== 'archived'), [students])
+  const student = roster.find(s => s._id === selectedStudentId) || null
+
+  const [layer, setLayer] = useState(student ? 2 : 1)      // current open layer 1..4
+  const [courses, setCourses] = useState(null)             // /courses payload
+  const [courseId, setCourseId] = useState('')
+  const [picked, setPicked] = useState(() => new Set())    // lesson_ids queued to publish
+  const [openKw, setOpenKw] = useState(null)               // lesson_id with keywords expanded
+  const [showAll, setShowAll] = useState(false)
+  const [publishing, setPublishing] = useState(null)       // {done, total, log:[]}
+  const [busyRow, setBusyRow] = useState(null)
+
+  // (Re)load the preloaded course list whenever the student changes — the
+  // per-lesson "assigned" overlay is student-specific.
+  useEffect(() => {
+    if (!student?.slug) return
+    let alive = true
+    setCourses(null)
+    consoleGet('/api/console/courses', { student_slug: student.slug })
+      .then(d => { if (alive) setCourses(d.courses || []) })
+      .catch(() => { if (alive) setCourses([]) })
+    return () => { alive = false }
+  }, [student?.slug, publishing?.finished])
+
+  const course = (courses || []).find(c => c.course_id === courseId) || null
+  const recommended = (courses || []).filter(c => c.level && student?.level &&
+    c.level.toUpperCase() === String(student.level).toUpperCase())
+  const others = (courses || []).filter(c => !recommended.includes(c))
+
+  const pickStudent = (id) => { setSelectedStudentId(id); setCourseId(''); setPicked(new Set()); setLayer(2) }
+  const pickCourse = (id) => { setCourseId(id); setPicked(new Set()); setLayer(3) }
+  const togglePick = (id) => setPicked(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
+
+  async function publishPicked() {
+    if (!student || !picked.size) return
+    const ids = [...picked]
+    setLayer(4)
+    setPublishing({ done: 0, total: ids.length, log: [] })
+    for (const lid of ids) {
+      try {
+        const res = await consolePost('/api/console/assign', { lesson_id: lid, student_slug: student.slug })
+        setPublishing(p => ({ ...p, done: p.done + 1,
+          log: [...p.log, { lid, ok: true, warn: res.warning || null, yg: res.youglish_queued || 0 }] }))
+      } catch (e) {
+        setPublishing(p => ({ ...p, done: p.done + 1,
+          log: [...p.log, { lid, ok: false, warn: String(e.message || e) }] }))
+      }
+    }
+    setPicked(new Set())
+    setPublishing(p => ({ ...p, finished: true }))
+  }
+
+  async function unassign(lid) {
+    if (!student) return
+    setBusyRow(lid)
+    try {
+      await consolePost('/api/console/unassign', { lesson_id: lid, student_slug: student.slug })
+      const d = await consoleGet('/api/console/courses', { student_slug: student.slug })
+      setCourses(d.courses || [])
+    } finally { setBusyRow(null) }
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* ── Layer 1 · Student ── */}
+      {layer > 1 && student ? (
+        <LayerChip step="1" label="Student" value={`${student.name} · ${student.level || '?'}`} onEdit={() => setLayer(1)} />
+      ) : (
+        <div className="space-y-2">
+          <LayerHeading step="1" label="Who is this for?" />
+          <div className="grid gap-2 sm:grid-cols-2">
+            {roster.map(s => (
+              <button key={s._id} type="button" onClick={() => pickStudent(s._id)}
+                className="flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition hover:scale-[1.01]"
+                style={{ borderColor: s._id === selectedStudentId ? 'rgba(217,70,239,0.45)' : 'rgba(255,255,255,0.08)',
+                  background: 'rgba(255,255,255,0.03)' }}>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black"
+                  style={{ background: 'linear-gradient(135deg, #8B5CF6, #D946EF)', color: '#fff' }}>
+                  {(s.name || '?').slice(0, 1)}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-bold" style={{ color: '#F4F0FF' }}>{s.name}</span>
+                  <span className="text-xs" style={{ color: '#8A83AE' }}>CEFR {s.level || 'unknown'}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Layer 2 · Course ── */}
+      {layer === 2 && student && (
+        <div className="space-y-3">
+          <LayerHeading step="2" label="Pick a course" hint="from the preloaded Hyperagent library" />
+          {courses === null ? (
+            <p className="text-sm" style={{ color: '#8A83AE' }}>Loading the course library…</p>
+          ) : (
+            <>
+              {recommended.length > 0 && (
+                <>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: '#34D399' }}>
+                    Recommended for {student.level}
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    {recommended.map(c => <CourseCard key={c.course_id} c={c} onPick={pickCourse} highlight />)}
+                  </div>
+                </>
+              )}
+              <button type="button" onClick={() => setShowAll(v => !v)}
+                className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.16em]"
+                style={{ color: '#8A83AE', background: 'none', border: 'none', cursor: 'pointer' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16, transform: showAll ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}>expand_more</span>
+                All courses ({others.length})
+              </button>
+              {showAll && (
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {others.map(c => <CourseCard key={c.course_id} c={c} onPick={pickCourse} />)}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+      {layer > 2 && course && (
+        <LayerChip step="2" label="Course" value={`${course.course_id} · ${course.level} · ${course.lesson_count} lessons`} onEdit={() => setLayer(2)} />
+      )}
+
+      {/* ── Layer 3 · Lessons ── */}
+      {layer === 3 && course && student && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <LayerHeading step="3" label="Choose the lessons" hint="PDF decks only — numbered as taught" />
+            <div className="flex gap-2">
+              <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.35rem 0.8rem' }}
+                onClick={() => setPicked(new Set(course.lessons.filter(l => !l.assigned).map(l => l.lesson_id)))}>
+                Select all
+              </button>
+              <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.35rem 0.8rem' }}
+                onClick={() => setPicked(new Set())}>Clear</button>
+            </div>
+          </div>
+          <div className="space-y-1.5" style={{ maxHeight: 460, overflowY: 'auto', paddingRight: 4 }}>
+            {course.lessons.map(l => (
+              <div key={l.lesson_id} className="rounded-xl border px-3 py-2"
+                style={{ borderColor: picked.has(l.lesson_id) ? 'rgba(217,70,239,0.4)' : 'rgba(255,255,255,0.07)',
+                  background: l.assigned ? 'rgba(52,211,153,0.05)' : 'rgba(255,255,255,0.025)' }}>
+                <div className="flex items-center gap-3">
+                  {l.assigned ? (
+                    <span className="sa-badge sa-badge-committed" style={{ flexShrink: 0 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check</span>published
+                    </span>
+                  ) : (
+                    <input type="checkbox" checked={picked.has(l.lesson_id)} onChange={() => togglePick(l.lesson_id)}
+                      style={{ width: 16, height: 16, accentColor: '#D946EF', flexShrink: 0, cursor: 'pointer' }} />
+                  )}
+                  <span className="font-mono text-xs font-bold" style={{ color: '#8A83AE', width: 26, flexShrink: 0 }}>
+                    {String(l.lesson_number ?? '?').padStart(2, '0')}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: '#F4F0FF' }}>{l.title}</span>
+                  <button type="button" title="Preview keywords"
+                    onClick={() => setOpenKw(openKw === l.lesson_id ? null : l.lesson_id)}
+                    className="sa-badge sa-badge-processing" style={{ cursor: 'pointer', border: 'none', flexShrink: 0 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 12 }}>translate</span>
+                    {l.keyword_count} kw
+                  </button>
+                  <a href={libraryPdfPath(l.lesson_id)} target="_blank" rel="noopener" title="Download the lesson PDF"
+                    className="sa-badge sa-badge-queued" style={{ textDecoration: 'none', flexShrink: 0 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 12 }}>picture_as_pdf</span>PDF
+                  </a>
+                  {l.assigned && (
+                    <button type="button" onClick={() => unassign(l.lesson_id)} disabled={busyRow === l.lesson_id}
+                      title="Remove this lesson from the student" className="sa-btn sa-btn-ghost"
+                      style={{ padding: '0.25rem 0.5rem', flexShrink: 0 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                        {busyRow === l.lesson_id ? 'hourglass_top' : 'delete'}
+                      </span>
+                    </button>
+                  )}
+                </div>
+                {openKw === l.lesson_id && <KeywordPreview lessonId={l.lesson_id} />}
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <span className="text-xs" style={{ color: '#8A83AE' }}>
+              {course.assigned_count} already published · {picked.size} selected
+            </span>
+            <button type="button" className="sa-btn sa-btn-primary" disabled={!picked.size} onClick={publishPicked}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>publish</span>
+              Publish {picked.size || ''} lesson{picked.size === 1 ? '' : 's'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Layer 4 · Publish progress ── */}
+      {layer === 4 && publishing && (
+        <div className="space-y-2">
+          <LayerHeading step="4" label={publishing.finished ? 'Published' : 'Publishing…'}
+            hint={`${publishing.done}/${publishing.total}`} />
+          <div style={{ height: 6, borderRadius: 6, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${(publishing.done / publishing.total) * 100}%`,
+              background: 'linear-gradient(90deg, #8B5CF6, #D946EF)', transition: 'width 300ms ease' }} />
+          </div>
+          <div className="space-y-1">
+            {publishing.log.map(r => (
+              <div key={r.lid} className="flex items-center gap-2 text-xs">
+                <span className="material-symbols-outlined" style={{ fontSize: 14, color: r.ok ? '#34D399' : '#FB7185' }}>
+                  {r.ok ? 'check_circle' : 'error'}
+                </span>
+                <span className="font-mono" style={{ color: '#F4F0FF' }}>{r.lid}</span>
+                {r.ok && r.yg > 0 && <span style={{ color: '#FCD34D' }}>· {r.yg} keyword{r.yg === 1 ? '' : 's'} queued for YouGlish</span>}
+                {r.warn && <span style={{ color: '#FCD34D' }}>· {r.warn}</span>}
+              </div>
+            ))}
+          </div>
+          {publishing.finished && (
+            <button type="button" className="sa-btn sa-btn-ghost" onClick={() => { setPublishing(null); setLayer(3) }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_back</span>
+              Back to the course
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CourseCard({ c, onPick, highlight = false }) {
+  const done = c.lesson_count > 0 ? c.assigned_count / c.lesson_count : 0
+  return (
+    <button type="button" onClick={() => onPick(c.course_id)}
+      className="rounded-2xl border p-3.5 text-left transition hover:-translate-y-0.5"
+      style={{ borderColor: highlight ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.03)', cursor: 'pointer' }}>
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined" style={{ fontSize: 18, color: highlight ? '#34D399' : '#A855F7' }}>
+          {BASKET_ICON[c.basket] || 'menu_book'}
+        </span>
+        <span className="font-mono text-xs font-bold" style={{ color: '#F4F0FF' }}>{c.course_id}</span>
+        <span className="sa-badge sa-badge-processing ml-auto">{c.level || '—'}</span>
+      </div>
+      <p className="mt-2 text-xs" style={{ color: '#8A83AE' }}>{courseBlurb(c)}</p>
+      <div className="mt-2.5" style={{ height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${done * 100}%`, background: 'linear-gradient(90deg, #34D399, #10B981)' }} />
+      </div>
+      <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: c.assigned_count ? '#34D399' : '#5E567C' }}>
+        {c.assigned_count}/{c.lesson_count} published
+      </p>
+    </button>
+  )
+}

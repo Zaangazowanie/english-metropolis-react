@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { mutateAdminConvex, queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
+import CoursePublisher from './CoursePublisher.jsx'
 
 const emptyKeyword = {
   word: '',
@@ -15,7 +16,6 @@ const emptyKeyword = {
   topics: '',
 }
 
-const emptyMaterial = { name: '', url: '', type: 'link' }
 
 function formatDate(msOrDate) {
   if (!msOrDate) return '-'
@@ -35,15 +35,6 @@ function safeDetails(raw) {
   }
 }
 
-function normalizeMaterials(rows) {
-  return rows
-    .map(row => ({
-      name: row.name.trim(),
-      url: row.url.trim(),
-      type: row.type.trim() || 'link',
-    }))
-    .filter(row => row.name && row.url)
-}
 
 export default function SuperadminDashboard() {
   const [stats, setStats] = useState(null)
@@ -57,7 +48,6 @@ export default function SuperadminDashboard() {
   const [studentLessons, setStudentLessons] = useState([])
   const [selectedLessonId, setSelectedLessonId] = useState('')
   const [lessonKeywords, setLessonKeywords] = useState([])
-  const [materialRows, setMaterialRows] = useState([emptyMaterial])
   const [keywordForm, setKeywordForm] = useState(emptyKeyword)
   const [loading, setLoading] = useState(true)
   const [panelLoading, setPanelLoading] = useState(false)
@@ -138,14 +128,8 @@ export default function SuperadminDashboard() {
   useEffect(() => {
     if (!selectedLessonId) {
       setLessonKeywords([])
-      setMaterialRows([emptyMaterial])
       return
     }
-    const lesson = studentLessons.find(l => l._id === selectedLessonId)
-    const existingMaterials = Array.isArray(lesson?.materials) && lesson.materials.length > 0
-      ? lesson.materials.map(m => ({ name: m.name || '', url: m.url || '', type: m.type || 'link' }))
-      : [emptyMaterial]
-    setMaterialRows(existingMaterials)
     let cancelled = false
     setPanelLoading(true)
     queryAdminConvex('students:listKeywords', { lessonId: selectedLessonId })
@@ -161,15 +145,6 @@ export default function SuperadminDashboard() {
   const activeStudents = students.filter(s => s.status === 'active').length
   const dueSoonLessons = recentLessons.filter(l => l.date >= new Date().toISOString().slice(0, 10)).length
   const latestJobStatus = recentJobs[0]?.status?.replace('_', ' ') || 'quiet'
-
-  async function saveMaterials() {
-    if (!selectedLessonId) return
-    const materials = normalizeMaterials(materialRows)
-    setNotice('')
-    await mutateAdminConvex('students:updateLesson', { lessonId: selectedLessonId, materials })
-    setStudentLessons(rows => rows.map(row => row._id === selectedLessonId ? { ...row, materials } : row))
-    setNotice('Lesson materials published.')
-  }
 
   async function addKeyword(e) {
     e.preventDefault()
@@ -289,85 +264,18 @@ export default function SuperadminDashboard() {
         <div className="sa-card">
           <div className="sa-card-header">
             <h2>Publish lesson material</h2>
-            <select
-              className="sa-input"
-              value={selectedStudentId}
-              onChange={e => setSelectedStudentId(e.target.value)}
-              style={{ maxWidth: 300 }}
-            >
-              {students.filter(s => s.status !== 'archived').map(student => (
-                <option key={student._id} value={student._id}>{student.name} · {student.level}</option>
-              ))}
-            </select>
+            <span className="sa-badge sa-badge-committed" title="Only library PDF decks can be published — no manual links">
+              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>picture_as_pdf</span>
+              PDF library only
+            </span>
           </div>
-          <div className="sa-card-body space-y-4">
-            <div className="grid gap-3 sm:grid-cols-[1fr_0.8fr]">
-              <label className="space-y-2">
-                <span className="sa-stat-label">Lesson</span>
-                <select
-                  className="sa-input"
-                  value={selectedLessonId}
-                  onChange={e => setSelectedLessonId(e.target.value)}
-                  disabled={studentLessons.length === 0}
-                >
-                  {studentLessons.length === 0 && <option value="">No lessons yet</option>}
-                  {studentLessons.map(lesson => (
-                    <option key={lesson._id} value={lesson._id}>{lesson.date} · {lesson.title}</option>
-                  ))}
-                </select>
-              </label>
-              <div className="rounded-2xl border p-4" style={{ borderColor: 'rgba(148,163,184,0.14)', background: 'rgba(15,23,42,0.42)' }}>
-                <p className="sa-stat-label">Selected student</p>
-                <p className="mt-1 text-lg font-black" style={{ color: '#f8fafc' }}>{selectedStudent?.name || '-'}</p>
-                <p className="text-xs" style={{ color: 'rgba(203,213,225,0.68)' }}>
-                  {studentLessons.length} lessons · {lessonKeywords.length} keywords on selected lesson
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {materialRows.map((row, index) => (
-                <div key={index} className="grid gap-2 sm:grid-cols-[0.8fr_1.4fr_0.5fr_auto]">
-                  <input
-                    className="sa-input"
-                    placeholder="Material name"
-                    value={row.name}
-                    onChange={e => setMaterialRows(rows => rows.map((r, i) => i === index ? { ...r, name: e.target.value } : r))}
-                  />
-                  <input
-                    className="sa-input"
-                    placeholder="https://..."
-                    value={row.url}
-                    onChange={e => setMaterialRows(rows => rows.map((r, i) => i === index ? { ...r, url: e.target.value } : r))}
-                  />
-                  <input
-                    className="sa-input"
-                    placeholder="pdf"
-                    value={row.type}
-                    onChange={e => setMaterialRows(rows => rows.map((r, i) => i === index ? { ...r, type: e.target.value } : r))}
-                  />
-                  <button
-                    type="button"
-                    className="sa-btn sa-btn-ghost"
-                    onClick={() => setMaterialRows(rows => rows.length === 1 ? [emptyMaterial] : rows.filter((_, i) => i !== index))}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button type="button" className="sa-btn sa-btn-ghost" onClick={() => setMaterialRows(rows => [...rows, emptyMaterial])}>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add_link</span>
-                Add material
-              </button>
-              <button type="button" className="sa-btn sa-btn-primary" onClick={saveMaterials} disabled={!selectedLessonId || panelLoading}>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>publish</span>
-                Publish to student
-              </button>
-            </div>
-            {notice && <p className="text-sm font-semibold" style={{ color: '#86efac' }}>{notice}</p>}
+          <div className="sa-card-body">
+            <CoursePublisher
+              students={students}
+              selectedStudentId={selectedStudentId}
+              setSelectedStudentId={setSelectedStudentId}
+            />
+            {notice && <p className="mt-3 text-sm font-semibold" style={{ color: '#34D399' }}>{notice}</p>}
           </div>
         </div>
 
