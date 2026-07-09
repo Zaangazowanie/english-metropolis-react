@@ -87,9 +87,9 @@ function KeywordPreview({ lessonId }) {
   )
 }
 
-export default function CoursePublisher({ students, selectedStudentId, setSelectedStudentId }) {
-  const roster = useMemo(() => students.filter(s => s.status !== 'archived'), [students])
-  const student = roster.find(s => s._id === selectedStudentId) || null
+export default function CoursePublisher({ students, selectedStudentId, setSelectedStudentId, fixedStudent = null }) {
+  const roster = useMemo(() => (students || []).filter(s => s.status !== 'archived'), [students])
+  const student = fixedStudent || roster.find(s => s._id === selectedStudentId) || null
 
   const [layer, setLayer] = useState(student ? 2 : 1)      // current open layer 1..4
   const [courses, setCourses] = useState(null)             // /courses payload
@@ -190,7 +190,20 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
     let alive = true
     setCourses(null)
     consoleGet('/api/console/courses', { student_slug: student.slug })
-      .then(d => { if (alive) setCourses(d.courses || []) })
+      .then(d => {
+        if (!alive) return
+        const list = d.courses || []
+        setCourses(list)
+        // "Loads up his course": if the student has course material in
+        // progress and none is open yet, jump straight into it.
+        setCourseId(prev => {
+          if (prev) return prev
+          const active = list.filter(c => c.assigned_count > 0)
+            .sort((a, b) => b.assigned_count - a.assigned_count)
+          if (active[0]) { setLayer(3); return active[0].course_id }
+          return prev
+        })
+      })
       .catch(() => { if (alive) setCourses([]) })
     return () => { alive = false }
   }, [student?.slug, publishing?.finished])
@@ -201,6 +214,9 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
   const others = (courses || []).filter(c => !recommended.includes(c))
 
   const pickStudent = (id) => { setSelectedStudentId(id); setCourseId(''); setPicked(new Set()); setLayer(2) }
+  useEffect(() => {
+    if (fixedStudent) { setCourseId(''); setPicked(new Set()); setLayer(2); setPublishing(null); setBooking(null) }
+  }, [fixedStudent?._id])
   const pickCourse = (id) => { setCourseId(id); setPicked(new Set()); setLayer(3) }
   const togglePick = (id) => setPicked(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
 
@@ -248,8 +264,8 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
 
   return (
     <div className="space-y-3">
-      {/* ── Layer 1 · Student ── */}
-      {layer > 1 && student ? (
+      {/* ── Layer 1 · Student (hidden when the page owns student selection) ── */}
+      {fixedStudent ? null : layer > 1 && student ? (
         <LayerChip step="1" label="Student" value={`${student.name} · ${student.level || '?'}`} onEdit={() => setLayer(1)} />
       ) : (
         <div className="space-y-2">

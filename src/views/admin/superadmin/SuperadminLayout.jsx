@@ -4,13 +4,13 @@ import { FONT, G, NIGHT as T } from '../../../design/v3/tokens.js'
 
 const navigation = [
   { to: '/admin/superadmin', label: 'Console', icon: 'dashboard', end: true },
-  { to: '/admin/superadmin/courses', label: 'Courses', icon: 'school' },
+  { to: '/admin/superadmin/courses', label: 'Students', icon: 'school' },
   { to: '/admin/superadmin/ingest', label: 'Ingest Lesson', icon: 'upload_file' },
   { to: '/admin/superadmin/jobs', label: 'Queue', icon: 'pending_actions' },
   { to: '/admin/superadmin/library', label: 'Library', icon: 'local_library' },
   { to: '/admin/superadmin/assignments', label: 'Assignments', icon: 'assignment_ind' },
   { to: '/admin/superadmin/pipelines', label: 'Pipelines', icon: 'monitor_heart' },
-  { to: '/admin/superadmin/students', label: 'All Students', icon: 'person' },
+  { to: '/admin/superadmin/students', label: 'Roster', icon: 'person' },
   { to: '/admin/superadmin/groups', label: 'Groups', icon: 'groups' },
   { to: '/admin/superadmin/availability', label: 'Availability', icon: 'event_available' },
   { to: '/admin/superadmin/audit', label: 'Audit Log', icon: 'history' },
