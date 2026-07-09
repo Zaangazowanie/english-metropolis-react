@@ -150,7 +150,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
 
   const pickStudent = (id) => { setSelectedStudentId(id); setCourseId(''); setPicked(new Set()); setLayer(2) }
   useEffect(() => {
-    if (fixedStudent) { setCourseId(''); setPicked(new Set()); setLayer(2); setPublishing(null); setBooking(null) }
+    if (fixedStudent) { setCourseId(''); setPicked(new Set()); setLayer(2); setPublishing(null) }
   }, [fixedStudent?._id])
   const pickCourse = (id) => { setCourseId(id); setPicked(new Set()); setLayer(3) }
   const togglePick = (id) => setPicked(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
