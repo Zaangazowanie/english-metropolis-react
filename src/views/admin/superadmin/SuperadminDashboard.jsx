@@ -263,8 +263,8 @@ export default function SuperadminDashboard() {
       <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <div className="sa-card">
           <div className="sa-card-header">
-            <h2>Publish lesson material</h2>
-            <span className="sa-badge sa-badge-committed" title="Only library PDF decks can be published — no manual links">
+            <h2>Course material</h2>
+            <span className="sa-badge sa-badge-committed" title="Only library PDF decks can be set as course material — no manual links">
               <span className="material-symbols-outlined" style={{ fontSize: 12 }}>picture_as_pdf</span>
               PDF library only
             </span>

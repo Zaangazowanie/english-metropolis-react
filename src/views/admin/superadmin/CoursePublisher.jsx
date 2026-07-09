@@ -9,7 +9,7 @@
 //   2 · Course    — recommended for the student's CEFR first, then everything
 //   3 · Lessons   — numbered decks; add/remove, download PDF, preview keywords
 //                   (each keyword shows its YouGlish cache state)
-//   4 · Publish   — review + sequential assign with live progress
+//   4 · Add       — review + sequential assign with live progress
 //
 // Publishing copies each deck's PDF into the student's webroot folder and
 // appends a curriculum item (em-console-api /assign); the API also queues a
@@ -17,7 +17,7 @@
 // lessons are always watchable.
 
 import { useEffect, useMemo, useState } from 'react'
-import { consoleGet, consolePost, libraryPdfPath } from './consoleApi.js'
+import { consoleGet, consoleGetBlob, consolePost, libraryPdfPath } from './consoleApi.js'
 
 const BASKET_ICON = { IDEAS: 'psychology', PLACES: 'public', SOCIETY: 'newspaper', SPEC: 'work', SUM: 'sunny' }
 const BASKET_LABEL = { IDEAS: 'Ideas & Ambition', PLACES: 'Places & Culture', SOCIETY: 'News & Society' }
@@ -97,6 +97,19 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
   const [showAll, setShowAll] = useState(false)
   const [publishing, setPublishing] = useState(null)       // {done, total, log:[]}
   const [busyRow, setBusyRow] = useState(null)
+  const [pdfBusy, setPdfBusy] = useState(null)
+
+  // Authenticated PDF preview — a bare <a href> carries no console token, so
+  // fetch the deck as a blob and hand it to the browser's PDF viewer.
+  async function previewPdf(lessonId) {
+    setPdfBusy(lessonId)
+    try {
+      const blob = await consoleGetBlob(libraryPdfPath(lessonId))
+      window.open(URL.createObjectURL(new Blob([blob], { type: 'application/pdf' })), '_blank', 'noopener')
+    } catch (e) {
+      alert(`Could not load the PDF: ${e.message || e}`)
+    } finally { setPdfBusy(null) }
+  }
 
   // (Re)load the preloaded course list whenever the student changes — the
   // per-lesson "assigned" overlay is student-specific.
@@ -179,7 +192,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
       {/* ── Layer 2 · Course ── */}
       {layer === 2 && student && (
         <div className="space-y-3">
-          <LayerHeading step="2" label="Pick a course" hint="from the preloaded Hyperagent library" />
+          <LayerHeading step="2" label="Set the course" hint="from the preloaded Hyperagent library" />
           {courses === null ? (
             <p className="text-sm" style={{ color: '#8A83AE' }}>Loading the course library…</p>
           ) : (
@@ -235,7 +248,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
                 <div className="flex items-center gap-3">
                   {l.assigned ? (
                     <span className="sa-badge sa-badge-committed" style={{ flexShrink: 0 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check</span>published
+                      <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check</span>in course
                     </span>
                   ) : (
                     <input type="checkbox" checked={picked.has(l.lesson_id)} onChange={() => togglePick(l.lesson_id)}
@@ -251,13 +264,15 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
                     <span className="material-symbols-outlined" style={{ fontSize: 12 }}>translate</span>
                     {l.keyword_count} kw
                   </button>
-                  <a href={libraryPdfPath(l.lesson_id)} target="_blank" rel="noopener" title="Download the lesson PDF"
-                    className="sa-badge sa-badge-queued" style={{ textDecoration: 'none', flexShrink: 0 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 12 }}>picture_as_pdf</span>PDF
-                  </a>
+                  <button type="button" onClick={() => previewPdf(l.lesson_id)} title="Preview the lesson PDF"
+                    className="sa-badge sa-badge-queued" style={{ cursor: 'pointer', border: 'none', flexShrink: 0 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
+                      {pdfBusy === l.lesson_id ? 'hourglass_top' : 'picture_as_pdf'}
+                    </span>PDF
+                  </button>
                   {l.assigned && (
                     <button type="button" onClick={() => unassign(l.lesson_id)} disabled={busyRow === l.lesson_id}
-                      title="Remove this lesson from the student" className="sa-btn sa-btn-ghost"
+                      title="Remove from the course" className="sa-btn sa-btn-ghost"
                       style={{ padding: '0.25rem 0.5rem', flexShrink: 0 }}>
                       <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
                         {busyRow === l.lesson_id ? 'hourglass_top' : 'delete'}
@@ -271,11 +286,11 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
           </div>
           <div className="flex items-center justify-between gap-3 pt-1">
             <span className="text-xs" style={{ color: '#8A83AE' }}>
-              {course.assigned_count} already published · {picked.size} selected
+              {course.assigned_count} in course · {picked.size} selected
             </span>
             <button type="button" className="sa-btn sa-btn-primary" disabled={!picked.size} onClick={publishPicked}>
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>publish</span>
-              Publish {picked.size || ''} lesson{picked.size === 1 ? '' : 's'}
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>playlist_add</span>
+              Add {picked.size || ''} lesson{picked.size === 1 ? '' : 's'} to course
             </button>
           </div>
         </div>
@@ -284,7 +299,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
       {/* ── Layer 4 · Publish progress ── */}
       {layer === 4 && publishing && (
         <div className="space-y-2">
-          <LayerHeading step="4" label={publishing.finished ? 'Published' : 'Publishing…'}
+          <LayerHeading step="4" label={publishing.finished ? 'Course updated' : 'Adding to course…'}
             hint={`${publishing.done}/${publishing.total}`} />
           <div style={{ height: 6, borderRadius: 6, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${(publishing.done / publishing.total) * 100}%`,
@@ -333,7 +348,7 @@ function CourseCard({ c, onPick, highlight = false }) {
         <div style={{ height: '100%', width: `${done * 100}%`, background: 'linear-gradient(90deg, #34D399, #10B981)' }} />
       </div>
       <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: c.assigned_count ? '#34D399' : '#5E567C' }}>
-        {c.assigned_count}/{c.lesson_count} published
+        {c.assigned_count}/{c.lesson_count} in course
       </p>
     </button>
   )
