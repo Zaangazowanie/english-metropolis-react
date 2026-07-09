@@ -62,30 +62,30 @@ export default function TeacherPortal() {
   }, [meState.data])
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
 
       {/* ── Header ── */}
-      <section className="glass-panel relative overflow-hidden rounded-[2rem] border border-white/50 px-6 py-8 sm:px-10 editorial-shadow">
+      <section className="relative overflow-hidden rounded-[2.25rem] border border-white/60 bg-white/75 px-6 py-8 shadow-[0_32px_90px_-62px_rgba(124,58,237,0.55)] backdrop-blur-xl sm:px-10">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
           style={{
             background: `
-              radial-gradient(ellipse 50% 70% at 95% 0%, rgba(14,165,233,0.10), transparent 60%),
-              radial-gradient(ellipse 40% 50% at 5% 100%, rgba(37,99,235,0.07), transparent 55%)`,
+              radial-gradient(ellipse 50% 70% at 95% 0%, rgba(168,85,247,0.16), transparent 60%),
+              radial-gradient(ellipse 40% 50% at 5% 100%, rgba(217,70,239,0.10), transparent 55%)`,
           }}
         />
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">Teacher Portal</p>
-            <h1 className="mt-3 font-headline text-4xl text-slate-900 leading-[1.05]">
-              {teacher?.name || 'Teacher'}<span className="italic text-sky-600">.</span>
+            <p className="font-label text-xs font-black uppercase tracking-[0.24em] text-violet-700">Teacher Portal</p>
+            <h1 className="mt-3 font-headline text-4xl font-black leading-[1.02] tracking-[-0.045em] text-slate-950 sm:text-5xl">
+              {teacher?.name || 'Teacher'}<span className="text-fuchsia-600">.</span>
             </h1>
-            {teacher?.email && <p className="mt-2 text-sm text-slate-500">{teacher.email}</p>}
+            {teacher?.email && <p className="mt-3 text-sm font-semibold text-slate-500">{teacher.email}</p>}
           </div>
           <button
             onClick={() => logout?.()}
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/80 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:border-sky-300 hover:text-sky-700 transition cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-violet-200 bg-white/85 px-5 py-2.5 text-sm font-black text-violet-700 shadow-[0_16px_34px_-28px_rgba(124,58,237,0.75)] transition hover:-translate-y-0.5 hover:bg-violet-50"
           >
             <span className="material-symbols-outlined text-lg">logout</span>
             Sign out
@@ -94,17 +94,17 @@ export default function TeacherPortal() {
       </section>
 
       {/* ── Tab nav ── */}
-      <nav aria-label="Teacher portal sections" className="flex flex-wrap gap-2">
+      <nav aria-label="Teacher portal sections" className="flex gap-2 overflow-x-auto rounded-full border border-violet-100 bg-violet-50/55 p-1.5">
         {TABS.map(tab => (
           <NavLink
             key={tab.to}
             to={tab.to}
             end={tab.end}
             className={({ isActive }) =>
-              `inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition cursor-pointer ${
+              `inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-black transition cursor-pointer ${
                 isActive
-                  ? 'border-sky-300 bg-white text-sky-700 shadow-[0_14px_30px_-22px_rgba(2,132,199,0.8)]'
-                  : 'border-slate-200 bg-white/60 text-slate-500 hover:border-sky-200 hover:text-sky-600'
+                  ? 'bg-white text-violet-700 shadow-[0_14px_30px_-22px_rgba(124,58,237,0.9)]'
+                  : 'text-slate-500 hover:bg-white/70 hover:text-violet-700'
               }`
             }
           >

@@ -1,20 +1,4 @@
-// TeacherSchedule — "My Schedule", the teacher portal's index tab (P2, 2026-07-03).
-//
-// Two data sources, deliberately kept side by side:
-//   1. "Upcoming lessons" — Convex scheduling:listBookings, the same rows the
-//      original single-page portal showed. Works today.
-//   2. "Lessons & bookings" — GET /api/console/teacher/schedule?from=&to=
-//      (docs/console/API-CONTRACT.md, P2): the backend's merged, teacher-scoped
-//      view of taught lessons + bookings in a date range. Until Ricky flips
-//      the endpoint live it 404s and we render a calm "backend not live yet"
-//      panel — never mocked rows (KICKOFF.md rule 4).
-//
-// Student slugs / group ids in console rows are resolved to display names via
-// the /me lookup maps shared by the shell (best effort — raw slug/id fallback).
-// LIVE shape note (2026-07-04): console lesson rows arrive as {date, time,
-// startUtc, status, student_slug, student_name} — the server-sent
-// student_name wins over lookup resolution, and startUtc (ms epoch) is the
-// preferred sort key; title/group_id stay optional and render only if sent.
+// TeacherSchedule - teacher agenda and console schedule feed.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
@@ -33,6 +17,14 @@ function prettyDate(dateStr) {
   return `${DAY_NAMES[dow]}, ${d} ${MONTH_NAMES[m - 1]} ${y}`
 }
 
+function compactDate(dateStr) {
+  const str = String(dateStr || '')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return { day: '', month: '', dow: '' }
+  const [y, m, d] = str.split('-').map(Number)
+  const dow = new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay()
+  return { day: String(d).padStart(2, '0'), month: MONTH_NAMES[m - 1].slice(0, 3), dow: DAY_NAMES[dow].slice(0, 3) }
+}
+
 function isoDate(d) { return d.toISOString().slice(0, 10) }
 function addDays(base, n) { const d = new Date(base); d.setDate(d.getDate() + n); return d }
 
@@ -42,12 +34,68 @@ const RANGE_PRESETS = [
   { key: 'past30', label: 'Past 30 days', range: () => ({ from: isoDate(addDays(new Date(), -30)), to: isoDate(new Date()) }) },
 ]
 
+function StatTile({ icon, value, label, tone = 'violet' }) {
+  const tones = {
+    violet: 'border-violet-100 bg-violet-50 text-violet-700',
+    emerald: 'border-emerald-100 bg-emerald-50 text-emerald-700',
+    sky: 'border-sky-100 bg-sky-50 text-sky-700',
+  }
+  return (
+    <div className="rounded-[1.35rem] border border-white/70 bg-white/78 px-4 py-3 shadow-[0_18px_42px_-34px_rgba(79,70,229,0.45)]">
+      <div className="flex items-center gap-3">
+        <span className={`material-symbols-outlined grid h-9 w-9 place-items-center rounded-2xl border text-[20px] ${tones[tone] || tones.violet}`}>{icon}</span>
+        <div>
+          <div className="font-mono text-xl font-black leading-none text-slate-950">{value}</div>
+          <div className="mt-1 text-xs font-semibold text-slate-500">{label}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AgendaRow({ item, name, date, time, status, icon = 'event' }) {
+  const d = compactDate(date)
+  return (
+    <div className="group grid gap-3 rounded-[1.45rem] border border-white/70 bg-white/82 p-3 shadow-[0_20px_50px_-42px_rgba(79,70,229,0.45)] transition hover:-translate-y-0.5 hover:border-violet-200 sm:grid-cols-[74px_minmax(0,1fr)_auto] sm:items-center">
+      <div className="flex items-center gap-3 sm:block">
+        <div className="grid h-[62px] w-[62px] place-items-center rounded-[1.2rem] border border-violet-100 bg-violet-50 text-center text-violet-800">
+          <div>
+            <div className="font-label text-[10px] font-black uppercase tracking-[0.14em]">{d.month || 'Date'}</div>
+            <div className="font-mono text-2xl font-black leading-none">{d.day || '--'}</div>
+          </div>
+        </div>
+        <div className="sm:hidden">
+          <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{d.dow}</div>
+          <div className="font-mono text-sm font-black text-slate-900">{time}</div>
+        </div>
+      </div>
+
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-100 bg-white px-2.5 py-1 font-mono text-xs font-black text-violet-700">
+            <span className="material-symbols-outlined text-sm">{icon}</span>
+            {time}
+          </span>
+          <span className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">{d.dow}</span>
+        </div>
+        <div className="mt-2 truncate text-base font-black tracking-[-0.01em] text-slate-950">{name || 'Lesson'}</div>
+        <div className="mt-1 text-sm text-slate-500">{prettyDate(date)}</div>
+        {item?.title && <div className="mt-1 text-sm font-semibold text-slate-600">{item.title}</div>}
+      </div>
+
+      <div className="flex items-center justify-between gap-2 sm:justify-end">
+        <StatusChip status={status} />
+        <span className="material-symbols-outlined text-slate-300 transition group-hover:text-violet-400">chevron_right</span>
+      </div>
+    </div>
+  )
+}
+
 export default function TeacherSchedule() {
   const { teacher, studentBySlug, groupById } = useOutletContext()
   const organizationId = teacher?.organizationId
   const teacherId = teacher?._id
 
-  // ── 1 · Upcoming bookings (existing Convex data — live today) ──
   const [bookingsState, setBookingsState] = useState({ loading: true, error: '', rows: [] })
   const loadBookings = useCallback(async () => {
     if (!organizationId || !teacherId) return
@@ -69,7 +117,6 @@ export default function TeacherSchedule() {
     [bookingsState.rows],
   )
 
-  // ── 2 · Console schedule feed (contract endpoint; calm panel until live) ──
   const [presetKey, setPresetKey] = useState('next30')
   const [consoleState, setConsoleState] = useState({ loading: true, error: null, data: null })
   const loadConsole = useCallback(async () => {
@@ -84,16 +131,13 @@ export default function TeacherSchedule() {
   }, [presetKey])
   useEffect(() => { loadConsole() }, [loadConsole])
 
-  // Resolve a console row's student/group to a display name. The live backend
-  // sends student_name on schedule rows — trust it first, then fall back to
-  // the /me lookup, then the raw slug/id.
   const whoFor = useCallback((row) => {
     if (row?.student_name) return row.student_name
     if (row?.student_slug) return studentBySlug?.[row.student_slug]?.name || row.student_slug
     if (row?.group_id !== undefined && row?.group_id !== null) {
       const group = groupById?.[String(row.group_id)]
       const name = group?.name || group?.title
-      return name ? `${name} (group)` : `Group ${row.group_id}`
+      return name ? `${name} group` : `Group ${row.group_id}`
     }
     return null
   }, [studentBySlug, groupById])
@@ -101,7 +145,6 @@ export default function TeacherSchedule() {
   const lessons = useMemo(() => {
     const rows = Array.isArray(consoleState.data?.lessons) ? [...consoleState.data.lessons] : []
     return rows.sort((a, b) => {
-      // Prefer the precise epoch the live backend sends; fall back to date+time strings.
       const au = Number(a?.startUtc)
       const bu = Number(b?.startUtc)
       if (Number.isFinite(au) && Number.isFinite(bu) && au !== bu) return au - bu
@@ -110,62 +153,112 @@ export default function TeacherSchedule() {
   }, [consoleState.data])
 
   const consoleBookings = Array.isArray(consoleState.data?.bookings) ? consoleState.data.bookings : []
+  const next = upcoming[0] || null
 
   return (
     <>
-      {/* ── Upcoming lessons (Convex bookings — live today) ── */}
-      <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-6 editorial-shadow sm:px-8">
-        <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">Upcoming</p>
-        <h2 className="mt-1 font-headline text-3xl text-slate-900">My Upcoming <span className="italic text-sky-600">Lessons</span></h2>
-        <div className="mt-4 space-y-2">
-          {bookingsState.loading ? (
-            <SectionLoading />
-          ) : bookingsState.error ? (
-            <SectionError error={{ kind: 'http', message: bookingsState.error }} onRetry={loadBookings} />
-          ) : upcoming.length ? upcoming.map(b => (
-            <div key={b._id} className="flex flex-wrap items-center gap-3 rounded-[1.25rem] border border-white/60 bg-white/70 px-4 py-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_38px_-30px_rgba(2,132,199,0.55)]">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-label font-bold uppercase tracking-[0.14em] text-emerald-700">
-                <span className="material-symbols-outlined text-sm">event</span>
-                {b.timeWarsaw}
-              </span>
-              <span className="text-sm font-semibold text-slate-900">{b.studentName}</span>
-              <span className="text-sm text-slate-500">{prettyDate(b.dateWarsaw)}</span>
+      <section className="relative overflow-hidden rounded-[2.1rem] border border-white/60 bg-white/76 px-5 py-6 shadow-[0_30px_80px_-56px_rgba(124,58,237,0.45)] backdrop-blur-xl sm:px-8">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle at 100% 0%, rgba(168,85,247,0.14), transparent 32%), radial-gradient(circle at 0% 100%, rgba(14,165,233,0.10), transparent 34%)',
+          }}
+        />
+        <div className="relative">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="font-label text-xs font-black uppercase tracking-[0.24em] text-violet-700">Schedule</p>
+              <h2 className="mt-2 font-headline text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-4xl">
+                Your teaching agenda
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
+                A cleaner view of what is booked next, plus the wider console schedule when that backend feed is available.
+              </p>
             </div>
-          )) : (
-            <p className="text-sm text-slate-500 py-2">No upcoming lessons booked yet. Once the school books a student into one of your open slots, it will appear here.</p>
+            <div className="grid gap-2 sm:min-w-[420px] sm:grid-cols-3">
+              <StatTile icon="event" value={upcoming.length} label="upcoming" tone="emerald" />
+              <StatTile icon="history" value={lessons.length} label="lessons" tone="sky" />
+              <StatTile icon="pending_actions" value={consoleBookings.length} label="bookings" />
+            </div>
+          </div>
+
+          {next && (
+            <div className="mt-6 rounded-[1.6rem] border border-emerald-200 bg-emerald-50/70 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined grid h-12 w-12 place-items-center rounded-[1rem] border border-emerald-200 bg-white text-emerald-700">play_circle</span>
+                  <div>
+                    <div className="font-label text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700">Next lesson</div>
+                    <div className="mt-1 text-lg font-black text-slate-950">{next.studentName || 'Student'} at {next.timeWarsaw}</div>
+                    <div className="mt-0.5 text-sm font-semibold text-slate-600">{prettyDate(next.dateWarsaw)}</div>
+                  </div>
+                </div>
+                <span className="rounded-full border border-emerald-200 bg-white px-4 py-2 font-mono text-sm font-black text-emerald-700">
+                  Warsaw time
+                </span>
+              </div>
+            </div>
           )}
+
+          <div className="mt-5">
+            {bookingsState.loading ? (
+              <SectionLoading />
+            ) : bookingsState.error ? (
+              <SectionError error={{ kind: 'http', message: bookingsState.error }} onRetry={loadBookings} />
+            ) : upcoming.length ? (
+              <div className="grid gap-3">
+                {upcoming.map(b => (
+                  <AgendaRow
+                    key={b._id}
+                    item={b}
+                    name={b.studentName}
+                    date={b.dateWarsaw}
+                    time={b.timeWarsaw}
+                    status={b.status}
+                    icon="event"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-[1.45rem] border border-dashed border-violet-200 bg-violet-50/45 px-5 py-4 text-sm font-semibold text-slate-600">
+                No upcoming lessons booked yet. Once a student books one of your open slots, it appears here.
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      {/* ── Console schedule (contract feed — lessons + bookings in range) ── */}
-      <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-6 editorial-shadow sm:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+      <section className="relative overflow-hidden rounded-[2.1rem] border border-white/60 bg-white/76 px-5 py-6 shadow-[0_30px_80px_-56px_rgba(124,58,237,0.35)] backdrop-blur-xl sm:px-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">Schedule</p>
-            <h2 className="mt-1 font-headline text-3xl text-slate-900">Lessons <span className="italic text-sky-600">&amp;</span> Bookings</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-              The console&apos;s merged view of your taught lessons and bookings — scoped to you on the server.
+            <p className="font-label text-xs font-black uppercase tracking-[0.24em] text-violet-700">Console feed</p>
+            <h2 className="mt-2 font-headline text-3xl font-black tracking-[-0.04em] text-slate-950">
+              Lessons and bookings
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
+              Range-based history and booking data, scoped to this teacher on the server.
             </p>
           </div>
           <button
             onClick={loadConsole}
             title="Refresh"
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-600 hover:border-sky-300 hover:text-sky-700 transition cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-violet-200 bg-white/85 px-5 py-2.5 text-sm font-black text-violet-700 shadow-[0_16px_34px_-28px_rgba(124,58,237,0.75)] transition hover:-translate-y-0.5 hover:bg-violet-50"
           >
             <span className="material-symbols-outlined text-lg">refresh</span>
             Refresh
           </button>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap gap-2 rounded-full border border-violet-100 bg-violet-50/50 p-1.5">
           {RANGE_PRESETS.map(p => (
             <button
               key={p.key}
               onClick={() => setPresetKey(p.key)}
-              className={`rounded-full border px-4 py-1.5 text-xs font-bold uppercase tracking-[0.14em] transition cursor-pointer ${
+              className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.12em] transition ${
                 presetKey === p.key
-                  ? 'border-sky-300 bg-sky-50 text-sky-700'
-                  : 'border-slate-200 bg-white/70 text-slate-500 hover:border-sky-200 hover:text-sky-600'
+                  ? 'bg-white text-violet-700 shadow-[0_12px_28px_-22px_rgba(124,58,237,0.8)]'
+                  : 'text-slate-500 hover:bg-white/70 hover:text-violet-700'
               }`}
             >
               {p.label}
@@ -173,7 +266,7 @@ export default function TeacherSchedule() {
           ))}
         </div>
 
-        <div className="mt-4">
+        <div className="mt-5">
           {consoleState.loading ? (
             <SectionLoading />
           ) : consoleState.error?.kind === 'not-live' ? (
@@ -183,42 +276,41 @@ export default function TeacherSchedule() {
           ) : (
             <>
               {lessons.length === 0 && consoleBookings.length === 0 && (
-                <p className="text-sm text-slate-500 py-2">Nothing in this range — the console returned no lessons or bookings for these dates.</p>
+                <div className="rounded-[1.45rem] border border-dashed border-violet-200 bg-violet-50/45 px-5 py-4 text-sm font-semibold text-slate-600">
+                  Nothing in this range. The console returned no lessons or bookings for these dates.
+                </div>
               )}
+
               {lessons.length > 0 && (
-                <div className="space-y-2">
+                <div className="grid gap-3">
                   {lessons.map((l, i) => (
-                    <div key={`${l?.date || ''}-${l?.time || ''}-${i}`} className="flex flex-wrap items-center gap-3 rounded-[1.25rem] border border-white/60 bg-white/70 px-4 py-3">
-                      {l?.time && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 border border-sky-200 px-2.5 py-1 text-xs font-label font-bold uppercase tracking-[0.14em] text-sky-700">
-                          <span className="material-symbols-outlined text-sm">schedule</span>
-                          {l.time}
-                        </span>
-                      )}
-                      <span className="text-sm font-semibold text-slate-900">{whoFor(l) || '—'}</span>
-                      {l?.title && <span className="text-sm text-slate-600">{l.title}</span>}
-                      <span className="text-sm text-slate-500">{prettyDate(l?.date)}</span>
-                      <span className="ml-auto"><StatusChip status={l?.status} /></span>
-                    </div>
+                    <AgendaRow
+                      key={`${l?.date || ''}-${l?.time || ''}-${i}`}
+                      item={l}
+                      name={whoFor(l)}
+                      date={l?.date}
+                      time={l?.time}
+                      status={l?.status}
+                      icon="school"
+                    />
                   ))}
                 </div>
               )}
+
               {consoleBookings.length > 0 && (
-                <div className={lessons.length > 0 ? 'mt-6' : ''}>
-                  <p className="font-label text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Bookings in range · {consoleBookings.length}</p>
-                  <div className="mt-2 space-y-2">
+                <div className={lessons.length > 0 ? 'mt-7' : ''}>
+                  <p className="font-label text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Bookings in range: {consoleBookings.length}</p>
+                  <div className="mt-3 grid gap-3">
                     {consoleBookings.map((b, i) => (
-                      <div key={b?.id || b?._id || i} className="flex flex-wrap items-center gap-3 rounded-[1.25rem] border border-white/60 bg-white/70 px-4 py-3">
-                        {(b?.time || b?.timeWarsaw) && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-label font-bold uppercase tracking-[0.14em] text-emerald-700">
-                            <span className="material-symbols-outlined text-sm">event</span>
-                            {b.time || b.timeWarsaw}
-                          </span>
-                        )}
-                        <span className="text-sm font-semibold text-slate-900">{whoFor(b) || b?.studentName || 'Booking'}</span>
-                        {(b?.date || b?.dateWarsaw) && <span className="text-sm text-slate-500">{prettyDate(b.date || b.dateWarsaw)}</span>}
-                        <span className="ml-auto"><StatusChip status={b?.status} /></span>
-                      </div>
+                      <AgendaRow
+                        key={b?.id || b?._id || i}
+                        item={b}
+                        name={whoFor(b) || b?.studentName || 'Booking'}
+                        date={b?.date || b?.dateWarsaw}
+                        time={b?.time || b?.timeWarsaw}
+                        status={b?.status}
+                        icon="event"
+                      />
                     ))}
                   </div>
                 </div>

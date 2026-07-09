@@ -337,8 +337,8 @@ export default function Calendar({ data }) {
   const todayStr = ymd(today)
 
   const container = {
-    maxWidth: 1320, margin: '0 auto',
-    padding: isMobile ? '24px 18px 80px' : '40px 32px 80px',
+    maxWidth: 1240, margin: '0 auto',
+    padding: isMobile ? '22px 16px 80px' : '34px 28px 80px',
   }
 
   if (loading) {
@@ -386,42 +386,94 @@ export default function Calendar({ data }) {
   return (
     <div style={container} id="page-calendar">
       {/* Hero */}
-      <Glass padding={isMobile ? 24 : 36} style={{
-        marginBottom: 28,
-        background: `${G.brandSoft}, rgba(255,255,255,0.04)`,
-        borderColor: 'rgba(217,70,239,0.25)',
+      <Glass padding={isMobile ? 22 : 30} style={{
+        marginBottom: 22,
+        borderRadius: 28,
+        background: `${G.brandSoft}, rgba(255,255,255,0.06)`,
+        borderColor: 'rgba(217,70,239,0.24)',
+        overflow: 'hidden',
       }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.28em',
-          textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 10 }}>
-          {t('calendar.hero.kicker')}
-        </div>
-        <h1 style={{ fontFamily: FONT.display, fontWeight: 600,
-          fontSize: isMobile ? 32 : 52, lineHeight: 1.02, letterSpacing: '-0.03em',
-          margin: 0, color: T.text }}>
-          {t('calendar.hero.title')}
-        </h1>
-        <p style={{ marginTop: 16, fontSize: 15, color: T.textDim,
-          maxWidth: 640, lineHeight: 1.55 }}>
-          {t('calendar.hero.body')}
-        </p>
-        <div style={{ marginTop: 18, display: 'flex', gap: 18, fontSize: 13,
-          color: T.textDim, flexWrap: 'wrap' }}>
-          <span>
-            <span style={{ color: T.text, fontFamily: FONT.mono, fontSize: 16,
-              marginRight: 6,
-              background: G.brand, WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              {pastCount}
-            </span>{t('calendar.stat.past')}
-          </span>
-          <span>
-            <span style={{ color: T.text, fontFamily: FONT.mono, fontSize: 16,
-              marginRight: 6,
-              background: G.brand, WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              {upcomingCount}
-            </span>{t('calendar.stat.upcoming')}
-          </span>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1.25fr) minmax(280px,0.75fr)',
+          gap: isMobile ? 20 : 26,
+          alignItems: 'end',
+        }}>
+          <div>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '7px 10px',
+              borderRadius: 999,
+              background: 'rgba(255,255,255,0.40)',
+              border: '1px solid rgba(255,255,255,0.34)',
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: T.brandInk || T.brand,
+              marginBottom: 13,
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 15 }}>calendar_month</span>
+              {t('calendar.hero.kicker')}
+            </div>
+            <h1 style={{
+              fontFamily: FONT.display,
+              fontWeight: 750,
+              fontSize: isMobile ? 32 : 50,
+              lineHeight: 1,
+              letterSpacing: '-0.045em',
+              margin: 0,
+              color: T.text,
+              maxWidth: 780,
+            }}>
+              {t('calendar.hero.title')}
+            </h1>
+            <p style={{
+              marginTop: 14,
+              fontSize: 15,
+              color: T.textDim,
+              maxWidth: 660,
+              lineHeight: 1.55,
+            }}>
+              {t('calendar.hero.body')}
+            </p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 10,
+          }}>
+            {[
+              { n: pastCount, label: t('calendar.stat.past'), icon: 'history' },
+              { n: upcomingCount, label: t('calendar.stat.upcoming'), icon: 'event_upcoming' },
+            ].map(item => (
+              <div key={item.label} style={{
+                borderRadius: 22,
+                background: 'rgba(255,255,255,0.50)',
+                border: '1px solid rgba(255,255,255,0.38)',
+                padding: 15,
+                minHeight: 102,
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 22, color: T.brandInk || T.brand }}>{item.icon}</span>
+                <div style={{
+                  marginTop: 10,
+                  fontFamily: FONT.mono,
+                  fontSize: 24,
+                  fontWeight: 900,
+                  color: T.text,
+                  lineHeight: 1,
+                }}>
+                  {item.n}
+                </div>
+                <div style={{ marginTop: 6, color: T.textDim, fontSize: 12, fontWeight: 650 }}>
+                  {item.label}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </Glass>
 
