@@ -109,8 +109,11 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
   // options than lessons remaining, and the value clamps when it changes.
   useEffect(() => {
     if (packages === null) return
-    setWeekly(w => ({ ...w, count: Math.max(remaining > 0 ? 1 : 0, Math.min(Number(w.count) || 1, remaining)) }))
-  }, [remaining, packages === null])
+    setWeekly(w => {
+      const clamped = Math.max(remaining > 0 ? 1 : 0, Math.min(Number(w.count) || 1, remaining))
+      return clamped === w.count ? w : { ...w, count: clamped }   // no-op guard → no render loop
+    })
+  }, [remaining, packages])
 
   // Projected plan dates.
   const plan = useMemo(() => {
