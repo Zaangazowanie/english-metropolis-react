@@ -99,7 +99,7 @@ export default function SuperadminDashboard() {
       // execution — sum the paginated counter in the background instead.
       try {
         let cursor = null, total = 0
-        for (let i = 0; i < 60; i++) {
+        for (let i = 0; i < 250; i++) {   // ~29k keywords ≈ 72 pages today; headroom for growth
           const page = await queryAdminConvex('students:countKeywordsPage', cursor ? { cursor } : {})
           total += page.count
           if (page.isDone || cancelled) break
