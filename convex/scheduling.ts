@@ -457,6 +457,10 @@ export const bookLesson = mutation({
     bookedBy: v.string(),                    // "student" | "school_admin" | "superadmin"
     bookedByName: v.optional(v.string()),
     notes: v.optional(v.string()),
+    // Superadmin-only: book OUTSIDE teacher availability. The only thing that
+    // can refuse a forced booking is a genuine time clash with another
+    // scheduled lesson (checked across ALL orgs — one human teacher).
+    force: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     // Authorization: if a token is supplied it must be a valid admin (any
@@ -466,6 +470,12 @@ export const bookLesson = mutation({
       const auth = await requireAdminOrStudent(ctx, args.sessionToken);
       if (auth.kind === "student" && String(auth.student!._id) !== String(args.studentId)) {
         throw new Error("Unauthorized");
+      }
+    }
+    if (args.force) {
+      const { user } = await requireAdmin(ctx, args.sessionToken ?? "");
+      if (!isSuperadmin(user.role)) {
+        throw new Error("Only a superadmin can book outside teacher availability");
       }
     }
     const student = await ctx.db.get(args.studentId);
@@ -509,9 +519,14 @@ export const bookLesson = mutation({
         break;
       }
     }
-    if (!slotWindow) throw new Error("Requested time is outside teacher availability");
+    if (!slotWindow && !args.force) {
+      throw new Error("Requested time is outside teacher availability");
+    }
+    // Forced bookings outside any window use the global 60-minute lesson.
+    const lessonMinutes = slotWindow ? slotWindow.slotMinutes : 60;
+    const newEndUtc = args.startUtc + lessonMinutes * 60 * 1000;
 
-    // Conflict check
+    // Conflict check (same org, exact start — the legacy fast path)
     const existing = await ctx.db
       .query("lessonBookings")
       .withIndex("by_org_start", q => q.eq("organizationId", args.organizationId).eq("startUtc", args.startUtc))
@@ -519,13 +534,22 @@ export const bookLesson = mutation({
     if (existing.some(b => b.status === "scheduled" || b.status === "completed")) {
       throw new Error("This slot is already booked");
     }
+    // Overlap check across ALL orgs — one human teacher, so a 17:30 lesson in
+    // one org must block 17:05-18:05 in another. The bookings table is small.
+    const allBookings = await ctx.db.query("lessonBookings").collect();
+    const clash = allBookings.find(b =>
+      (b.status === "scheduled" || b.status === "completed") &&
+      b.startUtc < newEndUtc && b.endUtc > args.startUtc);
+    if (clash) {
+      throw new Error(`Time clash: another lesson is booked ${clash.dateWarsaw} ${clash.timeWarsaw}`);
+    }
 
     const bookingId = await ctx.db.insert("lessonBookings", {
       organizationId: args.organizationId,
       ...(effectiveTeacherId === undefined ? {} : { teacherId: effectiveTeacherId as any }),
       studentId: args.studentId,
       startUtc: args.startUtc,
-      endUtc: args.startUtc + slotWindow.slotMinutes * 60 * 1000,
+      endUtc: newEndUtc,
       dateWarsaw: w.date,
       timeWarsaw: w.time,
       status: "scheduled",
