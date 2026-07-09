@@ -4,6 +4,7 @@ import { FONT, G, NIGHT as T } from '../../../design/v3/tokens.js'
 
 const navigation = [
   { to: '/admin/superadmin', label: 'Console', icon: 'dashboard', end: true },
+  { to: '/admin/superadmin/courses', label: 'Courses', icon: 'school' },
   { to: '/admin/superadmin/ingest', label: 'Ingest Lesson', icon: 'upload_file' },
   { to: '/admin/superadmin/jobs', label: 'Queue', icon: 'pending_actions' },
   { to: '/admin/superadmin/library', label: 'Library', icon: 'local_library' },

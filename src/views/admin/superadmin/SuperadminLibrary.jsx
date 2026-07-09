@@ -1,297 +1,291 @@
-// Superadmin › Library — browse/filter/search the 330-deck course library.
-//
-// Data: GET /api/console/library (docs/console/API-CONTRACT.md, P1). This
-// screen is browse + preview-link + PDF download; the assign/unassign UI and
-// the Assignments view land in the next console slice.
+// SuperadminLibrary — the COURSE STUDIO (rebuilt 2026-07-09, Mike's spec).
+// The library is organised exactly the way the Hyperagent fleet built it:
+// course → numbered lessons. Every lesson is fully viewable AND editable in
+// place — keywords (rewrites the deck + re-renders the PDF with the fleet's
+// own renderer) and PDF page order. Every edit is git-committed to the
+// em-course-library repo with the operator's email.
 
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { consoleGet, consoleGetBlob, saveBlob, libraryPdfPath } from './consoleApi.js'
-import { ConsoleLoading, ConsoleNotLive, ConsoleErrorPanel, LevelBadge, BasketBadge } from './ConsoleStates.jsx'
+import { useEffect, useMemo, useState } from 'react'
+import { consoleGet, consoleGetBlob, consolePost, libraryPdfPath } from './consoleApi.js'
 
-const LEVELS = ['A2', 'B1', 'B2', 'C1']
-const BASKETS = ['IDEAS', 'PLACES', 'SOCIETY', 'SPEC', 'SUM']
-const PER = 50
+const BASKET_ICON = { IDEAS: 'psychology', PLACES: 'public', SOCIETY: 'newspaper', SPEC: 'work', SUM: 'sunny' }
 
-function FilterPill({ active, onClick, children }) {
-  return (
-    <button type="button" className={`sa-btn ${active ? 'sa-btn-primary' : 'sa-btn-ghost'}`} onClick={onClick}>
-      {children}
-    </button>
-  )
+function groupLabel(cid) {
+  if (cid.startsWith('SPEC-')) return 'Specialist tracks'
+  if (cid.startsWith('SUM-')) return 'Summer intensives'
+  return `General conversation · ${cid.split('-')[1]}`
 }
 
 export default function SuperadminLibrary() {
+  const [courses, setCourses] = useState(null)
   const [q, setQ] = useState('')
-  const [debouncedQ, setDebouncedQ] = useState('')
-  const [level, setLevel] = useState('')
-  const [basket, setBasket] = useState('')
-  const [course, setCourse] = useState('')
-  const [offset, setOffset] = useState(0)
-  const [data, setData] = useState(null) // { total, courses, rows }
-  const [courseOptions, setCourseOptions] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [reloadKey, setReloadKey] = useState(0)
-  const [downloadingId, setDownloadingId] = useState(null)
-  const [downloadError, setDownloadError] = useState(null)
-
-  // Debounce the search box so we do not hammer the endpoint per keystroke.
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQ(q.trim()), 300)
-    return () => clearTimeout(timer)
-  }, [q])
-
-  // Any filter change restarts paging from the first page.
-  useEffect(() => {
-    setOffset(0)
-  }, [debouncedQ, level, basket, course])
+  const [openCourse, setOpenCourse] = useState('')
+  const [openLesson, setOpenLesson] = useState('')
 
   useEffect(() => {
     let alive = true
-    setLoading(true)
-    setError(null)
-    consoleGet('/api/console/library', { q: debouncedQ, level, basket, course, per: PER, offset })
-      .then(d => { if (alive) setData(d) })
-      .catch(e => { if (alive) { setError(e); setData(null) } })
-      .finally(() => { if (alive) setLoading(false) })
+    consoleGet('/api/console/courses')
+      .then(d => { if (alive) setCourses(d.courses || []) })
+      .catch(() => { if (alive) setCourses([]) })
     return () => { alive = false }
-  }, [debouncedQ, level, basket, course, offset, reloadKey])
+  }, [])
 
-  // Keep the widest course list we have seen so the dropdown stays complete
-  // while filters narrow the response.
-  useEffect(() => {
-    const courses = data?.courses
-    if (!Array.isArray(courses) || courses.length === 0) return
-    setCourseOptions(prev => {
-      const merged = new Map(prev.map(c => [c.course_id, c]))
-      courses.forEach(c => merged.set(c.course_id, c))
-      return Array.from(merged.values()).sort((a, b) => a.course_id.localeCompare(b.course_id))
-    })
-  }, [data])
-
-  const rows = data?.rows || []
-  const total = data?.total ?? 0
-  const anyFilter = Boolean(debouncedQ || level || basket || course)
-
-  function clearFilters() {
-    setQ('')
-    setLevel('')
-    setBasket('')
-    setCourse('')
-  }
-
-  async function downloadPdf(row) {
-    setDownloadError(null)
-    setDownloadingId(row.lesson_id)
-    try {
-      const blob = await consoleGetBlob(row.pdf_url || libraryPdfPath(row.lesson_id))
-      saveBlob(blob, `${row.lesson_id}.pdf`)
-    } catch (e) {
-      setDownloadError(`PDF download for ${row.lesson_id} failed: ${e.message}`)
-    } finally {
-      setDownloadingId(null)
+  const groups = useMemo(() => {
+    const needle = q.trim().toLowerCase()
+    const out = new Map()
+    for (const c of courses || []) {
+      const lessons = needle
+        ? c.lessons.filter(l => (l.title + ' ' + l.lesson_id + ' ' + (l.topic || '')).toLowerCase().includes(needle))
+        : c.lessons
+      if (needle && !lessons.length && !c.course_id.toLowerCase().includes(needle)) continue
+      const g = groupLabel(c.course_id)
+      if (!out.has(g)) out.set(g, [])
+      out.get(g).push({ ...c, lessons })
     }
-  }
+    return [...out.entries()]
+  }, [courses, q])
+
+  if (courses === null) return <p style={{ color: '#8A83AE' }}>Loading the library…</p>
+
+  const totalDecks = courses.reduce((n, c) => n + c.lesson_count, 0)
 
   return (
     <div className="space-y-5">
       <div className="sa-card">
-        <div className="sa-card-header">
-          <h2>Course library{data ? ` · ${total} lessons` : ''}</h2>
-          <input
-            type="search"
-            className="sa-input"
-            placeholder="Search title / topics / keywords…"
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            style={{ maxWidth: 320 }}
-          />
+        <div className="sa-card-header" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
+          <h2>Course Studio · {courses.length} courses · {totalDecks} decks</h2>
+          <input type="search" className="sa-input" placeholder="Search lessons, topics, course codes…"
+            value={q} onChange={e => setQ(e.target.value)} style={{ maxWidth: 340 }} />
         </div>
-        <div className="sa-card-body">
-          <div className="mb-4 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="sa-stat-label" style={{ minWidth: '3.5rem' }}>Level</span>
-              <FilterPill active={level === ''} onClick={() => setLevel('')}>All</FilterPill>
-              {LEVELS.map(l => (
-                <FilterPill key={l} active={level === l} onClick={() => setLevel(l)}>{l}</FilterPill>
-              ))}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="sa-stat-label" style={{ minWidth: '3.5rem' }}>Basket</span>
-              <FilterPill active={basket === ''} onClick={() => setBasket('')}>All</FilterPill>
-              {BASKETS.map(b => (
-                <FilterPill key={b} active={basket === b} onClick={() => setBasket(b)}>{b}</FilterPill>
-              ))}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="sa-stat-label" style={{ minWidth: '3.5rem' }}>Course</span>
-              <select
-                className="sa-input"
-                value={course}
-                onChange={e => setCourse(e.target.value)}
-                style={{ maxWidth: 360, width: 'auto' }}
-              >
-                <option value="">All courses</option>
-                {courseOptions.map(c => (
-                  <option key={c.course_id} value={c.course_id}>
-                    {c.course_id} · {c.count} lessons
-                  </option>
+        <div className="sa-card-body space-y-6">
+          {groups.map(([label, cs]) => (
+            <div key={label}>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: '#8A83AE' }}>{label}</p>
+              <div className="space-y-2">
+                {cs.map(c => (
+                  <div key={c.course_id} className="rounded-2xl border"
+                    style={{ borderColor: openCourse === c.course_id ? 'rgba(217,70,239,0.3)' : 'rgba(255,255,255,0.08)',
+                      background: 'rgba(255,255,255,0.02)' }}>
+                    <button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                      onClick={() => { setOpenCourse(openCourse === c.course_id ? '' : c.course_id); setOpenLesson('') }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#A855F7' }}>
+                        {BASKET_ICON[c.basket] || 'menu_book'}
+                      </span>
+                      <span className="font-mono text-sm font-bold" style={{ color: '#F4F0FF' }}>{c.course_id}</span>
+                      <span className="sa-badge sa-badge-processing">{c.level || '—'}</span>
+                      <span className="text-xs" style={{ color: '#8A83AE' }}>{c.lesson_count} lessons</span>
+                      <span className="material-symbols-outlined ml-auto" style={{ fontSize: 18, color: '#8A83AE',
+                        transform: openCourse === c.course_id ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}>
+                        expand_more
+                      </span>
+                    </button>
+                    {openCourse === c.course_id && (
+                      <div className="space-y-1 px-3 pb-3">
+                        {c.lessons.map(l => (
+                          <LessonStudioRow key={l.lesson_id} lesson={l}
+                            open={openLesson === l.lesson_id}
+                            onToggle={() => setOpenLesson(openLesson === l.lesson_id ? '' : l.lesson_id)} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
-              </select>
-              {anyFilter && (
-                <button
-                  type="button"
-                  className="text-[11px] font-bold uppercase tracking-widest"
-                  style={{ color: 'rgba(148, 163, 184, 0.8)' }}
-                  onClick={clearFilters}
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
-          </div>
-
-          {downloadError && <p className="mb-3 text-sm" style={{ color: '#fca5a5' }}>{downloadError}</p>}
-
-          {loading && <ConsoleLoading label="Loading library…" />}
-          {!loading && error && error.notLive && <ConsoleNotLive endpoint="GET /api/console/library" />}
-          {!loading && error && !error.notLive && (
-            <ConsoleErrorPanel error={error} onRetry={() => setReloadKey(k => k + 1)} />
-          )}
-
-          {!loading && !error && rows.length === 0 && (
-            <p className="p-4" style={{ color: 'rgba(148, 163, 184, 0.7)' }}>
-              {anyFilter ? 'No lessons match these filters.' : 'The library index is empty.'}
-            </p>
-          )}
-
-          {!loading && !error && rows.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr style={{ color: 'rgba(148, 163, 184, 0.7)' }}>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest">Lesson</th>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest">Course</th>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest">Level</th>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest">Basket</th>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest">Topic</th>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest">Keywords</th>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest">Assigned</th>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map(row => {
-                    const keywords = Array.isArray(row.keywords) ? row.keywords : []
-                    return (
-                      <tr key={row.lesson_id} className="border-t align-top" style={{ borderColor: 'rgba(148, 163, 184, 0.08)' }}>
-                        <td className="px-3 py-3" style={{ minWidth: '16rem' }}>
-                          <Link to={`/admin/superadmin/library/${encodeURIComponent(row.lesson_id)}`} className="font-semibold" style={{ color: '#f1f5f9' }}>
-                            {row.title}
-                          </Link>
-                          <p className="mt-0.5 font-mono text-[11px]" style={{ color: 'rgba(148, 163, 184, 0.65)' }}>
-                            {row.lesson_id}
-                          </p>
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap" style={{ color: 'rgba(203, 213, 225, 0.75)' }}>
-                          {row.course_id}
-                          {row.lesson_number != null && (
-                            <span style={{ color: 'rgba(148, 163, 184, 0.6)' }}> · #{row.lesson_number}</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3"><LevelBadge level={row.level} /></td>
-                        <td className="px-3 py-3"><BasketBadge basket={row.basket} /></td>
-                        <td className="px-3 py-3" style={{ color: 'rgba(203, 213, 225, 0.75)', maxWidth: '14rem' }}>
-                          {row.topic || '—'}
-                        </td>
-                        <td className="px-3 py-3" style={{ maxWidth: '16rem' }}>
-                          {keywords.length === 0 ? (
-                            <span style={{ color: 'rgba(148, 163, 184, 0.5)' }}>—</span>
-                          ) : (
-                            <span style={{ color: 'rgba(203, 213, 225, 0.75)', fontSize: '0.78rem' }}>
-                              {keywords.slice(0, 3).join(', ')}
-                              {keywords.length > 3 && (
-                                <span style={{ color: 'rgba(148, 163, 184, 0.6)' }}> +{keywords.length - 3}</span>
-                              )}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap" style={{ color: row.assigned_count ? '#86efac' : 'rgba(148, 163, 184, 0.5)' }}>
-                          {row.assigned_count ? `${row.assigned_count} assigned` : '—'}
-                        </td>
-                        <td className="px-3 py-3 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-3">
-                            {row.video_url && (
-                              <a
-                                href={row.video_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[11px] font-bold uppercase tracking-widest"
-                                style={{ color: 'rgba(203, 213, 225, 0.75)' }}
-                              >
-                                Video
-                              </a>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => downloadPdf(row)}
-                              disabled={downloadingId === row.lesson_id}
-                              className="text-[11px] font-bold uppercase tracking-widest"
-                              style={{
-                                color: '#7dd3fc',
-                                opacity: downloadingId === row.lesson_id ? 0.5 : 1,
-                                cursor: downloadingId === row.lesson_id ? 'wait' : 'pointer',
-                              }}
-                            >
-                              {downloadingId === row.lesson_id ? 'PDF…' : 'PDF'}
-                            </button>
-                            <Link
-                              to={`/admin/superadmin/library/${encodeURIComponent(row.lesson_id)}`}
-                              className="text-[11px] font-bold uppercase tracking-widest"
-                              style={{ color: '#a78bfa' }}
-                            >
-                              Preview →
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {!loading && !error && total > PER && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs" style={{ color: 'rgba(148, 163, 184, 0.7)' }}>
-                Showing {offset + 1}–{offset + rows.length} of {total}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="sa-btn sa-btn-ghost"
-                  disabled={offset === 0}
-                  style={offset === 0 ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
-                  onClick={() => setOffset(Math.max(0, offset - PER))}
-                >
-                  ← Prev
-                </button>
-                <button
-                  type="button"
-                  className="sa-btn sa-btn-ghost"
-                  disabled={offset + rows.length >= total}
-                  style={offset + rows.length >= total ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
-                  onClick={() => setOffset(offset + PER)}
-                >
-                  Next →
-                </button>
               </div>
             </div>
-          )}
+          ))}
         </div>
       </div>
     </div>
   )
 }
+
+function LessonStudioRow({ lesson, open, onToggle }) {
+  return (
+    <div className="rounded-xl border" style={{ borderColor: open ? 'rgba(217,70,239,0.3)' : 'rgba(255,255,255,0.06)',
+      background: 'rgba(8,4,20,0.35)' }}>
+      <button type="button" className="flex w-full items-center gap-3 px-3 py-2 text-left"
+        style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={onToggle}>
+        <span className="font-mono text-xs font-bold" style={{ color: '#8A83AE', width: 24 }}>
+          {String(lesson.lesson_number ?? '?').padStart(2, '0')}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: '#F4F0FF' }}>{lesson.title}</span>
+        <span className="sa-badge sa-badge-queued">{lesson.keyword_count} kw</span>
+        <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#8A83AE' }}>
+          {open ? 'expand_less' : 'expand_more'}
+        </span>
+      </button>
+      {open && <LessonStudio lesson={lesson} />}
+    </div>
+  )
+}
+
+function LessonStudio({ lesson }) {
+  const [kw, setKw] = useState(null)          // editable keyword rows
+  const [pages, setPages] = useState(null)    // current page order [1..n]
+  const [dirtyKw, setDirtyKw] = useState(false)
+  const [dirtyPg, setDirtyPg] = useState(false)
+  const [busy, setBusy] = useState('')
+  const [msg, setMsg] = useState(null)
+  const [pdfBusy, setPdfBusy] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    consoleGet(`/api/console/library/${encodeURIComponent(lesson.lesson_id)}/keywords`)
+      .then(d => { if (alive) setKw((d.keywords || []).map(k => ({ ...k }))) })
+      .catch(() => { if (alive) setKw([]) })
+    consoleGet(`/api/console/library/${encodeURIComponent(lesson.lesson_id)}/pdf-info`)
+      .then(d => { if (alive) setPages(Array.from({ length: d.pages }, (_, i) => i + 1)) })
+      .catch(() => { if (alive) setPages([]) })
+    return () => { alive = false }
+  }, [lesson.lesson_id])
+
+  async function previewPdf() {
+    setPdfBusy(true)
+    try {
+      const blob = await consoleGetBlob(libraryPdfPath(lesson.lesson_id))
+      const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
+      const a = document.createElement('a')
+      a.href = url; a.target = '_blank'; a.rel = 'noopener'
+      document.body.appendChild(a); a.click(); a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } finally { setPdfBusy(false) }
+  }
+
+  async function saveKeywords() {
+    setBusy('kw'); setMsg(null)
+    try {
+      const r = await consolePost(`/api/console/library/${encodeURIComponent(lesson.lesson_id)}/keywords/update`,
+        { keywords: kw.map(k => ({ word: k.word, ipa: k.ipa, pl: k.pl, example: k.example })) })
+      setDirtyKw(false)
+      setMsg({ ok: true, text: `Keywords saved — deck PDF re-rendered${r.youglish_queued ? ` · ${r.youglish_queued} new keyword(s) queued for YouGlish` : ''}.` })
+    } catch (e) {
+      setMsg({ ok: false, text: String(e.message || e) })
+    } finally { setBusy('') }
+  }
+
+  async function savePages() {
+    setBusy('pg'); setMsg(null)
+    try {
+      await consolePost(`/api/console/library/${encodeURIComponent(lesson.lesson_id)}/pdf-reorder`, { order: pages })
+      setDirtyPg(false)
+      setMsg({ ok: true, text: 'PDF pages reordered.' })
+      setPages(Array.from({ length: pages.length }, (_, i) => i + 1))
+    } catch (e) {
+      setMsg({ ok: false, text: String(e.message || e) })
+    } finally { setBusy('') }
+  }
+
+  const movePage = (idx, dir) => {
+    setPages(p => {
+      const n = [...p]
+      const j = idx + dir
+      if (j < 0 || j >= n.length) return p
+      ;[n[idx], n[j]] = [n[j], n[idx]]
+      return n
+    })
+    setDirtyPg(true)
+  }
+
+  return (
+    <div className="space-y-3 px-3 pb-3">
+      {lesson.topic && (
+        <p className="text-xs" style={{ color: '#8A83AE', lineHeight: 1.6 }}>
+          {String(lesson.topic).slice(0, 280)}{String(lesson.topic).length > 280 ? '…' : ''}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.35rem 0.8rem' }} onClick={previewPdf}>
+          <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{pdfBusy ? 'hourglass_top' : 'picture_as_pdf'}</span>
+          Preview PDF
+        </button>
+        {lesson.video_url && (
+          <a href={lesson.video_url} target="_blank" rel="noopener" className="sa-btn sa-btn-ghost"
+            style={{ padding: '0.35rem 0.8rem', textDecoration: 'none' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 15 }}>smart_display</span>
+            Lesson video
+          </a>
+        )}
+      </div>
+
+      {msg && (
+        <p className="text-xs font-semibold" style={{ color: msg.ok ? '#34D399' : '#FB7185' }}>{msg.text}</p>
+      )}
+
+      {/* ── PDF page order ── */}
+      <div>
+        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: '#8A83AE' }}>
+          PDF pages {dirtyPg && <span style={{ color: '#FCD34D' }}>· unsaved order</span>}
+        </p>
+        {pages === null ? <p className="text-xs" style={{ color: '#8A83AE' }}>Loading…</p> : (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {pages.map((orig, idx) => (
+              <span key={idx} className="inline-flex items-center gap-0.5 rounded-lg border px-1.5 py-1"
+                style={{ borderColor: orig !== idx + 1 ? 'rgba(252,211,77,0.4)' : 'rgba(255,255,255,0.1)' }}>
+                <button type="button" onClick={() => movePage(idx, -1)} disabled={idx === 0} style={pgBtn}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }}>chevron_left</span>
+                </button>
+                <span className="font-mono text-xs font-bold" style={{ color: '#F4F0FF' }} title={`original page ${orig}`}>
+                  {orig}
+                </span>
+                <button type="button" onClick={() => movePage(idx, 1)} disabled={idx === pages.length - 1} style={pgBtn}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }}>chevron_right</span>
+                </button>
+              </span>
+            ))}
+            {dirtyPg && (
+              <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.3rem 0.8rem' }}
+                disabled={busy === 'pg'} onClick={savePages}>
+                {busy === 'pg' ? 'Saving…' : 'Save page order'}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Keyword editor ── */}
+      <div>
+        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: '#8A83AE' }}>
+          Keywords {dirtyKw && <span style={{ color: '#FCD34D' }}>· unsaved changes</span>}
+        </p>
+        {kw === null ? <p className="text-xs" style={{ color: '#8A83AE' }}>Loading…</p> : (
+          <div className="space-y-1.5">
+            {kw.map((k, i) => (
+              <div key={i} className="grid gap-1.5" style={{ gridTemplateColumns: '1.1fr 1fr 1fr 1.6fr auto' }}>
+                <input className="sa-input" style={pad} value={k.word} placeholder="word / phrase"
+                  onChange={e => { setKw(rows => rows.map((r, j) => j === i ? { ...r, word: e.target.value } : r)); setDirtyKw(true) }} />
+                <input className="sa-input" style={pad} value={k.ipa || ''} placeholder="IPA"
+                  onChange={e => { setKw(rows => rows.map((r, j) => j === i ? { ...r, ipa: e.target.value } : r)); setDirtyKw(true) }} />
+                <input className="sa-input" style={pad} value={k.pl || ''} placeholder="Polski"
+                  onChange={e => { setKw(rows => rows.map((r, j) => j === i ? { ...r, pl: e.target.value } : r)); setDirtyKw(true) }} />
+                <input className="sa-input" style={pad} value={k.example || ''} placeholder="Example sentence"
+                  onChange={e => { setKw(rows => rows.map((r, j) => j === i ? { ...r, example: e.target.value } : r)); setDirtyKw(true) }} />
+                <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.25rem 0.5rem' }}
+                  onClick={() => { setKw(rows => rows.filter((_, j) => j !== i)); setDirtyKw(true) }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span>
+                </button>
+              </div>
+            ))}
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.3rem 0.8rem' }}
+                onClick={() => { setKw(rows => [...rows, { word: '', ipa: '', pl: '', example: '' }]); setDirtyKw(true) }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 15 }}>add</span>
+                Add keyword
+              </button>
+              {dirtyKw && (
+                <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.3rem 0.8rem' }}
+                  disabled={busy === 'kw'} onClick={saveKeywords}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>save</span>
+                  {busy === 'kw' ? 'Re-rendering deck…' : 'Save keywords (re-renders PDF)'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const pad = { padding: '0.4rem 0.6rem', fontSize: '0.78rem' }
+const pgBtn = { background: 'none', border: 'none', color: '#8A83AE', cursor: 'pointer', display: 'inline-flex', padding: 0 }

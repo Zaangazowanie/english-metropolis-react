@@ -19,6 +19,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { consoleGet, consoleGetBlob, consolePost, libraryPdfPath } from './consoleApi.js'
 import { mutateAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
+import MiniCalendar from './MiniCalendar.jsx'
 
 const BASKET_ICON = { IDEAS: 'psychology', PLACES: 'public', SOCIETY: 'newspaper', SPEC: 'work', SUM: 'sunny' }
 const BASKET_LABEL = { IDEAS: 'Ideas & Ambition', PLACES: 'Places & Culture', SOCIETY: 'News & Society' }
@@ -105,6 +106,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
   const [weekly, setWeekly] = useState({ start: '', time: '17:00', count: 4 })
   const [flexRows, setFlexRows] = useState([''])
   const [booking, setBooking] = useState(null)             // {done,total,log:[],finished}
+  const [calOpen, setCalOpen] = useState(null)             // 'weekly' | flex row index | null
 
   // Warsaw wall-clock → UTC ms (matches the platform's Europe/Warsaw slots).
   function warsawToUtcMs(dateStr, timeStr) {
@@ -134,7 +136,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
         starts.push(warsawToUtcMs(d.toISOString().slice(0, 10), weekly.time))
       }
     } else {
-      starts = flexRows.filter(Boolean).map(v => {
+      starts = flexRows.filter(v => v && v.split('T')[0]).map(v => {
         const [date, time] = v.split('T')
         return warsawToUtcMs(date, (time || '17:00').slice(0, 5))
       })
@@ -476,11 +478,20 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
 
           {schedMode === 'weekly' ? (
             <div className="flex flex-wrap items-end gap-3">
-              <label className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1" style={{ position: 'relative' }}>
                 <span className="sa-stat-label">First lesson</span>
-                <input type="date" className="sa-input" value={weekly.start}
-                  onChange={e => setWeekly(w => ({ ...w, start: e.target.value }))} />
-              </label>
+                <button type="button" className="sa-input" style={{ textAlign: 'left', cursor: 'pointer', minWidth: '10rem' }}
+                  onClick={() => setCalOpen(calOpen === 'weekly' ? null : 'weekly')}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 15, verticalAlign: '-3px', marginRight: 6, color: '#A855F7' }}>calendar_month</span>
+                  {weekly.start || 'Pick a date'}
+                </button>
+                {calOpen === 'weekly' && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 40, marginTop: 6 }}>
+                    <MiniCalendar value={weekly.start}
+                      onPick={d => { setWeekly(w => ({ ...w, start: d })); setCalOpen(null) }} />
+                  </div>
+                )}
+              </div>
               <label className="flex flex-col gap-1">
                 <span className="sa-stat-label">Time</span>
                 <input type="time" className="sa-input" value={weekly.time}
@@ -497,16 +508,30 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
             </div>
           ) : (
             <div className="space-y-2">
-              {flexRows.map((v, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <input type="datetime-local" className="sa-input" style={{ maxWidth: '16rem' }} value={v}
-                    onChange={e => setFlexRows(rows => rows.map((r, idx) => idx === i ? e.target.value : r))} />
-                  <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.3rem 0.6rem' }}
-                    onClick={() => setFlexRows(rows => rows.length === 1 ? [''] : rows.filter((_, idx) => idx !== i))}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 15 }}>close</span>
-                  </button>
-                </div>
-              ))}
+              {flexRows.map((v, i) => {
+                const [dPart, tPart] = (v || 'T').split('T')
+                return (
+                  <div key={i} className="flex items-center gap-2" style={{ position: 'relative' }}>
+                    <button type="button" className="sa-input" style={{ textAlign: 'left', cursor: 'pointer', minWidth: '10rem', maxWidth: '11rem' }}
+                      onClick={() => setCalOpen(calOpen === i ? null : i)}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 15, verticalAlign: '-3px', marginRight: 6, color: '#A855F7' }}>calendar_month</span>
+                      {dPart || 'Pick a date'}
+                    </button>
+                    {calOpen === i && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 40, marginTop: 6 }}>
+                        <MiniCalendar value={dPart}
+                          onPick={d => { setFlexRows(rows => rows.map((r, idx) => idx === i ? `${d}T${tPart || '17:00'}` : r)); setCalOpen(null) }} />
+                      </div>
+                    )}
+                    <input type="time" className="sa-input" style={{ width: '7rem' }} value={tPart || '17:00'}
+                      onChange={e => setFlexRows(rows => rows.map((r, idx) => idx === i ? `${dPart || ''}T${e.target.value}` : r))} />
+                    <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.3rem 0.6rem' }}
+                      onClick={() => setFlexRows(rows => rows.length === 1 ? [''] : rows.filter((_, idx) => idx !== i))}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 15 }}>close</span>
+                    </button>
+                  </div>
+                )
+              })}
               <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.35rem 0.8rem' }}
                 onClick={() => setFlexRows(rows => [...rows, ''])}>
                 <span className="material-symbols-outlined" style={{ fontSize: 15 }}>add</span>

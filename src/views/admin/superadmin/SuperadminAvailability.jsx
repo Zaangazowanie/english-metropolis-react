@@ -37,9 +37,16 @@ function lastLessonEnd(w) {
   return slots.length ? slots[slots.length - 1] + LESSON_MIN : null
 }
 
+// Global scope = Mike teaches once, both orgs mirror (Conversa per-teacher rows
+// + English Metropolis PVT legacy org-wide rows — same model Bajla writes).
+const GLOBAL = 'global'
+const ORG_CONVERSA = 'js7cb568fpf7qhkqqe55a7jz5s83sadf'
+const ORG_PVT = 'js779cs2vjwb2c9yjc3a7t619n84zcp8'
+const ORG_EXCLUDED = ['js75nwh5xaac0450bpgdhn5vhx84znf4']   // English Line (departed client)
+
 export default function SuperadminAvailability() {
   const [orgs, setOrgs] = useState([])
-  const [orgId, setOrgId] = useState('')
+  const [orgId, setOrgId] = useState(GLOBAL)
   const [teachers, setTeachers] = useState([])
   const [teacherId, setTeacherId] = useState('')
   const [allRows, setAllRows] = useState([])   // every availability row for the org
@@ -54,9 +61,7 @@ export default function SuperadminAvailability() {
     queryAdminConvex('students:listOrganizations', {})
       .then(list => {
         if (!alive) return
-        setOrgs(list || [])
-        const conversa = (list || []).find(o => (o.slug || '').toLowerCase() === 'conversa')
-        setOrgId(conversa?._id || list?.[0]?._id || '')
+        setOrgs((list || []).filter(o => !ORG_EXCLUDED.includes(o._id)))
       })
       .catch(e => { if (alive) setError(e.message) })
     return () => { alive = false }
@@ -64,11 +69,12 @@ export default function SuperadminAvailability() {
 
   const loadOrg = useCallback(async (id) => {
     if (!id) return
+    const realOrg = id === GLOBAL ? ORG_CONVERSA : id
     setLoading(true); setNotice(null); setError(null)
     try {
       const [tList, rows] = await Promise.all([
-        queryAdminConvex('teachers:listTeachers', { organizationId: id, includeRemoved: false }),
-        queryAdminConvex('scheduling:getWeeklyAvailability', { organizationId: id }),
+        queryAdminConvex('teachers:listTeachers', { organizationId: realOrg, includeRemoved: false }),
+        queryAdminConvex('scheduling:getWeeklyAvailability', { organizationId: realOrg }),
       ])
       setTeachers(tList || [])
       setAllRows(rows || [])
@@ -105,8 +111,16 @@ export default function SuperadminAvailability() {
         dayOfWeek: Number(w.dayOfWeek), startTime: w.startTime, endTime: w.endTime,
         slotMinutes: LESSON_MIN, gapMinutes: GAP_MIN,
       }))
-      await mutateAdminConvex('scheduling:setWeeklyAvailability', { organizationId: orgId, teacherId, windows })
-      setNotice({ kind: 'ok', text: `Saved — ${windows.length} weekly block${windows.length === 1 ? '' : 's'} for ${teacherName} at ${LESSON_MIN}-minute lessons / ${GAP_MIN}-minute breaks. These slots are now bookable (and offered by Bajla).` })
+      if (orgId === GLOBAL) {
+        // Mirror to every org Mike teaches in: Conversa per-teacher rows +
+        // EM PVT legacy org-wide rows (that org has no teacher user rows).
+        await mutateAdminConvex('scheduling:setWeeklyAvailability', { organizationId: ORG_CONVERSA, teacherId, windows })
+        await mutateAdminConvex('scheduling:setWeeklyAvailability', { organizationId: ORG_PVT, windows })
+        setNotice({ kind: 'ok', text: `Saved GLOBALLY — ${windows.length} weekly block${windows.length === 1 ? '' : 's'} mirrored to Conversa and English Metropolis PVT at ${LESSON_MIN}-minute lessons / ${GAP_MIN}-minute breaks.` })
+      } else {
+        await mutateAdminConvex('scheduling:setWeeklyAvailability', { organizationId: orgId, teacherId, windows })
+        setNotice({ kind: 'ok', text: `Saved — ${windows.length} weekly block${windows.length === 1 ? '' : 's'} for ${teacherName} in this organisation only.` })
+      }
       await loadOrg(orgId)
     } catch (err) {
       setNotice({ kind: 'err', text: String(err?.message || 'Could not save.').replace(/^.*Error: /, '') })
@@ -135,8 +149,9 @@ export default function SuperadminAvailability() {
               <span className="material-symbols-outlined" style={{ fontSize: 13 }}>timer</span>
               {LESSON_MIN}-min lessons · {GAP_MIN}-min breaks
             </span>
-            <select className="sa-input" value={orgId} onChange={e => setOrgId(e.target.value)} style={{ maxWidth: 220 }}>
-              {orgs.map(o => <option key={o._id} value={o._id}>{o.name}</option>)}
+            <select className="sa-input" value={orgId} onChange={e => setOrgId(e.target.value)} style={{ maxWidth: 260 }}>
+              <option value={GLOBAL}>🌍 Global (all my teaching)</option>
+              {orgs.map(o => <option key={o._id} value={o._id}>{o.name} only</option>)}
             </select>
             <select className="sa-input" value={teacherId} onChange={e => setTeacherId(e.target.value)} style={{ maxWidth: 220 }}>
               {teachers.length === 0 && <option value="">No teachers</option>}

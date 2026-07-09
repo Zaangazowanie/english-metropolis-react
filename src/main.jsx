@@ -14,6 +14,7 @@ import StudentDetail from './views/admin/StudentDetail.jsx'
 import AdminSettings from './views/admin/Settings.jsx'
 import SuperadminLayout from './views/admin/superadmin/SuperadminLayout.jsx'
 import SuperadminDashboard from './views/admin/superadmin/SuperadminDashboard.jsx'
+import SuperadminCourses from './views/admin/superadmin/SuperadminCourses.jsx'
 import SuperadminIngest from './views/admin/superadmin/SuperadminIngest.jsx'
 import SuperadminReview from './views/admin/superadmin/SuperadminReview.jsx'
 import SuperadminJobs from './views/admin/superadmin/SuperadminJobs.jsx'
@@ -153,6 +154,7 @@ function RootRouter() {
           </RootErrorBoundary>
         }>
           <Route index element={<SuperadminDashboard />} />
+          <Route path="courses" element={<SuperadminCourses />} />
           <Route path="ingest" element={<SuperadminIngest />} />
           <Route path="ingest/:jobId" element={<SuperadminReview />} />
           <Route path="jobs" element={<SuperadminJobs />} />

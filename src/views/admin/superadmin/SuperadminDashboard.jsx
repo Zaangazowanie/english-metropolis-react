@@ -1,20 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { mutateAdminConvex, queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
-import CoursePublisher from './CoursePublisher.jsx'
+import MiniCalendar from './MiniCalendar.jsx'
 
-const emptyKeyword = {
-  word: '',
-  translation: '',
-  definitionEn: '',
-  definitionPl: '',
-  exampleEn: '',
-  examplePl: '',
-  ipa: '',
-  stressUK: '',
-  stressUS: '',
-  topics: '',
-}
 
 
 function formatDate(msOrDate) {
@@ -37,6 +25,7 @@ function safeDetails(raw) {
 
 
 export default function SuperadminDashboard() {
+  const navigate = useNavigate()
   const [stats, setStats] = useState(null)
   const [ingestionStats, setIngestionStats] = useState(null)
   const [students, setStudents] = useState([])
@@ -44,15 +33,9 @@ export default function SuperadminDashboard() {
   const [recentLessons, setRecentLessons] = useState([])
   const [recentJobs, setRecentJobs] = useState([])
   const [auditEvents, setAuditEvents] = useState([])
-  const [selectedStudentId, setSelectedStudentId] = useState('')
-  const [studentLessons, setStudentLessons] = useState([])
-  const [selectedLessonId, setSelectedLessonId] = useState('')
-  const [lessonKeywords, setLessonKeywords] = useState([])
-  const [keywordForm, setKeywordForm] = useState(emptyKeyword)
+  const [month, setMonth] = useState({ total: 0, done: 0, upcoming: 0, next: [], marks: {} })
   const [loading, setLoading] = useState(true)
-  const [panelLoading, setPanelLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -78,8 +61,6 @@ export default function SuperadminDashboard() {
       setRecentJobs(jobs || [])
       setOrgs(organizations || [])
       setAuditEvents(audit || [])
-      const firstActive = (studentRows || []).find(s => s.status === 'active') || (studentRows || [])[0]
-      if (firstActive) setSelectedStudentId(firstActive._id)
       const failures = results.filter(r => r.status === 'rejected')
       if (failures.length) {
         setError(`${failures.length} console panel(s) failed to load: ${failures.map(f => String(f.reason?.message || f.reason).slice(0, 80)).join(' · ')}`)
@@ -103,85 +84,34 @@ export default function SuperadminDashboard() {
   }, [])
 
   useEffect(() => {
-    if (!selectedStudentId) return
     let cancelled = false
-    setPanelLoading(true)
-    setNotice('')
-    Promise.all([
-      queryAdminConvex('students:listLessons', { studentId: selectedStudentId, limit: 80 }),
-      queryAdminConvex('students:listKeywords', { studentId: selectedStudentId, limit: 5000 }),
-    ])
-      .then(([lessons, keywords]) => {
+    const ORGS = ['js7cb568fpf7qhkqqe55a7jz5s83sadf', 'js779cs2vjwb2c9yjc3a7t619n84zcp8']
+    Promise.allSettled(ORGS.map(o => queryAdminConvex('scheduling:listBookings', { organizationId: o })))
+      .then(results => {
         if (cancelled) return
-        setStudentLessons(lessons)
-        setSelectedLessonId(current => {
-          if (current && lessons.some(l => l._id === current)) return current
-          return lessons[0]?._id || ''
+        const rows = results.flatMap(r => (r.status === 'fulfilled' ? r.value || [] : []))
+        const now = Date.now()
+        const ym = new Date().toISOString().slice(0, 7)
+        const live = rows.filter(b => b.status === 'scheduled' || b.status === 'completed')
+        const inMonth = live.filter(b => String(b.dateWarsaw || '').startsWith(ym))
+        const upcoming = live.filter(b => b.startUtc > now).sort((a, b) => a.startUtc - b.startUtc)
+        const marks = {}
+        for (const b of live) marks[b.dateWarsaw] = (marks[b.dateWarsaw] || 0) + 1
+        setMonth({
+          total: inMonth.length,
+          done: inMonth.filter(b => b.endUtc < now).length,
+          upcoming: upcoming.length,
+          next: upcoming.slice(0, 5),
+          marks,
         })
-        if (!lessons[0]) setLessonKeywords(keywords.slice(0, 60))
       })
-      .catch(e => { if (!cancelled) setError(e.message || String(e)) })
-      .finally(() => { if (!cancelled) setPanelLoading(false) })
     return () => { cancelled = true }
-  }, [selectedStudentId])
+  }, [])
 
-  useEffect(() => {
-    if (!selectedLessonId) {
-      setLessonKeywords([])
-      return
-    }
-    let cancelled = false
-    setPanelLoading(true)
-    queryAdminConvex('students:listKeywords', { lessonId: selectedLessonId })
-      .then(rows => { if (!cancelled) setLessonKeywords(rows) })
-      .catch(e => { if (!cancelled) setError(e.message || String(e)) })
-      .finally(() => { if (!cancelled) setPanelLoading(false) })
-    return () => { cancelled = true }
-  }, [selectedLessonId, studentLessons])
-
-  const selectedStudent = students.find(s => s._id === selectedStudentId)
-  const selectedLesson = studentLessons.find(l => l._id === selectedLessonId)
   const studentById = useMemo(() => new Map(students.map(s => [s._id, s])), [students])
   const activeStudents = students.filter(s => s.status === 'active').length
   const dueSoonLessons = recentLessons.filter(l => l.date >= new Date().toISOString().slice(0, 10)).length
   const latestJobStatus = recentJobs[0]?.status?.replace('_', ' ') || 'quiet'
-
-  async function addKeyword(e) {
-    e.preventDefault()
-    if (!selectedLesson || !selectedStudent || !keywordForm.word.trim()) return
-    const word = keywordForm.word.trim()
-    const translation = keywordForm.translation.trim() || word
-    const topics = keywordForm.topics
-      .split(',')
-      .map(t => t.trim())
-      .filter(Boolean)
-    await mutateAdminConvex('students:createKeyword', {
-      lessonId: selectedLesson._id,
-      studentId: selectedStudent._id,
-      organizationId: selectedLesson.organizationId || selectedStudent.organizationId,
-      word,
-      translation,
-      definitionEn: keywordForm.definitionEn.trim() || `Working definition for ${word}.`,
-      definitionPl: keywordForm.definitionPl.trim() || translation,
-      exampleEn: keywordForm.exampleEn.trim() || `We practised "${word}" in today's lesson.`,
-      examplePl: keywordForm.examplePl.trim() || translation,
-      ipa: keywordForm.ipa.trim(),
-      stressUK: keywordForm.stressUK.trim(),
-      stressUS: keywordForm.stressUS.trim(),
-      topics: topics.length ? topics : selectedLesson.topics || ['General English'],
-      collocations: {},
-    })
-    const rows = await queryAdminConvex('students:listKeywords', { lessonId: selectedLesson._id })
-    setLessonKeywords(rows)
-    setKeywordForm(emptyKeyword)
-    setNotice('Keyword added to the student bank.')
-  }
-
-  async function removeKeyword(keywordId) {
-    await mutateAdminConvex('students:deleteKeyword', { keywordId })
-    setLessonKeywords(rows => rows.filter(row => row._id !== keywordId))
-    setNotice('Keyword removed.')
-  }
 
   if (loading) return <p style={{ color: 'rgba(203,213,225,0.7)' }}>Loading console...</p>
   // A partial failure renders as a banner over the working panels — never a
@@ -260,71 +190,38 @@ export default function SuperadminDashboard() {
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+      <section className="grid gap-6 xl:grid-cols-[1fr_0.55fr]">
         <div className="sa-card">
           <div className="sa-card-header">
-            <h2>Course material</h2>
-            <span className="sa-badge sa-badge-committed" title="Only library PDF decks can be set as course material — no manual links">
-              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>picture_as_pdf</span>
-              PDF library only
-            </span>
-          </div>
-          <div className="sa-card-body">
-            <CoursePublisher
-              students={students}
-              selectedStudentId={selectedStudentId}
-              setSelectedStudentId={setSelectedStudentId}
-            />
-            {notice && <p className="mt-3 text-sm font-semibold" style={{ color: '#34D399' }}>{notice}</p>}
-          </div>
-        </div>
-
-        <div className="sa-card">
-          <div className="sa-card-header">
-            <h2>Keyword control</h2>
-            <Link to={selectedStudent?.slug ? `/admin/superadmin/students/${selectedStudent.slug}/heatmap` : '/admin/superadmin/students'} className="text-xs font-bold uppercase tracking-widest" style={{ color: '#a5f3fc' }}>
-              Heatmap
+            <h2>This month</h2>
+            <Link to="/admin/superadmin/courses" className="text-xs font-bold uppercase tracking-widest" style={{ color: '#F0ABFC' }}>
+              Courses &amp; scheduling →
             </Link>
           </div>
-          <div className="sa-card-body space-y-4">
-            <form className="grid gap-3" onSubmit={addKeyword}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <input className="sa-input" placeholder="Keyword / phrase" value={keywordForm.word} onChange={e => setKeywordForm(f => ({ ...f, word: e.target.value }))} />
-                <input className="sa-input" placeholder="Polish translation" value={keywordForm.translation} onChange={e => setKeywordForm(f => ({ ...f, translation: e.target.value }))} />
-                <input className="sa-input" placeholder="English definition" value={keywordForm.definitionEn} onChange={e => setKeywordForm(f => ({ ...f, definitionEn: e.target.value }))} />
-                <input className="sa-input" placeholder="Polish definition" value={keywordForm.definitionPl} onChange={e => setKeywordForm(f => ({ ...f, definitionPl: e.target.value }))} />
-              </div>
-              <input className="sa-input" placeholder="Topics, comma separated" value={keywordForm.topics} onChange={e => setKeywordForm(f => ({ ...f, topics: e.target.value }))} />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <input className="sa-input" placeholder="Example in English" value={keywordForm.exampleEn} onChange={e => setKeywordForm(f => ({ ...f, exampleEn: e.target.value }))} />
-                <input className="sa-input" placeholder="Example in Polish" value={keywordForm.examplePl} onChange={e => setKeywordForm(f => ({ ...f, examplePl: e.target.value }))} />
-              </div>
-              <button type="submit" className="sa-btn sa-btn-primary" disabled={!selectedLessonId || !keywordForm.word.trim() || panelLoading}>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>new_label</span>
-                Add keyword
-              </button>
-            </form>
-
-            <div className="max-h-[24rem] overflow-auto rounded-2xl border" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
-              {lessonKeywords.length === 0 ? (
-                <p className="p-5 text-sm" style={{ color: 'rgba(148,163,184,0.74)' }}>No keywords on this lesson yet.</p>
-              ) : (
-                lessonKeywords.map(keyword => (
-                  <div key={keyword._id} className="flex items-start justify-between gap-3 border-b p-4" style={{ borderColor: 'rgba(148,163,184,0.08)' }}>
-                    <div>
-                      <p className="font-bold" style={{ color: '#f8fafc' }}>{keyword.word}</p>
-                      <p className="text-sm" style={{ color: 'rgba(203,213,225,0.72)' }}>{keyword.translation || keyword.definitionEn}</p>
-                      <p className="mt-1 text-[11px] uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.72)' }}>
-                        {(keyword.topics || []).join(', ') || 'General'}
-                      </p>
-                    </div>
-                    <button type="button" className="sa-btn sa-btn-ghost" onClick={() => removeKeyword(keyword._id)}>
-                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
-                    </button>
-                  </div>
-                ))
-              )}
+          <div className="sa-card-body">
+            <div className="grid grid-cols-3 gap-3">
+              <div><p className="sa-stat-label">Lessons this month</p><p className="sa-stat-value">{month.total}</p></div>
+              <div><p className="sa-stat-label">Taught</p><p className="sa-stat-value">{month.done}</p></div>
+              <div><p className="sa-stat-label">Coming up</p><p className="sa-stat-value">{month.upcoming}</p></div>
             </div>
+            {month.next.length > 0 && (
+              <div className="mt-4 space-y-1.5">
+                <p className="sa-stat-label">Next lessons</p>
+                {month.next.map(b => (
+                  <div key={b._id} className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#34D399' }}>event</span>
+                    <span style={{ color: '#F4F0FF', fontWeight: 600 }}>{b.dateWarsaw} {b.timeWarsaw}</span>
+                    <span style={{ color: '#8A83AE' }}>{b.studentName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="sa-card" style={{ alignSelf: 'start' }}>
+          <div className="sa-card-header"><h2>Booking calendar</h2></div>
+          <div className="sa-card-body" style={{ display: 'flex', justifyContent: 'center' }}>
+            <MiniCalendar value="" onPick={() => {}} marks={month.marks} minToday={false} />
           </div>
         </div>
       </section>
@@ -346,10 +243,7 @@ export default function SuperadminDashboard() {
                   type="button"
                   className="flex w-full items-center justify-between gap-4 border-b px-5 py-4 text-left transition hover:bg-slate-800/40"
                   style={{ borderColor: 'rgba(148,163,184,0.08)' }}
-                  onClick={() => {
-                    setSelectedStudentId(lesson.studentId)
-                    setSelectedLessonId(lesson._id)
-                  }}
+                  onClick={() => navigate('/admin/superadmin/courses')}
                 >
                   <span>
                     <span className="block font-semibold" style={{ color: '#f8fafc' }}>{lesson.title}</span>
