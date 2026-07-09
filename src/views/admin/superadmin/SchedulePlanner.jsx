@@ -17,6 +17,14 @@ const DOW = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 const HOURS = Array.from({ length: 16 }, (_, i) => String(i + 6).padStart(2, '0'))   // 06..21
 const MINUTES = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55']
 
+// A student's confirmation email only reaches them if they have a REAL personal
+// address. @englishmetro.com is the login placeholder (catch-all), not personal.
+function realEmail(student) {
+  if (student?.googleEmail && /@/.test(student.googleEmail)) return student.googleEmail
+  if (student?.email && !/@englishmetro\.com$/i.test(student.email)) return student.email
+  return null
+}
+
 const ymd = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 const todayStr = () => { const t = new Date(); return ymd(t.getFullYear(), t.getMonth(), t.getDate()) }
 
@@ -53,7 +61,7 @@ function TimeSelect({ value, onChange }) {
   )
 }
 
-export default function SchedulePlanner({ student, allocVersion = 0, onBooked = null }) {
+export default function SchedulePlanner({ student, allocVersion = 0, onBooked = null, onEmailSaved = null }) {
   const now = new Date()
   const [view, setView] = useState({ y: now.getFullYear(), m: now.getMonth() })
   const [mode, setMode] = useState('weekly')
@@ -65,6 +73,10 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
   const [allocOpen, setAllocOpen] = useState(false)
   const [allocN, setAllocN] = useState(10)
   const [booking, setBooking] = useState(null)
+  const [emailGate, setEmailGate] = useState(false)   // no personal email → prompt to add
+  const [emailDraft, setEmailDraft] = useState('')
+  const [emailBusy, setEmailBusy] = useState(false)
+  const [emailErr, setEmailErr] = useState('')
 
   // Teacher availability (the student's org mirrors the global schedule).
   useEffect(() => {
@@ -159,8 +171,24 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
       : [...f, { date: dateStr, time: '17:00' }].sort((a, b) => a.date.localeCompare(b.date)))
   }
 
+  async function saveStudentEmail() {
+    const addr = emailDraft.trim()
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) { setEmailErr('Enter a valid email address.'); return }
+    if (/@englishmetro\.com$/i.test(addr)) { setEmailErr('Use the student\'s personal address, not an @englishmetro login.'); return }
+    setEmailBusy(true); setEmailErr('')
+    try {
+      await mutateAdminConvex('students:updateStudent', { studentId: student._id, googleEmail: addr })
+      setEmailGate(false)
+      if (onEmailSaved) onEmailSaved(addr)   // parent refreshes the student record
+    } catch (e) {
+      setEmailErr(String(e.message || e).replace(/^.*Error: /, ''))
+    } finally { setEmailBusy(false) }
+  }
+
   async function confirmBook() {
     if (!plan.length || overBudget || !student) return
+    // Booking sends confirmations — refuse if the student has no real inbox.
+    if (!realEmail(student)) { setEmailDraft(''); setEmailErr(''); setEmailGate(true); return }
     setBooking({ done: 0, total: plan.length, log: [], finished: false })
     const fmt = ms => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Warsaw',
       weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(ms))
@@ -217,6 +245,20 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
           ))}
         </div>
       </div>
+
+      {!realEmail(student) && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2"
+          style={{ borderColor: 'rgba(252,211,77,0.4)', background: 'rgba(252,211,77,0.06)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#FCD34D' }}>mark_email_unread</span>
+          <span className="text-xs" style={{ color: '#FCD34D' }}>
+            {student.name.split(' ')[0]} has no personal email on file — booking confirmations can't reach them until you add one.
+          </span>
+          <button type="button" className="sa-btn sa-btn-ghost ml-auto" style={{ padding: '0.25rem 0.7rem' }}
+            onClick={() => { setEmailDraft(''); setEmailErr(''); setEmailGate(true) }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>add</span>Add email
+          </button>
+        </div>
+      )}
 
       {/* ── Allocation — the hard budget every plan is tied to ── */}
       <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border px-3 py-2"
@@ -401,6 +443,38 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
           )}
         </div>
       </div>
+
+      {emailGate && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', background: 'rgba(6,4,16,0.72)', backdropFilter: 'blur(4px)' }}
+          onClick={() => !emailBusy && setEmailGate(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 460, borderRadius: 18,
+            border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(12,8,26,0.98)', padding: '1.4rem' }}>
+            <div className="flex items-center gap-2" style={{ marginBottom: '0.6rem' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#FCD34D' }}>mark_email_unread</span>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#F4F0FF' }}>Add {student.name.split(' ')[0]}'s email first</h3>
+            </div>
+            <p className="text-sm" style={{ color: '#CEC8E8', lineHeight: 1.55, marginBottom: '1rem' }}>
+              Booking sends a confirmation to the student with the lesson time, video link and an
+              add-to-calendar button. {student.name.split(' ')[0]} only has a login placeholder on
+              file — enter their personal email address to continue.
+            </p>
+            <input autoFocus type="email" className="sa-input" placeholder="student's personal email"
+              value={emailDraft} onChange={e => setEmailDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') saveStudentEmail() }} />
+            {emailErr && <p className="text-xs" style={{ color: '#FB7185', marginTop: '0.5rem' }}>{emailErr}</p>}
+            <div className="flex items-center justify-end gap-2" style={{ marginTop: '1rem' }}>
+              <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.45rem 1rem' }}
+                disabled={emailBusy} onClick={() => setEmailGate(false)}>Cancel</button>
+              <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.45rem 1rem' }}
+                disabled={emailBusy} onClick={saveStudentEmail}>
+                <span className="material-symbols-outlined" style={{ fontSize: 15 }}>save</span>
+                {emailBusy ? 'Saving…' : 'Save email'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

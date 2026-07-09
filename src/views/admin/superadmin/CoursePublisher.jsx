@@ -86,7 +86,7 @@ function KeywordPreview({ lessonId }) {
   )
 }
 
-export default function CoursePublisher({ students, selectedStudentId, setSelectedStudentId, fixedStudent = null, allocVersion = 0, onBookingsChanged = null }) {
+export default function CoursePublisher({ students, selectedStudentId, setSelectedStudentId, fixedStudent = null, allocVersion = 0, onBookingsChanged = null, onStudentChanged = null }) {
   const roster = useMemo(() => (students || []).filter(s => s.status !== 'archived'), [students])
   const student = fixedStudent || roster.find(s => s._id === selectedStudentId) || null
 
@@ -439,7 +439,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
       )}
 
       {/* ── Schedule planner — calendar with availability/taught/upcoming + allocation budget ── */}
-      {student && layer >= 3 && <SchedulePlanner student={student} allocVersion={allocVersion} onBooked={handleBooked} />}
+      {student && layer >= 3 && <SchedulePlanner student={student} allocVersion={allocVersion} onBooked={handleBooked} onEmailSaved={onStudentChanged} />}
     </div>
   )
 }

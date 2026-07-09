@@ -19,6 +19,7 @@ export default function SuperadminCourses() {
   const [taught, setTaught] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [stuVersion, setStuVersion] = useState(0)
   const [packages, setPackages] = useState(null)
   const [allocStep, setAllocStep] = useState(null)   // null | 'input' | 'confirm'
   const [allocN, setAllocN] = useState(10)
@@ -35,7 +36,7 @@ export default function SuperadminCourses() {
       .catch(e => { if (alive) setError(e.message || String(e)) })
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
-  }, [])
+  }, [stuVersion])
 
   useEffect(() => {
     if (!studentId) return
@@ -165,7 +166,8 @@ export default function SuperadminCourses() {
             <div className="sa-card-body">
               <CoursePublisher students={students} selectedStudentId={studentId}
                 setSelectedStudentId={setStudentId} fixedStudent={student} allocVersion={allocVersion}
-                onBookingsChanged={() => setAllocVersion(v => v + 1)} />
+                onBookingsChanged={() => setAllocVersion(v => v + 1)}
+                onStudentChanged={() => setStuVersion(v => v + 1)} />
             </div>
           </div>
 
