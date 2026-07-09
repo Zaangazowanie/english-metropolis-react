@@ -17,12 +17,14 @@ export default function SuperadminGroups() {
     return () => { alive = false }
   }, [])
 
+  // Archived groups (departed clients, test groups) stay out of the list.
+  const visible = groups.filter(g => g.status !== 'archived')
   const needle = q.trim().toLowerCase()
   const filtered = needle
-    ? groups.filter(g =>
+    ? visible.filter(g =>
         (g.name + ' ' + (g.slug || '') + ' ' + (g.level || '') + ' ' + (g.status || '')).toLowerCase().includes(needle)
       )
-    : groups
+    : visible
 
   const activeGroups = filtered.filter(g => g.status === 'active')
   const otherGroups = filtered.filter(g => g.status !== 'active')

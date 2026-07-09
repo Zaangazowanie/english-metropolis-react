@@ -17,10 +17,13 @@ export default function SuperadminStudents() {
     return () => { alive = false }
   }, [])
 
+  // Archived students (departed clients, test records) stay out of the
+  // roster entirely — the active roster is Conversa + Mike's PVT students.
+  const roster = students.filter(s => s.status !== 'archived')
   const needle = q.trim().toLowerCase()
   const filtered = needle
-    ? students.filter(s => (s.name + ' ' + (s.slug || '') + ' ' + (s.level || '')).toLowerCase().includes(needle))
-    : students
+    ? roster.filter(s => (s.name + ' ' + (s.slug || '') + ' ' + (s.level || '')).toLowerCase().includes(needle))
+    : roster
 
   return (
     <div className="space-y-5">

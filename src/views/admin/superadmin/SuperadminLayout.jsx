@@ -41,7 +41,7 @@ export default function SuperadminLayout() {
           WebkitBackdropFilter: 'blur(18px) saturate(140%)',
         }}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8" style={{ maxWidth: 1840 }}>
           <Link to="/admin/superadmin" className="flex items-center gap-3 min-w-0">
             <div
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
@@ -69,7 +69,7 @@ export default function SuperadminLayout() {
             </button>
           </div>
         </div>
-        <nav className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 pb-3 sm:px-6 lg:px-8" style={{ scrollbarWidth: 'none' }}>
+        <nav className="mx-auto flex flex-wrap gap-2 px-4 pb-3 sm:px-6 lg:px-8" style={{ maxWidth: 1840 }}>
           {navigation.map(item => (
             <NavLink
               key={item.to}
@@ -196,7 +196,7 @@ export default function SuperadminLayout() {
         .sa-badge-failed { background: rgba(251, 113, 133, 0.14); color: ${T.rose}; }
       `}</style>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto px-4 py-6 sm:px-6 lg:px-8" style={{ maxWidth: 1840 }}>
         <Outlet />
       </main>
     </div>

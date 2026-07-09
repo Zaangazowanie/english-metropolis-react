@@ -295,7 +295,7 @@ export default function SuperadminDashboard() {
               onChange={e => setSelectedStudentId(e.target.value)}
               style={{ maxWidth: 300 }}
             >
-              {students.map(student => (
+              {students.filter(s => s.status !== 'archived').map(student => (
                 <option key={student._id} value={student._id}>{student.name} · {student.level}</option>
               ))}
             </select>
