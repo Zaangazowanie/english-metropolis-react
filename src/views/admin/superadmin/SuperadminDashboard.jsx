@@ -208,7 +208,7 @@ export default function SuperadminDashboard() {
                 Activity, lessons, materials, and vocab in one place.
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-6" style={{ color: 'rgba(226,232,240,0.78)' }}>
-                Use this command center to check platform health, publish lesson material, and keep student keyword banks clean without leaving the superadmin area.
+                Use this command center to check platform health, set course material, publish taught lessons, and keep student keyword banks clean without leaving the superadmin area.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-0 border-t sm:grid-cols-4" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
