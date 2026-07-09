@@ -105,6 +105,13 @@ export default function SchedulePlanner({ student, allocVersion = 0 }) {
   const remaining = (packages || []).reduce((n, p) => n + (p.remainingLessons ?? 0), 0)
   const used = allocated - remaining
 
+  // The weekly lesson count is HARD-LINKED to the allocation: never more
+  // options than lessons remaining, and the value clamps when it changes.
+  useEffect(() => {
+    if (packages === null) return
+    setWeekly(w => ({ ...w, count: Math.max(remaining > 0 ? 1 : 0, Math.min(Number(w.count) || 1, remaining)) }))
+  }, [remaining, packages === null])
+
   // Projected plan dates.
   const plan = useMemo(() => {
     if (mode === 'weekly') {
@@ -311,12 +318,18 @@ export default function SchedulePlanner({ student, allocVersion = 0 }) {
                   <TimeSelect value={weekly.time} onChange={t => setWeekly(w => ({ ...w, time: t }))} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="sa-stat-label">Lessons</span>
-                  <select className="sa-input" style={{ width: '5.5rem' }} value={weekly.count}
-                    onChange={e => setWeekly(w => ({ ...w, count: Number(e.target.value) }))}>
-                    {Array.from({ length: Math.max(1, Math.min(remaining || 1, 24)) }, (_, i) => i + 1)
-                      .map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
+                  <span className="sa-stat-label">Lessons <span style={{ color: '#5E567C' }}>(of {remaining} left)</span></span>
+                  {remaining > 0 ? (
+                    <select className="sa-input" style={{ width: '7rem' }} value={weekly.count}
+                      onChange={e => setWeekly(w => ({ ...w, count: Number(e.target.value) }))}>
+                      {Array.from({ length: Math.min(remaining, 24) }, (_, i) => i + 1)
+                        .map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  ) : (
+                    <span className="sa-input" style={{ width: 'auto', padding: '0.5rem 0.8rem', color: '#FB7185' }}>
+                      allocate first ↑
+                    </span>
+                  )}
                 </div>
               </div>
               <p className="text-xs" style={{ color: '#8A83AE' }}>Same weekday &amp; time every week — the fuchsia days on the calendar are this plan.</p>

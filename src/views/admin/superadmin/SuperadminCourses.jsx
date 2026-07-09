@@ -20,7 +20,7 @@ export default function SuperadminCourses() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [packages, setPackages] = useState(null)
-  const [allocOpen, setAllocOpen] = useState(false)
+  const [allocStep, setAllocStep] = useState(null)   // null | 'input' | 'confirm'
   const [allocN, setAllocN] = useState(10)
   const [allocVersion, setAllocVersion] = useState(0)
 
@@ -31,7 +31,6 @@ export default function SuperadminCourses() {
         if (!alive) return
         const roster = (rows || []).filter(s => s.status !== 'archived')
         setStudents(roster)
-        if (roster[0]) setStudentId(roster[0]._id)
       })
       .catch(e => { if (alive) setError(e.message || String(e)) })
       .finally(() => { if (alive) setLoading(false) })
@@ -67,7 +66,7 @@ export default function SuperadminCourses() {
       organizationId: student.organizationId, studentId: student._id,
       name: `${n}-lesson allocation (superadmin)`, totalLessons: n,
     })
-    setAllocOpen(false)
+    setAllocStep(null)
     setAllocVersion(v => v + 1)
   }
 
@@ -102,21 +101,44 @@ export default function SuperadminCourses() {
                 {packages === null ? '…' : `${remaining} of ${allocated} remaining`}
               </p>
             </div>
-            <div style={{ position: 'relative' }}>
-              <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.45rem 1rem' }}
-                onClick={() => setAllocOpen(o => !o)}>
-                <span className="material-symbols-outlined" style={{ fontSize: 15 }}>token</span>
-                Allocate lessons
-              </button>
-              {allocOpen && (
-                <span className="absolute left-0 top-full z-40 mt-1 flex items-center gap-2 rounded-xl border p-2"
-                  style={{ background: 'rgba(10,6,24,0.97)', borderColor: 'rgba(255,255,255,0.12)' }}>
-                  <input type="number" min="1" max="200" className="sa-input" style={{ width: '4.5rem', padding: '0.35rem 0.5rem' }}
-                    value={allocN} onChange={e => setAllocN(e.target.value)} />
-                  <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.3rem 0.7rem' }} onClick={allocate}>
-                    Add
+            <div className="flex items-center gap-2">
+              {allocStep === null && (
+                <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.45rem 1rem' }}
+                  onClick={() => setAllocStep('input')}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>token</span>
+                  Allocate lessons
+                </button>
+              )}
+              {allocStep === 'input' && (
+                <>
+                  <input type="number" min="1" max="200" autoFocus className="sa-input"
+                    style={{ width: '5rem', padding: '0.4rem 0.6rem' }}
+                    value={allocN} onChange={e => setAllocN(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && Number(allocN) > 0) setAllocStep('confirm') }} />
+                  <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.4rem 0.9rem' }}
+                    disabled={!Number(allocN)} onClick={() => setAllocStep('confirm')}>
+                    Next
                   </button>
-                </span>
+                  <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.4rem 0.7rem' }}
+                    onClick={() => setAllocStep(null)}>
+                    Cancel
+                  </button>
+                </>
+              )}
+              {allocStep === 'confirm' && (
+                <>
+                  <span className="text-xs font-semibold" style={{ color: '#FCD34D' }}>
+                    Allocate {Number(allocN)} lesson{Number(allocN) === 1 ? '' : 's'} to {student.name.split(' ')[0]}?
+                  </span>
+                  <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.4rem 0.9rem' }} onClick={allocate}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check</span>
+                    Confirm
+                  </button>
+                  <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.4rem 0.7rem' }}
+                    onClick={() => setAllocStep(null)}>
+                    Cancel
+                  </button>
+                </>
               )}
             </div>
             <div className="ml-auto flex gap-2">
