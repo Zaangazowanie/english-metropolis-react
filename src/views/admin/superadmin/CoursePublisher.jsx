@@ -121,15 +121,6 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
     return () => { alive = false }
   }, [student?._id, bookVersion])
 
-  const dateByLesson = useMemo(() => {
-    if (!course) return {}
-    const inCourse = course.lessons.filter(l => l.assigned)
-      .sort((a, b) => (a.lesson_number || 0) - (b.lesson_number || 0))
-    const map = {}
-    inCourse.forEach((l, i) => { if (stuBookings[i]) map[l.lesson_id] = stuBookings[i] })
-    return map
-  }, [course, stuBookings])
-
   const handleBooked = () => { setBookVersion(v => v + 1); if (onBookingsChanged) onBookingsChanged() }
   // Authenticated PDF preview — a bare <a href> carries no console token, so
   // fetch the deck as a blob and hand it to the browser's PDF viewer.
@@ -175,6 +166,16 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
   }, [student?.slug, publishing?.finished])
 
   const course = (courses || []).find(c => c.course_id === courseId) || null
+  // Committed lessons mapped SEQUENTIALLY onto the in-course lessons (each
+  // course lesson shows its booked date). Placed AFTER `course` is declared.
+  const dateByLesson = useMemo(() => {
+    if (!course) return {}
+    const inCourse = course.lessons.filter(l => l.assigned)
+      .sort((a, b) => (a.lesson_number || 0) - (b.lesson_number || 0))
+    const map = {}
+    inCourse.forEach((l, i) => { if (stuBookings[i]) map[l.lesson_id] = stuBookings[i] })
+    return map
+  }, [course, stuBookings])
   const recommended = (courses || []).filter(c => c.level && student?.level &&
     c.level.toUpperCase() === String(student.level).toUpperCase())
   const others = (courses || []).filter(c => !recommended.includes(c))
