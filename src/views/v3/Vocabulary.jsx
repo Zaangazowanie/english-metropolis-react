@@ -570,8 +570,15 @@ export default function VocabularyV3({ data, slug, basePath = '' }) {
   const lessons = data?.lessons || []
   const keywords = data?.keywords || []
 
-  const [mode, setMode] = useState('browse')
-  const [lessonFilter, setLessonFilter] = useState('all')
+  // ?lesson=<lessonId-or-date> deep-links the deck pre-filtered to one lesson
+  // (the Dashboard "Revise your last lesson" card); ?mode=study starts shuffled.
+  const initialParams = useMemo(() => {
+    if (typeof window === 'undefined') return {}
+    const p = new URLSearchParams(window.location.search)
+    return { lesson: p.get('lesson') || null, mode: p.get('mode') || null }
+  }, [])
+  const [mode, setMode] = useState(initialParams.mode === 'study' ? 'study' : 'browse')
+  const [lessonFilter, setLessonFilter] = useState(initialParams.lesson || 'all')
   const [topicFilter, setTopicFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)

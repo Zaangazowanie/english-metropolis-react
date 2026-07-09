@@ -1044,6 +1044,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
   const analysis = lesson.analysis
   const [keywordSearch, setKeywordSearch] = useState('')
   const [highlightKeyword, setHighlightKeyword] = useState(null)
+  const [analysisOpen, setAnalysisOpen] = useState(false)
   const keywordRefs = useRef({})
 
   const filteredKeywords = useMemo(() => {
@@ -1121,6 +1122,89 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
         )}
       </div>
 
+      {/* Vocabulary FIRST — the keywords (with TTS + YouGlish previews) are
+          what a student revises; the full analysis follows on demand. */}
+      {lesson.keywords?.length > 0 && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
+              textTransform: 'uppercase', color: T.violet }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>translate</span>
+              {t('lessons.detail.vocabHeading', { n: lesson.keywords.length })}
+            </div>
+            <input type="search" placeholder={t('lessons.detail.searchKeywords')}
+              value={keywordSearch} onChange={(e) => setKeywordSearch(e.target.value)}
+              style={{ width: 200, padding: '8px 12px', borderRadius: 10,
+                background: isDay ? '#fff' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${T.border}`, color: T.text,
+                fontSize: 12, outline: 'none' }}/>
+          </div>
+          <div style={{ fontSize: 11, color: T.textDim, fontStyle: 'italic', marginBottom: 10 }}>
+            {t('lessons.detail.vocabHint')}
+          </div>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {filteredKeywords.map((kw, i) => {
+              const wordKey = String(kw.word || '').toLowerCase()
+              const isFocused = highlightKeyword === wordKey
+              const isTarget = String(focusKeyword || '').toLowerCase() === wordKey
+              return (
+                <div key={`${kw.word}-${i}`}
+                  ref={el => { if (el) keywordRefs.current[wordKey] = el }}
+                  style={isFocused ? {
+                    borderRadius: 18,
+                    boxShadow: `0 0 0 3px ${T.brandInk || T.brand}, ${T.shadow}`,
+                    transition: 'box-shadow 400ms ease' } : undefined}>
+                  <KeywordCard
+                    keyword={{
+                      ...kw,
+                      definition: kw.definition_en || kw.definition_pl,
+                      definitionPl: kw.definition_pl,
+                      example: kw.example_en || kw.example_pl,
+                      cefr_level: kw.cefr_level,
+                    }}
+                    onYouglish={onYouglish}
+                    forceExpanded={isTarget}/>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Full analysis — every score, comment and drill lives behind this one
+          disclosure so the lesson opens calm and keyword-first. */}
+      {analysis && (
+        <button type="button" onClick={() => setAnalysisOpen(o => !o)}
+          aria-expanded={analysisOpen}
+          style={{ width: '100%', textAlign: 'left', cursor: 'pointer',
+            background: isDay ? '#fff' : 'rgba(255,255,255,0.03)',
+            border: `1px solid ${T.border}`, borderRadius: 16,
+            padding: '14px 18px', color: T.text,
+            display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span className="material-symbols-outlined"
+            style={{ fontSize: 20, color: T.brand }}>analytics</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.16em',
+              textTransform: 'uppercase' }}>{t('lessons.detail.fullAnalysis')}</div>
+            <div style={{ fontSize: 11, color: T.textDim, marginTop: 2 }}>
+              {t('lessons.detail.fullAnalysisHint')}
+            </div>
+          </div>
+          {typeof overall === 'number' && (
+            <span style={{ fontFamily: FONT.display, fontSize: 22, fontWeight: 600,
+              color: T.text }}>{Math.round(overall)}
+              <span style={{ fontSize: 11, color: T.textDim }}>/100</span></span>
+          )}
+          <span className="material-symbols-outlined"
+            style={{ fontSize: 22, color: T.textDim,
+              transform: analysisOpen ? 'rotate(180deg)' : 'none',
+              transition: 'transform 220ms ease' }}>expand_more</span>
+        </button>
+      )}
+
+      {analysisOpen && (<>
       {/* Topics chips */}
       {lesson.topics?.length > 0 && (
         <div>
@@ -1445,56 +1529,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
         if (!recs) return null
         return <PersonalizedRecommendationsBlock recs={recs}/>
       })()}
-
-      {/* Vocabulary for this lesson */}
-      {lesson.keywords?.length > 0 && (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
-              textTransform: 'uppercase', color: T.violet }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>translate</span>
-              {t('lessons.detail.vocabHeading', { n: lesson.keywords.length })}
-            </div>
-            <input type="search" placeholder={t('lessons.detail.searchKeywords')}
-              value={keywordSearch} onChange={(e) => setKeywordSearch(e.target.value)}
-              style={{ width: 200, padding: '8px 12px', borderRadius: 10,
-                background: isDay ? '#fff' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${T.border}`, color: T.text,
-                fontSize: 12, outline: 'none' }}/>
-          </div>
-          <div style={{ fontSize: 11, color: T.textDim, fontStyle: 'italic', marginBottom: 10 }}>
-            {t('lessons.detail.vocabHint')}
-          </div>
-          <div style={{ display: 'grid', gap: 8 }}>
-            {filteredKeywords.map((kw, i) => {
-              const wordKey = String(kw.word || '').toLowerCase()
-              const isFocused = highlightKeyword === wordKey
-              const isTarget = String(focusKeyword || '').toLowerCase() === wordKey
-              return (
-                <div key={`${kw.word}-${i}`}
-                  ref={el => { if (el) keywordRefs.current[wordKey] = el }}
-                  style={isFocused ? {
-                    borderRadius: 18,
-                    boxShadow: `0 0 0 3px ${T.brandInk || T.brand}, ${T.shadow}`,
-                    transition: 'box-shadow 400ms ease' } : undefined}>
-                  <KeywordCard
-                    keyword={{
-                      ...kw,
-                      definition: kw.definition_en || kw.definition_pl,
-                      definitionPl: kw.definition_pl,
-                      example: kw.example_en || kw.example_pl,
-                      cefr_level: kw.cefr_level,
-                    }}
-                    onYouglish={onYouglish}
-                    forceExpanded={isTarget}/>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
+      </>)}
     </div>
   )
 }
@@ -1755,6 +1790,63 @@ function LessonCard({ lesson, analysis, pdfUrl, onOpen, onTopicClick, topicFilte
         </div>
       </div>
     </article>
+  )
+}
+
+/* ============================================================================
+   CompactLessonRow — one calm line per older lesson. The latest lesson keeps
+   the rich card; history stays scannable instead of a 12,000px wall.
+   ============================================================================ */
+function CompactLessonRow({ lesson, analysis, onOpen }) {
+  const { T, mode, isMobile } = useV3Theme()
+  const isDay = mode === 'day'
+  const { t } = useI18n()
+  const [hov, setHov] = useState(false)
+  const band = analysis?.cefrBand
+  const overall = analysis?.overallScore
+  const keywordCount = lesson.keyword_count || lesson.keywords?.length || 0
+  return (
+    <button type="button" onClick={onOpen}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{
+        width: '100%', textAlign: 'left', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16,
+        padding: isMobile ? '12px 14px' : '13px 18px', borderRadius: 16,
+        background: isDay ? '#fff' : 'rgba(255,255,255,0.03)',
+        border: `1px solid ${hov ? (isDay ? 'rgba(162,28,175,0.35)' : 'rgba(217,70,239,0.35)') : T.border}`,
+        color: T.text, transition: `all 200ms ${EASE.springFast}`,
+        transform: hov ? 'translateY(-1px)' : 'none',
+        boxShadow: hov ? T.shadowSm : 'none' }}>
+      <span style={{ fontFamily: FONT.mono, fontSize: 11, color: T.textDim,
+        letterSpacing: '0.06em', flexShrink: 0, width: isMobile ? 74 : 92 }}>
+        {formatDate(lesson.date)}
+      </span>
+      <span style={{ fontFamily: FONT.display, fontSize: isMobile ? 14 : 15.5, fontWeight: 600,
+        letterSpacing: '-0.01em', lineHeight: 1.3, flex: 1, minWidth: 0,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {lesson.title}
+      </span>
+      {!isMobile && keywordCount > 0 && (
+        <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+          color: T.violet, padding: '3px 9px', borderRadius: 999,
+          background: isDay ? '#F3EEFE' : 'rgba(139,92,246,0.10)',
+          border: `1px solid ${isDay ? '#E6DDFB' : 'rgba(139,92,246,0.25)'}` }}>
+          {t('lessons.kwAbbrev', { n: keywordCount })}
+        </span>
+      )}
+      {band && (
+        <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700,
+          letterSpacing: '0.1em', fontFamily: FONT.mono, color: '#fff',
+          padding: '3px 8px', borderRadius: 999,
+          background: CEFR_COLOR[band] || T.brand }}>
+          {band}{typeof overall === 'number' ? ` ${Math.round(overall)}` : ''}
+        </span>
+      )}
+      <span className="material-symbols-outlined"
+        style={{ fontSize: 18, color: hov ? T.brand : T.textDim, flexShrink: 0 }}>
+        chevron_right
+      </span>
+    </button>
   )
 }
 
@@ -2038,21 +2130,38 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
         </div>
       )}
 
-      {/* Lesson cards — completed only */}
+      {/* Lesson cards — the latest lesson keeps its rich card; every earlier
+          lesson is one compact row (full detail one click away). */}
       <div style={{ display: 'grid', gap: 14 }}>
-        {completedLessons.length ? completedLessons.map(lesson => {
+        {completedLessons.length ? completedLessons.map((lesson, idx) => {
           const analysis = lesson.analysis
           const pdf = (pdfMap[studentSlug || ''] || []).find(p => p.date === lesson.date)
+          if (idx === 0) {
+            return (
+              <LessonCard
+                key={lesson.id}
+                lesson={lesson}
+                analysis={analysis}
+                pdfUrl={pdf?.url}
+                onOpen={() => setSelectedLesson(lesson)}
+                onTopicClick={(tp) => setTopicFilter(topicFilter === tp ? null : tp)}
+                topicFilter={topicFilter}
+                profile={profile}/>
+            )
+          }
           return (
-            <LessonCard
-              key={lesson.id}
-              lesson={lesson}
-              analysis={analysis}
-              pdfUrl={pdf?.url}
-              onOpen={() => setSelectedLesson(lesson)}
-              onTopicClick={(tp) => setTopicFilter(topicFilter === tp ? null : tp)}
-              topicFilter={topicFilter}
-              profile={profile}/>
+            <div key={lesson.id} style={{ display: 'grid', gap: 8 }}>
+              {idx === 1 && (
+                <div style={{ marginTop: 10, fontSize: 10, fontWeight: 700,
+                  letterSpacing: '0.24em', textTransform: 'uppercase', color: T.textDim }}>
+                  {t('lessons.archive.earlier')}
+                </div>
+              )}
+              <CompactLessonRow
+                lesson={lesson}
+                analysis={analysis}
+                onOpen={() => setSelectedLesson(lesson)}/>
+            </div>
           )
         }) : (
           <Glass padding={40} style={{ textAlign: 'center' }}>

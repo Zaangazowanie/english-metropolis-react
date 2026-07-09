@@ -296,6 +296,54 @@ function UpcomingLessonCard({ upcoming, slug, basePath }) {
   )
 }
 
+// The "do it now" revision card — deep-links into the flashcard deck
+// pre-filtered to the latest lesson's keywords (Vocabulary ?lesson=<date>).
+function ReviseCard({ lesson, slug, basePath }) {
+  const { T } = useV3Theme()
+  const { t } = useI18n()
+  const kwCount = numberOr(lesson?.keyword_count)
+  const deckPath = slug
+    ? `${basePath}/${slug}/vocabulary${lesson?.date ? `?lesson=${lesson.date}` : ''}`
+    : '#'
+  const allPath = slug ? `${basePath}/${slug}/vocabulary` : '#'
+  return (
+    <Glass padding={28} hover style={{ display: 'flex', flexDirection: 'column',
+      justifyContent: 'space-between', minHeight: 220 }}>
+      <div>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.28em',
+          textTransform: 'uppercase', color: T.textDim, marginBottom: 6,
+          display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 14, color: T.brand }}>style</span>
+          {t('dashboard.revise.kicker')}
+        </div>
+        <div style={{ fontFamily: FONT.display, fontSize: 22, fontWeight: 600,
+          lineHeight: 1.2, letterSpacing: '-0.01em', color: T.text, marginTop: 4 }}>
+          {lesson ? t('dashboard.revise.title') : t('dashboard.revise.empty.title')}
+        </div>
+        <p style={{ marginTop: 10, fontSize: 14, color: T.textDim, lineHeight: 1.55 }}>
+          {lesson && kwCount
+            ? t('dashboard.revise.body', { n: kwCount })
+            : t('dashboard.revise.empty.body')}
+        </p>
+      </div>
+      <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Link to={deckPath} style={{ textDecoration: 'none' }}>
+          <Btn variant="primary" size="md" icon="style">
+            {t('dashboard.revise.cta')}
+          </Btn>
+        </Link>
+        {lesson && (
+          <Link to={allPath} style={{ textDecoration: 'none' }}>
+            <Btn variant="ghost" size="md">
+              {t('dashboard.revise.all')}
+            </Btn>
+          </Link>
+        )}
+      </div>
+    </Glass>
+  )
+}
+
 function RecentLessons({ lessons, slug, basePath }) {
   const { T, isMobile } = useV3Theme()
   const { t } = useI18n()
@@ -309,7 +357,7 @@ function RecentLessons({ lessons, slug, basePath }) {
       <div style={{ display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
         gap: 16 }}>
-        {lessons.slice(0, 6).map(lesson => {
+        {lessons.slice(0, 3).map(lesson => {
           const band = lesson.analysis?.cefrBand || '—'
           const overall = numberOr(lesson.analysis?.overallScore)
           const path = slug ? `${basePath}/${slug}/lessons?openLesson=${lesson.id}` : '#'
@@ -413,6 +461,7 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
   const firstName = profile.firstName || t('dashboard.studentDefaultName')
   const cefr = profile.level || latestAnalysisRaw?.cefrBand || '—'
   const composite = useNumberFlow(numberOr(data?.averageScore))
+  const [progressOpen, setProgressOpen] = useState(false)
 
   // Bilingual overlay — fetch /lesson-summaries/<slug>.json once and
   // merge per-date PL + EN-simple fields onto the matching analysis. Lets
@@ -508,58 +557,102 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
           </p>
         ) : greeting ? (
           <ExpandableSummary text={String(studentGreeting || greeting)} T={T}
-            preferShort={!studentGreeting} t={t}/>
+            preferShort t={t}/>
         ) : null}
       </div>
 
+      {/* The "right now" row — what a student actually needs when they log in:
+          join the next lesson, revise the last one, reread its analysis. */}
       <div style={{ display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr)',
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
         gap: 20, marginBottom: 32 }}>
-        <Glass padding={28} hover>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.28em',
-            textTransform: 'uppercase', color: T.textDim, marginBottom: 12 }}>
-            {t('dashboard.composite.label')}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
-            <div style={{ fontFamily: FONT.display, fontSize: isMobile ? 96 : 96, fontWeight: 600,
-              lineHeight: 1, letterSpacing: '-0.04em',
-              background: G.brand, WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              {composite}
-            </div>
-            <div style={{ fontSize: 11, color: T.textDim }}>{t('dashboard.composite.outOf')}</div>
-          </div>
-          <div style={{ marginTop: 24, display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-            <StatTile label={t('dashboard.stat.lessons')} value={data?.lessonCount ?? 0} icon="school"/>
-            <StatTile label={t('dashboard.stat.keywords')} value={data?.keywordCount ?? 0} icon="menu_book"/>
-            <StatTile label={t('dashboard.stat.cefr')} value={cefr} icon="trending_up"/>
-          </div>
-        </Glass>
+        <UpcomingLessonCard upcoming={upcomingLesson} slug={slug} basePath={basePath}/>
+
+        <ReviseCard lesson={lessons[0]} slug={slug} basePath={basePath}/>
 
         <LatestLessonCard lesson={lessons[0]} slug={slug} basePath={basePath}/>
-
-        <UpcomingLessonCard upcoming={upcomingLesson} slug={slug} basePath={basePath}/>
       </div>
 
-      {metricScores && (
-        <div style={{ display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)',
-          gap: 12, marginBottom: 32 }}>
-          {METRICS.map(axis => (
-            <MetricCard key={axis.k} axis={axis}
-              score={numberOr(metricScores[axis.k], 0)}
-              slug={slug} basePath={basePath}/>
-          ))}
-        </div>
-      )}
+      {/* Everything analytical lives behind one calm disclosure — full detail
+          on demand, zero noise by default. The closed header still whispers
+          the headline numbers so nothing feels hidden. */}
+      {!emptyState && (
+        <div style={{ marginBottom: 32 }}>
+          <button type="button" onClick={() => setProgressOpen(o => !o)}
+            aria-expanded={progressOpen}
+            style={{ width: '100%', textAlign: 'left', cursor: 'pointer',
+              background: 'transparent', border: `1px solid ${T.border}`,
+              borderRadius: 18, padding: '16px 20px', color: T.text,
+              display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <span className="material-symbols-outlined"
+              style={{ fontSize: 20, color: T.brand }}>monitoring</span>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.18em',
+                textTransform: 'uppercase', color: T.text }}>
+                {t('dashboard.progress.show')}
+              </div>
+              <div style={{ fontSize: 11, color: T.textDim, marginTop: 2 }}>
+                {t('dashboard.progress.hint')}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontFamily: FONT.display, fontSize: 26, fontWeight: 600,
+                background: G.brand, WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                {composite}
+              </span>
+              <Pill tone="brand" size="sm">{cefr}</Pill>
+              <span className="material-symbols-outlined"
+                style={{ fontSize: 22, color: T.textDim,
+                  transform: progressOpen ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 220ms ease' }}>expand_more</span>
+            </div>
+          </button>
 
-      {!metricScores && !emptyState && (
-        <Glass padding={20} style={{ marginBottom: 32, textAlign: 'center' }}>
-          <div style={{ fontSize: 12, color: T.textDim, letterSpacing: '0.08em' }}>
-            {t('dashboard.metric.empty')}
-          </div>
-        </Glass>
+          {progressOpen && (
+            <div style={{ marginTop: 16 }}>
+              <Glass padding={28} style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.28em',
+                  textTransform: 'uppercase', color: T.textDim, marginBottom: 12 }}>
+                  {t('dashboard.composite.label')}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+                  <div style={{ fontFamily: FONT.display, fontSize: 96, fontWeight: 600,
+                    lineHeight: 1, letterSpacing: '-0.04em',
+                    background: G.brand, WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                    {composite}
+                  </div>
+                  <div style={{ fontSize: 11, color: T.textDim }}>{t('dashboard.composite.outOf')}</div>
+                </div>
+                <div style={{ marginTop: 24, display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                  <StatTile label={t('dashboard.stat.lessons')} value={data?.lessonCount ?? 0} icon="school"/>
+                  <StatTile label={t('dashboard.stat.keywords')} value={data?.keywordCount ?? 0} icon="menu_book"/>
+                  <StatTile label={t('dashboard.stat.cefr')} value={cefr} icon="trending_up"/>
+                </div>
+              </Glass>
+
+              {metricScores ? (
+                <div style={{ display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)',
+                  gap: 12 }}>
+                  {METRICS.map(axis => (
+                    <MetricCard key={axis.k} axis={axis}
+                      score={numberOr(metricScores[axis.k], 0)}
+                      slug={slug} basePath={basePath}/>
+                  ))}
+                </div>
+              ) : (
+                <Glass padding={20} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 12, color: T.textDim, letterSpacing: '0.08em' }}>
+                    {t('dashboard.metric.empty')}
+                  </div>
+                </Glass>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       <div style={{ marginTop: 24 }}>
