@@ -105,7 +105,13 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
     setPdfBusy(lessonId)
     try {
       const blob = await consoleGetBlob(libraryPdfPath(lessonId))
-      window.open(URL.createObjectURL(new Blob([blob], { type: 'application/pdf' })), '_blank', 'noopener')
+      const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
+      // anchor-click (not window.open+noopener) — Chromium drops blob
+      // navigations when the opener is severed before the load starts
+      const a = document.createElement('a')
+      a.href = url; a.target = '_blank'; a.rel = 'noopener'
+      document.body.appendChild(a); a.click(); a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
     } catch (e) {
       alert(`Could not load the PDF: ${e.message || e}`)
     } finally { setPdfBusy(null) }
