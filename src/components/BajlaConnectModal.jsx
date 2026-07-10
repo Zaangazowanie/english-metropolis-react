@@ -21,7 +21,10 @@ import { useTeacherAuth, getTeacherSessionToken } from '../contexts/TeacherAuthC
 import { useAdminAuth, getAdminSessionToken } from '../contexts/AdminAuthContext.jsx'
 
 const BAJLA_NUMBER = '48787126561'           // Bajla's official WhatsApp line
-const SEEN_KEY = 'em.bajla.popupSeen'         // per-session dedupe (sessionStorage)
+// Once per ACCOUNT, forever (Mike 2026-07-10: re-showing every session was
+// irritating). Keyed by the signed-in identity so each account still gets
+// its one introduction.
+const seenKey = (accountKey) => `em.bajla.popupSeen.v2.${accountKey || 'anon'}`
 
 // Bilingual copy lives here (single-use, not worth threading through i18n JSON).
 const COPY = {
@@ -36,6 +39,13 @@ const COPY = {
       progress: { title: 'Sprawdź postępy', sub: 'Zobacz, jak idzie Ci nauka.' },
     },
     mainCta: 'Porozmawiaj z Bajlą na WhatsAppie',
+    setupTitle: 'Zanim naprawdę Ci pomogę:',
+    setupPhone: 'Zapisz swój numer WhatsApp w profilu — po nim Cię rozpoznam.',
+    setupPhoneDone: 'Numer WhatsApp zapisany — rozpoznam Cię.',
+    setupLessons: 'Wykup pakiet lekcji, żebym miała co rezerwować.',
+    setupLessonsDone: 'Masz lekcje na koncie — mogę rezerwować.',
+    setupBuy: 'Kup lekcje →',
+    setupChat: 'Napisz do mnie na WhatsAppie — odpowiadam od razu.',
     footer: 'Bezpiecznie. Prywatnie. Wygodnie.',
     closeAria: 'Zamknij',
     phoneTitle: 'Najpierw podaj swój numer WhatsApp',
@@ -59,6 +69,13 @@ const COPY = {
       progress: { title: 'Check your progress', sub: 'See how your learning is going.' },
     },
     mainCta: 'Chat with Bajla on WhatsApp',
+    setupTitle: 'Before I can really help you:',
+    setupPhone: 'Save your WhatsApp number to your profile — it is how I recognise you.',
+    setupPhoneDone: 'WhatsApp number saved — I will recognise you.',
+    setupLessons: 'Buy a lesson package so I have lessons to book for you.',
+    setupLessonsDone: 'You have lessons on your account — I can book them.',
+    setupBuy: 'Buy lessons →',
+    setupChat: 'Message me on WhatsApp — I reply right away.',
     footer: 'Safe. Secure. Private.',
     closeAria: 'Close',
     phoneTitle: 'First, add your WhatsApp number',
@@ -129,9 +146,11 @@ export default function BajlaConnectModal() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [readyLink, setReadyLink] = useState('')
+  const [remaining, setRemaining] = useState(null)   // student lesson allocation (null = unknown)
 
   const C = COPY[lang === 'pl' ? 'pl' : 'en']
   const M = MESSAGES[lang === 'pl' ? 'pl' : 'en']
+  const accountKey = studentUser?._id || adminUser?._id || (isTeacherAuthenticated ? 'teacher' : null)
   const hideForRoute = /^\/(login|logout)/i.test(location.pathname)
   // EM-branded popup must not auto-open on a school-branded subdomain
   // (e.g. conversa.englishmetro.com) — it would stomp the school's branding.
@@ -149,16 +168,26 @@ export default function BajlaConnectModal() {
         const phoneOnFile = Boolean(v?.phone)
         setHasPhone(phoneOnFile)
         let seen = false
-        try { seen = sessionStorage.getItem(SEEN_KEY) === '1' } catch { /* ignore */ }
-        if (!phoneOnFile && !seen) setOpen(true)
+        try { seen = localStorage.getItem(seenKey(accountKey)) === '1' } catch { /* ignore */ }
+        if (!seen) setOpen(true)
       })
       .catch(() => { if (!cancelled) setHasPhone(false) })
     return () => { cancelled = true }
   }, [sessionToken, hideForRoute])
 
+  // Students: how many lessons they have left, for the setup checklist.
+  useEffect(() => {
+    if (!open || !studentUser?._id) return
+    let cancelled = false
+    callConvex('query', 'orders:getStudentAllocation', { studentId: studentUser._id })
+      .then((a) => { if (!cancelled) setRemaining(a?.remaining ?? null) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [open, studentUser?._id])
+
   function dismiss() {
     setOpen(false)
-    try { sessionStorage.setItem(SEEN_KEY, '1') } catch { /* ignore */ }
+    try { localStorage.setItem(seenKey(accountKey), '1') } catch { /* ignore */ }
   }
 
   // A CTA was tapped. With a number on file we go straight to WhatsApp (direct
@@ -214,6 +243,28 @@ export default function BajlaConnectModal() {
                 <h2 className="bjp-h2">{greeting}</h2>
                 <h3 className="bjp-h3">{C.tagline}</h3>
                 <p className="bjp-intro">{C.intro}</p>
+                {isStudentAuthenticated && (
+                  <div className="bjp-setup">
+                    <div className="bjp-setup-title">{C.setupTitle}</div>
+                    <div className={`bjp-step ${hasPhone ? 'done' : ''}`}>
+                      <span className="bjp-step-mark">{hasPhone ? '✓' : '1'}</span>
+                      {hasPhone ? C.setupPhoneDone : C.setupPhone}
+                    </div>
+                    <div className={`bjp-step ${remaining > 0 ? 'done' : ''}`}>
+                      <span className="bjp-step-mark">{remaining > 0 ? '✓' : '2'}</span>
+                      <span>
+                        {remaining > 0 ? C.setupLessonsDone : C.setupLessons}
+                        {!(remaining > 0) && studentUser?.slug && (
+                          <a className="bjp-step-link" href={`/app/${studentUser.slug}/buy`} onClick={dismiss}> {C.setupBuy}</a>
+                        )}
+                      </span>
+                    </div>
+                    <div className="bjp-step">
+                      <span className="bjp-step-mark">3</span>
+                      {C.setupChat}
+                    </div>
+                  </div>
+                )}
                 <div className="bjp-cards">
                   <button className="bjp-action" onClick={() => onAction('book')}>
                     <span className="bjp-ico">📅</span>
@@ -298,6 +349,17 @@ const BJP_CSS = `
 .bjp-h2-sm{font-size:clamp(26px,4vw,38px)}
 .bjp-h3{font-size:20px;color:#d98cff;margin:0 0 18px;font-weight:600}
 .bjp-intro{color:#ded7ef;font-size:16px;line-height:1.5;margin:0 0 22px;max-width:460px}
+.bjp-setup{margin:0 0 20px;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.12)}
+.bjp-setup-title{font-weight:800;font-size:14px;letter-spacing:.02em;margin-bottom:10px;color:#e9ddff}
+.bjp-step{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:#ded7ef;line-height:1.45;
+  margin-bottom:8px}
+.bjp-step:last-child{margin-bottom:0}
+.bjp-step.done{color:#b7f2cd}
+.bjp-step-mark{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+  border-radius:50%;font-size:11px;font-weight:800;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2)}
+.bjp-step.done .bjp-step-mark{background:rgba(37,211,102,.3);border-color:rgba(37,211,102,.6)}
+.bjp-step-link{color:#7CF2A6;font-weight:700;text-decoration:none}
 .bjp-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
 .bjp-action{display:flex;flex-direction:column;gap:6px;text-align:left;padding:16px;border-radius:18px;
   background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;cursor:pointer;transition:.18s}
