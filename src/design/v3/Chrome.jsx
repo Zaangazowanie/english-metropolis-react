@@ -165,7 +165,7 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
       WebkitBackdropFilter: 'blur(18px) saturate(1.4)',
       borderBottom: `1px solid ${T.border}`,
       paddingTop: 'max(env(safe-area-inset-top), 0px)' }}>
-      <div style={{ maxWidth: 1440, margin: '0 auto',
+      <div style={{ maxWidth: 1840, margin: '0 auto',
         padding: isMobile ? '12px 16px' : '14px 28px',
         display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16,
         justifyContent: isMobile ? 'space-between' : 'flex-start' }}>
@@ -458,7 +458,7 @@ export default function Chrome({ slug, basePath, firstName, children }) {
         animation: 'emAurora 22s ease-in-out infinite alternate' }}/>
       <div style={{ position: 'relative', zIndex: 1 }}>
         <TopBar slug={slug} basePath={basePath} firstName={firstName}/>
-        <main style={{ maxWidth: 1440, margin: '0 auto',
+        <main style={{ maxWidth: 1840, margin: '0 auto',
           padding: isMobile
             ? '16px 12px calc(80px + env(safe-area-inset-bottom))'
             : '24px 16px 80px',

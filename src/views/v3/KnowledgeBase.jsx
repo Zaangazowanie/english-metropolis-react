@@ -584,7 +584,7 @@ export default function KnowledgeBaseV3({ data, slug: slugProp, basePath = '/app
   const firstName = data?.profile?.firstName ||
     String(data?.profile?.name || '').split(' ')[0] || ''
 
-  const container = { maxWidth: 1320, margin: '0 auto',
+  const container = { maxWidth: 1840, margin: '0 auto',
     padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }
 
   if (loading) {

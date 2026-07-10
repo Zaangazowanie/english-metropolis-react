@@ -1944,7 +1944,7 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
   }, [upcomingOpen])
 
   return (
-    <div style={{ maxWidth: 1320, margin: '0 auto',
+    <div style={{ maxWidth: 1840, margin: '0 auto',
       padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }}>
       {/* Hero */}
       <Glass padding={isMobile ? 22 : 28} style={{ marginBottom: 18 }}>

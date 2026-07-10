@@ -546,7 +546,7 @@ export default function GameHome() {
         background: night ? G.aurora : G.auroraDay, transition: 'opacity 500ms ease' }}/>
       {night ? <StarField/> : <DayClouds/>}
 
-      <div style={{ position: 'relative', zIndex: 2, maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
+      <div style={{ position: 'relative', zIndex: 2, maxWidth: 1840, margin: '0 auto', padding: '0 24px' }}>
         {/* ── Header ── */}
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '22px 0', gap: 12 }}>

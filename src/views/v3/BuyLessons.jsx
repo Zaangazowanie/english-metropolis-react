@@ -105,7 +105,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
   const canNext2 = billing.fullName.trim() && /@/.test(billing.email)
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }}>
+    <div style={{ maxWidth: 1840, margin: '0 auto', padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }}>
       <div style={{ marginBottom: 28 }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.28em', textTransform: 'uppercase',
           color: T.brandInk || T.brand, marginBottom: 10 }}>{L.kicker}</div>

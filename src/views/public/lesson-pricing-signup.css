@@ -81,7 +81,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  max-width: 1240px;
+  max-width: 1840px;
   margin: 0 auto;
   padding: 10px 12px;
   border: 1px solid var(--lp-line);
@@ -396,7 +396,7 @@
 
 .lp-band,
 .lp-section {
-  max-width: 1240px;
+  max-width: 1840px;
   margin: 0 auto;
   padding: 72px 24px;
 }

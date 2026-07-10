@@ -62,7 +62,7 @@ export default function TeacherPortal() {
   }, [meState.data])
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
+    <div className="mx-auto space-y-6 px-4 py-8 sm:px-6" style={{ maxWidth: 1840 }}>
 
       {/* ── Header ── */}
       <section className="relative overflow-hidden rounded-[2.25rem] border border-white/60 bg-white/75 px-6 py-8 shadow-[0_32px_90px_-62px_rgba(124,58,237,0.55)] backdrop-blur-xl sm:px-10">

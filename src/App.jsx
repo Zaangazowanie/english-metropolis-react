@@ -131,7 +131,7 @@ function App({ basePath = '' }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="sticky-header-shell px-4 pt-6 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+        <div className="mx-auto" style={{ maxWidth: 1840 }}>
           <header className="glass-panel sticky top-0 z-40 rounded-none sm:rounded-[2rem] sm:top-3 border border-white/60 border-t-0 sm:border-t editorial-shadow px-3 py-2.5 sm:px-5 sm:py-3" id="appStickyHeader">
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3 sm:gap-4">
@@ -152,7 +152,7 @@ function App({ basePath = '' }) {
       </div>
 
       <main className="relative px-4 pb-6 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="mx-auto space-y-6" style={{ maxWidth: 1840 }}>
           {studentData.loading && (
             <div className="glass-panel p-8 text-center animate-pulse">
               <span className="material-symbols-outlined text-3xl text-primary/40 mb-2 block">hourglass_top</span>

@@ -112,7 +112,7 @@ export default function AdminLayout() {
       }}
     >
       <div className="sticky-header-shell px-4 pt-6 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto" style={{ maxWidth: 1840 }}>
           <header className="ca-header glass-panel sticky top-0 z-40 rounded-none border border-white/60 border-t-0 editorial-shadow px-4 py-3 sm:top-3 sm:rounded-[2rem] sm:border-t sm:px-6 sm:py-4">
             <div className="flex items-center justify-between gap-3">
               <Link to="/admin" className="flex items-center gap-3 min-w-0 group">
@@ -189,7 +189,7 @@ export default function AdminLayout() {
       </div>
 
       <main className="px-4 pb-12 sm:px-6 lg:px-8">
-        <div className="mx-auto grid grid-cols-1 max-w-7xl gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
+        <div className="mx-auto grid grid-cols-1 gap-6 lg:grid-cols-[250px_minmax(0,1fr)]" style={{ maxWidth: 1840 }}>
           <aside className="ca-sidenav glass-panel h-fit rounded-[2rem] border border-white/50 p-3 editorial-shadow lg:sticky lg:top-28">
             <p className="font-label px-3 pt-2 text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">Navigation</p>
             <div className="mt-3 space-y-1.5">

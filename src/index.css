@@ -1089,7 +1089,7 @@ html.dark .flashcard-face .text-slate-600 { color: #cbd5e1 !important; }
   align-items: center;
   gap: clamp(24px, 6vw, 120px);
   padding: clamp(24px, 6vw, 96px);
-  max-width: 1400px;
+  max-width: 1840px;
   margin: 0 auto;
 }
 

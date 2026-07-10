@@ -265,7 +265,7 @@ function BackNav({ slug, basePath = '', label, onBack }) {
   )
   return (
     <div style={{
-      position: 'sticky', top: 8, zIndex: 30, margin: '0 auto 18px', maxWidth: 1320, padding: '10px 14px',
+      position: 'sticky', top: 8, zIndex: 30, margin: '0 auto 18px', maxWidth: 1840, padding: '10px 14px',
       background: isDay ? 'rgba(255,255,255,0.75)' : 'rgba(6,4,16,0.55)',
       backdropFilter: 'blur(14px) saturate(140%)', WebkitBackdropFilter: 'blur(14px) saturate(140%)',
       border: `1px solid ${T.border}`, borderRadius: 16,
@@ -1288,7 +1288,7 @@ export default function PracticeV3({ data, basePath = '', legacyBanner = false }
   }
 
   const containerStyle = {
-    maxWidth: 1320, margin: '0 auto',
+    maxWidth: 1840, margin: '0 auto',
     padding: isMobile ? '24px 18px 80px' : '40px 32px 80px',
   }
 

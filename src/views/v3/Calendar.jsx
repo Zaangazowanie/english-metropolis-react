@@ -337,7 +337,7 @@ export default function Calendar({ data }) {
   const todayStr = ymd(today)
 
   const container = {
-    maxWidth: 1240, margin: '0 auto',
+    maxWidth: 1840, margin: '0 auto',
     padding: isMobile ? '22px 16px 80px' : '34px 28px 80px',
   }
 

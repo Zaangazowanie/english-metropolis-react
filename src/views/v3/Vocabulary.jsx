@@ -662,7 +662,7 @@ export default function VocabularyV3({ data, slug, basePath = '' }) {
   const progressPct = filteredKeywords.length > 0 ? ((activeIndex + 1) / filteredKeywords.length) * 100 : 0
 
   // Container + shared styles
-  const container = { maxWidth: 1320, margin: '0 auto', padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }
+  const container = { maxWidth: 1840, margin: '0 auto', padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }
   const kicker = { fontSize: 11, fontWeight: 700, letterSpacing: '0.28em', textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 10 }
   const heroH1 = { fontFamily: FONT.display, fontWeight: 600, fontSize: isMobile ? 36 : 52, letterSpacing: '-0.03em', margin: 0, lineHeight: 1.05, color: T.text }
   const controlsRow = { display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }

@@ -547,7 +547,7 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
 
   if (data?.loading) {
     return (
-      <div style={{ maxWidth: 1320, margin: '0 auto',
+      <div style={{ maxWidth: 1840, margin: '0 auto',
         padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }}>
         <Skeleton h={120} style={{ marginBottom: 24 }}/>
         <Skeleton h={200} style={{ marginBottom: 16 }}/>
@@ -565,7 +565,7 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
   const greeting = studentGreeting || greetingFallback
 
   return (
-    <div style={{ maxWidth: 1320, margin: '0 auto',
+    <div style={{ maxWidth: 1840, margin: '0 auto',
       padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }}>
 
       <div style={{ marginBottom: isMobile ? 36 : 48 }}>

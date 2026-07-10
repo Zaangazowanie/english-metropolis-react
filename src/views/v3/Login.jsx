@@ -291,7 +291,7 @@ export default function LoginV3() {
         gridTemplateColumns: isMobile ? '1fr' : '1fr 460px',
         alignItems: 'center',
         padding: isMobile ? '80px 24px 40px' : '80px 80px',
-        gap: isMobile ? 40 : 80, maxWidth: 1560, margin: '0 auto' }}>
+        gap: isMobile ? 40 : 80, maxWidth: 1840, margin: '0 auto' }}>
 
         {/* minWidth:0 — without it the grid track defaults to min-width:auto and
             expands to fit the widest content (slogan / hero), overflowing mobile. */}
