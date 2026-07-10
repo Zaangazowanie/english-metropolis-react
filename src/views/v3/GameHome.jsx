@@ -107,31 +107,49 @@ const HERO_GAMES = [
   { key: 'flashcards', title: 'Flashcards', icon: 'style', load: () => import('../../practice/shells/Flashcards') },
   { key: 'multiplechoice', title: 'Quiz', icon: 'quiz', load: () => import('../../practice/shells/MultipleChoice') },
   { key: 'gapfill', title: 'Gap fill', icon: 'edit_note', load: () => import('../../practice/shells/GapFill') },
+  { key: 'truefalse', title: 'True / False', icon: 'balance', load: () => import('../../practice/shells/TrueFalse') },
+  { key: 'unjumble', title: 'Unjumble', icon: 'low_priority', load: () => import('../../practice/shells/Unjumble') },
+  { key: 'matching', title: 'Matching', icon: 'join_inner', load: () => import('../../practice/shells/Matching') },
+  { key: 'concentration', title: 'Memory', icon: 'grid_view', load: () => import('../../practice/shells/Concentration') },
 ]
 
 function HeroArcade({ night, badge }) {
   const [active, setActive] = useState(0)
   const Shell = useMemo(() => lazy(HERO_GAMES[active].load), [active])
+  const tabsRef = useRef(null)
+  const go = (dir) => setActive(i => (i + dir + HERO_GAMES.length) % HERO_GAMES.length)
+  useEffect(() => {
+    tabsRef.current?.querySelector('.gh-arcade-tab.on')
+      ?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
+  }, [active])
   return (
     <div className="gh-hero-frame">
       <div className="gh-postcard" style={{ background: '#120a26' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+          borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, flex: 'none' }}>
             <span className="gh-live-dot" aria-hidden/>
-            <span style={{ fontFamily: FONT.mono, fontSize: 10, fontWeight: 700,
+            <span className="gh-arcade-badge" style={{ fontFamily: FONT.mono, fontSize: 10, fontWeight: 700,
               letterSpacing: '0.24em', textTransform: 'uppercase', color: '#F5F0FF' }}>
               {badge}
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {HERO_GAMES.map((g, i) => (
-              <button key={g.key} type="button" onClick={() => setActive(i)}
-                className={`gh-arcade-tab${i === active ? ' on' : ''}`}>
-                <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{g.icon}</span>
-                {g.title}
-              </button>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', minWidth: 0 }}>
+            <button type="button" className="gh-arcade-arrow" aria-label="Previous game" onClick={() => go(-1)}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
+            </button>
+            <div ref={tabsRef} className="gh-arcade-tabs">
+              {HERO_GAMES.map((g, i) => (
+                <button key={g.key} type="button" onClick={() => setActive(i)}
+                  className={`gh-arcade-tab${i === active ? ' on' : ''}`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{g.icon}</span>
+                  {g.title}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="gh-arcade-arrow" aria-label="Next game" onClick={() => go(1)}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
+            </button>
           </div>
         </div>
         <div style={{ height: 'min(56vh, 460px)', overflow: 'auto', background: DUSK.bg }}>

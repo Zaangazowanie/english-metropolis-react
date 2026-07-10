@@ -265,3 +265,14 @@
   border: none; cursor: pointer; background: transparent; color: inherit; opacity: 0.6;
   transition: all 160ms ease; }
 .gh-lang-btn.on { opacity: 1; color: #fff; background: linear-gradient(135deg, #8B5CF6, #D946EF); }
+
+/* Hero arcade slider */
+.gh-arcade-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; max-width: 300px; }
+.gh-arcade-tabs::-webkit-scrollbar { display: none; }
+.gh-arcade-tab { flex: none; }
+.gh-arcade-arrow { flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+  color: rgba(244,240,255,0.8); background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18); transition: all 160ms ease; }
+.gh-arcade-arrow:hover { background: rgba(255,255,255,0.16); }
+@media (max-width: 1100px) { .gh-arcade-badge { display: none; } .gh-arcade-tabs { max-width: none; flex: 1; } }

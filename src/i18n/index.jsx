@@ -4,7 +4,11 @@ import pl from './pl.json'
 
 const DICTS = { en, pl }
 const SUPPORTED = ['en', 'pl']
-const STORAGE_KEY = 'em.lang'
+// v2 (2026-07-10): the old key was auto-written with the browser-detected
+// language on first visit, so nearly every returning visitor had 'en' pinned.
+// Versioning the key re-defaults EVERYONE to Polish once; choices made from
+// now on persist as before.
+const STORAGE_KEY = 'em.lang.v2'
 // Separate axis from `lang`: when lang='en', the student can additionally
 // toggle between FULL B2-quality English (the original lessonSummary,
 // ruleExplanation, etc.) and SIMPLE A2-friendly English (lessonSummaryENSimple,
