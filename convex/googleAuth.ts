@@ -193,6 +193,45 @@ export const googleSignIn = action({
       return { success: true, kind: "conversa_admin", email, sessionToken: token ?? undefined };
     }
 
-    return { success: false, error: "Email not authorized" };
+    // 4) Brand-new student → self-service signup by Google (2026-07-10).
+    const created: any = await ctx.runMutation(
+      internal.googleAuth.createStudentFromGoogle,
+      { email, name: (info.name || email.split("@")[0]).trim() },
+    );
+    return {
+      success: true, kind: "student", sessionToken: created.sessionToken,
+      student: created.student,
+    };
+  },
+});
+
+// Create a student account from a verified Google identity (signup path).
+export const createStudentFromGoogle = internalMutation({
+  args: { email: v.string(), name: v.string() },
+  handler: async (ctx, args) => {
+    const SIGNUP_ORG = "js779cs2vjwb2c9yjc3a7t619n84zcp8" as any;
+    const SIGNUP_TEACHER = "kd72y2mt9t78nkyes15rh7dhc5881pbv" as any;
+    const slugBase = args.name.toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ł/g, "l")
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "student";
+    let slug = slugBase;
+    for (let i = 0; i < 50; i++) {
+      const taken = await ctx.db.query("students")
+        .withIndex("by_slug", q => q.eq("slug", slug)).first();
+      if (!taken) break;
+      slug = `${slugBase}-${i + 2}`;
+    }
+    const now = Date.now();
+    const studentId = await ctx.db.insert("students", {
+      organizationId: SIGNUP_ORG,
+      name: args.name, slug, email: args.email,
+      googleEmail: args.email,
+      level: "", type: "individual", status: "active",
+      primaryTeacherId: SIGNUP_TEACHER,
+      enrolledAt: now, createdAt: now, updatedAt: now,
+    } as any);
+    const sessionToken = await createStudentSession(ctx, studentId);
+    return { sessionToken,
+      student: { _id: studentId, name: args.name, slug, email: args.email, level: "", organizationId: SIGNUP_ORG } };
   },
 });

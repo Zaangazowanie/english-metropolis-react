@@ -54,6 +54,7 @@ import LoginV3 from './views/v3/Login.jsx'
 import GameHome from './views/v3/GameHome.jsx'
 import EnglishMetroWorld from './world/EnglishMetroWorld'
 import LessonPricingSignup from './views/public/LessonPricingSignup.jsx'
+import Signup from './views/v3/Signup.jsx'
 import Logout from './views/Logout.jsx'
 import Settings from './views/Settings.jsx'
 import { I18nProvider } from './i18n'
@@ -139,6 +140,7 @@ function RootRouter() {
         {IS_ENGLISHMETRO && <Route path="/" element={<GameHome />} />}
         {IS_ENGLISHMETRO && <Route path="/arcade" element={<GameHome />} />}
         {IS_ENGLISHMETRO && <Route path="/city" element={<EnglishMetroWorld fullscreen />} />}
+        {IS_ENGLISHMETRO && <Route path="/signup" element={<Signup />} />}
         {IS_ENGLISHMETRO && <Route path="/lessons" element={<LessonPricingSignup />} />}
         {IS_ENGLISHMETRO && <Route path="/pricing" element={<LessonPricingSignup />} />}
         {IS_ENGLISHMETRO && <Route path="/signup" element={<LessonPricingSignup />} />}

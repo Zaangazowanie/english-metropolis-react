@@ -649,9 +649,14 @@ export default function LessonPricingSignup() {
 
           {error && <p className="lp-error" role="alert">{error}</p>}
 
-          <button className="lp-button lp-button-primary lp-submit" type="submit">
+          <a className="lp-button lp-button-primary lp-submit" href={`/signup?package=${encodeURIComponent(packageId)}`}>
+            <span className="material-symbols-outlined" aria-hidden>rocket_launch</span>
+            {t('Create your account & book', 'Zaloz konto i zarezerwuj')}
+          </a>
+
+          <button className="lp-button lp-button-ghost lp-submit" type="submit">
             <span className="material-symbols-outlined" aria-hidden>send</span>
-            {t('Prepare signup request', 'Przygotuj prosbe o zapis')}
+            {t('Prefer email? Prepare a request', 'Wolisz email? Przygotuj prosbe')}
           </button>
 
           {submitted && (

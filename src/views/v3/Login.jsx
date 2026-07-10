@@ -428,9 +428,9 @@ export default function LoginV3() {
 
           <div style={{ marginTop: 18, display: 'flex', justifyContent: 'space-between',
             alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-            <a href="mailto:hello@englishmetro.com"
-              style={{ fontSize: 11, color: T.textDim, letterSpacing: '0.08em',
-                textDecoration: 'none' }}>{t('login.meta.needAccess')}</a>
+            <Link to="/signup"
+              style={{ fontSize: 11, color: T.brandInk || T.brand, fontWeight: 700, letterSpacing: '0.08em',
+                textDecoration: 'none' }}>{t('login.meta.needAccess')}</Link>
             <div style={{ display: 'flex', gap: 14, fontSize: 11 }}>
               <Link to="/privacy" style={{ color: T.textDim, textDecoration: 'none' }}>{t('login.meta.privacy')}</Link>
               <span style={{ color: T.textMute }}>·</span>

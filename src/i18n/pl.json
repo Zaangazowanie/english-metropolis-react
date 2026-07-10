@@ -18,7 +18,7 @@
   "login.button.student": "Wejdź do miasta",
   "login.button.admin": "Otwórz panel admina",
   "login.button.loading": "Otwieram…",
-  "login.meta.needAccess": "Potrzebujesz dostępu?",
+  "login.meta.needAccess": "Nowy uczeń? Załóż konto →",
   "login.meta.privacy": "Prywatność",
   "login.meta.terms": "Regulamin",
   "login.footer": "© {year} EnglishMetro.com · Warszawa → świat",

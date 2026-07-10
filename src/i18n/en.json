@@ -18,7 +18,7 @@
   "login.button.student": "Enter the city",
   "login.button.admin": "Open admin console",
   "login.button.loading": "Unlocking…",
-  "login.meta.needAccess": "Need access?",
+  "login.meta.needAccess": "New student? Create an account →",
   "login.meta.privacy": "Privacy",
   "login.meta.terms": "Terms",
   "login.footer": "© {year} EnglishMetro.com · Warszawa → the world",

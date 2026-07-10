@@ -35,8 +35,14 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
   const { studentUser } = useStudentAuth()
   const studentId = studentUser?._id
 
-  const [step, setStep] = useState(1)          // 1 pick · 2 billing · 3 review · 4 done
-  const [pkg, setPkg] = useState(null)
+  // ?package=<id> (from the pricing page / signup) preselects and jumps to billing
+  const preselect = useMemo(() => {
+    if (typeof window === 'undefined') return null
+    const id = new URLSearchParams(window.location.search).get('package')
+    return PRIVATE_PACKAGES.find(p => p.id === id) || null
+  }, [])
+  const [step, setStep] = useState(preselect ? 2 : 1)          // 1 pick · 2 billing · 3 review · 4 done
+  const [pkg, setPkg] = useState(preselect)
   const [billing, setBilling] = useState(emptyBilling)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')

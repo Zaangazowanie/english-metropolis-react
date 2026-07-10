@@ -499,6 +499,10 @@ function LineSection({ line, T, night, open, onToggle, onPlay, count, subtitle, 
 }
 
 export default function GameHome() {
+  // Signed-in students see "My dashboard" instead of another Sign in.
+  const studentSession = (() => {
+    try { return JSON.parse(window.localStorage.getItem('em-student-session') || 'null') } catch { return null }
+  })()
   const { T, mode, setMode } = useV3Theme()
   const night = mode !== 'day'
   const reduced = usePrefersReducedMotion()
@@ -555,12 +559,18 @@ export default function GameHome() {
             </div>
           </div>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <Link to="/lessons" style={{ textDecoration: 'none' }}>
-              <Btn variant="ghost" size="md">Lessons</Btn>
+            <Link to="/pricing" style={{ textDecoration: 'none' }}>
+              <Btn variant="ghost" size="md">Pricing</Btn>
             </Link>
-            <Link to="/login" style={{ textDecoration: 'none' }}>
-              <Btn variant="ghost" size="md">Sign in</Btn>
-            </Link>
+            {studentSession?.slug ? (
+              <Link to={`/app/${studentSession.slug}/dashboard`} style={{ textDecoration: 'none' }}>
+                <Btn variant="ghost" size="md" icon="account_circle">My dashboard</Btn>
+              </Link>
+            ) : (
+              <Link to="/login" style={{ textDecoration: 'none' }}>
+                <Btn variant="ghost" size="md">Sign in</Btn>
+              </Link>
+            )}
             <ThemeToggle mode={mode} setMode={setMode} T={T}/>
             {/* NB: a <button> nested in an <a> does NOT activate the link —
                 every Btn that leads to the world navigates via onClick. */}
@@ -779,7 +789,7 @@ export default function GameHome() {
             © {new Date().getFullYear()} englishmetro.com — Warszawa → The World
           </div>
           <div style={{ display: 'flex', gap: 16 }}>
-            <Link to="/lessons" style={{ color: T.textMute, textDecoration: 'none' }}>Lessons</Link>
+            <Link to="/pricing" style={{ color: T.textMute, textDecoration: 'none' }}>Pricing</Link>
             <Link to="/privacy" style={{ color: T.textMute, textDecoration: 'none' }}>Privacy</Link>
             <Link to="/cookies" style={{ color: T.textMute, textDecoration: 'none' }}>Cookies</Link>
             <Link to="/terms" style={{ color: T.textMute, textDecoration: 'none' }}>Terms</Link>

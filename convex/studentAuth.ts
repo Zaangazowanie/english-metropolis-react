@@ -66,6 +66,68 @@ export const studentLogin = mutation({
 // actingUserId must be a super_admin or org_admin/teacher.
 // Called from the SuperadminStudents page to provision passwords.
 // ─────────────────────────────────────────────────────────────
+// Self-service signup for brand-new students (2026-07-10). Creates the
+// student in the English Metropolis PVT org with Michael Poncana pre-assigned
+// as teacher; the student's PERSONAL email is both their login and the
+// confirmation address (googleEmail). Returns a live session like studentLogin.
+const SIGNUP_ORG = "js779cs2vjwb2c9yjc3a7t619n84zcp8" as any;      // English Metropolis PVT
+const SIGNUP_TEACHER = "kd72y2mt9t78nkyes15rh7dhc5881pbv" as any;  // Michael Poncana
+
+function slugify(name: string): string {
+  return name.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/ł/g, "l")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "student";
+}
+
+export const studentSignup = mutation({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    password: v.string(),
+    phone: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const name = args.name.trim();
+    const email = args.email.trim().toLowerCase();
+    if (name.length < 2) return { success: false, error: "Please enter your name" };
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { success: false, error: "Please enter a valid email" };
+    if (args.password.length < 8) return { success: false, error: "Password must be at least 8 characters" };
+
+    const clash = await ctx.db.query("students")
+      .withIndex("by_email", q => q.eq("email", email)).first();
+    if (clash) return { success: false, error: "An account with this email already exists — sign in instead" };
+
+    let slug = slugify(name);
+    for (let i = 0; i < 50; i++) {
+      const taken = await ctx.db.query("students")
+        .withIndex("by_slug", q => q.eq("slug", slug)).first();
+      if (!taken) break;
+      slug = `${slugify(name)}-${i + 2}`;
+    }
+
+    const now = Date.now();
+    const studentId = await ctx.db.insert("students", {
+      organizationId: SIGNUP_ORG,
+      name, slug, email,
+      googleEmail: email,
+      phone: args.phone?.trim() || undefined,
+      level: "",
+      type: "individual",
+      status: "active",
+      primaryTeacherId: SIGNUP_TEACHER,
+      passwordHash: await hashPassword(args.password),
+      enrolledAt: now, createdAt: now, updatedAt: now,
+    } as any);
+
+    const sessionToken = await createStudentSession(ctx, studentId);
+    return {
+      success: true, sessionToken,
+      student: { _id: studentId, name, slug, email, level: "", organizationId: SIGNUP_ORG },
+    };
+  },
+});
+
 export const setStudentPassword = mutation({
   args: {
     sessionToken: v.string(),
