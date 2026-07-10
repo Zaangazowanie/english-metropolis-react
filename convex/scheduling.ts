@@ -13,6 +13,7 @@ import { query, mutation, internalQuery, internalAction } from "./_generated/ser
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { requireAdmin, requireAdminOrStudent, isSuperadmin } from "./authHelpers";
+import { billableUnitsForStudent, allocateBalances } from "./billing";
 
 export const CANCELLATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -486,6 +487,22 @@ export const bookLesson = mutation({
 
     const now = Date.now();
     if (args.startUtc <= now) throw new Error("Cannot book a lesson in the past");
+
+    // STUDENT bookings are allocation-gated globally (2026-07-10): a student
+    // can only book while they have purchased lessons remaining. Superadmin/
+    // school bookings pass — the console shows and enforces its own budget.
+    if (args.bookedBy === "student") {
+      const packages = (await ctx.db
+        .query("lessonPackages")
+        .withIndex("by_student", q => q.eq("studentId", args.studentId))
+        .collect()).filter(p => p.status !== "cancelled");
+      const units = await billableUnitsForStudent(ctx, args.studentId);
+      const remaining = allocateBalances(packages, units)
+        .reduce((n: number, p: any) => n + (p.remainingLessons ?? 0), 0);
+      if (remaining <= 0) {
+        throw new Error("No lessons remaining — purchase a lesson package first");
+      }
+    }
 
     // Resolve effective teacher: explicit arg → student's primary teacher →
     // undefined (legacy org-wide). undefined means the booking is validated

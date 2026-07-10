@@ -22,6 +22,8 @@ export default function SuperadminCourses() {
   const [stuVersion, setStuVersion] = useState(0)
   const [packages, setPackages] = useState(null)
   const [allocStep, setAllocStep] = useState(null)   // null | 'input' | 'confirm'
+  const [orders, setOrders] = useState([])
+  const [orderBusy, setOrderBusy] = useState(null)
   const [allocN, setAllocN] = useState(10)
   const [allocVersion, setAllocVersion] = useState(0)
 
@@ -57,6 +59,23 @@ export default function SuperadminCourses() {
       .catch(() => { if (!cancelled) setPackages([]) })
     return () => { cancelled = true }
   }, [student?._id, allocVersion])
+
+  useEffect(() => {
+    if (!student?._id) { setOrders([]); return }
+    let cancelled = false
+    queryAdminConvex('orders:listOrders', {})
+      .then(rows => { if (!cancelled) setOrders((rows || []).filter(o => String(o.studentId) === String(student._id))) })
+      .catch(() => { if (!cancelled) setOrders([]) })
+    return () => { cancelled = true }
+  }, [student?._id, allocVersion])
+
+  async function actOnOrder(orderId, action) {
+    setOrderBusy(orderId)
+    try {
+      await mutateAdminConvex(`orders:${action}`, { orderId })
+      setAllocVersion(v => v + 1)
+    } finally { setOrderBusy(null) }
+  }
 
   const allocated = (packages || []).reduce((n, p) => n + (p.totalLessons || 0), 0)
   const remaining = (packages || []).reduce((n, p) => n + (p.remainingLessons ?? 0), 0)
@@ -153,6 +172,58 @@ export default function SuperadminCourses() {
               </a>
             </div>
           </div>
+
+          {/* ── Lesson orders — student-submitted purchases awaiting manual invoice ── */}
+          {orders.length > 0 && (
+            <div className="sa-card">
+              <div className="sa-card-header">
+                <h2>Lesson orders · {orders.length}</h2>
+                {orders.some(o => o.status === 'pending_invoice') && (
+                  <span className="sa-badge sa-badge-awaiting_review">
+                    {orders.filter(o => o.status === 'pending_invoice').length} awaiting payment confirmation
+                  </span>
+                )}
+              </div>
+              <div className="sa-card-body space-y-2">
+                {orders.map(o => (
+                  <div key={o._id} className="rounded-xl border px-3 py-2.5"
+                    style={{ borderColor: o.status === 'pending_invoice' ? 'rgba(252,211,77,0.35)' : 'rgba(255,255,255,0.07)',
+                      background: 'rgba(255,255,255,0.02)' }}>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="text-sm font-bold" style={{ color: '#F4F0FF' }}>{o.packageName}</span>
+                      <span className="text-xs" style={{ color: '#8A83AE' }}>{o.lessons} lessons · {o.priceLabel}</span>
+                      <span className={`sa-badge ${o.status === 'confirmed' ? 'sa-badge-committed' : o.status === 'cancelled' ? 'sa-badge-queued' : 'sa-badge-awaiting_review'}`}>
+                        {o.status === 'pending_invoice' ? 'awaiting invoice / payment' : o.status}
+                      </span>
+                      <span className="text-[11px]" style={{ color: '#5E567C' }}>
+                        {new Date(o.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {o.status === 'pending_invoice' && (
+                        <span className="ml-auto flex gap-2">
+                          <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.3rem 0.8rem' }}
+                            disabled={orderBusy === o._id}
+                            onClick={() => actOnOrder(o._id, 'confirmOrder')}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>price_check</span>
+                            {orderBusy === o._id ? '…' : `Confirm paid → +${o.lessons}`}
+                          </button>
+                          <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.3rem 0.7rem' }}
+                            disabled={orderBusy === o._id}
+                            onClick={() => actOnOrder(o._id, 'cancelOrder')}>
+                            Cancel
+                          </button>
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1.5 text-xs" style={{ color: '#8A83AE' }}>
+                      {['fullName', 'email', 'phone', 'company', 'nip', 'addressLine', 'postalCode', 'city', 'country']
+                        .map(k => o.billing?.[k]).filter(Boolean).join(' · ')}
+                      {o.billing?.notes ? ` · “${o.billing.notes}”` : ''}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── His course: material + scheduling (auto-opens the active course) ── */}
           <div className="sa-card">

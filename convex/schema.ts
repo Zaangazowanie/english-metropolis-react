@@ -869,6 +869,39 @@ export default defineSchema({
     .index("by_organization", ["organizationId"])
     .index("by_student", ["studentId"]),
 
+  // Student-submitted lesson package orders (pre-payment-gateway flow,
+  // 2026-07-10): student picks a live package + billing details → Mike
+  // invoices manually → superadmin confirms payment → lessonPackage created.
+  lessonOrders: defineTable({
+    organizationId: v.id("organizations"),
+    studentId: v.id("students"),
+    packageId: v.string(),             // catalog id, e.g. "momentum"
+    packageName: v.string(),           // "Fluency Momentum"
+    lessons: v.number(),               // lessons granted when confirmed
+    priceLabel: v.string(),            // "880 PLN" (display; invoicing is manual)
+    billing: v.object({
+      fullName: v.string(),
+      email: v.string(),
+      phone: v.optional(v.string()),
+      addressLine: v.optional(v.string()),
+      city: v.optional(v.string()),
+      postalCode: v.optional(v.string()),
+      country: v.optional(v.string()),
+      company: v.optional(v.string()),
+      nip: v.optional(v.string()),
+      notes: v.optional(v.string()),
+    }),
+    status: v.string(),                // "pending_invoice" | "confirmed" | "cancelled"
+    confirmedBy: v.optional(v.string()),
+    confirmedAt: v.optional(v.number()),
+    packageRef: v.optional(v.id("lessonPackages")),   // created on confirm
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_student", ["studentId"])
+    .index("by_organization", ["organizationId"])
+    .index("by_status", ["status"]),
+
   certificates: defineTable({
     organizationId: v.id("organizations"),
     studentId: v.id("students"),

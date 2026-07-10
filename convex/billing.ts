@@ -26,7 +26,7 @@ async function resolveOrg(ctx: any, sessionToken: string, organizationId: any) {
 
 // Billable units for one student, sorted oldest-first:
 // completed lessons (taught record) + late-cancelled bookings.
-async function billableUnitsForStudent(ctx: any, studentId: any): Promise<number[]> {
+export async function billableUnitsForStudent(ctx: any, studentId: any): Promise<number[]> {
   const units: number[] = [];
   const lessons = await ctx.db
     .query("lessons")
@@ -61,7 +61,7 @@ async function billableUnitsForStudent(ctx: any, studentId: any): Promise<number
 // late cancellation, chronological order) consumes from the OLDEST package
 // that was already purchased when the unit happened and still has capacity.
 // Units that no package covers are simply unallocated (billed per-lesson).
-function allocateBalances(packages: any[], unitTimestamps: number[]) {
+export function allocateBalances(packages: any[], unitTimestamps: number[]) {
   const sorted = [...packages].sort((a, b) => a.purchasedAt - b.purchasedAt);
   const used = new Map<string, number>(sorted.map(p => [String(p._id), 0]));
   for (const t of unitTimestamps) {

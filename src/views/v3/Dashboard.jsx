@@ -5,6 +5,7 @@ import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Glass, MetricBar, Pill, Skeleton, useNumberFlow } from '../../design/v3/primitives.jsx'
 import { useI18n } from '../../i18n'
 import { fetchJSONCached } from '../../practice/lib/practice-cache'
+import { useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
 
 // Build a friendly "Tuesday, 28 April · 17:00 CEST" string for an upcoming
 // lesson. Weekday + month names come from the i18n dictionary so the line
@@ -183,7 +184,7 @@ function LatestLessonCard({ lesson, slug, basePath }) {
   )
 }
 
-function UpcomingLessonCard({ upcoming, slug, basePath }) {
+function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null }) {
   const { T } = useV3Theme()
   const { t } = useI18n()
   const nowMs = Date.now()
@@ -217,12 +218,30 @@ function UpcomingLessonCard({ upcoming, slug, basePath }) {
             {t('dashboard.upcoming.empty.body')}
           </p>
         </div>
-        <div style={{ marginTop: 16 }}>
+        <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          {alloc && alloc.remaining > 0 ? (
+            <Link to={slug ? `${basePath}/${slug}/calendar#lesson-booking` : '#'} style={{ textDecoration: 'none' }}>
+              <Btn variant="primary" size="md" icon="event_available">
+                {t('dashboard.upcoming.bookNow')}
+              </Btn>
+            </Link>
+          ) : (
+            <Link to={slug ? `${basePath}/${slug}/buy` : '#'} style={{ textDecoration: 'none' }}>
+              <Btn variant="primary" size="md" icon="shopping_cart">
+                {t('dashboard.upcoming.buyLessons')}
+              </Btn>
+            </Link>
+          )}
           <Link to={slug ? `${basePath}/${slug}/calendar` : '#'} style={{ textDecoration: 'none' }}>
-            <Btn variant="secondary" size="md" trailingIcon="arrow_forward">
+            <Btn variant="ghost" size="md" trailingIcon="arrow_forward">
               {t('dashboard.upcoming.openCalendar')}
             </Btn>
           </Link>
+          {alloc && (
+            <Pill tone={alloc.remaining > 0 ? 'emerald' : 'amber'} size="sm" icon="token">
+              {t('dashboard.upcoming.lessonsLeft', { n: alloc.remaining })}
+            </Pill>
+          )}
         </div>
       </Glass>
     )
@@ -462,6 +481,19 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
   const cefr = profile.level || latestAnalysisRaw?.cefrBand || '—'
   const composite = useNumberFlow(numberOr(data?.averageScore))
   const [progressOpen, setProgressOpen] = useState(false)
+  const [alloc, setAlloc] = useState(null)
+  const { studentUser } = useStudentAuth()
+  useEffect(() => {
+    const sid = studentUser?._id
+    if (!sid) return
+    let cancelled = false
+    fetch('/api/query', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: 'orders:getStudentAllocation', args: { studentId: sid } }) })
+      .then(r => r.json())
+      .then(d => { if (!cancelled && d?.status === 'success') setAlloc(d.value) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [studentUser?._id])
 
   // Bilingual overlay — fetch /lesson-summaries/<slug>.json once and
   // merge per-date PL + EN-simple fields onto the matching analysis. Lets
@@ -566,7 +598,7 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
       <div style={{ display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
         gap: 20, marginBottom: 32 }}>
-        <UpcomingLessonCard upcoming={upcomingLesson} slug={slug} basePath={basePath}/>
+        <UpcomingLessonCard upcoming={upcomingLesson} slug={slug} basePath={basePath} alloc={alloc}/>
 
         <ReviseCard lesson={lessons[0]} slug={slug} basePath={basePath}/>
 

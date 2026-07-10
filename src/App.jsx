@@ -20,6 +20,7 @@ import VocabularyV3 from './views/v3/Vocabulary.jsx'
 import LessonsV3 from './views/v3/Lessons.jsx'
 import KnowledgeBaseV3 from './views/v3/KnowledgeBase.jsx'
 import PracticeV3 from './views/v3/Practice.jsx'
+import BuyLessons from './views/v3/BuyLessons.jsx'
 import PracticeNew from './views/v3/PracticeNew.jsx'
 import PracticeDesign from './views/v3/PracticeDesign.jsx'
 import Chrome from './design/v3/Chrome.jsx'
@@ -77,6 +78,11 @@ function App({ basePath = '' }) {
           <Route path="dashboard" element={
             <RouteErrorBoundary name="Dashboard">
               <DashboardV3 data={studentData} slug={slug} basePath={basePath}/>
+            </RouteErrorBoundary>
+          }/>
+          <Route path="buy" element={
+            <RouteErrorBoundary name="BuyLessons">
+              <BuyLessons data={studentData} slug={slug} basePath={basePath}/>
             </RouteErrorBoundary>
           }/>
           <Route path="calendar" element={
@@ -160,7 +166,12 @@ function App({ basePath = '' }) {
                 <Dashboard data={studentData} />
               </RouteErrorBoundary>
             } />
-            <Route path="calendar" element={
+            <Route path="buy" element={
+            <RouteErrorBoundary name="BuyLessons">
+              <BuyLessons data={studentData} slug={slug} basePath={basePath}/>
+            </RouteErrorBoundary>
+          }/>
+          <Route path="calendar" element={
               <RouteErrorBoundary name="Calendar">
                 <Calendar data={studentData} />
               </RouteErrorBoundary>

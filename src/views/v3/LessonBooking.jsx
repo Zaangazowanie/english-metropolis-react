@@ -208,10 +208,11 @@ export default function LessonBooking() {
       const to = new Date(now.getTime() + 28 * DAY_MS).toISOString().slice(0, 10)
       const slotArgs = { organizationId, fromDate: from, toDate: to }
       if (teacherId) slotArgs.teacherId = teacherId
-      const [bookings, slots] = await Promise.all([
+      const [bookings, slots, allocation] = await Promise.all([
         convexCall('query', 'scheduling:listBookings', { organizationId, studentId }),
         convexCall('query', 'scheduling:getOpenSlots', slotArgs),
       ])
+      setAlloc(allocation)
       const unavailable = !slots.length && !bookings.length
       setState({ loading: false, bookings, slots, unavailable })
     } catch {
@@ -260,8 +261,9 @@ export default function LessonBooking() {
       setNotice({ kind: 'ok', text: t('booking.booked') })
       setPendingBook(null)
       await refresh()
-    } catch {
-      setNotice({ kind: 'err', text: t('booking.error') })
+    } catch (e) {
+      const msg = String(e?.message || '')
+      setNotice({ kind: 'err', text: /No lessons remaining/i.test(msg) ? t('booking.noAllocation') : t('booking.error') })
     } finally {
       setBusy(false)
     }
@@ -370,6 +372,27 @@ export default function LessonBooking() {
               }}>
                 Pick a Warsaw time that fits your week. Confirmation happens before anything is booked.
               </p>
+              {alloc && (
+                <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px',
+                    borderRadius: 999, fontSize: 12, fontWeight: 700,
+                    background: alloc.remaining > 0 ? 'rgba(52,211,153,0.12)' : 'rgba(252,211,77,0.12)',
+                    color: alloc.remaining > 0 ? T.emerald : T.amber,
+                    border: `1px solid ${alloc.remaining > 0 ? 'rgba(52,211,153,0.3)' : 'rgba(252,211,77,0.35)'}` }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>token</span>
+                    {t('booking.lessonsLeft', { n: alloc.remaining })}
+                  </span>
+                  {alloc.remaining <= 0 && studentUser?.slug && (
+                    <a href={`/app/${studentUser.slug}/buy`} style={{ display: 'inline-flex', alignItems: 'center',
+                      gap: 6, padding: '7px 14px', borderRadius: 999, textDecoration: 'none',
+                      background: 'linear-gradient(135deg, #8B5CF6, #D946EF)', color: '#fff',
+                      fontSize: 12, fontWeight: 700, letterSpacing: '0.06em' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 15 }}>shopping_cart</span>
+                      {t('booking.buyCta')}
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
 
             <div style={{
