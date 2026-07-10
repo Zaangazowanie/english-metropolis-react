@@ -15,6 +15,7 @@ import { useI18n } from '../../i18n'
 import { useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 import { PRIVATE_PACKAGES, PACKAGE_LESSONS } from '../public/packages.js'
+import { PL_CITIES } from '../public/pl-cities.js'
 
 async function convexCall(kind, path, args) {
   const r = await fetchWithTimeout(`/api/${kind}`, {
@@ -46,6 +47,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
   const [billing, setBilling] = useState(emptyBilling)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const [showErrs, setShowErrs] = useState(false)
   const [orders, setOrders] = useState(null)
   const [alloc, setAlloc] = useState(null)
 
@@ -88,8 +90,12 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
     choose: 'Wybieram', back: 'Wstecz', next: 'Dalej', submit: 'Wyślij zamówienie',
     done: 'Dziękujemy! Twoje zamówienie dotarło do English Metro. Wyślemy Ci fakturę na podany adres e-mail — po opłaceniu lekcje zostaną dodane do Twojego konta (zwykle w ciągu 24h od zaksięgowania).',
     myOrders: 'Twoje zamówienia', statuses: { pending_invoice: 'oczekuje na fakturę / płatność', confirmed: 'opłacone — lekcje przyznane', cancelled: 'anulowane' },
-    fields: { fullName: 'Imię i nazwisko *', email: 'E-mail do faktury *', phone: 'Telefon', addressLine: 'Ulica i numer', city: 'Miasto', postalCode: 'Kod pocztowy', country: 'Kraj', company: 'Firma (opcjonalnie)', nip: 'NIP (opcjonalnie)', notes: 'Uwagi do zamówienia' },
+    fields: { fullName: 'Imię i nazwisko *', email: 'E-mail do faktury *', phone: 'Telefon', addressLine: 'Ulica i numer *', city: 'Miejscowość *', postalCode: 'Kod pocztowy *', country: 'Kraj', company: 'Firma (opcjonalnie)', nip: 'NIP (opcjonalnie)', notes: 'Uwagi do zamówienia' },
     reviewNote: 'Płatność: faktura (przelew). Integracja płatności online już wkrótce.',
+    errors: { fullName: 'Podaj imię i nazwisko.', email: 'Podaj poprawny adres e-mail.',
+      phone: 'Numer telefonu wygląda na niepełny (min. 9 cyfr).',
+      addressLine: 'Podaj ulicę z numerem domu / mieszkania.', city: 'Podaj miejscowość.',
+      postalCode: 'Kod pocztowy w formacie 00-000.' },
   } : {
     title: 'Buy lessons', kicker: 'Lesson packages',
     intro: 'Pick a package, add your billing details and submit the order. We will send you an invoice — once payment clears, the lessons appear on your account and you can book them.',
@@ -98,11 +104,29 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
     choose: 'Choose', back: 'Back', next: 'Next', submit: 'Submit order',
     done: 'Thank you! Your order has reached English Metro. We will email your invoice — once paid, the lessons are added to your account (usually within 24h of payment).',
     myOrders: 'Your orders', statuses: { pending_invoice: 'awaiting invoice / payment', confirmed: 'paid — lessons allocated', cancelled: 'cancelled' },
-    fields: { fullName: 'Full name *', email: 'Invoice email *', phone: 'Phone', addressLine: 'Street & number', city: 'City', postalCode: 'Postal code', country: 'Country', company: 'Company (optional)', nip: 'Tax ID / NIP (optional)', notes: 'Order notes' },
+    fields: { fullName: 'Full name *', email: 'Invoice email *', phone: 'Phone', addressLine: 'Street & number *', city: 'City / town *', postalCode: 'Postal code *', country: 'Country', company: 'Company (optional)', nip: 'Tax ID / NIP (optional)', notes: 'Order notes' },
     reviewNote: 'Payment: invoice (bank transfer). Online payments are coming soon.',
+    errors: { fullName: 'Enter your full name.', email: 'Enter a valid email address.',
+      phone: 'Phone number looks incomplete (min. 9 digits).',
+      addressLine: 'Enter a street with a house number.', city: 'Enter your city or town.',
+      postalCode: 'Polish postal codes look like 00-000.' },
   }
 
-  const canNext2 = billing.fullName.trim() && /@/.test(billing.email)
+  // Poland is the default market — postal format + city autocomplete key off it.
+  const isPL = /pol|^pl$/i.test((billing.country || '').trim())
+  const fieldErrs = (() => {
+    const e = {}
+    if (billing.fullName.trim().length < 3) e.fullName = L.errors.fullName
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(billing.email.trim())) e.email = L.errors.email
+    if (billing.phone && billing.phone.replace(/\D/g, '').length < 9) e.phone = L.errors.phone
+    const addr = billing.addressLine.trim()
+    if (addr.length < 4 || !/\d/.test(addr)) e.addressLine = L.errors.addressLine
+    if (billing.city.trim().length < 2) e.city = L.errors.city
+    const pc = billing.postalCode.trim()
+    if (isPL ? !/^\d{2}-\d{3}$/.test(pc) : pc.length < 3) e.postalCode = L.errors.postalCode
+    return e
+  })()
+  const canNext2 = Object.keys(fieldErrs).length === 0
 
   return (
     <div style={{ maxWidth: 1840, margin: '0 auto', padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }}>
@@ -165,12 +189,30 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
             {pkg.name} · <strong style={{ color: T.text }}>{pkg.price}</strong>
           </div>
           <div style={{ display: 'grid', gap: 12, gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
+            <datalist id="pl-cities">
+              {PL_CITIES.map(c => <option key={c} value={c} />)}
+            </datalist>
             {['fullName', 'email', 'phone', 'addressLine', 'city', 'postalCode', 'country', 'company', 'nip'].map(k => (
               <label key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: T.textDim }}>{L.fields[k]}</span>
-                <input value={billing[k]} onChange={e => setBilling(b => ({ ...b, [k]: e.target.value }))}
+                <input value={billing[k]}
+                  list={k === 'city' && isPL ? 'pl-cities' : undefined}
+                  inputMode={k === 'postalCode' ? 'numeric' : k === 'phone' ? 'tel' : undefined}
+                  placeholder={k === 'postalCode' && isPL ? '00-000' : undefined}
+                  onChange={e => {
+                    let v = e.target.value
+                    if (k === 'postalCode' && isPL) {
+                      const d = v.replace(/\D/g, '').slice(0, 5)
+                      v = d.length > 2 ? `${d.slice(0, 2)}-${d.slice(2)}` : d
+                    }
+                    setBilling(b => ({ ...b, [k]: v }))
+                  }}
                   style={{ padding: '10px 12px', borderRadius: 10, background: T.surfaceLo,
-                    border: `1px solid ${T.border}`, color: T.text, fontSize: 14, outline: 'none' }} />
+                    border: `1px solid ${showErrs && fieldErrs[k] ? 'rgba(244,63,94,0.65)' : T.border}`,
+                    color: T.text, fontSize: 14, outline: 'none' }} />
+                {showErrs && fieldErrs[k] && (
+                  <span style={{ fontSize: 11.5, color: T.rose || '#fb7185' }}>{fieldErrs[k]}</span>
+                )}
               </label>
             ))}
           </div>
@@ -182,7 +224,10 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
           </label>
           <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
             <Btn variant="ghost" size="md" onClick={() => setStep(1)}>← {L.back}</Btn>
-            <Btn variant="primary" size="md" disabled={!canNext2} onClick={() => setStep(3)}>{L.next} →</Btn>
+            <Btn variant="primary" size="md"
+              onClick={() => { if (!canNext2) { setShowErrs(true); return } setShowErrs(false); setStep(3) }}>
+              {L.next} →
+            </Btn>
           </div>
         </Glass>
       )}

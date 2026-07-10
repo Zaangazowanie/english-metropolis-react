@@ -5,7 +5,8 @@
 // integration pending), and once paid he confirms in the superadmin console —
 // which creates the lessonPackage that actually allocates the lessons.
 
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalAction } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { requireAdmin, isSuperadmin } from "./authHelpers";
 import { billableUnitsForStudent, allocateBalances } from "./billing";
@@ -55,7 +56,53 @@ export const createOrder = mutation({
       createdAt: now,
       updatedAt: now,
     });
+    // Emails: school inbox + owner copy + confirmation to the student.
+    await ctx.scheduler.runAfter(0, internal.orders.notifyOrderPlaced, {
+      orderId,
+      packageName: args.packageName,
+      lessons: args.lessons,
+      priceLabel: args.priceLabel,
+      billing: args.billing,
+      studentName: student.name,
+      studentSlug: student.slug,
+      studentEmail: student.googleEmail || student.email || "",
+    });
     return { orderId, status: "pending_invoice" };
+  },
+});
+
+// Fire the order emails via em-report (same relay as booking confirmations,
+// order-confirm endpoint). Fire-and-forget: a mail hiccup must never lose the
+// order itself, which is already committed by the time this runs.
+export const notifyOrderPlaced = internalAction({
+  args: {
+    orderId: v.id("lessonOrders"),
+    packageName: v.string(),
+    lessons: v.number(),
+    priceLabel: v.string(),
+    billing: BILLING_SHAPE,
+    studentName: v.string(),
+    studentSlug: v.string(),
+    studentEmail: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const base = process.env.BOOKING_NOTIFY_URL;
+    const key = process.env.BOOKING_NOTIFY_KEY;
+    if (!base || !key) {
+      console.warn("orders:notifyOrderPlaced skipped — BOOKING_NOTIFY_URL/KEY unset");
+      return;
+    }
+    const url = base.replace("booking-confirm", "order-confirm");
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-booking-key": key },
+        body: JSON.stringify(args),
+      });
+      if (!res.ok) console.error("order-confirm notify failed:", res.status);
+    } catch (e: any) {
+      console.error("order-confirm notify error:", e?.message);
+    }
   },
 });
 
