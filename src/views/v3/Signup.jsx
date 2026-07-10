@@ -108,7 +108,7 @@ export default function Signup() {
     try {
       window.google.accounts.id.renderButton(googleBtnRef.current, {
         type: 'standard', theme: isDay ? 'outline' : 'filled_black', size: 'large',
-        text: 'signup_with', shape: 'pill', logo_alignment: 'left',
+        text: 'signup_with', shape: 'pill', logo_alignment: 'left', locale: 'en',
         width: Math.max(220, Math.min(400, Math.round(slotW))),
       })
     } catch (e) { console.warn('[Google signup render failed]', e) }
