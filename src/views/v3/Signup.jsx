@@ -55,7 +55,7 @@ export default function Signup() {
     e.preventDefault()
     setBusy(true); setErr('')
     try {
-      const r = await callConvex('mutation', 'studentAuth:studentSignup', {
+      const r = await callConvex('action', 'studentAuth:studentSignupAction', {
         name: form.name, email: form.email, password: form.password,
         phone: form.phone || undefined,
       })
@@ -73,7 +73,10 @@ export default function Signup() {
       const idToken = response?.credential
       if (!idToken) { setErr('Google did not return a credential'); setBusy(false); return }
       const result = await callConvex('action', 'googleAuth:googleSignIn', { idToken })
-      if (!result?.success || result.kind !== 'student') {
+      if (result?.success && result.kind !== 'student') {
+        setErr('That Google account is registered as staff — use Sign in instead.'); setBusy(false); return
+      }
+      if (!result?.success) {
         setErr(result?.error || 'Google signup failed'); setBusy(false); return
       }
       persistSession(result.student, result.sessionToken)

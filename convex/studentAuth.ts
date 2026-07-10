@@ -4,7 +4,8 @@
 // setStudentPassword. Students without a passwordHash cannot log in via this
 // flow — they fall back to direct /app/<slug> link access.
 
-import { mutation, internalMutation } from "./_generated/server";
+import { action, mutation, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { hashPassword, verifyPassword, createStudentSession, requireAdmin } from "./authHelpers";
 
@@ -125,6 +126,75 @@ export const studentSignup = mutation({
       success: true, sessionToken,
       student: { _id: studentId, name, slug, email, level: "", organizationId: SIGNUP_ORG },
     };
+  },
+});
+
+// Signup, action-first (2026-07-10). PBKDF2 at 210k iterations occasionally
+// blows the MUTATION execution budget ("timed out performing too many system
+// operations") on a cold isolate — Mike hit it live. Actions get a far larger
+// budget, so: hash here, then hand the cheap transactional work (dup check,
+// slug, insert, session) to an internalMutation. The old studentSignup
+// mutation stays for any cached bundles.
+export const signupInsert = internalMutation({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    passwordHash: v.string(),
+    phone: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { name, email } = args;
+    const clash = await ctx.db.query("students")
+      .withIndex("by_email", q => q.eq("email", email)).first();
+    if (clash) return { success: false, error: "An account with this email already exists — sign in instead" };
+
+    let slug = slugify(name);
+    for (let i = 0; i < 50; i++) {
+      const taken = await ctx.db.query("students")
+        .withIndex("by_slug", q => q.eq("slug", slug)).first();
+      if (!taken) break;
+      slug = `${slugify(name)}-${i + 2}`;
+    }
+
+    const now = Date.now();
+    const studentId = await ctx.db.insert("students", {
+      organizationId: SIGNUP_ORG,
+      name, slug, email,
+      googleEmail: email,
+      phone: args.phone,
+      level: "",
+      type: "individual",
+      status: "active",
+      primaryTeacherId: SIGNUP_TEACHER,
+      passwordHash: args.passwordHash,
+      enrolledAt: now, createdAt: now, updatedAt: now,
+    } as any);
+
+    const sessionToken = await createStudentSession(ctx, studentId);
+    return {
+      success: true, sessionToken,
+      student: { _id: studentId, name, slug, email, level: "", organizationId: SIGNUP_ORG },
+    };
+  },
+});
+
+export const studentSignupAction = action({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    password: v.string(),
+    phone: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<any> => {
+    const name = args.name.trim();
+    const email = args.email.trim().toLowerCase();
+    if (name.length < 2) return { success: false, error: "Please enter your name" };
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { success: false, error: "Please enter a valid email" };
+    if (args.password.length < 8) return { success: false, error: "Password must be at least 8 characters" };
+    const passwordHash = await hashPassword(args.password);
+    return await ctx.runMutation(internal.studentAuth.signupInsert, {
+      name, email, passwordHash, phone: args.phone?.trim() || undefined,
+    });
   },
 });
 

@@ -149,13 +149,12 @@ export const googleSignIn = action({
       internal.googleAuth.findStudentByEmail,
       { email },
     );
-    if (student) {
-      if (
-        student.status === "archived" ||
-        student.status === "graduated"
-      ) {
-        return { success: false, error: "Account inactive" };
-      }
+    // An archived/graduated student row must NOT block the admin allowlists
+    // below (test/admin emails can own a retired student record) — remember
+    // the inactive hit and only fail with it if nothing else matches.
+    const studentInactive = !!student &&
+      (student.status === "archived" || student.status === "graduated");
+    if (student && !studentInactive) {
       const sessionToken: string = await ctx.runMutation(
         internal.googleAuth.createSessionForStudent,
         { studentId: student._id },
@@ -191,6 +190,10 @@ export const googleSignIn = action({
         { email },
       );
       return { success: true, kind: "conversa_admin", email, sessionToken: token ?? undefined };
+    }
+
+    if (studentInactive) {
+      return { success: false, error: "Account inactive" };
     }
 
     // 4) Brand-new student → self-service signup by Google (2026-07-10).
