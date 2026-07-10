@@ -135,9 +135,6 @@ function HeroArcade({ night, badge }) {
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', minWidth: 0 }}>
-            <button type="button" className="gh-arcade-arrow" aria-label="Previous game" onClick={() => go(-1)}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
-            </button>
             <div ref={tabsRef} className="gh-arcade-tabs">
               {HERO_GAMES.map((g, i) => (
                 <button key={g.key} type="button" onClick={() => setActive(i)}
@@ -147,22 +144,35 @@ function HeroArcade({ night, badge }) {
                 </button>
               ))}
             </div>
-            <button type="button" className="gh-arcade-arrow" aria-label="Next game" onClick={() => go(1)}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
-            </button>
           </div>
         </div>
-        <div style={{ height: 'min(56vh, 460px)', overflow: 'auto', background: DUSK.bg }}>
-          <ShellBoundary key={HERO_GAMES[active].key}>
-            <Suspense fallback={
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%',
-                color: DUSK.dim, fontFamily: FONT.mono, fontSize: 12, letterSpacing: '0.2em' }}>
-                NEXT TRAIN APPROACHING…
-              </div>
-            }>
-              <Shell/>
-            </Suspense>
-          </ShellBoundary>
+        <div style={{ position: 'relative' }}>
+          <div style={{ height: 'min(56vh, 460px)', overflow: 'auto', background: DUSK.bg }}>
+            <ShellBoundary key={HERO_GAMES[active].key}>
+              <Suspense fallback={
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%',
+                  color: DUSK.dim, fontFamily: FONT.mono, fontSize: 12, letterSpacing: '0.2em' }}>
+                  NEXT TRAIN APPROACHING…
+                </div>
+              }>
+                <Shell/>
+              </Suspense>
+            </ShellBoundary>
+          </div>
+          <button type="button" className="gh-slider-arrow gh-slider-prev" aria-label="Previous exercise"
+            onClick={() => go(-1)}>
+            <span className="material-symbols-outlined" style={{ fontSize: 26 }}>chevron_left</span>
+          </button>
+          <button type="button" className="gh-slider-arrow gh-slider-next" aria-label="Next exercise"
+            onClick={() => go(1)}>
+            <span className="material-symbols-outlined" style={{ fontSize: 26 }}>chevron_right</span>
+          </button>
+          <div className="gh-slider-dots" aria-hidden>
+            {HERO_GAMES.map((g, i) => (
+              <button key={g.key} type="button" tabIndex={-1}
+                className={`gh-slider-dot${i === active ? ' on' : ''}`} onClick={() => setActive(i)}/>
+            ))}
+          </div>
         </div>
       </div>
     </div>
