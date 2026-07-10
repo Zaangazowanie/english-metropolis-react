@@ -67,8 +67,8 @@ export class UI {
       {
         art: '🧭', eyebrow: 'STEP 1', title: 'Find your feet',
         body: touch
-          ? `<div class="krow"><span class="k">drag left</span> walk around</div>
-             <div class="krow"><span class="k">drag right</span> look around</div>
+          ? `<div class="krow"><span class="k">joystick</span> walk — bottom left</div>
+             <div class="krow"><span class="k">drag</span> look around</div>
              <div class="krow"><span class="k">buttons</span> talk · metro · map — bottom right</div>
              <div class="tip">Take a stroll around the plaza first — the city rewards the curious.</div>`
           : `<div class="krow"><span class="k">W A S D</span> walk (arrow keys work too)</div>

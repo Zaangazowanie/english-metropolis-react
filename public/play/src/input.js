@@ -46,6 +46,43 @@ export class Input {
       };
       canvas.addEventListener('touchend', endTouch);
       canvas.addEventListener('touchcancel', endTouch);
+
+      // Visible joystick (#stick, bottom-left) — sits above the canvas so its
+      // finger never reaches the invisible left-half stick; both feed this.joy.
+      const stick = document.getElementById('stick');
+      const nub = document.getElementById('stick-nub');
+      if (stick && nub) {
+        let sId = null, cx = 0, cy = 0;
+        const R = 44;
+        const set = (dx, dy) => {
+          const m = Math.hypot(dx, dy) || 1, c = Math.min(m, R) / m;
+          dx *= c; dy *= c;
+          nub.style.transform = `translate(${dx}px, ${dy}px)`;
+          this.joy.x = dx / R; this.joy.y = dy / R;
+        };
+        stick.addEventListener('touchstart', (e) => {
+          if (sId !== null) return;
+          const t = e.changedTouches[0];
+          sId = t.identifier;
+          const r = stick.getBoundingClientRect();
+          cx = r.left + r.width / 2; cy = r.top + r.height / 2;
+          this.joy.active = true;
+          set(t.clientX - cx, t.clientY - cy);
+          e.preventDefault();
+        }, { passive: false });
+        stick.addEventListener('touchmove', (e) => {
+          for (const t of e.changedTouches) if (t.identifier === sId) set(t.clientX - cx, t.clientY - cy);
+          e.preventDefault();
+        }, { passive: false });
+        const sEnd = (e) => {
+          for (const t of e.changedTouches) if (t.identifier === sId) {
+            sId = null; this.joy.x = 0; this.joy.y = 0; this.joy.active = false;
+            nub.style.transform = 'translate(0px, 0px)';
+          }
+        };
+        stick.addEventListener('touchend', sEnd);
+        stick.addEventListener('touchcancel', sEnd);
+      }
     }
 
     window.addEventListener('keydown', (e) => {
