@@ -16,11 +16,12 @@ const ENGLISH_LEVELS = ['full', 'simple']
 const ENGLISH_LEVEL_KEY = 'em.englishLevel'
 
 function detectInitial() {
-  if (typeof window === 'undefined') return 'en'
+  // Polish is the default everywhere (Mike 2026-07-10) — our market is Poland.
+  // A saved preference always wins; the EN/PL toggle in every header flips it.
+  if (typeof window === 'undefined') return 'pl'
   const stored = window.localStorage.getItem(STORAGE_KEY)
   if (stored && SUPPORTED.includes(stored)) return stored
-  const nav = (window.navigator.language || 'en').slice(0, 2).toLowerCase()
-  return SUPPORTED.includes(nav) ? nav : 'en'
+  return 'pl'
 }
 function detectInitialEnglishLevel() {
   if (typeof window === 'undefined') return 'full'

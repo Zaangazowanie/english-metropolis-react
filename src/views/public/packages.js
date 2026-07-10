@@ -12,6 +12,9 @@ export const PRIVATE_PACKAGES = [
     bestFor: 'A focused first session with a clear next-step plan',
     features: ['Placement and goal check', '1 x 60 min 1:1 lesson', 'Personal CEFR snapshot', 'Lesson notes and practice path'],
     badge: 'Once off',
+        pacePl: '1 lekcja na żywo',
+    bestForPl: 'Jedno skoncentrowane spotkanie z jasnym planem na dalszą naukę',
+    badgePl: 'Jednorazowo',
     accent: 'sky',
   },
   {
@@ -23,6 +26,9 @@ export const PRIVATE_PACKAGES = [
     bestFor: 'A compact first month for regular speaking progress',
     features: ['Placement and goal check', 'Personal CEFR plan', '4 x 60 min 1:1 lessons', 'Lesson notes after each session'],
     badge: 'Start here',
+        pacePl: '4 lekcje na żywo',
+    bestForPl: 'Kompaktowy pierwszy miesiąc regularnej pracy nad mówieniem',
+    badgePl: 'Zacznij tutaj',
     accent: 'sky',
   },
   {
@@ -34,6 +40,9 @@ export const PRIVATE_PACKAGES = [
     bestFor: 'The strongest routine for steady fluency work',
     features: ['Placement and goal check', 'Personal CEFR plan', '8 x 60 min 1:1 lessons', 'Lesson notes and weekly targets'],
     badge: 'Most chosen',
+        pacePl: '8 lekcji na żywo',
+    bestForPl: 'Najmocniejsza rutyna dla stałych postępów w płynności',
+    badgePl: 'Najczęściej wybierany',
     accent: 'brand',
   },
   {
@@ -45,6 +54,9 @@ export const PRIVATE_PACKAGES = [
     bestFor: 'A deeper programme for visible speaking progress',
     features: ['Placement and goal check', 'Personal CEFR plan', '16 x 60 min 1:1 lessons', 'Lesson notes and progress reviews'],
     badge: 'Best rhythm',
+        pacePl: '16 lekcji na żywo',
+    bestForPl: 'Głębszy program dla widocznych postępów w mówieniu',
+    badgePl: 'Najlepszy rytm',
     accent: 'brand',
   },
   {
@@ -56,6 +68,9 @@ export const PRIVATE_PACKAGES = [
     bestFor: 'The best value for sustained private coaching',
     features: ['Placement and goal check', 'Personal CEFR plan', '24 x 60 min 1:1 lessons', 'Lesson notes and monthly reviews'],
     badge: 'Best value',
+        pacePl: '24 lekcje na żywo',
+    bestForPl: 'Najlepsza cena przy długofalowym indywidualnym coachingu',
+    badgePl: 'Najlepsza cena',
     accent: 'sky',
   },
 ]

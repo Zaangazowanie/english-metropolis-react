@@ -9,8 +9,32 @@ import { FONT, G } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Glass, Skyline } from '../../design/v3/primitives.jsx'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
+import { useI18n } from '../../i18n'
 
 const GOOGLE_CLIENT_ID = '960729188616-r2ql4rjid9aibbo1psi678gonf8lp04o.apps.googleusercontent.com'
+
+const SIGNUP_COPY = {
+  en: {
+    title: 'Create your account',
+    sub: 'Sign up, pick a lesson package, and book your first 1:1 lesson with your teacher.',
+    name: 'Full name', email: 'Email address', password: 'Password (min. 8 characters)', phone: 'Phone (optional)',
+    submit: 'Create account →', busy: 'Creating your account…', or: 'OR',
+    haveAccount: 'Already have an account?', signIn: 'Sign in',
+    googleNoCred: 'Google did not return a credential',
+    googleStaff: 'That Google account is registered as staff — use Sign in instead.',
+    googleFail: 'Google signup failed',
+  },
+  pl: {
+    title: 'Załóż konto',
+    sub: 'Zarejestruj się, wybierz pakiet lekcji i zarezerwuj pierwszą lekcję 1:1 ze swoim lektorem.',
+    name: 'Imię i nazwisko', email: 'Adres e-mail', password: 'Hasło (min. 8 znaków)', phone: 'Telefon (opcjonalnie)',
+    submit: 'Załóż konto →', busy: 'Tworzymy Twoje konto…', or: 'LUB',
+    haveAccount: 'Masz już konto?', signIn: 'Zaloguj się',
+    googleNoCred: 'Google nie zwróciło poświadczenia',
+    googleStaff: 'To konto Google jest kontem zespołu — użyj logowania.',
+    googleFail: 'Rejestracja przez Google nie powiodła się',
+  },
+}
 
 async function callConvex(kind, path, args) {
   const response = await fetchWithTimeout(`/api/${kind}`, {
@@ -30,6 +54,8 @@ function persistSession(student, sessionToken) {
 
 export default function Signup() {
   const { T, mode, isMobile } = useV3Theme()
+  const { lang, setLang } = useI18n()
+  const C = SIGNUP_COPY[lang === 'pl' ? 'pl' : 'en']
   const isDay = mode === 'day'
   const location = useLocation()
   const pkg = new URLSearchParams(location.search).get('package') || ''
@@ -71,13 +97,13 @@ export default function Signup() {
     setErr(''); setBusy(true)
     try {
       const idToken = response?.credential
-      if (!idToken) { setErr('Google did not return a credential'); setBusy(false); return }
+      if (!idToken) { setErr(C.googleNoCred); setBusy(false); return }
       const result = await callConvex('action', 'googleAuth:googleSignIn', { idToken })
       if (result?.success && result.kind !== 'student') {
-        setErr('That Google account is registered as staff — use Sign in instead.'); setBusy(false); return
+        setErr(C.googleStaff); setBusy(false); return
       }
       if (!result?.success) {
-        setErr(result?.error || 'Google signup failed'); setBusy(false); return
+        setErr(result?.error || C.googleFail); setBusy(false); return
       }
       persistSession(result.student, result.sessionToken)
       window.location.href = destination(result.student.slug)
@@ -111,11 +137,11 @@ export default function Signup() {
     try {
       window.google.accounts.id.renderButton(googleBtnRef.current, {
         type: 'standard', theme: isDay ? 'outline' : 'filled_black', size: 'large',
-        text: 'signup_with', shape: 'pill', logo_alignment: 'left', locale: 'en',
+        text: 'signup_with', shape: 'pill', logo_alignment: 'left', locale: lang === 'pl' ? 'pl' : 'en',
         width: Math.max(220, Math.min(400, Math.round(slotW))),
       })
     } catch (e) { console.warn('[Google signup render failed]', e) }
-  }, [googleReady, isDay])
+  }, [googleReady, isDay, lang])
 
   const input = {
     padding: '12px 14px', borderRadius: 12, background: T.surfaceLo,
@@ -133,41 +159,51 @@ export default function Signup() {
         </span>
       </Link>
 
-      <Glass padding={30} style={{ width: '100%', maxWidth: 440 }}>
+      <Glass padding={30} style={{ width: '100%', maxWidth: 440, position: 'relative' }}>
+        <div style={{ position: 'absolute', top: 18, right: 18, display: 'inline-flex',
+          borderRadius: 999, overflow: 'hidden', border: `1px solid ${T.border}` }}>
+          {['pl', 'en'].map(l => (
+            <button key={l} type="button" onClick={() => setLang(l)}
+              style={{ padding: '6px 11px', fontSize: 11, fontWeight: 800, letterSpacing: '0.06em',
+                border: 'none', cursor: 'pointer',
+                background: lang === l ? G.brand : 'transparent',
+                color: lang === l ? '#fff' : T.textDim }}>{l.toUpperCase()}</button>
+          ))}
+        </div>
         <h1 style={{ fontFamily: FONT.display, fontWeight: 600, fontSize: 28,
           letterSpacing: '-0.02em', margin: 0, color: T.text }}>
-          Create your account
+          {C.title}
         </h1>
         <p style={{ marginTop: 8, fontSize: 14, color: T.textDim, lineHeight: 1.55 }}>
-          Sign up, pick a lesson package, and book your first 1:1 lesson with your teacher.
+          {C.sub}
         </p>
 
         <form onSubmit={submit} style={{ marginTop: 18, display: 'grid', gap: 12 }}>
-          <input style={input} placeholder="Full name" value={form.name} autoComplete="name"
+          <input style={input} placeholder={C.name} value={form.name} autoComplete="name"
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-          <input style={input} type="email" placeholder="Email address" value={form.email} autoComplete="email"
+          <input style={input} type="email" placeholder={C.email} value={form.email} autoComplete="email"
             onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-          <input style={input} type="password" placeholder="Password (min. 8 characters)" value={form.password}
+          <input style={input} type="password" placeholder={C.password} value={form.password}
             autoComplete="new-password" onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
-          <input style={input} type="tel" placeholder="Phone (optional)" value={form.phone} autoComplete="tel"
+          <input style={input} type="tel" placeholder={C.phone} value={form.phone} autoComplete="tel"
             onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
           {err && <p style={{ margin: 0, fontSize: 13, color: T.rose }}>{err}</p>}
           <Btn variant="primary" size="lg" type="submit"
             disabled={busy || !form.name.trim() || !form.email.trim() || form.password.length < 8}>
-            {busy ? 'Creating your account…' : 'Create account →'}
+            {busy ? C.busy : C.submit}
           </Btn>
         </form>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0' }}>
           <span style={{ flex: 1, height: 1, background: T.border }}/>
-          <span style={{ fontSize: 11, color: T.textDim, letterSpacing: '0.14em' }}>OR</span>
+          <span style={{ fontSize: 11, color: T.textDim, letterSpacing: '0.14em' }}>{C.or}</span>
           <span style={{ flex: 1, height: 1, background: T.border }}/>
         </div>
         <div ref={googleBtnRef} style={{ display: 'flex', justifyContent: 'center', minHeight: 44 }}/>
 
         <p style={{ marginTop: 18, fontSize: 13, color: T.textDim, textAlign: 'center' }}>
-          Already have an account?{' '}
-          <Link to="/login" style={{ color: T.brandInk || T.brand, fontWeight: 700 }}>Sign in</Link>
+          {C.haveAccount}{' '}
+          <Link to="/login" style={{ color: T.brandInk || T.brand, fontWeight: 700 }}>{C.signIn}</Link>
         </p>
       </Glass>
     </div>

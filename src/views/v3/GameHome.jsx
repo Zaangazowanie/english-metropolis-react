@@ -19,6 +19,7 @@ import { Btn, Skyline } from '../../design/v3/primitives.jsx'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { game3dRegistry } from '../../practice/shells3d/kit/registry'
 import { usePrefersReducedMotion } from '../../practice/lib/usePrefersReducedMotion'
+import { useI18n } from '../../i18n'
 import { PRIVATE_PACKAGES } from '../public/packages.js'
 import './game-home.css'
 
@@ -40,6 +41,112 @@ function Reveal({ children, delay = 0, style }) {
     <div ref={ref} className={`gh-sr${on ? ' on' : ''}`}
       style={{ transitionDelay: `${delay}ms`, ...style }}>
       {children}
+    </div>
+  )
+}
+
+// ── Landing marketing copy, EN + PL (Polish is the site default) ───────────
+const GH = {
+  en: {
+    navPricing: 'Pricing', navSignin: 'Sign in', navSignup: 'Sign up', navDash: 'My dashboard',
+    navPlay: 'Play the World',
+    eyebrow: 'online english school · live 1:1 lessons',
+    h1a: 'Learn it live.', h1b: 'Live it daily',
+    heroSub: (n) => <>
+      <b>60-minute 1:1 lessons</b> with your own teacher, courses matched to your CEFR level,
+      and every keyword you meet turned into flashcards. Between lessons, keep the streak alive
+      inside <b>EnglishMetro World</b> — our living open-city game — and {n} instant practice
+      games. Book online in minutes.</>,
+    ctaBook: 'Book your first lesson', ctaPricing: 'See pricing', ctaWorld: 'Play the World — free',
+    chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'keywords become flashcards', 'book online in minutes'],
+    arcadeBadge: 'live practice · try it now',
+    worldLink: 'Prefer the full adventure? Step into the 3D city — free',
+    stepsKicker: 'from sign-up to speaking', stepsTitle: 'Your first lesson is four steps away',
+    steps: [
+      { icon: 'person_add', title: 'Create your account', body: 'Two minutes — email and password, or one tap with Google.' },
+      { icon: 'shopping_bag', title: 'Pick a package', body: 'From a single try-out lesson to 24. Pay by invoice today — online payment is coming.' },
+      { icon: 'event_available', title: 'Book your times', body: 'Choose slots inside your teacher’s live availability. The Meet link and calendar invite land in your inbox.' },
+      { icon: 'school', title: 'Learn, then replay', body: 'Every lesson becomes a PDF in your library and its keywords become flashcards — revise, practise, repeat.' },
+    ],
+    packsKicker: '1:1 lesson packages', packsTitle: 'Pick your pace', packsLink: 'Full pricing & details',
+    packsStart: 'Start', packsEach: '60 min each',
+    doorsKicker: 'between lessons', doorsTitle: 'The city keeps teaching',
+  },
+  pl: {
+    navPricing: 'Cennik', navSignin: 'Zaloguj się', navSignup: 'Załóż konto', navDash: 'Mój panel',
+    navPlay: 'Zagraj w World',
+    eyebrow: 'szkoła angielskiego online · lekcje 1:1 na żywo',
+    h1a: 'Ucz się na żywo.', h1b: 'Mów na co dzień',
+    heroSub: (n) => <>
+      <b>60-minutowe lekcje 1:1</b> z własnym lektorem, kursy dopasowane do Twojego poziomu CEFR,
+      a każde poznane słówko zamienia się w fiszki. Między lekcjami trenujesz dalej w{' '}
+      <b>EnglishMetro World</b> — naszej żywej, otwartej grze-mieście — i w {n} błyskawicznych
+      grach do ćwiczeń. Rezerwacja online w kilka minut.</>,
+    ctaBook: 'Zarezerwuj pierwszą lekcję', ctaPricing: 'Zobacz cennik', ctaWorld: 'Zagraj w World — za darmo',
+    chips: ['lekcje 1:1 na żywo, 60 min', 'kursy pod poziom CEFR', 'słówka stają się fiszkami', 'rezerwacja online w minuty'],
+    arcadeBadge: 'prawdziwe ćwiczenia · wypróbuj teraz',
+    worldLink: 'Wolisz pełną przygodę? Wejdź do miasta 3D — za darmo',
+    stepsKicker: 'od rejestracji do mówienia', stepsTitle: 'Twoja pierwsza lekcja w czterech krokach',
+    steps: [
+      { icon: 'person_add', title: 'Załóż konto', body: 'Dwie minuty — e-mail i hasło albo jedno kliknięcie z Google.' },
+      { icon: 'shopping_bag', title: 'Wybierz pakiet', body: 'Od pojedynczej lekcji próbnej do 24. Dziś płatność fakturą — płatności online już wkrótce.' },
+      { icon: 'event_available', title: 'Zarezerwuj terminy', body: 'Wybierz godziny w dostępności lektora. Link Meet i zaproszenie do kalendarza trafią na Twój e-mail.' },
+      { icon: 'school', title: 'Ucz się i powtarzaj', body: 'Każda lekcja trafia jako PDF do Twojej biblioteki, a słówka stają się fiszkami — powtarzaj, ćwicz, graj.' },
+    ],
+    packsKicker: 'pakiety lekcji 1:1', packsTitle: 'Wybierz swoje tempo', packsLink: 'Pełny cennik i szczegóły',
+    packsStart: 'Zaczynam', packsEach: 'po 60 min',
+    doorsKicker: 'między lekcjami', doorsTitle: 'Miasto uczy dalej',
+  },
+}
+
+// ── Hero arcade: REAL practice exercises, playable right in the hero ───────
+// (replaced the recorded-gameplay video 2026-07-10 — headless capture ran at
+// ~10fps and looked frozen. These are the same DOM-based shells as the
+// catalog, with their built-in demo puzzles: smooth, instant, no canvas.)
+const HERO_GAMES = [
+  { key: 'flashcards', title: 'Flashcards', icon: 'style', load: () => import('../../practice/shells/Flashcards') },
+  { key: 'multiplechoice', title: 'Quiz', icon: 'quiz', load: () => import('../../practice/shells/MultipleChoice') },
+  { key: 'gapfill', title: 'Gap fill', icon: 'edit_note', load: () => import('../../practice/shells/GapFill') },
+]
+
+function HeroArcade({ night, badge }) {
+  const [active, setActive] = useState(0)
+  const Shell = useMemo(() => lazy(HERO_GAMES[active].load), [active])
+  return (
+    <div className="gh-hero-frame">
+      <div className="gh-postcard" style={{ background: '#120a26' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+            <span className="gh-live-dot" aria-hidden/>
+            <span style={{ fontFamily: FONT.mono, fontSize: 10, fontWeight: 700,
+              letterSpacing: '0.24em', textTransform: 'uppercase', color: '#F5F0FF' }}>
+              {badge}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {HERO_GAMES.map((g, i) => (
+              <button key={g.key} type="button" onClick={() => setActive(i)}
+                className={`gh-arcade-tab${i === active ? ' on' : ''}`}>
+                <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{g.icon}</span>
+                {g.title}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ height: 'min(56vh, 460px)', overflow: 'auto', background: DUSK.bg }}>
+          <ShellBoundary key={HERO_GAMES[active].key}>
+            <Suspense fallback={
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%',
+                color: DUSK.dim, fontFamily: FONT.mono, fontSize: 12, letterSpacing: '0.2em' }}>
+                NEXT TRAIN APPROACHING…
+              </div>
+            }>
+              <Shell/>
+            </Suspense>
+          </ShellBoundary>
+        </div>
+      </div>
     </div>
   )
 }
@@ -191,6 +298,110 @@ function DayClouds() {
   )
 }
 
+
+// ── Error boundary around lazy-loaded shells ───────────────────────────────
+class ShellBoundary extends Component {
+  constructor(props) { super(props); this.state = { broken: false } }
+  static getDerivedStateFromError() { return { broken: true } }
+  componentDidCatch(err) { console.error('[GameHome shell crashed]', err) }
+  render() {
+    if (this.state.broken) {
+      return (
+        <div style={{ padding: 48, textAlign: 'center', color: DUSK.dim, fontFamily: FONT.body }}>
+          <div style={{ fontSize: 34, marginBottom: 12 }}>🛠️</div>
+          This station is under maintenance — pick another game.
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+// ── Full-screen play overlay (kept from v1 — games are dusk-native) ────────
+function PlayOverlay({ game, onClose }) {
+  const [LazyShell] = useState(() => lazy(game.is3d ? game.load3d : game.load))
+  const [doneOnce, setDoneOnce] = useState(false)
+  const [showCta, setShowCta] = useState(false)
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
+  }, [onClose])
+
+  return (
+    <div role="dialog" aria-modal="true" aria-label={`Playing ${game.title}`}
+      style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column',
+        background: DUSK.bg, backdropFilter: 'blur(14px)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 20px', borderBottom: `1px solid ${DUSK.line}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: game.color || DUSK.pink, flex: 'none' }}/>
+          <div style={{ fontFamily: FONT.display, fontWeight: 700, color: DUSK.text, fontSize: 16,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {game.title}
+            <span style={{ color: DUSK.mute, fontWeight: 400, fontSize: 12, marginLeft: 10 }}>{game.venue || game.district}</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button type="button" onClick={() => setShowCta(true)}
+            aria-label="Fullscreen (free account)"
+            style={{ background: 'transparent', border: `1px solid ${DUSK.line}`, color: DUSK.dim,
+              borderRadius: 8, padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>fullscreen</span>
+          </button>
+          <button type="button" onClick={onClose} aria-label="Close game"
+            style={{ background: 'transparent', border: `1px solid ${DUSK.line}`, color: DUSK.dim,
+              borderRadius: 8, padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+          </button>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
+        <ShellBoundary>
+          <Suspense fallback={
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%',
+              color: DUSK.dim, fontFamily: FONT.mono, fontSize: 13, letterSpacing: '0.2em' }}>
+              NEXT TRAIN APPROACHING…
+            </div>
+          }>
+            <LazyShell onSessionComplete={() => { if (!doneOnce) { setDoneOnce(true); setShowCta(true) } }}/>
+          </Suspense>
+        </ShellBoundary>
+
+        {showCta && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', background: 'rgba(5,3,9,0.82)', backdropFilter: 'blur(6px)', padding: 24 }}>
+            <div className="gh-rise" style={{ maxWidth: 440, width: '100%', textAlign: 'center',
+              background: 'linear-gradient(180deg, rgba(30,20,60,0.92) 0%, rgba(15,10,35,0.92) 100%)',
+              border: '1px solid rgba(217,70,239,0.35)', borderRadius: 20, padding: '36px 32px',
+              boxShadow: '0 30px 80px -20px rgba(0,0,0,0.7), 0 0 60px -20px rgba(217,70,239,0.3)' }}>
+              <div style={{ fontSize: 36, marginBottom: 10 }}>🦉</div>
+              <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 24, color: DUSK.text, marginBottom: 10 }}>
+                {doneOnce ? 'Nice round.' : 'Go full screen?'}
+              </div>
+              <p style={{ color: DUSK.dim, fontSize: 14, lineHeight: 1.6, margin: '0 0 22px' }}>
+                {doneOnce
+                  ? 'Create a free account to save your progress, build a streak, and unlock every district of the city.'
+                  : 'Full-screen play comes with a free account — along with saved progress and streaks.'}
+              </p>
+              <Link to="/signup" style={{ textDecoration: 'none' }}>
+                <Btn variant="primary" size="lg" full trailingIcon="arrow_forward">Create free account</Btn>
+              </Link>
+              <button type="button" onClick={() => setShowCta(false)}
+                style={{ marginTop: 14, background: 'transparent', border: 'none', color: DUSK.mute,
+                  fontSize: 12, cursor: 'pointer', letterSpacing: '0.06em' }}>
+                Keep playing
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Small parts ────────────────────────────────────────────────────────────
 function ThemeToggle({ mode, setMode, T }) {
   const isDay = mode === 'day'
@@ -278,6 +489,8 @@ function LineSection({ line, T, night, open, onToggle, onPlay, count, subtitle, 
 }
 
 export default function GameHome() {
+  const { lang, setLang } = useI18n()
+  const W = GH[lang === 'pl' ? 'pl' : 'en']
   // Signed-in students see "My dashboard" instead of another Sign in.
   const studentSession = (() => {
     try { return JSON.parse(window.localStorage.getItem('em-student-session') || 'null') } catch { return null }
@@ -339,29 +552,35 @@ export default function GameHome() {
           </div>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <Link to="/pricing" style={{ textDecoration: 'none' }}>
-              <Btn variant="ghost" size="md">Pricing</Btn>
+              <Btn variant="ghost" size="md">{W.navPricing}</Btn>
             </Link>
             {studentSession?.slug ? (
               <Link to={`/app/${studentSession.slug}/dashboard`} style={{ textDecoration: 'none' }}>
-                <Btn variant="ghost" size="md" icon="account_circle">My dashboard</Btn>
+                <Btn variant="ghost" size="md" icon="account_circle">{W.navDash}</Btn>
               </Link>
             ) : (
               <>
                 <Link to="/login" style={{ textDecoration: 'none' }}>
-                  <Btn variant="ghost" size="md">Sign in</Btn>
+                  <Btn variant="ghost" size="md">{W.navSignin}</Btn>
                 </Link>
                 <Link to="/signup" style={{ textDecoration: 'none' }}>
-                  <Btn variant="secondary" size="md">Sign up</Btn>
+                  <Btn variant="secondary" size="md">{W.navSignup}</Btn>
                 </Link>
               </>
             )}
+            <div className="gh-lang" role="group" aria-label="Language">
+              {['pl', 'en'].map(l => (
+                <button key={l} type="button" onClick={() => setLang(l)}
+                  className={`gh-lang-btn${lang === l ? ' on' : ''}`}>{l.toUpperCase()}</button>
+              ))}
+            </div>
             <ThemeToggle mode={mode} setMode={setMode} T={T}/>
             {/* NB: a <button> nested in an <a> does NOT activate the link —
                 every Btn that leads to the world navigates via onClick. */}
             <a href={WORLD_URL} style={{ textDecoration: 'none' }}>
               <Btn variant="primary" size="md" trailingIcon="play_arrow"
                 onClick={() => window.location.assign(WORLD_URL)}
-                style={{ whiteSpace: 'nowrap' }}>Play the World</Btn>
+                style={{ whiteSpace: 'nowrap' }}>{W.navPlay}</Btn>
             </a>
           </nav>
         </header>
@@ -375,47 +594,43 @@ export default function GameHome() {
               marginBottom: 20 }}>
               <span style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
                 textTransform: 'uppercase', color: T.emerald }}>
-                online english school · live 1:1 lessons
+                {W.eyebrow}
               </span>
             </div>
             <h1 className="gh-rise gh-rise-2" style={{ fontFamily: FONT.display, fontWeight: 700,
               fontSize: 'clamp(42px, 6.4vw, 82px)', lineHeight: 0.98, letterSpacing: '-0.04em', margin: 0 }}>
-              Learn it live.
+              {W.h1a}
               <br/>
               <span style={{ background: G.brand, WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Live it daily</span>
+                WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{W.h1b}</span>
               <span style={{ color: T.ember }}>.</span>
             </h1>
             <p className="gh-rise gh-rise-3" style={{ marginTop: 24, fontSize: 'clamp(15px, 1.6vw, 18px)',
               color: T.textDim, lineHeight: 1.65, maxWidth: 540 }}>
-              <b style={{ color: T.textSoft }}>60-minute 1:1 lessons</b> with your own teacher,
-              courses matched to your CEFR level, and every keyword you meet turned into
-              flashcards. Between lessons, keep the streak alive inside{' '}
-              <b style={{ color: T.textSoft }}>EnglishMetro World</b> — our living open-city game —
-              and {ALL_GAMES.length} instant practice games. Book online in minutes.
+              {W.heroSub(ALL_GAMES.length)}
             </p>
             <div className="gh-rise gh-rise-4" style={{ marginTop: 30, display: 'flex', gap: 14,
               flexWrap: 'wrap', alignItems: 'center' }}>
               <Link to="/signup" style={{ textDecoration: 'none' }}>
                 <Btn variant="primary" size="lg" trailingIcon="arrow_forward"
                   style={{ fontSize: 15, padding: '18px 32px' }}>
-                  Book your first lesson
+                  {W.ctaBook}
                 </Btn>
               </Link>
               <Link to="/pricing" style={{ textDecoration: 'none' }}>
                 <Btn variant="secondary" size="lg" trailingIcon="sell">
-                  See pricing
+                  {W.ctaPricing}
                 </Btn>
               </Link>
               <a href={WORLD_URL} onClick={(e) => { e.preventDefault(); window.location.assign(WORLD_URL) }}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T.violet,
                   fontSize: 13.5, fontWeight: 700, letterSpacing: '0.03em', textDecoration: 'none' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 17 }}>play_circle</span>
-                Play the World — free
+                {W.ctaWorld}
               </a>
             </div>
             <div className="gh-rise gh-rise-4" style={{ marginTop: 22, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-              {['60-min live 1:1 lessons', 'CEFR-matched courses', 'keywords become flashcards', 'book online in minutes'].map((f) => (
+              {W.chips.map((f) => (
                 <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 7,
                   fontSize: 12, color: T.textDim, letterSpacing: '0.04em' }}>
                   <span className="material-symbols-outlined" aria-hidden
@@ -427,35 +642,15 @@ export default function GameHome() {
           </div>
 
           <div className="gh-rise gh-rise-3" style={{ minWidth: 0 }}>
-            <a href={WORLD_URL} aria-label="Play EnglishMetro World — open beta"
-              style={{ textDecoration: 'none', display: 'block' }}>
-              <div className="gh-hero-frame">
-                <div className="gh-postcard" style={{ aspectRatio: '16 / 9', background: '#120a26' }}>
-                  {reduced ? (
-                    <img src="/gameplay-hero.jpg" alt="Real gameplay from EnglishMetro World"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
-                  ) : (
-                    <video autoPlay muted loop playsInline preload="metadata"
-                      poster="/gameplay-hero.jpg" src="/gameplay-hero.mp4"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
-                  )}
-                  <div style={{ position: 'absolute', top: 14, left: 14, display: 'inline-flex',
-                    alignItems: 'center', gap: 7, padding: '6px 12px', borderRadius: 999,
-                    background: 'rgba(10,6,24,0.72)', backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255,255,255,0.18)' }}>
-                    <span className="gh-live-dot" aria-hidden/>
-                    <span style={{ fontFamily: FONT.mono, fontSize: 10, fontWeight: 700,
-                      letterSpacing: '0.24em', textTransform: 'uppercase', color: '#F5F0FF' }}>
-                      real gameplay · open beta
-                    </span>
-                  </div>
-                </div>
-                <div className="gh-hero-cta" style={{ fontFamily: FONT.display }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>play_arrow</span>
-                  Step into the city
-                </div>
-              </div>
-            </a>
+            <HeroArcade night={night} badge={W.arcadeBadge}/>
+            <div style={{ marginTop: 12, textAlign: 'center' }}>
+              <a href={WORLD_URL} onClick={(e) => { e.preventDefault(); window.location.assign(WORLD_URL) }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T.textDim,
+                  fontSize: 12.5, fontWeight: 600, letterSpacing: '0.04em', textDecoration: 'none' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: T.violet }}>public</span>
+                {W.worldLink}
+              </a>
+            </div>
           </div>
         </section>
 
@@ -463,19 +658,14 @@ export default function GameHome() {
         <section style={{ paddingBottom: 64 }}>
           <Reveal>
             <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
-              textTransform: 'uppercase', color: T.fuchsia, marginBottom: 10 }}>from sign-up to speaking</div>
+              textTransform: 'uppercase', color: T.fuchsia, marginBottom: 10 }}>{W.stepsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: '0 0 26px' }}>
-              Your first lesson is four steps away
+              {W.stepsTitle}
             </h2>
           </Reveal>
           <div className="gh-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
-            {[
-              { icon: 'person_add', title: 'Create your account', body: 'Two minutes — email and password, or one tap with Google.' },
-              { icon: 'shopping_bag', title: 'Pick a package', body: 'From a single try-out lesson to 24. Pay by invoice today — online payment is coming.' },
-              { icon: 'event_available', title: 'Book your times', body: 'Choose slots inside your teacher’s live availability. The Meet link and calendar invite land in your inbox.' },
-              { icon: 'school', title: 'Learn, then replay', body: 'Every lesson becomes a PDF in your library and its keywords become flashcards — revise, practise, repeat.' },
-            ].map((s, i) => (
+            {W.steps.map((s, i) => (
               <Reveal key={s.title} delay={i * 90}>
                 <div className="gh-step" style={{ border: `1px solid ${T.border}`, height: '100%',
                   background: night ? 'rgba(20,12,40,0.55)' : 'rgba(255,255,255,0.82)' }}>
@@ -499,15 +689,15 @@ export default function GameHome() {
               flexWrap: 'wrap', gap: 12, marginBottom: 26 }}>
               <div>
                 <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
-                  textTransform: 'uppercase', color: T.emerald, marginBottom: 10 }}>1:1 lesson packages</div>
+                  textTransform: 'uppercase', color: T.emerald, marginBottom: 10 }}>{W.packsKicker}</div>
                 <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
                   letterSpacing: '-0.03em', margin: 0 }}>
-                  Pick your pace
+                  {W.packsTitle}
                 </h2>
               </div>
               <Link to="/pricing" style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
                 color: T.violet, fontSize: 13.5, fontWeight: 700, textDecoration: 'none' }}>
-                Full pricing &amp; details
+                {W.packsLink}
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_forward</span>
               </Link>
             </div>
@@ -525,15 +715,15 @@ export default function GameHome() {
                       : night ? 'rgba(20,12,40,0.55)' : 'rgba(255,255,255,0.82)',
                     boxShadow: hot ? '0 24px 70px -30px rgba(217,70,239,0.55)' : 'none' }}>
                     <div style={{ fontFamily: FONT.mono, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em',
-                      textTransform: 'uppercase', color: hot ? T.fuchsia : T.textMute, marginBottom: 10 }}>{p.badge}</div>
+                      textTransform: 'uppercase', color: hot ? T.fuchsia : T.textMute, marginBottom: 10 }}>{lang === 'pl' ? (p.badgePl || p.badge) : p.badge}</div>
                     <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 18, marginBottom: 2 }}>{p.name}</div>
-                    <div style={{ fontSize: 12.5, color: T.textDim, marginBottom: 14 }}>{p.pace} · 60 min each</div>
+                    <div style={{ fontSize: 12.5, color: T.textDim, marginBottom: 14 }}>{lang === 'pl' ? (p.pacePl || p.pace) : p.pace} · {W.packsEach}</div>
                     <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 30, letterSpacing: '-0.02em' }}>{p.price}</div>
                     <div style={{ fontSize: 12, color: T.textMute, marginBottom: 14 }}>{p.perLesson}</div>
-                    <p style={{ margin: '0 0 18px', fontSize: 12.5, lineHeight: 1.55, color: T.textDim, flexGrow: 1 }}>{p.bestFor}</p>
+                    <p style={{ margin: '0 0 18px', fontSize: 12.5, lineHeight: 1.55, color: T.textDim, flexGrow: 1 }}>{lang === 'pl' ? (p.bestForPl || p.bestFor) : p.bestFor}</p>
                     <Link to={`/signup?package=${p.id}`} style={{ textDecoration: 'none' }}>
                       <Btn variant={hot ? 'primary' : 'secondary'} size="md" full trailingIcon="arrow_forward">
-                        Start
+                        {W.packsStart}
                       </Btn>
                     </Link>
                   </div>
@@ -547,10 +737,10 @@ export default function GameHome() {
         <section style={{ paddingBottom: 58 }}>
           <Reveal>
             <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
-              textTransform: 'uppercase', color: T.violet, marginBottom: 10 }}>between lessons</div>
+              textTransform: 'uppercase', color: T.violet, marginBottom: 10 }}>{W.doorsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: '0 0 26px' }}>
-              The city keeps teaching
+              {W.doorsTitle}
             </h2>
           </Reveal>
           <div className="gh-doors" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
