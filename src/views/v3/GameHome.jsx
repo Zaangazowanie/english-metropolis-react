@@ -388,7 +388,7 @@ function PlayOverlay({ game, onClose }) {
                   ? 'Create a free account to save your progress, build a streak, and unlock every district of the city.'
                   : 'Full-screen play comes with a free account — along with saved progress and streaks.'}
               </p>
-              <Link to="/login" style={{ textDecoration: 'none' }}>
+              <Link to="/signup" style={{ textDecoration: 'none' }}>
                 <Btn variant="primary" size="lg" full trailingIcon="arrow_forward">Create free account</Btn>
               </Link>
               <button type="button" onClick={() => setShowCta(false)}
@@ -567,9 +567,14 @@ export default function GameHome() {
                 <Btn variant="ghost" size="md" icon="account_circle">My dashboard</Btn>
               </Link>
             ) : (
-              <Link to="/login" style={{ textDecoration: 'none' }}>
-                <Btn variant="ghost" size="md">Sign in</Btn>
-              </Link>
+              <>
+                <Link to="/login" style={{ textDecoration: 'none' }}>
+                  <Btn variant="ghost" size="md">Sign in</Btn>
+                </Link>
+                <Link to="/signup" style={{ textDecoration: 'none' }}>
+                  <Btn variant="secondary" size="md">Sign up</Btn>
+                </Link>
+              </>
             )}
             <ThemeToggle mode={mode} setMode={setMode} T={T}/>
             {/* NB: a <button> nested in an <a> does NOT activate the link —
@@ -772,7 +777,7 @@ export default function GameHome() {
             opens full-screen play across all districts — in the world and the arcade.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/login" style={{ textDecoration: 'none' }}>
+            <Link to="/signup" style={{ textDecoration: 'none' }}>
               <Btn variant="primary" size="lg" trailingIcon="arrow_forward">Start playing free</Btn>
             </Link>
             <a href={WORLD_URL} style={{ textDecoration: 'none' }}>
@@ -790,6 +795,7 @@ export default function GameHome() {
           </div>
           <div style={{ display: 'flex', gap: 16 }}>
             <Link to="/pricing" style={{ color: T.textMute, textDecoration: 'none' }}>Pricing</Link>
+            <Link to="/signup" style={{ color: T.textMute, textDecoration: 'none' }}>Sign up</Link>
             <Link to="/privacy" style={{ color: T.textMute, textDecoration: 'none' }}>Privacy</Link>
             <Link to="/cookies" style={{ color: T.textMute, textDecoration: 'none' }}>Cookies</Link>
             <Link to="/terms" style={{ color: T.textMute, textDecoration: 'none' }}>Terms</Link>
