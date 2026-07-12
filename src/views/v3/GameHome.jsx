@@ -21,6 +21,7 @@ import { game3dRegistry } from '../../practice/shells3d/kit/registry'
 import { usePrefersReducedMotion } from '../../practice/lib/usePrefersReducedMotion'
 import { useI18n } from '../../i18n'
 import { PRIVATE_PACKAGES } from '../public/packages.js'
+import HeroPracticePreview from './HeroPracticePreview.jsx'
 import './game-home.css'
 
 const MetroLearningCity = lazy(() => import('./MetroLearningCity.jsx'))
@@ -180,37 +181,33 @@ const GH = {
   },
 }
 
-// ── Hero arcade: REAL practice exercises, playable right in the hero ───────
-// (replaced the recorded-gameplay video 2026-07-10 — headless capture ran at
-// ~10fps and looked frozen. These are the same DOM-based shells as the
-// catalog, with their built-in demo puzzles: smooth, instant, no canvas.)
+// Homepage-only interactive practice showcases. They mirror the core game
+// mechanics without mounting full student shells or writing lesson progress.
 const HERO_GAMES = [
-  { key: 'flashcards', title: 'Flashcards', icon: 'style', load: () => import('../../practice/shells/Flashcards') },
-  { key: 'multiplechoice', title: 'Quiz', icon: 'quiz', load: () => import('../../practice/shells/MultipleChoice') },
-  { key: 'gapfill', title: 'Gap fill', icon: 'edit_note', load: () => import('../../practice/shells/GapFill') },
-  { key: 'truefalse', title: 'True / False', icon: 'balance', load: () => import('../../practice/shells/TrueFalse') },
-  { key: 'unjumble', title: 'Unjumble', icon: 'low_priority', load: () => import('../../practice/shells/Unjumble') },
-  { key: 'matching', title: 'Matching', icon: 'join_inner', load: () => import('../../practice/shells/Matching') },
-  { key: 'concentration', title: 'Memory', icon: 'grid_view', load: () => import('../../practice/shells/Concentration') },
+  { key: 'flashcards', title: 'Flashcards', icon: 'style' },
+  { key: 'multiplechoice', title: 'Quiz', icon: 'quiz' },
+  { key: 'gapfill', title: 'Gap fill', icon: 'edit_note' },
+  { key: 'truefalse', title: 'True / False', icon: 'balance' },
+  { key: 'unjumble', title: 'Unjumble', icon: 'low_priority' },
+  { key: 'matching', title: 'Matching', icon: 'join_inner' },
+  { key: 'concentration', title: 'Memory', icon: 'grid_view' },
 ]
-const HERO_SHELLS = HERO_GAMES.map((game) => ({ ...game, Shell: lazy(game.load) }))
 
-function HeroArcade({ badge, reduced }) {
+function HeroArcade({ badge, reduced, lang }) {
   const [active, setActive] = useState(0)
-  const activeGame = HERO_SHELLS[active]
-  const Shell = activeGame.Shell
+  const activeGame = HERO_GAMES[active]
   const tabsRef = useRef(null)
-  const go = (dir) => setActive(i => (i + dir + HERO_SHELLS.length) % HERO_SHELLS.length)
+  const go = (dir) => setActive(i => (i + dir + HERO_GAMES.length) % HERO_GAMES.length)
   const selectFromKeyboard = (next) => {
     setActive(next)
     requestAnimationFrame(() => tabsRef.current?.querySelectorAll('[role="tab"]')[next]?.focus())
   }
   const onTabsKeyDown = (event) => {
     let next = active
-    if (event.key === 'ArrowRight') next = (active + 1) % HERO_SHELLS.length
-    else if (event.key === 'ArrowLeft') next = (active - 1 + HERO_SHELLS.length) % HERO_SHELLS.length
+    if (event.key === 'ArrowRight') next = (active + 1) % HERO_GAMES.length
+    else if (event.key === 'ArrowLeft') next = (active - 1 + HERO_GAMES.length) % HERO_GAMES.length
     else if (event.key === 'Home') next = 0
-    else if (event.key === 'End') next = HERO_SHELLS.length - 1
+    else if (event.key === 'End') next = HERO_GAMES.length - 1
     else return
     event.preventDefault()
     selectFromKeyboard(next)
@@ -240,7 +237,7 @@ function HeroArcade({ badge, reduced }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', minWidth: 0 }}>
             <div ref={tabsRef} className="gh-arcade-tabs" role="tablist" aria-label="Choose a live practice game"
               onKeyDown={onTabsKeyDown}>
-              {HERO_SHELLS.map((g, i) => (
+              {HERO_GAMES.map((g, i) => (
                 <button key={g.key} type="button" onClick={() => setActive(i)}
                   id={`gh-arcade-tab-${g.key}`} role="tab" tabIndex={i === active ? 0 : -1}
                   aria-selected={i === active} aria-controls="gh-arcade-stage"
@@ -254,18 +251,9 @@ function HeroArcade({ badge, reduced }) {
         </div>
         <div style={{ position: 'relative' }}>
           <div id="gh-arcade-stage" role="tabpanel" aria-labelledby={`gh-arcade-tab-${activeGame.key}`}
-            key={activeGame.key} className="gh-arcade-stage"
-            style={{ height: 'min(56dvh, 460px)', overflow: 'auto', background: DUSK.bg }}>
-            <ShellBoundary>
-              <Suspense fallback={
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%',
-                  color: DUSK.dim, fontFamily: FONT.mono, fontSize: 12, letterSpacing: '0.2em' }}>
-                  NEXT TRAIN APPROACHING…
-                </div>
-              }>
-                <Shell/>
-              </Suspense>
-            </ShellBoundary>
+            data-game={activeGame.key} key={activeGame.key} className="gh-arcade-stage"
+            style={{ height: 'min(56dvh, 460px)', overflow: 'hidden', background: DUSK.bg }}>
+            <HeroPracticePreview game={activeGame.key} lang={lang}/>
           </div>
           <button type="button" className="gh-slider-arrow gh-slider-prev" aria-label="Previous exercise"
             onClick={() => go(-1)}>
@@ -276,7 +264,7 @@ function HeroArcade({ badge, reduced }) {
             <span className="material-symbols-outlined" style={{ fontSize: 26 }}>chevron_right</span>
           </button>
           <div className="gh-slider-dots" aria-hidden="true">
-            {HERO_SHELLS.map((g, i) => (
+            {HERO_GAMES.map((g, i) => (
               <button key={g.key} type="button" tabIndex={-1}
                 className={`gh-slider-dot${i === active ? ' on' : ''}`} onClick={() => setActive(i)}/>
             ))}
@@ -829,7 +817,7 @@ export default function GameHome() {
           </div>
 
           <div className="gh-rise gh-rise-3 gh-hero-stage-wrap" style={{ minWidth: 0 }}>
-            <HeroArcade badge={W.arcadeBadge} reduced={reduced}/>
+            <HeroArcade badge={W.arcadeBadge} reduced={reduced} lang={lang}/>
             <div style={{ marginTop: 12, textAlign: 'center' }}>
               <a href={WORLD_URL} className="gh-text-link"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T.textDim,

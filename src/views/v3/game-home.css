@@ -1059,3 +1059,49 @@
 .gh-still .gh-proof-item,
 .gh-still .gh-three-loading::after { animation: none !important; }
 .gh-still .gh-feature-chip { opacity: 1; transform: none; }
+
+/* Homepage-only practice showcase controls. The playable student shells use
+   their own navigation and are deliberately outside this namespace. */
+.gh-arcade-stage {
+  position: relative;
+  overflow: hidden !important;
+  overscroll-behavior: contain;
+}
+.gh-slider-arrow {
+  top: auto;
+  bottom: 9px;
+  width: 38px;
+  height: 38px;
+  border-color: rgba(255,255,255,0.24);
+  background: rgba(15,9,36,0.68);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 22px rgba(4,2,15,0.32);
+  transform: none;
+}
+.gh-slider-arrow:hover {
+  background: linear-gradient(135deg, #8b5cf6, #d946ef);
+  transform: translateY(-2px);
+}
+.gh-slider-prev { left: 10px; }
+.gh-slider-next { right: 10px; }
+.gh-slider-dots {
+  bottom: 8px;
+  height: 40px;
+  padding: 4px 5px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(15,9,36,0.58);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.13);
+}
+.gh-slider-dot { width: 32px; height: 32px; }
+.gh-slider-dot::before { inset: 12px; }
+.gh-slider-dot.on::before { inset: 9px; }
+
+@media (max-width: 420px) {
+  .gh-slider-arrow { width: 38px; height: 38px; bottom: 9px; }
+  .gh-slider-prev { left: 8px; }
+  .gh-slider-next { right: 8px; }
+  .gh-slider-dots { bottom: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gh-slider-arrow:hover { transform: none; }
+}
