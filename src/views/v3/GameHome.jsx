@@ -15,7 +15,7 @@
 import { Suspense, lazy, useMemo, useRef, useState, useEffect, Component } from 'react'
 import { Link } from 'react-router-dom'
 import { FONT, G, EASE } from '../../design/v3/tokens.js'
-import { Btn, Skyline } from '../../design/v3/primitives.jsx'
+import { Skyline } from '../../design/v3/primitives.jsx'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { game3dRegistry } from '../../practice/shells3d/kit/registry'
 import { usePrefersReducedMotion } from '../../practice/lib/usePrefersReducedMotion'
@@ -23,14 +23,16 @@ import { useI18n } from '../../i18n'
 import { PRIVATE_PACKAGES } from '../public/packages.js'
 import './game-home.css'
 
+const MetroLearningCity = lazy(() => import('./MetroLearningCity.jsx'))
+
 // Scroll-triggered reveal: fades/rises a block the first time it enters the
 // viewport. Inert under prefers-reduced-motion (.gh-still forces visible).
-function Reveal({ children, delay = 0, style }) {
+function Reveal({ children, delay = 0, style, className = '' }) {
   const ref = useRef(null)
-  const [on, setOn] = useState(false)
+  const [on, setOn] = useState(() => typeof IntersectionObserver === 'undefined')
   useEffect(() => {
     const el = ref.current
-    if (!el || typeof IntersectionObserver === 'undefined') { setOn(true); return }
+    if (!el || typeof IntersectionObserver === 'undefined') return
     const io = new IntersectionObserver(([e]) => {
       if (e.isIntersecting) { setOn(true); io.disconnect() }
     }, { threshold: 0.15 })
@@ -38,9 +40,60 @@ function Reveal({ children, delay = 0, style }) {
     return () => io.disconnect()
   }, [])
   return (
-    <div ref={ref} className={`gh-sr${on ? ' on' : ''}`}
+    <div ref={ref} className={`gh-sr${on ? ' on' : ''}${className ? ` ${className}` : ''}`}
       style={{ transitionDelay: `${delay}ms`, ...style }}>
       {children}
+    </div>
+  )
+}
+
+// Navigation actions render as links all the way through. This avoids the
+// invalid link > button nesting that previously made some CTAs unreliable.
+function ActionLink({ to, href, children, variant = 'ghost', size = 'md', icon,
+  trailingIcon, full = false, className = '', style, onClick }) {
+  const classes = [
+    'gh-action',
+    `gh-action--${variant}`,
+    `gh-action--${size}`,
+    full ? 'gh-action--full' : '',
+    className,
+  ].filter(Boolean).join(' ')
+  const content = <>
+    {icon && <span className="material-symbols-outlined" aria-hidden>{icon}</span>}
+    <span>{children}</span>
+    {trailingIcon && <span className="material-symbols-outlined" aria-hidden>{trailingIcon}</span>}
+  </>
+
+  if (to) {
+    return <Link to={to} className={classes} style={style} onClick={onClick}>{content}</Link>
+  }
+  return <a href={href} className={classes} style={style} onClick={onClick}>{content}</a>
+}
+
+function DeferredMetroCity({ reduced, night, label }) {
+  const mountRef = useRef(null)
+  const [ready, setReady] = useState(() => typeof IntersectionObserver === 'undefined')
+
+  useEffect(() => {
+    const mount = mountRef.current
+    if (!mount || typeof IntersectionObserver === 'undefined') return undefined
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setReady(true)
+        observer.disconnect()
+      }
+    }, { rootMargin: '360px 0px', threshold: 0.01 })
+    observer.observe(mount)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div ref={mountRef} className="gh-three-mount">
+      {ready ? (
+        <Suspense fallback={<div className="gh-three-loading" aria-hidden/>}>
+          <MetroLearningCity reduced={reduced} night={night} label={label}/>
+        </Suspense>
+      ) : <div className="gh-three-loading" aria-hidden/>}
     </div>
   )
 }
@@ -71,6 +124,20 @@ const GH = {
     packsKicker: '1:1 lesson packages', packsTitle: 'Pick your pace', packsLink: 'Full pricing & details',
     packsStart: 'Start', packsEach: '60 min each',
     doorsKicker: 'between lessons', doorsTitle: 'The city keeps teaching',
+    proofLabel: 'What your route includes',
+    proof: (n) => [
+      { value: '1:1', label: 'live teacher' },
+      { value: '60 min', label: 'every lesson' },
+      { value: 'CEFR', label: 'personal route' },
+      { value: String(n), label: 'instant games' },
+    ],
+    cityKicker: 'teacher-led · city-powered',
+    cityTitle: 'One teacher. One route. A city that moves with you.',
+    cityBody: 'Your lesson sets the direction. EnglishMetro turns the words you meet into flashcards, games and places to revisit, so every practice session belongs to the same learning story.',
+    cityFeatures: ['Live feedback from your teacher', 'Vocabulary from your own lessons', 'A 3D world that keeps expanding'],
+    cityCta: 'Build my learning route',
+    cityLabel: 'Interactive 3D map of EnglishMetro',
+    cityHint: 'Drag the city to explore',
   },
   pl: {
     navPricing: 'Cennik', navSignin: 'Zaloguj się', navSignup: 'Załóż konto', navDash: 'Mój panel',
@@ -96,6 +163,20 @@ const GH = {
     packsKicker: 'pakiety lekcji 1:1', packsTitle: 'Wybierz swoje tempo', packsLink: 'Pełny cennik i szczegóły',
     packsStart: 'Zaczynam', packsEach: 'po 60 min',
     doorsKicker: 'między lekcjami', doorsTitle: 'Miasto uczy dalej',
+    proofLabel: 'Co obejmuje Twoja ścieżka',
+    proof: (n) => [
+      { value: '1:1', label: 'lektor na żywo' },
+      { value: '60 min', label: 'każda lekcja' },
+      { value: 'CEFR', label: 'osobista ścieżka' },
+      { value: String(n), label: 'gier bez przygotowań' },
+    ],
+    cityKicker: 'lektor prowadzi · miasto utrwala',
+    cityTitle: 'Jeden lektor. Jedna ścieżka. Miasto, które podąża za Tobą.',
+    cityBody: 'Lekcja wyznacza kierunek. EnglishMetro zamienia poznane słowa w fiszki, gry i miejsca, do których wracasz, dzięki czemu każde ćwiczenie jest częścią tej samej historii nauki.',
+    cityFeatures: ['Informacja zwrotna od lektora na żywo', 'Słownictwo z Twoich lekcji', 'Świat 3D, który stale się rozwija'],
+    cityCta: 'Zbuduj moją ścieżkę',
+    cityLabel: 'Interaktywna mapa 3D EnglishMetro',
+    cityHint: 'Przeciągnij miasto, aby je odkrywać',
   },
 }
 
@@ -112,16 +193,38 @@ const HERO_GAMES = [
   { key: 'matching', title: 'Matching', icon: 'join_inner', load: () => import('../../practice/shells/Matching') },
   { key: 'concentration', title: 'Memory', icon: 'grid_view', load: () => import('../../practice/shells/Concentration') },
 ]
+const HERO_SHELLS = HERO_GAMES.map((game) => ({ ...game, Shell: lazy(game.load) }))
 
-function HeroArcade({ night, badge }) {
+function HeroArcade({ badge, reduced }) {
   const [active, setActive] = useState(0)
-  const Shell = useMemo(() => lazy(HERO_GAMES[active].load), [active])
+  const activeGame = HERO_SHELLS[active]
+  const Shell = activeGame.Shell
   const tabsRef = useRef(null)
-  const go = (dir) => setActive(i => (i + dir + HERO_GAMES.length) % HERO_GAMES.length)
+  const go = (dir) => setActive(i => (i + dir + HERO_SHELLS.length) % HERO_SHELLS.length)
+  const selectFromKeyboard = (next) => {
+    setActive(next)
+    requestAnimationFrame(() => tabsRef.current?.querySelectorAll('[role="tab"]')[next]?.focus())
+  }
+  const onTabsKeyDown = (event) => {
+    let next = active
+    if (event.key === 'ArrowRight') next = (active + 1) % HERO_SHELLS.length
+    else if (event.key === 'ArrowLeft') next = (active - 1 + HERO_SHELLS.length) % HERO_SHELLS.length
+    else if (event.key === 'Home') next = 0
+    else if (event.key === 'End') next = HERO_SHELLS.length - 1
+    else return
+    event.preventDefault()
+    selectFromKeyboard(next)
+  }
   useEffect(() => {
-    tabsRef.current?.querySelector('.gh-arcade-tab.on')
-      ?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
-  }, [active])
+    const tabs = tabsRef.current
+    const activeTab = tabs?.querySelector('.gh-arcade-tab.on')
+    if (!tabs || !activeTab) return
+    const tabsBox = tabs.getBoundingClientRect()
+    const activeBox = activeTab.getBoundingClientRect()
+    const activeLeft = activeBox.left - tabsBox.left + tabs.scrollLeft
+    const left = activeLeft - (tabs.clientWidth - activeBox.width) / 2
+    tabs.scrollTo({ left, behavior: reduced ? 'auto' : 'smooth' })
+  }, [active, reduced])
   return (
     <div className="gh-hero-frame">
       <div className="gh-postcard" style={{ background: '#120a26' }}>
@@ -135,9 +238,12 @@ function HeroArcade({ night, badge }) {
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', minWidth: 0 }}>
-            <div ref={tabsRef} className="gh-arcade-tabs">
-              {HERO_GAMES.map((g, i) => (
+            <div ref={tabsRef} className="gh-arcade-tabs" role="tablist" aria-label="Choose a live practice game"
+              onKeyDown={onTabsKeyDown}>
+              {HERO_SHELLS.map((g, i) => (
                 <button key={g.key} type="button" onClick={() => setActive(i)}
+                  id={`gh-arcade-tab-${g.key}`} role="tab" tabIndex={i === active ? 0 : -1}
+                  aria-selected={i === active} aria-controls="gh-arcade-stage"
                   className={`gh-arcade-tab${i === active ? ' on' : ''}`}>
                   <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{g.icon}</span>
                   {g.title}
@@ -147,8 +253,10 @@ function HeroArcade({ night, badge }) {
           </div>
         </div>
         <div style={{ position: 'relative' }}>
-          <div style={{ height: 'min(56vh, 460px)', overflow: 'auto', background: DUSK.bg }}>
-            <ShellBoundary key={HERO_GAMES[active].key}>
+          <div id="gh-arcade-stage" role="tabpanel" aria-labelledby={`gh-arcade-tab-${activeGame.key}`}
+            key={activeGame.key} className="gh-arcade-stage"
+            style={{ height: 'min(56dvh, 460px)', overflow: 'auto', background: DUSK.bg }}>
+            <ShellBoundary>
               <Suspense fallback={
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%',
                   color: DUSK.dim, fontFamily: FONT.mono, fontSize: 12, letterSpacing: '0.2em' }}>
@@ -167,8 +275,8 @@ function HeroArcade({ night, badge }) {
             onClick={() => go(1)}>
             <span className="material-symbols-outlined" style={{ fontSize: 26 }}>chevron_right</span>
           </button>
-          <div className="gh-slider-dots" aria-hidden>
-            {HERO_GAMES.map((g, i) => (
+          <div className="gh-slider-dots" aria-hidden="true">
+            {HERO_SHELLS.map((g, i) => (
               <button key={g.key} type="button" tabIndex={-1}
                 className={`gh-slider-dot${i === active ? ' on' : ''}`} onClick={() => setActive(i)}/>
             ))}
@@ -273,6 +381,9 @@ const ALL_GAMES = LINES.flatMap((l) => l.games.map((g) => ({ ...g, line: l.line,
 
 // Daily quick-pick candidates: arcade-feel shells that demo brilliantly cold.
 const FEATURED_KEYS = ['balloonpop', 'snake', 'whackamole', 'spinthewheel', 'openthebox', 'mazechase', 'quizshow', 'battleship']
+const TODAY_NUMBER = Math.floor(new Date().setHours(0, 0, 0, 0) / 86400000)
+const DAILY_PICK_KEY = FEATURED_KEYS[TODAY_NUMBER % FEATURED_KEYS.length]
+const CURRENT_YEAR = new Date().getFullYear()
 
 // The world game lives OUTSIDE the SPA as static files (own loader, own
 // three.js build) — a plain anchor, not a router Link.
@@ -350,17 +461,67 @@ function PlayOverlay({ game, onClose }) {
   const [LazyShell] = useState(() => lazy(game.is3d ? game.load3d : game.load))
   const [doneOnce, setDoneOnce] = useState(false)
   const [showCta, setShowCta] = useState(false)
+  const dialogRef = useRef(null)
+  const closeButtonRef = useRef(null)
+  const previousFocusRef = useRef(null)
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    const dialog = dialogRef.current
+    if (!dialog) return undefined
+    previousFocusRef.current = document.activeElement
+    const previousOverflow = document.body.style.overflow
+    const siblingState = [...dialog.parentElement.children]
+      .filter((element) => element !== dialog)
+      .map((element) => ({ element, inert: element.inert, ariaHidden: element.getAttribute('aria-hidden') }))
+    siblingState.forEach(({ element }) => {
+      element.inert = true
+      element.setAttribute('aria-hidden', 'true')
+    })
+
+    const onKey = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const focusable = [...dialog.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )].filter((element) => element.getClientRects().length > 0)
+      if (!focusable.length) {
+        event.preventDefault()
+        dialog.focus()
+        return
+      }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
     window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
+    const focusFrame = requestAnimationFrame(() => closeButtonRef.current?.focus())
+    return () => {
+      cancelAnimationFrame(focusFrame)
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = previousOverflow
+      siblingState.forEach(({ element, inert, ariaHidden }) => {
+        element.inert = inert
+        if (ariaHidden === null) element.removeAttribute('aria-hidden'); else element.setAttribute('aria-hidden', ariaHidden)
+      })
+      if (previousFocusRef.current?.isConnected) previousFocusRef.current.focus()
+    }
   }, [onClose])
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={`Playing ${game.title}`}
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={`Playing ${game.title}`}
+      tabIndex={-1} className="gh-play-overlay"
       style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column',
-        background: DUSK.bg, backdropFilter: 'blur(14px)' }}>
+        background: DUSK.bg, backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '14px 20px', borderBottom: `1px solid ${DUSK.line}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
@@ -378,7 +539,7 @@ function PlayOverlay({ game, onClose }) {
               borderRadius: 8, padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>fullscreen</span>
           </button>
-          <button type="button" onClick={onClose} aria-label="Close game"
+          <button ref={closeButtonRef} type="button" onClick={onClose} aria-label="Close game"
             style={{ background: 'transparent', border: `1px solid ${DUSK.line}`, color: DUSK.dim,
               borderRadius: 8, padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
@@ -401,11 +562,11 @@ function PlayOverlay({ game, onClose }) {
         {showCta && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
             justifyContent: 'center', background: 'rgba(5,3,9,0.82)', backdropFilter: 'blur(6px)', padding: 24 }}>
-            <div className="gh-rise" style={{ maxWidth: 440, width: '100%', textAlign: 'center',
+            <div className="gh-rise gh-overlay-card" style={{ maxWidth: 440, width: '100%', textAlign: 'center',
               background: 'linear-gradient(180deg, rgba(30,20,60,0.92) 0%, rgba(15,10,35,0.92) 100%)',
               border: '1px solid rgba(217,70,239,0.35)', borderRadius: 20, padding: '36px 32px',
               boxShadow: '0 30px 80px -20px rgba(0,0,0,0.7), 0 0 60px -20px rgba(217,70,239,0.3)' }}>
-              <div style={{ fontSize: 36, marginBottom: 10 }}>🦉</div>
+              <img src="/bajla.png" alt="" width="72" height="72" style={{ objectFit: 'contain', marginBottom: 10 }}/>
               <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 24, color: DUSK.text, marginBottom: 10 }}>
                 {doneOnce ? 'Nice round.' : 'Go full screen?'}
               </div>
@@ -414,9 +575,9 @@ function PlayOverlay({ game, onClose }) {
                   ? 'Create a free account to save your progress, build a streak, and unlock every district of the city.'
                   : 'Full-screen play comes with a free account — along with saved progress and streaks.'}
               </p>
-              <Link to="/signup" style={{ textDecoration: 'none' }}>
-                <Btn variant="primary" size="lg" full trailingIcon="arrow_forward">Create free account</Btn>
-              </Link>
+              <ActionLink to="/signup" variant="primary" size="lg" full trailingIcon="arrow_forward">
+                Create free account
+              </ActionLink>
               <button type="button" onClick={() => setShowCta(false)}
                 style={{ marginTop: 14, background: 'transparent', border: 'none', color: DUSK.mute,
                   fontSize: 12, cursor: 'pointer', letterSpacing: '0.06em' }}>
@@ -445,16 +606,13 @@ function ThemeToggle({ mode, setMode, T }) {
   )
 }
 
-function GameCard({ g, color, T, night, onPlay, index, soon }) {
+function GameCard({ g, color, T, onPlay, index, soon }) {
   return (
-    <button type="button" className="gh-card" disabled={soon}
+    <button type="button" className="gh-card gh-glass" disabled={soon}
       onClick={soon ? undefined : () => onPlay(g)}
       aria-label={soon ? `${g.title} — arriving soon` : `Play ${g.title}`}
       style={{ textAlign: 'left', cursor: soon ? 'default' : 'pointer', borderRadius: 16,
         border: `1px solid ${T.border}`, padding: '18px 18px 16px',
-        background: night
-          ? 'linear-gradient(180deg, rgba(30,20,60,0.34) 0%, rgba(12,7,28,0.5) 100%)'
-          : 'linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(245,242,252,0.9) 100%)',
         color: T.text, fontFamily: FONT.body, opacity: soon ? 0.55 : 1,
         animationDelay: `${Math.min(index * 45, 450)}ms`, '--gh-card-glow': `${color}44` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -479,11 +637,10 @@ function GameCard({ g, color, T, night, onPlay, index, soon }) {
 }
 
 // One expandable metro line of the practice catalog.
-function LineSection({ line, T, night, open, onToggle, onPlay, count, subtitle, children }) {
+function LineSection({ line, T, open, onToggle, count, subtitle, children }) {
   return (
-    <div className="gh-acc" data-open={open}
+    <div className="gh-acc gh-glass" data-open={open}
       style={{ border: `1px solid ${open ? T.borderHi : T.border}`, borderRadius: 20,
-        background: night ? 'rgba(14,9,30,0.55)' : 'rgba(255,255,255,0.7)',
         boxShadow: open ? T.shadowSm : 'none' }}>
       <button type="button" className="gh-acc-head" onClick={onToggle} aria-expanded={open}
         style={{ color: T.text }}>
@@ -506,8 +663,7 @@ function LineSection({ line, T, night, open, onToggle, onPlay, count, subtitle, 
       </button>
       <div className="gh-acc-body">
         <div className="gh-acc-inner">
-          <div style={{ display: 'grid', gap: 14, padding: '4px 18px 20px',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(225px, 1fr))' }}>
+          <div className="gh-game-grid" style={{ display: 'grid', gap: 14, padding: '4px 18px 20px' }}>
             {children}
           </div>
         </div>
@@ -527,14 +683,11 @@ export default function GameHome() {
   const night = mode !== 'day'
   const reduced = usePrefersReducedMotion()
   const [playing, setPlaying] = useState(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [openLines, setOpenLines] = useState(() => new Set([LINES[0].line]))
   const practiceRef = useRef(null)
 
-  const quickPick = useMemo(() => {
-    const day = Math.floor(Date.now() / 86400000)
-    const key = FEATURED_KEYS[day % FEATURED_KEYS.length]
-    return ALL_GAMES.find((g) => g.key === key) || ALL_GAMES[0]
-  }, [])
+  const quickPick = ALL_GAMES.find((g) => g.key === DAILY_PICK_KEY) || ALL_GAMES[0]
 
   const playable3d = useMemo(() =>
     game3dRegistry.filter((e) => !e.shellKey.startsWith('world-'))
@@ -557,59 +710,69 @@ export default function GameHome() {
   })
   const scrollToPractice = () => practiceRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
 
+  useEffect(() => {
+    if (!menuOpen) return undefined
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [menuOpen])
+
   return (
-    <div className={reduced ? 'gh-still' : ''} style={{ position: 'relative', minHeight: '100vh',
-      background: T.pageBg, color: T.text, fontFamily: FONT.body, overflowX: 'hidden',
-      transition: 'background 500ms ease, color 500ms ease' }}>
+    <div className={`gh-root gh-${night ? 'night' : 'day'}${reduced ? ' gh-still' : ''}`}
+      data-theme={night ? 'night' : 'day'} style={{ position: 'relative', minHeight: '100dvh',
+      background: T.pageBg, color: T.text, fontFamily: FONT.body, overflowX: 'clip',
+      transition: 'background 500ms ease, color 500ms ease',
+      '--gh-text': T.text, '--gh-text-soft': T.textSoft, '--gh-text-dim': T.textDim,
+      '--gh-border': T.border, '--gh-border-hi': T.borderHi, '--gh-surface': T.surface }}>
       {/* Atmosphere */}
-      <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
+      <div className="gh-aurora" aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
         background: night ? G.aurora : G.auroraDay, transition: 'opacity 500ms ease' }}/>
       {night ? <StarField/> : <DayClouds/>}
+      <div className="gh-motion-field" aria-hidden>
+        <span className="gh-motion-orb gh-motion-orb--one"/>
+        <span className="gh-motion-orb gh-motion-orb--two"/>
+        <span className="gh-motion-line gh-motion-line--one"/>
+        <span className="gh-motion-line gh-motion-line--two"/>
+      </div>
 
-      <div style={{ position: 'relative', zIndex: 2, maxWidth: 1840, margin: '0 auto', padding: '0 24px' }}>
+      <div className="gh-shell" style={{ position: 'relative', zIndex: 2, maxWidth: 1840, margin: '0 auto', padding: '0 24px' }}>
         {/* ── Header ── */}
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '22px 0', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <header className="gh-header gh-glass gh-rise">
+          <Link to="/" className="gh-brand" aria-label="English Metro home">
             <Skyline size={30}/>
             <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 19, letterSpacing: '-0.02em' }}>
               English <span style={{ background: G.brand, WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Metro</span>
               <span style={{ color: T.ember }}>.</span>
             </div>
-          </div>
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <Link to="/pricing" style={{ textDecoration: 'none' }}>
-              <Btn variant="ghost" size="md">{W.navPricing}</Btn>
-            </Link>
+          </Link>
+          <button type="button" className="gh-menu-toggle" aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen} aria-controls="gh-primary-nav" onClick={() => setMenuOpen((open) => !open)}>
+            <span className="material-symbols-outlined" aria-hidden>{menuOpen ? 'close' : 'menu'}</span>
+          </button>
+          <nav id="gh-primary-nav" className={`gh-nav${menuOpen ? ' is-open' : ''}`} aria-label="Primary navigation">
+            <ActionLink to="/pricing" onClick={() => setMenuOpen(false)}>{W.navPricing}</ActionLink>
             {studentSession?.slug ? (
-              <Link to={`/app/${studentSession.slug}/dashboard`} style={{ textDecoration: 'none' }}>
-                <Btn variant="ghost" size="md" icon="account_circle">{W.navDash}</Btn>
-              </Link>
+              <ActionLink to={`/app/${studentSession.slug}/dashboard`} icon="account_circle"
+                onClick={() => setMenuOpen(false)}>{W.navDash}</ActionLink>
             ) : (
               <>
-                <Link to="/login" style={{ textDecoration: 'none' }}>
-                  <Btn variant="ghost" size="md">{W.navSignin}</Btn>
-                </Link>
-                <Link to="/signup" style={{ textDecoration: 'none' }}>
-                  <Btn variant="secondary" size="md">{W.navSignup}</Btn>
-                </Link>
+                <ActionLink to="/login" onClick={() => setMenuOpen(false)}>{W.navSignin}</ActionLink>
+                <ActionLink to="/signup" variant="secondary" onClick={() => setMenuOpen(false)}>{W.navSignup}</ActionLink>
               </>
             )}
             <div className="gh-lang" role="group" aria-label="Language">
               {['pl', 'en'].map(l => (
                 <button key={l} type="button" onClick={() => setLang(l)}
+                  aria-pressed={lang === l}
                   className={`gh-lang-btn${lang === l ? ' on' : ''}`}>{l.toUpperCase()}</button>
               ))}
             </div>
             <ThemeToggle mode={mode} setMode={setMode} T={T}/>
-            {/* NB: a <button> nested in an <a> does NOT activate the link —
-                every Btn that leads to the world navigates via onClick. */}
-            <a href={WORLD_URL} style={{ textDecoration: 'none' }}>
-              <Btn variant="primary" size="md" trailingIcon="play_arrow"
-                onClick={() => window.location.assign(WORLD_URL)}
-                style={{ whiteSpace: 'nowrap' }}>{W.navPlay}</Btn>
-            </a>
+            <ActionLink href={WORLD_URL} variant="primary" trailingIcon="play_arrow"
+              onClick={() => setMenuOpen(false)} style={{ whiteSpace: 'nowrap' }}>{W.navPlay}</ActionLink>
           </nav>
         </header>
 
@@ -617,9 +780,10 @@ export default function GameHome() {
         <section className="gh-hero-grid" style={{ display: 'grid',
           gridTemplateColumns: 'minmax(0, 1.02fr) minmax(0, 0.98fr)',
           gap: 52, alignItems: 'center', padding: '46px 0 64px' }}>
-          <div style={{ minWidth: 0 }}>
-            <div className="gh-rise gh-rise-1" style={{ display: 'inline-flex', alignItems: 'center', gap: 10,
+          <div className="gh-hero-copy" style={{ minWidth: 0 }}>
+            <div className="gh-rise gh-rise-1 gh-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 10,
               marginBottom: 20 }}>
+              <span className="gh-eyebrow-mark" aria-hidden/>
               <span style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
                 textTransform: 'uppercase', color: T.emerald }}>
                 {W.eyebrow}
@@ -629,7 +793,7 @@ export default function GameHome() {
               fontSize: 'clamp(42px, 6.4vw, 82px)', lineHeight: 0.98, letterSpacing: '-0.04em', margin: 0 }}>
               {W.h1a}
               <br/>
-              <span style={{ background: G.brand, WebkitBackgroundClip: 'text',
+              <span className="gh-gradient-word" style={{ background: G.brand, WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{W.h1b}</span>
               <span style={{ color: T.ember }}>.</span>
             </h1>
@@ -639,18 +803,12 @@ export default function GameHome() {
             </p>
             <div className="gh-rise gh-rise-4" style={{ marginTop: 30, display: 'flex', gap: 14,
               flexWrap: 'wrap', alignItems: 'center' }}>
-              <Link to="/signup" style={{ textDecoration: 'none' }}>
-                <Btn variant="primary" size="lg" trailingIcon="arrow_forward"
-                  style={{ fontSize: 15, padding: '18px 32px' }}>
-                  {W.ctaBook}
-                </Btn>
-              </Link>
-              <Link to="/pricing" style={{ textDecoration: 'none' }}>
-                <Btn variant="secondary" size="lg" trailingIcon="sell">
-                  {W.ctaPricing}
-                </Btn>
-              </Link>
-              <a href={WORLD_URL} onClick={(e) => { e.preventDefault(); window.location.assign(WORLD_URL) }}
+              <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward"
+                style={{ fontSize: 15, padding: '18px 32px' }}>{W.ctaBook}</ActionLink>
+              <ActionLink to="/pricing" variant="secondary" size="lg" trailingIcon="sell">
+                {W.ctaPricing}
+              </ActionLink>
+              <a href={WORLD_URL} className="gh-text-link"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T.violet,
                   fontSize: 13.5, fontWeight: 700, letterSpacing: '0.03em', textDecoration: 'none' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 17 }}>play_circle</span>
@@ -658,8 +816,9 @@ export default function GameHome() {
               </a>
             </div>
             <div className="gh-rise gh-rise-4" style={{ marginTop: 22, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-              {W.chips.map((f) => (
-                <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 7,
+              {W.chips.map((f, i) => (
+                <span key={f} className="gh-feature-chip gh-glass" style={{ display: 'inline-flex', alignItems: 'center', gap: 7,
+                  '--gh-chip-delay': `${430 + i * 70}ms`,
                   fontSize: 12, color: T.textDim, letterSpacing: '0.04em' }}>
                   <span className="material-symbols-outlined" aria-hidden
                     style={{ fontSize: 15, color: T.emerald }}>check_circle</span>
@@ -669,10 +828,10 @@ export default function GameHome() {
             </div>
           </div>
 
-          <div className="gh-rise gh-rise-3" style={{ minWidth: 0 }}>
-            <HeroArcade night={night} badge={W.arcadeBadge}/>
+          <div className="gh-rise gh-rise-3 gh-hero-stage-wrap" style={{ minWidth: 0 }}>
+            <HeroArcade badge={W.arcadeBadge} reduced={reduced}/>
             <div style={{ marginTop: 12, textAlign: 'center' }}>
-              <a href={WORLD_URL} onClick={(e) => { e.preventDefault(); window.location.assign(WORLD_URL) }}
+              <a href={WORLD_URL} className="gh-text-link"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T.textDim,
                   fontSize: 12.5, fontWeight: 600, letterSpacing: '0.04em', textDecoration: 'none' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 16, color: T.violet }}>public</span>
@@ -682,9 +841,59 @@ export default function GameHome() {
           </div>
         </section>
 
+        {/* ── Credible proof points, then the teacher-to-city learning loop ── */}
+        <section className="gh-proof-rail gh-glass" aria-label={W.proofLabel}>
+          {W.proof(ALL_GAMES.length).map((item, index) => (
+            <div className="gh-proof-item" key={item.label} style={{ '--gh-proof-delay': `${index * 80}ms` }}>
+              <strong>{item.value}</strong>
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </section>
+
+        <section className="gh-city-loop gh-section">
+          <Reveal className="gh-city-copy">
+            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+              textTransform: 'uppercase', color: T.emerald, marginBottom: 12 }}>{W.cityKicker}</div>
+            <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(32px, 4.7vw, 58px)',
+              lineHeight: 1.02, letterSpacing: '-0.04em', margin: '0 0 20px' }}>{W.cityTitle}</h2>
+            <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.35vw, 17px)', lineHeight: 1.7,
+              maxWidth: 560, margin: '0 0 24px' }}>{W.cityBody}</p>
+            <div className="gh-city-features">
+              {W.cityFeatures.map((feature, index) => (
+                <div className="gh-city-feature gh-glass" key={feature}>
+                  <span className="gh-city-feature-index">0{index + 1}</span>
+                  <span>{feature}</span>
+                </div>
+              ))}
+            </div>
+            <div className="gh-city-actions">
+              <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward">
+                {W.cityCta}
+              </ActionLink>
+              <ActionLink href={WORLD_URL} variant="secondary" size="lg" trailingIcon="view_in_ar">
+                {W.navPlay}
+              </ActionLink>
+            </div>
+          </Reveal>
+
+          <Reveal className="gh-three-reveal" delay={100}>
+            <div className="gh-three-shell gh-glass-strong">
+              <DeferredMetroCity reduced={reduced} night={night} label={W.cityLabel}/>
+              <div className="gh-three-hud">
+                <span className="gh-three-status"><span className="gh-live-dot" aria-hidden/> LIVE CITY</span>
+                <span className="gh-three-hint"><span className="material-symbols-outlined" aria-hidden>drag_pan</span>{W.cityHint}</span>
+              </div>
+              <div className="gh-three-route" aria-hidden>
+                <span>LIVE 1:1</span><i/><span>FLASHCARDS</span><i/><span>WORLD 3D</span>
+              </div>
+            </div>
+          </Reveal>
+        </section>
+
         {/* ── How lessons work ── */}
-        <section style={{ paddingBottom: 64 }}>
-          <Reveal>
+        <section className="gh-section gh-journey-section" style={{ paddingBottom: 64 }}>
+          <Reveal className="gh-section-heading">
             <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
               textTransform: 'uppercase', color: T.fuchsia, marginBottom: 10 }}>{W.stepsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
@@ -694,9 +903,8 @@ export default function GameHome() {
           </Reveal>
           <div className="gh-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
             {W.steps.map((s, i) => (
-              <Reveal key={s.title} delay={i * 90}>
-                <div className="gh-step" style={{ border: `1px solid ${T.border}`, height: '100%',
-                  background: night ? 'rgba(20,12,40,0.55)' : 'rgba(255,255,255,0.82)' }}>
+              <Reveal key={s.title} delay={i * 90} className="gh-step-slot">
+                <div className="gh-step gh-glass" style={{ height: '100%' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                     <span className="gh-step-num" style={{ fontFamily: FONT.mono }}>{i + 1}</span>
                     <span className="material-symbols-outlined" aria-hidden
@@ -711,8 +919,8 @@ export default function GameHome() {
         </section>
 
         {/* ── Lesson packages — the live pricing, right here ── */}
-        <section style={{ paddingBottom: 64 }}>
-          <Reveal>
+        <section className="gh-section gh-packages-section" style={{ paddingBottom: 64 }}>
+          <Reveal className="gh-section-heading">
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
               flexWrap: 'wrap', gap: 12, marginBottom: 26 }}>
               <div>
@@ -730,17 +938,17 @@ export default function GameHome() {
               </Link>
             </div>
           </Reveal>
-          <div className="gh-packs" style={{ display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 16, alignItems: 'stretch' }}>
+          <div className="gh-packs">
             {PRIVATE_PACKAGES.map((p, i) => {
               const hot = p.accent === 'brand'
               return (
-                <Reveal key={p.id} delay={i * 80} style={{ height: '100%' }}>
-                  <div className="gh-pack" style={{ height: '100%', display: 'flex', flexDirection: 'column',
+                <Reveal key={p.id} delay={i * 80} style={{ height: '100%' }}
+                  className={`gh-pack-slot gh-pack-slot--${i + 1}${hot ? ' is-featured' : ''}`}>
+                  <div className={`gh-pack gh-glass${hot ? ' is-featured' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column',
                     border: hot ? '1px solid transparent' : `1px solid ${T.border}`,
                     background: hot
                       ? `linear-gradient(${night ? 'rgba(22,10,44,0.92)' : 'rgba(255,255,255,0.96)'}, ${night ? 'rgba(22,10,44,0.92)' : 'rgba(255,255,255,0.96)'}) padding-box, ${G.brand} border-box`
-                      : night ? 'rgba(20,12,40,0.55)' : 'rgba(255,255,255,0.82)',
+                      : undefined,
                     boxShadow: hot ? '0 24px 70px -30px rgba(217,70,239,0.55)' : 'none' }}>
                     <div style={{ fontFamily: FONT.mono, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em',
                       textTransform: 'uppercase', color: hot ? T.fuchsia : T.textMute, marginBottom: 10 }}>{lang === 'pl' ? (p.badgePl || p.badge) : p.badge}</div>
@@ -749,11 +957,8 @@ export default function GameHome() {
                     <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 30, letterSpacing: '-0.02em' }}>{p.price}</div>
                     <div style={{ fontSize: 12, color: T.textMute, marginBottom: 14 }}>{p.perLesson}</div>
                     <p style={{ margin: '0 0 18px', fontSize: 12.5, lineHeight: 1.55, color: T.textDim, flexGrow: 1 }}>{lang === 'pl' ? (p.bestForPl || p.bestFor) : p.bestFor}</p>
-                    <Link to={`/signup?package=${p.id}`} style={{ textDecoration: 'none' }}>
-                      <Btn variant={hot ? 'primary' : 'secondary'} size="md" full trailingIcon="arrow_forward">
-                        {W.packsStart}
-                      </Btn>
-                    </Link>
+                    <ActionLink to={`/signup?package=${p.id}`} variant={hot ? 'primary' : 'secondary'}
+                      full trailingIcon="arrow_forward">{W.packsStart}</ActionLink>
                   </div>
                 </Reveal>
               )
@@ -762,8 +967,8 @@ export default function GameHome() {
         </section>
 
         {/* ── Two ways in — the practice layer between lessons ── */}
-        <section style={{ paddingBottom: 58 }}>
-          <Reveal>
+        <section className="gh-section gh-doors-section" style={{ paddingBottom: 58 }}>
+          <Reveal className="gh-section-heading">
             <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
               textTransform: 'uppercase', color: T.violet, marginBottom: 10 }}>{W.doorsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
@@ -772,11 +977,8 @@ export default function GameHome() {
             </h2>
           </Reveal>
           <div className="gh-doors" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-            <a href={WORLD_URL} className="gh-door" style={{ textDecoration: 'none',
-              border: `1px solid ${T.border}`, color: T.text,
-              background: night
-                ? 'linear-gradient(135deg, rgba(139,92,246,0.16) 0%, rgba(12,7,28,0.65) 100%)'
-                : 'linear-gradient(135deg, rgba(139,92,246,0.10) 0%, rgba(255,255,255,0.9) 100%)' }}>
+            <a href={WORLD_URL} className="gh-door gh-door--world gh-glass" style={{ textDecoration: 'none',
+              border: `1px solid ${T.border}`, color: T.text }}>
               <div className="gh-door-ribbon">BETA</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                 <span className="material-symbols-outlined" aria-hidden
@@ -791,11 +993,9 @@ export default function GameHome() {
                 Start exploring <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_forward</span>
               </span>
             </a>
-            <button type="button" className="gh-door" onClick={scrollToPractice}
+            <button type="button" className="gh-door gh-door--practice gh-glass" onClick={scrollToPractice}
               style={{ textAlign: 'left', cursor: 'pointer', border: `1px solid ${T.border}`, color: T.text,
-                background: night
-                  ? 'linear-gradient(135deg, rgba(52,211,153,0.10) 0%, rgba(12,7,28,0.65) 100%)'
-                  : 'linear-gradient(135deg, rgba(52,211,153,0.10) 0%, rgba(255,255,255,0.9) 100%)' }}>
+                fontFamily: FONT.body }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                 <span className="material-symbols-outlined" aria-hidden
                   style={{ fontSize: 26, color: T.emerald }}>bolt</span>
@@ -813,7 +1013,7 @@ export default function GameHome() {
         </section>
 
         {/* ── Ticker ── */}
-        <div className="gh-ticker" style={{ overflow: 'hidden', borderTop: `1px solid ${T.border}`,
+        <div className="gh-ticker gh-glass-strip" style={{ overflow: 'hidden', borderTop: `1px solid ${T.border}`,
           borderBottom: `1px solid ${T.border}`, padding: '12px 0', marginBottom: 58 }}>
           <div className="gh-ticker-track">
             {tickerNames.map((n, i) => (
@@ -826,7 +1026,7 @@ export default function GameHome() {
         </div>
 
         {/* ── Practice catalog: expandable metro lines ── */}
-        <section ref={practiceRef} style={{ scrollMarginTop: 24, paddingBottom: 36 }}>
+        <section ref={practiceRef} className="gh-section gh-practice-section" style={{ scrollMarginTop: 110, paddingBottom: 36 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
             flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
@@ -842,7 +1042,7 @@ export default function GameHome() {
             no account needed for a first ride.
           </p>
 
-          <div style={{ display: 'grid', gap: 14 }}>
+          <div className="gh-catalog" style={{ display: 'grid', gap: 14 }}>
             {LINES.map((line) => (
               <LineSection key={line.line} line={line} T={T} night={night}
                 open={openLines.has(line.line)} onToggle={() => toggleLine(line.line)}
@@ -875,14 +1075,11 @@ export default function GameHome() {
         </section>
 
         {/* ── Bottom CTA ── */}
-        <section style={{ margin: '40px 0 90px', textAlign: 'center', padding: '64px 28px',
-          borderRadius: 26, border: `1px solid ${T.borderHi}`, position: 'relative', overflow: 'hidden',
-          background: night
-            ? `radial-gradient(ellipse 90% 130% at 50% 130%, rgba(217,70,239,0.16), transparent 65%),
-               linear-gradient(180deg, rgba(30,20,60,0.5) 0%, rgba(12,7,28,0.7) 100%)`
-            : `radial-gradient(ellipse 90% 130% at 50% 130%, rgba(217,70,239,0.10), transparent 65%),
-               linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(245,242,252,0.95) 100%)` }}>
-          <div style={{ fontSize: 38, marginBottom: 14 }}>🦉</div>
+        <section className="gh-bottom-cta gh-glass-strong" style={{ margin: '40px 0 90px', textAlign: 'center', padding: '64px 28px',
+          borderRadius: 26, border: `1px solid ${T.borderHi}`, position: 'relative', overflow: 'hidden' }}>
+          <span className="gh-cta-orb gh-cta-orb--one" aria-hidden/>
+          <span className="gh-cta-orb gh-cta-orb--two" aria-hidden/>
+          <img className="gh-bajla" src="/bajla.png" alt="Bajla, the EnglishMetro owl" width="112" height="112"/>
           <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(28px, 4vw, 46px)',
             letterSpacing: '-0.03em', margin: '0 0 12px' }}>
             The city remembers its players.
@@ -892,13 +1089,12 @@ export default function GameHome() {
             opens full-screen play across all districts — in the world and the arcade.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/signup" style={{ textDecoration: 'none' }}>
-              <Btn variant="primary" size="lg" trailingIcon="arrow_forward">Start playing free</Btn>
-            </Link>
-            <a href={WORLD_URL} style={{ textDecoration: 'none' }}>
-              <Btn variant="secondary" size="lg" trailingIcon="public"
-                onClick={() => window.location.assign(WORLD_URL)}>Try the beta world</Btn>
-            </a>
+            <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward">
+              Start playing free
+            </ActionLink>
+            <ActionLink href={WORLD_URL} variant="secondary" size="lg" trailingIcon="public">
+              Try the beta world
+            </ActionLink>
           </div>
         </section>
 
@@ -906,7 +1102,7 @@ export default function GameHome() {
         <footer style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           flexWrap: 'wrap', gap: 14, padding: '0 0 34px', fontSize: 11, color: T.textMute }}>
           <div style={{ letterSpacing: '0.24em', textTransform: 'uppercase' }}>
-            © {new Date().getFullYear()} englishmetro.com — Warszawa → The World
+            © {CURRENT_YEAR} englishmetro.com — Warszawa → The World
           </div>
           <div style={{ display: 'flex', gap: 16 }}>
             <Link to="/pricing" style={{ color: T.textMute, textDecoration: 'none' }}>Pricing</Link>
