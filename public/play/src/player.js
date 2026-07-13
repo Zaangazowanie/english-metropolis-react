@@ -127,7 +127,7 @@ export class Player {
         this.currentAction.timeScale = sp > 0.4 ? Math.max(0.7, sp / (sp > 5 ? SPRINT : WALK)) : 1;
       }
       this.anim.mixer.update(dt);
-      this.anim.postUpdate?.();          // wrist/pose corrections after the clips
+      this.anim.postUpdate?.(dt);        // wrist constraints after the clips
     } else {
       // procedural fallback for unrigged meshes
       this.animT += dt * (1 + this.speedFrac * 7);

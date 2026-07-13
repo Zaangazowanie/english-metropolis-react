@@ -1,10 +1,10 @@
 // English Metropolis — bootstrap. Plain ES modules, no build step.
 // Fixed-timestep simulation decoupled from rendering; rigged hero with real
-// skeletal animation; cinematic golden-hour lighting with true shadows.
+// skeletal animation; cinematic Miami-after-dark lighting with true shadows.
 import * as THREE from 'three';
 import { makeGLTFLoader } from './loaders.js';
 import { makeSky, toonifyGLB, toonRamp, uTime } from './materials.js';
-import { rigHumanoid, rigBase } from './rig.js';
+import { rigBase } from './rig.js';
 import { loadMixamoHero } from './hero.js';
 import { Trains } from './train.js';
 import { Citizens } from './citizens.js';
@@ -25,32 +25,45 @@ ui.voice = new VoiceManager();   // Kokoro NPC voices + faster-whisper answers
 document.getElementById('journal-close').addEventListener('click', () => ui.toggleJournal());
 
 // ---------- renderer ----------
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+const compactTouch = window.matchMedia?.('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 800;
+const lowPowerHint = Boolean(
+  connection?.saveData
+  || /(^|-)2g$/.test(connection?.effectiveType || '')
+  || (navigator.deviceMemory && navigator.deviceMemory <= 4)
+  || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)
+  || compactTouch
+);
+const renderer = new THREE.WebGLRenderer({
+  antialias: !lowPowerHint,
+  powerPreference: lowPowerHint ? 'default' : 'high-performance',
+});
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.12;
+renderer.toneMappingExposure = 1.04;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-const MAX_PR = Math.min(window.devicePixelRatio || 1, 2);
-let renderScale = 1;                       // dynamic resolution 0.55..1
+const MAX_PR = Math.min(window.devicePixelRatio || 1, lowPowerHint ? 1 : 2);
+let renderScale = lowPowerHint ? 0.85 : 1; // dynamic resolution 0.55..1
 renderer.setPixelRatio(MAX_PR);
 renderer.setSize(window.innerWidth, window.innerHeight);
 app.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0xe6c48f, 0.0055);
+scene.fog = new THREE.FogExp2(0x10172f, 0.0052);
 
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1200);
 camera.position.set(0, 3, 14);
 
-// ---------- golden-hour lighting (cinematic: real shadows near the player) ----------
-const hemi = new THREE.HemisphereLight(0xcfe0ef, 0xb08a5a, 0.85);
+// ---------- Miami-after-dark lighting (cinematic: real shadows near the player) ----------
+const hemi = new THREE.HemisphereLight(0x8fdcff, 0x28183f, 1.08);
 scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xffe3ae, 1.7);
-sun.position.set(35, 42, -60);
+const sun = new THREE.DirectionalLight(0xff9b9f, 1.52);
+sun.position.set(-38, 36, -58);
 sun.castShadow = true;
-// big displays get a 4K shadow map; potato tier sheds shadows entirely anyway
-const SHADOW_RES = (screen.width * (window.devicePixelRatio || 1)) >= 1900 ? 4096 : 2048;
+// Start conservatively on constrained devices; the adaptive tier can still
+// shed shadows entirely if sustained frame time remains high.
+const SHADOW_RES = lowPowerHint ? 1024 : (screen.width * (window.devicePixelRatio || 1)) >= 1900 ? 4096 : 2048;
 sun.shadow.mapSize.set(SHADOW_RES, SHADOW_RES);
 sun.shadow.camera.near = 1;
 sun.shadow.camera.far = 170;
@@ -60,11 +73,14 @@ sun.shadow.camera.top = S; sun.shadow.camera.bottom = -S;
 sun.shadow.bias = -0.0004;
 sun.shadow.normalBias = 0.02;
 scene.add(sun, sun.target);
+const rim = new THREE.DirectionalLight(0x55f2e9, 0.82);
+rim.position.set(42, 24, 34);
+scene.add(rim);
 scene.add(makeSky());
 
 // shadow frustum follows the player so the map covers only ~76m — crisp + cheap.
 // Position snaps to shadow-texel-sized steps so edges don't crawl/shimmer.
-const SUN_OFF = new THREE.Vector3(35, 42, -60).normalize().multiplyScalar(90);
+const SUN_OFF = new THREE.Vector3(-38, 36, -58).normalize().multiplyScalar(90);
 const SHADOW_TEXEL = (2 * S) / SHADOW_RES;
 function updateSun(playerPos) {
   const sx = Math.round(playerPos.x / SHADOW_TEXEL) * SHADOW_TEXEL;
@@ -178,7 +194,7 @@ Promise.all([
   // strolling the boulevards — each body at most once, so no character twins
   trains = new Trains(scene, zoneMgr, audio);
   citizens = new Citizens(scene, rig, npcBases);
-  citizens.spawn(8);                                   // one of each body, never twins
+  citizens.spawn(lowPowerHint ? 5 : 8);                // unique bodies at both quality tiers
   window.__EM = { player, world, zones: zoneMgr, camera: followCam, renderer, scene, camera3: camera, ui, audio, trains, citizens };
   // deterministic frame pump for headless verification (background tabs throttle rAF)
   window.__EM.step = (n = 1, dt = 1 / 60) => {

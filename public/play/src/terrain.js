@@ -48,11 +48,11 @@ export function makeTerrain() {
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
-  const grass = new THREE.Color(0x93a35e);
-  const lush = new THREE.Color(0x7ba05b);
-  const dry = new THREE.Color(0xc9b477);
-  const paveA = new THREE.Color(0xb5afa6);   // concrete — the city core is PAVED
-  const paveB = new THREE.Color(0xa8a29a);   // subtle slab variation
+  const grass = new THREE.Color(0x1f6762);
+  const lush = new THREE.Color(0x2c8b78);
+  const dry = new THREE.Color(0x405d70);
+  const paveA = new THREE.Color(0x39445d);   // cool civic stone
+  const paveB = new THREE.Color(0x46536d);   // subtle slab variation
   const c = new THREE.Color(), p = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), z = pos.getZ(i);

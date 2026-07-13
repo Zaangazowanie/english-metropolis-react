@@ -1,10 +1,11 @@
-// Shared look: stepped toon ramps, golden-hour palette, sky dome, blob shadows.
+// Shared look: stepped toon ramps, Miami-after-dark color, sky dome, blob shadows.
 import * as THREE from 'three';
 
 export const PALETTE = {
-  cream: 0xf2e3c4, terracotta: 0xc96f4a, sage: 0x7ba05b, amber: 0xe8a13d,
-  dustyBlue: 0x8fb4c9, ink: 0x4a3826, purple: 0x6b4fa0, road: 0x45403a,
-  sidewalk: 0xc6bfb2, plaza: 0xcfc8bb, grass: 0x93a35e, curb: 0x8f887c,
+  cream: 0xf5f2ff, terracotta: 0xff5f7e, sage: 0x36e1c1, amber: 0xffb45f,
+  dustyBlue: 0x5cbcff, ink: 0x0a1024, purple: 0x9b63ff, road: 0x10172b,
+  sidewalk: 0x59657d, plaza: 0x39445d, grass: 0x246a66, curb: 0x92a4bd,
+  cyan: 0x4deeea, pink: 0xff4fa3, coral: 0xff755f, glass: 0x18274a,
 };
 
 // One shared gradient ramp drives every toon material (Abeto-style stepped light).
@@ -23,6 +24,16 @@ export function toonMat(color, opts = {}) {
   return new THREE.MeshToonMaterial({ color, gradientMap: toonRamp(), ...opts });
 }
 
+export function neonMat(color, opacity = 1) {
+  return new THREE.MeshBasicMaterial({
+    color,
+    transparent: opacity < 1,
+    opacity,
+    depthWrite: opacity >= 1,
+    toneMapped: false,
+  });
+}
+
 // Convert a loaded GLB's PBR materials to toon while keeping baked texture maps.
 export function toonifyGLB(root, { saturate = 1.08, brighten = 1.05 } = {}) {
   root.traverse((o) => {
@@ -37,7 +48,7 @@ export function toonifyGLB(root, { saturate = 1.08, brighten = 1.05 } = {}) {
       mat.map.colorSpace = THREE.SRGBColorSpace;
       mat.map.anisotropy = 4;
     }
-    // gentle warm lift so Meshy bakes sit in the golden-hour grade
+    // Gentle saturation lift so Meshy bakes sit in the cool neon-city grade.
     const hsl = {};
     mat.color.getHSL(hsl);
     mat.color.setHSL(hsl.h, Math.min(1, hsl.s * saturate), Math.min(1, hsl.l * brighten));
@@ -71,7 +82,7 @@ export function addWindSway(material, amp = 0.09) {
   return material;
 }
 
-// Procedural dusk windows for the instanced skyline: world-space grid of warm
+// Procedural dusk windows for the instanced skyline: world-space grid of neon
 // lit windows on facades (skips roofs/floors via normal), stable per cell.
 export function addDuskWindows(material) {
   material.onBeforeCompile = (shader) => {
@@ -95,12 +106,14 @@ export function addDuskWindows(material) {
           float inWin = step(0.30, f.x) * step(f.x, 0.72) * step(0.34, f.y) * step(f.y, 0.70);
           float win = inWin * facade * hFade;
           // every window is glass — cool dark pane even when nobody's home
-          outgoingLight = mix(outgoingLight, outgoingLight * 0.35 + vec3(0.05, 0.07, 0.10), win * 0.85);
+          outgoingLight = mix(outgoingLight, outgoingLight * 0.28 + vec3(0.025, 0.075, 0.14), win * 0.9);
           // floor-slab shadow line for structure
           float band = smoothstep(0.93, 1.0, f.y) * facade * hFade;
           outgoingLight *= 1.0 - band * 0.16;
-          float lit = step(0.62, emHash(cell));                  // ~38% of windows lit
-          outgoingLight += vec3(1.0, 0.72, 0.35) * win * lit * 0.9;
+          float lit = step(0.54, emHash(cell));
+          float temperature = step(0.54, emHash(cell + vec2(13.0, 7.0)));
+          vec3 windowGlow = mix(vec3(0.20, 0.92, 1.0), vec3(1.0, 0.35, 0.68), temperature);
+          outgoingLight += windowGlow * win * lit * 0.82;
         }
         #include <opaque_fragment>`);
   };
@@ -115,11 +128,11 @@ export function makeSky() {
     depthWrite: false,
     fog: false,
     uniforms: {
-      topColor: { value: new THREE.Color(0x6f9fc0) },
-      midColor: { value: new THREE.Color(0xd9c9a8) },
-      botColor: { value: new THREE.Color(0xe8b06a) },
-      sunDir: { value: new THREE.Vector3(0.35, 0.42, -0.6).normalize() },
-      sunColor: { value: new THREE.Color(0xfff0c2) },
+      topColor: { value: new THREE.Color(0x050816) },
+      midColor: { value: new THREE.Color(0x192953) },
+      botColor: { value: new THREE.Color(0xff668d) },
+      sunDir: { value: new THREE.Vector3(-0.48, 0.18, -0.8).normalize() },
+      sunColor: { value: new THREE.Color(0xffd2c2) },
     },
     vertexShader: /* glsl */ `
       varying vec3 vDir;
@@ -132,13 +145,15 @@ export function makeSky() {
       uniform vec3 sunDir;
       varying vec3 vDir;
       void main() {
-        float h = clamp(vDir.y, -0.12, 1.0);
-        vec3 sky = h < 0.18
-          ? mix(botColor, midColor, smoothstep(-0.12, 0.18, h))
-          : mix(midColor, topColor, smoothstep(0.18, 0.85, h));
+        float h = clamp(vDir.y, -0.08, 1.0);
+        vec3 sky = h < 0.22
+          ? mix(botColor, midColor, smoothstep(-0.08, 0.22, h))
+          : mix(midColor, topColor, smoothstep(0.22, 0.9, h));
+        float horizon = 1.0 - smoothstep(-0.02, 0.18, abs(vDir.y));
+        sky += vec3(0.28, 0.05, 0.22) * horizon * 0.42;
         float sun = dot(normalize(vDir), sunDir);
-        sky += sunColor * (smoothstep(0.9985, 0.9995, sun) * 0.9   // disc
-                          + pow(max(sun, 0.0), 24.0) * 0.16);       // halo
+        sky += sunColor * (smoothstep(0.9987, 0.99965, sun) * 0.72
+                          + pow(max(sun, 0.0), 34.0) * 0.12);
         gl_FragColor = vec4(sky, 1.0);
       }`,
   });
@@ -155,8 +170,8 @@ function blobTexture() {
   c.width = c.height = 128;
   const g = c.getContext('2d');
   const grad = g.createRadialGradient(64, 64, 8, 64, 64, 62);
-  grad.addColorStop(0, 'rgba(40,28,16,0.42)');
-  grad.addColorStop(1, 'rgba(40,28,16,0)');
+  grad.addColorStop(0, 'rgba(4,9,24,0.46)');
+  grad.addColorStop(1, 'rgba(4,9,24,0)');
   g.fillStyle = grad;
   g.fillRect(0, 0, 128, 128);
   _blobTex = new THREE.CanvasTexture(c);
@@ -177,11 +192,18 @@ export function blobShadow(radius = 0.6) {
   return m;
 }
 
-// Ghibli clouds: puffy clusters of toon icosahedrons drifting slowly overhead.
+// Soft toon cloud banks drifting slowly overhead.
 export function makeClouds(clusters = 14) {
   const puffsPer = 5;
   const geo = new THREE.IcosahedronGeometry(1, 1);
-  const mat = new THREE.MeshToonMaterial({ color: 0xfffaf0, gradientMap: toonRamp(), fog: false });
+  const mat = new THREE.MeshToonMaterial({
+    color: 0x8b8eb7,
+    gradientMap: toonRamp(),
+    fog: false,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false,
+  });
   const inst = new THREE.InstancedMesh(geo, mat, clusters * puffsPer);
   const M = new THREE.Matrix4();
   const seeds = [];
@@ -189,7 +211,7 @@ export function makeClouds(clusters = 14) {
   for (let cl = 0; cl < clusters; cl++) {
     const cx = (Math.random() - 0.5) * 900;
     const cz = (Math.random() - 0.5) * 900;
-    const cy = 120 + Math.random() * 70;
+    const cy = 105 + Math.random() * 85;
     const spd = 1.2 + Math.random() * 1.6;
     const baseS = 9 + Math.random() * 14;
     for (let p = 0; p < puffsPer; p++, i++) {
@@ -225,7 +247,7 @@ export function makeDustMotes(count = 140, range = 60) {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   const mat = new THREE.PointsMaterial({
-    color: 0xfff3cf, size: 0.055, transparent: true, opacity: 0.55,
+    color: 0x77f7ee, size: 0.06, transparent: true, opacity: 0.5,
     sizeAttenuation: true, depthWrite: false,
   });
   const pts = new THREE.Points(geo, mat);
