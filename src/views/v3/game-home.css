@@ -332,15 +332,15 @@
   transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
 .gh-sr.on, .gh-still .gh-sr { opacity: 1; transform: none; }
 
-/* Live-gameplay badge dot */
-.gh-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #34D399;
-  box-shadow: 0 0 0 0 rgba(52,211,153,0.7); animation: gh-live-ping 1.8s ease-out infinite; }
+/* The dot is semantic: this preview is playable, not a static screenshot. */
+.gh-live-dot { position: relative; width: 7px; height: 7px; flex: none; border-radius: 50%; background: #41e5e0; }
+.gh-live-dot::after { position: absolute; inset: -5px; border: 1px solid #41e5e0; border-radius: 50%; content: '';
+  animation: gh-live-ping 2.4s ease-out infinite; }
 @keyframes gh-live-ping {
-  0% { box-shadow: 0 0 0 0 rgba(52,211,153,0.7); }
-  70% { box-shadow: 0 0 0 7px rgba(52,211,153,0); }
-  100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); }
+  0% { opacity: 0.72; transform: scale(0.45); }
+  72%, 100% { opacity: 0; transform: scale(1.15); }
 }
-.gh-still .gh-live-dot { animation: none; }
+.gh-still .gh-live-dot::after { animation: none; opacity: 0; }
 
 /* How-it-works steps */
 .gh-step { border-radius: 18px; padding: 22px 20px; backdrop-filter: blur(10px);
@@ -357,14 +357,24 @@
   transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms ease; }
 .gh-pack:hover { transform: translateY(-5px); box-shadow: 0 26px 70px -30px rgba(217,70,239,0.5); }
 
-/* Hero arcade tabs */
-.gh-arcade-tab { min-height: 38px; display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px;
-  border-radius: 999px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.03em; cursor: pointer;
-  color: rgba(244,240,255,0.75); background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.16); transition: all 180ms ease; }
-.gh-arcade-tab:hover { background: rgba(255,255,255,0.14); }
-.gh-arcade-tab.on { color: #fff; background: linear-gradient(135deg, #8B5CF6, #D946EF);
-  border-color: transparent; box-shadow: 0 6px 18px -6px rgba(217,70,239,0.6); }
+/* Hero arcade command rail and tabs */
+.gh-arcade-toolbar { display: flex; min-height: 58px; align-items: center; gap: 10px; padding: 8px 12px;
+  border-bottom: 1px solid rgba(157,234,244,0.15);
+  background: linear-gradient(90deg, rgba(8,16,42,0.98), rgba(18,15,52,0.96)); }
+.gh-arcade-live { display: inline-flex; flex: none; align-items: center; gap: 8px; }
+.gh-arcade-badge { color: #d8e5ff; font: 700 9px/1 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.17em; text-transform: uppercase; }
+.gh-arcade-tabs-wrap { min-width: 0; display: flex; align-items: center; margin-left: auto; }
+.gh-arcade-tab { position: relative; min-height: 40px; display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border: 1px solid rgba(190,232,250,0.18); border-radius: 999px; cursor: pointer;
+  color: rgba(226,234,255,0.72); background: rgba(255,255,255,0.055);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+  transition: transform 160ms ease, color 180ms ease, border-color 180ms ease, background-color 180ms ease; }
+.gh-arcade-tab:hover { color: #f7f8ff; border-color: rgba(65,229,224,0.42); background: rgba(65,229,224,0.08); }
+.gh-arcade-tab:active { transform: scale(0.97); }
+.gh-arcade-tab.on { color: #fff; border-color: rgba(255,124,160,0.68); background: #c83d77; }
+.gh-arcade-tab.on::after { position: absolute; right: 12px; bottom: 3px; left: 12px; height: 2px;
+  border-radius: 2px; content: ''; background: #69ebe4; }
 
 /* Language toggle (header) */
 .gh-lang { display: inline-flex; border-radius: 999px; overflow: hidden;
@@ -375,7 +385,7 @@
 .gh-lang-btn.on { opacity: 1; color: #fff; background: linear-gradient(135deg, #8B5CF6, #D946EF); }
 
 /* Hero arcade slider */
-.gh-arcade-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; max-width: 300px; }
+.gh-arcade-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; max-width: 330px; }
 .gh-arcade-tabs::-webkit-scrollbar { display: none; }
 .gh-arcade-tab { flex: none; }
 .gh-arcade-arrow { flex: none; display: inline-flex; align-items: center; justify-content: center;
@@ -385,21 +395,29 @@
 .gh-arcade-arrow:hover { background: rgba(255,255,255,0.16); }
 @media (max-width: 1100px) { .gh-arcade-badge { display: none; } .gh-arcade-tabs { max-width: none; flex: 1; } }
 
-/* Big slider arrows + dots on the hero practice viewport */
-.gh-slider-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 5;
-  width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #fff; background: rgba(20,10,40,0.62); backdrop-filter: blur(6px);
-  border: 1px solid rgba(217,70,239,0.55); box-shadow: 0 6px 22px rgba(0,0,0,0.45);
-  transition: all 180ms ease; }
-.gh-slider-arrow:hover { background: linear-gradient(135deg, #8B5CF6, #D946EF); transform: translateY(-50%) scale(1.08); }
+/* One reserved bottom rail: previous, route stops, next. */
+.gh-arcade-viewport { position: relative; }
+.gh-arcade-stage { position: relative; overflow: hidden !important; overscroll-behavior: contain; }
+.gh-slider-arrow { position: absolute; z-index: 45; bottom: 8px; width: 44px; height: 44px; display: flex;
+  align-items: center; justify-content: center; border: 1px solid rgba(187,230,249,0.25); border-radius: 12px;
+  cursor: pointer; color: #f5f7ff; background: rgba(7,14,35,0.86);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  transition: transform 160ms ease, border-color 180ms ease, background-color 180ms ease; }
+.gh-slider-arrow:hover { border-color: #41e5e0; background: #16375b; transform: translateY(-2px); }
+.gh-slider-arrow:active { transform: scale(0.96); }
 .gh-slider-prev { left: 10px; }
 .gh-slider-next { right: 10px; }
-.gh-slider-dots { position: absolute; left: 50%; transform: translateX(-50%); bottom: 8px; z-index: 5;
-  display: flex; gap: 7px; padding: 6px 10px; border-radius: 999px; background: rgba(20,10,40,0.55);
-  backdrop-filter: blur(6px); }
-.gh-slider-dot { width: 8px; height: 8px; border-radius: 50%; border: none; padding: 0; cursor: pointer;
-  background: rgba(255,255,255,0.35); transition: all 180ms ease; }
-.gh-slider-dot.on { background: linear-gradient(135deg, #8B5CF6, #D946EF); transform: scale(1.35); }
+.gh-slider-dots { position: absolute; z-index: 45; left: 50%; bottom: 8px; display: flex; height: 44px;
+  align-items: center; gap: 0; padding: 2px 6px; border: 1px solid rgba(187,230,249,0.2); border-radius: 999px;
+  background: rgba(7,14,35,0.82); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); transform: translateX(-50%); }
+.gh-slider-dot { position: relative; width: 26px; height: 38px; padding: 0; border: 0; cursor: pointer; background: transparent; }
+.gh-slider-dot::before { position: absolute; top: calc(50% - 2px); left: calc(50% - 8px); width: 16px; height: 4px;
+  border-radius: 4px; content: ''; background: rgba(217,230,250,0.35); transform: scaleX(0.28);
+  transition: transform 220ms cubic-bezier(0.16,1,0.3,1), background-color 180ms ease; }
+.gh-slider-dot:hover::before { background: rgba(111,235,229,0.72); transform: scaleX(0.55); }
+.gh-slider-dot.on::before { background: linear-gradient(90deg, #ff5a8a, #41e5e0); transform: scaleX(1); }
+.gh-slider-dot:active::before { transform: scaleX(0.75); }
 
 /* ── motion field + navigation ── */
 @keyframes gh-orbit-one {
@@ -499,8 +517,8 @@
   to { background-position: 100% 50%; filter: saturate(1.2); }
 }
 @keyframes gh-stage-swap {
-  from { opacity: 0; transform: translateY(14px) scale(0.985); filter: blur(4px); }
-  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes gh-chip-in {
   from { opacity: 0; transform: translateY(10px) scale(0.96); }
@@ -994,32 +1012,9 @@
   .gh-door { padding-inline: 20px; }
 }
 
-/* 24px visual dots retain a 32px touch target without making the rail heavy. */
-.gh-slider-dot {
-  position: relative;
-  width: 32px;
-  height: 32px;
-  background: transparent;
-  transform: none;
-}
-.gh-slider-dot::before {
-  content: '';
-  position: absolute;
-  inset: 12px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.38);
-  transition: inset 180ms ease, background 180ms ease, box-shadow 180ms ease;
-}
-.gh-slider-dot.on { background: transparent; transform: none; }
-.gh-slider-dot.on::before {
-  inset: 10px;
-  background: linear-gradient(135deg, #8b5cf6, #d946ef);
-  box-shadow: 0 0 12px rgba(217,70,239,0.7);
-}
-.gh-slider-dots { padding: 2px 5px; gap: 0; }
-
 @media (prefers-reduced-transparency: reduce) {
-  .gh-glass, .gh-glass-strip, .gh-card, .gh-step, .gh-pack, .gh-door, .gh-acc, .gh-nav {
+  .gh-glass, .gh-glass-strip, .gh-card, .gh-step, .gh-pack, .gh-door, .gh-acc, .gh-nav,
+  .gh-slider-arrow, .gh-slider-dots {
     background: var(--gh-glass-strong-bg) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
@@ -1029,7 +1024,8 @@
 @media (prefers-reduced-motion: reduce) {
   .gh-motion-orb, .gh-motion-line, .gh-gradient-word, .gh-eyebrow-mark, .gh-feature-chip,
   .gh-arcade-stage, .gh-bajla, .gh-cta-orb, .gh-action::before, .gh-section-heading,
-  .gh-steps::after, .gh-proof-item, .gh-three-loading::after, .gh-city-feature {
+  .gh-steps::after, .gh-proof-item, .gh-three-loading::after, .gh-city-feature,
+  .gh-arcade-tab, .gh-slider-arrow, .gh-slider-dot::before, .gh-live-dot::after {
     animation: none !important;
     transition: none !important;
   }
@@ -1060,48 +1056,11 @@
 .gh-still .gh-three-loading::after { animation: none !important; }
 .gh-still .gh-feature-chip { opacity: 1; transform: none; }
 
-/* Homepage-only practice showcase controls. The playable student shells use
-   their own navigation and are deliberately outside this namespace. */
-.gh-arcade-stage {
-  position: relative;
-  overflow: hidden !important;
-  overscroll-behavior: contain;
-}
-.gh-slider-arrow {
-  top: auto;
-  bottom: 9px;
-  width: 38px;
-  height: 38px;
-  border-color: rgba(255,255,255,0.24);
-  background: rgba(15,9,36,0.68);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 22px rgba(4,2,15,0.32);
-  transform: none;
-}
-.gh-slider-arrow:hover {
-  background: linear-gradient(135deg, #8b5cf6, #d946ef);
-  transform: translateY(-2px);
-}
-.gh-slider-prev { left: 10px; }
-.gh-slider-next { right: 10px; }
-.gh-slider-dots {
-  bottom: 8px;
-  height: 40px;
-  padding: 4px 5px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(15,9,36,0.58);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.13);
-}
-.gh-slider-dot { width: 32px; height: 32px; }
-.gh-slider-dot::before { inset: 12px; }
-.gh-slider-dot.on::before { inset: 9px; }
-
-@media (max-width: 420px) {
-  .gh-slider-arrow { width: 38px; height: 38px; bottom: 9px; }
-  .gh-slider-prev { left: 8px; }
-  .gh-slider-next { right: 8px; }
-  .gh-slider-dots { bottom: 8px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .gh-slider-arrow:hover { transform: none; }
+@media (hover: none) and (max-width: 620px), (update: slow) {
+  .gh-slider-arrow, .gh-slider-dots {
+    background: rgba(9,16,39,0.96);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .gh-live-dot::after { animation: none; opacity: 0; }
 }

@@ -1,11 +1,49 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import './hero-practice-preview.css'
 
 const WORDS = [
-  { word: 'morning', pl: 'poranek', icon: 'wb_twilight' },
-  { word: 'coffee', pl: 'kawa', icon: 'local_cafe' },
-  { word: 'station', pl: 'stacja', icon: 'train' },
+  {
+    word: 'morning',
+    pl: 'poranek',
+    icon: 'wb_twilight',
+    phonetic: '/ˈmɔː.nɪŋ/',
+    kind: 'noun',
+    example: 'Good morning! The first train is here.',
+  },
+  {
+    word: 'coffee',
+    pl: 'kawa',
+    icon: 'local_cafe',
+    phonetic: '/ˈkɒf.i/',
+    kind: 'noun',
+    example: 'Could I have a coffee, please?',
+  },
+  {
+    word: 'station',
+    pl: 'stacja',
+    icon: 'train',
+    phonetic: '/ˈsteɪ.ʃən/',
+    kind: 'noun',
+    example: 'Meet me outside the station.',
+  },
 ]
+
+const JUMBLE_WORDS = [
+  { id: 0, word: 'every' },
+  { id: 1, word: 'I' },
+  { id: 2, word: 'morning' },
+  { id: 3, word: 'the' },
+  { id: 4, word: 'take' },
+  { id: 5, word: 'metro' },
+]
+
+const MATCH_PAIRS = [
+  { id: 'apple', en: 'apple', pl: 'jabłko', icon: 'nutrition' },
+  { id: 'water', en: 'water', pl: 'woda', icon: 'water_drop' },
+  { id: 'bread', en: 'bread', pl: 'chleb', icon: 'bakery_dining' },
+]
+
+const POLISH_STOPS = [MATCH_PAIRS[2], MATCH_PAIRS[0], MATCH_PAIRS[1]]
 
 const MEMORY_CARDS = [
   { id: 'coffee-a', pair: 'coffee', label: 'coffee', icon: 'local_cafe' },
@@ -24,22 +62,35 @@ function MaterialIcon({ children, className = '' }) {
   return <span className={`material-symbols-outlined ${className}`} aria-hidden>{children}</span>
 }
 
-function SceneHeader({ icon, eyebrow, title, detail, progress }) {
+function SceneHeader({ icon, route, title, detail, current, total }) {
   return (
     <header className="gh-preview-head">
       <span className="gh-preview-mark"><MaterialIcon>{icon}</MaterialIcon></span>
       <span className="gh-preview-heading">
-        <span className="gh-preview-eyebrow">{eyebrow}</span>
+        <span className="gh-preview-route">{route}</span>
         <strong>{title}</strong>
         <small>{detail}</small>
       </span>
-      <span className="gh-preview-progress">{progress}</span>
+      <span className="gh-preview-progress" aria-label={`Progress ${current} of ${total}`}>
+        <span className="gh-preview-stops" aria-hidden>
+          {Array.from({ length: total }, (_, index) => (
+            <i key={index} className={index < current ? 'is-done' : index === current ? 'is-next' : ''}/>
+          ))}
+        </span>
+        <b>{current}/{total}</b>
+      </span>
     </header>
   )
 }
 
-function Feedback({ children }) {
-  return <span className="gh-preview-feedback" aria-live="polite">{children}</span>
+function Feedback({ tone = 'idle', icon, children }) {
+  const resolvedIcon = icon || (tone === 'success' ? 'check_circle' : tone === 'error' ? 'error' : 'arrow_forward')
+  return (
+    <span className="gh-preview-feedback" data-tone={tone} role="status" aria-live="polite">
+      <MaterialIcon>{resolvedIcon}</MaterialIcon>
+      <span>{children}</span>
+    </span>
+  )
 }
 
 function FlashcardsScene({ lang }) {
@@ -52,36 +103,55 @@ function FlashcardsScene({ lang }) {
   }
 
   return (
-    <div className="gh-preview-scene gh-preview-flashcards">
-      <SceneHeader icon="style" eyebrow="English Metropolis · Reading Café" title="Postcard words"
-        detail={copy(lang, 'Flip the card, then choose your next move', 'Odwróć kartę i wybierz następny krok')}
-        progress={`${index + 1} / ${WORDS.length}`}/>
-      <div className="gh-flash-art" aria-hidden>
-        <span className="gh-flash-window"><i/><i/><i/></span>
-        <span className="gh-flash-lamp"/>
-        <span className="gh-flash-plant"><i/><i/><i/></span>
+    <div className="gh-preview-scene gh-preview-flashcards" data-word={card.word}>
+      <SceneHeader icon="style" route="Ocean Line / Reading Lounge" title="Holographic words"
+        detail={copy(lang, 'Reveal the meaning, then route the card', 'Odkryj znaczenie i wybierz trasę karty')}
+        current={index + 1} total={WORDS.length}/>
+      <div className="gh-flash-city" aria-hidden>
+        <span className="gh-flash-sun"/>
+        <span className="gh-flash-skyline"><i/><i/><i/><i/><i/></span>
+        <span className="gh-flash-palm gh-flash-palm--one"><i/><i/><i/></span>
+        <span className="gh-flash-palm gh-flash-palm--two"><i/><i/><i/></span>
+        <span className="gh-flash-table"/>
         <span className="gh-flash-cup"><i/></span>
       </div>
       <div className="gh-flash-stack">
-        <span className="gh-flash-postcard gh-flash-postcard--one" aria-hidden/>
-        <span className="gh-flash-postcard gh-flash-postcard--two" aria-hidden/>
-        <button type="button" className={`gh-flash-card${flipped ? ' is-flipped' : ''}`}
-          onClick={() => setFlipped(value => !value)} aria-label={copy(lang, 'Flip flashcard', 'Odwróć fiszkę')}>
-          <span className="gh-flash-card-face gh-flash-card-front">
-            <span className="gh-flash-illustration"><MaterialIcon>{card.icon}</MaterialIcon></span>
-            <span className="gh-flash-word">{card.word}</span>
-            <span className="gh-flash-hint"><MaterialIcon>touch_app</MaterialIcon>{copy(lang, 'tap to flip', 'dotknij, aby odwrócić')}</span>
-          </span>
-          <span className="gh-flash-card-face gh-flash-card-back">
-            <span className="gh-flash-translation">{card.pl}</span>
-            <span className="gh-flash-example">“Good {card.word}!”</span>
+        <span className="gh-flash-pass gh-flash-pass--coral" aria-hidden/>
+        <span className="gh-flash-pass gh-flash-pass--cyan" aria-hidden/>
+        <button key={card.word} type="button" className={`gh-flash-card${flipped ? ' is-flipped' : ''}`}
+          onClick={() => setFlipped(value => !value)} aria-pressed={flipped}
+          aria-label={copy(lang, flipped ? 'Show English word' : 'Show Polish meaning', flipped ? 'Pokaż angielskie słowo' : 'Pokaż polskie znaczenie')}>
+          <span className="gh-flash-card-inner">
+            <span className="gh-flash-card-face gh-flash-card-front">
+              <span className="gh-flash-card-code">EM / WORD PASS</span>
+              <span className="gh-flash-word-art" aria-hidden>
+                <i/><b/><em/>
+                <MaterialIcon>{card.icon}</MaterialIcon>
+              </span>
+              <span className="gh-flash-word">{card.word}</span>
+              <span className="gh-flash-phonetic">{card.kind} <i/> {card.phonetic}</span>
+              <span className="gh-flash-hint"><MaterialIcon>touch_app</MaterialIcon>{copy(lang, 'Reveal Polish', 'Pokaż po polsku')}</span>
+            </span>
+            <span className="gh-flash-card-face gh-flash-card-back">
+              <span className="gh-flash-card-code">POLISH CONNECTION</span>
+              <span className="gh-flash-translation">{card.pl}</span>
+              <span className="gh-flash-example">{card.example}</span>
+              <span className="gh-flash-hint"><MaterialIcon>360</MaterialIcon>{copy(lang, 'Flip to English', 'Wróć do angielskiego')}</span>
+            </span>
           </span>
         </button>
       </div>
-      <div className="gh-flash-actions">
-        <button type="button" onClick={advance}><MaterialIcon>refresh</MaterialIcon>{copy(lang, 'Again', 'Jeszcze raz')}</button>
-        <button type="button" className="is-primary" onClick={advance}><MaterialIcon>check</MaterialIcon>{copy(lang, 'Got it', 'Umiem')}</button>
+      <div className={`gh-flash-actions${flipped ? ' is-ready' : ''}`}>
+        <button type="button" disabled={!flipped} onClick={() => setFlipped(false)}>
+          <MaterialIcon>replay</MaterialIcon>{copy(lang, 'Again', 'Jeszcze raz')}
+        </button>
+        <button type="button" className="is-primary" disabled={!flipped} onClick={advance}>
+          <MaterialIcon>check</MaterialIcon>{copy(lang, 'Got it', 'Umiem')}
+        </button>
       </div>
+      <Feedback icon={flipped ? 'route' : 'touch_app'}>
+        {flipped ? copy(lang, 'Choose where this card goes next.', 'Wybierz, co zrobić z tą kartą.') : copy(lang, 'Tap the pass to reveal its meaning.', 'Dotknij karty, aby odkryć znaczenie.')}
+      </Feedback>
     </div>
   )
 }
@@ -90,31 +160,40 @@ function QuizScene({ lang }) {
   const [answer, setAnswer] = useState('')
   const options = ['bridge', 'station', 'window', 'coffee']
   const correct = 'station'
+  const tone = !answer ? 'idle' : answer === correct ? 'success' : 'error'
+
   return (
-    <div className="gh-preview-scene gh-preview-quiz">
-      <SceneHeader icon="quiz" eyebrow="English Metropolis · City Kiosk" title="The street quiz"
-        detail={copy(lang, 'Pick the word that completes the poster', 'Wybierz słowo, które uzupełnia plakat')} progress="1 / 4"/>
-      <div className="gh-quiz-kiosk">
-        <div className="gh-quiz-skyline" aria-hidden><i/><i/><i/><i/></div>
-        <section className="gh-quiz-poster" aria-label="Quiz question">
-          <span className="gh-quiz-stamp">TODAY</span>
-          <span className="gh-quiz-label">CITY ENGLISH · A2</span>
-          <strong>The next train leaves from the ___.</strong>
+    <div className="gh-preview-scene gh-preview-quiz" data-state={tone}>
+      <SceneHeader icon="quiz" route="Metro Core / Platform Quiz" title="Catch the train"
+        detail={copy(lang, 'Complete the live platform announcement', 'Uzupełnij komunikat na peronie')}
+        current={answer === correct ? 2 : 1} total={4}/>
+      <div className="gh-quiz-terminal">
+        <div className="gh-quiz-horizon" aria-hidden><i/><i/><i/><i/><i/></div>
+        <section className="gh-quiz-board" aria-label="Quiz question">
+          <span className="gh-quiz-board-route"><MaterialIcon>train</MaterialIcon> NIGHT SERVICE / A2</span>
+          <strong>The next train leaves from the <b data-filled={Boolean(answer)}>{answer || '______'}</b>.</strong>
           <small>Następny pociąg odjeżdża ze stacji.</small>
+          <span className="gh-quiz-train" aria-hidden><i/><i/><i/></span>
+          <span className="gh-quiz-scan" aria-hidden/>
         </section>
         <div className="gh-quiz-options" role="radiogroup" aria-label={copy(lang, 'Answer options', 'Opcje odpowiedzi')}>
-          {options.map((option, index) => {
-            const state = answer === option ? (option === correct ? ' is-correct' : ' is-wrong') : ''
+          {options.map((option, optionIndex) => {
+            const selected = answer === option
+            const state = selected ? (option === correct ? ' is-correct' : ' is-wrong') : ''
             return (
-              <button key={option} type="button" className={state} aria-pressed={answer === option}
+              <button key={option} type="button" role="radio" aria-checked={selected} className={state}
                 onClick={() => setAnswer(option)}>
-                <span>{String.fromCharCode(65 + index)}</span>{option}
+                <span className="gh-quiz-index">{String.fromCharCode(65 + optionIndex)}</span>
+                <span>{option}</span>
+                {selected && <MaterialIcon>{option === correct ? 'check' : 'close'}</MaterialIcon>}
               </button>
             )
           })}
         </div>
       </div>
-      <Feedback>{answer ? (answer === correct ? copy(lang, 'Platform found. Nice work!', 'Peron znaleziony. Świetnie!') : copy(lang, 'Almost. Follow the train signs.', 'Prawie. Spójrz na znaki kolejowe.')) : copy(lang, 'One poster. Four possibilities.', 'Jeden plakat. Cztery możliwości.')}</Feedback>
+      <Feedback tone={tone}>
+        {!answer ? copy(lang, 'Select the platform word.', 'Wybierz słowo oznaczające peron.') : answer === correct ? copy(lang, 'Platform found. The train is cleared.', 'Peron znaleziony. Pociąg może ruszyć.') : copy(lang, 'Wrong platform. Try another ticket.', 'Zły peron. Wybierz inny bilet.')}
+      </Feedback>
     </div>
   )
 }
@@ -122,140 +201,199 @@ function QuizScene({ lang }) {
 function GapFillScene({ lang }) {
   const [word, setWord] = useState('')
   const options = ['latte', 'ticket', 'bridge']
+  const tone = !word ? 'idle' : word === 'latte' ? 'success' : 'error'
+
   return (
-    <div className="gh-preview-scene gh-preview-gapfill">
-      <SceneHeader icon="edit_note" eyebrow="English Metropolis · Market Quarter" title="Build the sentence"
-        detail={copy(lang, 'Light the café sign with the missing word', 'Zapal szyld kawiarni brakującym słowem')} progress="1 / 3"/>
-      <div className={`gh-gap-shop${word === 'latte' ? ' is-open' : ''}`}>
-        <span className="gh-gap-crane" aria-hidden><i/><b/></span>
-        <span className="gh-gap-cloud gh-gap-cloud--one" aria-hidden/>
-        <span className="gh-gap-cloud gh-gap-cloud--two" aria-hidden/>
-        <div className="gh-gap-building" aria-hidden>
-          <span className="gh-gap-awning"/>
+    <div className="gh-preview-scene gh-preview-gapfill" data-state={tone}>
+      <SceneHeader icon="edit_note" route="Night Market / Sentence Works" title="Power the phrase"
+        detail={copy(lang, 'Slot one word into the café request', 'Wstaw jedno słowo do zamówienia')}
+        current={word === 'latte' ? 2 : 1} total={3}/>
+      <div className={`gh-gap-market${word === 'latte' ? ' is-open' : ''}`}>
+        <div className="gh-gap-city" aria-hidden><i/><i/><i/><i/></div>
+        <span className="gh-gap-crane" aria-hidden><i><b/></i></span>
+        <div className="gh-gap-cafe" aria-hidden>
+          <span className="gh-gap-cafe-sign">CAFÉ 24</span>
+          <span className="gh-gap-open-sign">OPEN</span>
           <span className="gh-gap-window"><i/><i/></span>
           <span className="gh-gap-door"/>
-          <span className="gh-gap-cone"/>
         </div>
-        <section className="gh-gap-sign" aria-label="Gap fill sentence">
-          <span>CAFÉ LATTE · ORDER NO. 01</span>
-          <strong>Could I have a <b>{word || '______'}</b>, please?</strong>
+        <section className="gh-gap-marquee" aria-label="Gap fill sentence">
+          <span><MaterialIcon>local_cafe</MaterialIcon> NIGHT MARKET ENGLISH</span>
+          <strong>Could I have a <b data-filled={Boolean(word)}>{word || '______'}</b>, please?</strong>
           <small>Poproszę latte.</small>
+          {word && <em key={word} className="gh-gap-word-flight" aria-hidden>{word}</em>}
         </section>
-        <div className="gh-gap-blocks" aria-label={copy(lang, 'Word choices', 'Wybór słów')}>
-          {options.map(option => (
-            <button type="button" key={option} onClick={() => setWord(option)}
-              className={word === option ? (option === 'latte' ? 'is-correct' : 'is-wrong') : ''}>{option}</button>
-          ))}
+        <div className="gh-gap-blocks" role="group" aria-label={copy(lang, 'Word choices', 'Wybór słów')}>
+          {options.map(option => {
+            const selected = word === option
+            return (
+              <button type="button" key={option} onClick={() => setWord(option)} aria-pressed={selected}
+                className={selected ? (option === 'latte' ? 'is-correct' : 'is-wrong') : ''}>
+                <MaterialIcon>{option === 'latte' ? 'local_cafe' : option === 'ticket' ? 'confirmation_number' : 'conversion_path'}</MaterialIcon>
+                {option}
+                {selected && <MaterialIcon>{option === 'latte' ? 'check' : 'close'}</MaterialIcon>}
+              </button>
+            )
+          })}
         </div>
       </div>
-      <Feedback>{word ? (word === 'latte' ? copy(lang, 'The café is open!', 'Kawiarnia jest otwarta!') : copy(lang, 'That belongs in another district.', 'To słowo pasuje do innej dzielnicy.')) : copy(lang, 'Choose a word block.', 'Wybierz klocek ze słowem.')}</Feedback>
+      <Feedback tone={tone}>
+        {!word ? copy(lang, 'Choose a word cartridge.', 'Wybierz kasetę ze słowem.') : word === 'latte' ? copy(lang, 'Sentence powered. The café is open.', 'Zdanie gotowe. Kawiarnia jest otwarta.') : copy(lang, 'That cartridge does not fit. Try again.', 'Ta kaseta nie pasuje. Spróbuj ponownie.')}
+      </Feedback>
     </div>
   )
 }
 
 function TrueFalseScene({ lang }) {
   const [verdict, setVerdict] = useState('')
+  const tone = !verdict ? 'idle' : verdict === 'true' ? 'success' : 'error'
+
   return (
-    <div className="gh-preview-scene gh-preview-truefalse">
-      <SceneHeader icon="balance" eyebrow="English Metropolis · Courthouse" title="Weigh the sentence"
-        detail={copy(lang, 'Read the city fact and choose your verdict', 'Przeczytaj fakt i wydaj werdykt')} progress="1 / 5"/>
-      <div className={`gh-tf-court${verdict ? ` has-${verdict}` : ''}`}>
-        <div className="gh-tf-building" aria-hidden><i/><i/><i/><i/><i/></div>
-        <section className="gh-tf-case" aria-label="Statement">
-          <span>CASE FILE · LONDON</span>
+    <div className="gh-preview-scene gh-preview-truefalse" data-state={tone}>
+      <SceneHeader icon="balance" route="Civic Line / Truth Tribunal" title="Read the evidence"
+        detail={copy(lang, 'Choose the verdict that fits the city fact', 'Wybierz werdykt zgodny z faktem')}
+        current={verdict === 'true' ? 2 : 1} total={5}/>
+      <div className={`gh-tf-tribunal${verdict ? ` has-${verdict}` : ''}`}>
+        <div className="gh-tf-bridge" aria-hidden><i/><i/><i/><b/><em/></div>
+        <section className="gh-tf-evidence" aria-label="Statement">
+          <span><MaterialIcon>fact_check</MaterialIcon> EVIDENCE / LONDON</span>
           <strong>“Tower Bridge crosses the River Thames.”</strong>
-          <small>Wieża Tower Bridge przecina Tamizę.</small>
+          <small>Tower Bridge przecina Tamizę.</small>
+          <i className="gh-tf-evidence-scan" aria-hidden/>
         </section>
-        <div className="gh-tf-scale" aria-hidden><span/><i/><b/><em/></div>
-        <div className="gh-tf-actions" aria-label={copy(lang, 'True or false', 'Prawda czy fałsz')}>
-          <button type="button" className={verdict === 'true' ? 'is-selected' : ''} onClick={() => setVerdict('true')}>
+        <div className="gh-tf-scale" aria-hidden>
+          <span className="gh-tf-scale-beam"><i/><b/><em/></span>
+          <span className="gh-tf-scale-stand"/>
+        </div>
+        <div className="gh-tf-actions" role="group" aria-label={copy(lang, 'True or false', 'Prawda czy fałsz')}>
+          <button type="button" className={verdict === 'true' ? 'is-selected is-correct' : ''}
+            aria-pressed={verdict === 'true'} onClick={() => setVerdict('true')}>
             <MaterialIcon>check_circle</MaterialIcon><span>TRUE<small>PRAWDA</small></span>
+            {verdict === 'true' && <MaterialIcon>verified</MaterialIcon>}
           </button>
-          <button type="button" className={verdict === 'false' ? 'is-selected' : ''} onClick={() => setVerdict('false')}>
+          <button type="button" className={verdict === 'false' ? 'is-selected is-wrong' : ''}
+            aria-pressed={verdict === 'false'} onClick={() => setVerdict('false')}>
             <MaterialIcon>cancel</MaterialIcon><span>FALSE<small>FAŁSZ</small></span>
+            {verdict === 'false' && <MaterialIcon>error</MaterialIcon>}
           </button>
         </div>
       </div>
-      <Feedback>{verdict ? (verdict === 'true' ? copy(lang, 'Correct. The bridge lights are on.', 'Dobrze. Światła mostu są włączone.') : copy(lang, 'Look again at the river map.', 'Spójrz jeszcze raz na mapę rzeki.')) : copy(lang, 'The court is waiting.', 'Sąd czeka na decyzję.')}</Feedback>
+      <Feedback tone={tone}>
+        {!verdict ? copy(lang, 'The tribunal is ready for your verdict.', 'Trybunał czeka na Twój werdykt.') : verdict === 'true' ? copy(lang, 'Correct verdict. Bridge lights confirmed.', 'Dobry werdykt. Światła mostu potwierdzają fakt.') : copy(lang, 'Review the river evidence and decide again.', 'Sprawdź mapę rzeki i wybierz ponownie.')}
+      </Feedback>
     </div>
   )
 }
 
 function UnjumbleScene({ lang }) {
-  const source = useMemo(() => [
-    { id: 0, word: 'every' }, { id: 1, word: 'I' }, { id: 2, word: 'morning' },
-    { id: 3, word: 'the' }, { id: 4, word: 'take' }, { id: 5, word: 'metro' },
-  ], [])
   const correct = 'I take the metro every morning'
   const [placed, setPlaced] = useState([])
-  const sentence = placed.map(id => source.find(item => item.id === id)?.word).join(' ')
-  const complete = placed.length === source.length
+  const sentence = placed.map(id => JUMBLE_WORDS.find(item => item.id === id)?.word).join(' ')
+  const complete = placed.length === JUMBLE_WORDS.length
+  const tone = !complete ? 'idle' : sentence === correct ? 'success' : 'error'
+  const clear = () => setPlaced([])
+
   return (
-    <div className="gh-preview-scene gh-preview-unjumble">
-      <SceneHeader icon="low_priority" eyebrow="English Metropolis · Puzzle Workshop" title="Build it in order"
-        detail={copy(lang, 'Snap each word block onto the brass rail', 'Ułóż klocki ze słowami na mosiężnej szynie')} progress={`${placed.length} / ${source.length}`}/>
-      <div className={`gh-jumble-bench${complete && sentence === correct ? ' is-complete' : ''}`}>
-        <span className="gh-jumble-lamp" aria-hidden><i/></span>
-        <span className="gh-jumble-ruler" aria-hidden/>
-        <span className="gh-jumble-pencil" aria-hidden/>
+    <div className="gh-preview-scene gh-preview-unjumble" data-state={tone}>
+      <SceneHeader icon="low_priority" route="Type Foundry / Maglev Rail" title="Build the route"
+        detail={copy(lang, 'Snap every word onto the sentence rail', 'Umieść każde słowo na szynie zdania')}
+        current={placed.length} total={JUMBLE_WORDS.length}/>
+      <div className={`gh-jumble-foundry${tone === 'success' ? ' is-complete' : tone === 'error' ? ' has-error' : ''}`}>
+        <span className="gh-jumble-sun" aria-hidden/>
+        <span className="gh-jumble-city" aria-hidden><i/><i/><i/><i/></span>
         <section className="gh-jumble-brief">
-          <span>SENTENCE NO. 01 · DAILY ROUTE</span>
-          <strong>{copy(lang, 'Put the commute in order.', 'Ułóż zdanie o codziennej podróży.')}</strong>
+          <span><MaterialIcon>route</MaterialIcon> DAILY COMMUTE</span>
+          <strong>{copy(lang, 'Put the metro sentence in order.', 'Ułóż zdanie o codziennej podróży.')}</strong>
+          {placed.length > 0 && <button type="button" className="gh-jumble-clear" onClick={clear} aria-label={copy(lang, 'Clear sentence', 'Wyczyść zdanie')}><MaterialIcon>restart_alt</MaterialIcon></button>}
         </section>
-        <div className="gh-jumble-rail" aria-label={copy(lang, 'Sentence rail', 'Szyna zdania')}>
-          {placed.length ? placed.map(id => <button key={id} type="button" onClick={() => setPlaced(items => items.filter(item => item !== id))}>{source.find(item => item.id === id)?.word}</button>) : <span>{copy(lang, 'words snap here', 'tu wskakują słowa')}</span>}
+        <div className="gh-jumble-rail" aria-label={copy(lang, 'Sentence rail', 'Szyna zdania')} aria-live="polite">
+          <span className="gh-jumble-rail-line" aria-hidden/>
+          {placed.length ? placed.map(id => (
+            <button key={id} type="button" onClick={() => setPlaced(items => items.filter(item => item !== id))}>
+              {JUMBLE_WORDS.find(item => item.id === id)?.word}<MaterialIcon>close</MaterialIcon>
+            </button>
+          )) : <span className="gh-jumble-placeholder">{copy(lang, 'Words dock here', 'Tutaj trafiają słowa')}</span>}
+          {tone === 'success' && <MaterialIcon className="gh-jumble-lock">lock</MaterialIcon>}
         </div>
         <div className="gh-jumble-tiles" aria-label={copy(lang, 'Word blocks', 'Klocki ze słowami')}>
-          {source.map(item => <button type="button" key={item.id} disabled={placed.includes(item.id)}
-            onClick={() => setPlaced(items => [...items, item.id])}>{item.word}</button>)}
+          {JUMBLE_WORDS.map(item => (
+            <button type="button" key={item.id} disabled={placed.includes(item.id)}
+              onClick={() => setPlaced(items => [...items, item.id])}>{item.word}</button>
+          ))}
         </div>
+        <span className="gh-jumble-scanner" aria-hidden/>
       </div>
-      <Feedback>{complete ? (sentence === correct ? copy(lang, 'Perfect fit. The rail is locked!', 'Idealnie. Szyna jest gotowa!') : copy(lang, 'Close. Tap a tile to move it back.', 'Blisko. Dotknij klocka, aby go cofnąć.')) : copy(lang, 'Each choice moves the sentence.', 'Każdy wybór buduje zdanie.')}</Feedback>
+      <Feedback tone={tone}>
+        {!complete ? copy(lang, 'Each cartridge extends the sentence.', 'Każda kaseta wydłuża zdanie.') : sentence === correct ? copy(lang, 'Perfect route. The sentence is locked.', 'Idealna trasa. Zdanie jest gotowe.') : copy(lang, 'The route is tangled. Remove a word or reset.', 'Trasa jest poplątana. Cofnij słowo lub zacznij od nowa.')}
+      </Feedback>
     </div>
   )
 }
 
 function MatchingScene({ lang }) {
-  const pairs = [
-    { id: 'apple', en: 'apple', pl: 'jabłko', icon: 'nutrition' },
-    { id: 'water', en: 'water', pl: 'woda', icon: 'water_drop' },
-    { id: 'bread', en: 'bread', pl: 'chleb', icon: 'bakery_dining' },
-  ]
   const [selected, setSelected] = useState('')
   const [matched, setMatched] = useState([])
-  const [miss, setMiss] = useState(false)
+  const [missId, setMissId] = useState('')
   const choosePolish = (id) => {
     if (!selected) return
     if (selected === id) {
       setMatched(items => items.includes(id) ? items : [...items, id])
-      setMiss(false)
-    } else setMiss(true)
+      setMissId('')
+    } else setMissId(id)
     setSelected('')
   }
+  const reset = () => {
+    setSelected('')
+    setMatched([])
+    setMissId('')
+  }
+  const complete = matched.length === MATCH_PAIRS.length
+  const tone = complete ? 'success' : missId ? 'error' : 'idle'
+
   return (
-    <div className="gh-preview-scene gh-preview-matching">
-      <SceneHeader icon="join_inner" eyebrow="English Metropolis · Bridge District" title="Connect the stations"
-        detail={copy(lang, 'Match each English sign to its Polish stop', 'Połącz angielski znak z polskim przystankiem')} progress={`${matched.length} / ${pairs.length}`}/>
-      <div className="gh-match-district">
+    <div className="gh-preview-scene gh-preview-matching" data-state={tone}>
+      <SceneHeader icon="join_inner" route="Biscayne Line / Switchboard" title="Match the banks"
+        detail={copy(lang, 'Route each English stop to its Polish match', 'Połącz angielski przystanek z polskim')}
+        current={matched.length} total={MATCH_PAIRS.length}/>
+      <div className={`gh-match-interchange${complete ? ' is-complete' : ''}`}>
+        <span className="gh-match-sun" aria-hidden/>
         <div className="gh-match-skyline" aria-hidden><i/><i/><i/><i/><i/></div>
         <span className="gh-match-bridge" aria-hidden><i/><b/><em/></span>
-        <span className={`gh-match-train gh-match-train--${matched.length}`} aria-hidden><i/><i/></span>
+        <span className="gh-match-spine" aria-hidden>
+          {MATCH_PAIRS.map(pair => <i key={pair.id} className={matched.includes(pair.id) ? 'is-lit' : ''}/>)}
+        </span>
+        <span className="gh-match-train" style={{ '--match-step': matched.length }} aria-hidden><i/><i/></span>
         <div className="gh-match-bank gh-match-bank--en">
-          <span>ENGLISH BANK</span>
-          {pairs.map(pair => <button type="button" key={pair.id} disabled={matched.includes(pair.id)}
-            className={selected === pair.id ? 'is-selected' : ''} onClick={() => { setSelected(pair.id); setMiss(false) }}>
-            <MaterialIcon>{pair.icon}</MaterialIcon>{pair.en}</button>)}
-        </div>
-        <div className="gh-match-routes" aria-hidden>
-          {pairs.map(pair => <i key={pair.id} className={matched.includes(pair.id) ? 'is-lit' : ''}/>) }
+          <span>ENGLISH</span>
+          {MATCH_PAIRS.map(pair => {
+            const done = matched.includes(pair.id)
+            return (
+              <button type="button" key={pair.id} disabled={done} aria-pressed={selected === pair.id}
+                className={`${selected === pair.id ? 'is-selected' : ''}${done ? ' is-matched' : ''}`}
+                onClick={() => { setSelected(pair.id); setMissId('') }}>
+                <MaterialIcon>{pair.icon}</MaterialIcon><span>{pair.en}</span>{done && <MaterialIcon>check</MaterialIcon>}
+              </button>
+            )
+          })}
         </div>
         <div className="gh-match-bank gh-match-bank--pl">
-          <span>POLSKI BRZEG</span>
-          {pairs.map(pair => <button type="button" key={pair.id} disabled={matched.includes(pair.id)}
-            onClick={() => choosePolish(pair.id)}>{pair.pl}<MaterialIcon>location_on</MaterialIcon></button>)}
+          <span>POLSKI</span>
+          {POLISH_STOPS.map(pair => {
+            const done = matched.includes(pair.id)
+            return (
+              <button type="button" key={pair.id} disabled={done}
+                className={`${missId === pair.id ? 'is-wrong' : ''}${done ? ' is-matched' : ''}`}
+                onClick={() => choosePolish(pair.id)}>
+                {done && <MaterialIcon>check</MaterialIcon>}<span>{pair.pl}</span><MaterialIcon>location_on</MaterialIcon>
+              </button>
+            )
+          })}
         </div>
+        {complete && <button type="button" className="gh-scene-replay" onClick={reset}><MaterialIcon>replay</MaterialIcon>{copy(lang, 'Replay', 'Zagraj ponownie')}</button>}
       </div>
-      <Feedback>{matched.length === pairs.length ? copy(lang, 'All lines connected. The train is moving!', 'Wszystkie linie połączone. Pociąg rusza!') : miss ? copy(lang, 'Those stations are on different lines.', 'Te stacje są na różnych liniach.') : selected ? copy(lang, 'Now choose the Polish station.', 'Teraz wybierz polską stację.') : copy(lang, 'Start on the English bank.', 'Zacznij po angielskiej stronie.')}</Feedback>
+      <Feedback tone={tone}>
+        {complete ? copy(lang, 'All lines connected. The night train is moving.', 'Wszystkie linie połączone. Nocny pociąg rusza.') : missId ? copy(lang, 'Those stops use different lines. Try again.', 'Te przystanki są na innych liniach. Spróbuj ponownie.') : selected ? copy(lang, 'Now choose the Polish stop.', 'Teraz wybierz polski przystanek.') : copy(lang, 'Start from an English stop.', 'Zacznij od angielskiego przystanku.')}
+      </Feedback>
     </div>
   )
 }
@@ -263,47 +401,77 @@ function MatchingScene({ lang }) {
 function MemoryScene({ lang }) {
   const [open, setOpen] = useState([])
   const [matched, setMatched] = useState([])
+  const [mismatch, setMismatch] = useState([])
+  const [moves, setMoves] = useState(0)
   useEffect(() => {
     if (open.length !== 2) return undefined
     const first = MEMORY_CARDS.find(card => card.id === open[0])
     const second = MEMORY_CARDS.find(card => card.id === open[1])
-    const timer = window.setTimeout(() => {
-      if (first?.pair === second?.pair) setMatched(items => [...new Set([...items, first.pair])])
-      setOpen([])
-    }, 560)
-    return () => window.clearTimeout(timer)
+    let closeTimer
+    const revealTimer = window.setTimeout(() => {
+      if (first?.pair === second?.pair) {
+        setMatched(items => [...new Set([...items, first.pair])])
+        setOpen([])
+      } else {
+        setMismatch(open)
+        closeTimer = window.setTimeout(() => {
+          setOpen([])
+          setMismatch([])
+        }, 260)
+      }
+    }, 520)
+    return () => {
+      window.clearTimeout(revealTimer)
+      window.clearTimeout(closeTimer)
+    }
   }, [open])
   const flip = (id) => {
     if (open.length >= 2 || open.includes(id)) return
     const card = MEMORY_CARDS.find(item => item.id === id)
     if (matched.includes(card.pair)) return
-    setOpen(items => [...items, id])
+    const next = [...open, id]
+    if (next.length === 2) setMoves(value => value + 1)
+    setOpen(next)
   }
+  const reset = () => {
+    setOpen([])
+    setMatched([])
+    setMismatch([])
+    setMoves(0)
+  }
+  const complete = matched.length === 3
+
   return (
-    <div className="gh-preview-scene gh-preview-memory">
-      <SceneHeader icon="grid_view" eyebrow="English Metropolis · Memory Cellar" title="Find the hidden pairs"
-        detail={copy(lang, 'Flip two cabinet cards at a time', 'Odwracaj po dwie karty z gabloty')} progress={`${matched.length} / 3`}/>
-      <div className={`gh-memory-cabinet${matched.length === 3 ? ' is-complete' : ''}`}>
-        <span className="gh-memory-lamp" aria-hidden><i/></span>
-        <span className="gh-memory-shelf gh-memory-shelf--one" aria-hidden/>
-        <span className="gh-memory-shelf gh-memory-shelf--two" aria-hidden/>
+    <div className="gh-preview-scene gh-preview-memory" data-state={complete ? 'success' : 'idle'}>
+      <SceneHeader icon="grid_view" route="Ocean Drive / Signal Vault" title="Find hidden pairs"
+        detail={copy(lang, 'Flip two signal cards at a time', 'Odwracaj po dwie karty sygnałowe')}
+        current={matched.length} total={3}/>
+      <div className={`gh-memory-vault${complete ? ' is-complete' : ''}`}>
+        <span className="gh-memory-crown" aria-hidden><i/><i/><i/></span>
+        <span className="gh-memory-sun" aria-hidden/>
+        <span className="gh-memory-moves"><MaterialIcon>visibility</MaterialIcon>{moves} {copy(lang, 'moves', 'ruchy')}</span>
         <div className="gh-memory-grid" aria-label={copy(lang, 'Memory cards', 'Karty pamięci')}>
           {MEMORY_CARDS.map(card => {
             const visible = open.includes(card.id) || matched.includes(card.pair)
+            const done = matched.includes(card.pair)
+            const missed = mismatch.includes(card.id)
             return (
-              <button type="button" key={card.id} onClick={() => flip(card.id)}
-                className={`${visible ? 'is-open' : ''}${matched.includes(card.pair) ? ' is-matched' : ''}`}
-                aria-label={visible ? card.label : copy(lang, 'Hidden memory card', 'Ukryta karta pamięci')}>
+              <button type="button" key={card.id} onClick={() => flip(card.id)} disabled={done}
+                aria-pressed={visible} aria-label={`${card.label}, ${done ? copy(lang, 'matched', 'dopasowana') : visible ? copy(lang, 'open', 'odkryta') : copy(lang, 'hidden', 'ukryta')}`}
+                className={`${visible ? 'is-open' : ''}${done ? ' is-matched' : ''}${missed ? ' is-mismatch' : ''}`}>
                 <span className="gh-memory-card-inner">
-                  <span className="gh-memory-card-back"><MaterialIcon>emergency</MaterialIcon><small>EM</small></span>
-                  <span className="gh-memory-card-face"><MaterialIcon>{card.icon}</MaterialIcon><strong>{card.label}</strong></span>
+                  <span className="gh-memory-card-back"><MaterialIcon>flare</MaterialIcon><small>EM</small></span>
+                  <span className="gh-memory-card-face"><MaterialIcon>{card.icon}</MaterialIcon><strong>{card.label}</strong>{done && <MaterialIcon className="gh-memory-check">check</MaterialIcon>}</span>
                 </span>
               </button>
             )
           })}
         </div>
+        {complete && <button type="button" className="gh-scene-replay" onClick={reset}><MaterialIcon>replay</MaterialIcon>{copy(lang, 'Replay', 'Zagraj ponownie')}</button>}
       </div>
-      <Feedback>{matched.length === 3 ? copy(lang, 'Cabinet complete. Brilliant memory!', 'Gablota ukończona. Świetna pamięć!') : copy(lang, 'Matched pairs light the cabinet.', 'Dopasowane pary rozświetlają gablotę.')}</Feedback>
+      <Feedback tone={complete ? 'success' : 'idle'} icon={complete ? 'verified' : 'grid_view'}>
+        {complete ? copy(lang, `Vault unlocked in ${moves} moves.`, `Sejf otwarty w ${moves} ruchach.`) : copy(lang, 'Matched signals stay illuminated.', 'Dopasowane sygnały pozostają podświetlone.')}
+      </Feedback>
     </div>
   )
 }

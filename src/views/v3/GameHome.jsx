@@ -197,6 +197,7 @@ function HeroArcade({ badge, reduced, lang }) {
   const [active, setActive] = useState(0)
   const activeGame = HERO_GAMES[active]
   const tabsRef = useRef(null)
+  const arcadeRef = useRef(null)
   const go = (dir) => setActive(i => (i + dir + HERO_GAMES.length) % HERO_GAMES.length)
   const selectFromKeyboard = (next) => {
     setActive(next)
@@ -222,19 +223,35 @@ function HeroArcade({ badge, reduced, lang }) {
     const left = activeLeft - (tabs.clientWidth - activeBox.width) / 2
     tabs.scrollTo({ left, behavior: reduced ? 'auto' : 'smooth' })
   }, [active, reduced])
+  useEffect(() => {
+    const arcade = arcadeRef.current
+    if (!arcade) return undefined
+    let inView = true
+    const syncPlayback = () => {
+      arcade.classList.toggle('is-paused', !inView || document.hidden)
+    }
+    const observer = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(([entry]) => {
+      inView = entry.isIntersecting
+      syncPlayback()
+    }, { threshold: 0.08 })
+    observer?.observe(arcade)
+    document.addEventListener('visibilitychange', syncPlayback)
+    return () => {
+      observer?.disconnect()
+      document.removeEventListener('visibilitychange', syncPlayback)
+    }
+  }, [])
   return (
     <div className="gh-hero-frame">
       <div className="gh-postcard" style={{ background: '#120a26' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-          borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, flex: 'none' }}>
+        <div className="gh-arcade-toolbar">
+          <div className="gh-arcade-live">
             <span className="gh-live-dot" aria-hidden/>
-            <span className="gh-arcade-badge" style={{ fontFamily: FONT.mono, fontSize: 10, fontWeight: 700,
-              letterSpacing: '0.24em', textTransform: 'uppercase', color: '#F5F0FF' }}>
+            <span className="gh-arcade-badge">
               {badge}
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', minWidth: 0 }}>
+          <div className="gh-arcade-tabs-wrap">
             <div ref={tabsRef} className="gh-arcade-tabs" role="tablist" aria-label="Choose a live practice game"
               onKeyDown={onTabsKeyDown}>
               {HERO_GAMES.map((g, i) => (
@@ -249,7 +266,7 @@ function HeroArcade({ badge, reduced, lang }) {
             </div>
           </div>
         </div>
-        <div style={{ position: 'relative' }}>
+        <div ref={arcadeRef} className="gh-arcade-viewport">
           <div id="gh-arcade-stage" role="tabpanel" aria-labelledby={`gh-arcade-tab-${activeGame.key}`}
             data-game={activeGame.key} key={activeGame.key} className="gh-arcade-stage"
             style={{ height: 'min(56dvh, 460px)', overflow: 'hidden', background: DUSK.bg }}>
@@ -263,9 +280,10 @@ function HeroArcade({ badge, reduced, lang }) {
             onClick={() => go(1)}>
             <span className="material-symbols-outlined" style={{ fontSize: 26 }}>chevron_right</span>
           </button>
-          <div className="gh-slider-dots" aria-hidden="true">
+          <div className="gh-slider-dots" role="group" aria-label="Choose an exercise">
             {HERO_GAMES.map((g, i) => (
-              <button key={g.key} type="button" tabIndex={-1}
+              <button key={g.key} type="button" aria-label={`Show ${g.title}`}
+                aria-current={i === active ? 'true' : undefined}
                 className={`gh-slider-dot${i === active ? ' on' : ''}`} onClick={() => setActive(i)}/>
             ))}
           </div>
