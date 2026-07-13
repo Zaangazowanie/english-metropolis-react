@@ -133,7 +133,7 @@ const GH = {
       { value: String(n), label: 'instant games' },
     ],
     cityKicker: 'teacher-led · city-powered',
-    cityTitle: 'One teacher. One route. A city that moves with you.',
+    cityTitle: 'One route. A city that moves with you.',
     cityBody: 'Your lesson sets the direction. EnglishMetro turns the words you meet into flashcards, games and places to revisit, so every practice session belongs to the same learning story.',
     cityFeatures: ['Live feedback from your teacher', 'Vocabulary from your own lessons', 'A 3D world that keeps expanding'],
     cityCta: 'Build my learning route',
@@ -172,7 +172,7 @@ const GH = {
       { value: String(n), label: 'gier bez przygotowań' },
     ],
     cityKicker: 'lektor prowadzi · miasto utrwala',
-    cityTitle: 'Jeden lektor. Jedna ścieżka. Miasto, które podąża za Tobą.',
+    cityTitle: 'Jedna ścieżka. Miasto, które podąża za Tobą.',
     cityBody: 'Lekcja wyznacza kierunek. EnglishMetro zamienia poznane słowa w fiszki, gry i miejsca, do których wracasz, dzięki czemu każde ćwiczenie jest częścią tej samej historii nauki.',
     cityFeatures: ['Informacja zwrotna od lektora na żywo', 'Słownictwo z Twoich lekcji', 'Świat 3D, który stale się rozwija'],
     cityCta: 'Zbuduj moją ścieżkę',
@@ -887,7 +887,6 @@ export default function GameHome() {
             <div className="gh-three-shell gh-glass-strong">
               <DeferredMetroCity reduced={reduced} night={night} label={W.cityLabel}/>
               <div className="gh-three-hud">
-                <span className="gh-three-status"><span className="gh-live-dot" aria-hidden/> LIVE CITY</span>
                 <span className="gh-three-hint"><span className="material-symbols-outlined" aria-hidden>drag_pan</span>{W.cityHint}</span>
               </div>
               <div className="gh-three-route" aria-hidden>
