@@ -19,12 +19,12 @@
     @font-face { font-family: 'Space Grotesk'; font-weight: 700; font-style: normal;
       font-display: swap; src: url('public/assets/fonts/space-grotesk-latin-700-normal.woff2') format('woff2'); }
     :root {
-      --cream: #F4F0FF; --ink: #0E0A1B; --amber: #FCD34D; --terra: #C026D3;
-      --sage: #34D399; --purple: #A855F7; --panel: rgba(16, 9, 32, 0.9);
+      --cream: #F4F0FF; --ink: #080D20; --amber: #FFBE72; --terra: #FF4FA3;
+      --sage: #4DEEEA; --purple: #9B63FF; --panel: rgba(8, 13, 32, 0.82);
       --brand: linear-gradient(135deg, #8B5CF6 0%, #D946EF 55%, #F472B6 100%);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #060410;
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #050816;
       font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; }
     #app { position: fixed; inset: 0; }
     canvas { display: block; }
@@ -60,10 +60,13 @@
     #hud { position: fixed; inset: 0; z-index: 20; pointer-events: none; opacity: 0;
       transition: opacity 0.6s; }
     #hud.on { opacity: 1; }
-    #zone-card { position: absolute; top: 26px; left: 50%; transform: translateX(-50%);
-      color: var(--cream); text-align: center; text-shadow: 0 2px 6px rgba(30,20,10,0.55); }
+    #zone-card { position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+      color: var(--cream); text-align: center; text-shadow: 0 2px 12px rgba(3,7,20,0.8);
+      padding: 9px 18px 10px; border-radius: 14px; background: rgba(7,12,31,0.48);
+      border: 1px solid rgba(128,233,255,0.18); backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 14px 34px rgba(3,6,20,0.16); }
     #zone-card .line { font-size: 11px; letter-spacing: 0.3em; opacity: 0.85; }
-    #zone-card .name { font-size: 26px; letter-spacing: 0.08em; }
+    #zone-card .name { font-size: 24px; letter-spacing: 0.05em; font-weight: 600; }
     #zone-card.flash .name { animation: zonein 1.5s ease; }
     #zone-card.flash .line { animation: zonein 1.5s ease 0.12s backwards; }
     @keyframes zonein {
@@ -73,14 +76,16 @@
     }
     #xp { position: absolute; top: 22px; right: 24px; color: var(--cream); font-size: 15px;
       background: var(--panel); padding: 8px 14px; border-radius: 20px;
-      border: 1px solid rgba(244,240,255,0.25); }
+      border: 1px solid rgba(77,238,234,0.25); backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); }
     #beta-tag { position: absolute; top: 62px; right: 24px; color: #fff;
       background: var(--brand); font-size: 10px; font-weight: 700;
       letter-spacing: 0.28em; padding: 3px 10px 3px 12px; border-radius: 999px;
       border: none; box-shadow: 0 4px 14px -6px rgba(217,70,239,0.55); }
-    #objective { position: absolute; top: 88px; left: 50%; transform: translateX(-50%);
+    #objective { position: absolute; top: 96px; left: 50%; transform: translateX(-50%);
       display: none; color: var(--cream); background: var(--panel); font-size: 13px;
-      padding: 6px 16px; border-radius: 16px; border: 1px solid rgba(217,70,239,0.4);
+      padding: 7px 16px; border-radius: 16px; border: 1px solid rgba(77,238,234,0.3);
+      backdrop-filter: blur(14px) saturate(140%);
       white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
     #objective b { color: var(--amber); }
     body.touch #objective { font-size: 11px; top: 74px; }
@@ -127,17 +132,16 @@
 </head>
 <body>
   <div id="app"></div>
-  <!-- cinematic grade: vignette + warm lift, zero GPU cost -->
+  <!-- Cinematic grade: vignette and cool dusk lift, zero GPU cost. -->
   <div id="grade"></div>
   <div id="fade"></div>
   <style>
     #grade { position: fixed; inset: 0; z-index: 14; pointer-events: none;
       background:
-        radial-gradient(ellipse at 50% 42%, rgba(0,0,0,0) 52%, rgba(28,14,4,0.34) 100%),
-        linear-gradient(180deg, rgba(255,180,80,0.05) 0%, rgba(0,0,0,0) 30%);
-      mix-blend-mode: multiply; }
+        radial-gradient(ellipse at 50% 44%, rgba(0,0,0,0) 48%, rgba(4,7,23,0.46) 100%),
+        linear-gradient(180deg, rgba(74,56,146,0.08) 0%, rgba(0,0,0,0) 42%, rgba(22,239,218,0.035) 100%); }
     #fade { position: fixed; inset: 0; z-index: 45; pointer-events: none;
-      background: #1a1410; opacity: 0; transition: opacity 0.45s ease; }
+      background: #070b1d; opacity: 0; transition: opacity 0.45s ease; }
     #fade.on { opacity: 1; }
   </style>
 

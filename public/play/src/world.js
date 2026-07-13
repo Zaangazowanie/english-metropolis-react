@@ -2,12 +2,14 @@
 // trees, NPCs with exercises, colliders. Zones stream in later milestones.
 import * as THREE from 'three';
 import { makeGLTFLoader } from './loaders.js';
-import { PALETTE, toonMat, toonifyGLB, blobShadow, makeDustMotes, makeClouds, addWindSway, addDuskWindows } from './materials.js';
+import { PALETTE, toonMat, neonMat, toonifyGLB, blobShadow, makeDustMotes, makeClouds, addWindSway, addDuskWindows } from './materials.js';
 import { makeTerrain, heightAt, hillFactor } from './terrain.js';
 import { instanceRig } from './rig.js';
 import { attachMarker } from './markers.js';
 
 const MODELS = 'public/assets/models/';
+const STREET_CHROME = new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.84, roughness: 0.24 });
+function chromeMatForStreet() { return STREET_CHROME; }
 
 // --- placement table: url, target height (m), position, yaw, collider ---
 const BUILDINGS = [
@@ -105,6 +107,9 @@ export class World {
 
   async build() {
     this.buildGroundAndRoads();
+    this.buildArtDecoHub();
+    this.buildPlazaLife();
+    this.buildBoulevardDetail();
     this.buildSkyline();
     this.buildSuburbs();
     this.buildTrees();
@@ -287,13 +292,254 @@ export class World {
     }
   }
 
+  buildArtDecoHub() {
+    const sites = [
+      { x: -46, z: -27, w: 10, d: 12, h: 22, color: 0x27436c },
+      { x: 46, z: -28, w: 11, d: 10, h: 25, color: 0x3c3b72 },
+      { x: -38, z: 24, w: 12, d: 10, h: 19, color: 0x2e5870 },
+      { x: -19, z: 39, w: 11, d: 12, h: 24, color: 0x433b78 },
+      { x: 19, z: 40, w: 12, d: 11, h: 21, color: 0x28566c },
+      { x: 39, z: 25, w: 10, d: 12, h: 23, color: 0x4b3c72 },
+    ].map((site) => ({ ...site, yaw: Math.atan2(-site.x, -site.z) }));
+
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.3, roughness: 0.54 });
+    const chromeMat = new THREE.MeshStandardMaterial({ color: 0xaebed6, metalness: 0.86, roughness: 0.2 });
+    const blocks = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), bodyMat, sites.length * 2);
+    const balconies = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), chromeMat, sites.length * 4);
+    const fins = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), neonMat(PALETTE.pink), sites.length * 2);
+    const crowns = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 10), chromeMat, sites.length);
+    const tierWindowCount = (width, depth, yStart, yEnd) => {
+      const frontCols = Math.max(3, Math.floor((width - 1.2) / 1.65));
+      const sideCols = Math.max(2, Math.floor((depth - 1.2) / 1.7));
+      let floors = 0;
+      for (let y = yStart; y < yEnd; y += 2.05) floors++;
+      return floors * (frontCols + sideCols * 2);
+    };
+    const windowCapacity = sites.reduce((total, site) => {
+      const lowerH = site.h * 0.58;
+      return total
+        + tierWindowCount(site.w, site.d, 1.65, lowerH - 0.7)
+        + tierWindowCount(site.w * 0.72, site.d * 0.74, lowerH + 1.05, site.h - 0.45);
+    }, 0);
+    const cyanWindows = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(1, 1, 1), neonMat(PALETTE.cyan, 0.92), windowCapacity,
+    );
+    const pinkWindows = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(1, 1, 1), neonMat(PALETTE.pink, 0.9), windowCapacity,
+    );
+    const dummy = new THREE.Object3D();
+    const point = new THREE.Vector3();
+    const yAxis = new THREE.Vector3(0, 1, 0);
+    let blockI = 0, balconyI = 0, finI = 0, crownI = 0, cyanI = 0, pinkI = 0;
+    const place = (mesh, index, site, lx, ly, lz, sx, sy, sz, extraYaw = 0) => {
+      point.set(lx, ly, lz).applyAxisAngle(yAxis, site.yaw);
+      dummy.position.set(site.x + point.x, point.y, site.z + point.z);
+      dummy.rotation.set(0, site.yaw + extraYaw, 0);
+      dummy.scale.set(sx, sy, sz);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(index, dummy.matrix);
+    };
+    const addWindow = (site, lx, ly, lz, sx, sy, extraYaw, pink) => {
+      if (pink) place(pinkWindows, pinkI++, site, lx, ly, lz, sx, sy, 0.08, extraYaw);
+      else place(cyanWindows, cyanI++, site, lx, ly, lz, sx, sy, 0.08, extraYaw);
+    };
+
+    sites.forEach((site, siteIndex) => {
+      const lowerH = site.h * 0.58;
+      const upperH = site.h - lowerH;
+      const upperW = site.w * 0.72;
+      const upperD = site.d * 0.74;
+      place(blocks, blockI, site, 0, lowerH / 2, 0, site.w, lowerH, site.d);
+      blocks.setColorAt(blockI++, new THREE.Color(site.color));
+      place(blocks, blockI, site, 0, lowerH + upperH / 2, 0, upperW, upperH, upperD);
+      blocks.setColorAt(blockI++, new THREE.Color(site.color).offsetHSL(0.02, 0.03, 0.07));
+
+      for (let band = 0; band < 4; band++) {
+        const y = 2.9 + band * ((site.h - 4.4) / 4);
+        const tier = y > lowerH ? 0.78 : 1.03;
+        place(balconies, balconyI++, site, 0, y, 0, site.w * tier, 0.13, site.d * tier);
+      }
+      place(fins, finI++, site, 0, site.h * 0.56, site.d * 0.505, 0.18, site.h * 0.72, 0.1);
+      place(fins, finI++, site, 0, 2.55, site.d * 0.54, site.w * 0.48, 0.22, 0.12);
+      place(crowns, crownI++, site, 0, site.h + 0.72, 0, site.w * 0.22, 1.44, site.d * 0.22);
+
+      const addTierWindows = (tierW, tierD, yStart, yEnd) => {
+        const frontCols = Math.max(3, Math.floor((tierW - 1.2) / 1.65));
+        const sideCols = Math.max(2, Math.floor((tierD - 1.2) / 1.7));
+        let floor = 0;
+        for (let y = yStart; y < yEnd; y += 2.05, floor++) {
+          for (let col = 0; col < frontCols; col++) {
+            const x = (col - (frontCols - 1) / 2) * 1.62;
+            addWindow(site, x, y, tierD / 2 + 0.055, 0.9, 1.05, 0, (siteIndex + floor + col) % 5 === 0);
+          }
+          for (const side of [-1, 1]) {
+            for (let col = 0; col < sideCols; col++) {
+              const z = (col - (sideCols - 1) / 2) * 1.65;
+              addWindow(site, side * (tierW / 2 + 0.055), y, z, 0.9, 1.05,
+                side > 0 ? Math.PI / 2 : -Math.PI / 2, (siteIndex + floor + col + 2) % 6 === 0);
+            }
+          }
+        }
+      };
+      addTierWindows(site.w, site.d, 1.65, lowerH - 0.7);
+      addTierWindows(upperW, upperD, lowerH + 1.05, site.h - 0.45);
+      const cos = Math.abs(Math.cos(site.yaw));
+      const sin = Math.abs(Math.sin(site.yaw));
+      const halfX = (site.w * cos + site.d * sin) / 2 + 0.35;
+      const halfZ = (site.w * sin + site.d * cos) / 2 + 0.35;
+      this.colliders.push({
+        minX: site.x - halfX, maxX: site.x + halfX,
+        minZ: site.z - halfZ, maxZ: site.z + halfZ,
+      });
+    });
+
+    blocks.count = blockI;
+    balconies.count = balconyI;
+    fins.count = finI;
+    crowns.count = crownI;
+    cyanWindows.count = cyanI;
+    pinkWindows.count = pinkI;
+    for (const mesh of [blocks, balconies, fins, crowns, cyanWindows, pinkWindows]) mesh.instanceMatrix.needsUpdate = true;
+    if (blocks.instanceColor) blocks.instanceColor.needsUpdate = true;
+    blocks.castShadow = blocks.receiveShadow = true;
+    balconies.castShadow = true;
+    this.scene.add(blocks, balconies, fins, crowns, cyanWindows, pinkWindows);
+  }
+
+  buildPlazaLife() {
+    const poolMat = new THREE.MeshStandardMaterial({
+      color: 0x0b4d68, emissive: 0x062944, emissiveIntensity: 0.72,
+      metalness: 0.72, roughness: 0.16, transparent: true, opacity: 0.88, depthWrite: false,
+    });
+    for (const [x, z, color] of [[-11.5, 12.5, PALETTE.cyan], [11.5, 12.5, PALETTE.pink]]) {
+      const pool = new THREE.Mesh(new THREE.CircleGeometry(4.2, 32), poolMat);
+      pool.rotation.x = -Math.PI / 2;
+      pool.position.set(x, 0.055, z);
+      const edge = new THREE.Mesh(new THREE.TorusGeometry(4.25, 0.08, 8, 48), neonMat(color));
+      edge.rotation.x = Math.PI / 2;
+      edge.position.set(x, 0.09, z);
+      this.scene.add(pool, edge);
+    }
+
+    const palms = 12;
+    const planterGeo = new THREE.CylinderGeometry(0.82, 0.96, 0.56, 10);
+    const trunkGeo = new THREE.CylinderGeometry(0.13, 0.22, 1, 8);
+    const crownGeo = new THREE.SphereGeometry(0.42, 8, 6);
+    const leafGeo = new THREE.ConeGeometry(0.18, 2.7, 3);
+    const planters = new THREE.InstancedMesh(planterGeo, toonMat(0xffffff), palms);
+    const trunks = new THREE.InstancedMesh(trunkGeo, toonMat(0x7d4f48), palms);
+    const crowns = new THREE.InstancedMesh(crownGeo, toonMat(0x1f8a78), palms);
+    const leaves = new THREE.InstancedMesh(leafGeo, addWindSway(toonMat(0x36b89a), 0.06), palms * 7);
+    const dummy = new THREE.Object3D();
+    let leafI = 0;
+    for (let i = 0; i < palms; i++) {
+      const angle = (i / palms) * Math.PI * 2 + 0.13;
+      const radius = i % 2 ? 18.4 : 17.4;
+      const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
+      dummy.position.set(x, 0.3, z); dummy.rotation.set(0, angle, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix();
+      planters.setMatrixAt(i, dummy.matrix);
+      planters.setColorAt(i, new THREE.Color(i % 2 ? PALETTE.coral : PALETTE.cyan));
+      const height = 3.4 + (i % 3) * 0.28;
+      dummy.position.set(x, 0.58 + height / 2, z); dummy.scale.set(1, height, 1); dummy.updateMatrix();
+      trunks.setMatrixAt(i, dummy.matrix);
+      dummy.position.set(x, 0.58 + height, z); dummy.scale.set(1, 1, 1); dummy.updateMatrix();
+      crowns.setMatrixAt(i, dummy.matrix);
+      for (let leaf = 0; leaf < 7; leaf++) {
+        const yaw = angle + (leaf / 7) * Math.PI * 2;
+        dummy.position.set(x + Math.sin(yaw) * 0.92, 0.58 + height + 0.02, z + Math.cos(yaw) * 0.92);
+        dummy.rotation.set(Math.PI / 2 + 0.24, yaw, 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        leaves.setMatrixAt(leafI++, dummy.matrix);
+      }
+    }
+    for (const mesh of [planters, trunks, crowns, leaves]) mesh.instanceMatrix.needsUpdate = true;
+    if (planters.instanceColor) planters.instanceColor.needsUpdate = true;
+    trunks.castShadow = crowns.castShadow = leaves.castShadow = true;
+
+    const benchCount = 8;
+    const seats = new THREE.InstancedMesh(new THREE.BoxGeometry(2.2, 0.16, 0.62), chromeMatForStreet(), benchCount);
+    const backs = new THREE.InstancedMesh(new THREE.BoxGeometry(2.2, 0.78, 0.12), toonMat(0x263b58), benchCount);
+    for (let i = 0; i < benchCount; i++) {
+      const angle = (i / benchCount) * Math.PI * 2 + Math.PI / 8;
+      const x = Math.cos(angle) * 11.2, z = Math.sin(angle) * 11.2;
+      dummy.position.set(x, 0.66, z); dummy.rotation.set(0, -angle, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix();
+      seats.setMatrixAt(i, dummy.matrix);
+      dummy.position.set(x - Math.cos(angle) * 0.28, 1.02, z - Math.sin(angle) * 0.28); dummy.updateMatrix();
+      backs.setMatrixAt(i, dummy.matrix);
+    }
+    seats.instanceMatrix.needsUpdate = backs.instanceMatrix.needsUpdate = true;
+    seats.castShadow = backs.castShadow = true;
+    this.scene.add(planters, trunks, crowns, leaves, seats, backs);
+  }
+
+  buildBoulevardDetail() {
+    const lines = [
+      { angle: Math.PI / 2, color: PALETTE.cyan },
+      { angle: Math.PI / 2 + (2 * Math.PI) / 3, color: PALETTE.dustyBlue },
+      { angle: Math.PI / 2 - (2 * Math.PI) / 3, color: PALETTE.coral },
+    ];
+    for (const line of lines) {
+      const g = new THREE.Group();
+      for (const side of [-1, 1]) {
+        const ribbon = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 390), neonMat(line.color, 0.86));
+        ribbon.rotation.x = -Math.PI / 2;
+        ribbon.position.set(side * 4.28, 0.042, -215);
+        g.add(ribbon);
+      }
+
+      const lampCount = 36;
+      const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.055, 0.08, 3.6, 7), toonMat(0x16223a), lampCount);
+      const heads = new THREE.InstancedMesh(new THREE.BoxGeometry(0.42, 0.13, 0.18), neonMat(line.color), lampCount);
+      const dummy = new THREE.Object3D();
+      let index = 0;
+      for (let n = 0; n < lampCount / 2; n++) {
+        const d = 23 + n * 18;
+        for (const side of [-1, 1]) {
+          dummy.position.set(side * 7.7, 1.8, -d); dummy.rotation.set(0, 0, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix();
+          poles.setMatrixAt(index, dummy.matrix);
+          dummy.position.set(side * 7.45, 3.58, -d); dummy.updateMatrix();
+          heads.setMatrixAt(index, dummy.matrix);
+          index++;
+        }
+      }
+      poles.instanceMatrix.needsUpdate = heads.instanceMatrix.needsUpdate = true;
+      poles.castShadow = true;
+      g.add(poles, heads);
+      g.rotation.y = line.angle - Math.PI / 2;
+      this.scene.add(g);
+    }
+
+    const canopy = new THREE.Group();
+    const glass = new THREE.MeshStandardMaterial({
+      color: 0x5bc8e8, emissive: 0x173d66, emissiveIntensity: 0.7,
+      metalness: 0.68, roughness: 0.18, transparent: true, opacity: 0.72, depthWrite: false,
+    });
+    const canopyRoof = new THREE.Mesh(new THREE.BoxGeometry(13.5, 0.18, 5.2), glass);
+    canopyRoof.position.set(0, 4.05, -20.5);
+    canopy.add(canopyRoof);
+    for (const x of [-6.1, 6.1]) for (const z of [-22.3, -18.7]) {
+      const column = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 4, 8), chromeMatForStreet());
+      column.position.set(x, 2, z);
+      canopy.add(column);
+    }
+    for (const x of [-5.4, 5.4]) {
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 4.7), neonMat(x < 0 ? PALETTE.cyan : PALETTE.pink));
+      strip.position.set(x, 3.98, -20.5);
+      canopy.add(strip);
+    }
+    this.scene.add(canopy);
+  }
+
   buildSkyline() {
-    // instanced toon boxes: mid-rise ring + a real skyscraper downtown
+    // Layered towers: podium, setback crown and rooftop beacon in three batches.
     const box = new THREE.BoxGeometry(1, 1, 1);
-    const mat = addDuskWindows(toonMat(0xffffff));   // warm lit windows on facades
-    const colors = [0xd9b98a, 0xc9a17a, 0xb98a6a, 0xd9c9a8, 0xc96f4a, 0x9a8f76, 0xb0a284];
+    const mat = addDuskWindows(toonMat(0xffffff));
+    const colors = [0x21395f, 0x2d4e70, 0x343767, 0x405d78, 0x4a3b72, 0x285967, 0x334c6c];
     const count = 240;
     const inst = new THREE.InstancedMesh(box, mat, count);
+    const setbacks = new THREE.InstancedMesh(box, mat, count);
+    const crowns = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 8), neonMat(PALETTE.pink, 0.78), count);
     const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3();
     const col = new THREE.Color();
     let i = 0;
@@ -331,17 +577,31 @@ export class World {
         S.set(w, h, w * (0.7 + Math.random() * 0.6));
         M.compose(P, Q, S);
         inst.setMatrixAt(i, M);
-        inst.setColorAt(i, this.regionTint(col.setHex(colors[(Math.random() * colors.length) | 0]), x, z, 0.28));
+        const towerColor = this.regionTint(col.setHex(colors[(Math.random() * colors.length) | 0]), x, z, 0.28).clone();
+        inst.setColorAt(i, towerColor);
+        const topH = Math.max(3.4, h * (0.16 + Math.random() * 0.08));
+        const topW = w * (0.5 + Math.random() * 0.2);
+        P.set(x, gy + h - topH * 0.45, z);
+        S.set(topW, topH, topW * (0.7 + Math.random() * 0.4));
+        M.compose(P, Q, S);
+        setbacks.setMatrixAt(i, M);
+        setbacks.setColorAt(i, towerColor.clone().offsetHSL(0.01, 0.02, 0.06));
+        P.set(x, gy + h + 1.0, z);
+        S.set(Math.max(0.14, w * 0.035), 2.2, Math.max(0.14, w * 0.035));
+        M.compose(P, Q, S);
+        crowns.setMatrixAt(i, M);
         if (r < 90) this.colliders.push({ minX: x - w * 0.7, maxX: x + w * 0.7, minZ: z - w * 0.7, maxZ: z + w * 0.7 });
       }
     };
     place(88, 175, 150, 24, 78, 8, 17);    // skyscraper downtown between districts
-    inst.count = i;                        // only render what found a legal spot
-    inst.instanceMatrix.needsUpdate = true;
+    inst.count = setbacks.count = crowns.count = i;
+    inst.instanceMatrix.needsUpdate = setbacks.instanceMatrix.needsUpdate = crowns.instanceMatrix.needsUpdate = true;
     if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
+    if (setbacks.instanceColor) setbacks.instanceColor.needsUpdate = true;
     inst.castShadow = true;
     inst.receiveShadow = true;
-    this.scene.add(inst);
+    setbacks.castShadow = setbacks.receiveShadow = true;
+    this.scene.add(inst, setbacks, crowns);
   }
 
   buildSuburbs() {
@@ -356,8 +616,8 @@ export class World {
     const roofs = new THREE.InstancedMesh(roofGeo, toonMat(0xffffff), n);
     const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3();
     const col = new THREE.Color();
-    const wallCols = [0xf2e3c4, 0xe8d5b0, 0xd9c9a8, 0xf0d9c0, 0xe3c9a3];
-    const roofCols = [0xc96f4a, 0xa2707f, 0x8a5a3a, 0xb8452f, 0x7c6f64];
+    const wallCols = [0x435c78, 0x526b82, 0x60547e, 0x3d6877, 0x56627a];
+    const roofCols = [0xff5f7e, 0x7e68c9, 0x24445c, 0x31bca5, 0x27334f];
     let placed = 0, guard = 0;
     while (placed < n && guard++ < 4000) {
       const a = Math.random() * Math.PI * 2;
@@ -403,7 +663,7 @@ export class World {
     const trunks = new THREE.InstancedMesh(trunkGeo, toonMat(0x8a5a3a), n);
     const canopies = new THREE.InstancedMesh(canopyGeo, addWindSway(toonMat(0xffffff), 0.09), n);
     const M = new THREE.Matrix4(), col = new THREE.Color();
-    const greens = [0x7ba05b, 0x93a35e, 0x6b8f4e, 0xa3b06a];
+    const greens = [0x1e7b6d, 0x2d927c, 0x1f6e66, 0x36a486];
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
       const r = 24 + Math.random() * 230;

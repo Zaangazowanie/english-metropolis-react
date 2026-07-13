@@ -868,7 +868,9 @@ export default function GameHome() {
             <div className="gh-city-features">
               {W.cityFeatures.map((feature, index) => (
                 <div className="gh-city-feature gh-glass" key={feature}>
-                  <span className="gh-city-feature-index">0{index + 1}</span>
+                  <span className="material-symbols-outlined gh-city-feature-icon" aria-hidden>
+                    {['forum', 'style', 'view_in_ar'][index]}
+                  </span>
                   <span>{feature}</span>
                 </div>
               ))}
@@ -887,7 +889,9 @@ export default function GameHome() {
             <div className="gh-three-shell gh-glass-strong">
               <DeferredMetroCity reduced={reduced} night={night} label={W.cityLabel}/>
               <div className="gh-three-hud">
-                <span className="gh-three-hint"><span className="material-symbols-outlined" aria-hidden>drag_pan</span>{W.cityHint}</span>
+                <span className="gh-three-hint" aria-label={W.cityHint}>
+                  <span className="material-symbols-outlined" aria-hidden>drag_pan</span>
+                </span>
               </div>
               <div className="gh-three-route" aria-hidden>
                 <span>LIVE 1:1</span><i/><span>FLASHCARDS</span><i/><span>WORLD 3D</span>

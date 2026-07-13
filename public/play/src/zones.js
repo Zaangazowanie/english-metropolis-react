@@ -9,9 +9,9 @@ import { instanceRig } from './rig.js';
 import { attachMarker } from './markers.js';
 
 export const LINES = {
-  isles:   { angle: Math.PI / 2,                    label: 'THE ISLES LINE',   color: 0x7ba05b },
-  liberty: { angle: Math.PI / 2 + (2 * Math.PI) / 3, label: 'THE LIBERTY LINE', color: 0x8fb4c9 },
-  sunward: { angle: Math.PI / 2 - (2 * Math.PI) / 3, label: 'THE SUNWARD LINE', color: 0xe8a13d },
+  isles:   { angle: Math.PI / 2,                    label: 'THE ISLES LINE',   color: 0x4deeea },
+  liberty: { angle: Math.PI / 2 + (2 * Math.PI) / 3, label: 'THE LIBERTY LINE', color: 0x8b7dff },
+  sunward: { angle: Math.PI / 2 - (2 * Math.PI) / 3, label: 'THE SUNWARD LINE', color: 0xff6f91 },
 };
 
 const FIRST_STOP = 62, STOP_SPACING = 42, LATERAL = 26;
@@ -208,10 +208,11 @@ export class ZoneManager {
     const rng = mulberry32(hash(z.data.code));
     const g = new THREE.Group();
     const pal = z.data.palette;
-    const cPrimary = new THREE.Color(pal.primary);
-    const cSecondary = new THREE.Color(pal.secondary);
-    const cAccent = new THREE.Color(pal.accent);
-    const cRoof = new THREE.Color(pal.roof);
+    const lineColor = new THREE.Color(z.line.color);
+    const cPrimary = new THREE.Color(pal.primary).lerp(new THREE.Color(PALETTE.glass), 0.68);
+    const cSecondary = new THREE.Color(pal.secondary).lerp(new THREE.Color(0x65718f), 0.58);
+    const cAccent = new THREE.Color(pal.accent).lerp(lineColor, 0.64);
+    const cRoof = new THREE.Color(pal.roof).lerp(new THREE.Color(PALETTE.ink), 0.66);
 
     // district ground: concrete pavement with only a hint of the zone's colour
     const ground = new THREE.Mesh(
@@ -248,7 +249,7 @@ export class ZoneManager {
     const zoneColliders = this.buildFacadeBlock(g, slots, rng, { cPrimary, cSecondary, cAccent, cRoof });
 
     // landmark in the courtyard — variant by zone hash
-    const lm = this.buildLandmark(hash(z.data.code) % 3, cAccent, cRoof, rng);
+    const lm = this.buildLandmark(hash(z.data.code) % 3, cAccent, cRoof);
     lm.position.set(0, 0, 0);
     g.add(lm);
     zoneColliders.push({ localX: 0, localZ: 0, hw: 1.6, hd: 1.6 });
@@ -356,14 +357,14 @@ export class ZoneManager {
   // shopfront, fascia sign, awning) and TOWER (setback tier, drainpipes).
   // Everything merges into ~10 meshes per district.
   buildFacadeBlock(g, slots, rng, { cPrimary, cSecondary, cAccent, cRoof }) {
-    const CREAM = new THREE.Color(0xe9dcc4);
+    const CREAM = new THREE.Color(0xcbd7e9);
     const wallTones = [
       cPrimary.clone().lerp(CREAM, 0.52),
       cSecondary.clone().lerp(CREAM, 0.56),
       CREAM.clone().lerp(cPrimary, 0.16),
       cAccent.clone().lerp(CREAM, 0.62),
     ];
-    const trimTone = cPrimary.clone().multiplyScalar(0.5).lerp(new THREE.Color(0x4a3826), 0.45);
+    const trimTone = cPrimary.clone().multiplyScalar(0.52).lerp(new THREE.Color(PALETTE.ink), 0.54);
     const bandTone = CREAM.clone().lerp(trimTone, 0.3);      // ground-floor stone
     const roofTone = cRoof.clone().lerp(CREAM, 0.18);
 
@@ -506,14 +507,14 @@ export class ZoneManager {
     });
 
     // merge each bucket into one mesh
-    const litMat = toonMat(0x33271c);
-    litMat.emissive = new THREE.Color(0xffbe6e);
-    litMat.emissiveIntensity = 0.85;
+    const litMat = toonMat(0x10243c);
+    litMat.emissive = cAccent.clone().lerp(new THREE.Color(PALETTE.cyan), 0.35);
+    litMat.emissiveIntensity = 1.08;
     const mats = {
       wall0: toonMat(wallTones[0]), wall1: toonMat(wallTones[1]),
       wall2: toonMat(wallTones[2]), wall3: toonMat(wallTones[3]),
       trim: toonMat(trimTone), band: toonMat(bandTone), roof: toonMat(roofTone),
-      paneLit: litMat, paneDark: toonMat(0x232a33), accent: toonMat(cAccent),
+      paneLit: litMat, paneDark: toonMat(0x101a2b), accent: toonMat(cAccent),
     };
     for (const [key, list] of Object.entries(B)) {
       if (!list.length) continue;
@@ -525,7 +526,7 @@ export class ZoneManager {
     return zoneColliders;
   }
 
-  buildLandmark(variant, cAccent, cRoof, rng) {
+  buildLandmark(variant, cAccent, cRoof) {
     const g = new THREE.Group();
     if (variant === 0) {           // clock-ish tower
       const base = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.45, 9, 8), toonMat(cAccent));
@@ -559,18 +560,18 @@ export class ZoneManager {
     const c = document.createElement('canvas');
     c.width = 512; c.height = 168;
     const ctx = c.getContext('2d');
-    ctx.fillStyle = '#f6ead2';
+    ctx.fillStyle = '#10172b';
     ctx.fillRect(0, 0, 512, 168);
     ctx.fillStyle = '#' + z.line.color.toString(16).padStart(6, '0');
     ctx.fillRect(0, 0, 512, 26);
-    ctx.fillStyle = '#4a3826';
-    ctx.font = 'bold 46px Georgia';
+    ctx.fillStyle = '#f5f2ff';
+    ctx.font = "700 46px 'Space Grotesk', sans-serif";
     ctx.textAlign = 'center';
     const name = z.data.zoneName;
-    ctx.font = `bold ${name.length > 16 ? 36 : 46}px Georgia`;
+    ctx.font = `700 ${name.length > 16 ? 36 : 46}px 'Space Grotesk', sans-serif`;
     ctx.fillText(name, 256, 88);
-    ctx.font = 'italic 24px Georgia';
-    ctx.fillStyle = '#8a6f4d';
+    ctx.font = "600 23px 'Space Grotesk', sans-serif";
+    ctx.fillStyle = '#79f5ec';
     ctx.fillText(z.data.dialect, 256, 132);
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -584,7 +585,7 @@ export class ZoneManager {
     const post2 = post1.clone();
     post1.position.set(-1.6, 1.5, 0); post2.position.set(1.6, 1.5, 0);
     // platform pad
-    const pad = new THREE.Mesh(new THREE.PlaneGeometry(7, 3.4), toonMat(new THREE.Color(z.line.color).lerp(new THREE.Color(0xf2e3c4), 0.6)));
+    const pad = new THREE.Mesh(new THREE.PlaneGeometry(7, 3.4), toonMat(new THREE.Color(z.line.color).lerp(new THREE.Color(PALETTE.plaza), 0.68)));
     pad.rotation.x = -Math.PI / 2; pad.position.y = 0.035;
     g.add(panel, post1, post2, pad);
     g.userData.tex = tex;

@@ -43,10 +43,9 @@ export async function loadMixamoHero(loader) {
     run: named(run, 'run'),
   };
 
-  // Wren's hands are modelled splayed-open (welcoming pose) with no finger bones,
-  // so Mixamo's wrist mocap twists them into odd shapes. Lock each wrist to its
-  // neutral rest orientation every frame — the shoulders/elbows still swing, but
-  // the hands stop twisting. An extra inward roll settles the palms toward the body.
+  // The compressed rig keeps its finger chain, but the wrist tracks can still
+  // over-rotate at the fastest run keys. Preserve the mocap and soften only those
+  // extremes so the hands remain expressive rather than rigid.
   const handL = [], handR = [];
   root.traverse((o) => {
     if (!o.isBone) return;
@@ -55,12 +54,33 @@ export async function loadMixamoHero(loader) {
   });
   const bind = new Map();
   for (const b of [...handL, ...handR]) bind.set(b, b.quaternion.clone());
-  // neutral by default (exact modelled hand pose, no twist); tunable via __RIG.rolls
+  const inverseBind = new Map();
+  const smoothed = new Map();
+  for (const b of [...handL, ...handR]) {
+    inverseBind.set(b, bind.get(b).clone().invert());
+    smoothed.set(b, bind.get(b).clone());
+  }
+  // Identity by default; retained on __RIG so art-direction tuning remains live.
   const rollL = new THREE.Quaternion();
   const rollR = new THREE.Quaternion();
-  const postUpdate = () => {
-    for (const b of handL) b.quaternion.copy(bind.get(b)).multiply(rollL);
-    for (const b of handR) b.quaternion.copy(bind.get(b)).multiply(rollR);
+  const identity = new THREE.Quaternion();
+  const delta = new THREE.Quaternion();
+  const limited = new THREE.Quaternion();
+  const target = new THREE.Quaternion();
+  const MAX_WRIST_ANGLE = THREE.MathUtils.degToRad(46);
+  const stabilise = (bone, correction, dt) => {
+    delta.copy(inverseBind.get(bone)).multiply(bone.quaternion).normalize();
+    if (delta.w < 0) delta.set(-delta.x, -delta.y, -delta.z, -delta.w);
+    const angle = 2 * Math.acos(THREE.MathUtils.clamp(delta.w, -1, 1));
+    if (angle > MAX_WRIST_ANGLE) limited.copy(identity).slerp(delta, MAX_WRIST_ANGLE / angle);
+    else limited.copy(delta);
+    target.copy(bind.get(bone)).multiply(limited).multiply(correction);
+    smoothed.get(bone).slerp(target, 1 - Math.exp(-Math.max(dt, 1 / 240) * 18));
+    bone.quaternion.copy(smoothed.get(bone));
+  };
+  const postUpdate = (dt = 1 / 60) => {
+    for (const b of handL) stabilise(b, rollL, dt);
+    for (const b of handR) stabilise(b, rollR, dt);
   };
   return { object: wrap, mixer, actions, root, postUpdate, bind, rolls: { rollL, rollR }, bones: { handL: handL[0], handR: handR[0] } };
 }
