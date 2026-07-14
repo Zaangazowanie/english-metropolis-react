@@ -4,13 +4,15 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { neonMat, toonMat } from './materials.js';
 import { LINES } from './zones.js';
+import { BOULEVARD } from './transit-layout.js';
 
 const SPEED = 11;
 const CAR_LEN = 7.4;
 const GAP = 0.78;
 const DWELL = 2.4;
-const LANE = 3.3;
 const CAR_STEP = CAR_LEN + GAP;
+const TRAIN_CENTER_OFFSET = 7.9;
+const TRAIN_HALF_LENGTH = 12.2;
 
 const glassMat = new THREE.MeshStandardMaterial({
   color: 0x16345c,
@@ -207,19 +209,28 @@ export class Trains {
     this.scene = scene;
     this.audio = audio;
     this.trains = [];
+    let lineIndex = 0;
     for (const [key, line] of Object.entries(LINES)) {
       const dir = new THREE.Vector2(Math.cos(line.angle), -Math.sin(line.angle));
       const perp = new THREE.Vector2(-dir.y, dir.x);
       const stops = [...new Set(zoneMgr.zones
         .filter((zone) => zone.lineKey === key)
         .map((zone) => Math.round(zone.stopPos.x * dir.x + zone.stopPos.y * dir.y)))].sort((a, b) => a - b);
-      const minD = 14;
-      const maxD = (stops[stops.length - 1] || 380) + 26;
-      const group = buildTrain(line.color);
+      const minD = 28;
+      const lastStop = stops[stops.length - 1] || 380;
+      const maxD = Math.min(lastStop + 26, BOULEVARD.endD - TRAIN_HALF_LENGTH);
+      const visual = buildTrain(line.color);
+      visual.position.z = TRAIN_CENTER_OFFSET;
+      const group = new THREE.Group();
+      group.name = `tram-${key}`;
+      group.add(visual);
+      group.userData.setDoors = (amount) => visual.userData.setDoors?.(amount);
       this.scene.add(group);
+      const firstStop = stops[0] || minD;
 
       this.trains.push({
         key,
+        color: line.color,
         dir,
         perp,
         stops,
@@ -229,17 +240,22 @@ export class Trains {
         // Minimap compatibility: it only needs the lead object's world position
         // and line-colored first material, both exposed by the batched group.
         cars: [group],
-        d: minD + Math.random() * (maxD - minD),
-        fwd: Math.random() < 0.5 ? 1 : -1,
-        wait: 0,
-        doorOpen: 0,
-        lastStop: null,
+        d: firstStop,
+        fwd: 1,
+        wait: DWELL + lineIndex * 0.55,
+        doorOpen: 1,
+        lastStop: firstStop,
+        currentSpeed: 0,
         whooshCd: 0,
       });
+      lineIndex++;
     }
   }
 
-  update(dt, playerPos) {
+  update(dt, playerPos, pedestrians = [], teachers = []) {
+    const people = [playerPos];
+    for (const person of pedestrians) people.push(person.wrap?.position || person);
+    for (const person of teachers) people.push(person.obj?.position || person);
     for (const train of this.trains) {
       if (train.wait > 0) {
         train.wait -= dt;
@@ -253,8 +269,24 @@ export class Trains {
             nearStop = stop;
           }
         }
-        const speed = SPEED * THREE.MathUtils.clamp(nearDist / 22, 0.14, 1);
-        train.d += train.fwd * speed * dt;
+        const cruiseSpeed = SPEED * THREE.MathUtils.clamp(nearDist / 22, 0.14, 1);
+        const frontD = train.d + train.fwd * TRAIN_HALF_LENGTH;
+        let safety = 1;
+        for (const person of people) {
+          if (!person) continue;
+          const lateral = person.x * train.perp.x + person.z * train.perp.y;
+          if (Math.abs(lateral - BOULEVARD.tramLaneX) > 1.75) continue;
+          const personD = person.x * train.dir.x + person.z * train.dir.y;
+          const gap = (personD - frontD) * train.fwd;
+          if (gap > -(TRAIN_HALF_LENGTH * 2 + 1.2) && gap < 16) {
+            safety = Math.min(safety, THREE.MathUtils.clamp((gap - 3.2) / 9, 0, 1));
+          }
+        }
+        const targetSpeed = cruiseSpeed * safety;
+        train.currentSpeed = safety < 0.04
+          ? 0
+          : THREE.MathUtils.damp(train.currentSpeed, targetSpeed, 5.5, dt);
+        train.d += train.fwd * train.currentSpeed * dt;
         if (nearDist < 0.5 && train.lastStop !== nearStop) {
           train.wait = DWELL;
           train.lastStop = nearStop;
@@ -263,11 +295,15 @@ export class Trains {
           train.d = train.maxD;
           train.fwd = -1;
           train.lastStop = null;
+          train.wait = DWELL;
+          train.currentSpeed = 0;
         }
         if (train.d < train.minD) {
           train.d = train.minD;
           train.fwd = 1;
           train.lastStop = null;
+          train.wait = DWELL;
+          train.currentSpeed = 0;
         }
       }
 
@@ -276,9 +312,9 @@ export class Trains {
       train.group.userData.setDoors?.(train.doorOpen);
 
       train.group.position.set(
-        train.dir.x * train.d + train.perp.x * LANE,
+        train.dir.x * train.d + train.perp.x * BOULEVARD.tramLaneX,
         0,
-        train.dir.y * train.d + train.perp.y * LANE,
+        train.dir.y * train.d + train.perp.y * BOULEVARD.tramLaneX,
       );
       train.group.rotation.y = Math.atan2(train.dir.x, train.dir.y) + (train.fwd > 0 ? 0 : Math.PI);
 

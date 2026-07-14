@@ -6,17 +6,29 @@ import { PALETTE, toonMat, neonMat, toonifyGLB, blobShadow, makeDustMotes, makeC
 import { makeTerrain, heightAt, hillFactor } from './terrain.js';
 import { instanceRig } from './rig.js';
 import { attachMarker } from './markers.js';
+import { buildMediaFacades } from './media.js';
+import { BOULEVARD } from './transit-layout.js';
+import { CityLife } from './city-life.js';
 
 const MODELS = 'public/assets/models/';
 const STREET_CHROME = new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.84, roughness: 0.24 });
 function chromeMatForStreet() { return STREET_CHROME; }
 
+const HUB_TOWERS = [
+  { x: -46, z: -27, w: 10, d: 12, h: 22, color: 0x27436c },
+  { x: 46, z: -28, w: 11, d: 10, h: 25, color: 0x3c3b72 },
+  { x: -49, z: 7, w: 12, d: 10, h: 19, color: 0x2e5870 },
+  { x: -19, z: 39, w: 11, d: 12, h: 24, color: 0x433b78 },
+  { x: 19, z: 40, w: 12, d: 11, h: 21, color: 0x28566c },
+  { x: 49, z: 7, w: 10, d: 12, h: 23, color: 0x4b3c72 },
+].map((site) => ({ ...site, yaw: Math.atan2(-site.x, -site.z) }));
+
 // --- placement table: url, target height (m), position, yaw, collider ---
 const BUILDINGS = [
-  { url: 'station_mass.glb',     h: 13, pos: [0, -34],   rot: 0,            name: 'Central Station' },
+  { url: 'station_mass.glb',     h: 13, pos: [-21, -34], rot: 0,            name: 'Central Station' },
   { url: 'language_academy.glb', h: 11, pos: [-26, -14], rot: Math.PI / 5,  name: 'Language Academy' },
   { url: 'bookshop.glb',         h: 8,  pos: [24, -16],  rot: -Math.PI / 5, name: 'Corner Bookshop' },
-  { url: 'listening_lounge.glb', h: 8,  pos: [30, 10],   rot: -Math.PI / 2.4, name: 'Listening Lounge' },
+  { url: 'listening_lounge.glb', h: 8,  pos: [38, 0],    rot: -Math.PI / 2.4, name: 'Listening Lounge' },
 ];
 const PROPS = [
   { url: 'lesson_kiosk.glb',     h: 2.6, pos: [-8, -6],  rot: 0.6 },
@@ -26,7 +38,7 @@ const PROPS = [
   { url: 'street_lamp.glb',      h: 4.2, pos: [-10, -10],rot: 0 },
   { url: 'street_lamp.glb',      h: 4.2, pos: [10, 10],  rot: 0 },
   { url: 'street_lamp.glb',      h: 4.2, pos: [-10, 10], rot: 0 },
-  { url: 'wayfinding_totem.glb', h: 3.4, pos: [2, -12],  rot: 0.2 },
+  { url: 'wayfinding_totem.glb', h: 3.4, pos: [8, -8],   rot: 0.2 },
   { url: 'phone_booth.glb',      h: 2.8, pos: [16, -4],  rot: -0.9 },
   { url: 'station_gate.glb',     h: 3.6, pos: [0, -22],  rot: 0, collider: false },
 ];
@@ -97,9 +109,10 @@ function normalizeToHeight(root, targetH) {
 }
 
 export class World {
-  constructor(scene, loadingManager) {
+  constructor(scene, loadingManager, { lowPower = false } = {}) {
     this.scene = scene;
     this.loader = makeGLTFLoader(loadingManager);
+    this.lowPower = lowPower;
     this.colliders = [];
     this.npcs = [];       // { obj, name, role, greeting, exercise, done, baseY }
     this.animated = [];   // objects with userData.update(t)
@@ -108,8 +121,12 @@ export class World {
   async build() {
     this.buildGroundAndRoads();
     this.buildArtDecoHub();
+    this.media = buildMediaFacades(this.scene, this.animated, HUB_TOWERS, { lowPower: this.lowPower });
     this.buildPlazaLife();
+    this.cityLife = new CityLife(this.scene, { lowPower: this.lowPower });
+    for (const object of this.cityLife.colliderObjects) this.addAABBCollider(object, 0.12);
     this.buildBoulevardDetail();
+    this.buildStreetTrees();
     this.buildSkyline();
     this.buildSuburbs();
     this.buildTrees();
@@ -147,11 +164,12 @@ export class World {
       this.loader.load(MODELS + url, res, undefined, rej));
   }
 
-  addAABBCollider(obj, pad = 0.15) {
+  addAABBCollider(obj, pad = 0.15, source = obj.name || 'world-object') {
     const box = new THREE.Box3().setFromObject(obj);
     this.colliders.push({
       minX: box.min.x - pad, maxX: box.max.x + pad,
       minZ: box.min.z - pad, maxZ: box.max.z + pad,
+      source,
     });
   }
 
@@ -159,6 +177,7 @@ export class World {
     await Promise.all(BUILDINGS.map(async (b) => {
       const m = toonifyGLB(normalizeToHeight(await this.loadGLB(b.url), b.h));
       const g = new THREE.Group();
+      g.name = b.name;
       g.add(m);
       g.position.set(b.pos[0], 0, b.pos[1]);
       g.rotation.y = b.rot;
@@ -175,6 +194,7 @@ export class World {
     for (const p of PROPS) {
       const m = normalizeToHeight(protos[p.url].clone(), p.h);
       const g = new THREE.Group();
+      g.name = p.url.replace('.glb', '');
       g.add(m);
       g.position.set(p.pos[0], 0, p.pos[1]);
       g.rotation.y = p.rot;
@@ -220,6 +240,7 @@ export class World {
       this.colliders.push({
         minX: n.pos[0] - 0.4, maxX: n.pos[0] + 0.4,
         minZ: n.pos[1] - 0.4, maxZ: n.pos[1] + 0.4,
+        source: n.name,
       });
     });
   }
@@ -241,6 +262,18 @@ export class World {
       seam.rotation.x = -Math.PI / 2; seam.position.y = 0.023;
       this.scene.add(seam);
     }
+    const innerPlaza = new THREE.Mesh(new THREE.CircleGeometry(6.1, 32), toonMat(0x273754));
+    innerPlaza.rotation.x = -Math.PI / 2;
+    innerPlaza.position.y = 0.026;
+    this.scene.add(innerPlaza);
+    const inlayMat = [neonMat(PALETTE.coral, 0.7), neonMat(PALETTE.cyan, 0.7), neonMat(0xffb84d, 0.7)];
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const inlay = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.025, 5.3), inlayMat[i % inlayMat.length]);
+      inlay.position.set(Math.sin(angle) * 9.4, 0.04, Math.cos(angle) * 9.4);
+      inlay.rotation.y = angle;
+      this.scene.add(inlay);
+    }
 
     // three metro boulevards radiating at 120° — green / blue / orange curbs
     const lines = [
@@ -251,28 +284,30 @@ export class World {
     const roadMat = toonMat(PALETTE.road);
     const walkMat = toonMat(PALETTE.sidewalk);
     const dashMat = toonMat(0xe8dcbb);
-    const ROAD_LEN = 400, ROAD_MID = -20 - ROAD_LEN / 2;
+    const laneDividerX = (BOULEVARD.carLanes[0] + BOULEVARD.carLanes[1]) / 2;
     for (const L of lines) {
       const g = new THREE.Group();
-      const road = new THREE.Mesh(new THREE.PlaneGeometry(9, ROAD_LEN), roadMat);
-      road.rotation.x = -Math.PI / 2; road.position.set(0, 0.015, ROAD_MID);
+      g.name = 'protected-transit-boulevard';
+      const road = new THREE.Mesh(new THREE.PlaneGeometry(9, BOULEVARD.length), roadMat);
+      road.rotation.x = -Math.PI / 2; road.position.set(0, 0.015, BOULEVARD.midZ);
       g.add(road);
       for (const side of [-1, 1]) {
-        const walk = new THREE.Mesh(new THREE.PlaneGeometry(2.4, ROAD_LEN), walkMat);
-        walk.rotation.x = -Math.PI / 2; walk.position.set(side * 5.7, 0.018, ROAD_MID);
+        const walk = new THREE.Mesh(new THREE.PlaneGeometry(2.4, BOULEVARD.length), walkMat);
+        walk.rotation.x = -Math.PI / 2; walk.position.set(side * 5.7, 0.018, BOULEVARD.midZ);
         g.add(walk);
-        const curb = new THREE.Mesh(new THREE.PlaneGeometry(0.5, ROAD_LEN),
+        const curb = new THREE.Mesh(new THREE.PlaneGeometry(0.5, BOULEVARD.length),
           toonMat(L.curb));
-        curb.rotation.x = -Math.PI / 2; curb.position.set(side * 7.05, 0.02, ROAD_MID);
+        curb.rotation.x = -Math.PI / 2; curb.position.set(side * 7.05, 0.02, BOULEVARD.midZ);
         g.add(curb);
       }
-      // center dashes as one instanced mesh per line
+      // Dashed centerline separates two car lanes; the tram reservation begins
+      // at the solid line farther right and never shares this carriageway.
       const nDash = 40;
       const dashes = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.35, 3.4), dashMat, nDash);
       const DM = new THREE.Matrix4();
       const rot = new THREE.Matrix4().makeRotationX(-Math.PI / 2);
       for (let d = 0; d < nDash; d++) {
-        DM.copy(rot).setPosition(0, 0.019, -26 - d * 9.6);
+        DM.copy(rot).setPosition(laneDividerX, 0.019, -32 - d * 9.3);
         dashes.setMatrixAt(d, DM);
       }
       dashes.instanceMatrix.needsUpdate = true;
@@ -287,20 +322,36 @@ export class World {
       }
       zebra.instanceMatrix.needsUpdate = true;
       g.add(zebra);
+
+      const stopBar = new THREE.Mesh(new THREE.PlaneGeometry(6.1, 0.36), dashMat);
+      stopBar.rotation.x = -Math.PI / 2;
+      stopBar.position.set(-1.36, 0.024, -28.2);
+      g.add(stopBar);
+
+      const arrows = new THREE.InstancedMesh(new THREE.BoxGeometry(0.16, 0.025, 1.35), dashMat, 6);
+      const arrowDummy = new THREE.Object3D();
+      let arrowIndex = 0;
+      for (const [lane, heading] of [[BOULEVARD.carLanes[0], -1], [BOULEVARD.carLanes[1], 1]]) {
+        arrowDummy.position.set(lane, 0.035, -42);
+        arrowDummy.rotation.set(0, 0, 0);
+        arrowDummy.updateMatrix();
+        arrows.setMatrixAt(arrowIndex++, arrowDummy.matrix);
+        for (const side of [-1, 1]) {
+          arrowDummy.position.set(lane + side * 0.38, 0.035, -42 + heading * 0.9);
+          arrowDummy.rotation.set(0, side * heading * 0.58, 0);
+          arrowDummy.updateMatrix();
+          arrows.setMatrixAt(arrowIndex++, arrowDummy.matrix);
+        }
+      }
+      arrows.instanceMatrix.needsUpdate = true;
+      g.add(arrows);
       g.rotation.y = L.angle - Math.PI / 2;
       this.scene.add(g);
     }
   }
 
   buildArtDecoHub() {
-    const sites = [
-      { x: -46, z: -27, w: 10, d: 12, h: 22, color: 0x27436c },
-      { x: 46, z: -28, w: 11, d: 10, h: 25, color: 0x3c3b72 },
-      { x: -38, z: 24, w: 12, d: 10, h: 19, color: 0x2e5870 },
-      { x: -19, z: 39, w: 11, d: 12, h: 24, color: 0x433b78 },
-      { x: 19, z: 40, w: 12, d: 11, h: 21, color: 0x28566c },
-      { x: 39, z: 25, w: 10, d: 12, h: 23, color: 0x4b3c72 },
-    ].map((site) => ({ ...site, yaw: Math.atan2(-site.x, -site.z) }));
+    const sites = HUB_TOWERS;
 
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.3, roughness: 0.54 });
     const chromeMat = new THREE.MeshStandardMaterial({ color: 0xaebed6, metalness: 0.86, roughness: 0.2 });
@@ -390,6 +441,7 @@ export class World {
       this.colliders.push({
         minX: site.x - halfX, maxX: site.x + halfX,
         minZ: site.z - halfZ, maxZ: site.z + halfZ,
+        source: `hub-tower-${siteIndex + 1}`,
       });
     });
 
@@ -475,21 +527,110 @@ export class World {
 
   buildBoulevardDetail() {
     const lines = [
-      { angle: Math.PI / 2, color: PALETTE.cyan },
-      { angle: Math.PI / 2 + (2 * Math.PI) / 3, color: PALETTE.dustyBlue },
-      { angle: Math.PI / 2 - (2 * Math.PI) / 3, color: PALETTE.coral },
+      { key: 'isles', angle: Math.PI / 2, color: PALETTE.cyan },
+      { key: 'liberty', angle: Math.PI / 2 + (2 * Math.PI) / 3, color: PALETTE.dustyBlue },
+      { key: 'sunward', angle: Math.PI / 2 - (2 * Math.PI) / 3, color: PALETTE.coral },
     ];
+    const bedMat = toonMat(0x202940);
+    const sleeperMat = toonMat(0x3e4960);
+    const railMat = chromeMatForStreet();
+    const poleMat = toonMat(0x16223a);
+    const emergencyMat = new THREE.MeshStandardMaterial({
+      color: 0xff405f, emissive: 0x8a102d, emissiveIntensity: 1.6,
+      metalness: 0.46, roughness: 0.3,
+    });
+    const signalMat = toonMat(0x0b1220);
+    const glass = new THREE.MeshStandardMaterial({
+      color: 0x5bc8e8, emissive: 0x173d66, emissiveIntensity: 0.7,
+      metalness: 0.68, roughness: 0.18, transparent: true, opacity: 0.72, depthWrite: false,
+    });
     for (const line of lines) {
       const g = new THREE.Group();
-      for (const side of [-1, 1]) {
-        const ribbon = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 390), neonMat(line.color, 0.86));
+      g.name = `${line.key}-track-infrastructure`;
+
+      const trackBed = new THREE.Mesh(new THREE.PlaneGeometry(2.72, BOULEVARD.length), bedMat);
+      trackBed.name = `${line.key}-reserved-track-bed`;
+      trackBed.rotation.x = -Math.PI / 2;
+      trackBed.position.set(BOULEVARD.tramLaneX, 0.036, BOULEVARD.midZ);
+      trackBed.receiveShadow = true;
+      g.add(trackBed);
+
+      for (const edgeX of [BOULEVARD.reservationInnerX, 4.43]) {
+        const ribbon = new THREE.Mesh(new THREE.PlaneGeometry(0.14, BOULEVARD.length), neonMat(line.color, 0.9));
         ribbon.rotation.x = -Math.PI / 2;
-        ribbon.position.set(side * 4.28, 0.042, -215);
+        ribbon.position.set(edgeX, 0.048, BOULEVARD.midZ);
         g.add(ribbon);
       }
 
+      const railGeometry = new THREE.BoxGeometry(0.085, 0.075, BOULEVARD.length);
+      const rails = new THREE.InstancedMesh(railGeometry, railMat, 2);
+      rails.name = `${line.key}-steel-rails`;
+      const railDummy = new THREE.Object3D();
+      for (const [index, side] of [-1, 1].entries()) {
+        railDummy.position.set(
+          BOULEVARD.tramLaneX + side * BOULEVARD.railHalfGauge,
+          0.09,
+          BOULEVARD.midZ,
+        );
+        railDummy.updateMatrix();
+        rails.setMatrixAt(index, railDummy.matrix);
+      }
+      rails.instanceMatrix.needsUpdate = true;
+      g.add(rails);
+
+      const sleeperSpacing = 3;
+      const sleeperCount = Math.floor(BOULEVARD.length / sleeperSpacing) + 1;
+      const sleepers = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(2.52, 0.055, 0.2), sleeperMat, sleeperCount,
+      );
+      sleepers.name = `${line.key}-sleepers`;
+      const sleeperDummy = new THREE.Object3D();
+      for (let index = 0; index < sleeperCount; index++) {
+        sleeperDummy.position.set(BOULEVARD.tramLaneX, 0.06, -BOULEVARD.startD - index * sleeperSpacing);
+        sleeperDummy.updateMatrix();
+        sleepers.setMatrixAt(index, sleeperDummy.matrix);
+      }
+      sleepers.instanceMatrix.needsUpdate = true;
+      g.add(sleepers);
+
+      // Rubberized panels keep the pedestrian crossing obvious without hiding rails.
+      const crossingPanels = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(2.42, 0.055, 0.62), toonMat(0x737f92), 3,
+      );
+      for (let index = 0; index < 3; index++) {
+        sleeperDummy.position.set(BOULEVARD.tramLaneX, 0.065, -23.8 - index * 0.72);
+        sleeperDummy.updateMatrix();
+        crossingPanels.setMatrixAt(index, sleeperDummy.matrix);
+      }
+      crossingPanels.instanceMatrix.needsUpdate = true;
+      g.add(crossingPanels);
+
+      const wire = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, BOULEVARD.length), railMat);
+      wire.position.set(BOULEVARD.tramLaneX, 4.55, BOULEVARD.midZ);
+      g.add(wire);
+
+      const catenaryCount = 12;
+      const catenaryPoles = new THREE.InstancedMesh(
+        new THREE.CylinderGeometry(0.07, 0.1, 4.65, 7), poleMat, catenaryCount,
+      );
+      const catenaryArms = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(3.55, 0.07, 0.07), railMat, catenaryCount,
+      );
+      for (let index = 0; index < catenaryCount; index++) {
+        const z = -34 - index * 32;
+        railDummy.position.set(6.78, 2.32, z);
+        railDummy.updateMatrix();
+        catenaryPoles.setMatrixAt(index, railDummy.matrix);
+        railDummy.position.set(5.04, 4.52, z);
+        railDummy.updateMatrix();
+        catenaryArms.setMatrixAt(index, railDummy.matrix);
+      }
+      catenaryPoles.instanceMatrix.needsUpdate = true;
+      catenaryArms.instanceMatrix.needsUpdate = true;
+      g.add(catenaryPoles, catenaryArms);
+
       const lampCount = 36;
-      const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.055, 0.08, 3.6, 7), toonMat(0x16223a), lampCount);
+      const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.055, 0.08, 3.6, 7), poleMat, lampCount);
       const heads = new THREE.InstancedMesh(new THREE.BoxGeometry(0.42, 0.13, 0.18), neonMat(line.color), lampCount);
       const dummy = new THREE.Object3D();
       let index = 0;
@@ -506,29 +647,76 @@ export class World {
       poles.instanceMatrix.needsUpdate = heads.instanceMatrix.needsUpdate = true;
       poles.castShadow = true;
       g.add(poles, heads);
+
+      const platform = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.16, 28), toonMat(0x69758b));
+      platform.name = `${line.key}-boarding-platform`;
+      platform.position.set(5.7, 0.08, -27.5);
+      platform.receiveShadow = true;
+      g.add(platform);
+      const boardingEdge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 27.2), neonMat(line.color));
+      boardingEdge.position.set(4.64, 0.19, -27.5);
+      g.add(boardingEdge);
+
+      const canopyRoof = new THREE.Mesh(new THREE.BoxGeometry(2.55, 0.16, 9.5), glass);
+      canopyRoof.position.set(5.78, 3.42, -21.5);
+      g.add(canopyRoof);
+      const columns = new THREE.InstancedMesh(
+        new THREE.CylinderGeometry(0.08, 0.11, 3.35, 8), railMat, 4,
+      );
+      let columnIndex = 0;
+      for (const x of [5.05, 6.5]) for (const z of [-25.4, -17.7]) {
+        railDummy.position.set(x, 1.7, z);
+        railDummy.updateMatrix();
+        columns.setMatrixAt(columnIndex++, railDummy.matrix);
+      }
+      columns.instanceMatrix.needsUpdate = true;
+      g.add(columns);
+
+      const bufferBar = new THREE.Mesh(new THREE.BoxGeometry(2.28, 0.14, 0.18), railMat);
+      bufferBar.position.set(BOULEVARD.tramLaneX, 0.52, -14.35);
+      g.add(bufferBar);
+      for (const side of [-1, 1]) {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.85, 0.12), railMat);
+        post.position.set(BOULEVARD.tramLaneX + side * 0.92, 0.45, -14.35);
+        post.rotation.x = side * 0.28;
+        g.add(post);
+      }
+
+      // Passenger emergency stop/call cabinet: deliberately bright and repeated
+      // at every line so it reads as infrastructure, not decoration.
+      const emergency = new THREE.Group();
+      emergency.name = `${line.key}-emergency-stop`;
+      const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.05, 0.28), emergencyMat);
+      cabinet.position.y = 1.02;
+      const callButton = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), neonMat(0xffffff));
+      callButton.position.set(0, 1.12, -0.17);
+      const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.16, 8), neonMat(0xff405f));
+      beacon.position.y = 1.64;
+      const emergencyPost = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 1.25, 7), railMat);
+      emergencyPost.position.y = 0.62;
+      emergency.add(emergencyPost, cabinet, callButton, beacon);
+      emergency.position.set(6.52, 0, -31.5);
+      g.add(emergency);
+
+      // Compact red/amber/green signals stop road traffic at the platform throat.
+      const signal = new THREE.Group();
+      signal.name = `${line.key}-road-signal`;
+      const signalPole = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.09, 3.2, 7), poleMat);
+      signalPole.position.y = 1.6;
+      const signalHead = new THREE.Mesh(new THREE.BoxGeometry(0.42, 1.18, 0.34), signalMat);
+      signalHead.position.set(0, 3.02, 0);
+      signal.add(signalPole, signalHead);
+      for (const [index, color] of [0xff405f, 0xffb84d, 0x43e6aa].entries()) {
+        const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.115, 8, 6), neonMat(color, index === 0 ? 1.2 : 0.34));
+        lamp.position.set(0, 3.34 - index * 0.32, -0.19);
+        signal.add(lamp);
+      }
+      signal.position.set(-4.05, 0, -28.6);
+      g.add(signal);
+
       g.rotation.y = line.angle - Math.PI / 2;
       this.scene.add(g);
     }
-
-    const canopy = new THREE.Group();
-    const glass = new THREE.MeshStandardMaterial({
-      color: 0x5bc8e8, emissive: 0x173d66, emissiveIntensity: 0.7,
-      metalness: 0.68, roughness: 0.18, transparent: true, opacity: 0.72, depthWrite: false,
-    });
-    const canopyRoof = new THREE.Mesh(new THREE.BoxGeometry(13.5, 0.18, 5.2), glass);
-    canopyRoof.position.set(0, 4.05, -20.5);
-    canopy.add(canopyRoof);
-    for (const x of [-6.1, 6.1]) for (const z of [-22.3, -18.7]) {
-      const column = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 4, 8), chromeMatForStreet());
-      column.position.set(x, 2, z);
-      canopy.add(column);
-    }
-    for (const x of [-5.4, 5.4]) {
-      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 4.7), neonMat(x < 0 ? PALETTE.cyan : PALETTE.pink));
-      strip.position.set(x, 3.98, -20.5);
-      canopy.add(strip);
-    }
-    this.scene.add(canopy);
   }
 
   buildSkyline() {
@@ -590,7 +778,11 @@ export class World {
         S.set(Math.max(0.14, w * 0.035), 2.2, Math.max(0.14, w * 0.035));
         M.compose(P, Q, S);
         crowns.setMatrixAt(i, M);
-        if (r < 90) this.colliders.push({ minX: x - w * 0.7, maxX: x + w * 0.7, minZ: z - w * 0.7, maxZ: z + w * 0.7 });
+        if (r < 90) this.colliders.push({
+          minX: x - w * 0.7, maxX: x + w * 0.7,
+          minZ: z - w * 0.7, maxZ: z + w * 0.7,
+          source: 'skyline-tower',
+        });
       }
     };
     place(88, 175, 150, 24, 78, 8, 17);    // skyscraper downtown between districts
@@ -602,6 +794,55 @@ export class World {
     inst.receiveShadow = true;
     setbacks.castShadow = setbacks.receiveShadow = true;
     this.scene.add(inst, setbacks, crowns);
+  }
+
+  buildStreetTrees() {
+    const lines = [Math.PI / 2, Math.PI / 2 + (2 * Math.PI) / 3, Math.PI / 2 - (2 * Math.PI) / 3];
+    const slots = [];
+    for (let d = 41; d <= 377; d += 42) {
+      for (const angle of lines) for (const side of [-1, 1]) slots.push({ d, angle, side });
+    }
+    const trunks = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.11, 0.18, 2.3, 7), toonMat(0x7b5548), slots.length,
+    );
+    const canopies = new THREE.InstancedMesh(
+      new THREE.IcosahedronGeometry(0.82, 1), addWindSway(toonMat(0xffffff), 0.055), slots.length,
+    );
+    const grates = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.72, 0.72, 0.055, 12), toonMat(0x26344a), slots.length,
+    );
+    const uplights = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.11, 0.13, 0.07, 8), neonMat(PALETTE.coral, 0.82), slots.length,
+    );
+    const dummy = new THREE.Object3D();
+    const local = new THREE.Vector3();
+    const axis = new THREE.Vector3(0, 1, 0);
+    const colors = [0x2b8d78, 0x3ca883, 0x26756f, 0x4c9978];
+    slots.forEach((slot, index) => {
+      local.set(slot.side * 8.25, 0, -slot.d).applyAxisAngle(axis, slot.angle - Math.PI / 2);
+      dummy.position.set(local.x, 1.18, local.z);
+      dummy.rotation.set(0, slot.angle + (index % 5) * 0.12, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      trunks.setMatrixAt(index, dummy.matrix);
+      dummy.position.y = 2.75;
+      dummy.scale.set(1.15 + (index % 3) * 0.08, 1 + (index % 4) * 0.06, 1.15);
+      dummy.updateMatrix();
+      canopies.setMatrixAt(index, dummy.matrix);
+      canopies.setColorAt(index, new THREE.Color(colors[index % colors.length]));
+      dummy.position.set(local.x, 0.045, local.z);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      grates.setMatrixAt(index, dummy.matrix);
+      dummy.position.set(local.x + slot.side * 0.62, 0.075, local.z);
+      dummy.updateMatrix();
+      uplights.setMatrixAt(index, dummy.matrix);
+    });
+    for (const mesh of [trunks, canopies, grates, uplights]) mesh.instanceMatrix.needsUpdate = true;
+    if (canopies.instanceColor) canopies.instanceColor.needsUpdate = true;
+    trunks.castShadow = canopies.castShadow = true;
+    canopies.receiveShadow = true;
+    this.scene.add(trunks, canopies, grates, uplights);
   }
 
   buildSuburbs() {
@@ -657,7 +898,7 @@ export class World {
   }
 
   buildTrees() {
-    const n = 220;
+    const n = this.lowPower ? 90 : 160;
     const trunkGeo = new THREE.CylinderGeometry(0.14, 0.2, 1.6, 6);
     const canopyGeo = new THREE.IcosahedronGeometry(1.15, 1);
     const trunks = new THREE.InstancedMesh(trunkGeo, toonMat(0x8a5a3a), n);
@@ -668,8 +909,15 @@ export class World {
       const a = Math.random() * Math.PI * 2;
       const r = 24 + Math.random() * 230;
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
-      const clear = r < 90 && [Math.PI / 2, Math.PI / 2 + 2.094, Math.PI / 2 - 2.094]
-        .some(ba => Math.abs(((a - ba + Math.PI * 3) % (Math.PI * 2)) - Math.PI) < 0.5);
+      // The full boulevard and district strips are intentionally urban. Random
+      // park trees belong beyond them, never inside rails, roads or facades.
+      const clear = [Math.PI / 2, Math.PI / 2 + 2.094, Math.PI / 2 - 2.094]
+        .some((ba) => {
+          const dirX = Math.cos(ba), dirZ = -Math.sin(ba);
+          const d = x * dirX + z * dirZ;
+          const lateral = x * -dirZ + z * dirX;
+          return d > 12 && d < 430 && Math.abs(lateral) < 45;
+        });
       if (clear) { i--; continue; }
       const gy = heightAt(x, z);
       const s = 0.8 + Math.random() * 0.9;
@@ -689,6 +937,7 @@ export class World {
 
   update(t, dt, playerPos) {
     for (const a of this.animated) a.userData.update?.(t);
+    this.cityLife?.update(t, dt);
     // NPCs: skeletal mixers advance; unrigged ones get idle bob + gestures
     for (const n of this.npcs) {
       if (n.mixer) n.mixer.update(dt);
