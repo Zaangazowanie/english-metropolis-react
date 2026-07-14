@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { blobShadow } from './materials.js';
 import { heightAt } from './terrain.js';
 import { BOULEVARD, TRANSIT_ANGLES } from './transit-layout.js';
+import { resolveCircleAgainstPeople } from './collision.js';
 
 function segmentBoxEntry(start, end, box, padding = 0.34) {
   const dx = end.x - start.x;
@@ -59,6 +60,7 @@ export class Player {
     scene.add(this.root);
 
     this.pos = new THREE.Vector3(0, 0, 8);
+    this.pos.collisionRadius = PLAYER_R;
     this.vel = new THREE.Vector3();
     this.heading = Math.PI;                 // model facing
     this.grounded = true;
@@ -79,7 +81,7 @@ export class Player {
     this.currentAction = next;
   }
 
-  update(dt, input, camYaw, colliders) {
+  update(dt, input, camYaw, colliders, people = []) {
     // --- camera-relative wish direction ---
     let wx = 0, wz = 0;
     if (input.forward) wz -= 1;
@@ -116,7 +118,7 @@ export class Player {
     // --- integrate + collide-and-slide (circle vs AABB, two passes) ---
     this.pos.x += this.vel.x * dt;
     this.pos.z += this.vel.z * dt;
-    for (let pass = 0; pass < 2; pass++) {
+    for (let pass = 0; pass < 3; pass++) {
       for (const c of colliders) {
         const insideX = this.pos.x > c.minX && this.pos.x < c.maxX;
         const insideZ = this.pos.z > c.minZ && this.pos.z < c.maxZ;
@@ -144,6 +146,7 @@ export class Player {
           this.pos.z += (dz / d) * push;
         }
       }
+      resolveCircleAgainstPeople(this.pos, this.vel, PLAYER_R, people, this.root);
     }
     // world bounds (soft)
     const B = 430;
@@ -242,6 +245,18 @@ export class FollowCamera {
       if (target.x > box.minX && target.x < box.maxX && target.z > box.minZ && target.z < box.maxZ) continue;
       const entry = segmentBoxEntry(target, desired, box);
       if (entry !== null) clearFraction = Math.min(clearFraction, Math.max(0.2, entry - 0.045));
+    }
+    // Sample the camera arm against the analytic terrain. Checking only the
+    // camera endpoint lets a hill crest cut across the view as a dark polygon.
+    for (let step = 2; step <= 12; step++) {
+      const fraction = step / 12;
+      const x = THREE.MathUtils.lerp(target.x, desired.x, fraction);
+      const z = THREE.MathUtils.lerp(target.z, desired.z, fraction);
+      const rayY = THREE.MathUtils.lerp(target.y, desired.y, fraction);
+      if (heightAt(x, z) + 0.32 > rayY) {
+        clearFraction = Math.min(clearFraction, Math.max(0.2, (step - 1) / 12 - 0.035));
+        break;
+      }
     }
     if (clearFraction < 1) desired.lerpVectors(target, desired, clearFraction);
 

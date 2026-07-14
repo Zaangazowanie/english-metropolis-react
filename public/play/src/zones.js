@@ -298,13 +298,15 @@ export class ZoneManager {
     // Every stop gets an inhabited ground floor: compact food/coffee/flower
     // sellers, outdoor tables and a bright local venue sign. The whole set is
     // owned by the streamed chunk, so distant districts still cost nothing.
-    g.add(buildDistrictLife(rng, {
+    const streetLife = buildDistrictLife(rng, {
       accent: cAccent,
       secondary: cSecondary,
       nearEdge,
       code: z.data.zoneName,
       lowPower: this.lowPower,
-    }));
+    });
+    g.add(streetLife);
+    zoneColliders.push(...(streetLife.userData.colliderBoxes || []));
 
     // landmark in the courtyard — variant by zone hash
     const lm = this.buildLandmark(hash(z.data.code) % 3, cAccent, cRoof);
@@ -349,9 +351,32 @@ export class ZoneManager {
     const tagged = zoneColliders.map((c) => {
       const wx = z.center.x + c.localX * cosY + c.localZ * sinY;
       const wz = z.center.y - c.localX * sinY + c.localZ * cosY;
-      const r = Math.max(c.hw, c.hd);      // conservative square after rotation
-      return { minX: wx - r, maxX: wx + r, minZ: wz - r, maxZ: wz + r };
+      const extentX = Math.abs(cosY) * c.hw + Math.abs(sinY) * c.hd;
+      const extentZ = Math.abs(sinY) * c.hw + Math.abs(cosY) * c.hd;
+      return {
+        minX: wx - extentX, maxX: wx + extentX,
+        minZ: wz - extentZ, maxZ: wz + extentZ,
+        source: c.source || `${z.data.code}-building`,
+      };
     });
+    const addSignCollider = (localX, localZ, halfX, halfZ, source) => {
+      const wx = sign.position.x + localX * cosY + localZ * sinY;
+      const wz = sign.position.z - localX * sinY + localZ * cosY;
+      const extentX = Math.abs(cosY) * halfX + Math.abs(sinY) * halfZ;
+      const extentZ = Math.abs(sinY) * halfX + Math.abs(cosY) * halfZ;
+      tagged.push({
+        minX: wx - extentX, maxX: wx + extentX,
+        minZ: wz - extentZ, maxZ: wz + extentZ,
+        source,
+      });
+    };
+    for (const x of [-1.65, 1.65]) {
+      addSignCollider(x, 0, 0.11, 0.11, `${z.data.code}-station-sign`);
+      for (const localZ of [0.55, 1.65]) {
+        addSignCollider(x, localZ, 0.11, 0.11, `${z.data.code}-shelter-support`);
+      }
+    }
+    addSignCollider(2.7, 0.5, 0.3, 0.22, `${z.data.code}-emergency-stop`);
     colliders.push(...tagged);
     this._colliderTag.set(z.data.code, tagged);
 

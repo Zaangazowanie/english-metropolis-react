@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { PALETTE, neonMat, toonMat } from './materials.js';
 import { BOULEVARD } from './transit-layout.js';
+import { heightAt } from './terrain.js';
+import { circleHitsAABB } from './collision.js';
 
 const RADIALS = [
   { angle: Math.PI / 2, color: PALETTE.cyan },
@@ -160,6 +162,7 @@ function buildVendor(kind, accent) {
 
 function buildHubActivity(group, lowPower, animated) {
   group.userData.colliderObjects = [];
+  group.userData.colliderBoxes = [];
   const beacon = new THREE.Group();
   beacon.name = 'central-language-beacon';
   const beaconChrome = new THREE.MeshStandardMaterial({ color: 0xb9c9d8, metalness: 0.9, roughness: 0.17 });
@@ -214,6 +217,7 @@ function buildHubActivity(group, lowPower, animated) {
     bench.position.set(Math.cos(angle) * 5.25, 0, Math.sin(angle) * 5.25);
     bench.rotation.y = -angle + Math.PI / 2;
     group.add(bench);
+    group.userData.colliderObjects.push(bench);
   }
   const venues = [
     { title: 'Metro Social', subtitle: 'Kitchen + late cafe', accent: PALETTE.coral, pos: [-18.8, -1.5] },
@@ -243,6 +247,7 @@ function buildHubActivity(group, lowPower, animated) {
     vendor.rotation.y = yaw;
     vendor.scale.setScalar(0.78);
     group.add(vendor);
+    group.userData.colliderObjects.push(vendor);
   }
 
   const bollardMat = new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.84, roughness: 0.25 });
@@ -261,6 +266,13 @@ function buildHubActivity(group, lowPower, animated) {
     dummy.position.y = 0.8;
     dummy.updateMatrix();
     caps.setMatrixAt(i, dummy.matrix);
+    group.userData.colliderBoxes.push({
+      x: Math.cos(angle) * radius,
+      z: Math.sin(angle) * radius,
+      hw: 0.17,
+      hd: 0.17,
+      source: 'plaza-bollard',
+    });
   }
   bollards.instanceMatrix.needsUpdate = caps.instanceMatrix.needsUpdate = true;
   group.add(bollards, caps);
@@ -302,14 +314,226 @@ function buildHubActivity(group, lowPower, animated) {
   });
 }
 
-function setSegment(mesh, index, start, end, dummy, axis, delta) {
+function setSegment(mesh, index, start, end, dummy, axis, delta, thickness = 1) {
   delta.subVectors(end, start);
   const length = Math.max(0.01, delta.length());
   dummy.position.copy(start).add(end).multiplyScalar(0.5);
   dummy.quaternion.setFromUnitVectors(axis, delta.multiplyScalar(1 / length));
-  dummy.scale.set(1, length, 1);
+  dummy.scale.set(thickness, length, thickness);
   dummy.updateMatrix();
   mesh.setMatrixAt(index, dummy.matrix);
+}
+
+function createCharacterBatch(parent, count, name, moving = false) {
+  const all = [];
+  const add = (key, geometry, material, multiplier = 1, castShadow = true) => {
+    const mesh = new THREE.InstancedMesh(geometry, material, count * multiplier);
+    mesh.name = name;
+    mesh.userData.characterPart = key;
+    mesh.userData.instanceMultiplier = multiplier;
+    mesh.castShadow = castShadow;
+    mesh.frustumCulled = !moving;
+    parent.add(mesh);
+    all.push(mesh);
+    return mesh;
+  };
+  const batch = {
+    all,
+    torso: add('torso', new THREE.CapsuleGeometry(0.2, 0.5, 4, 8), toonMat(0xffffff)),
+    hips: add('hips', new THREE.BoxGeometry(0.36, 0.2, 0.24), toonMat(0xffffff)),
+    collar: add('collar', new THREE.BoxGeometry(0.28, 0.08, 0.035), toonMat(0xffffff), 1, false),
+    neck: add('neck', new THREE.CylinderGeometry(0.065, 0.075, 0.14, 7), toonMat(0xffffff)),
+    head: add('head', new THREE.SphereGeometry(0.18, 12, 9), toonMat(0xffffff)),
+    ears: add('ears', new THREE.SphereGeometry(0.039, 7, 5), toonMat(0xffffff), 2, false),
+    hair: add('hair', new THREE.SphereGeometry(0.19, 11, 7, 0, Math.PI * 2, 0, Math.PI * 0.56), toonMat(0xffffff)),
+    hairBack: add('hair-back', new THREE.SphereGeometry(0.155, 9, 7), toonMat(0xffffff)),
+    bun: add('hair-bun', new THREE.SphereGeometry(0.09, 8, 6), toonMat(0xffffff)),
+    hats: add('hat', new THREE.CylinderGeometry(0.19, 0.205, 0.1, 10), toonMat(0xffffff)),
+    eyes: add('eyes', new THREE.SphereGeometry(0.027, 8, 6), toonMat(0xfaf7ef), 2, false),
+    pupils: add('pupils', new THREE.SphereGeometry(0.0115, 7, 5), toonMat(0x172036), 2, false),
+    brows: add('brows', new THREE.BoxGeometry(0.055, 0.012, 0.012), toonMat(0x251b25), 2, false),
+    nose: add('nose', new THREE.IcosahedronGeometry(0.04, 1), toonMat(0xffffff), 1, false),
+    mouth: add('mouth', new THREE.BoxGeometry(0.065, 0.014, 0.014), toonMat(0xb84c66), 1, false),
+    glasses: add('glasses', new THREE.TorusGeometry(0.039, 0.0055, 5, 10), toonMat(0x172036), 2, false),
+    upperLegs: add('upper-legs', new THREE.CylinderGeometry(0.075, 0.09, 1, 8), toonMat(0xffffff), 2),
+    lowerLegs: add('lower-legs', new THREE.CylinderGeometry(0.065, 0.078, 1, 8), toonMat(0xffffff), 2),
+    knees: add('knees', new THREE.SphereGeometry(0.078, 8, 6), toonMat(0xffffff), 2),
+    shoes: add('shoes', new THREE.BoxGeometry(0.15, 0.1, 0.3), toonMat(0xffffff), 2),
+    upperArms: add('upper-arms', new THREE.CylinderGeometry(0.055, 0.068, 1, 8), toonMat(0xffffff), 2),
+    lowerArms: add('lower-arms', new THREE.CylinderGeometry(0.047, 0.057, 1, 8), toonMat(0xffffff), 2),
+    elbows: add('elbows', new THREE.SphereGeometry(0.057, 8, 6), toonMat(0xffffff), 2),
+    hands: add('hands', new THREE.CapsuleGeometry(0.05, 0.08, 3, 6), toonMat(0xffffff), 2),
+    thumbs: add('thumbs', new THREE.SphereGeometry(0.026, 7, 5), toonMat(0xffffff), 2, false),
+    bags: add('bags', new THREE.BoxGeometry(0.27, 0.38, 0.12), toonMat(0xffffff)),
+  };
+  batch.skinMeshes = [batch.neck, batch.head, batch.ears, batch.nose, batch.hands, batch.thumbs];
+  batch.hairMeshes = [batch.hair, batch.hairBack, batch.bun];
+  batch.topMeshes = [batch.torso, batch.collar, batch.upperArms, batch.lowerArms, batch.elbows];
+  batch.lowerMeshes = [batch.hips, batch.upperLegs, batch.lowerLegs, batch.knees];
+  return batch;
+}
+
+function colorCharacter(batch, index, { skin, hair, top, lower, accent, shoes }) {
+  for (const mesh of batch.skinMeshes) {
+    if (mesh.userData.instanceMultiplier === 2) {
+      mesh.setColorAt(index * 2, skin);
+      mesh.setColorAt(index * 2 + 1, skin);
+    } else mesh.setColorAt(index, skin);
+  }
+  for (const mesh of batch.hairMeshes) mesh.setColorAt(index, hair);
+  for (const mesh of batch.topMeshes) {
+    if (mesh.userData.instanceMultiplier === 2) {
+      mesh.setColorAt(index * 2, top);
+      mesh.setColorAt(index * 2 + 1, top);
+    } else mesh.setColorAt(index, top);
+  }
+  for (const mesh of batch.lowerMeshes) {
+    if (mesh.userData.instanceMultiplier === 2) {
+      mesh.setColorAt(index * 2, lower);
+      mesh.setColorAt(index * 2 + 1, lower);
+    } else mesh.setColorAt(index, lower);
+  }
+  batch.hats.setColorAt(index, accent);
+  batch.bags.setColorAt(index, accent.clone().multiplyScalar(0.72));
+  batch.shoes.setColorAt(index * 2, shoes);
+  batch.shoes.setColorAt(index * 2 + 1, shoes);
+}
+
+function finishCharacterColors(batch) {
+  for (const mesh of batch.all) if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+}
+
+function setCharacterCount(batch, count) {
+  for (const mesh of batch.all) mesh.count = count * mesh.userData.instanceMultiplier;
+}
+
+function placePart(mesh, index, position, quaternion, scale, dummy) {
+  dummy.position.copy(position);
+  dummy.quaternion.copy(quaternion);
+  if (typeof scale === 'number') dummy.scale.setScalar(scale);
+  else dummy.scale.copy(scale);
+  dummy.updateMatrix();
+  mesh.setMatrixAt(index, dummy.matrix);
+}
+
+function poseCharacter(batch, index, pose, scratch) {
+  const {
+    dummy, axis, root, forward, right, start, middle, end, delta, temp, scale, yaw,
+  } = scratch;
+  const { x, y, z, heading, h, cycle, walking, style } = pose;
+  root.set(x, y, z);
+  forward.set(Math.sin(heading), 0, Math.cos(heading));
+  right.set(forward.z, 0, -forward.x);
+  yaw.setFromAxisAngle(axis, heading);
+  const gait = walking ? Math.sin(cycle) : 0;
+  const bob = walking ? Math.abs(gait) * 0.018 * h : Math.sin(cycle * 0.42) * 0.008 * h;
+  const width = [0.9, 0.98, 1.07, 0.94][style % 4];
+
+  start.set(x, y + 1.15 * h + bob, z);
+  scale.set(h * width, h, h * (style % 3 === 0 ? 1.06 : 0.96));
+  placePart(batch.torso, index, start, yaw, scale, dummy);
+  start.set(x, y + 0.87 * h, z);
+  scale.set(h * width, h, h);
+  placePart(batch.hips, index, start, yaw, scale, dummy);
+  start.copy(root).addScaledVector(forward, 0.205 * h);
+  start.y = y + 1.43 * h;
+  scale.set(h * width, h, h);
+  placePart(batch.collar, index, start, yaw, scale, dummy);
+  start.set(x, y + 1.51 * h, z);
+  placePart(batch.neck, index, start, yaw, h, dummy);
+
+  const headY = y + 1.72 * h + bob;
+  start.set(x, headY, z);
+  scale.set(h * (style % 3 === 1 ? 1.04 : 0.97), h, h);
+  placePart(batch.head, index, start, yaw, scale, dummy);
+  for (const side of [-1, 1]) {
+    const pairIndex = index * 2 + (side > 0 ? 1 : 0);
+    start.set(x, headY, z).addScaledVector(right, side * 0.178 * h);
+    placePart(batch.ears, pairIndex, start, yaw, h, dummy);
+  }
+  start.set(x, headY + 0.105 * h, z).addScaledVector(forward, -0.018 * h);
+  scale.set(h, h * 0.76, h);
+  placePart(batch.hair, index, start, yaw, scale, dummy);
+  start.set(x, headY + 0.01 * h, z).addScaledVector(forward, -0.105 * h);
+  scale.set(style % 3 === 0 ? h : 0.001, style % 3 === 0 ? h * 1.3 : 0.001, style % 3 === 0 ? h * 0.72 : 0.001);
+  placePart(batch.hairBack, index, start, yaw, scale, dummy);
+  start.set(x, headY + 0.16 * h, z).addScaledVector(forward, -0.12 * h);
+  placePart(batch.bun, index, start, yaw, style % 5 === 0 ? h : 0.001, dummy);
+  start.set(x, headY + 0.205 * h, z);
+  scale.set(style % 7 === 0 ? h : 0.001, style % 7 === 0 ? h : 0.001, style % 7 === 0 ? h : 0.001);
+  placePart(batch.hats, index, start, yaw, scale, dummy);
+
+  for (const side of [-1, 1]) {
+    const pairIndex = index * 2 + (side > 0 ? 1 : 0);
+    start.set(x, headY + 0.035 * h, z)
+      .addScaledVector(right, side * 0.058 * h)
+      .addScaledVector(forward, 0.166 * h);
+    placePart(batch.eyes, pairIndex, start, yaw, h, dummy);
+    start.addScaledVector(forward, 0.024 * h);
+    placePart(batch.pupils, pairIndex, start, yaw, h, dummy);
+    start.set(x, headY + 0.105 * h, z)
+      .addScaledVector(right, side * 0.058 * h)
+      .addScaledVector(forward, 0.174 * h);
+    scale.set(h, h, h);
+    placePart(batch.brows, pairIndex, start, yaw, scale, dummy);
+    start.set(x, headY + 0.035 * h, z)
+      .addScaledVector(right, side * 0.058 * h)
+      .addScaledVector(forward, 0.198 * h);
+    scale.set(style % 4 === 0 ? h : 0.001, style % 4 === 0 ? h : 0.001, style % 4 === 0 ? h : 0.001);
+    placePart(batch.glasses, pairIndex, start, yaw, scale, dummy);
+  }
+  start.set(x, headY - 0.012 * h, z).addScaledVector(forward, 0.184 * h);
+  scale.set(h * 0.7, h * 0.9, h * 1.15);
+  placePart(batch.nose, index, start, yaw, scale, dummy);
+  start.set(x, headY - 0.09 * h, z).addScaledVector(forward, 0.178 * h);
+  placePart(batch.mouth, index, start, yaw, h, dummy);
+
+  for (const side of [-1, 1]) {
+    const pairIndex = index * 2 + (side > 0 ? 1 : 0);
+    const legCycle = cycle + (side > 0 ? 0 : Math.PI);
+    const stride = walking ? Math.sin(legCycle) * 0.27 * h : side * 0.018 * h;
+    const lift = walking ? Math.max(0, Math.cos(legCycle)) * 0.085 * h : 0;
+    start.set(x, y + 0.82 * h, z).addScaledVector(right, side * 0.105 * h);
+    end.set(x, y + 0.105 * h + lift, z)
+      .addScaledVector(right, side * 0.115 * h)
+      .addScaledVector(forward, stride);
+    middle.copy(start).lerp(end, 0.5).addScaledVector(forward, (0.105 + Math.max(0, -stride) * 0.18) * h);
+    middle.y += 0.045 * h;
+    setSegment(batch.upperLegs, pairIndex, start, middle, dummy, axis, delta, h);
+    setSegment(batch.lowerLegs, pairIndex, middle, end, dummy, axis, delta, h);
+    placePart(batch.knees, pairIndex, middle, yaw, h, dummy);
+    start.copy(end).addScaledVector(forward, 0.085 * h);
+    start.y = y + 0.06 * h + lift;
+    scale.set(h, h, h);
+    placePart(batch.shoes, pairIndex, start, yaw, scale, dummy);
+
+    const armSwing = walking ? -Math.sin(legCycle) * 0.19 * h : (style % 2 ? 0.055 : -0.015) * h;
+    start.set(x, y + 1.38 * h + bob, z).addScaledVector(right, side * 0.245 * h);
+    end.set(x, y + (walking ? 0.9 : 0.96 + (style % 3) * 0.025) * h, z)
+      .addScaledVector(right, side * 0.285 * h)
+      .addScaledVector(forward, armSwing);
+    middle.copy(start).lerp(end, 0.48)
+      .addScaledVector(right, side * 0.035 * h)
+      .addScaledVector(forward, 0.055 * h);
+    setSegment(batch.upperArms, pairIndex, start, middle, dummy, axis, delta, h);
+    setSegment(batch.lowerArms, pairIndex, middle, end, dummy, axis, delta, h);
+    placePart(batch.elbows, pairIndex, middle, yaw, h, dummy);
+    delta.subVectors(end, middle).normalize();
+    temp.copy(end).addScaledVector(delta, 0.105 * h);
+    setSegment(batch.hands, pairIndex, end, temp, dummy, axis, scratch.delta2, h);
+    start.copy(end).lerp(temp, 0.62).addScaledVector(right, side * 0.045 * h).addScaledVector(forward, 0.012 * h);
+    placePart(batch.thumbs, pairIndex, start, yaw, h, dummy);
+  }
+
+  const bagSide = style % 2 ? 1 : -1;
+  start.copy(root).addScaledVector(right, bagSide * 0.275 * h).addScaledVector(forward, -0.025 * h);
+  start.y = y + 1.03 * h;
+  scale.set(style % 3 === 0 ? h : 0.001, style % 3 === 0 ? h : 0.001, style % 3 === 0 ? h : 0.001);
+  placePart(batch.bags, index, start, yaw, scale, dummy);
+}
+
+function updateCharacterMatrices(batch) {
+  for (const mesh of batch.all) mesh.instanceMatrix.needsUpdate = true;
 }
 
 class AmbientCrowd {
@@ -321,9 +545,14 @@ class AmbientCrowd {
     this.time = 0;
     this.dummy = new THREE.Object3D();
     this.axis = new THREE.Vector3(0, 1, 0);
+    this.colliders = [];
     this.scratch = {
+      dummy: this.dummy, axis: this.axis,
       forward: new THREE.Vector3(), right: new THREE.Vector3(),
-      start: new THREE.Vector3(), end: new THREE.Vector3(), delta: new THREE.Vector3(),
+      start: new THREE.Vector3(), middle: new THREE.Vector3(), end: new THREE.Vector3(),
+      root: new THREE.Vector3(), temp: new THREE.Vector3(),
+      delta: new THREE.Vector3(), delta2: new THREE.Vector3(),
+      scale: new THREE.Vector3(), yaw: new THREE.Quaternion(), candidate: new THREE.Vector3(),
     };
     this.makeMeshes();
     this.makePeople();
@@ -331,21 +560,7 @@ class AmbientCrowd {
   }
 
   makeMeshes() {
-    const n = this.capacity;
-    this.body = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.2, 0.65, 5, 8), toonMat(0xffffff), n);
-    this.head = new THREE.InstancedMesh(new THREE.SphereGeometry(0.18, 12, 8), toonMat(0xffffff), n);
-    this.hair = new THREE.InstancedMesh(new THREE.SphereGeometry(0.185, 10, 7, 0, Math.PI * 2, 0, Math.PI * 0.52), toonMat(0xffffff), n);
-    this.legs = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.075, 0.09, 1, 8), toonMat(0xffffff), n * 2);
-    this.arms = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.055, 0.07, 1, 8), toonMat(0xffffff), n * 2);
-    this.hands = new THREE.InstancedMesh(new THREE.SphereGeometry(0.075, 9, 6), toonMat(0xffffff), n * 2);
-    this.shoes = new THREE.InstancedMesh(new THREE.BoxGeometry(0.15, 0.1, 0.3), toonMat(0x101522), n * 2);
-    this.bags = new THREE.InstancedMesh(new THREE.BoxGeometry(0.27, 0.38, 0.12), toonMat(0xffffff), n);
-    for (const mesh of [this.body, this.head, this.hair, this.legs, this.arms, this.hands, this.shoes, this.bags]) {
-      mesh.name = 'ambient-cbd-crowd';
-      mesh.castShadow = true;
-      mesh.frustumCulled = false;
-      this.scene.add(mesh);
-    }
+    this.batch = createCharacterBatch(this.scene, this.capacity, 'ambient-cbd-crowd', true);
   }
 
   makePeople() {
@@ -365,112 +580,132 @@ class AmbientCrowd {
         angle: (i * 2.399) % (Math.PI * 2),
         phase: (i * 1.731) % (Math.PI * 2),
         height: 0.92 + (i % 6) * 0.025,
+        collisionRadius: 0.31,
       };
+      person.position.collisionRadius = person.collisionRadius;
       this.people.push(person);
       const cloth = new THREE.Color(CLOTH[i % CLOTH.length]);
       const lower = cloth.clone().lerp(new THREE.Color(0x14233b), 0.55);
       const skin = new THREE.Color(SKIN[i % SKIN.length]);
-      this.body.setColorAt(i, cloth);
-      this.head.setColorAt(i, skin);
-      this.hair.setColorAt(i, new THREE.Color([0x191725, 0x3b2722, 0x6b4431, 0xd7c0a5][i % 4]));
-      this.bags.setColorAt(i, new THREE.Color(CLOTH[(i + 3) % CLOTH.length]).multiplyScalar(0.72));
-      for (const sideIndex of [0, 1]) {
-        const limb = i * 2 + sideIndex;
-        this.legs.setColorAt(limb, lower);
-        this.arms.setColorAt(limb, cloth);
-        this.hands.setColorAt(limb, skin);
-      }
+      colorCharacter(this.batch, i, {
+        skin,
+        hair: new THREE.Color([0x191725, 0x3b2722, 0x6b4431, 0xd7c0a5, 0x8d352a][i % 5]),
+        top: cloth,
+        lower,
+        accent: new THREE.Color(CLOTH[(i + 3) % CLOTH.length]),
+        shoes: new THREE.Color([0x101522, 0xeee8dc, 0x422d4c][i % 3]),
+      });
     }
-    for (const mesh of [this.body, this.head, this.hair, this.legs, this.arms, this.hands, this.bags]) {
-      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-    }
+    finishCharacterColors(this.batch);
   }
 
   setDensity(value) {
     this.density = THREE.MathUtils.clamp(value | 0, 0, this.capacity);
-    this.body.count = this.head.count = this.hair.count = this.bags.count = this.density;
-    this.legs.count = this.arms.count = this.hands.count = this.shoes.count = this.density * 2;
+    setCharacterCount(this.batch, this.density);
+  }
+
+  setColliders(colliders) { this.colliders = colliders || []; }
+
+  routePosition(person, index, angle, distance, target) {
+    if (person.hub) {
+      target.set(Math.cos(angle) * person.radius, 0, Math.sin(angle) * person.radius);
+    } else {
+      const line = RADIALS[person.lineIndex];
+      const dirX = Math.cos(line.angle), dirZ = -Math.sin(line.angle);
+      const lat = person.side * (5.4 + (index % 4) * 0.2);
+      target.set(dirX * distance - dirZ * lat, 0, dirZ * distance + dirX * lat);
+    }
+    return target;
+  }
+
+  personBlocksRoute(person, index, candidate, padding = 0.12) {
+    for (let otherIndex = 0; otherIndex < this.density; otherIndex++) {
+      if (otherIndex === index) continue;
+      const other = this.people[otherIndex];
+      const minDistance = person.collisionRadius + other.collisionRadius + padding;
+      const dx = candidate.x - other.position.x;
+      const dz = candidate.z - other.position.z;
+      if (dx * dx + dz * dz < minDistance * minDistance) return true;
+    }
+    return false;
+  }
+
+  routeIsOpen(person, index, candidate) {
+    return !circleHitsAABB(candidate.x, candidate.z, person.collisionRadius, this.colliders)
+      && !this.personBlocksRoute(person, index, candidate);
+  }
+
+  findOpenRoute(person, index, candidate) {
+    const baseAngle = person.angle;
+    const baseDistance = person.d;
+    for (let attempt = 0; attempt < 28; attempt++) {
+      const ring = Math.floor(attempt / 2) + 1;
+      const direction = attempt % 2 ? -1 : 1;
+      const angle = baseAngle + direction * ring * 0.16;
+      const distance = THREE.MathUtils.clamp(baseDistance + direction * ring * 2.8, 31, BOULEVARD.carEndD - 7);
+      this.routePosition(person, index, angle, distance, candidate);
+      if (this.routeIsOpen(person, index, candidate)) {
+        if (person.hub) person.angle = angle;
+        else person.d = distance;
+        return true;
+      }
+    }
+    return false;
   }
 
   update(t, dt) {
     this.time = t;
-    const { forward, right, start, end, delta } = this.scratch;
-    const dummy = this.dummy;
+    const { candidate } = this.scratch;
     for (let i = 0; i < this.density; i++) {
       const p = this.people[i];
       let heading;
       if (p.hub) {
-        p.angle += dt * p.speed / p.radius * p.routeDir;
-        p.position.set(Math.cos(p.angle) * p.radius, 0, Math.sin(p.angle) * p.radius);
+        let nextAngle = p.angle + dt * p.speed / p.radius * p.routeDir;
+        this.routePosition(p, i, nextAngle, p.d, candidate);
+        const staticBlocked = circleHitsAABB(candidate.x, candidate.z, p.collisionRadius, this.colliders);
+        const personBlocked = this.personBlocksRoute(p, i, candidate);
+        if (staticBlocked) {
+          p.routeDir *= -1;
+          if (!this.findOpenRoute(p, i, candidate)) candidate.copy(p.position);
+        } else if (personBlocked) {
+          p.routeDir *= -1;
+          nextAngle = p.angle + dt * p.speed / p.radius * p.routeDir;
+          this.routePosition(p, i, nextAngle, p.d, candidate);
+          if (this.routeIsOpen(p, i, candidate)) p.angle = nextAngle;
+          else candidate.copy(p.position);
+        } else p.angle = nextAngle;
+        p.position.copy(candidate);
         heading = p.angle + (p.routeDir > 0 ? -Math.PI / 2 : Math.PI / 2);
       } else {
-        p.d += dt * p.speed * p.routeDir;
-        if (p.d > BOULEVARD.carEndD - 7) { p.d = BOULEVARD.carEndD - 7; p.routeDir = -1; }
-        if (p.d < 31) { p.d = 31; p.routeDir = 1; }
+        let nextD = p.d + dt * p.speed * p.routeDir;
+        if (nextD > BOULEVARD.carEndD - 7) { nextD = BOULEVARD.carEndD - 7; p.routeDir = -1; }
+        if (nextD < 31) { nextD = 31; p.routeDir = 1; }
+        this.routePosition(p, i, p.angle, nextD, candidate);
+        const staticBlocked = circleHitsAABB(candidate.x, candidate.z, p.collisionRadius, this.colliders);
+        const personBlocked = this.personBlocksRoute(p, i, candidate);
+        if (staticBlocked) {
+          p.routeDir *= -1;
+          if (!this.findOpenRoute(p, i, candidate)) candidate.copy(p.position);
+        } else if (personBlocked) {
+          p.routeDir *= -1;
+          nextD = p.d + dt * p.speed * p.routeDir;
+          this.routePosition(p, i, p.angle, nextD, candidate);
+          if (this.routeIsOpen(p, i, candidate)) p.d = nextD;
+          else candidate.copy(p.position);
+        } else p.d = nextD;
+        p.position.copy(candidate);
         const line = RADIALS[p.lineIndex];
         const dirX = Math.cos(line.angle), dirZ = -Math.sin(line.angle);
-        const lat = p.side * (5.4 + (i % 4) * 0.2);
-        p.position.set(dirX * p.d - dirZ * lat, 0, dirZ * p.d + dirX * lat);
         heading = Math.atan2(dirX * p.routeDir, dirZ * p.routeDir);
       }
-      forward.set(Math.sin(heading), 0, Math.cos(heading));
-      right.set(forward.z, 0, -forward.x);
-      const gait = Math.sin(t * (5.2 + p.speed) + p.phase);
-      const h = p.height;
-      const hipY = 0.82 * h;
-      const shoulderY = 1.42 * h;
-      const bodyY = 1.18 * h + Math.abs(gait) * 0.018;
-
-      dummy.position.set(p.position.x, bodyY, p.position.z);
-      dummy.quaternion.setFromAxisAngle(this.axis, heading);
-      dummy.scale.set(h, h, h);
-      dummy.updateMatrix();
-      this.body.setMatrixAt(i, dummy.matrix);
-      dummy.position.set(p.position.x, 1.76 * h, p.position.z);
-      dummy.scale.set(h, h, h);
-      dummy.updateMatrix();
-      this.head.setMatrixAt(i, dummy.matrix);
-      dummy.position.y = 1.86 * h;
-      dummy.scale.set(h, h * 0.72, h);
-      dummy.updateMatrix();
-      this.hair.setMatrixAt(i, dummy.matrix);
-
-      for (const side of [-1, 1]) {
-        const limbIndex = i * 2 + (side > 0 ? 1 : 0);
-        const stride = gait * 0.28 * side;
-        start.set(p.position.x, hipY, p.position.z).addScaledVector(right, side * 0.12 * h);
-        end.copy(p.position).addScaledVector(right, side * 0.12 * h).addScaledVector(forward, stride);
-        end.y = 0.13;
-        setSegment(this.legs, limbIndex, start, end, dummy, this.axis, delta);
-        dummy.position.copy(end).addScaledVector(forward, 0.09);
-        dummy.position.y = 0.08;
-        dummy.quaternion.setFromAxisAngle(this.axis, heading);
-        dummy.scale.set(h, h, h);
-        dummy.updateMatrix();
-        this.shoes.setMatrixAt(limbIndex, dummy.matrix);
-
-        start.set(p.position.x, shoulderY, p.position.z).addScaledVector(right, side * 0.25 * h);
-        end.copy(start).addScaledVector(forward, -stride * 0.72);
-        end.addScaledVector(right, side * 0.025);
-        end.y = 0.86 * h;
-        setSegment(this.arms, limbIndex, start, end, dummy, this.axis, delta);
-        dummy.position.copy(end);
-        dummy.quaternion.identity();
-        dummy.scale.set(h, h, h);
-        dummy.updateMatrix();
-        this.hands.setMatrixAt(limbIndex, dummy.matrix);
-      }
-
-      dummy.position.copy(p.position).addScaledVector(right, 0.25 * h);
-      dummy.position.y = 1.08 * h;
-      dummy.quaternion.setFromAxisAngle(this.axis, heading);
-      dummy.scale.set(i % 3 === 0 ? h : 0.001, h, h);
-      dummy.updateMatrix();
-      this.bags.setMatrixAt(i, dummy.matrix);
+      const ground = heightAt(p.position.x, p.position.z);
+      p.position.y = ground;
+      poseCharacter(this.batch, i, {
+        x: p.position.x, y: ground, z: p.position.z, heading, h: p.height,
+        cycle: t * (5.2 + p.speed) + p.phase, walking: true, style: i,
+      }, this.scratch);
     }
-    for (const mesh of [this.body, this.head, this.hair, this.legs, this.arms, this.hands, this.shoes, this.bags]) {
-      mesh.instanceMatrix.needsUpdate = true;
-    }
+    updateCharacterMatrices(this.batch);
   }
 }
 
@@ -484,11 +719,23 @@ export class CityLife {
     buildHubActivity(this.group, lowPower, this.animated);
     this.scene.add(this.group);
     this.colliderObjects = this.group.userData.colliderObjects || [];
+    this.colliderBoxes = this.group.userData.colliderBoxes || [];
     this.crowd = new AmbientCrowd(scene, { lowPower });
-    this.people = this.crowd.people.map((person) => person.position);
+    this.people = [];
+    this.syncPeople();
   }
 
-  setDensity(value) { this.crowd.setDensity(value); }
+  syncPeople() {
+    this.people.length = 0;
+    for (let i = 0; i < this.crowd.density; i++) this.people.push(this.crowd.people[i].position);
+  }
+
+  setDensity(value) {
+    this.crowd.setDensity(value);
+    this.syncPeople();
+  }
+
+  setColliders(colliders) { this.crowd.setColliders(colliders); }
 
   update(t, dt) {
     this.crowd.update(t, dt);
@@ -499,6 +746,7 @@ export class CityLife {
 export function buildDistrictLife(rng, { accent, secondary, nearEdge, code = 'metro', lowPower = false }) {
   const g = new THREE.Group();
   g.name = 'district-street-life';
+  g.userData.colliderBoxes = [];
   const accentHex = accent instanceof THREE.Color ? accent.getHex() : accent;
   const secondaryHex = secondary instanceof THREE.Color ? secondary.getHex() : secondary;
   const cartSlots = lowPower ? [-10.5] : [-12.2, 12.2];
@@ -538,6 +786,9 @@ export function buildDistrictLife(rng, { accent, secondary, nearEdge, code = 'me
     set(counter, index, x, 1.11, z, yaw, 0.66);
     set(canopy, index, x, 2.55, z, yaw, 0.66);
     set(menu, index, x, 2.05, z - 0.44, yaw, 0.66);
+    g.userData.colliderBoxes.push({
+      localX: x, localZ: z, hw: 0.92, hd: 0.62, source: `${code}-vendor-cart`,
+    });
     body.setColorAt(index, new THREE.Color(colors[(index + 1) % colors.length]).multiplyScalar(0.64));
     canopy.setColorAt(index, new THREE.Color(colors[index % colors.length]));
     for (const px of [-0.72, 0.72]) for (const pz of [-0.38, 0.38]) {
@@ -557,6 +808,9 @@ export function buildDistrictLife(rng, { accent, secondary, nearEdge, code = 'me
   });
   tableSlots.forEach((x, index) => {
     const z = nearEdge + 2.45;
+    g.userData.colliderBoxes.push({
+      localX: x, localZ: z, hw: 1.12, hd: 0.68, source: `${code}-cafe-table`,
+    });
     set(tables, index, x, 0.75, z);
     set(masts, index, x, 1.43, z);
     dummy.position.set(x, 2.42, z);
@@ -575,53 +829,37 @@ export function buildDistrictLife(rng, { accent, secondary, nearEdge, code = 'me
 
   const patronSlots = lowPower ? [-5.1, 5.1] : [-14.1, -5.1, 5.1, 14.1];
   const patronCount = patronSlots.length;
-  const patronBodies = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.18, 0.58, 4, 8), toonMat(0xffffff), patronCount);
-  const patronHeads = new THREE.InstancedMesh(new THREE.SphereGeometry(0.16, 10, 7), toonMat(0xffffff), patronCount);
-  const patronLegs = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.065, 0.08, 1, 7), toonMat(0x27344c), patronCount * 2);
-  const patronArms = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.05, 0.06, 1, 7), toonMat(0xffffff), patronCount * 2);
-  const patronHands = new THREE.InstancedMesh(new THREE.SphereGeometry(0.065, 8, 5), toonMat(0xffffff), patronCount * 2);
-  const axis = new THREE.Vector3(0, 1, 0);
-  const delta = new THREE.Vector3();
-  const start = new THREE.Vector3();
-  const end = new THREE.Vector3();
+  const patrons = createCharacterBatch(g, patronCount, 'district-patron', false);
+  const patronScratch = {
+    dummy: new THREE.Object3D(), axis: new THREE.Vector3(0, 1, 0), root: new THREE.Vector3(),
+    forward: new THREE.Vector3(), right: new THREE.Vector3(), start: new THREE.Vector3(),
+    middle: new THREE.Vector3(), end: new THREE.Vector3(), temp: new THREE.Vector3(),
+    delta: new THREE.Vector3(), delta2: new THREE.Vector3(), scale: new THREE.Vector3(),
+    yaw: new THREE.Quaternion(),
+  };
   patronSlots.forEach((x, index) => {
     const z = nearEdge + 3.1 + (index % 2) * 0.55;
     const h = 0.92 + (index % 3) * 0.04;
+    g.userData.colliderBoxes.push({
+      localX: x, localZ: z, hw: 0.34, hd: 0.34, source: `${code}-patron`,
+    });
     const cloth = new THREE.Color(CLOTH[(index + Math.floor(rng() * CLOTH.length)) % CLOTH.length]);
     const skin = new THREE.Color(SKIN[(index + 2) % SKIN.length]);
-    dummy.position.set(x, 1.12 * h, z);
-    dummy.rotation.set(0, index % 2 ? -0.5 : 0.5, 0);
-    dummy.scale.set(h, h, h);
-    dummy.updateMatrix();
-    patronBodies.setMatrixAt(index, dummy.matrix);
-    patronBodies.setColorAt(index, cloth);
-    dummy.position.set(x, 1.67 * h, z);
-    dummy.updateMatrix();
-    patronHeads.setMatrixAt(index, dummy.matrix);
-    patronHeads.setColorAt(index, skin);
-    for (const side of [-1, 1]) {
-      const limbIndex = index * 2 + (side > 0 ? 1 : 0);
-      start.set(x + side * 0.1, 0.76 * h, z);
-      end.set(x + side * 0.11, 0.08, z + side * 0.04);
-      setSegment(patronLegs, limbIndex, start, end, dummy, axis, delta);
-      start.set(x + side * 0.22, 1.38 * h, z);
-      end.set(x + side * 0.24, 0.82 * h, z + 0.05);
-      setSegment(patronArms, limbIndex, start, end, dummy, axis, delta);
-      patronArms.setColorAt(limbIndex, cloth);
-      dummy.position.copy(end);
-      dummy.quaternion.identity();
-      dummy.scale.setScalar(h);
-      dummy.updateMatrix();
-      patronHands.setMatrixAt(limbIndex, dummy.matrix);
-      patronHands.setColorAt(limbIndex, skin);
-    }
+    colorCharacter(patrons, index, {
+      skin,
+      hair: new THREE.Color([0x191725, 0x3b2722, 0x6b4431, 0xd7c0a5][(index + 1) % 4]),
+      top: cloth,
+      lower: cloth.clone().lerp(new THREE.Color(0x1a2940), 0.58),
+      accent: new THREE.Color(index % 2 ? accentHex : secondaryHex),
+      shoes: new THREE.Color(index % 3 === 0 ? 0xe7e1d5 : 0x111828),
+    });
+    poseCharacter(patrons, index, {
+      x, y: 0, z, heading: index % 2 ? -0.5 : 0.5, h,
+      cycle: index * 1.7, walking: false, style: index + 2,
+    }, patronScratch);
   });
-  for (const mesh of [patronBodies, patronHeads, patronLegs, patronArms, patronHands]) {
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-    mesh.castShadow = true;
-    g.add(mesh);
-  }
+  finishCharacterColors(patrons);
+  updateCharacterMatrices(patrons);
   g.userData.venueCode = code;
   return g;
 }
