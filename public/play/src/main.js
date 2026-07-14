@@ -3,8 +3,7 @@
 // skeletal animation; cinematic Miami-after-dark lighting with true shadows.
 import * as THREE from 'three';
 import { makeGLTFLoader } from './loaders.js';
-import { makeSky, toonifyGLB, toonRamp, uTime } from './materials.js';
-import { rigBase } from './rig.js';
+import { makeSky, toonifyGLB, uTime } from './materials.js';
 import { loadMixamoHero } from './hero.js';
 import { Trains } from './train.js';
 import { Traffic } from './traffic.js';
@@ -36,17 +35,22 @@ const lowPowerHint = Boolean(
   || compactTouch
 );
 const renderer = new THREE.WebGLRenderer({
-  antialias: !lowPowerHint,
-  powerPreference: lowPowerHint ? 'default' : 'high-performance',
+  antialias: true,
+  powerPreference: 'high-performance',
 });
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.04;
-renderer.shadowMap.enabled = true;
+// Mobile keeps the authored blob/contact shadows but skips the second full-city
+// shadow render. Spend that GPU budget on a sharp, antialiased canvas instead.
+renderer.shadowMap.enabled = !compactTouch;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-const MAX_PR = Math.min(window.devicePixelRatio || 1, lowPowerHint ? 1 : 2);
-let renderScale = lowPowerHint ? 0.85 : 1; // dynamic resolution 0.55..1
-renderer.setPixelRatio(MAX_PR);
+const nativePixelRatio = Math.max(1, window.devicePixelRatio || 1);
+const MAX_PR = Math.min(nativePixelRatio, compactTouch ? 1.75 : (lowPowerHint ? 1.5 : 2));
+const MIN_EFFECTIVE_PR = Math.min(nativePixelRatio, compactTouch ? 1.25 : (lowPowerHint ? 0.9 : 1));
+const MIN_RENDER_SCALE = Math.min(1, MIN_EFFECTIVE_PR / MAX_PR);
+let renderScale = 1;
+renderer.setPixelRatio(MAX_PR * renderScale);
 renderer.setSize(window.innerWidth, window.innerHeight);
 app.appendChild(renderer.domElement);
 
@@ -61,7 +65,7 @@ const hemi = new THREE.HemisphereLight(0x8fdcff, 0x28183f, 1.08);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xff9b9f, 1.52);
 sun.position.set(-38, 36, -58);
-sun.castShadow = true;
+sun.castShadow = !compactTouch;
 // Start conservatively on constrained devices; the adaptive tier can still
 // shed shadows entirely if sustained frame time remains high.
 const SHADOW_RES = lowPowerHint ? 1024 : (screen.width * (window.devicePixelRatio || 1)) >= 1900 ? 4096 : 2048;
@@ -95,7 +99,7 @@ const manager = new THREE.LoadingManager();
 manager.onProgress = (_url, loaded, total) => ui.setProgress(loaded / Math.max(total, 1));
 
 const world = new World(scene, manager, { lowPower: lowPowerHint });
-const zoneMgr = new ZoneManager(scene, { lowPower: lowPowerHint });
+const zoneMgr = new ZoneManager(scene, { lowPower: lowPowerHint, compactTouch });
 const heroLoader = makeGLTFLoader(manager);
 
 // zone-entry HUD title card + the objective chip beneath it
@@ -142,12 +146,17 @@ for (const [id, fn] of [['tb-jump', 'pressJump'], ['tb-talk', 'pressInteract'],
   document.getElementById(id).addEventListener('click', () => input[fn]());
 }
 
-// Wren — Mike's Meshy hero — is the player. Unrigged, so locomotion is
-// procedural (bob/sway/turn-bank) until Wren gets a proper rig (Mixamo pass).
-const NPC_BASE_URLS = [
-  'npc_tutor_conductor.glb', 'npc_phrase_vendor.glb', 'npc_bookshop_owner.glb',
-  'npc_lost_tourist.glb', 'npc_commuter_rival.glb', 'npc_station_announcer.glb',
-  'npc_ticket_inspector.glb', 'npc_pronunciation_robot.glb',
+// Detailed cast meshes are authored and action-baked in Blender. PRON-3000 is
+// an open-book installation, so it intentionally remains a static landmark.
+const NPC_ASSETS = [
+  { key: 'npc_tutor_conductor', url: 'npc_tutor_conductor_rigged.glb' },
+  { key: 'npc_phrase_vendor', url: 'npc_phrase_vendor_rigged.glb' },
+  { key: 'npc_bookshop_owner', url: 'npc_bookshop_owner_rigged.glb' },
+  { key: 'npc_lost_tourist', url: 'npc_lost_tourist_rigged.glb' },
+  { key: 'npc_commuter_rival', url: 'npc_commuter_rival_rigged.glb' },
+  { key: 'npc_station_announcer', url: 'npc_station_announcer_rigged.glb' },
+  { key: 'npc_ticket_inspector', url: 'npc_ticket_inspector_rigged.glb' },
+  { key: 'npc_pronunciation_robot', url: 'npc_pronunciation_robot.glb' },
 ];
 const NPC_HEIGHTS = { npc_pronunciation_robot: 1.9 };
 
@@ -166,26 +175,33 @@ zoneMgr.bindWorld(world);
 world.setZones(zoneMgr);
 Promise.all([
   zoneMgr.init().then(() => world.build()),   // regions must exist before tinting
-  ...NPC_BASE_URLS.map((u) => new Promise((res, rej) =>
-    heroLoader.load('public/assets/models/' + u, res, undefined, rej))),
+  ...NPC_ASSETS.map((asset) => new Promise((res, rej) =>
+    heroLoader.load('public/assets/models/' + asset.url, res, undefined, rej))),
 ]).then(async ([, ...npcGltfs]) => {
-  // NPC bases: normalized + toon-shaded Meshy characters, then code-rigged so
-  // they idle/gesture with a real skeleton. Bad segmentation → static fallback.
+  // Preserve each Blender hierarchy: SkeletonUtils clones the armature, mesh,
+  // skin and authored actions together for teachers and unique pedestrians.
   const npcBases = npcGltfs.map((g, i) => {
-    const key = NPC_BASE_URLS[i].replace('.glb', '');
-    const model = toonifyGLB(normalizeModel(g.scene, NPC_HEIGHTS[key] || 1.72));
+    const { key } = NPC_ASSETS[i];
+    const model = toonifyGLB(
+      key === 'npc_pronunciation_robot'
+        ? normalizeModel(g.scene, NPC_HEIGHTS[key])
+        : g.scene,
+    );
     // PRON-3000 is a large open-book installation with a small character built
     // into it, not a humanoid body. Keep it anchored in the hub instead of
     // forcing the whole installation through the pedestrian auto-rig.
     if (key === 'npc_pronunciation_robot') {
       return { key, rigged: false, staticModel: model };
     }
-    let mat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: toonRamp() });
-    model.traverse((o) => { if (o.isMesh && o.material) mat = o.material; });
-    const r = rigBase(model, mat);
-    return r.ok
-      ? { key, rigged: true, mesh: r.mesh, clips: r.clips }
-      : { key, rigged: false, staticModel: model };
+    let skinned = null;
+    model.traverse((o) => { if (!skinned && o.isSkinnedMesh) skinned = o; });
+    const clips = Object.fromEntries(g.animations.map((clip) => [clip.name, clip]));
+    const authored = skinned && clips.idle && clips.walk && clips.Wave;
+    if (!authored) {
+      console.warn(`[EM] authored NPC rig unavailable for ${key}; using static model`);
+      return { key, rigged: false, staticModel: model };
+    }
+    return { key, rigged: true, object: model, mesh: skinned, clips, authored: true };
   });
   zoneMgr.setNPCBases(npcBases.filter((base) => base.rigged));
   world.setNPCBases(npcBases);
@@ -210,7 +226,7 @@ Promise.all([
   window.__EM.step = (n = 1, dt = 1 / 60) => {
     uTime.value += n * dt;
     for (let i = 0; i < n; i++) simTick(dt);
-    followCam.update(1 / 60, player.pos, { dx: 0, dy: 0, wheel: 0 }, world.colliders);
+    followCam.update(1 / 60, player, { dx: 0, dy: 0, wheel: 0, looking: false }, world.colliders);
     minimap.update(0.25, player, zoneMgr, world, trains);   // force a redraw
     renderer.render(scene, camera);
   };
@@ -242,6 +258,18 @@ let accumulator = 0;
 let frameEMA = 16.7, fpsCount = 0, fpsTime = 0, scaleCooldown = 0;
 let baseFov = 55;
 let potato = false;
+
+function engagePerformanceTier() {
+  potato = true;
+  sun.castShadow = false;
+  renderer.shadowMap.enabled = false;
+  scene.fog.density = 0.0085;
+  camera.far = 700; camera.updateProjectionMatrix();
+  citizens?.setDensity(4);
+  world.cityLife?.setDensity(18);
+  traffic?.setDensity(6);
+  console.info('[EM] performance tier engaged: shadows off, far=700, citizens=4, traffic=6');
+}
 
 function simTick(dt) {
   if (!player) return;
@@ -326,7 +354,7 @@ renderer.setAnimationLoop(() => {
 
     // render-side: camera follows every frame for smoothness
     const blocked = ui.dialogOpen || ui.guideOpen || ui.welcomeOpen || ui.journalOpen || ui.metroOpen || ui.mapOpen;
-    followCam.update(rdt, player.pos, blocked ? { dx: 0, dy: 0, wheel: 0 } : mouse, world.colliders);
+    followCam.update(rdt, player, blocked ? { dx: 0, dy: 0, wheel: 0, looking: false } : mouse, world.colliders);
 
     // sprint FOV kick (cinematic juice)
     const targetFov = baseFov + player.speedFrac * (input.sprint ? 8 : 3);
@@ -377,19 +405,20 @@ renderer.setAnimationLoop(() => {
   frameEMA = frameEMA * 0.95 + rdt * 1000 * 0.05;
   scaleCooldown -= rdt;
   if (scaleCooldown <= 0) {
-    if (frameEMA > 20 && renderScale > 0.55) { renderScale = Math.max(0.55, renderScale - 0.1); applySize(); scaleCooldown = 1.5; }
-    else if (frameEMA < 14 && renderScale < 1) { renderScale = Math.min(1, renderScale + 0.1); applySize(); scaleCooldown = 1.5; }
-    // potato tier: min scale still can't hold ~40fps → shed the big GPU costs once
-    if (!potato && renderScale <= 0.56 && frameEMA > 24) {
-      potato = true;
-      sun.castShadow = false;                     // shadows are the #1 cost
-      renderer.shadowMap.enabled = false;
-      scene.fog.density = 0.0085;                  // pull the horizon in
-      camera.far = 700; camera.updateProjectionMatrix();
-      citizens?.setDensity(4);                     // fewer skinned pedestrians
-      world.cityLife?.setDensity(18);              // retain bustle with cheap instanced silhouettes
-      traffic?.setDensity(6);                      // two cars per radial line
-      console.info('[EM] potato tier engaged: shadows off, far=700, citizens=4, traffic=6');
+    if (frameEMA > 20) {
+      // Preserve mobile clarity: reduce expensive scene work before lowering
+      // resolution, then never cross the effective-pixel-ratio floor.
+      if (!potato && (compactTouch || frameEMA > 24)) {
+        engagePerformanceTier();
+      } else if (renderScale > MIN_RENDER_SCALE + 0.001) {
+        renderScale = Math.max(MIN_RENDER_SCALE, renderScale - 0.08);
+        applySize();
+      }
+      scaleCooldown = 1.5;
+    } else if (frameEMA < 14 && renderScale < 1) {
+      renderScale = Math.min(1, renderScale + 0.08);
+      applySize();
+      scaleCooldown = 1.5;
     }
   }
   fpsCount++; fpsTime += rdt;

@@ -9,6 +9,7 @@ import { instanceRig } from './rig.js';
 import { attachMarker } from './markers.js';
 import { BOULEVARD } from './transit-layout.js';
 import { buildDistrictLife } from './city-life.js';
+import { accentProfileFor, districtCastFor } from './dialects.js';
 
 export const LINES = {
   isles:   { angle: Math.PI / 2,                    label: 'THE ISLES LINE',   color: 0x4deeea },
@@ -35,10 +36,47 @@ function hash(str) {
   return h >>> 0;
 }
 
+function addNpcSignature(wrap, seed, tint) {
+  const signature = new THREE.Group();
+  signature.name = `npc-signature-${seed.toString(16)}`;
+  const ink = new THREE.Color(0x152038).lerp(tint, 0.18);
+  const accent = tint.clone().offsetHSL(((seed % 9) - 4) * 0.018, 0.08, 0.04);
+  const mesh = (geometry, material, x, y, z, rx = 0, ry = 0, rz = 0) => {
+    const item = new THREE.Mesh(geometry, material);
+    item.position.set(x, y, z);
+    item.rotation.set(rx, ry, rz);
+    item.castShadow = true;
+    item.userData.disposeWithNpc = true;
+    signature.add(item);
+    return item;
+  };
+  const darkMat = toonMat(ink);
+  const accentMat = toonMat(accent);
+  const style = seed % 4;
+  if (style === 0) {
+    mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.22, 12), accentMat, 0, 2.17, 0);
+    mesh(new THREE.TorusGeometry(0.17, 0.045, 6, 16), darkMat, 0, 1.72, 0, Math.PI / 2);
+  } else if (style === 1) {
+    mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.055, 14), darkMat, 0, 2.11, 0);
+    mesh(new THREE.CylinderGeometry(0.19, 0.23, 0.2, 12), accentMat, 0, 2.2, 0);
+    mesh(new THREE.BoxGeometry(0.3, 0.42, 0.16), accentMat, 0.29, 1.16, 0.13, 0, 0, -0.08);
+  } else if (style === 2) {
+    mesh(new THREE.TorusGeometry(0.25, 0.035, 6, 18, Math.PI), darkMat, 0, 2.02, 0, 0, 0, Math.PI / 2);
+    mesh(new THREE.BoxGeometry(0.09, 0.2, 0.08), accentMat, -0.25, 2.0, 0);
+    mesh(new THREE.BoxGeometry(0.09, 0.2, 0.08), accentMat, 0.25, 2.0, 0);
+  } else {
+    mesh(new THREE.CylinderGeometry(0.2, 0.23, 0.16, 12), darkMat, 0, 2.15, 0);
+    mesh(new THREE.BoxGeometry(0.28, 0.04, 0.22), accentMat, 0, 2.12, -0.2);
+    mesh(new THREE.BoxGeometry(0.28, 0.36, 0.15), darkMat, -0.3, 1.12, 0.14, 0, 0, 0.1);
+  }
+  wrap.add(signature);
+}
+
 export class ZoneManager {
-  constructor(scene, { lowPower = false } = {}) {
+  constructor(scene, { lowPower = false, compactTouch = false } = {}) {
     this.scene = scene;
     this.lowPower = lowPower;
+    this.compactTouch = compactTouch;
     this.zones = [];          // computed defs { data, center, stopPos, dir, side, chunk|null }
     this.current = null;      // zone the player stands in
     this.onEnter = null;      // callback(zoneDef)
@@ -92,7 +130,7 @@ export class ZoneManager {
   teacherTotal(code) {
     if (code === 'hub') return Math.max(1, this.hubNpcs.length || 4);
     const z = this.zones.find((zz) => zz.data.code === code);
-    return z ? Math.min(2, z.data.npcs.length) : 2;
+    return z ? Math.min(3, districtCastFor(z.data, z.zoneIndex).length) : 3;
   }
   // { round, laps, done, total, remaining } for the journal / objective HUD
   roundStatus(code) {
@@ -159,6 +197,7 @@ export class ZoneManager {
   async init() {
     const { zones } = await (await fetch('src/gamedata/zones.json')).json();
     const perLine = { isles: [], liberty: [], sunward: [] };
+    const zoneOrder = new Map(zones.map((zone, index) => [zone.code, index]));
     for (const z of zones) perLine[z.line]?.push(z);
     for (const [lineKey, list] of Object.entries(perLine)) {
       const L = LINES[lineKey];
@@ -171,7 +210,7 @@ export class ZoneManager {
         const stop = new THREE.Vector2(dir.x * d, dir.y * d);
         const center = stop.clone().addScaledVector(perp, side * LATERAL);
         this.zones.push({
-          data, lineKey, line: L, side, stopIdx,
+          data, lineKey, line: L, side, stopIdx, zoneIndex: zoneOrder.get(data.code),
           dir: new THREE.Vector2(dir.x, dir.y), perp,
           stopPos: stop, center, chunk: null,
         });
@@ -193,8 +232,8 @@ export class ZoneManager {
 
   update(playerPos, colliders) {
     const p = new THREE.Vector2(playerPos.x, playerPos.z);
-    const buildRadius = this.lowPower ? 84 : R_BUILD;
-    const disposeRadius = this.lowPower ? 124 : R_DISPOSE;
+    const buildRadius = this.compactTouch ? 66 : (this.lowPower ? 84 : R_BUILD);
+    const disposeRadius = this.compactTouch ? 98 : (this.lowPower ? 124 : R_DISPOSE);
     for (const z of this.zones) {
       const d = p.distanceTo(z.center);
       if (!z.chunk && d < buildRadius) this.buildChunk(z, colliders);
@@ -264,34 +303,67 @@ export class ZoneManager {
       g.add(curb);
     }
 
-    // buildings: bigger block — 3×4 grid around a courtyard. Real facades
-    // (plinth, window grids, cornices, setbacks, storefronts) merged into a
-    // handful of meshes per district — Abeto-grade streets, still cheap.
-    const slots = [];
-    for (const x of [-15, -5, 5, 15]) {
-      slots.push({
-        x: x + (rng() - 0.5) * 0.8,
-        // Preserve a real public-realm strip between the platform and facades:
-        // curb, sellers, cafe tables, pedestrians, then the building line.
-        z: nearEdge + 13 + rng() * 0.5,
-        w: 8.0 + rng() * 1.3,
-        d: 7.2 + rng() * 1.4,
-        frontage: true,
-      });
+    // A compact street network turns every streamed dialect region into real
+    // blocks: three parallel one-way streets, two cross streets and a diagonal
+    // promenade. Lots are generated around the roads, never through them.
+    const streets = new THREE.Group();
+    streets.name = `${z.data.code}-street-grid`;
+    const roadMat = toonMat(new THREE.Color(0x15243a).lerp(cPrimary, 0.08));
+    const laneMat = toonMat(new THREE.Color(0xc7d8dd).lerp(cAccent, 0.22));
+    const edgeMat = toonMat(cAccent.clone().multiplyScalar(0.72));
+    const addRoad = (width, length, x, zz, yaw = 0, material = roadMat) => {
+      const geometry = new THREE.PlaneGeometry(width, length);
+      geometry.rotateX(-Math.PI / 2);
+      if (yaw) geometry.rotateY(yaw);
+      const road = new THREE.Mesh(geometry, material);
+      road.position.set(x, 0.047, zz);
+      road.receiveShadow = true;
+      streets.add(road);
+      return road;
+    };
+    for (const x of [-10, 0, 10]) {
+      addRoad(2.9, districtDepth - 0.8, x, districtMid);
+      addRoad(0.09, districtDepth - 2.2, x, districtMid, 0, laneMat);
     }
-    const innerLots = [
-      [-14, 7], [-4.7, 8.5], [4.7, 7.5], [14, 9],
-      [-11.5, 18.5], [0, 19.5], [11.5, 18],
-    ];
-    for (const [x, zz] of innerLots) {
-      if (rng() < 0.2) continue;
-      slots.push({
-        x: x + (rng() - 0.5) * 1.4,
-        z: zz + (rng() - 0.5) * 1.2,
-        w: 8.2 + rng() * 2.5,
-        d: 7.8 + rng() * 2.5,
-        frontage: false,
-      });
+    for (const zz of [-3.1, 11.7]) {
+      addRoad(districtWidth - 0.8, 3.5, 0, zz);
+      addRoad(districtWidth - 2.2, 0.09, 0, zz, 0, laneMat);
+    }
+    const diagonalStart = new THREE.Vector2(-19, nearEdge + 2);
+    const diagonalEnd = new THREE.Vector2(19, farEdge - 2);
+    const diagonalDelta = diagonalEnd.clone().sub(diagonalStart);
+    const diagonalLength = diagonalDelta.length();
+    const diagonalMid = diagonalStart.clone().add(diagonalEnd).multiplyScalar(0.5);
+    const diagonalYaw = Math.atan2(diagonalDelta.x, diagonalDelta.y);
+    addRoad(3.15, diagonalLength, diagonalMid.x, diagonalMid.y, diagonalYaw);
+    addRoad(0.12, diagonalLength - 1.2, diagonalMid.x, diagonalMid.y, diagonalYaw, edgeMat);
+    g.add(streets);
+
+    const distanceToDiagonal = (x, zz) => {
+      const px = x - diagonalStart.x;
+      const pz = zz - diagonalStart.y;
+      const t = THREE.MathUtils.clamp(
+        (px * diagonalDelta.x + pz * diagonalDelta.y) / diagonalDelta.lengthSq(),
+        0,
+        1,
+      );
+      return Math.hypot(px - diagonalDelta.x * t, pz - diagonalDelta.y * t);
+    };
+    const slots = [];
+    const rows = [nearEdge + 8.1, 4.2, 19.2];
+    for (let row = 0; row < rows.length; row++) {
+      for (const column of [-15, -5, 5, 15]) {
+        const x = column + (rng() - 0.5) * 0.45;
+        const zz = rows[row] + (rng() - 0.5) * 0.4;
+        if (distanceToDiagonal(x, zz) < 4.25) continue;
+        slots.push({
+          x,
+          z: zz,
+          w: 7.0 + rng() * 0.7,
+          d: 6.8 + rng() * 0.8,
+          frontage: row === 0,
+        });
+      }
     }
     const zoneColliders = this.buildFacadeBlock(g, slots, rng, { cPrimary, cSecondary, cAccent, cRoof });
 
@@ -310,9 +382,9 @@ export class ZoneManager {
 
     // landmark in the courtyard — variant by zone hash
     const lm = this.buildLandmark(hash(z.data.code) % 3, cAccent, cRoof);
-    lm.position.set(0, 0, 0);
+    lm.position.set(-15.5, 0, 25.2);
     g.add(lm);
-    zoneColliders.push({ localX: 0, localZ: 0, hw: 1.6, hd: 1.6 });
+    zoneColliders.push({ localX: -15.5, localZ: 25.2, hw: 1.6, hd: 1.6 });
 
     // orient district: face the boulevard
     const yaw = Math.atan2(z.perp.x * z.side, z.perp.y * z.side);
@@ -380,18 +452,20 @@ export class ZoneManager {
     colliders.push(...tagged);
     this._colliderTag.set(z.data.code, tagged);
 
-    // --- zone NPCs (2 per zone, from zones.json) — Mike's Meshy cast ---
+    // --- three accent-matched locals per district, each with a unique body ---
     if (this.npcBases?.length && this.world) {
       const spawned = [];
       const zoneProg = this.progressFor(z.data.code);
-      const locals = [[-5.5, 4.5], [5.5, -4.5]];
+      const locals = [[-10, -10], [0, 4], [10, 19]];
       // body assignment is unique PER STOP: the two zones flanking a station
-      // (side ±1) draw four consecutive pool slots, so no two teachers you can
+      // (side ±1) draw six consecutive pool slots, so no two teachers you can
       // see from one platform share a body
       const stopSlot = hash(`${z.lineKey}:${z.stopIdx}`);
-      z.data.npcs.slice(0, 2).forEach((npcData, i) => {
-        const base = this.npcBases[(stopSlot + (z.side > 0 ? 0 : 2) + i) % this.npcBases.length];
-        const tint = new THREE.Color(i === 0 ? z.data.palette.accent : z.data.palette.secondary);
+      districtCastFor(z.data, z.zoneIndex).slice(0, 3).forEach((npcData, i) => {
+        const base = this.npcBases[(stopSlot + (z.side > 0 ? 0 : 3) + i) % this.npcBases.length];
+        const tint = new THREE.Color(i === 0
+          ? z.data.palette.accent
+          : i === 1 ? z.data.palette.secondary : z.data.palette.primary);
         const s = 0.95 + rng() * 0.12;
         const wrap = new THREE.Group();
         const [lx, lz] = locals[i];
@@ -399,7 +473,7 @@ export class ZoneManager {
           z.center.x + lx * cosY + lz * sinY, 0,
           z.center.y - lx * sinY + lz * cosY
         );
-        wrap.rotation.y = yaw + (i === 0 ? 0.6 : -2.2);
+        wrap.rotation.y = yaw + [0.6, -2.2, 2.65][i];
         wrap.scale.setScalar(s);
         wrap.add(blobShadow(0.5 * s));
 
@@ -410,14 +484,16 @@ export class ZoneManager {
           exercise: z.data.sampleExercises[(i + zoneProg.laps) % z.data.sampleExercises.length],
           grammar: assignGrammar(z.stopIdx, i, z.lineKey, zoneProg.laps),
           dialectCode: z.data.code,
-          voiceId: `${z.data.code}_${i}`, barkFam: z.lineKey,
+          voiceId: i < 2 ? `${z.data.code}_${i}` : null,
+          accentProfile: accentProfileFor(z.data.code, i), barkFam: z.lineKey,
           done: !!zoneProg.d[i],
           zoneCode: z.data.code, npcIdx: i, phase: rng() * 6,
           gestureCorrect: 'agree', gestureWrong: 'headShake', gestureGreet: 'Wave',
         };
         attachMarker(entry, 2.3);   // local units — wrap scale applies on top
+        addNpcSignature(wrap, hash(`${z.data.code}:${i}`), tint);
         if (base?.rigged) {
-          const inst = instanceRig(base.mesh, base.clips);
+          const inst = instanceRig(base.object || base.mesh, base.clips);
           inst.mesh.material = inst.mesh.material.clone();
           inst.mesh.material.color.lerp(tint, 0.22);
           wrap.add(inst.object);
@@ -828,7 +904,11 @@ export class ZoneManager {
     for (const n of npcs) {
       n.mixer?.stopAllAction();
       // geometry is shared with the template — dispose only the per-NPC materials
-      n.obj.traverse((o) => { if (o.isMesh && o.material?.dispose) o.material.dispose(); });
+      n.obj.traverse((o) => {
+        if (!o.isMesh) return;
+        if (o.userData.disposeWithNpc) o.geometry.dispose();
+        o.material?.dispose?.();
+      });
       this.scene.remove(n.obj);
       const i = this.world.npcs.indexOf(n);
       if (i >= 0) this.world.npcs.splice(i, 1);

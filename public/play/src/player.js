@@ -1,5 +1,5 @@
 // GTA-feel third-person controller: momentum, sprint, jump, collide-and-slide,
-// spring-arm orbit camera, procedural animation for the (static) Meshy hero mesh.
+// Mixamo animation and a collision-aware spring-arm orbit camera.
 import * as THREE from 'three';
 import { blobShadow } from './materials.js';
 import { heightAt } from './terrain.js';
@@ -50,6 +50,15 @@ function keepCameraOnSidewalk(desired, playerPos) {
 
 const WALK = 4.3, SPRINT = 7.6, ACCEL = 26, FRICTION = 14, TURN_LERP = 11;
 const GRAVITY = -22, JUMP_V = 7.2, PLAYER_R = 0.42;
+const TAU = Math.PI * 2;
+
+function wrapAngle(angle) {
+  return THREE.MathUtils.euclideanModulo(angle + Math.PI, TAU) - Math.PI;
+}
+
+function dampAngle(current, target, rate, dt) {
+  return wrapAngle(current + wrapAngle(target - current) * (1 - Math.exp(-rate * dt)));
+}
 
 export class Player {
   constructor(heroModel, scene, anim = null) {
@@ -218,60 +227,123 @@ export class FollowCamera {
     this.yaw = 0;                // camera south of spawn, looking at the station
     this.pitch = 0.32;
     this.dist = 5.4;
+    this.armLength = this.dist;
+    this.freeLookTimer = 0;
     this.cur = new THREE.Vector3(0, 3, 14);
     this.curTarget = new THREE.Vector3();
+    this.lead = new THREE.Vector3();
+    this.leadGoal = new THREE.Vector3();
+    this.target = new THREE.Vector3();
+    this.desired = new THREE.Vector3();
+    this.offset = new THREE.Vector3();
     this.forceSnap = false;
+    this.camera.userData.cameraMode = 'gta-follow';
   }
 
-  snap() { this.forceSnap = true; }
+  snap() {
+    this.forceSnap = true;
+    this.freeLookTimer = 0;
+  }
 
-  update(dt, playerPos, mouse, colliders = []) {
+  update(dt, player, mouse, colliders = []) {
+    const playerPos = player.pos || player;
+    const velocity = player.vel || this.leadGoal.set(0, 0, 0);
+    const planarSpeed = Math.hypot(velocity.x, velocity.z);
+    const speedFrac = player.speedFrac ?? Math.min(1, planarSpeed / SPRINT);
+    const hasLookDelta = Math.abs(mouse.dx) + Math.abs(mouse.dy) > 0.01;
+
     this.yaw -= mouse.dx * 0.0026;
     this.pitch = THREE.MathUtils.clamp(this.pitch + mouse.dy * 0.0022, -0.15, 1.15);
     this.dist = THREE.MathUtils.clamp(this.dist + mouse.wheel * 0.6, 2.6, 10);
+    this.yaw = wrapAngle(this.yaw);
 
-    const target = new THREE.Vector3(playerPos.x, playerPos.y + 1.62, playerPos.z);
-    const off = new THREE.Vector3(
+    if (hasLookDelta) this.freeLookTimer = 1.35;
+    else if (mouse.looking) this.freeLookTimer = Math.max(this.freeLookTimer, 0.2);
+    else this.freeLookTimer = Math.max(0, this.freeLookTimer - dt);
+
+    // Free-look always wins. Once the player releases it, trail actual motion
+    // after a grace period rather than reacting directly to a key or joystick.
+    if (planarSpeed > 0.85 && this.freeLookTimer <= 0) {
+      const movementHeading = Math.atan2(velocity.x, velocity.z);
+      const behindMovement = movementHeading + Math.PI;
+      this.yaw = dampAngle(this.yaw, behindMovement, 1.35 + speedFrac * 1.75, dt);
+      this.pitch = THREE.MathUtils.lerp(this.pitch, 0.3, 1 - Math.exp(-dt * 0.55));
+    }
+
+    if (planarSpeed > 0.2) {
+      const leadDistance = Math.min(0.92, planarSpeed * 0.115);
+      this.leadGoal.set(
+        velocity.x / planarSpeed * leadDistance,
+        0,
+        velocity.z / planarSpeed * leadDistance,
+      );
+    } else {
+      this.leadGoal.set(0, 0, 0);
+    }
+    this.lead.lerp(this.leadGoal, 1 - Math.exp(-dt * 4.2));
+
+    this.target.set(
+      playerPos.x + this.lead.x,
+      playerPos.y + 1.52,
+      playerPos.z + this.lead.z,
+    );
+
+    const teleported = this.curTarget.distanceToSquared(this.target) > 24 * 24;
+    const snapNow = this.forceSnap || teleported;
+    if (snapNow) this.curTarget.copy(this.target);
+    else this.curTarget.lerp(this.target, 1 - Math.exp(-dt * 10.5));
+
+    const requestedArm = this.dist + speedFrac * 0.52;
+    this.offset.set(
       Math.sin(this.yaw) * Math.cos(this.pitch),
       Math.sin(this.pitch),
       Math.cos(this.yaw) * Math.cos(this.pitch)
-    ).multiplyScalar(this.dist);
+    ).multiplyScalar(requestedArm);
 
-    const desired = target.clone().add(off);
-    keepCameraOnSidewalk(desired, playerPos);
+    this.desired.copy(this.curTarget).add(this.offset);
+    keepCameraOnSidewalk(this.desired, playerPos);
 
     let clearFraction = 1;
     for (const box of colliders) {
-      if (target.x > box.minX && target.x < box.maxX && target.z > box.minZ && target.z < box.maxZ) continue;
-      const entry = segmentBoxEntry(target, desired, box);
+      if (this.curTarget.x > box.minX && this.curTarget.x < box.maxX && this.curTarget.z > box.minZ && this.curTarget.z < box.maxZ) continue;
+      const entry = segmentBoxEntry(this.curTarget, this.desired, box);
       if (entry !== null) clearFraction = Math.min(clearFraction, Math.max(0.2, entry - 0.045));
     }
     // Sample the camera arm against the analytic terrain. Checking only the
     // camera endpoint lets a hill crest cut across the view as a dark polygon.
     for (let step = 2; step <= 12; step++) {
       const fraction = step / 12;
-      const x = THREE.MathUtils.lerp(target.x, desired.x, fraction);
-      const z = THREE.MathUtils.lerp(target.z, desired.z, fraction);
-      const rayY = THREE.MathUtils.lerp(target.y, desired.y, fraction);
+      const x = THREE.MathUtils.lerp(this.curTarget.x, this.desired.x, fraction);
+      const z = THREE.MathUtils.lerp(this.curTarget.z, this.desired.z, fraction);
+      const rayY = THREE.MathUtils.lerp(this.curTarget.y, this.desired.y, fraction);
       if (heightAt(x, z) + 0.32 > rayY) {
         clearFraction = Math.min(clearFraction, Math.max(0.2, (step - 1) / 12 - 0.035));
         break;
       }
     }
-    if (clearFraction < 1) desired.lerpVectors(target, desired, clearFraction);
+    const fullArmLength = this.desired.distanceTo(this.curTarget);
+    const clearArmLength = fullArmLength * clearFraction;
+    const contracted = clearArmLength < this.armLength - 0.02;
+    if (snapNow || contracted) this.armLength = clearArmLength;
+    else this.armLength = THREE.MathUtils.lerp(
+      this.armLength,
+      clearArmLength,
+      1 - Math.exp(-dt * 3.4),
+    );
 
-    const floor = heightAt(desired.x, desired.z) + 0.4;
-    if (desired.y < floor) desired.y = floor;
+    if (fullArmLength > 0.001) {
+      this.desired.sub(this.curTarget).multiplyScalar(this.armLength / fullArmLength).add(this.curTarget);
+    }
 
-    const teleported = this.curTarget.distanceToSquared(target) > 24 * 24;
-    if (this.forceSnap || teleported) {
-      this.cur.copy(desired);
-      this.curTarget.copy(target);
+    const floor = heightAt(this.desired.x, this.desired.z) + 0.4;
+    if (this.desired.y < floor) this.desired.y = floor;
+
+    if (snapNow || clearFraction < 0.999) {
+      this.cur.copy(this.desired);
       this.forceSnap = false;
     } else {
-      const k = 1 - Math.exp(-dt * 9);
-      this.cur.lerp(desired, k);
-      this.curTarget.lerp(target, 1 - Math.exp(-dt * 14));
+      const followRate = mouse.looking || hasLookDelta ? 15 : 8.5 + speedFrac * 2.5;
+      this.cur.lerp(this.desired, 1 - Math.exp(-dt * followRate));
     }
     this.camera.position.copy(this.cur);
     this.camera.lookAt(this.curTarget);

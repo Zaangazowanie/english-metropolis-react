@@ -1,5 +1,5 @@
 // HUD, loading screen, dialog/exercise panel, XP persistence.
-import { buildSession, recordAnswer, masteryFor, overallMastery, conceptHint } from './grammar.js';
+import { buildSession, recordAnswer, masteryFor, overallMastery } from './grammar.js';
 
 const DRILL_N = 7;   // questions per teacher drill (pass = 70%, i.e. 5/7)
 
@@ -173,7 +173,7 @@ export class UI {
     d.style.display = 'block';
     d.querySelector('.who').textContent = `${npc.name} — ${npc.role}`;
     d.querySelector('.text').textContent = npc.greeting;
-    this.voice?.speak(npc.voiceId, npc.greeting);      // Kokoro line (or synth fallback)
+    this.voice?.speak(npc.voiceId, npc.greeting, { profile: npc.accentProfile });
     const opts = d.querySelector('.opts');
     opts.innerHTML = '';
     const st = hooks.status;
@@ -262,7 +262,8 @@ export class UI {
       const passed = correct >= PASS;
       const fam = npc.barkFam || 'isles';
       this.voice?.speak(`bark_${fam}_${correct === N ? 'perfect' : passed ? 'pass' : 'fail'}`,
-        passed ? 'Nice work. Your English is levelling up.' : 'Good effort. Practice makes perfect.');
+        passed ? 'Nice work. Your English is levelling up.' : 'Good effort. Practice makes perfect.',
+        { profile: npc.accentProfile });
       who.textContent = `${npc.name} — grammar`;
       text.innerHTML = `<b>${session.conceptName}</b><br>You scored <b>${correct}/${N}</b>. ` +
         (passed ? 'Sharp! You\'ve helped this local for the round. ✓' :
@@ -338,7 +339,7 @@ export class UI {
             mic.innerHTML = state === 'listening' ? '🎤 <b>listening…</b>'
               : state === 'thinking' ? '🎤 <i>thinking…</i>'
               : '🎤 <i>say the correct sentence</i>';
-          });
+          }, npc.accentProfile);
           if (answered) return;
           if (!heard) { this.toast('🎤 Didn\'t catch that — try again'); return; }
           const idx = this.voice.matchOption(heard, q.options);
