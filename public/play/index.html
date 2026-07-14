@@ -128,6 +128,20 @@
     /* On touch the bottom-left corner belongs to the movement stick —
        the minimap rides top-left instead (zone card is centered, so it's free). */
     body.touch #minimap { width: 92px; height: 92px; bottom: auto; top: 60px; left: 12px; }
+    @media (max-width: 600px) {
+      body.touch #zone-card { top: 10px; left: 10px; transform: none; width: calc(100vw - 118px);
+        padding: 7px 10px 8px; border-radius: 8px; }
+      body.touch #zone-card .line { font-size: 9px; letter-spacing: 0.2em; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis; }
+      body.touch #zone-card .name { font-size: 18px; line-height: 1.12; letter-spacing: 0; }
+      body.touch #xp { top: 10px; right: 8px; padding: 6px 10px; font-size: 12px; }
+      body.touch #beta-tag { top: 46px; right: 10px; font-size: 8px; padding: 3px 7px 3px 9px; }
+      body.touch #objective { top: 73px; width: calc(100vw - 24px); padding: 6px 10px;
+        text-align: center; }
+      body.touch #minimap { top: 108px; left: 10px; width: 86px; height: 86px; }
+      body.touch #toast { top: 112px; left: 108px; transform: none; width: calc(100vw - 120px);
+        box-sizing: border-box; padding: 8px 12px; border-radius: 8px; font-size: 13px; }
+    }
   </style>
 </head>
 <body>

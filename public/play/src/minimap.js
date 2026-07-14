@@ -146,7 +146,7 @@ export class Minimap {
         if (tx < 0 || tx > W || ty < 0 || ty > W) continue;
         if (!this.fog.visited(head.x, head.z)) continue;
         ctx.beginPath(); ctx.arc(tx, ty, 3, 0, Math.PI * 2);
-        ctx.fillStyle = '#' + t.cars[0].children[0].material.color.getHexString();
+        ctx.fillStyle = '#' + t.color.toString(16).padStart(6, '0');
         ctx.fill();
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
       }

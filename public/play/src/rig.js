@@ -1,6 +1,6 @@
-// Code-based humanoid auto-rigger. Takes a static A/T-pose mesh (our Meshy
-// characters), segments it into a bone hierarchy by vertex position with smooth
-// weight falloff, and returns a SkinnedMesh + authored idle/walk/run clips.
+// Code-based humanoid auto-rigger. Takes the Meshy cast's shared bent-arm
+// presentation pose, segments it into a bone hierarchy by vertex position, and
+// returns a SkinnedMesh + authored idle/walk/run clips.
 // No external tools, no uploads — works on every character in the cast.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -13,8 +13,9 @@ const B = {
   thighR: 7, shinR: 8, footR: 9,
   upperArmL: 10, foreArmL: 11,
   upperArmR: 12, foreArmR: 13,
+  handL: 14, handR: 15,
 };
-const NB = 14;
+const NB = 16;
 
 function collectGeometry(root) {
   const geos = [];
@@ -44,11 +45,17 @@ export function rigHumanoid(root, material) {
   const pos = geo.attributes.position;
   const n = pos.count;
 
-  // joint heights (fractions of H) tuned to the Meshy A-pose layout
+  // Joint heights are fractions of H. Horizontal joints adapt to each cast
+  // member's reach; fixed wrist coordinates left shorter models' hands almost
+  // entirely weighted to the forearm, so palm correction had no visible effect.
   const hipY = y0 + 0.47 * H, kneeY = y0 + 0.25 * H, footY = y0 + 0.06 * H;
   const chestY = y0 + 0.66 * H, shoulderY = y0 + 0.72 * H, neckY = y0 + 0.84 * H;
-  const legX = 0.09, shoulderX = 0.17, elbowX = 0.30;
-  const armInner = 0.20, armOuter = 0.34;   // |x-cx| thresholds separating arm segments
+  const halfWidth = Math.max(Math.abs(bb.min.x - cx), Math.abs(bb.max.x - cx));
+  const legX = 0.09;
+  const shoulderX = THREE.MathUtils.clamp(halfWidth * 0.38, 0.14, 0.18);
+  const elbowX = THREE.MathUtils.clamp(halfWidth * 0.61, 0.22, 0.29);
+  const wristX = THREE.MathUtils.clamp(halfWidth * 0.83, 0.3, 0.4);
+  const armInner = THREE.MathUtils.clamp(halfWidth * 0.48, 0.17, 0.22);
 
   // ---- skin weights: one dominant bone per vertex, blended across joints ----
   const skinIndex = new Uint16Array(n * 4);
@@ -67,9 +74,14 @@ export function rigHumanoid(root, material) {
     if (isArm) {
       const upper = side === 'L' ? B.upperArmL : B.upperArmR;
       const fore = side === 'L' ? B.foreArmL : B.foreArmR;
-      const f = ss(armInner + 0.06, armOuter, ax);        // inner→outer blend
-      add(upper, 1 - f); add(fore, f);
-      if (1 - f < 0.2) add(B.chest, 0);                    // keep shoulder anchored
+      const hand = side === 'L' ? B.handL : B.handR;
+      const foreBlend = ss(armInner + 0.055, elbowX + 0.045, ax);
+      const handBlend = ss(halfWidth * 0.68, halfWidth * 0.9, ax);
+      add(upper, 1 - foreBlend);
+      // A broad blend through the cuff keeps connected sleeve/hand polygons
+      // continuous while giving the palm its own anatomical wrist rotation.
+      add(fore, foreBlend * (1 - handBlend));
+      add(hand, foreBlend * handBlend);
     } else if (ty < 0.5) {
       // legs / hips
       const thigh = side === 'L' ? B.thighL : B.thighR;
@@ -108,11 +120,19 @@ export function rigHumanoid(root, material) {
   P(B.thighR, legX, 0, 0); bones[B.hips].add(bones[B.thighR]);
   P(B.shinR, 0, kneeY - hipY, 0); bones[B.thighR].add(bones[B.shinR]);
   P(B.footR, 0, footY - kneeY, 0); bones[B.shinR].add(bones[B.footR]);
-  // arms (chest is at shoulderY)
+  // Arms (chest is at shoulderY). The source cast is not in a T-pose: elbows
+  // sit lower and the forearms reach toward the viewer. Binding those real
+  // pivots lets the animation relax the arms without stretching the sleeves.
+  const elbowDrop = H * 0.087;
+  const elbowForward = H * 0.032;
+  const wristDrop = H * 0.07;
+  const wristForward = H * 0.093;
   P(B.upperArmL, -shoulderX, 0, 0); bones[B.chest].add(bones[B.upperArmL]);
-  P(B.foreArmL, -(elbowX - shoulderX), 0, 0); bones[B.upperArmL].add(bones[B.foreArmL]);
+  P(B.foreArmL, -(elbowX - shoulderX), -elbowDrop, elbowForward); bones[B.upperArmL].add(bones[B.foreArmL]);
+  P(B.handL, -(wristX - elbowX), -wristDrop, wristForward); bones[B.foreArmL].add(bones[B.handL]);
   P(B.upperArmR, shoulderX, 0, 0); bones[B.chest].add(bones[B.upperArmR]);
-  P(B.foreArmR, elbowX - shoulderX, 0, 0); bones[B.upperArmR].add(bones[B.foreArmR]);
+  P(B.foreArmR, elbowX - shoulderX, -elbowDrop, elbowForward); bones[B.upperArmR].add(bones[B.foreArmR]);
+  P(B.handR, wristX - elbowX, -wristDrop, wristForward); bones[B.foreArmR].add(bones[B.handR]);
 
   const skeleton = new THREE.Skeleton(bones);
   const mesh = new THREE.SkinnedMesh(geo, material);
@@ -180,41 +200,90 @@ function track(boneName, times, quats) {
 
 function buildClips(bones) {
   const name = (b) => bones[b].name;
-  // The Meshy cast is modelled in an A-pose (arms already hang down-and-out), so
-  // we keep the arms near their natural bind rest and only add a gentle swing —
-  // over-rotating them (T-pose assumption) sticks them out stiffly.
-  const ARM_DOWN_L = 0.14, ARM_DOWN_R = -0.14;
+  const offset = (base, x = 0, y = 0, z = 0) => base.clone().multiply(eul(x, y, z));
+  const limbPose = (upperBind, foreBind, upperTarget, foreTarget, roll = 0) => {
+    const upper = new THREE.Quaternion().setFromUnitVectors(
+      upperBind.clone().normalize(), upperTarget.clone().normalize(),
+    );
+    const localForeTarget = foreTarget.clone().normalize().applyQuaternion(upper.clone().invert());
+    const fore = new THREE.Quaternion().setFromUnitVectors(
+      foreBind.clone().normalize(), localForeTarget,
+    );
+    if (roll) fore.multiply(new THREE.Quaternion().setFromAxisAngle(foreBind.clone().normalize(), roll));
+    return { upper, fore };
+  };
+  const restL = limbPose(
+    bones[B.foreArmL].position, bones[B.handL].position,
+    new THREE.Vector3(-0.04, -1, -0.04), new THREE.Vector3(-0.015, -1, -0.05),
+  );
+  const restR = limbPose(
+    bones[B.foreArmR].position, bones[B.handR].position,
+    new THREE.Vector3(0.04, -1, -0.04), new THREE.Vector3(0.015, -1, -0.05),
+  );
+  const handRestL = new THREE.Quaternion().setFromAxisAngle(
+    bones[B.handL].position.clone().normalize(), -0.78,
+  );
+  const handRestR = new THREE.Quaternion().setFromAxisAngle(
+    bones[B.handR].position.clone().normalize(), 0.78,
+  );
+  const restArmTracks = (duration) => [
+    track(name(B.upperArmL), [0, duration], [restL.upper, restL.upper]),
+    track(name(B.upperArmR), [0, duration], [restR.upper, restR.upper]),
+    track(name(B.foreArmL), [0, duration], [restL.fore, restL.fore]),
+    track(name(B.foreArmR), [0, duration], [restR.fore, restR.fore]),
+    track(name(B.handL), [0, duration], [handRestL, handRestL]),
+    track(name(B.handR), [0, duration], [handRestR, handRestR]),
+  ];
 
   // IDLE — gentle breathing + arms resting down
   const idleTracks = [
-    track(name(B.upperArmL), [0, 2, 4], [eul(0, 0, ARM_DOWN_L), eul(0.05, 0, ARM_DOWN_L), eul(0, 0, ARM_DOWN_L)]),
-    track(name(B.upperArmR), [0, 2, 4], [eul(0, 0, ARM_DOWN_R), eul(0.05, 0, ARM_DOWN_R), eul(0, 0, ARM_DOWN_R)]),
+    track(name(B.upperArmL), [0, 2, 4], [restL.upper, offset(restL.upper, 0.025), restL.upper]),
+    track(name(B.upperArmR), [0, 2, 4], [restR.upper, offset(restR.upper, 0.025), restR.upper]),
+    track(name(B.foreArmL), [0, 4], [restL.fore, restL.fore]),
+    track(name(B.foreArmR), [0, 4], [restR.fore, restR.fore]),
+    track(name(B.handL), [0, 4], [handRestL, handRestL]),
+    track(name(B.handR), [0, 4], [handRestR, handRestR]),
     track(name(B.chest), [0, 2, 4], [eul(0, 0, 0), eul(0.03, 0, 0), eul(0, 0, 0)]),
   ];
   const idle = new THREE.AnimationClip('idle', 4, idleTracks);
 
   // WALK — 1s cycle, legs swing at hips + knee bend, arms counter-swing
-  const walk = makeGait('walk', 1.0, { legSwing: 0.5, kneeBend: 0.7, armSwing: 0.45, armDownL: ARM_DOWN_L, armDownR: ARM_DOWN_R, bob: 0.02 });
-  const run = makeGait('run', 0.62, { legSwing: 0.8, kneeBend: 1.1, armSwing: 0.8, armDownL: ARM_DOWN_L + 0.25, armDownR: ARM_DOWN_R - 0.25, bob: 0.045 });
+  const walk = makeGait('walk', 1.0, { legSwing: 0.46, kneeBend: 0.66, armSwing: 0.2 });
+  const run = makeGait('run', 0.62, { legSwing: 0.74, kneeBend: 1.0, armSwing: 0.36 });
 
   // one-shot gesture clips (played over the idle base)
-  const armRestL = [eul(0, 0, ARM_DOWN_L)], armRestR = [eul(0, 0, ARM_DOWN_R)];
   // nod: neck pitches down-up twice
   const nod = new THREE.AnimationClip('agree', 1.0, [
     track(name(B.neck), [0, 0.2, 0.4, 0.6, 0.8, 1.0],
       [eul(0,0,0), eul(0.32,0,0), eul(0,0,0), eul(0.32,0,0), eul(0,0,0), eul(0,0,0)]),
+    ...restArmTracks(1.0),
   ]);
   // shake: neck yaws left-right
   const shake = new THREE.AnimationClip('headShake', 1.0, [
     track(name(B.neck), [0, 0.15, 0.45, 0.75, 1.0],
       [eul(0,0,0), eul(0,0.4,0), eul(0,-0.4,0), eul(0,0.4,0), eul(0,0,0)]),
+    ...restArmTracks(1.0),
   ]);
-  // wave: right arm lifts and waves
+  // Greeting: elbow opens beside the shoulder, forearm rises, then the wrist
+  // traces a small side-to-side wave. Using anatomical targets keeps the cuff
+  // continuous across all seven differently proportioned cast members.
+  const waveLeft = limbPose(
+    bones[B.foreArmR].position, bones[B.handR].position,
+    new THREE.Vector3(0.8, 0.28, -0.06), new THREE.Vector3(-0.16, 1, -0.08),
+  );
+  const waveRight = limbPose(
+    bones[B.foreArmR].position, bones[B.handR].position,
+    new THREE.Vector3(0.8, 0.28, -0.06), new THREE.Vector3(0.16, 1, -0.08),
+  );
   const wave = new THREE.AnimationClip('Wave', 1.2, [
+    track(name(B.upperArmL), [0, 1.2], [restL.upper, restL.upper]),
     track(name(B.upperArmR), [0, 0.25, 1.0, 1.2],
-      [eul(0,0,ARM_DOWN_R), eul(0,0,-0.2), eul(0,0,-0.2), eul(0,0,ARM_DOWN_R)]),
+      [restR.upper, waveLeft.upper, waveLeft.upper, restR.upper]),
+    track(name(B.foreArmL), [0, 1.2], [restL.fore, restL.fore]),
     track(name(B.foreArmR), [0, 0.4, 0.6, 0.8, 1.0, 1.2],
-      [eul(0,0,0.2), eul(0,0.5,0.2), eul(0,-0.3,0.2), eul(0,0.5,0.2), eul(0,-0.3,0.2), eul(0,0,0.2)]),
+      [restR.fore, waveLeft.fore, waveRight.fore, waveLeft.fore, waveRight.fore, restR.fore]),
+    track(name(B.handL), [0, 1.2], [handRestL, handRestL]),
+    track(name(B.handR), [0, 1.2], [handRestR, handRestR]),
   ]);
   return { idle, walk, run, agree: nod, ThumbsUp: nod, headShake: shake, No: shake, Wave: wave };
 
@@ -223,7 +292,7 @@ function buildClips(bones) {
     const swing = (phase) => Math.sin(phase * Math.PI * 2);
     const s = p.legSwing;
     // phase 0..1 across cycle; leg L leads, leg R opposite; arms opposite legs
-    const legL = [], legR = [], kneeL = [], kneeR = [], armL = [], armR = [], hips = [];
+    const legL = [], legR = [], kneeL = [], kneeR = [], armL = [], armR = [], foreL = [], foreR = [], handL = [], handR = [];
     for (let i = 0; i < t.length; i++) {
       const ph = i / (t.length - 1);
       const sw = swing(ph);
@@ -232,14 +301,19 @@ function buildClips(bones) {
       // knee bends most as the leg passes under (back swing)
       kneeL.push(eul(Math.max(0, -sw) * p.kneeBend + 0.1, 0, 0));
       kneeR.push(eul(Math.max(0, sw) * p.kneeBend + 0.1, 0, 0));
-      armL.push(eul(-sw * p.armSwing, 0, p.armDownL));       // arm opposite same-side leg
-      armR.push(eul(sw * p.armSwing, 0, p.armDownR));
-      hips.push(eul(0, 0, 0));
+      armL.push(offset(restL.upper, -sw * p.armSwing));       // arm opposite same-side leg
+      armR.push(offset(restR.upper, sw * p.armSwing));
+      foreL.push(restL.fore);
+      foreR.push(restR.fore);
+      handL.push(handRestL);
+      handR.push(handRestR);
     }
     const tracks = [
       track(name(B.thighL), t, legL), track(name(B.thighR), t, legR),
       track(name(B.shinL), t, kneeL), track(name(B.shinR), t, kneeR),
       track(name(B.upperArmL), t, armL), track(name(B.upperArmR), t, armR),
+      track(name(B.foreArmL), t, foreL), track(name(B.foreArmR), t, foreR),
+      track(name(B.handL), t, handL), track(name(B.handR), t, handR),
     ];
     return new THREE.AnimationClip(id, dur, tracks);
   }

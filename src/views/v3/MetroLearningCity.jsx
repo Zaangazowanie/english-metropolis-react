@@ -1,10 +1,53 @@
 import { useEffect, useRef } from 'react'
 
 const ROUTES = [
-  { color: 0xff4fa3, points: [[-5.7, -2.7], [-3.3, -1.25], [-1.1, -1.7], [1.55, -0.3], [5.55, -1.35]] },
-  { color: 0x8b7dff, points: [[-5.4, 2.65], [-2.65, 1.1], [0.15, 2.0], [2.5, 0.72], [5.4, 2.18]] },
-  { color: 0x4deeea, points: [[-5.35, -0.05], [-2.55, 0.58], [-0.25, -0.22], [2.2, 1.52], [5.3, 0.1]] },
+  { color: 0xff4fa3, points: [[-5.45, -2.42], [-2.7, -2.32], [0, -2.44], [2.72, -2.3], [5.45, -2.4]] },
+  { color: 0x8b7dff, points: [[-5.45, 2.42], [-2.72, 2.3], [0, 2.44], [2.7, 2.31], [5.45, 2.4]] },
+  { color: 0x4deeea, points: [[2.42, -5.35], [2.32, -2.68], [2.45, 0], [2.31, 2.7], [2.4, 5.35]] },
 ]
+
+const MEDIA_CAMPAIGNS = [
+  { kicker: 'ENGLISHMETRO', title: 'SPEAK|THE CITY', background: '#ff3f9f', ink: '#071225' },
+  { kicker: 'LIVE LANGUAGE', title: 'WORDS|IN MOTION', background: '#43e8df', ink: '#071225' },
+  { kicker: 'CENTRAL HUB', title: 'LIVE 1:1|EVERY DAY', background: '#f7b43a', ink: '#151027' },
+  { kicker: 'NIGHT MARKET', title: 'TASTE|MEET TALK', background: '#8b7dff', ink: '#ffffff' },
+  { kicker: 'NEXT STOP', title: 'FLUENCY|EXPRESS', background: '#ff715b', ink: '#071225' },
+]
+
+function distanceToSegment(x, z, [ax, az], [bx, bz]) {
+  const dx = bx - ax
+  const dz = bz - az
+  const lengthSquared = dx * dx + dz * dz
+  const amount = lengthSquared ? Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / lengthSquared)) : 0
+  return Math.hypot(x - (ax + dx * amount), z - (az + dz * amount))
+}
+
+function distanceToRoute(x, z, points) {
+  let distance = Infinity
+  for (let index = 1; index < points.length; index += 1) {
+    distance = Math.min(distance, distanceToSegment(x, z, points[index - 1], points[index]))
+  }
+  return distance
+}
+
+function makeMediaTexture(THREE, campaign) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 512
+  canvas.height = 256
+  const context = canvas.getContext('2d')
+  context.fillStyle = campaign.background
+  context.fillRect(0, 0, canvas.width, canvas.height)
+  context.fillStyle = campaign.ink
+  context.fillRect(0, 0, 18, canvas.height)
+  context.font = '700 28px Arial, sans-serif'
+  context.fillText(campaign.kicker, 44, 56)
+  context.font = '900 68px Arial, sans-serif'
+  campaign.title.split('|').forEach((line, index) => context.fillText(line, 42, 134 + index * 72))
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.anisotropy = 4
+  return texture
+}
 
 function disposeScene(scene) {
   const geometries = new Set()
@@ -82,6 +125,30 @@ function buildMiniTram(THREE, color) {
   stripes.instanceMatrix.needsUpdate = true
   bogies.instanceMatrix.needsUpdate = true
   group.add(panes, stripes, bogies)
+  return group
+}
+
+function buildMiniCar(THREE, color) {
+  const group = new THREE.Group()
+  const paint = new THREE.MeshStandardMaterial({ color, metalness: 0.62, roughness: 0.26 })
+  const glass = new THREE.MeshStandardMaterial({
+    color: 0x10284c,
+    emissive: 0x4deeea,
+    emissiveIntensity: 0.72,
+    metalness: 0.56,
+    roughness: 0.16,
+  })
+  const light = new THREE.MeshBasicMaterial({ color: 0xffd66b, toneMapped: false })
+  const tail = new THREE.MeshBasicMaterial({ color: 0xff315c, toneMapped: false })
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.15, 0.68), paint)
+  body.position.y = 0.13
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.14, 0.34), glass)
+  cabin.position.set(0, 0.25, -0.015)
+  const frontLights = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.045, 0.025), light)
+  frontLights.position.set(0, 0.15, 0.35)
+  const tailLights = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.045, 0.025), tail)
+  tailLights.position.set(0, 0.15, -0.35)
+  group.add(body, cabin, frontLights, tailLights)
   return group
 }
 
@@ -206,37 +273,85 @@ export default function MetroLearningCity({ reduced = false, night = true, label
       innerDeck.position.y = -0.035
       city.add(innerDeck)
 
-      // Cross-city streets and slimmer side streets make the urban fabric legible.
+      // A legible road hierarchy keeps traffic separate from the protected tram corridors.
       const roadMaterial = new THREE.MeshStandardMaterial({ color: night ? 0x080f22 : 0x8790a7, roughness: 0.76, metalness: 0.22 })
-      for (const [w, h, x, z, rz] of [
-        [11.2, 0.8, 0, 0, 0], [0.82, 11.2, 0, 0, 0], [9.2, 0.38, 0.2, 2.55, 0.22],
-        [8.8, 0.38, -0.5, -2.45, -0.28],
-      ]) {
+      for (const [w, h, x, z] of [[11.2, 0.92, 0, 0], [0.92, 11.2, 0, 0]]) {
         const road = new THREE.Mesh(new THREE.PlaneGeometry(w, h), roadMaterial)
         road.rotation.x = -Math.PI / 2
-        road.rotation.z = rz
         road.position.set(x, -0.012, z)
         city.add(road)
       }
+      const ringRoad = new THREE.Mesh(
+        new THREE.RingGeometry(4.68, 5.22, roundSegments),
+        roadMaterial,
+      )
+      ringRoad.rotation.x = -Math.PI / 2
+      ringRoad.position.y = -0.011
+      city.add(ringRoad)
+
+      const roadMarkMaterial = new THREE.MeshBasicMaterial({ color: night ? 0xc9d9ee : 0xf5f5f7, toneMapped: false })
+      const roadMarks = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), roadMarkMaterial, 88)
+      const roadDummy = new THREE.Object3D()
+      let roadMarkCount = 0
+      for (let amount = -4.7; amount <= 4.7; amount += 0.72) {
+        for (const lane of [-0.23, 0.23]) {
+          roadDummy.position.set(amount, 0.016, lane)
+          roadDummy.rotation.set(0, 0, 0)
+          roadDummy.scale.set(0.38, 0.012, 0.018)
+          roadDummy.updateMatrix()
+          roadMarks.setMatrixAt(roadMarkCount++, roadDummy.matrix)
+
+          roadDummy.position.set(lane, 0.016, amount)
+          roadDummy.rotation.set(0, Math.PI / 2, 0)
+          roadDummy.updateMatrix()
+          roadMarks.setMatrixAt(roadMarkCount++, roadDummy.matrix)
+        }
+      }
+      for (let index = -4; index <= 4; index += 1) {
+        roadDummy.position.set(index * 0.085, 0.019, 0.65)
+        roadDummy.rotation.set(0, 0, 0)
+        roadDummy.scale.set(0.048, 0.014, 0.28)
+        roadDummy.updateMatrix()
+        roadMarks.setMatrixAt(roadMarkCount++, roadDummy.matrix)
+        roadDummy.position.set(0.65, 0.019, index * 0.085)
+        roadDummy.rotation.set(0, Math.PI / 2, 0)
+        roadDummy.updateMatrix()
+        roadMarks.setMatrixAt(roadMarkCount++, roadDummy.matrix)
+      }
+      roadMarks.count = roadMarkCount
+      roadMarks.instanceMatrix.needsUpdate = true
+      city.add(roadMarks)
+      const ringLaneMark = new THREE.Mesh(
+        new THREE.TorusGeometry(4.95, 0.018, 6, roundSegments),
+        roadMarkMaterial,
+      )
+      ringLaneMark.rotation.x = Math.PI / 2
+      ringLaneMark.position.y = 0.018
+      city.add(ringLaneMark)
 
       const buildingSites = []
+      const reservedPlazas = [[-1.45, 1.28, 0.78], [1.48, -1.28, 0.8], [-1.48, -1.3, 0.62]]
       for (let row = -3; row <= 3; row += 1) {
         for (let col = -4; col <= 4; col += 1) {
           if (Math.abs(row) < 1 && Math.abs(col) < 2) continue
           if ((row + col + 20) % 7 === 0) continue
           const x = col * 1.23 + Math.sin((row + 4) * 1.7 + col) * 0.12
           const z = row * 1.23 + Math.cos((col + 5) * 1.4 + row) * 0.12
-          if (Math.hypot(x, z) > 5.7) continue
+          if (Math.hypot(x, z) > 4.45 || Math.abs(x) < 0.68 || Math.abs(z) < 0.68) continue
           const seed = (row + 5) * 31 + (col + 6) * 17
           if (quality === 'balanced' && seed % 4 === 0) continue
-          buildingSites.push({
+          const site = {
             x, z,
             width: 0.56 + (seed % 5) * 0.075,
             depth: 0.55 + ((seed * 3) % 5) * 0.072,
             height: 0.86 + ((seed * 7) % 17) * 0.19,
             yaw: ((seed % 4) - 1.5) * 0.035,
             tone: seed % 6,
-          })
+          }
+          const footprintRadius = Math.max(site.width, site.depth) * 0.58
+          if (ROUTES.some((route) => distanceToRoute(x, z, route.points) < footprintRadius + 0.25)) continue
+          if (reservedPlazas.some(([px, pz, radius]) => Math.hypot(x - px, z - pz) < radius + footprintRadius)) continue
+          buildingSites.push(site)
         }
       }
 
@@ -326,6 +441,141 @@ export default function MetroLearningCity({ reduced = false, night = true, label
       if (upperBlocks.instanceColor) upperBlocks.instanceColor.needsUpdate = true
       city.add(baseBlocks, upperBlocks, balconyBands, roofCrowns, fins, cyanWindows, pinkWindows)
 
+      // Street-level awnings, roof aerials and media bands break up the repeated towers.
+      const detailedSites = buildingSites.filter((_, index) => index % 2 === 0)
+      const awnings = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x26112f, emissiveIntensity: night ? 0.5 : 0.08 }),
+        detailedSites.length,
+      )
+      const aerials = new THREE.InstancedMesh(
+        new THREE.CylinderGeometry(0.018, 0.026, 1, 6),
+        chromeMaterial,
+        detailedSites.length,
+      )
+      detailedSites.forEach((site, index) => {
+        place(awnings, index, site, 0, 0.3, site.depth * 0.55, site.width * 0.78, 0.075, 0.19)
+        awnings.setColorAt(index, new THREE.Color([0x4deeea, 0xff4fa3, 0xf7b43a, 0x8b7dff][index % 4]))
+        place(aerials, index, site, site.width * 0.18, site.height + 0.38, 0, 1, 0.72 + (index % 3) * 0.16, 1)
+      })
+      awnings.instanceMatrix.needsUpdate = true
+      aerials.instanceMatrix.needsUpdate = true
+      if (awnings.instanceColor) awnings.instanceColor.needsUpdate = true
+      city.add(awnings, aerials)
+
+      const mediaTextures = MEDIA_CAMPAIGNS.map((campaign) => makeMediaTexture(THREE, campaign))
+      const venueSpecs = [
+        { x: -1.48, z: 1.28, color: 0x243b67, accent: 0xff4fa3, media: 3 },
+        { x: 1.5, z: -1.28, color: 0x275c63, accent: 0xf7b43a, media: 1 },
+        { x: -1.5, z: -1.3, color: 0x493860, accent: 0x4deeea, media: 4 },
+      ]
+      const venueWindows = new THREE.MeshStandardMaterial({
+        color: 0x173453,
+        emissive: 0x4deeea,
+        emissiveIntensity: night ? 1.5 : 0.38,
+        metalness: 0.4,
+        roughness: 0.18,
+      })
+      venueSpecs.forEach((spec) => {
+        const venue = new THREE.Group()
+        const shell = new THREE.Mesh(
+          new THREE.BoxGeometry(1.05, 0.48, 0.7),
+          new THREE.MeshStandardMaterial({ color: spec.color, metalness: 0.28, roughness: 0.5 }),
+        )
+        shell.position.y = 0.24
+        const window = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.24, 0.025), venueWindows)
+        window.position.set(0, 0.26, 0.36)
+        const canopy = new THREE.Mesh(
+          new THREE.BoxGeometry(1.12, 0.07, 0.28),
+          new THREE.MeshBasicMaterial({ color: spec.accent, toneMapped: false }),
+        )
+        canopy.position.set(0, 0.53, 0.43)
+        const sign = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.64, 0.24),
+          new THREE.MeshBasicMaterial({ map: mediaTextures[spec.media], toneMapped: false }),
+        )
+        sign.position.set(0, 0.78, 0.355)
+        venue.position.set(spec.x, 0, spec.z)
+        venue.add(shell, window, canopy, sign)
+        city.add(venue)
+      })
+
+      const billboardSpecs = [
+        [-3.38, 2.42, 3.42, 0.04, 0], [3.62, 2.22, 1.25, -1.22, 1],
+        [-3.48, 1.9, -1.25, 1.18, 2], [1.25, 2.55, 3.52, 0.08, 3],
+        [3.55, 2.75, -3.18, -0.78, 4], [-1.18, 2.25, -3.54, Math.PI, 1],
+      ].slice(0, quality === 'high' ? 6 : 4)
+      billboardSpecs.forEach(([x, y, z, yaw, media], index) => {
+        const billboard = new THREE.Group()
+        const width = index % 2 ? 1.26 : 1.48
+        const height = index % 2 ? 0.62 : 0.72
+        const frame = new THREE.Mesh(
+          new THREE.BoxGeometry(width + 0.09, height + 0.09, 0.075),
+          new THREE.MeshStandardMaterial({ color: 0x17213d, metalness: 0.72, roughness: 0.22 }),
+        )
+        const display = new THREE.Mesh(
+          new THREE.PlaneGeometry(width, height),
+          new THREE.MeshBasicMaterial({ map: mediaTextures[media], side: THREE.DoubleSide, toneMapped: false }),
+        )
+        display.position.z = 0.042
+        const mast = new THREE.Mesh(new THREE.BoxGeometry(0.06, y * 0.62, 0.06), chromeMaterial)
+        mast.position.y = -height / 2 - y * 0.31
+        billboard.position.set(x, y, z)
+        billboard.rotation.y = yaw
+        billboard.add(frame, display, mast)
+        city.add(billboard)
+      })
+
+      // Market carts, cafe tables and flower stands make the central blocks feel occupied.
+      const marketGroup = new THREE.Group()
+      const cartColors = [0xff4fa3, 0xf7b43a, 0x4deeea, 0x8b7dff]
+      const cartSites = [[-1.02, 1.02], [-1.92, 1.06], [1.03, -1.04], [-1.03, -1.04]]
+      cartSites.slice(0, quality === 'high' ? 4 : 3).forEach(([x, z], index) => {
+        const cart = new THREE.Group()
+        const counter = new THREE.Mesh(
+          new THREE.BoxGeometry(0.38, 0.22, 0.24),
+          new THREE.MeshStandardMaterial({ color: 0x203657, metalness: 0.32, roughness: 0.44 }),
+        )
+        counter.position.y = 0.14
+        const canopy = new THREE.Mesh(
+          new THREE.BoxGeometry(0.48, 0.045, 0.34),
+          new THREE.MeshBasicMaterial({ color: cartColors[index], toneMapped: false }),
+        )
+        canopy.position.y = 0.55
+        for (const side of [-1, 1]) {
+          const post = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.42, 0.018), chromeMaterial)
+          post.position.set(side * 0.18, 0.36, 0)
+          cart.add(post)
+        }
+        for (let item = 0; item < 5; item += 1) {
+          const goods = new THREE.Mesh(
+            new THREE.SphereGeometry(0.035, 7, 5),
+            new THREE.MeshBasicMaterial({ color: cartColors[(index + item + 1) % cartColors.length], toneMapped: false }),
+          )
+          goods.position.set((item - 2) * 0.065, 0.29, 0.04)
+          cart.add(goods)
+        }
+        cart.position.set(x, 0, z)
+        cart.add(counter, canopy)
+        marketGroup.add(cart)
+      })
+      for (const [x, z, color] of [[1.08, 1.08, 0xff715b], [1.62, 1.15, 0x4deeea], [1.32, 1.68, 0xf7b43a]]) {
+        const cafe = new THREE.Group()
+        const table = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.18, 10), chromeMaterial)
+        table.position.y = 0.1
+        const parasol = new THREE.Mesh(
+          new THREE.ConeGeometry(0.3, 0.16, 12),
+          new THREE.MeshBasicMaterial({ color, toneMapped: false }),
+        )
+        parasol.position.y = 0.58
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.48, 6), chromeMaterial)
+        pole.position.y = 0.38
+        cafe.position.set(x, 0, z)
+        cafe.add(table, parasol, pole)
+        marketGroup.add(cafe)
+      }
+      city.add(marketGroup)
+
       // Central language beacon: tiered, ringed and asymmetric, not another box.
       const beacon = new THREE.Group()
       const beaconMaterial = new THREE.MeshStandardMaterial({
@@ -355,20 +605,90 @@ export default function MetroLearningCity({ reduced = false, night = true, label
 
       const routeCurves = []
       const stations = []
+      const routeSamples = quality === 'high' ? 52 : 34
+      const trackBeds = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial({ color: night ? 0x19253d : 0x65718a, roughness: 0.72, metalness: 0.3 }),
+        ROUTES.length * routeSamples,
+      )
+      const railSegments = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial({ color: 0xc7d6e6, metalness: 0.94, roughness: 0.16 }),
+        ROUTES.length * routeSamples * 2,
+      )
+      const sleepers = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial({ color: night ? 0x44516b : 0x5e6474, metalness: 0.42, roughness: 0.56 }),
+        ROUTES.length * Math.ceil(routeSamples / 3),
+      )
+      const emergencyCabinets = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial({ color: 0xff315c, emissive: 0xff173f, emissiveIntensity: night ? 1.8 : 0.52 }),
+        ROUTES.length * 3,
+      )
+      const trackBollards = new THREE.InstancedMesh(
+        new THREE.CylinderGeometry(0.025, 0.03, 1, 6),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }),
+        ROUTES.length * Math.ceil(routeSamples / 6) * 2,
+      )
+      let bedCount = 0
+      let railCount = 0
+      let sleeperCount = 0
+      let cabinetCount = 0
+      let bollardCount = 0
       ROUTES.forEach((route, routeIndex) => {
-        const curvePoints = route.points.map(([x, z]) => new THREE.Vector3(x, 0.12 + routeIndex * 0.032, z))
+        const curvePoints = route.points.map(([x, z]) => new THREE.Vector3(x, 0.055, z))
         const curve = new THREE.CatmullRomCurve3(curvePoints)
         routeCurves.push(curve)
-        const routeMaterial = new THREE.MeshBasicMaterial({ color: route.color, transparent: true, opacity: night ? 0.98 : 0.76, toneMapped: false })
-        city.add(new THREE.Mesh(new THREE.TubeGeometry(
-          curve,
-          quality === 'high' ? 72 : 42,
-          0.045,
-          quality === 'high' ? 8 : 6,
-          false,
-        ), routeMaterial))
-        curvePoints.forEach((point, pointIndex) => {
-          if (pointIndex === 0 || pointIndex === curvePoints.length - 1 || pointIndex === 2) {
+        const start = new THREE.Vector3()
+        const end = new THREE.Vector3()
+        const midpoint = new THREE.Vector3()
+        const tangent = new THREE.Vector3()
+        for (let segment = 0; segment < routeSamples; segment += 1) {
+          curve.getPoint(segment / routeSamples, start)
+          curve.getPoint((segment + 1) / routeSamples, end)
+          tangent.subVectors(end, start)
+          const length = tangent.length()
+          const yaw = Math.atan2(tangent.x, tangent.z)
+          midpoint.addVectors(start, end).multiplyScalar(0.5)
+          dummy.position.set(midpoint.x, 0.02, midpoint.z)
+          dummy.rotation.set(0, yaw, 0)
+          dummy.scale.set(0.34, 0.035, length * 1.08)
+          dummy.updateMatrix()
+          trackBeds.setMatrixAt(bedCount++, dummy.matrix)
+          for (const side of [-1, 1]) {
+            const sideX = Math.cos(yaw) * side * 0.09
+            const sideZ = -Math.sin(yaw) * side * 0.09
+            dummy.position.set(midpoint.x + sideX, 0.065, midpoint.z + sideZ)
+            dummy.scale.set(0.026, 0.028, length * 1.06)
+            dummy.updateMatrix()
+            railSegments.setMatrixAt(railCount++, dummy.matrix)
+          }
+          if (segment % 3 === 0) {
+            dummy.position.set(midpoint.x, 0.052, midpoint.z)
+            dummy.scale.set(0.31, 0.025, 0.045)
+            dummy.updateMatrix()
+            sleepers.setMatrixAt(sleeperCount++, dummy.matrix)
+          }
+          if (segment % 6 === 0) {
+            for (const side of [-1, 1]) {
+              const sideX = Math.cos(yaw) * side * 0.24
+              const sideZ = -Math.sin(yaw) * side * 0.24
+              dummy.position.set(midpoint.x + sideX, 0.11, midpoint.z + sideZ)
+              dummy.scale.set(1, 0.22, 1)
+              dummy.updateMatrix()
+              trackBollards.setMatrixAt(bollardCount, dummy.matrix)
+              trackBollards.setColorAt(bollardCount++, new THREE.Color(route.color))
+            }
+          }
+        }
+        const routeMaterial = new THREE.MeshBasicMaterial({ color: route.color, transparent: true, opacity: 0.8, toneMapped: false })
+        city.add(new THREE.Mesh(new THREE.TubeGeometry(curve, routeSamples, 0.014, 5, false), routeMaterial))
+        for (const pointIndex of [0, 2, 4]) {
+            const point = curvePoints[pointIndex]
+            const progress = pointIndex / (curvePoints.length - 1)
+            const direction = curve.getTangentAt(progress)
+            const yaw = Math.atan2(direction.x, direction.z)
             const station = new THREE.Group()
             const disc = new THREE.Mesh(
               new THREE.CylinderGeometry(0.13, 0.18, 0.08, 18),
@@ -385,11 +705,33 @@ export default function MetroLearningCity({ reduced = false, night = true, label
             station.add(disc, halo)
             city.add(station)
             stations.push(station)
-          }
-        })
+            const platform = new THREE.Mesh(
+              new THREE.BoxGeometry(0.62, 0.055, 0.24),
+              new THREE.MeshStandardMaterial({ color: night ? 0xb6c4d9 : 0xe7e9ee, metalness: 0.55, roughness: 0.34 }),
+            )
+            platform.position.set(point.x, 0.055, point.z)
+            platform.rotation.y = yaw
+            city.add(platform)
+            dummy.position.set(point.x + Math.cos(yaw) * 0.34, 0.22, point.z - Math.sin(yaw) * 0.34)
+            dummy.rotation.set(0, yaw, 0)
+            dummy.scale.set(0.08, 0.34, 0.08)
+            dummy.updateMatrix()
+            emergencyCabinets.setMatrixAt(cabinetCount++, dummy.matrix)
+        }
       })
 
-      const trams = routeCurves.slice(0, 2).map((curve, index) => {
+      trackBeds.count = bedCount
+      railSegments.count = railCount
+      sleepers.count = sleeperCount
+      emergencyCabinets.count = cabinetCount
+      trackBollards.count = bollardCount
+      for (const mesh of [trackBeds, railSegments, sleepers, emergencyCabinets, trackBollards]) {
+        mesh.instanceMatrix.needsUpdate = true
+      }
+      if (trackBollards.instanceColor) trackBollards.instanceColor.needsUpdate = true
+      city.add(trackBeds, sleepers, railSegments, trackBollards, emergencyCabinets)
+
+      const trams = routeCurves.slice(0, quality === 'high' ? 3 : 2).map((curve, index) => {
         const object = buildMiniTram(THREE, ROUTES[index].color)
         object.scale.setScalar(0.82)
         city.add(object)
@@ -402,6 +744,147 @@ export default function MetroLearningCity({ reduced = false, night = true, label
           tangent: new THREE.Vector3(),
         }
       })
+      const updateTrams = (elapsed) => {
+        trams.forEach((tram) => {
+          const sweep = (tram.phase * 2 + elapsed * tram.speed) % 2
+          const backwards = sweep > 1
+          const progress = backwards ? 2 - sweep : sweep
+          tram.curve.getPointAt(progress, tram.position)
+          tram.curve.getTangentAt(progress, tram.tangent)
+          if (backwards) tram.tangent.multiplyScalar(-1)
+          tram.object.position.copy(tram.position)
+          tram.object.position.y += 0.08
+          tram.object.rotation.y = Math.atan2(tram.tangent.x, tram.tangent.z)
+        })
+      }
+      updateTrams(0)
+
+      const makeRingCurve = (radius) => new THREE.CatmullRomCurve3(
+        Array.from({ length: 24 }, (_, index) => {
+          const angle = (index / 24) * Math.PI * 2
+          return new THREE.Vector3(Math.cos(angle) * radius, 0.085, Math.sin(angle) * radius)
+        }),
+        true,
+      )
+      const carRoutes = [
+        { curve: makeRingCurve(4.82), closed: true },
+        { curve: makeRingCurve(5.08), closed: true },
+        { curve: new THREE.LineCurve3(new THREE.Vector3(-4.55, 0.085, -0.23), new THREE.Vector3(4.55, 0.085, -0.23)), closed: false },
+        { curve: new THREE.LineCurve3(new THREE.Vector3(4.55, 0.085, 0.23), new THREE.Vector3(-4.55, 0.085, 0.23)), closed: false },
+        { curve: new THREE.LineCurve3(new THREE.Vector3(-0.23, 0.085, -4.55), new THREE.Vector3(-0.23, 0.085, 4.55)), closed: false },
+        { curve: new THREE.LineCurve3(new THREE.Vector3(0.23, 0.085, 4.55), new THREE.Vector3(0.23, 0.085, -4.55)), closed: false },
+      ]
+      const carPalette = [0xff4fa3, 0x4deeea, 0xf7b43a, 0xff715b, 0x8b7dff, 0xe7edf7]
+      const cars = Array.from({ length: quality === 'high' ? 10 : 6 }, (_, index) => {
+        const route = carRoutes[index % carRoutes.length]
+        const object = buildMiniCar(THREE, carPalette[index % carPalette.length])
+        object.scale.setScalar(index % 4 === 0 ? 1.08 : 0.92)
+        city.add(object)
+        return {
+          object,
+          ...route,
+          phase: (index * 0.173) % 1,
+          speed: 0.045 + (index % 4) * 0.007,
+          direction: index % 2 === 0 ? 1 : -1,
+          position: new THREE.Vector3(),
+          tangent: new THREE.Vector3(),
+        }
+      })
+      const updateCars = (elapsed) => {
+        cars.forEach((car) => {
+          let progress
+          let backwards = false
+          if (car.closed) {
+            progress = ((car.phase + elapsed * car.speed * car.direction) % 1 + 1) % 1
+          } else {
+            const sweep = ((car.phase * 2 + elapsed * car.speed * car.direction) % 2 + 2) % 2
+            backwards = sweep > 1
+            progress = backwards ? 2 - sweep : sweep
+          }
+          car.curve.getPointAt(progress, car.position)
+          car.curve.getTangentAt(progress, car.tangent)
+          if (backwards) car.tangent.multiplyScalar(-1)
+          car.object.position.copy(car.position)
+          car.object.rotation.y = Math.atan2(car.tangent.x, car.tangent.z)
+        })
+      }
+      updateCars(0)
+
+      const pedestrianCount = quality === 'high' ? 32 : 18
+      const pedestrianBodies = new THREE.InstancedMesh(
+        new THREE.CylinderGeometry(0.045, 0.065, 0.22, 6),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.72, metalness: 0.08 }),
+        pedestrianCount,
+      )
+      const pedestrianHeads = new THREE.InstancedMesh(
+        new THREE.SphereGeometry(0.062, 7, 5),
+        new THREE.MeshStandardMaterial({ color: 0xf1bda2, roughness: 0.82 }),
+        pedestrianCount,
+      )
+      const crowdCenters = [[-1.48, 1.3], [1.5, -1.28], [-1.5, -1.3], [1.35, 1.4]]
+      const pedestrianPalette = [0xff4fa3, 0x4deeea, 0xf7b43a, 0x8b7dff, 0xff715b, 0x5fd38d]
+      const pedestrians = Array.from({ length: pedestrianCount }, (_, index) => ({
+        center: crowdCenters[index % crowdCenters.length],
+        phase: (index * 0.61803398875) % 1,
+        speed: 0.018 + (index % 5) * 0.003,
+        radiusX: 0.38 + (index % 3) * 0.09,
+        radiusZ: 0.32 + ((index + 1) % 3) * 0.08,
+      }))
+      pedestrians.forEach((_, index) => pedestrianBodies.setColorAt(index, new THREE.Color(pedestrianPalette[index % pedestrianPalette.length])))
+      if (pedestrianBodies.instanceColor) pedestrianBodies.instanceColor.needsUpdate = true
+      pedestrianBodies.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+      pedestrianHeads.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+      city.add(pedestrianBodies, pedestrianHeads)
+
+      const updatePedestrians = (elapsed) => {
+        pedestrians.forEach((person, index) => {
+          const angle = (person.phase + elapsed * person.speed) * Math.PI * 2
+          const x = person.center[0] + Math.cos(angle) * person.radiusX
+          const z = person.center[1] + Math.sin(angle) * person.radiusZ
+          const yaw = Math.atan2(-Math.sin(angle) * person.radiusX, Math.cos(angle) * person.radiusZ)
+          const bounce = Math.abs(Math.sin(angle * 2)) * 0.018
+          dummy.position.set(x, 0.18 + bounce, z)
+          dummy.rotation.set(0, yaw, 0)
+          dummy.scale.set(1, 1, 1)
+          dummy.updateMatrix()
+          pedestrianBodies.setMatrixAt(index, dummy.matrix)
+          dummy.position.set(x, 0.36 + bounce, z)
+          dummy.rotation.set(0, yaw, 0)
+          dummy.updateMatrix()
+          pedestrianHeads.setMatrixAt(index, dummy.matrix)
+        })
+        pedestrianBodies.instanceMatrix.needsUpdate = true
+        pedestrianHeads.instanceMatrix.needsUpdate = true
+      }
+      updatePedestrians(0)
+
+      const trafficSignals = new THREE.Group()
+      for (const [x, z, yaw] of [[-0.62, -0.62, 0], [0.62, 0.62, Math.PI], [-0.62, 0.62, Math.PI / 2], [0.62, -0.62, -Math.PI / 2]]) {
+        const signal = new THREE.Group()
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.72, 7), chromeMaterial)
+        pole.position.y = 0.36
+        const lamp = new THREE.Mesh(
+          new THREE.BoxGeometry(0.12, 0.24, 0.1),
+          new THREE.MeshStandardMaterial({ color: 0x111b2c, metalness: 0.58, roughness: 0.34 }),
+        )
+        lamp.position.y = 0.73
+        const green = new THREE.Mesh(
+          new THREE.SphereGeometry(0.028, 7, 5),
+          new THREE.MeshBasicMaterial({ color: 0x5cff99, toneMapped: false }),
+        )
+        green.position.set(0, 0.69, 0.055)
+        signal.position.set(x, 0, z)
+        signal.rotation.y = yaw
+        signal.add(pole, lamp, green)
+        trafficSignals.add(signal)
+      }
+      city.add(trafficSignals)
+
+      const amberLight = new THREE.PointLight(0xf7b43a, night ? 18 : 7, 5, 2)
+      amberLight.position.set(-1.4, 1.8, 1.2)
+      const violetLight = new THREE.PointLight(0x8b7dff, night ? 16 : 6, 5, 2)
+      violetLight.position.set(1.5, 1.7, -1.2)
+      city.add(amberLight, violetLight)
 
       // Palm-lined waterfront makes the city feel coastal rather than abstract.
       const palmCount = quality === 'high' ? 12 : 8
@@ -500,14 +983,9 @@ export default function MetroLearningCity({ reduced = false, night = true, label
           const pulse = 0.92 + Math.sin(elapsed * 2.2 + station.userData.phase) * 0.16
           station.scale.setScalar(pulse)
         })
-        trams.forEach((tram) => {
-          const progress = (tram.phase + elapsed * tram.speed) % 1
-          tram.curve.getPointAt(progress, tram.position)
-          tram.curve.getTangentAt(progress, tram.tangent)
-          tram.object.position.copy(tram.position)
-          tram.object.position.y += 0.08
-          tram.object.rotation.y = Math.atan2(tram.tangent.x, tram.tangent.z)
-        })
+        updateTrams(elapsed)
+        updateCars(elapsed)
+        updatePedestrians(elapsed)
         render()
         frameId = requestAnimationFrame(animate)
       }

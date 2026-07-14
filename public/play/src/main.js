@@ -7,6 +7,7 @@ import { makeSky, toonifyGLB, toonRamp, uTime } from './materials.js';
 import { rigBase } from './rig.js';
 import { loadMixamoHero } from './hero.js';
 import { Trains } from './train.js';
+import { Traffic } from './traffic.js';
 import { Citizens } from './citizens.js';
 import { Minimap } from './minimap.js';
 import { World } from './world.js';
@@ -93,8 +94,8 @@ function updateSun(playerPos) {
 const manager = new THREE.LoadingManager();
 manager.onProgress = (_url, loaded, total) => ui.setProgress(loaded / Math.max(total, 1));
 
-const world = new World(scene, manager);
-const zoneMgr = new ZoneManager(scene);
+const world = new World(scene, manager, { lowPower: lowPowerHint });
+const zoneMgr = new ZoneManager(scene, { lowPower: lowPowerHint });
 const heroLoader = makeGLTFLoader(manager);
 
 // zone-entry HUD title card + the objective chip beneath it
@@ -124,7 +125,8 @@ zoneMgr.onEnter = (z) => {
 };
 
 let player = null;
-let trains = null, citizens = null;
+let trains = null, traffic = null, citizens = null;
+const pedestrianBuffer = [];
 const minimap = new Minimap(document.getElementById('minimap'));
 document.getElementById('minimap').addEventListener('click', () => {
   if (player) input.pressMap();
@@ -171,6 +173,12 @@ Promise.all([
   const npcBases = npcGltfs.map((g, i) => {
     const key = NPC_BASE_URLS[i].replace('.glb', '');
     const model = toonifyGLB(normalizeModel(g.scene, NPC_HEIGHTS[key] || 1.72));
+    // PRON-3000 is a large open-book installation with a small character built
+    // into it, not a humanoid body. Keep it anchored in the hub instead of
+    // forcing the whole installation through the pedestrian auto-rig.
+    if (key === 'npc_pronunciation_robot') {
+      return { key, rigged: false, staticModel: model };
+    }
     let mat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: toonRamp() });
     model.traverse((o) => { if (o.isMesh && o.material) mat = o.material; });
     const r = rigBase(model, mat);
@@ -178,7 +186,7 @@ Promise.all([
       ? { key, rigged: true, mesh: r.mesh, clips: r.clips }
       : { key, rigged: false, staticModel: model };
   });
-  zoneMgr.setNPCBases(npcBases);
+  zoneMgr.setNPCBases(npcBases.filter((base) => base.rigged));
   world.setNPCBases(npcBases);
   world.placeHubNPCs();
   // hub teachers join the quest system as the 'hub' circuit
@@ -190,17 +198,18 @@ Promise.all([
   player = new Player(rig.object, scene, rig);
   window.__RIG = rig;   // live hand-tuning handle
 
-  // the city lives: trams on every line, and a crowd of the 8 Meshy townsfolk
+  // The city lives: trams on every line and the seven humanoid Meshy townsfolk
   // strolling the boulevards — each body at most once, so no character twins
   trains = new Trains(scene, zoneMgr, audio);
+  traffic = new Traffic(scene, { lowPower: lowPowerHint });
   citizens = new Citizens(scene, rig, npcBases);
-  citizens.spawn(lowPowerHint ? 5 : 8);                // unique bodies at both quality tiers
-  window.__EM = { player, world, zones: zoneMgr, camera: followCam, renderer, scene, camera3: camera, ui, audio, trains, citizens };
+  citizens.spawn(lowPowerHint ? 5 : 7);                // unique bodies at both quality tiers
+  window.__EM = { player, world, zones: zoneMgr, camera: followCam, renderer, scene, camera3: camera, ui, audio, trains, traffic, citizens };
   // deterministic frame pump for headless verification (background tabs throttle rAF)
   window.__EM.step = (n = 1, dt = 1 / 60) => {
     uTime.value += n * dt;
     for (let i = 0; i < n; i++) simTick(dt);
-    followCam.update(1 / 60, player.pos, { dx: 0, dy: 0, wheel: 0 });
+    followCam.update(1 / 60, player.pos, { dx: 0, dy: 0, wheel: 0 }, world.colliders);
     minimap.update(0.25, player, zoneMgr, world, trains);   // force a redraw
     renderer.render(scene, camera);
   };
@@ -240,8 +249,12 @@ function simTick(dt) {
   }
   world.update(performance.now() / 1000, dt, player.pos);
   zoneMgr.update(player.pos, world.colliders);
-  trains?.update(dt, player.pos);
   citizens?.update(dt, player.pos);
+  pedestrianBuffer.length = 0;
+  if (citizens?.list) pedestrianBuffer.push(...citizens.list);
+  if (world.cityLife?.people) pedestrianBuffer.push(...world.cityLife.people);
+  trains?.update(dt, player.pos, pedestrianBuffer, world.npcs);
+  traffic?.update(dt, player.pos);
   updateSun(player.pos);
 }
 
@@ -263,16 +276,24 @@ renderer.setAnimationLoop(() => {
     audio.play('ping', { rate: 0.8, volume: 0.5 });
     ui.fadeTravel(() => {
       if (dest) {
-        // step off the platform into the district so the title card greets you
-        const ax = dest.stopPos.x + (dest.center.x - dest.stopPos.x) * 0.45;
-        const az = dest.stopPos.y + (dest.center.y - dest.stopPos.y) * 0.45;
+        // Arrive on the broad shopfront walk, looking outward along the line.
+        // The camera faces back toward the city so platform furniture never
+        // sits between the spring arm and the player.
+        const ax = dest.stopPos.x + (dest.center.x - dest.stopPos.x) * 0.46;
+        const az = dest.stopPos.y + (dest.center.y - dest.stopPos.y) * 0.46;
         player.pos.set(ax, 0, az);
-        player.heading = Math.atan2(dest.center.x - ax, dest.center.y - az);
+        player.heading = Math.atan2(dest.dir.x, dest.dir.y);
+        followCam.yaw = Math.atan2(-dest.dir.x, -dest.dir.y);
+        followCam.pitch = 0.28;
       } else {
         player.pos.set(0, 0, 8);
+        player.heading = Math.PI;
+        followCam.yaw = 0;
+        followCam.pitch = 0.32;
       }
       player.vel.set(0, 0, 0);
       zoneMgr.update(player.pos, world.colliders);   // stream destination immediately
+      followCam.snap();
       audio.fanfare();
     });
   };
@@ -294,7 +315,7 @@ renderer.setAnimationLoop(() => {
 
     // render-side: camera follows every frame for smoothness
     const blocked = ui.dialogOpen || ui.guideOpen || ui.welcomeOpen || ui.journalOpen || ui.metroOpen || ui.mapOpen;
-    followCam.update(rdt, player.pos, blocked ? { dx: 0, dy: 0, wheel: 0 } : mouse);
+    followCam.update(rdt, player.pos, blocked ? { dx: 0, dy: 0, wheel: 0 } : mouse, world.colliders);
 
     // sprint FOV kick (cinematic juice)
     const targetFov = baseFov + player.speedFrac * (input.sprint ? 8 : 3);
@@ -355,7 +376,9 @@ renderer.setAnimationLoop(() => {
       scene.fog.density = 0.0085;                  // pull the horizon in
       camera.far = 700; camera.updateProjectionMatrix();
       citizens?.setDensity(4);                     // fewer skinned pedestrians
-      console.info('[EM] potato tier engaged: shadows off, far=700, citizens=4');
+      world.cityLife?.setDensity(18);              // retain bustle with cheap instanced silhouettes
+      traffic?.setDensity(6);                      // two cars per radial line
+      console.info('[EM] potato tier engaged: shadows off, far=700, citizens=4, traffic=6');
     }
   }
   fpsCount++; fpsTime += rdt;

@@ -3,6 +3,49 @@
 import * as THREE from 'three';
 import { blobShadow } from './materials.js';
 import { heightAt } from './terrain.js';
+import { BOULEVARD, TRANSIT_ANGLES } from './transit-layout.js';
+
+function segmentBoxEntry(start, end, box, padding = 0.34) {
+  const dx = end.x - start.x;
+  const dz = end.z - start.z;
+  let near = 0;
+  let far = 1;
+  for (const [origin, delta, min, max] of [
+    [start.x, dx, box.minX - padding, box.maxX + padding],
+    [start.z, dz, box.minZ - padding, box.maxZ + padding],
+  ]) {
+    if (Math.abs(delta) < 1e-6) {
+      if (origin < min || origin > max) return null;
+      continue;
+    }
+    let a = (min - origin) / delta;
+    let b = (max - origin) / delta;
+    if (a > b) [a, b] = [b, a];
+    near = Math.max(near, a);
+    far = Math.min(far, b);
+    if (near > far) return null;
+  }
+  return near >= 0 && near <= 1 ? near : null;
+}
+
+function keepCameraOnSidewalk(desired, playerPos) {
+  const safeLateral = BOULEVARD.tramLaneX + 1.75;
+  for (const angle of TRANSIT_ANGLES) {
+    const dirX = Math.cos(angle);
+    const dirZ = -Math.sin(angle);
+    const along = playerPos.x * dirX + playerPos.z * dirZ;
+    if (along < BOULEVARD.startD - 8 || along > BOULEVARD.endD + 8) continue;
+    const perpX = -dirZ;
+    const perpZ = dirX;
+    const playerLateral = playerPos.x * perpX + playerPos.z * perpZ;
+    if (Math.abs(playerLateral) < safeLateral) continue;
+    const cameraLateral = desired.x * perpX + desired.z * perpZ;
+    if (Math.sign(cameraLateral) === Math.sign(playerLateral) && Math.abs(cameraLateral) >= safeLateral) continue;
+    const corrected = Math.sign(playerLateral) * safeLateral;
+    desired.x += perpX * (corrected - cameraLateral);
+    desired.z += perpZ * (corrected - cameraLateral);
+  }
+}
 
 const WALK = 4.3, SPRINT = 7.6, ACCEL = 26, FRICTION = 14, TURN_LERP = 11;
 const GRAVITY = -22, JUMP_V = 7.2, PLAYER_R = 0.42;
@@ -75,6 +118,21 @@ export class Player {
     this.pos.z += this.vel.z * dt;
     for (let pass = 0; pass < 2; pass++) {
       for (const c of colliders) {
+        const insideX = this.pos.x > c.minX && this.pos.x < c.maxX;
+        const insideZ = this.pos.z > c.minZ && this.pos.z < c.maxZ;
+        if (insideX && insideZ) {
+          const exits = [
+            { d: this.pos.x - c.minX, axis: 'x', value: c.minX - PLAYER_R },
+            { d: c.maxX - this.pos.x, axis: 'x', value: c.maxX + PLAYER_R },
+            { d: this.pos.z - c.minZ, axis: 'z', value: c.minZ - PLAYER_R },
+            { d: c.maxZ - this.pos.z, axis: 'z', value: c.maxZ + PLAYER_R },
+          ];
+          exits.sort((a, b) => a.d - b.d);
+          const exit = exits[0];
+          this.pos[exit.axis] = exit.value;
+          this.vel[exit.axis] = 0;
+          continue;
+        }
         const nx = Math.max(c.minX, Math.min(this.pos.x, c.maxX));
         const nz = Math.max(c.minZ, Math.min(this.pos.z, c.maxZ));
         const dx = this.pos.x - nx, dz = this.pos.z - nz;
@@ -159,9 +217,12 @@ export class FollowCamera {
     this.dist = 5.4;
     this.cur = new THREE.Vector3(0, 3, 14);
     this.curTarget = new THREE.Vector3();
+    this.forceSnap = false;
   }
 
-  update(dt, playerPos, mouse) {
+  snap() { this.forceSnap = true; }
+
+  update(dt, playerPos, mouse, colliders = []) {
     this.yaw -= mouse.dx * 0.0026;
     this.pitch = THREE.MathUtils.clamp(this.pitch + mouse.dy * 0.0022, -0.15, 1.15);
     this.dist = THREE.MathUtils.clamp(this.dist + mouse.wheel * 0.6, 2.6, 10);
@@ -174,12 +235,29 @@ export class FollowCamera {
     ).multiplyScalar(this.dist);
 
     const desired = target.clone().add(off);
+    keepCameraOnSidewalk(desired, playerPos);
+
+    let clearFraction = 1;
+    for (const box of colliders) {
+      if (target.x > box.minX && target.x < box.maxX && target.z > box.minZ && target.z < box.maxZ) continue;
+      const entry = segmentBoxEntry(target, desired, box);
+      if (entry !== null) clearFraction = Math.min(clearFraction, Math.max(0.2, entry - 0.045));
+    }
+    if (clearFraction < 1) desired.lerpVectors(target, desired, clearFraction);
+
     const floor = heightAt(desired.x, desired.z) + 0.4;
     if (desired.y < floor) desired.y = floor;
 
-    const k = 1 - Math.exp(-dt * 9);
-    this.cur.lerp(desired, k);
-    this.curTarget.lerp(target, 1 - Math.exp(-dt * 14));
+    const teleported = this.curTarget.distanceToSquared(target) > 24 * 24;
+    if (this.forceSnap || teleported) {
+      this.cur.copy(desired);
+      this.curTarget.copy(target);
+      this.forceSnap = false;
+    } else {
+      const k = 1 - Math.exp(-dt * 9);
+      this.cur.lerp(desired, k);
+      this.curTarget.lerp(target, 1 - Math.exp(-dt * 14));
+    }
     this.camera.position.copy(this.cur);
     this.camera.lookAt(this.curTarget);
   }
