@@ -8,6 +8,7 @@ export class Input {
     this.interactPressed = false;   // edge-triggered, consumed each frame
     this.guideToggled = false;
     this.dragging = false;
+    this.lookActive = false;
     this.isTouch = window.matchMedia('(pointer: coarse)').matches;
     this.joy = { x: 0, y: 0, active: false };   // -1..1 virtual stick
     let lastX = 0, lastY = 0;
@@ -21,6 +22,7 @@ export class Input {
             joyId = t.identifier; joyOX = t.clientX; joyOY = t.clientY; this.joy.active = true;
           } else if (lookId === null) {
             lookId = t.identifier; lookLX = t.clientX; lookLY = t.clientY;
+            this.lookActive = true;
           }
         }
         e.preventDefault();
@@ -41,7 +43,7 @@ export class Input {
       const endTouch = (e) => {
         for (const t of e.changedTouches) {
           if (t.identifier === joyId) { joyId = null; this.joy.x = 0; this.joy.y = 0; this.joy.active = false; }
-          if (t.identifier === lookId) lookId = null;
+          if (t.identifier === lookId) { lookId = null; this.lookActive = false; }
         }
       };
       canvas.addEventListener('touchend', endTouch);
@@ -68,10 +70,12 @@ export class Input {
           cx = r.left + r.width / 2; cy = r.top + r.height / 2;
           this.joy.active = true;
           set(t.clientX - cx, t.clientY - cy);
+          e.stopPropagation();
           e.preventDefault();
         }, { passive: false });
         stick.addEventListener('touchmove', (e) => {
           for (const t of e.changedTouches) if (t.identifier === sId) set(t.clientX - cx, t.clientY - cy);
+          e.stopPropagation();
           e.preventDefault();
         }, { passive: false });
         const sEnd = (e) => {
@@ -95,22 +99,35 @@ export class Input {
       if (e.code === 'KeyM') this.mapToggled = true;
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
-    window.addEventListener('blur', () => { this.keys.clear(); this.dragging = false; });
+    window.addEventListener('blur', () => {
+      this.keys.clear();
+      this.dragging = false;
+      this.lookActive = false;
+    });
 
     canvas.addEventListener('pointerdown', (e) => {
+      // Touch gestures are classified above as either movement or free-look.
+      // Letting the synthetic pointer stream through as well made the left
+      // movement pad rotate the camera at the same time.
+      if (e.pointerType === 'touch') return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       this.dragging = true;
+      this.lookActive = true;
       lastX = e.clientX; lastY = e.clientY;
       canvas.setPointerCapture(e.pointerId);
     });
     canvas.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
       if (!this.dragging) return;
       this.mouseDX += e.clientX - lastX;
       this.mouseDY += e.clientY - lastY;
       lastX = e.clientX; lastY = e.clientY;
     });
     const endDrag = (e) => {
+      if (e.pointerType === 'touch') return;
       this.dragging = false;
-      try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+      this.lookActive = false;
+      if (canvas.hasPointerCapture?.(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
     };
     canvas.addEventListener('pointerup', endDrag);
     canvas.addEventListener('pointercancel', endDrag);
@@ -140,6 +157,7 @@ export class Input {
   consume() {
     const out = {
       dx: this.mouseDX, dy: this.mouseDY, wheel: this.wheel,
+      looking: this.lookActive,
       interact: this.interactPressed, guide: this.guideToggled, journal: this.journalToggled,
       metro: this.metroToggled, map: this.mapToggled,
     };

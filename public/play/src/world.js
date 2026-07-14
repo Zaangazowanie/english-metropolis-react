@@ -267,7 +267,7 @@ export class World {
         gestureGreet: n.gestureGreet || 'Wave' };
 
       if (base?.rigged) {
-        const inst = instanceRig(base.mesh, base.clips);
+        const inst = instanceRig(base.object || base.mesh, base.clips);
         g.add(inst.object);
         entry.model = inst.mesh;
         entry.mixer = inst.mixer;

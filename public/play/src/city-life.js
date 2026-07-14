@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PALETTE, neonMat, toonMat } from './materials.js';
 import { BOULEVARD } from './transit-layout.js';
 import { heightAt } from './terrain.js';
@@ -743,6 +744,89 @@ export class CityLife {
   }
 }
 
+function addParkedFleet(group, rng, { accent, secondary, code, lowPower }) {
+  const count = lowPower ? 1 : 2;
+  const bodyParts = [], glassParts = [], wheelParts = [], headParts = [], tailParts = [];
+  const axis = new THREE.Vector3(0, 1, 0);
+  const transform = (geometry, x, z, yaw, localX = 0, localY = 0, localZ = 0) => {
+    geometry.translate(localX, localY, localZ);
+    geometry.applyMatrix4(new THREE.Matrix4().compose(
+      new THREE.Vector3(x, 0, z),
+      new THREE.Quaternion().setFromAxisAngle(axis, yaw),
+      new THREE.Vector3(1, 1, 1),
+    ));
+    return geometry;
+  };
+  const tint = (geometry, color) => {
+    const values = new Float32Array(geometry.attributes.position.count * 3);
+    const c = new THREE.Color(color);
+    for (let i = 0; i < values.length; i += 3) {
+      values[i] = c.r; values[i + 1] = c.g; values[i + 2] = c.b;
+    }
+    geometry.setAttribute('color', new THREE.BufferAttribute(values, 3));
+    return geometry;
+  };
+  const addBox = (bucket, size, vehicle, local, color = null) => {
+    let geometry = transform(new THREE.BoxGeometry(...size), vehicle.x, vehicle.z, vehicle.yaw, ...local);
+    if (color !== null) geometry = tint(geometry, color);
+    bucket.push(geometry);
+  };
+
+  for (let index = 0; index < count; index++) {
+    const vehicle = {
+      x: index ? 10 : -10,
+      z: index ? -7.2 : 6.4,
+      yaw: index ? Math.PI : 0,
+    };
+    const width = 1.56 + rng() * 0.24;
+    const length = 3.25 + rng() * 0.85;
+    const style = (rng() * 4) | 0;
+    const baseColor = new THREE.Color(index ? secondary : accent)
+      .offsetHSL((rng() - 0.5) * 0.18, 0.06, (rng() - 0.5) * 0.12);
+    addBox(bodyParts, [width, 0.42, length], vehicle, [0, 0.54, 0], baseColor);
+    addBox(bodyParts, [width - 0.08, 0.18, 0.86], vehicle, [0, 0.78, -length * 0.36], baseColor);
+    const cabinLength = style === 2 ? 1.78 : style === 3 ? 2.08 : 1.48;
+    const cabinHeight = style === 3 ? 0.68 : 0.5;
+    addBox(glassParts, [width - 0.28, cabinHeight, cabinLength], vehicle,
+      [0, 1.02 + cabinHeight * 0.12, style === 2 ? 0.22 : 0.04]);
+    addBox(bodyParts, [width - 0.16, 0.09, cabinLength + 0.04], vehicle,
+      [0, 1.3 + cabinHeight * 0.28, style === 2 ? 0.22 : 0.04], baseColor);
+    if (style === 1) addBox(bodyParts, [0.62, 0.2, 0.3], vehicle, [0, 1.58, 0.02], 0xffd45a);
+    if (style === 0) addBox(bodyParts, [width * 0.7, 0.08, 0.2], vehicle, [0, 0.89, length * 0.5], baseColor);
+
+    for (const side of [-1, 1]) for (const axle of [-1, 1]) {
+      const wheel = new THREE.CylinderGeometry(0.25, 0.25, 0.16, 10);
+      wheel.rotateZ(Math.PI / 2);
+      wheelParts.push(transform(wheel, vehicle.x, vehicle.z, vehicle.yaw,
+        side * width * 0.5, 0.3, axle * length * 0.3));
+    }
+    for (const side of [-1, 1]) {
+      addBox(headParts, [0.28, 0.14, 0.06], vehicle, [side * width * 0.3, 0.66, -length * 0.51]);
+      addBox(tailParts, [0.27, 0.14, 0.06], vehicle, [side * width * 0.3, 0.66, length * 0.51]);
+    }
+    group.userData.colliderBoxes.push({
+      localX: vehicle.x, localZ: vehicle.z, hw: width * 0.58, hd: length * 0.55,
+      source: `${code}-parked-car-${index}`,
+    });
+  }
+
+  const addMerged = (parts, material, name, castShadow = false) => {
+    if (!parts.length) return;
+    const geometry = mergeGeometries(parts, false);
+    parts.forEach((part) => part.dispose());
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = name;
+    mesh.castShadow = castShadow;
+    mesh.receiveShadow = castShadow;
+    group.add(mesh);
+  };
+  addMerged(bodyParts, new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.5, roughness: 0.32 }), 'parked-car-bodies', true);
+  addMerged(glassParts, new THREE.MeshStandardMaterial({ color: 0x16344d, metalness: 0.58, roughness: 0.16 }), 'parked-car-glass');
+  addMerged(wheelParts, toonMat(0x0a101d), 'parked-car-wheels', true);
+  addMerged(headParts, new THREE.MeshBasicMaterial({ color: 0xcafff7, toneMapped: false }), 'parked-car-headlights');
+  addMerged(tailParts, new THREE.MeshBasicMaterial({ color: 0xff4f74, toneMapped: false }), 'parked-car-taillights');
+}
+
 export function buildDistrictLife(rng, { accent, secondary, nearEdge, code = 'metro', lowPower = false }) {
   const g = new THREE.Group();
   g.name = 'district-street-life';
@@ -827,7 +911,7 @@ export function buildDistrictLife(rng, { accent, secondary, nearEdge, code = 'me
   }
   for (const mesh of [body, canopy, goods]) if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
 
-  const patronSlots = lowPower ? [-5.1, 5.1] : [-14.1, -5.1, 5.1, 14.1];
+  const patronSlots = lowPower ? [-7.5, 7.5] : [-17, -9, -4, 4, 9, 17];
   const patronCount = patronSlots.length;
   const patrons = createCharacterBatch(g, patronCount, 'district-patron', false);
   const patronScratch = {
@@ -860,6 +944,7 @@ export function buildDistrictLife(rng, { accent, secondary, nearEdge, code = 'me
   });
   finishCharacterColors(patrons);
   updateCharacterMatrices(patrons);
+  addParkedFleet(g, rng, { accent: accentHex, secondary: secondaryHex, code, lowPower });
   g.userData.venueCode = code;
   return g;
 }

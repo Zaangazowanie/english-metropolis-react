@@ -120,7 +120,9 @@ export class Citizens {
     // body pool: the code-rigged Meshy townsfolk, each spawnable ONCE
     this.bodies = [];
     for (const b of npcBases) {
-      if (b.rigged && b.clips?.walk) this.bodies.push({ type: 'meshy', mesh: b.mesh, clips: b.clips });
+      if (b.rigged && b.clips?.walk) {
+        this.bodies.push({ type: 'meshy', object: b.object || b.mesh, clips: b.clips });
+      }
     }
     // shuffled free-list of body indices (assignment without replacement)
     this.free = this.bodies.map((_, i) => i);
@@ -159,7 +161,7 @@ export class Citizens {
 
     // distinct Meshy townsperson — own texture, wardrobe tint to set them
     // apart from their teaching twin working elsewhere in the city
-    const inst = instanceRig(body.mesh, body.clips);
+    const inst = instanceRig(body.object, body.clips);
     const model = inst.object;
     const mixer = inst.mixer;
     const walk = inst.actions.walk;

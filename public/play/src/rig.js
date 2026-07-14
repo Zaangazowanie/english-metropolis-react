@@ -166,12 +166,19 @@ export function rigBase(root, material) {
 
 // Cheap per-instance clone of a rigged base (SkeletonUtils clones bones+skin).
 // Auto-plays idle and returns a one-shot gesture player.
-export function instanceRig(baseMesh, clips) {
-  const mesh = cloneSkinned(baseMesh);
-  mesh.castShadow = true;
+export function instanceRig(baseObject, clips) {
+  const model = cloneSkinned(baseObject);
+  let mesh = null;
+  model.traverse((object) => {
+    if (!object.isMesh) return;
+    object.castShadow = true;
+    object.receiveShadow = true;
+    if (!mesh && object.isSkinnedMesh) mesh = object;
+  });
+  mesh ||= model;
   const group = new THREE.Group();
-  group.add(mesh);
-  const mixer = new THREE.AnimationMixer(mesh);
+  group.add(model);
+  const mixer = new THREE.AnimationMixer(model);
   const actions = {};
   for (const k of Object.keys(clips)) actions[k] = mixer.clipAction(clips[k]);
   actions.idle.play();
@@ -187,7 +194,7 @@ export function instanceRig(baseMesh, clips) {
     };
     mixer.addEventListener('finished', onDone);
   };
-  return { object: group, mesh, mixer, actions, playGesture };
+  return { object: group, model, mesh, mixer, actions, playGesture };
 }
 
 // ---- authored motion: arms rest down from the T/A bind, legs & arms swing ----
