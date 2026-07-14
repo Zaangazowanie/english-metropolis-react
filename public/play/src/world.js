@@ -14,6 +14,23 @@ const MODELS = 'public/assets/models/';
 const STREET_CHROME = new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.84, roughness: 0.24 });
 function chromeMatForStreet() { return STREET_CHROME; }
 
+function pitchedRoofGeometry() {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute([
+    -0.5, 0, -0.5, 0.5, 0, -0.5,
+    -0.5, 0, 0.5, 0.5, 0, 0.5,
+    -0.5, 1, 0, 0.5, 1, 0,
+  ], 3));
+  geometry.setIndex([
+    0, 1, 5, 0, 5, 4,
+    2, 4, 5, 2, 5, 3,
+    0, 4, 2, 1, 3, 5,
+    0, 2, 3, 0, 3, 1,
+  ]);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 const HUB_TOWERS = [
   { x: -46, z: -27, w: 10, d: 12, h: 22, color: 0x27436c },
   { x: 46, z: -28, w: 11, d: 10, h: 25, color: 0x3c3b72 },
@@ -125,9 +142,14 @@ export class World {
     this.buildPlazaLife();
     this.cityLife = new CityLife(this.scene, { lowPower: this.lowPower });
     for (const object of this.cityLife.colliderObjects) this.addAABBCollider(object, 0.12);
+    for (const box of this.cityLife.colliderBoxes) {
+      this.addBoxCollider(box.x, box.z, box.hw, box.hd, box.source);
+    }
+    this.cityLife.setColliders(this.colliders);
     this.buildBoulevardDetail();
     this.buildStreetTrees();
     this.buildSkyline();
+    this.buildParkland();
     this.buildSuburbs();
     this.buildTrees();
     const motes = makeDustMotes();
@@ -173,6 +195,30 @@ export class World {
     });
   }
 
+  addBoxCollider(x, z, halfX, halfZ, source = 'world-object') {
+    this.colliders.push({
+      minX: x - halfX, maxX: x + halfX,
+      minZ: z - halfZ, maxZ: z + halfZ,
+      source,
+    });
+  }
+
+  addRotatedBoxCollider(x, z, halfX, halfZ, yaw, source = 'world-object') {
+    const cos = Math.cos(yaw);
+    const sin = Math.sin(yaw);
+    const extentX = Math.abs(cos) * halfX + Math.abs(sin) * halfZ;
+    const extentZ = Math.abs(sin) * halfX + Math.abs(cos) * halfZ;
+    this.addBoxCollider(x, z, extentX, extentZ, source);
+  }
+
+  addLocalRotatedCollider(localX, localZ, halfX, halfZ, yaw, source) {
+    const cos = Math.cos(yaw);
+    const sin = Math.sin(yaw);
+    const x = localX * cos + localZ * sin;
+    const z = -localX * sin + localZ * cos;
+    this.addRotatedBoxCollider(x, z, halfX, halfZ, yaw, source);
+  }
+
   async placeBuildings() {
     await Promise.all(BUILDINGS.map(async (b) => {
       const m = toonifyGLB(normalizeToHeight(await this.loadGLB(b.url), b.h));
@@ -199,7 +245,7 @@ export class World {
       g.position.set(p.pos[0], 0, p.pos[1]);
       g.rotation.y = p.rot;
       this.scene.add(g);
-      if (p.collider !== false && p.h > 1.5) this.addAABBCollider(g, 0.05);
+      if (p.collider !== false) this.addAABBCollider(g, 0.05);
     }
   }
 
@@ -471,6 +517,7 @@ export class World {
       edge.rotation.x = Math.PI / 2;
       edge.position.set(x, 0.09, z);
       this.scene.add(pool, edge);
+      this.addBoxCollider(x, z, 3.92, 3.92, 'plaza-reflecting-pool');
     }
 
     const palms = 12;
@@ -488,6 +535,7 @@ export class World {
       const angle = (i / palms) * Math.PI * 2 + 0.13;
       const radius = i % 2 ? 18.4 : 17.4;
       const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
+      this.addBoxCollider(x, z, 0.92, 0.92, 'plaza-palm-planter');
       dummy.position.set(x, 0.3, z); dummy.rotation.set(0, angle, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix();
       planters.setMatrixAt(i, dummy.matrix);
       planters.setColorAt(i, new THREE.Color(i % 2 ? PALETTE.coral : PALETTE.cyan));
@@ -515,6 +563,7 @@ export class World {
     for (let i = 0; i < benchCount; i++) {
       const angle = (i / benchCount) * Math.PI * 2 + Math.PI / 8;
       const x = Math.cos(angle) * 11.2, z = Math.sin(angle) * 11.2;
+      this.addRotatedBoxCollider(x, z, 1.16, 0.4, -angle, 'plaza-bench');
       dummy.position.set(x, 0.66, z); dummy.rotation.set(0, -angle, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix();
       seats.setMatrixAt(i, dummy.matrix);
       dummy.position.set(x - Math.cos(angle) * 0.28, 1.02, z - Math.sin(angle) * 0.28); dummy.updateMatrix();
@@ -547,6 +596,7 @@ export class World {
     for (const line of lines) {
       const g = new THREE.Group();
       g.name = `${line.key}-track-infrastructure`;
+      const infrastructureYaw = line.angle - Math.PI / 2;
 
       const trackBed = new THREE.Mesh(new THREE.PlaneGeometry(2.72, BOULEVARD.length), bedMat);
       trackBed.name = `${line.key}-reserved-track-bed`;
@@ -618,6 +668,7 @@ export class World {
       );
       for (let index = 0; index < catenaryCount; index++) {
         const z = -34 - index * 32;
+        this.addLocalRotatedCollider(6.78, z, 0.13, 0.13, infrastructureYaw, `${line.key}-catenary-pole`);
         railDummy.position.set(6.78, 2.32, z);
         railDummy.updateMatrix();
         catenaryPoles.setMatrixAt(index, railDummy.matrix);
@@ -637,6 +688,7 @@ export class World {
       for (let n = 0; n < lampCount / 2; n++) {
         const d = 23 + n * 18;
         for (const side of [-1, 1]) {
+          this.addLocalRotatedCollider(side * 7.7, -d, 0.12, 0.12, infrastructureYaw, `${line.key}-street-light`);
           dummy.position.set(side * 7.7, 1.8, -d); dummy.rotation.set(0, 0, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix();
           poles.setMatrixAt(index, dummy.matrix);
           dummy.position.set(side * 7.45, 3.58, -d); dummy.updateMatrix();
@@ -665,6 +717,7 @@ export class World {
       );
       let columnIndex = 0;
       for (const x of [5.05, 6.5]) for (const z of [-25.4, -17.7]) {
+        this.addLocalRotatedCollider(x, z, 0.14, 0.14, infrastructureYaw, `${line.key}-canopy-column`);
         railDummy.position.set(x, 1.7, z);
         railDummy.updateMatrix();
         columns.setMatrixAt(columnIndex++, railDummy.matrix);
@@ -675,6 +728,9 @@ export class World {
       const bufferBar = new THREE.Mesh(new THREE.BoxGeometry(2.28, 0.14, 0.18), railMat);
       bufferBar.position.set(BOULEVARD.tramLaneX, 0.52, -14.35);
       g.add(bufferBar);
+      this.addLocalRotatedCollider(
+        BOULEVARD.tramLaneX, -14.35, 1.18, 0.2, infrastructureYaw, `${line.key}-buffer-stop`,
+      );
       for (const side of [-1, 1]) {
         const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.85, 0.12), railMat);
         post.position.set(BOULEVARD.tramLaneX + side * 0.92, 0.45, -14.35);
@@ -697,6 +753,7 @@ export class World {
       emergency.add(emergencyPost, cabinet, callButton, beacon);
       emergency.position.set(6.52, 0, -31.5);
       g.add(emergency);
+      this.addLocalRotatedCollider(6.52, -31.5, 0.34, 0.26, infrastructureYaw, `${line.key}-emergency-stop`);
 
       // Compact red/amber/green signals stop road traffic at the platform throat.
       const signal = new THREE.Group();
@@ -713,8 +770,9 @@ export class World {
       }
       signal.position.set(-4.05, 0, -28.6);
       g.add(signal);
+      this.addLocalRotatedCollider(-4.05, -28.6, 0.17, 0.17, infrastructureYaw, `${line.key}-road-signal`);
 
-      g.rotation.y = line.angle - Math.PI / 2;
+      g.rotation.y = infrastructureYaw;
       this.scene.add(g);
     }
   }
@@ -820,6 +878,7 @@ export class World {
     const colors = [0x2b8d78, 0x3ca883, 0x26756f, 0x4c9978];
     slots.forEach((slot, index) => {
       local.set(slot.side * 8.25, 0, -slot.d).applyAxisAngle(axis, slot.angle - Math.PI / 2);
+      this.addBoxCollider(local.x, local.z, 0.24, 0.24, 'boulevard-tree');
       dummy.position.set(local.x, 1.18, local.z);
       dummy.rotation.set(0, slot.angle + (index % 5) * 0.12, 0);
       dummy.scale.set(1, 1, 1);
@@ -845,56 +904,332 @@ export class World {
     this.scene.add(trunks, canopies, grates, uplights);
   }
 
+  buildParkland() {
+    const sectorAngles = [Math.PI / 2, Math.PI * 7 / 6, Math.PI * 11 / 6];
+    const paths = [];
+    const benchSites = [];
+    const lightSites = [];
+    const bedSites = [];
+    for (const [sectorIndex, angle] of sectorAngles.entries()) {
+      const points = [];
+      const segmentCount = this.lowPower ? 14 : 19;
+      for (let index = 0; index <= segmentCount; index++) {
+        const radius = 70 + index * 9.2;
+        const bend = Math.sin(index * 0.62 + sectorIndex * 1.7) * 5.2;
+        const radialX = Math.cos(angle), radialZ = Math.sin(angle);
+        const sideX = -radialZ, sideZ = radialX;
+        const x = radialX * radius + sideX * bend;
+        const z = radialZ * radius + sideZ * bend;
+        points.push(new THREE.Vector3(x, heightAt(x, z) + 0.08, z));
+        if (index > 1 && index < segmentCount && index % 5 === 2) {
+          lightSites.push({ point: points[index], angle, side: index % 2 ? -1 : 1 });
+        }
+        if (index > 3 && index < segmentCount && index % 6 === 4) {
+          benchSites.push({ point: points[index], angle, side: index % 2 ? 1 : -1 });
+        }
+      }
+      for (let index = 0; index < points.length - 1; index++) paths.push([points[index], points[index + 1]]);
+      for (const [bedIndex, radius] of [112, 178].entries()) {
+        const side = bedIndex ? -8.5 : 8.5;
+        const x = Math.cos(angle) * radius - Math.sin(angle) * side;
+        const z = Math.sin(angle) * radius + Math.cos(angle) * side;
+        bedSites.push({ x, z, colorIndex: sectorIndex + bedIndex });
+      }
+    }
+
+    const pathMaterial = new THREE.MeshStandardMaterial({
+      color: 0x718093, roughness: 0.88, metalness: 0.04,
+    });
+    const pathMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), pathMaterial, paths.length);
+    pathMesh.name = 'terrain-following-park-promenade';
+    const dummy = new THREE.Object3D();
+    const direction = new THREE.Vector3();
+    const localForward = new THREE.Vector3(0, 0, 1);
+    paths.forEach(([from, to], index) => {
+      direction.subVectors(to, from);
+      const length = direction.length();
+      dummy.position.copy(from).add(to).multiplyScalar(0.5);
+      dummy.quaternion.setFromUnitVectors(localForward, direction.normalize());
+      dummy.scale.set(2.65, 0.08, length + 0.45);
+      dummy.updateMatrix();
+      pathMesh.setMatrixAt(index, dummy.matrix);
+    });
+    pathMesh.instanceMatrix.needsUpdate = true;
+    pathMesh.receiveShadow = true;
+
+    const seatMat = chromeMatForStreet();
+    const backMat = toonMat(0x28516a);
+    const seats = new THREE.InstancedMesh(new THREE.BoxGeometry(1.9, 0.14, 0.56), seatMat, benchSites.length);
+    const backs = new THREE.InstancedMesh(new THREE.BoxGeometry(1.9, 0.62, 0.12), backMat, benchSites.length);
+    const benchLegs = new THREE.InstancedMesh(new THREE.BoxGeometry(0.1, 0.52, 0.1), seatMat, benchSites.length * 2);
+    benchSites.forEach((site, index) => {
+      const radialX = Math.cos(site.angle), radialZ = Math.sin(site.angle);
+      const sideX = -radialZ, sideZ = radialX;
+      const x = site.point.x + sideX * site.side * 2.35;
+      const z = site.point.z + sideZ * site.side * 2.35;
+      const ground = heightAt(x, z);
+      const yaw = site.angle - Math.PI / 2;
+      dummy.position.set(x, ground + 0.58, z);
+      dummy.rotation.set(0, yaw, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      seats.setMatrixAt(index, dummy.matrix);
+      dummy.position.set(x - sideX * site.side * 0.26, ground + 0.83, z - sideZ * site.side * 0.26);
+      dummy.updateMatrix();
+      backs.setMatrixAt(index, dummy.matrix);
+      for (const legSide of [-1, 1]) {
+        dummy.position.set(
+          x + radialX * legSide * 0.67,
+          ground + 0.28,
+          z + radialZ * legSide * 0.67,
+        );
+        dummy.updateMatrix();
+        benchLegs.setMatrixAt(index * 2 + (legSide > 0 ? 1 : 0), dummy.matrix);
+      }
+      this.addRotatedBoxCollider(x, z, 1.02, 0.38, yaw, 'park-bench');
+    });
+
+    const lampPoles = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.055, 0.09, 3.15, 7), toonMat(0x26344a), lightSites.length,
+    );
+    const lampHeads = new THREE.InstancedMesh(
+      new THREE.SphereGeometry(0.19, 9, 6), neonMat(0xffc77d, 0.9), lightSites.length,
+    );
+    lightSites.forEach((site, index) => {
+      const sideX = -Math.sin(site.angle), sideZ = Math.cos(site.angle);
+      const x = site.point.x + sideX * site.side * 2.65;
+      const z = site.point.z + sideZ * site.side * 2.65;
+      const ground = heightAt(x, z);
+      dummy.position.set(x, ground + 1.58, z);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      lampPoles.setMatrixAt(index, dummy.matrix);
+      dummy.position.y = ground + 3.18;
+      dummy.updateMatrix();
+      lampHeads.setMatrixAt(index, dummy.matrix);
+      this.addBoxCollider(x, z, 0.13, 0.13, 'park-light');
+    });
+
+    const bedColors = [PALETTE.coral, PALETTE.cyan, 0xffb84d, 0xe961c2, 0x43c59e];
+    const planters = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(1.28, 1.42, 0.42, 14), toonMat(0x40536d), bedSites.length,
+    );
+    const flowers = new THREE.InstancedMesh(
+      new THREE.IcosahedronGeometry(0.14, 1), toonMat(0xffffff), bedSites.length * 16,
+    );
+    let flowerIndex = 0;
+    bedSites.forEach((site, bedIndex) => {
+      const ground = heightAt(site.x, site.z);
+      dummy.position.set(site.x, ground + 0.21, site.z);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      planters.setMatrixAt(bedIndex, dummy.matrix);
+      for (let flower = 0; flower < 16; flower++) {
+        const angle = flower * 2.399;
+        const radius = 0.28 + (flower % 4) * 0.2;
+        dummy.position.set(
+          site.x + Math.cos(angle) * radius,
+          ground + 0.49 + (flower % 3) * 0.07,
+          site.z + Math.sin(angle) * radius,
+        );
+        dummy.scale.setScalar(0.78 + (flower % 4) * 0.08);
+        dummy.updateMatrix();
+        flowers.setMatrixAt(flowerIndex, dummy.matrix);
+        flowers.setColorAt(flowerIndex, new THREE.Color(bedColors[(flower + site.colorIndex) % bedColors.length]));
+        flowerIndex++;
+      }
+      this.addBoxCollider(site.x, site.z, 1.35, 1.35, 'park-flower-bed');
+    });
+
+    for (const mesh of [seats, backs, benchLegs, lampPoles, lampHeads, planters, flowers]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.castShadow = true;
+    }
+    if (flowers.instanceColor) flowers.instanceColor.needsUpdate = true;
+    this.scene.add(pathMesh, seats, backs, benchLegs, lampPoles, lampHeads, planters, flowers);
+  }
+
   buildSuburbs() {
-    // cozy hillside suburb: little houses (body + pitched roof) on gentle slopes
-    const n = 130;
+    // Detailed neighbourhoods flank the three park promenades. The roof mesh
+    // shares the house footprint, so no detached triangular prisms can float
+    // above the terrain as the old low-detail batch did.
+    const n = this.lowPower ? 56 : 88;
     const bodyGeo = new THREE.BoxGeometry(1, 1, 1);
-    // pitched roof: unit prism from a squashed 3-sided cylinder
-    const roofGeo = new THREE.CylinderGeometry(0.72, 0.72, 1, 3, 1);
-    roofGeo.rotateX(Math.PI / 2);
-    roofGeo.rotateY(Math.PI / 2);
     const bodies = new THREE.InstancedMesh(bodyGeo, toonMat(0xffffff), n);
-    const roofs = new THREE.InstancedMesh(roofGeo, toonMat(0xffffff), n);
-    const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3();
+    const foundations = new THREE.InstancedMesh(bodyGeo, toonMat(0x4a5569), n);
+    const roofs = new THREE.InstancedMesh(pitchedRoofGeometry(), toonMat(0xffffff), n);
+    const trims = new THREE.InstancedMesh(bodyGeo, toonMat(0xdfe4e5), n * 2);
+    const doors = new THREE.InstancedMesh(bodyGeo, toonMat(0xffffff), n);
+    const windows = new THREE.InstancedMesh(
+      bodyGeo,
+      new THREE.MeshStandardMaterial({ color: 0xbdebf0, emissive: 0x2c7186, emissiveIntensity: 0.82, roughness: 0.22 }),
+      n * 6,
+    );
+    const awnings = new THREE.InstancedMesh(bodyGeo, toonMat(0xffffff), n);
+    const steps = new THREE.InstancedMesh(bodyGeo, toonMat(0x738094), n);
+    const chimneys = new THREE.InstancedMesh(bodyGeo, toonMat(0x4b5365), n);
+    const gutters = new THREE.InstancedMesh(bodyGeo, chromeMatForStreet(), n * 2);
+    const hedges = new THREE.InstancedMesh(bodyGeo, addWindSway(toonMat(0x2f856e), 0.035), n * 2);
+    const porchLights = new THREE.InstancedMesh(
+      new THREE.SphereGeometry(0.11, 8, 6), neonMat(0xffc77d, 0.82), n,
+    );
+    const walkways = new THREE.InstancedMesh(bodyGeo, toonMat(0x77869a), n);
+    bodies.name = 'suburb-house-bodies';
+    foundations.name = 'suburb-house-foundations';
+    roofs.name = 'suburb-pitched-roofs';
+    trims.name = 'suburb-house-trim';
+    doors.name = 'suburb-house-doors';
+    windows.name = 'suburb-house-windows';
+    awnings.name = 'suburb-house-awnings';
+    steps.name = 'suburb-house-steps';
+    chimneys.name = 'suburb-house-chimneys';
+    gutters.name = 'suburb-house-gutters';
+    hedges.name = 'suburb-house-hedges';
+    porchLights.name = 'suburb-house-porch-lights';
+    walkways.name = 'suburb-house-walkways';
+    const M = new THREE.Matrix4();
+    const Q = new THREE.Quaternion();
+    const S = new THREE.Vector3();
+    const P = new THREE.Vector3();
+    const Y_AXIS = new THREE.Vector3(0, 1, 0);
     const col = new THREE.Color();
-    const wallCols = [0x435c78, 0x526b82, 0x60547e, 0x3d6877, 0x56627a];
-    const roofCols = [0xff5f7e, 0x7e68c9, 0x24445c, 0x31bca5, 0x27334f];
-    let placed = 0, guard = 0;
-    while (placed < n && guard++ < 4000) {
-      const a = Math.random() * Math.PI * 2;
-      const r = 150 + Math.random() * 130;
-      const x = Math.cos(a) * r, z = Math.sin(a) * r;
-      if (hillFactor(x, z) < 0.35) continue;               // suburbs live on the hills
-      // reject steep sites (house would float/bury)
+    const wallCols = [0x7399a7, 0xb28198, 0x77a18c, 0x8d8fba, 0xc08e76, 0x688fa2];
+    const roofCols = [0xc04f72, 0x6556a2, 0x274c5f, 0x278c7e, 0x894b64, 0x5b647d];
+    const doorCols = [0xffb84d, 0x4deeea, 0xff6f91, 0xe9e2d0, 0x43c59e];
+    const neighbourhoodAngles = [Math.PI / 2, Math.PI * 7 / 6, Math.PI * 11 / 6];
+    const setLocal = (mesh, index, site, localX, worldY, localZ, sx, sy, sz, extraYaw = 0) => {
+      const cos = Math.cos(site.yaw);
+      const sin = Math.sin(site.yaw);
+      P.set(
+        site.x + localX * cos + localZ * sin,
+        worldY,
+        site.z - localX * sin + localZ * cos,
+      );
+      Q.setFromAxisAngle(Y_AXIS, site.yaw + extraYaw);
+      S.set(sx, sy, sz);
+      M.compose(P, Q, S);
+      mesh.setMatrixAt(index, M);
+    };
+    const localWorld = (site, localX, localZ) => ({
+      x: site.x + localX * Math.cos(site.yaw) + localZ * Math.sin(site.yaw),
+      z: site.z - localX * Math.sin(site.yaw) + localZ * Math.cos(site.yaw),
+    });
+
+    const candidates = [];
+    for (let lane = 0; lane < 18; lane++) {
+      for (const [sector, pathAngle] of neighbourhoodAngles.entries()) {
+        for (const side of [-1, 1]) {
+          const radius = 124 + lane * 9.4 + (Math.random() - 0.5) * 1.8;
+          const lateral = side * (12.8 + Math.random() * 2.4);
+          candidates.push({
+            sector,
+            pathAngle,
+            side,
+            radius,
+            x: Math.cos(pathAngle) * radius - Math.sin(pathAngle) * lateral,
+            z: Math.sin(pathAngle) * radius + Math.cos(pathAngle) * lateral,
+          });
+        }
+      }
+    }
+    const houseSites = [];
+    let placed = 0;
+    for (const candidate of candidates) {
+      if (placed >= n) break;
+      const { sector, pathAngle, radius, x, z } = candidate;
+      if (hillFactor(x, z) < 0.32) continue;
+      if ((this.zoneMgr?.zones || []).some((zone) => Math.hypot(x - zone.center.x, z - zone.center.y) < 45)) continue;
       const h0 = heightAt(x, z);
       const spread = Math.max(
-        Math.abs(heightAt(x + 5, z) - h0), Math.abs(heightAt(x - 5, z) - h0),
-        Math.abs(heightAt(x, z + 5) - h0), Math.abs(heightAt(x, z - 5) - h0));
-      if (spread > 2.2) continue;
-      const w = 5 + Math.random() * 3.5;
-      const d = 4.5 + Math.random() * 3;
-      const hh = 3 + Math.random() * 1.6;
-      const yaw = Math.random() * Math.PI;
-      P.set(x, h0 + hh / 2 - 0.25, z);
-      Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-      S.set(w, hh, d);
-      M.compose(P, Q, S);
-      bodies.setMatrixAt(placed, M);
-      bodies.setColorAt(placed, this.regionTint(col.setHex(wallCols[(Math.random() * wallCols.length) | 0]), x, z, 0.20));
-      P.y = h0 + hh - 0.25 + hh * 0.28;
-      S.set(w * 1.12, hh * 0.62, d * 1.12);
-      M.compose(P, Q, S);
-      roofs.setMatrixAt(placed, M);
-      roofs.setColorAt(placed, col.setHex(roofCols[(Math.random() * roofCols.length) | 0]));
+        Math.abs(heightAt(x + 4, z) - h0), Math.abs(heightAt(x - 4, z) - h0),
+        Math.abs(heightAt(x, z + 4) - h0), Math.abs(heightAt(x, z - 4) - h0),
+      );
+      if (spread > 1.65) continue;
+
+      const w = 5.4 + Math.random() * 2.8;
+      const d = 4.8 + Math.random() * 2.2;
+      const hh = 3.2 + Math.random() * 1.15;
+      const roofH = 1.2 + Math.random() * 0.58;
+      const lotRadius = Math.max(w, d) * 0.58;
+      if (houseSites.some((other) => Math.hypot(x - other.x, z - other.z) < lotRadius + other.radius + 0.8)) continue;
+      const pathX = Math.cos(pathAngle) * radius;
+      const pathZ = Math.sin(pathAngle) * radius;
+      const yaw = Math.atan2(pathX - x, pathZ - z) + (Math.random() - 0.5) * 0.1;
+      const site = { x, z, yaw };
+      houseSites.push({ x, z, radius: lotRadius });
+      const wallColor = this.regionTint(
+        col.setHex(wallCols[(placed + sector) % wallCols.length]), x, z, 0.16,
+      ).clone();
+      const roofColor = new THREE.Color(roofCols[(placed * 3 + sector) % roofCols.length]);
+      const doorColor = new THREE.Color(doorCols[(placed + 2) % doorCols.length]);
+      const eaveY = h0 + hh;
+
+      setLocal(foundations, placed, site, 0, h0 + 0.12, 0, w * 1.04, 0.62, d * 1.04);
+      setLocal(bodies, placed, site, 0, h0 + hh / 2 - 0.02, 0, w, hh, d);
+      bodies.setColorAt(placed, wallColor);
+      setLocal(roofs, placed, site, 0, eaveY - 0.04, 0, w * 1.14, roofH, d * 1.16);
+      roofs.setColorAt(placed, roofColor);
+      for (const [trimIndex, trimY] of [h0 + 0.5, eaveY - 0.2].entries()) {
+        setLocal(trims, placed * 2 + trimIndex, site, 0, trimY, 0, w * 1.025, 0.12, d * 1.025);
+      }
+
+      const doorX = placed % 2 ? -w * 0.2 : w * 0.2;
+      setLocal(doors, placed, site, doorX, h0 + 0.9, d / 2 + 0.065, 0.88, 1.75, 0.1);
+      doors.setColorAt(placed, doorColor);
+      setLocal(awnings, placed, site, doorX, h0 + 2.05, d / 2 + 0.4, 1.34, 0.11, 0.78);
+      awnings.setColorAt(placed, roofColor.clone().offsetHSL(0, 0, 0.08));
+      setLocal(steps, placed, site, doorX, h0 + 0.08, d / 2 + 0.52, 1.12, 0.2, 0.92);
+      const walkwayLength = 4.6;
+      const walkwayZ = d / 2 + 1 + walkwayLength / 2;
+      const walkwayWorld = localWorld(site, doorX, walkwayZ);
+      setLocal(
+        walkways, placed, site, doorX, heightAt(walkwayWorld.x, walkwayWorld.z) + 0.045,
+        walkwayZ, 1.08, 0.07, walkwayLength,
+      );
+      setLocal(porchLights, placed, site, doorX + (doorX > 0 ? -0.62 : 0.62), h0 + 1.82, d / 2 + 0.14, 1, 1, 1);
+
+      let windowIndex = placed * 6;
+      const windowW = Math.min(0.92, w * 0.16);
+      for (const rowY of [h0 + 1.08, h0 + 2.35]) {
+        for (const windowX of [-w * 0.25, w * 0.25]) {
+          setLocal(windows, windowIndex++, site, windowX, rowY, d / 2 + 0.075, windowW, 0.72, 0.09);
+        }
+      }
+      for (const windowZ of [-d * 0.22, d * 0.22]) {
+        setLocal(windows, windowIndex++, site, w / 2 + 0.075, h0 + 1.48, windowZ, 0.09, 0.78, 0.82);
+      }
+
+      setLocal(chimneys, placed, site, w * 0.27, eaveY + roofH * 0.62, -d * 0.08, 0.42, 1.18, 0.42);
+      for (const [gutterIndex, gutterZ] of [-d * 0.58, d * 0.58].entries()) {
+        setLocal(gutters, placed * 2 + gutterIndex, site, 0, eaveY + 0.025, gutterZ, w * 1.15, 0.075, 0.075);
+      }
+      for (const hedgeSide of [-1, 1]) {
+        const hedgeX = hedgeSide * w * 0.34;
+        const hedgeZ = d / 2 + 1.05;
+        const hedgeIndex = placed * 2 + (hedgeSide > 0 ? 1 : 0);
+        setLocal(hedges, hedgeIndex, site, hedgeX, h0 + 0.33, hedgeZ, 0.92, 0.66, 0.5);
+        const hedgeWorld = localWorld(site, hedgeX, hedgeZ);
+        this.addRotatedBoxCollider(hedgeWorld.x, hedgeWorld.z, 0.5, 0.3, yaw, 'suburb-hedge');
+      }
+
+      this.addRotatedBoxCollider(x, z, w / 2 + 0.2, d / 2 + 0.2, yaw, 'suburb-house');
       placed++;
     }
-    bodies.count = roofs.count = placed;
-    bodies.instanceMatrix.needsUpdate = roofs.instanceMatrix.needsUpdate = true;
-    if (bodies.instanceColor) bodies.instanceColor.needsUpdate = true;
-    if (roofs.instanceColor) roofs.instanceColor.needsUpdate = true;
-    bodies.castShadow = roofs.castShadow = true;
-    bodies.receiveShadow = true;
-    this.scene.add(bodies, roofs);
+
+    const singleMeshes = [bodies, foundations, roofs, doors, awnings, steps, chimneys, porchLights, walkways];
+    for (const mesh of singleMeshes) mesh.count = placed;
+    trims.count = gutters.count = hedges.count = placed * 2;
+    windows.count = placed * 6;
+    const all = [...singleMeshes, trims, windows, gutters, hedges];
+    for (const mesh of all) {
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.castShadow = true;
+      mesh.receiveShadow = mesh === bodies || mesh === foundations || mesh === roofs;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    }
+    this.scene.add(...all);
   }
 
   buildTrees() {
@@ -921,6 +1256,7 @@ export class World {
       if (clear) { i--; continue; }
       const gy = heightAt(x, z);
       const s = 0.8 + Math.random() * 0.9;
+      this.addBoxCollider(x, z, 0.24 * s, 0.24 * s, 'park-tree');
       M.makeScale(s, s, s).setPosition(x, gy + 0.8 * s, z);
       trunks.setMatrixAt(i, M);
       M.makeScale(s, s * (0.9 + Math.random() * 0.35), s).setPosition(x, gy + (1.6 + 0.9) * s, z);

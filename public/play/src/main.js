@@ -127,6 +127,7 @@ zoneMgr.onEnter = (z) => {
 let player = null;
 let trains = null, traffic = null, citizens = null;
 const pedestrianBuffer = [];
+const collisionPeople = [];
 const minimap = new Minimap(document.getElementById('minimap'));
 document.getElementById('minimap').addEventListener('click', () => {
   if (player) input.pressMap();
@@ -202,7 +203,7 @@ Promise.all([
   // strolling the boulevards — each body at most once, so no character twins
   trains = new Trains(scene, zoneMgr, audio);
   traffic = new Traffic(scene, { lowPower: lowPowerHint });
-  citizens = new Citizens(scene, rig, npcBases);
+  citizens = new Citizens(scene, rig, npcBases, world.colliders);
   citizens.spawn(lowPowerHint ? 5 : 7);                // unique bodies at both quality tiers
   window.__EM = { player, world, zones: zoneMgr, camera: followCam, renderer, scene, camera3: camera, ui, audio, trains, traffic, citizens };
   // deterministic frame pump for headless verification (background tabs throttle rAF)
@@ -244,12 +245,22 @@ let potato = false;
 
 function simTick(dt) {
   if (!player) return;
+  collisionPeople.length = 0;
+  collisionPeople.push(player.pos);
+  if (citizens?.list) collisionPeople.push(...citizens.list);
+  if (world.cityLife?.people) collisionPeople.push(...world.cityLife.people);
+  if (world.npcs) collisionPeople.push(...world.npcs);
   if (!ui.dialogOpen && !ui.guideOpen) {
-    player.update(dt, input, -followCam.yaw, world.colliders);
+    player.update(dt, input, -followCam.yaw, world.colliders, collisionPeople);
   }
   world.update(performance.now() / 1000, dt, player.pos);
   zoneMgr.update(player.pos, world.colliders);
-  citizens?.update(dt, player.pos);
+  collisionPeople.length = 0;
+  collisionPeople.push(player.pos);
+  if (citizens?.list) collisionPeople.push(...citizens.list);
+  if (world.cityLife?.people) collisionPeople.push(...world.cityLife.people);
+  if (world.npcs) collisionPeople.push(...world.npcs);
+  citizens?.update(dt, player.pos, world.colliders, collisionPeople);
   pedestrianBuffer.length = 0;
   if (citizens?.list) pedestrianBuffer.push(...citizens.list);
   if (world.cityLife?.people) pedestrianBuffer.push(...world.cityLife.people);
