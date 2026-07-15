@@ -187,6 +187,7 @@ export default function LessonBooking() {
   const teacherId = studentUser?.primaryTeacherId || undefined
 
   const [state, setState] = useState({ loading: true, bookings: [], slots: [], unavailable: false })
+  const [alloc, setAlloc] = useState(null)
   const [pendingBook, setPendingBook] = useState(null)
   const [pendingCancel, setPendingCancel] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -211,11 +212,13 @@ export default function LessonBooking() {
       const [bookings, slots, allocation] = await Promise.all([
         convexCall('query', 'scheduling:listBookings', { organizationId, studentId }),
         convexCall('query', 'scheduling:getOpenSlots', slotArgs),
+        convexCall('query', 'orders:getStudentAllocation', { studentId }),
       ])
       setAlloc(allocation)
       const unavailable = !slots.length && !bookings.length
       setState({ loading: false, bookings, slots, unavailable })
     } catch {
+      setAlloc(null)
       setState({ loading: false, bookings: [], slots: [], unavailable: true })
     }
   }, [studentId, organizationId, teacherId])
