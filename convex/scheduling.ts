@@ -340,31 +340,16 @@ export const getOpenSlots = query({
       .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
       .collect();
     const activeAll = availability.filter(a => a.active);
-    // Scope availability to the teacher (with legacy fallback). The fallback
-    // flag tells us how to scope bookings so the "taken" set lines up.
-    const { rows: active, fellBackToLegacy } =
-      scopeByTeacher(activeAll, args.teacherId, a => a.teacherId);
+    // Scope availability to the teacher, retaining legacy organization-wide
+    // availability as a fallback for teachers who do not have their own rows.
+    const { rows: active } = scopeByTeacher(activeAll, args.teacherId, a => a.teacherId);
     if (!active.length) return [];
 
-    const bookings = await ctx.db
-      .query("lessonBookings")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
-      .collect();
-    // Bookings count against the same scope as the availability we used:
-    //   - teacherId given & teacher has own availability → teacherId === arg
-    //   - teacherId given but we fell back to legacy availability → legacy
-    //     (teacherId unset) bookings
-    //   - no teacherId → all bookings (legacy org-wide behaviour, unchanged)
-    const scopedBookings = !args.teacherId
-      ? bookings
-      : fellBackToLegacy
-        ? bookings.filter(b => b.teacherId === undefined)
-        : bookings.filter(b => String(b.teacherId ?? "") === String(args.teacherId));
-    const taken = new Set(
-      scopedBookings
-        .filter(b => b.status === "scheduled" || b.status === "completed")
-        .map(b => b.startUtc)
-    );
+    // Use the same global overlap rule as bookLesson. Legacy availability can
+    // still produce teacher-stamped bookings, so filtering bookings by the
+    // availability fallback would advertise times that are already occupied.
+    const blockingBookings = (await ctx.db.query("lessonBookings").collect())
+      .filter(b => b.status === "scheduled" || b.status === "completed");
     const offered = new Set<number>();
 
     const now = Date.now();
@@ -393,7 +378,7 @@ export const getOpenSlots = query({
           const startUtc = warsawToUtc(dateStr, timeStr);
           const endUtc = startUtc + window.slotMinutes * 60 * 1000;
           if (startUtc <= now) continue;            // past slots not bookable
-          if (taken.has(startUtc)) continue;        // already booked
+          if (blockingBookings.some(b => b.startUtc < endUtc && b.endUtc > startUtc)) continue;
           if (offered.has(startUtc)) continue;      // overlapping weekly + one-off window
           offered.add(startUtc);
           slots.push({ dateWarsaw: dateStr, timeWarsaw: timeStr, startUtc, endUtc, dayOfWeek: dow });
