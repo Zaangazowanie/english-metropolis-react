@@ -303,31 +303,87 @@ export class ZoneManager {
       g.add(curb);
     }
 
-    // A compact street network turns every streamed dialect region into real
-    // blocks: three parallel one-way streets, two cross streets and a diagonal
-    // promenade. Lots are generated around the roads, never through them.
+    // A compact street hierarchy turns every streamed dialect region into real
+    // blocks. The outer parallels, cross streets and diagonal carry two-way
+    // traffic; the narrower centre street is a clearly arrowed one-way route.
+    // Road paint is raised above the asphalt so it cannot z-fight or flash.
     const streets = new THREE.Group();
     streets.name = `${z.data.code}-street-grid`;
+    const roadLayout = {
+      twoWayWidth: 6.4,
+      oneWayWidth: 4.2,
+      outerXs: [-12.2, 12.2],
+      centreX: 0,
+      crossZs: [-2.8, 12.2],
+      diagonalWidth: 6.4,
+      laneWidth: 3.2,
+      markingClearance: 0.015,
+      oneWayDirection: hash(z.data.code) % 2 ? 1 : -1,
+    };
+    streets.userData.roadLayout = roadLayout;
     const roadMat = toonMat(new THREE.Color(0x15243a).lerp(cPrimary, 0.08));
     const laneMat = toonMat(new THREE.Color(0xc7d8dd).lerp(cAccent, 0.22));
-    const edgeMat = toonMat(cAccent.clone().multiplyScalar(0.72));
-    const addRoad = (width, length, x, zz, yaw = 0, material = roadMat) => {
+    const oneWayMat = toonMat(new THREE.Color(0xffc857).lerp(cAccent, 0.16));
+    const shoulderMat = toonMat(new THREE.Color(PALETTE.sidewalk).lerp(cPrimary, 0.08));
+    laneMat.polygonOffset = true;
+    laneMat.polygonOffsetFactor = -2;
+    laneMat.polygonOffsetUnits = -2;
+    oneWayMat.polygonOffset = true;
+    oneWayMat.polygonOffsetFactor = -3;
+    oneWayMat.polygonOffsetUnits = -3;
+    const ROAD_Y = 0.052;
+    const MARKING_Y = ROAD_Y + roadLayout.markingClearance;
+    const addSurface = (width, length, x, zz, yaw, y, material, name) => {
       const geometry = new THREE.PlaneGeometry(width, length);
       geometry.rotateX(-Math.PI / 2);
       if (yaw) geometry.rotateY(yaw);
       const road = new THREE.Mesh(geometry, material);
-      road.position.set(x, 0.047, zz);
+      road.name = name;
+      road.position.set(x, y, zz);
       road.receiveShadow = true;
       streets.add(road);
       return road;
     };
-    for (const x of [-10, 0, 10]) {
-      addRoad(2.9, districtDepth - 0.8, x, districtMid);
-      addRoad(0.09, districtDepth - 2.2, x, districtMid, 0, laneMat);
+    const addRoad = (width, length, x, zz, yaw = 0, kind = 'two-way') => {
+      addSurface(width + 0.72, length + 0.36, x, zz, yaw, ROAD_Y - 0.008, shoulderMat, `${kind}-shoulder`);
+      return addSurface(width, length, x, zz, yaw, ROAD_Y, roadMat, `${kind}-road`);
+    };
+    const markingTransforms = [];
+    const markingDummy = new THREE.Object3D();
+    const addMarking = (width, length, x, zz, yaw = 0, localX = 0, localZ = 0) => {
+      const cos = Math.cos(yaw), sin = Math.sin(yaw);
+      markingDummy.position.set(
+        x + localX * cos + localZ * sin,
+        MARKING_Y,
+        zz - localX * sin + localZ * cos,
+      );
+      markingDummy.rotation.set(0, yaw, 0);
+      markingDummy.scale.set(width, 1, length);
+      markingDummy.updateMatrix();
+      markingTransforms.push(markingDummy.matrix.clone());
+    };
+    const addDashedCentre = (length, x, zz, yaw = 0) => {
+      const spacing = 4.8;
+      const usable = Math.max(0, length - 2.4);
+      const count = Math.max(1, Math.floor(usable / spacing));
+      for (let index = 0; index < count; index++) {
+        const localZ = -usable / 2 + (index + 0.5) * (usable / count);
+        addMarking(0.13, Math.min(2.35, usable / count * 0.54), x, zz, yaw, 0, localZ);
+      }
+    };
+    const parallelLength = districtDepth - 0.8;
+    for (const x of roadLayout.outerXs) {
+      addRoad(roadLayout.twoWayWidth, parallelLength, x, districtMid);
+      addDashedCentre(parallelLength, x, districtMid);
     }
-    for (const zz of [-3.1, 11.7]) {
-      addRoad(districtWidth - 0.8, 3.5, 0, zz);
-      addRoad(districtWidth - 2.2, 0.09, 0, zz, 0, laneMat);
+    addRoad(roadLayout.oneWayWidth, parallelLength, roadLayout.centreX, districtMid, 0, 'one-way');
+    for (const edge of [-1, 1]) {
+      addMarking(0.1, parallelLength - 1.0, roadLayout.centreX, districtMid, 0,
+        edge * (roadLayout.oneWayWidth / 2 - 0.18), 0);
+    }
+    for (const zz of roadLayout.crossZs) {
+      addRoad(roadLayout.twoWayWidth, districtWidth - 0.8, 0, zz, Math.PI / 2);
+      addDashedCentre(districtWidth - 0.8, 0, zz, Math.PI / 2);
     }
     const diagonalStart = new THREE.Vector2(-19, nearEdge + 2);
     const diagonalEnd = new THREE.Vector2(19, farEdge - 2);
@@ -335,8 +391,37 @@ export class ZoneManager {
     const diagonalLength = diagonalDelta.length();
     const diagonalMid = diagonalStart.clone().add(diagonalEnd).multiplyScalar(0.5);
     const diagonalYaw = Math.atan2(diagonalDelta.x, diagonalDelta.y);
-    addRoad(3.15, diagonalLength, diagonalMid.x, diagonalMid.y, diagonalYaw);
-    addRoad(0.12, diagonalLength - 1.2, diagonalMid.x, diagonalMid.y, diagonalYaw, edgeMat);
+    addRoad(roadLayout.diagonalWidth, diagonalLength, diagonalMid.x, diagonalMid.y, diagonalYaw);
+    addDashedCentre(diagonalLength, diagonalMid.x, diagonalMid.y, diagonalYaw);
+
+    const markingGeometry = new THREE.BoxGeometry(1, 0.018, 1);
+    const markings = new THREE.InstancedMesh(markingGeometry, laneMat, markingTransforms.length);
+    markings.name = 'raised-road-markings';
+    markingTransforms.forEach((matrix, index) => markings.setMatrixAt(index, matrix));
+    markings.instanceMatrix.needsUpdate = true;
+    markings.renderOrder = 3;
+    streets.add(markings);
+
+    const arrowParts = [
+      new THREE.BoxGeometry(0.24, 0.022, 1.18).translate(0, 0, -0.2),
+      new THREE.BoxGeometry(0.2, 0.022, 0.72).rotateY(0.65).translate(-0.22, 0, 0.52),
+      new THREE.BoxGeometry(0.2, 0.022, 0.72).rotateY(-0.65).translate(0.22, 0, 0.52),
+    ];
+    const arrowGeometry = mergeGeometries(arrowParts, false);
+    arrowParts.forEach((part) => part.dispose());
+    const arrowOffsets = [-parallelLength * 0.3, 0, parallelLength * 0.3];
+    const arrows = new THREE.InstancedMesh(arrowGeometry, oneWayMat, arrowOffsets.length);
+    arrows.name = 'one-way-direction-arrows';
+    arrowOffsets.forEach((localZ, index) => {
+      markingDummy.position.set(roadLayout.centreX, MARKING_Y + 0.003, districtMid + localZ);
+      markingDummy.rotation.set(0, roadLayout.oneWayDirection > 0 ? 0 : Math.PI, 0);
+      markingDummy.scale.setScalar(1);
+      markingDummy.updateMatrix();
+      arrows.setMatrixAt(index, markingDummy.matrix);
+    });
+    arrows.instanceMatrix.needsUpdate = true;
+    arrows.renderOrder = 4;
+    streets.add(arrows);
     g.add(streets);
 
     const distanceToDiagonal = (x, zz) => {
@@ -350,18 +435,31 @@ export class ZoneManager {
       return Math.hypot(px - diagonalDelta.x * t, pz - diagonalDelta.y * t);
     };
     const slots = [];
-    const rows = [nearEdge + 8.1, 4.2, 19.2];
-    for (let row = 0; row < rows.length; row++) {
-      for (const column of [-15, -5, 5, 15]) {
-        const x = column + (rng() - 0.5) * 0.45;
-        const zz = rows[row] + (rng() - 0.5) * 0.4;
-        if (distanceToDiagonal(x, zz) < 4.25) continue;
+    const rows = [
+      { z: nearEdge + 6.2, d: 7.4, frontage: true },
+      { z: 4.7, d: 5.3, frontage: false },
+      { z: 21.4, d: 7.4, frontage: false },
+    ];
+    const columns = [
+      { x: -17.8, w: 3.7 },
+      { x: -5.6, w: 5.5 },
+      { x: 5.6, w: 5.5 },
+      { x: 17.8, w: 3.7 },
+    ];
+    for (const row of rows) {
+      for (const column of columns) {
+        const x = column.x + (rng() - 0.5) * 0.22;
+        const zz = row.z + (rng() - 0.5) * 0.24;
+        const w = column.w + rng() * 0.24;
+        const d = row.d + rng() * 0.28;
+        const diagonalClearance = roadLayout.diagonalWidth / 2 + Math.min(w, d) * 0.48 + 0.45;
+        if (distanceToDiagonal(x, zz) < diagonalClearance) continue;
         slots.push({
           x,
           z: zz,
-          w: 7.0 + rng() * 0.7,
-          d: 6.8 + rng() * 0.8,
-          frontage: row === 0,
+          w,
+          d,
+          frontage: row.frontage,
         });
       }
     }
@@ -376,6 +474,7 @@ export class ZoneManager {
       nearEdge,
       code: z.data.zoneName,
       lowPower: this.lowPower,
+      roadLayout,
     });
     g.add(streetLife);
     zoneColliders.push(...(streetLife.userData.colliderBoxes || []));
@@ -456,7 +555,9 @@ export class ZoneManager {
     if (this.npcBases?.length && this.world) {
       const spawned = [];
       const zoneProg = this.progressFor(z.data.code);
-      const locals = [[-10, -10], [0, 4], [10, 19]];
+      // Sidewalk pockets between facade setbacks and carriageway edges. Keep
+      // teachers out of live lanes while leaving a clear approach for players.
+      const locals = [[-17.4, -7.3], [5.6, 1.1], [17.4, 16.5]];
       // body assignment is unique PER STOP: the two zones flanking a station
       // (side ±1) draw six consecutive pool slots, so no two teachers you can
       // see from one platform share a body

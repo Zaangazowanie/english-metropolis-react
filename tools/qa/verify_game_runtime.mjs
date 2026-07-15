@@ -229,6 +229,9 @@ async function verifyDistrict(page, label) {
       uniqueExercises: new Set(districtNpcs.map((npc) => npc.exercise)).size,
       districtNpcs,
       streetGridPieces: streetGrid?.children?.length || 0,
+      roadLayout: streetGrid?.userData?.roadLayout || null,
+      raisedMarkings: streetGrid?.getObjectByName('raised-road-markings')?.count || 0,
+      oneWayArrows: streetGrid?.getObjectByName('one-way-direction-arrows')?.count || 0,
       colliderCount: colliders.length,
       collisionChecks,
     };
@@ -333,6 +336,22 @@ try {
     hasTouch: true,
     isMobile: true,
   });
+  for (const result of [desktop, mobile]) {
+    const district = result.district;
+    if (result.loadError) throw new Error(`${result.label}: game did not finish loading`);
+    if (result.pageErrors.length || result.consoleErrors.length || result.failedRequests.length) {
+      throw new Error(`${result.label}: browser errors detected during runtime QA`);
+    }
+    if (!district?.roadLayout || district.roadLayout.twoWayWidth < 6.2) {
+      throw new Error(`${result.label}: district two-way roads are below the two-lane clearance`);
+    }
+    if (district.roadLayout.oneWayWidth < 4 || district.oneWayArrows < 3) {
+      throw new Error(`${result.label}: one-way roads are not wide or clearly marked enough`);
+    }
+    if (district.roadLayout.markingClearance < 0.01 || district.raisedMarkings < 20) {
+      throw new Error(`${result.label}: road paint is not safely raised above the asphalt`);
+    }
+  }
   console.log(JSON.stringify({ desktop, mobile }, null, 2));
 } finally {
   await browser.close();
