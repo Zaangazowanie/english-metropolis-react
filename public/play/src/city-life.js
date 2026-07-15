@@ -744,7 +744,7 @@ export class CityLife {
   }
 }
 
-function addParkedFleet(group, rng, { accent, secondary, code, lowPower }) {
+function addParkedFleet(group, rng, { accent, secondary, code, lowPower, roadLayout }) {
   const count = lowPower ? 1 : 2;
   const bodyParts = [], glassParts = [], wheelParts = [], headParts = [], tailParts = [];
   const axis = new THREE.Vector3(0, 1, 0);
@@ -773,8 +773,10 @@ function addParkedFleet(group, rng, { accent, secondary, code, lowPower }) {
   };
 
   for (let index = 0; index < count; index++) {
+    const outerX = roadLayout?.outerXs?.[index] ?? (index ? 10 : -10);
+    const laneOffset = (roadLayout?.laneWidth || 3.2) * 0.52 * (index ? 1 : -1);
     const vehicle = {
-      x: index ? 10 : -10,
+      x: outerX + laneOffset,
       z: index ? -7.2 : 6.4,
       yaw: index ? Math.PI : 0,
     };
@@ -827,7 +829,9 @@ function addParkedFleet(group, rng, { accent, secondary, code, lowPower }) {
   addMerged(tailParts, new THREE.MeshBasicMaterial({ color: 0xff4f74, toneMapped: false }), 'parked-car-taillights');
 }
 
-export function buildDistrictLife(rng, { accent, secondary, nearEdge, code = 'metro', lowPower = false }) {
+export function buildDistrictLife(rng, {
+  accent, secondary, nearEdge, code = 'metro', lowPower = false, roadLayout = null,
+}) {
   const g = new THREE.Group();
   g.name = 'district-street-life';
   g.userData.colliderBoxes = [];
@@ -944,7 +948,9 @@ export function buildDistrictLife(rng, { accent, secondary, nearEdge, code = 'me
   });
   finishCharacterColors(patrons);
   updateCharacterMatrices(patrons);
-  addParkedFleet(g, rng, { accent: accentHex, secondary: secondaryHex, code, lowPower });
+  addParkedFleet(g, rng, {
+    accent: accentHex, secondary: secondaryHex, code, lowPower, roadLayout,
+  });
   g.userData.venueCode = code;
   return g;
 }
