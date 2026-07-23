@@ -1342,3 +1342,57 @@
     width: 100%;
   }
 }
+
+/* ── Add to cart (Przelewy24 cart requirement) ─────────────── */
+.lp-add-cart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(217, 70, 239, 0.18));
+  color: var(--lp-ink);
+  font: 700 13.5px/1 "Space Grotesk", "Inter", system-ui, sans-serif;
+  cursor: pointer;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms ease,
+              border-color 200ms ease, box-shadow 200ms ease;
+}
+.lp-add-cart .material-symbols-outlined { font-size: 17px; }
+.lp-add-cart:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) {
+  .lp-add-cart:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(217, 70, 239, 0.32));
+    border-color: rgba(217, 70, 239, 0.5);
+    box-shadow: 0 14px 34px -18px rgba(139, 92, 246, 0.8);
+  }
+}
+.lp-add-cart[data-added="true"] {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.3), rgba(16, 185, 129, 0.24));
+  border-color: rgba(52, 211, 153, 0.55);
+  color: #a7f3d0;
+}
+.lp-add-cart-course { margin-top: 12px; }
+
+/* ── Foundation footer (Przelewy24: NIP + operator identity) ── */
+.lp-footer {
+  max-width: 1160px;
+  margin: 40px auto 0;
+  padding: 22px 24px calc(28px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--lp-faint);
+}
+.lp-footer p { margin: 0 0 10px; }
+.lp-footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
+.lp-footer nav a {
+  color: var(--lp-muted);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.lp-footer nav a:hover { color: var(--lp-ink); border-color: rgba(238, 229, 255, 0.4); }

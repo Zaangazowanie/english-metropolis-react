@@ -1,65 +1,34 @@
-<!DOCTYPE html>
-<html class="light" lang="pl" data-lang="pl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <title>Regulamin serwisu englishmetro.com — English Metro.</title>
-  <meta name="description" content="Regulamin serwisu englishmetro.com — Fundacja Rozwoju Przedsiębiorczości „Twój StartUp”, NIP 5213641211." />
-  <meta name="robots" content="index, follow" />
-  <link href="/fonts/fonts.css" rel="stylesheet" />
-  <link href="/legal/legal.css?v=20260723" rel="stylesheet" />
-  <link href="/legal/foundation-legal.css?v=20260723" rel="stylesheet" />
-  <script src="/legal/legal.js" defer></script>
-</head>
-<body>
+// Approved Twój StartUp legal documents (legal review completed 2026-07-22) —
+// SINGLE SOURCE OF TRUTH for /terms, /privacy and /cookies. The React pages
+// render these bodies, and scripts/build-legal-static.mjs bakes the same HTML
+// into the static public/{terms,privacy,cookies}/index.html pages.
+//
+// The Polish text is the binding document as approved by the Foundation's
+// legal team. Administrative blanks completed at publication (contact e-mail
+// in §14, effective date, privacy-policy link in the Cookies Policy); the two
+// empty placeholder rows in §2(1) of the review draft were dropped.
+// DO NOT reword the legal clauses without Twój StartUp legal sign-off.
 
-  <header class="legal-topbar">
-    <a class="legal-wordmark" href="/">English <em>Metro.</em></a>
-    <nav class="legal-topnav">
-      <a href="/privacy/"><span class="lang-en">Privacy</span><span class="lang-pl">Prywatność</span></a>
-      <a href="/cookies/"><span class="lang-en">Cookies</span><span class="lang-pl">Cookies</span></a>
-      <a href="/terms/" aria-current="page"><span class="lang-en">Terms</span><span class="lang-pl">Regulamin</span></a>
-      <span class="lang-toggle" role="group" aria-label="Language">
-        <button type="button" data-lang="en">EN</button>
-        <button type="button" data-lang="pl">PL</button>
-      </span>
-    </nav>
-  </header>
+export const FOUNDATION = {
+  name: 'Fundacja Rozwoju Przedsiębiorczości „Twój StartUp"',
+  seat: 'ul. Żurawia 6/12 lok. 766, 00-503 Warszawa',
+  post: 'Atlas Tower, Al. Jerozolimskie 123a, 18 piętro, 02-017 Warszawa',
+  krs: '0000442857',
+  nip: '5213641211',
+  regon: '146433467',
+  bdo: '000460502',
+  unit: 'EnglishMetro',
+  rep: 'Moemedi Michael Poncana',
+  email: 'michael.poncana@englishmetro.com',
+  phone: '+48 662 563 507',
+  serviceAddress: 'ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki',
+  rodoEmail: 'rodo@twojstartup.pl',
+  effectiveDate: '23 lipca 2026 r.',
+}
 
-  <div class="legal-hero">
-    <div class="legal-hero-inner">
-      <div class="legal-doc-meta">
-        <span>DOC <strong>EM-LEGAL-03</strong></span>
-        <span class="lang-en">Effective from <strong>23 July 2026</strong></span>
-        <span class="lang-pl">Obowiązuje od <strong>23 lipca 2026 r.</strong></span>
-        <span class="lang-en">Applies to <strong>englishmetro.com</strong></span>
-        <span class="lang-pl">Dotyczy <strong>englishmetro.com</strong></span>
-      </div>
-      <div class="lang-en">
-        <h1>The rules of the <em>platform.</em></h1>
-        <p class="lede">The Terms of Service (Regulamin) of englishmetro.com, operated by Fundacja Rozwoju Przedsiębiorczości “Twój StartUp” — ordering, payments, withdrawal and complaints.</p>
-      </div>
-      <div class="lang-pl">
-        <h1>Regulamin <em>serwisu.</em></h1>
-        <p class="lede">Regulamin serwisu englishmetro.com prowadzonego przez Fundację Rozwoju Przedsiębiorczości „Twój StartUp” — warunki zamówień, płatności, odstąpienia od umowy i reklamacji.</p>
-      </div>
-    </div>
-  </div>
+export const TERMS_TITLE_PL = 'Regulamin serwisu englishmetro.com'
 
-  <div class="legal-layout">
-    <main class="legal-main">
-      <div class="lang-en">
-        <div class="fl-en-notice" role="note">
-          <p><strong>English summary.</strong> englishmetro.com is operated by Fundacja Rozwoju Przedsiębiorczości „Twój StartUp"
-          (Warsaw, Poland — KRS 0000442857, NIP 5213641211) through its organised business unit
-          EnglishMetro, represented by Moemedi Michael Poncana. The legally binding version of this document is the
-          Polish text below, as approved by the Foundation's legal team. Questions? Write to
-          <a href="mailto:michael.poncana@englishmetro.com">michael.poncana@englishmetro.com</a> — we will gladly explain any clause in English.</p>
-        </div>
-      </div>
-      <article class="fl-doc fl-page" lang="pl">
-
+export const TERMS_HTML_PL = `
 <section class="fl-sec" id="par-1">
 <h2>§ 1 Postanowienia ogólne</h2>
 <ol class="fl-ol">
@@ -490,26 +459,145 @@
 <p>Data: ………………………….</p>
 </div>
 </section>
+`
 
-      </article>
-    </main>
-  </div>
+export const PRIVACY_TITLE_PL = 'Polityka prywatności serwisu englishmetro.com'
 
-  <footer class="legal-footer">
-    <div class="legal-footer-inner">
-      <div>
-        <span class="lang-en">EnglishMetro — an organised business unit of Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467</span>
-        <span class="lang-pl">EnglishMetro — zorganizowana część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP 5213641211 · REGON 146433467</span>
-      </div>
-      <nav>
-        <a href="/"><span class="lang-en">Home</span><span class="lang-pl">Strona główna</span></a>
-        <a href="/privacy/"><span class="lang-en">Privacy Policy</span><span class="lang-pl">Polityka prywatności</span></a>
-        <a href="/cookies/"><span class="lang-en">Cookies Policy</span><span class="lang-pl">Polityka cookies</span></a>
-        <a href="/terms/"><span class="lang-en">Terms of Service</span><span class="lang-pl">Regulamin</span></a>
-        <a href="mailto:michael.poncana@englishmetro.com">michael.poncana@englishmetro.com</a>
-      </nav>
-    </div>
-  </footer>
+export const PRIVACY_HTML_PL = `
+<section class="fl-sec">
+<h2>Kto jest administratorem Państwa danych?</h2>
+<p>Administratorem Pani/Pana danych osobowych jest FUNDACJA ROZWOJU PRZEDSIĘBIORCZOŚCI „TWÓJ STARTUP" z siedzibą w Warszawie (adres siedziby: ul. Żurawia 6/12, lok. 766, 00-503 Warszawa).</p>
+<p>Powyższa polityka prywatności dotyczy usług Fundacji świadczonych przez zorganizowaną część przedsiębiorstwa EnglishMetro, dane kontaktowe: numer telefonu +48 662 563 507, adres e-mail: michael.poncana@englishmetro.com, realizowanych przez Moemedi Michael Poncana.</p>
+</section>
 
-</body>
-</html>
+<section class="fl-sec">
+<h2>Dlaczego przetwarzamy Państwa dane?</h2>
+<ol class="fl-ol">
+<li>W związku z usługami świadczonymi za pośrednictwem serwisu https://englishmetro.com polegającymi na prowadzeniu indywidualnych lekcji języka angielskiego online, sprzedaży pakietów lekcji oraz udostępnianiu cyfrowych materiałów edukacyjnych, tj. w celu zawarcia lub wykonania umowy (art. 6 ust. 1 lit. b Rozporządzenia). Państwa dane będą przechowywane do czasu wykonania umowy.</li>
+<li>W przypadku, gdy uczestnikiem lekcji jest osoba małoletnia wskazana przez Klienta, dane osobowe osoby małoletniej (imię, poziom językowy, postępy w nauce) przetwarzane są na podstawie zgody Klienta — rodzica lub opiekuna prawnego (art. 6 ust. 1 lit. a oraz art. 8 RODO), wyłącznie w zakresie niezbędnym do świadczenia usług edukacyjnych.</li>
+<li>W celach marketingowych i promocji produktów oferowanych przez Fundację Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie będących naszym prawnie uzasadnionym interesem (art. 6 ust. 1 lit. f Rozporządzenia). Państwa dane będą przetwarzane do czasu wyrażenia sprzeciwu.</li>
+<li>Wypełniania wszelkich ciążących na nas obowiązków prawnych w związku z podjętą współpracą (art. 6 ust. 1 lit. c Rozporządzenia), cel ten związany jest z obowiązkami prawnymi przechowania określonych dokumentów przez czas wskazany w przepisach prawa, np.:
+<ol class="fl-ol-alpha">
+<li>Ustawy z 29.09.1994 r. o rachunkowości (Dz. U. z 2017 r. poz. 1858);</li>
+<li>Ustawy z dnia 29 sierpnia 1997 r. - Ordynacja podatkowa (Dz. U. 1997 nr 137 poz. 926);</li>
+<li>Ustawy z dnia 1 marca 2018 r. - o przeciwdziałaniu praniu pieniędzy oraz finansowaniu terroryzmu (Dz. U. 2018 poz. 723).</li>
+</ol></li>
+<li>W celu ewentualnego ustalenia, dochodzenia lub obrony przed roszczeniami, co jest naszym prawnie uzasadnionym interesem (podstawa z art. 6 ust. 1 lit. f Rozporządzenia). Dane będą przetwarzane do czasu przedawnienia roszczeń.</li>
+<li>W przypadku wyrażenia zgody, Państwa dane będą przetwarzane w granicach i celu wskazanym w wyrażonej zgodzie (podstawa z art. 6 ust. 1 lit. a). Dane będą przetwarzane do czasu wycofania zgody.</li>
+</ol>
+</section>
+
+<section class="fl-sec">
+<h2>Jakie dane podlegają przetwarzaniu?</h2>
+<p>Do zawarcia umowy wymagamy podania danych na formularzu umowy / zamówienia (jeśli ich Państwo nie podadzą, nie zawrzemy umowy / nie wykonamy zamówienia). Dodatkowo możemy poprosić o dane opcjonalne, które nie mają wpływu na zawarcie umowy (jeśli ich nie otrzymamy, nie będziemy mogli, np. dzwonić pod numer kontaktowy).</p>
+<p>W trakcie trwania umowy, świadcząc usługi, wchodzimy w posiadanie innych Pani/Pana danych. Pojawienie się u nas Pani/Pana danych osobowych jest konsekwencją działania naszych usług, z których Pan/Pani korzysta.</p>
+</section>
+
+<section class="fl-sec">
+<h2>Komu zostaną udostępnione dane?</h2>
+<ol class="fl-ol">
+<li>Organy władzy publicznej, w zakresie, w którym nie otrzymują danych w ramach konkretnego postępowania na podstawie prawa np. w związku z przeciwdziałaniem praniu pieniędzy;</li>
+<li>Podmioty, które przetwarzają Pana/Pani dane osobowe w imieniu Fundacji na podstawie zawartej z Fundacją umowy powierzania przetwarzania danych osobowych (tzw. podmioty przetwarzające). Będą to, m.in.: Beneficjenci Fundacji, informatycy, firmy archiwizujące, firmy hostingowe;</li>
+<li>Zewnętrzni administratorzy danych (tzw. Równoległy Administrator, któremu dane są udostępniane, np. radcy prawni i adwokaci, podmioty prowadzące działalność kurierską lub pocztową, podmioty nabywające wierzytelności - w razie niezapłacenia przez Państwa naszych faktur w terminie);</li>
+<li>Podmioty znajdujące się poza EOG, lecz tylko wtedy, gdy jest to konieczne i z zapewnieniem odpowiedniego stopnia ochrony, przede wszystkim poprzez:
+<ol class="fl-ol-alpha">
+<li>współpracę z podmiotami w państwach, w odniesieniu, do których została wydana stosowna decyzja Komisji Europejskiej;</li>
+<li>zastosowanie standardowych klauzul umownych wydanych przez Komisję Europejską.</li>
+</ol></li>
+</ol>
+<p>Administrator zawsze informuje o zamiarze przekazania danych osobowych poza EOG na etapie ich zbierania.</p>
+</section>
+
+<section class="fl-sec">
+<h2>Czy dane są profilowane?</h2>
+<p>Informujemy, iż Państwa dane nie będą podlegać profilowaniu, czyli zautomatyzowanej analizy Pana/Pani danych i opracowania przewidywań na temat preferencji lub przyszłych zachowań (profilowanie oznacza, np. w przypadku profilowania marketingowego określanie, którą ofertą może być Pan/Pani najbardziej zainteresowany/a w oparciu o wcześniejsze Pana/Pani wybory).</p>
+</section>
+
+<section class="fl-sec">
+<h2>Jakie przysługują Państwu prawa?</h2>
+<ol class="fl-ol">
+<li>Prawo dostępu do przetwarzanych przez nas danych osobowych (art. 15 Rozporządzenia);</li>
+<li>Prawo do sprostowania powierzonych danych osobowych, w tym ich poprawianie (art. 16 Rozporządzenia);</li>
+<li>Prawo do usunięcia danych osobowych z naszych systemów tzw. „prawo do bycia zapomnianym" - jeżeli Państwa zdaniem nie ma podstaw do tego, abyśmy przetwarzali Państwa dane, mogą Państwo zażądać, abyśmy je usunęli (art. 17 Rozporządzenia);</li>
+<li>Prawo do ograniczenia przetwarzania danych osobowych - mogą Państwo zażądać, abyśmy ograniczyli przetwarzanie danych osobowych wyłącznie do ich przechowywania lub wykonywania uzgodnionych z Państwem działań, jeżeli posiadamy nieprawidłowe dane na Państwa temat lub przetwarzamy je bezpodstawnie; lub nie chcą Państwo, żebyśmy je usunęli, bo są Państwu potrzebne do ustalenia, dochodzenia lub obrony roszczeń; lub na czas wniesionego przez sprzeciwu względem przetwarzania danych (art. 18 Rozporządzenia);</li>
+<li>Prawo do przenoszenia danych – mają Państwo prawo otrzymać od nas w ustrukturyzowanym, powszechnie używanym formacie nadającym się do odczytu maszynowego (np. format „.csv") dane osobowe dotyczące Państwa, w których posiadaniu jesteśmy na podstawie umowy lub wyrażonej zgody. Uprawnienie to będzie przysługiwało, gdy będziemy posiadać dane w formacie elektronicznym – w przypadku posiadania danych jedynie w formie papierowej nie będą Państwo mieli możliwości skorzystania z tego uprawnienia. Mogą Państwo zlecić nam przesłanie tych danych bezpośrednio innemu podmiotowi (art. 20 Rozporządzenia);</li>
+<li>Prawo do cofnięcia zgody na przetwarzanie danych osobowych - w każdej chwili mają Państwo prawo cofnąć zgodę na przetwarzanie danych osobowych, które przetwarzamy na podstawie zgody – art. 7 ust. 3 Rozporządzenia. Cofnięcie zgody nie będzie wpływać na zgodność z prawem przetwarzania, którego dokonano na podstawie zgody przed jej wycofaniem. Cofnięcie zgody występuje poprzez wysłanie wiadomości mailowej na adres: michael.poncana@englishmetro.com;</li>
+<li>Prawo do sprzeciwu - może Pan/Pani wnieść sprzeciw wobec przetwarzania Pana/Pani danych, jeśli podstawą wykorzystania danych jest nasz prawnie uzasadniony interes - art. 21 Rozporządzenia. W takiej sytuacji, po rozpatrzeniu Państwa wniosku, nie będziemy już mogli przetwarzać danych osobowych objętych sprzeciwem na tej podstawie, chyba, że wykażemy, istnienie prawnie uzasadnionych podstaw do przetwarzania danych, które uznaje się za nadrzędne wobec Państwa interesów, praw i wolności;</li>
+<li>Jeżeli w Państwa opinii przetwarzanie danych osobowych narusza przepisy Rozporządzenia, przysługuje Państwu prawo do wniesienia skargi do organu nadzorczego tj. Prezesa Urzędu Ochrony Danych Osobowych.</li>
+</ol>
+</section>
+
+<section class="fl-sec">
+<h2>Kontakt</h2>
+<p>Jeśli potrzebujecie Państwo dodatkowych informacji związanych z ochroną danych osobowych lub chcecie skorzystać z przysługujących praw, prosimy o kontakt na adres e-mail: rodo@twojstartup.pl</p>
+</section>
+`
+
+export const COOKIES_TITLE_PL = 'Polityka Cookies'
+
+export const COOKIES_HTML_PL = `
+<section class="fl-sec">
+<p>Cookies stanowią pliki tekstowe i powstają one w sposób automatyczny za pomocą przeglądarek internetowych w momencie odwiedzania lub korzystania ze stron internetowych. Są one wysyłane przez stronę internetową i zapisywane na urządzeniu użytkownika. Za ich pomocą administrator otrzymuje informacje pozwalające między innymi na umożliwienie prawidłowego działania strony, zapewnienie bezpieczeństwa a także usprawnienie jej działania.</p>
+</section>
+
+<section class="fl-sec">
+<h2>Administrator danych</h2>
+<p>Administratorem danych osobowych jest FUNDACJA ROZWOJU PRZEDSIĘBIORCZOŚCI „TWÓJ STARTUP" z siedzibą w Warszawie (adres siedziby: ul. Żurawia 6/12, lok. 766, 00-503 Warszawa), wpisana do Rejestru Przedsiębiorców Krajowego Rejestru Sądowego przez Sąd Rejonowy dla m.st. Warszawy w Warszawie, XII Wydział Gospodarczy KRS pod numerem 0000442857; NIP: 5213641211; REGON: 146433467, dane kontaktowe: numer telefonu +48 662 563 507, adres e-mail: michael.poncana@englishmetro.com, w związku z realizowaną przez Moemedi Michael Poncana zorganizowaną częścią przedsiębiorstwa o nazwie EnglishMetro.</p>
+</section>
+
+<section class="fl-sec">
+<h2>Rodzaje plików cookies</h2>
+<p>W ramach naszych stron internetowych wykorzystujemy następujące rodzaje plików cookies:</p>
+<ul class="fl-ul">
+<li><strong>Niezbędne/Techniczne:</strong> Niniejsze pliki są konieczne dla prawidłowego funkcjonowania strony internetowej. Pliki te są instalowane w szczególności na potrzeby zapamiętywania sesji logowania lub wypełniania formularzy, a także w celu zapamiętania czy zostałeś poinformowany o wykorzystywaniu plików cookies.</li>
+<li><strong>Funkcjonalne:</strong> Zapamiętują i dostosowują platformę do Twoich wyborów, np. pozwalają na automatyczne uzupełnienie adresu e-mail, z którego ostatnio logowano się w ramach platformy.</li>
+<li><strong>Analityczne:</strong> Pozwalają na sprawdzenie liczby wizyt i źródeł ruchu. Za ich pomocą jesteśmy w stanie ustalić które strony cieszą się popularnością a które nie. Za ich pomocą badamy statystyki i poprawiamy wydajność naszych stron. Obecnie serwis EnglishMetro nie korzysta z narzędzi analitycznych ani marketingowych — w razie ich uruchomienia niniejsza polityka zostanie zaktualizowana, a zgoda użytkownika zostanie odebrana przed ich włączeniem.</li>
+<li><strong>Marketingowe:</strong> Pozwalają na dopasowanie wyświetlanych treści reklamowych do zainteresowań użytkownika, nie tylko w ramach naszego portalu, ale też poza nim. Mogą być instalowane przez partnerów reklamowych. Na podstawie informacji z tych plików cookie i aktywności w innych serwisach jest budowany profil zainteresowań użytkownika.</li>
+<li><strong>Pliki cookies portali społecznościowych:</strong> Są to pliki cookie instalowane przez naszych partnerów, żeby dopasowywać wyświetlane treści reklamowe w mediach społecznościowych. Na ich podstawie budowany jest profil zainteresowań użytkownika. Dzięki temu wyświetlane treści są dopasowane do indywidualnych potrzeb użytkownika.</li>
+</ul>
+</section>
+
+<section class="fl-sec">
+<h2>Czas przechowywania plików cookies</h2>
+<ul class="fl-ul">
+<li><strong>Sesyjne</strong> - są przechowywane na użytkowanym urządzeniu do czasu opuszczenia strony, np. poprzez wyłączenie przeglądarki internetowej.</li>
+<li><strong>Stałe</strong> - istnieją do czasu ich ręcznego usunięcia bądź upłynięcia określonego w przeglądarce czasu.</li>
+</ul>
+</section>
+
+<section class="fl-sec">
+<h2>Rodzaj zbieranych danych</h2>
+<p>Zaliczamy do nich:</p>
+<ul class="fl-ul">
+<li>adres IP urządzenia z którego korzysta użytkownik;</li>
+<li>typ urządzenia;</li>
+<li>czas przebywania na stronie;</li>
+<li>podjęte czynności na stronie;</li>
+<li>lokalizację z której dokonywane jest połączenie.</li>
+</ul>
+</section>
+
+<section class="fl-sec">
+<h2>Sposób wycofania zgody</h2>
+<p>Niektóre ciasteczka są pobierane przez przeglądarkę internetową w chwili wejścia na stronę internetową. W celu zablokowania możliwości pobierania ciasteczek należy zastosować metodę istniejącą dla danej przeglądarki internetowej:</p>
+<ul class="fl-ul">
+<li>Firefox</li>
+<li>Chrome</li>
+<li>Microsoft Edge</li>
+<li>Safari</li>
+</ul>
+<p>Brak możliwości zapisywania/odczytywania plików cookies może skutkować niepełnym i niepoprawnym działaniem strony internetowej, jednakże korzystanie ze strony będzie nadal możliwe.</p>
+</section>
+
+<section class="fl-sec">
+<h2>Kontakt</h2>
+<p>W przypadku pytań dotyczących przetwarzania danych osobowych lub woli skorzystania z przysługujących praw, można skontaktować się z nami pod adresami wskazanymi w punkcie „Administrator danych".</p>
+<p>Ponadto informacje o nas i przysługujących Tobie prawach, można znaleźć pod wskazanym adresem: <a href="https://englishmetro.com/privacy/">https://englishmetro.com/privacy/</a></p>
+<p>W przypadku naruszenia przepisów o ochronie danych osobowych, masz prawo do zgłoszenia skargi do Prezesa Urzędu Ochrony Danych Osobowych pod adresem <a href="https://uodo.gov.pl/" rel="noopener">https://uodo.gov.pl/</a></p>
+</section>
+`
+
+// Footer / checkout identity block (Przelewy24 requirement: the Foundation's
+// NIP and identity visible on the site).
+export const FOUNDATION_FOOTER_PL = 'EnglishMetro — zorganizowana część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP 5213641211 · REGON 146433467'
+export const FOUNDATION_FOOTER_EN = 'EnglishMetro — an organised business unit of Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467'

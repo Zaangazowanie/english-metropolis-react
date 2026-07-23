@@ -3,6 +3,9 @@ import { Link, useLocation } from 'react-router-dom'
 import { Skyline } from '../../design/v3/primitives.jsx'
 import './lesson-pricing-signup.css'
 import { PRIVATE_PACKAGES } from './packages.js'
+import CartUI from './CartUI.jsx'
+import { cart, parsePricePLN } from './cart-store.js'
+import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN } from '../legal/foundation-legal-content.js'
 
 
 const SPECIALIST_PACKAGES = [
@@ -104,7 +107,7 @@ const POLICIES = [
   {
     icon: 'lock',
     title: 'Online payments',
-    copy: 'Online payment will be connected after the Polish gateway and Twoj Startup review are approved.',
+    copy: 'Add packages to the cart and place your order. Online payment via Przelewy24 (BLIK, cards, fast transfer) is being activated - until then we send your secure payment link by email.',
   },
 ]
 
@@ -215,7 +218,7 @@ const POLICY_PL = {
   },
   'Online payments': {
     title: 'Platnosci online',
-    copy: 'Platnosc online zostanie podlaczona po akceptacji bramki platniczej i przegladzie Twoj Startup.',
+    copy: 'Dodaj pakiety do koszyka i zloz zamowienie. Platnosc online przez Przelewy24 (BLIK, karty, szybki przelew) jest w trakcie aktywacji - do tego czasu bezpieczny link do platnosci wysylamy e-mailem.',
   },
 }
 function buildSummary({ selectedPackage, format, learnerName, email, level, goals, lang }) {
@@ -253,6 +256,22 @@ export default function LessonPricingSignup() {
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [polishKey, setPolishKey] = useState(0)
+  const [justAdded, setJustAdded] = useState(null)
+  const addedTimer = useRef(null)
+
+  function addToCart(pkg, extra = {}) {
+    cart.add({
+      id: pkg.id,
+      name: pkg.name,
+      pace: pkg.pace || pkg.detail || '',
+      pacePl: PACKAGE_PL[pkg.id]?.pace || COURSE_PL[pkg.id]?.detail || pkg.pace || pkg.detail || '',
+      pricePLN: parsePricePLN(pkg.price),
+      ...extra,
+    })
+    setJustAdded(pkg.id)
+    window.clearTimeout(addedTimer.current)
+    addedTimer.current = window.setTimeout(() => setJustAdded(null), 1400)
+  }
 
   const selectedPackage = useMemo(
     () => PACKAGES.find((pkg) => pkg.id === packageId) || PRIVATE_PACKAGES[2],
@@ -444,6 +463,17 @@ export default function LessonPricingSignup() {
                   </li>
                 ))}
               </ul>
+              <button
+                type="button"
+                className="lp-add-cart"
+                data-added={justAdded === pkg.id}
+                onClick={() => addToCart(pkg)}
+              >
+                <span className="material-symbols-outlined" aria-hidden>
+                  {justAdded === pkg.id ? 'check' : 'add_shopping_cart'}
+                </span>
+                {justAdded === pkg.id ? t('Added', 'Dodano') : t('Add to cart', 'Do koszyka')}
+              </button>
             </article>
           ))}
         </div>
@@ -481,6 +511,17 @@ export default function LessonPricingSignup() {
                     </li>
                   ))}
                 </ul>
+                <button
+                  type="button"
+                  className="lp-add-cart"
+                  data-added={justAdded === pkg.id}
+                  onClick={() => addToCart(pkg)}
+                >
+                  <span className="material-symbols-outlined" aria-hidden>
+                    {justAdded === pkg.id ? 'check' : 'add_shopping_cart'}
+                  </span>
+                  {justAdded === pkg.id ? t('Added', 'Dodano') : t('Add to cart', 'Do koszyka')}
+                </button>
               </article>
             ))}
           </div>
@@ -507,6 +548,17 @@ export default function LessonPricingSignup() {
               <h3>{isPl ? (COURSE_PL[course.id]?.name || course.name) : course.name}</h3>
               <strong>{course.price}</strong>
               <small>{isPl ? (COURSE_PL[course.id]?.detail || course.detail) : course.detail}</small>
+              <button
+                type="button"
+                className="lp-add-cart lp-add-cart-course"
+                data-added={justAdded === course.id}
+                onClick={() => addToCart({ ...course, name: isPl ? (COURSE_PL[course.id]?.name || course.name) : course.name })}
+              >
+                <span className="material-symbols-outlined" aria-hidden>
+                  {justAdded === course.id ? 'check' : 'add_shopping_cart'}
+                </span>
+                {justAdded === course.id ? t('Added', 'Dodano') : t('Add to cart', 'Do koszyka')}
+              </button>
             </article>
           ))}
         </div>
@@ -682,6 +734,18 @@ export default function LessonPricingSignup() {
           </p>
         </form>
       </section>
+
+      <footer className="lp-footer">
+        <p>{isPl ? FOUNDATION_FOOTER_PL : FOUNDATION_FOOTER_EN}</p>
+        <nav aria-label={t('Legal', 'Dokumenty prawne')}>
+          <Link to="/terms">{t('Terms', 'Regulamin')}</Link>
+          <Link to="/privacy">{t('Privacy Policy', 'Polityka prywatnosci')}</Link>
+          <Link to="/cookies">{t('Cookies Policy', 'Polityka cookies')}</Link>
+          <a href={`mailto:${FOUNDATION.email}`}>{FOUNDATION.email}</a>
+        </nav>
+      </footer>
+
+      <CartUI lang={lang} />
     </main>
   )
 }
