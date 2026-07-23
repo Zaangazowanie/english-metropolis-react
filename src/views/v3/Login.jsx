@@ -8,6 +8,7 @@ import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Field, Glass, Skyline } from '../../design/v3/primitives.jsx'
 import { useI18n } from '../../i18n'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
+import '../login-v2.css'
 
 // Google OAuth client ID — same client as Mission Control. Authorized JS
 // origins (englishmetro.com, staging.englishmetro.com) must be added in
@@ -277,10 +278,10 @@ export default function LoginV3() {
              radial-gradient(ellipse 60% 45% at 8% 26%, rgba(63,131,248,0.12), transparent 58%),
              linear-gradient(180deg, #060d1d 0%, #0b2147 52%, #0d2d62 100%)`
           : isDay
-          ? `radial-gradient(ellipse 140% 80% at 50% 120%, rgba(217,70,239,0.14), transparent 60%),
-             radial-gradient(ellipse 80% 60% at 85% 15%, rgba(251,146,60,0.22), transparent 60%),
-             radial-gradient(ellipse 70% 50% at 15% 30%, rgba(139,92,246,0.10), transparent 60%),
-             linear-gradient(180deg, #FFF8F0 0%, #FBEFE2 40%, #F3E8FF 100%)`
+          ? `radial-gradient(ellipse 140% 80% at 50% 120%, rgba(217,70,239,0.08), transparent 60%),
+             radial-gradient(ellipse 80% 60% at 85% 15%, rgba(139,92,246,0.08), transparent 60%),
+             radial-gradient(ellipse 70% 50% at 15% 30%, rgba(99,102,241,0.06), transparent 60%),
+             linear-gradient(180deg, #FDFCFF 0%, #F9F6FE 45%, #F3EEFB 100%)`
           : `radial-gradient(ellipse 140% 80% at 50% 120%, rgba(139,92,246,0.28), transparent 60%),
              radial-gradient(ellipse 80% 60% at 80% 20%, rgba(217,70,239,0.18), transparent 60%),
              linear-gradient(180deg, #030208 0%, #0A0618 45%, #120929 100%)` }}/>
@@ -315,31 +316,42 @@ export default function LoginV3() {
             </div>
           ) : (
           <>
-          <div style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 700,
-            letterSpacing: '0.3em', textTransform: 'uppercase', color: T.emerald,
-            marginBottom: 24, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: T.emerald,
-              boxShadow: `0 0 10px ${T.emerald}` }}/>
-            {t('login.kicker')}
-          </div>
-          <div style={{ marginBottom: 24 }}><Skyline size={48}/></div>
-          <h1 style={{ fontFamily: FONT.display, fontWeight: 600,
-            fontSize: isMobile ? 'clamp(40px, 13vw, 68px)' : 'clamp(96px, 11vw, 168px)',
-            lineHeight: 0.92, letterSpacing: '-0.04em',
-            margin: 0, color: T.text }}>
-            <div>English</div>
-            <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
-              <span style={{ background: G.brand, WebkitBackgroundClip: 'text',
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+            <Skyline size={30}/>
+            <div style={{ fontFamily: FONT.display, fontWeight: 800, fontSize: 21, letterSpacing: '-0.02em' }}>
+              English <span style={{ background: G.brand, WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Metro</span>
-              <span style={{ color: T.ember, textShadow: `0 0 20px ${T.ember}aa` }}>.</span>
+              <span style={{ color: T.ember }}>.</span>
             </div>
-            <div style={{ fontSize: '0.34em', color: T.textDim, fontWeight: 400,
-              letterSpacing: '-0.01em', marginTop: 12 }}>com</div>
+          </div>
+          <h1 style={{ fontFamily: FONT.display, fontWeight: 800,
+            fontSize: isMobile ? 'clamp(30px, 9vw, 42px)' : 'clamp(34px, 3.2vw, 46px)',
+            lineHeight: 1.05, letterSpacing: '-0.03em', margin: '0 0 12px', color: T.text }}>
+            {t('login.kicker')}
           </h1>
-          <p style={{ marginTop: 32, fontSize: isMobile ? 15 : 17,
-            color: T.textDim, lineHeight: 1.55, maxWidth: 520, fontStyle: 'italic' }}>
+          <p style={{ margin: '0 0 26px', fontSize: isMobile ? 14.5 : 16,
+            color: T.textDim, lineHeight: 1.6, maxWidth: 480 }}>
             {t('login.slogan')}
           </p>
+          {!isMobile && (
+            <div className="emlv3-photo">
+              <img className="eml-photo-img" src="/home/photo-login.webp" alt="" loading="eager"/>
+              <div className="eml-photo-chips">
+                <span className="eml-photo-chip">
+                  <span className="material-symbols-outlined">videocam</span>
+                  Lekcje 1:1 na żywo · 60 min
+                </span>
+                <span className="eml-photo-chip">
+                  <span className="material-symbols-outlined">style</span>
+                  Słówka stają się fiszkami
+                </span>
+              </div>
+              <div className="eml-photo-quote">
+                <strong>Twoja trasa do płynnego angielskiego zaczyna się tutaj.</strong>
+                <span>englishmetro.com</span>
+              </div>
+            </div>
+          )}
           </>
           )}
         </div>

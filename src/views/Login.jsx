@@ -4,14 +4,16 @@ import { useI18n } from '../i18n'
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx'
 import { useAdminAuth } from '../contexts/AdminAuthContext.jsx'
 import { useStudentAuth } from '../contexts/StudentAuthContext.jsx'
+import { Skyline } from '../design/v3/primitives.jsx'
+import './login-v2.css'
 
 /**
- * English Metropolis login landing — big-city skyline video background,
- * shimmering EnglishMetro.com wordmark, neon CTA. Built for the fresh
- * englishmetro.com deployment. Animation is pure CSS — no external libs.
+ * English Metropolis login — light split-screen (2026-07-23 refresh):
+ * form on the left, photography panel on the right, day-first design system,
+ * Plus Jakarta Sans. Auth logic and i18n keys unchanged from v1.
  */
 export default function Login() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const { adminLogin } = useAdminAuth()
   const { studentLogin } = useStudentAuth()
   const [role, setRole] = useState('student') // 'student' | 'school'
@@ -19,11 +21,10 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [authError, setAuthError] = useState(null)
-  // Easter-egg landing variant — Mike 2026-05-04: ~1 in 7 page-loads,
-  // the hero swaps the abstract skyline silhouette for the Chubby Bajla
-  // mascot leaning on the wordmark. Pure-random per page-load means each
-  // refresh re-rolls (no localStorage stickiness — that's the surprise).
+  // Easter-egg variant — Mike 2026-05-04: ~1 in 7 page-loads the mascot
+  // peeks over the photo panel. Pure-random per page-load, no stickiness.
   const [showChubby] = useState(() => Math.random() < (1 / 7))
+  const isPl = lang === 'pl'
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -67,114 +68,109 @@ export default function Login() {
   }
 
   return (
-    <div className="em-login-root">
-      <video
-        className="em-login-video"
-        autoPlay muted loop playsInline preload="auto"
-        poster="/favicon.svg"
-      >
-        <source src="/em-bg-h264.mp4" type="video/mp4" />
-        <source src="/em-bg.mp4" type="video/mp4; codecs=hvc1" />
-      </video>
-      <div className="em-login-veil" />
-      <div className="em-login-grid-overlay" />
-
-      <div className="em-login-topbar">
-        <LanguageSwitcher />
-      </div>
-
-      <main className="em-login-content">
-        <div className="em-login-brand">
-          <p className="em-login-kicker">{t('login.kicker')}</p>
-          <div className={`em-login-lockup ${showChubby ? 'em-login-lockup--chubby' : ''}`}>
-            {showChubby
-              ? <img src="/em-chubby-bajla.png" alt="" className="em-login-chubby" />
-              : <div className="em-login-skyline" role="img" aria-label="" />}
-            <h1 className="em-login-wordmark">
-              <span className="em-login-word">English</span>
-              <span className="em-login-word em-login-word-metro">Metro</span>
-              <span className="em-login-dot">.</span>
-              <span className="em-login-word em-login-word-com">com</span>
-            </h1>
-          </div>
-          <p className="em-login-slogan">{t('login.slogan')}</p>
+    <div className="eml-root">
+      <div className="eml-form-side">
+        <div className="eml-top">
+          <Link to="/" className="eml-brand" aria-label="English Metro home">
+            <Skyline size={28}/>
+            <span>English <span className="eml-brand-metro">Metro</span><span className="eml-brand-dot">.</span></span>
+          </Link>
+          <LanguageSwitcher />
         </div>
 
-        <form onSubmit={handleSubmit} className="em-login-card">
-          <div className="em-login-tabs" role="tablist" aria-label={t('login.cardLabel.student')}>
-            <button
-              type="button" role="tab"
-              aria-selected={role === 'student'}
-              className={`em-login-tab ${role === 'student' ? 'is-active' : ''}`}
-              onClick={() => setRole('student')}
-            >{t('login.tab.student')}</button>
-            <button
-              type="button" role="tab"
-              aria-selected={role === 'school'}
-              className={`em-login-tab ${role === 'school' ? 'is-active' : ''}`}
-              onClick={() => setRole('school')}
-            >{t('login.tab.admin')}</button>
-          </div>
-          <p className="em-login-card-label">
-            {role === 'student' ? t('login.cardLabel.student') : t('login.cardLabel.admin')}
-          </p>
-          <label className="em-login-field">
-            <span>{role === 'student' ? t('login.field.email.student') : t('login.field.email.admin')}</span>
-            <input
-              type="text"
-              autoComplete="username"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder={role === 'student' ? t('login.placeholder.email.student') : t('login.placeholder.email.admin')}
-              required
-            />
-          </label>
-          <label className="em-login-field">
-            <span>{t('login.field.password')}</span>
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder={t('login.placeholder.password')}
-              required
-            />
-          </label>
-          {authError && (
-            <div
-              style={{
-                marginBottom: 10,
-                padding: '8px 12px',
-                borderRadius: 10,
-                background: 'rgba(248, 113, 113, 0.12)',
-                border: '1px solid rgba(248, 113, 113, 0.32)',
-                color: '#fecaca',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              {authError}
-            </div>
-          )}
-          <button type="submit" className="em-login-button" disabled={loading}>
-            <span className="em-login-button-text">
-              {loading ? t('login.button.loading') : (role === 'student' ? t('login.button.student') : t('login.button.admin'))}
-            </span>
-            <span className="em-login-button-arrow">→</span>
-          </button>
-          <div className="em-login-meta">
-            <a href="mailto:hello@englishmetro.com">{t('login.meta.needAccess')}</a>
-            <span>·</span>
-            <Link to="/privacy">{t('login.meta.privacy')}</Link>
-            <span>·</span>
-            <Link to="/terms">{t('login.meta.terms')}</Link>
-          </div>
-        </form>
-      </main>
+        <div className="eml-body">
+          <p className="eml-kicker">{t('login.kicker')}</p>
+          <h1 className="eml-title">{isPl ? 'Witaj z powrotem.' : 'Welcome back.'}</h1>
+          <p className="eml-slogan">{t('login.slogan')}</p>
 
-      <footer className="em-login-footer">
-        <p>{t('login.footer', { year: new Date().getFullYear() })}</p>
-      </footer>
+          <form onSubmit={handleSubmit}>
+            <div className="eml-tabs" role="tablist" aria-label={t('login.cardLabel.student')}>
+              <button
+                type="button" role="tab"
+                aria-selected={role === 'student'}
+                className={`eml-tab ${role === 'student' ? 'is-active' : ''}`}
+                onClick={() => setRole('student')}
+              >{t('login.tab.student')}</button>
+              <button
+                type="button" role="tab"
+                aria-selected={role === 'school'}
+                className={`eml-tab ${role === 'school' ? 'is-active' : ''}`}
+                onClick={() => setRole('school')}
+              >{t('login.tab.admin')}</button>
+            </div>
+
+            <label className="eml-field">
+              <span>{role === 'student' ? t('login.field.email.student') : t('login.field.email.admin')}</span>
+              <input
+                type="text"
+                autoComplete="username"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder={role === 'student' ? t('login.placeholder.email.student') : t('login.placeholder.email.admin')}
+                required
+              />
+            </label>
+            <label className="eml-field">
+              <span>{t('login.field.password')}</span>
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder={t('login.placeholder.password')}
+                required
+              />
+            </label>
+
+            {authError && <div className="eml-error" role="alert">{authError}</div>}
+
+            <button type="submit" className="eml-submit" disabled={loading}>
+              {loading ? t('login.button.loading') : (role === 'student' ? t('login.button.student') : t('login.button.admin'))}
+              <span className="eml-arrow" aria-hidden>→</span>
+            </button>
+
+            <div className="eml-meta">
+              <a href="mailto:hello@englishmetro.com">{t('login.meta.needAccess')}</a>
+              <span>·</span>
+              <Link to="/privacy">{t('login.meta.privacy')}</Link>
+              <span>·</span>
+              <Link to="/terms">{t('login.meta.terms')}</Link>
+            </div>
+          </form>
+
+          <p className="eml-signup-hint">
+            {isPl ? 'Nie masz jeszcze konta?' : 'New to EnglishMetro?'}{' '}
+            <Link to="/signup">{isPl ? 'Załóż je za darmo' : 'Create a free account'}</Link>
+          </p>
+        </div>
+
+        <div className="eml-foot">
+          <p>{t('login.footer', { year: new Date().getFullYear() })}</p>
+        </div>
+      </div>
+
+      <aside className="eml-photo" aria-hidden>
+        <img className="eml-photo-img" src="/home/photo-login.webp" alt="" loading="eager"/>
+        <div className="eml-photo-chips">
+          <span className="eml-photo-chip">
+            <span className="material-symbols-outlined">videocam</span>
+            {isPl ? 'Lekcje 1:1 na żywo · 60 min' : 'Live 1:1 lessons · 60 min'}
+          </span>
+          <span className="eml-photo-chip">
+            <span className="material-symbols-outlined">style</span>
+            {isPl ? 'Słówka stają się fiszkami' : 'Your words become flashcards'}
+          </span>
+          <span className="eml-photo-chip">
+            <span className="material-symbols-outlined">public</span>
+            {isPl ? 'Miasto 3D między lekcjami' : 'A 3D city between lessons'}
+          </span>
+        </div>
+        <div className="eml-photo-quote">
+          <strong>{isPl ? 'Twoja trasa do płynnego angielskiego zaczyna się tutaj.' : 'Your route to fluent English starts here.'}</strong>
+          <span>englishmetro.com</span>
+        </div>
+        {showChubby && <img className="eml-chubby" src="/em-chubby-bajla.png" alt=""/>}
+      </aside>
     </div>
   )
 }

@@ -21,6 +21,8 @@ import { game3dRegistry } from '../../practice/shells3d/kit/registry'
 import { usePrefersReducedMotion } from '../../practice/lib/usePrefersReducedMotion'
 import { useI18n } from '../../i18n'
 import { PRIVATE_PACKAGES } from '../public/packages.js'
+import { cart, parsePricePLN } from '../public/cart-store.js'
+import CartUI from '../public/CartUI.jsx'
 import HeroPracticePreview from './HeroPracticePreview.jsx'
 import './game-home.css'
 
@@ -139,6 +141,17 @@ const GH = {
     cityCta: 'Build my learning route',
     cityLabel: 'Interactive 3D map of EnglishMetro',
     cityHint: 'Drag the city to explore',
+    lessonsKicker: 'real lessons, real people',
+    lessonsTitle: 'A teacher who knows your route.',
+    lessonsBody: 'Every lesson is live, personal and planned around your CEFR level. You talk, your teacher listens, and the city does the revision.',
+    lessonsPoints: ['Real conversation from minute one', 'Notes and a PDF after every lesson', 'Flashcards built from your own words'],
+    lessonsCta: 'Meet your teacher',
+    lessonsAltMain: 'A student smiling during a live online English lesson',
+    lessonsAltSide: 'A student laughing while practising English on a phone',
+    lessonsChipA: 'Live 1:1 · 60 min',
+    lessonsChipB: 'CEFR-matched',
+    stepsAlt: 'Your English teacher on a live video lesson',
+    stepsChip: 'Live · your own teacher',
   },
   pl: {
     navPricing: 'Cennik', navSignin: 'Zaloguj się', navSignup: 'Załóż konto', navDash: 'Mój panel',
@@ -178,6 +191,17 @@ const GH = {
     cityCta: 'Zbuduj moją ścieżkę',
     cityLabel: 'Interaktywna mapa 3D EnglishMetro',
     cityHint: 'Przeciągnij miasto, aby je odkrywać',
+    lessonsKicker: 'prawdziwe lekcje, prawdziwi ludzie',
+    lessonsTitle: 'Lektor, który zna Twoją trasę.',
+    lessonsBody: 'Każda lekcja jest na żywo, osobista i zaplanowana pod Twój poziom CEFR. Ty mówisz, lektor słucha, a miasto robi powtórki.',
+    lessonsPoints: ['Prawdziwa rozmowa od pierwszej minuty', 'Notatki i PDF po każdej lekcji', 'Fiszki z Twoich własnych słów'],
+    lessonsCta: 'Poznaj swojego lektora',
+    lessonsAltMain: 'Uśmiechnięta uczennica podczas lekcji angielskiego online na żywo',
+    lessonsAltSide: 'Uczeń śmiejący się podczas ćwiczenia angielskiego na telefonie',
+    lessonsChipA: 'Na żywo 1:1 · 60 min',
+    lessonsChipB: 'Dopasowane do CEFR',
+    stepsAlt: 'Twój lektor angielskiego podczas lekcji wideo na żywo',
+    stepsChip: 'Na żywo · Twój własny lektor',
   },
 }
 
@@ -692,6 +716,16 @@ export default function GameHome() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [openLines, setOpenLines] = useState(() => new Set([LINES[0].line]))
   const practiceRef = useRef(null)
+  // Same cart as /lessons and /checkout — a pack "rings up" here too.
+  const [packAdded, setPackAdded] = useState(null)
+  const packTimer = useRef(null)
+  const addPackToCart = (p) => {
+    cart.add({ id: p.id, name: p.name, pace: p.pace,
+      pacePl: p.pacePl || p.pace, pricePLN: parsePricePLN(p.price) })
+    setPackAdded(p.id)
+    window.clearTimeout(packTimer.current)
+    packTimer.current = window.setTimeout(() => setPackAdded(null), 1400)
+  }
 
   const quickPick = ALL_GAMES.find((g) => g.key === DAILY_PICK_KEY) || ALL_GAMES[0]
 
@@ -857,6 +891,50 @@ export default function GameHome() {
           ))}
         </section>
 
+        {/* ── Real lessons, real people — photography band ── */}
+        <section className="gh-section gh-lessons-band">
+          <Reveal className="gh-lessons-media">
+            <div className="gh-photo-frame gh-photo-frame--main">
+              <img src="/home/photo-student.webp" alt={W.lessonsAltMain} loading="lazy" width="1600" height="1067"/>
+              <span className="gh-float-chip gh-float-chip--a">
+                <span className="material-symbols-outlined" aria-hidden>videocam</span>
+                {W.lessonsChipA}
+              </span>
+              <span className="gh-float-chip gh-float-chip--b">
+                <span className="material-symbols-outlined" aria-hidden>track_changes</span>
+                {W.lessonsChipB}
+              </span>
+            </div>
+            <div className="gh-photo-frame gh-photo-frame--side">
+              <img src="/home/photo-practice.webp" alt={W.lessonsAltSide} loading="lazy" width="800" height="533"/>
+            </div>
+          </Reveal>
+          <Reveal className="gh-lessons-copy" delay={90}>
+            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+              textTransform: 'uppercase', color: T.fuchsia, marginBottom: 12 }}>{W.lessonsKicker}</div>
+            <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(30px, 4.2vw, 52px)',
+              lineHeight: 1.04, letterSpacing: '-0.035em', margin: '0 0 18px' }}>{W.lessonsTitle}</h2>
+            <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.35vw, 17px)', lineHeight: 1.7,
+              maxWidth: 520, margin: '0 0 22px' }}>{W.lessonsBody}</p>
+            <ul className="gh-lessons-points">
+              {W.lessonsPoints.map((point) => (
+                <li key={point}>
+                  <span className="material-symbols-outlined" aria-hidden>check_circle</span>
+                  {point}
+                </li>
+              ))}
+            </ul>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 26 }}>
+              <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward">
+                {W.lessonsCta}
+              </ActionLink>
+              <ActionLink to="/pricing" variant="secondary" size="lg" trailingIcon="sell">
+                {W.ctaPricing}
+              </ActionLink>
+            </div>
+          </Reveal>
+        </section>
+
         <section className="gh-city-loop gh-section">
           <Reveal className="gh-city-copy">
             <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
@@ -909,6 +987,15 @@ export default function GameHome() {
               letterSpacing: '-0.03em', margin: '0 0 26px' }}>
               {W.stepsTitle}
             </h2>
+          </Reveal>
+          <Reveal className="gh-steps-photo">
+            <div className="gh-photo-frame gh-photo-frame--wide">
+              <img src="/home/photo-teacher.webp" alt={W.stepsAlt} loading="lazy" width="1600" height="900"/>
+              <span className="gh-float-chip gh-float-chip--a">
+                <span className="material-symbols-outlined" aria-hidden>co_present</span>
+                {W.stepsChip}
+              </span>
+            </div>
           </Reveal>
           <div className="gh-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
             {W.steps.map((s, i) => (
@@ -966,8 +1053,18 @@ export default function GameHome() {
                     <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 30, letterSpacing: '-0.02em' }}>{p.price}</div>
                     <div style={{ fontSize: 12, color: T.textMute, marginBottom: 14 }}>{p.perLesson}</div>
                     <p style={{ margin: '0 0 18px', fontSize: 12.5, lineHeight: 1.55, color: T.textDim, flexGrow: 1 }}>{lang === 'pl' ? (p.bestForPl || p.bestFor) : p.bestFor}</p>
-                    <ActionLink to={`/signup?package=${p.id}`} variant={hot ? 'primary' : 'secondary'}
-                      full trailingIcon="arrow_forward">{W.packsStart}</ActionLink>
+                    <button type="button"
+                      className={`gh-action gh-action--${hot ? 'primary' : 'secondary'} gh-action--md gh-action--full gh-pack-add`}
+                      data-added={packAdded === p.id}
+                      onClick={() => addPackToCart(p)}
+                      aria-label={`${W.packsStart}: ${p.name}, ${p.price}`}>
+                      {packAdded === p.id
+                        ? (lang === 'pl' ? 'Dodano do koszyka' : 'Added to cart')
+                        : W.packsStart}
+                      <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 17 }}>
+                        {packAdded === p.id ? 'check' : 'add_shopping_cart'}
+                      </span>
+                    </button>
                   </div>
                 </Reveal>
               )
@@ -1108,23 +1205,31 @@ export default function GameHome() {
         </section>
 
         {/* ── Footer ── */}
-        <footer style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexWrap: 'wrap', gap: 14, padding: '0 0 34px', fontSize: 11, color: T.textMute }}>
-          <div style={{ letterSpacing: '0.24em', textTransform: 'uppercase' }}>
-            © {CURRENT_YEAR} englishmetro.com — Warszawa → The World
+        <footer style={{ padding: '0 0 34px', fontSize: 11, color: T.textMute }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexWrap: 'wrap', gap: 14, marginBottom: 12 }}>
+            <div style={{ letterSpacing: '0.24em', textTransform: 'uppercase' }}>
+              © {CURRENT_YEAR} englishmetro.com — Warszawa → The World
+            </div>
+            <div style={{ display: 'flex', gap: 16 }}>
+              <Link to="/pricing" style={{ color: T.textMute, textDecoration: 'none' }}>Pricing</Link>
+              <Link to="/signup" style={{ color: T.textMute, textDecoration: 'none' }}>Sign up</Link>
+              <Link to="/privacy" style={{ color: T.textMute, textDecoration: 'none' }}>Privacy</Link>
+              <Link to="/cookies" style={{ color: T.textMute, textDecoration: 'none' }}>Cookies</Link>
+              <Link to="/terms" style={{ color: T.textMute, textDecoration: 'none' }}>Terms</Link>
+              <a href="mailto:hello@englishmetro.com" style={{ color: T.textMute, textDecoration: 'none' }}>Contact</a>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 16 }}>
-            <Link to="/pricing" style={{ color: T.textMute, textDecoration: 'none' }}>Pricing</Link>
-            <Link to="/signup" style={{ color: T.textMute, textDecoration: 'none' }}>Sign up</Link>
-            <Link to="/privacy" style={{ color: T.textMute, textDecoration: 'none' }}>Privacy</Link>
-            <Link to="/cookies" style={{ color: T.textMute, textDecoration: 'none' }}>Cookies</Link>
-            <Link to="/terms" style={{ color: T.textMute, textDecoration: 'none' }}>Terms</Link>
-            <a href="mailto:hello@englishmetro.com" style={{ color: T.textMute, textDecoration: 'none' }}>Contact</a>
-          </div>
+          <p style={{ margin: 0, fontSize: 10.5, lineHeight: 1.6, color: T.textMute, maxWidth: 860 }}>
+            {lang === 'pl'
+              ? 'EnglishMetro — zorganizowana część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP 5213641211 · REGON 146433467'
+              : 'EnglishMetro — an organised business unit of Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467'}
+          </p>
         </footer>
       </div>
 
       {playing && <PlayOverlay game={playing} onClose={() => setPlaying(null)}/>}
+      <CartUI lang={lang === 'pl' ? 'pl' : 'en'}/>
     </div>
   )
 }

@@ -258,7 +258,9 @@ createRoot(document.getElementById('root')).render(
           <AdminAuthProvider>
             <StudentAuthProvider>
               <TeacherAuthProvider>
-                <V3ThemeProvider>
+                {/* Day-first since 2026-07-23 (Mike: lighter, Preply-like);
+                    the sun/moon toggle still stores an explicit choice. */}
+                <V3ThemeProvider defaultMode="day">
                   <BrowserRouter>
                     <RootRouter />
                   </BrowserRouter>

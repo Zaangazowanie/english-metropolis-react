@@ -1,9 +1,13 @@
 // English Metropolis v3 design tokens — ported from Claude Design handoff.
 // Aesthetic: deep violet night, glossy glass, purple→fuchsia→pink, ember-orange accent.
 
+// Type refresh 2026-07-23 (Mike): Plus Jakarta Sans — a stable, humanist
+// education sans (the Preply direction) — leads; Space Grotesk stays as the
+// fallback so unswapped surfaces degrade gracefully. All weights 400-800 are
+// already self-hosted in public/fonts (GDPR: no Google Fonts requests).
 export const FONT = {
-  display: "'Space Grotesk', 'Inter', system-ui, sans-serif",
-  body: "'Space Grotesk', 'Inter', system-ui, sans-serif",
+  display: "'Plus Jakarta Sans', 'Space Grotesk', 'Inter', system-ui, sans-serif",
+  body: "'Plus Jakarta Sans', 'Space Grotesk', 'Inter', system-ui, sans-serif",
   mono: "'JetBrains Mono', ui-monospace, monospace",
 }
 
@@ -92,7 +96,7 @@ export const DAY = {
   shadowSm: '0 6px 20px -8px rgba(0,0,0,0.10)',
   ringBrand: '0 0 0 1px rgba(162,28,175,0.25), 0 0 40px -8px rgba(217,70,239,0.30)',
   pageBg:
-    'radial-gradient(ellipse 100% 80% at 50% -10%, rgba(139,92,246,0.10), transparent 60%), radial-gradient(ellipse 80% 60% at 80% 30%, rgba(217,70,239,0.07), transparent 60%), radial-gradient(ellipse 80% 60% at 10% 70%, rgba(99,102,241,0.05), transparent 60%), #FBFAFF',
+    'radial-gradient(ellipse 100% 80% at 50% -10%, rgba(139,92,246,0.07), transparent 60%), radial-gradient(ellipse 80% 60% at 80% 30%, rgba(217,70,239,0.05), transparent 60%), radial-gradient(ellipse 80% 60% at 10% 70%, rgba(99,102,241,0.04), transparent 60%), #FDFCFF',
 }
 
 export const EASE = {

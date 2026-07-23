@@ -420,11 +420,6 @@ export const TERMS_HTML_PL = `
 </ol>
 </section>
 
-<section class="fl-sec" id="odr">
-<h2>Komunikat w sprawie pozasądowego rozstrzygania sporów</h2>
-<p>Zgodnie z rozporządzeniem Parlamentu Europejskiego i Rady (UE) Nr 524/2013 z dnia 21 maja 2013 r. w sprawie internetowego systemu rozstrzygania sporów konsumenckich oraz zmiany rozporządzenia (WE) nr 2006/2004 i dyrektywy 2009/22/WE (rozporządzenie w sprawie ODR w sporach konsumenckich), Fundacja Rozwoju Przedsiębiorczości „Twój Startup" z siedzibą w Warszawie niniejszym udostępnia łącze elektroniczne do internetowej platformy ODR (online dispute resolution): https://webgate.ec.europa.eu/odr. Platforma ODR umożliwia pozasądowe rozstrzyganie sporów między przedsiębiorcami i konsumentami. Rozstrzyganie sporów tą metodą ma charakter dobrowolny.</p>
-</section>
-
 <section class="fl-sec" id="withdrawal-form">
 <h2>Wzór formularza odstąpienia od umowy</h2>
 <p class="fl-note">(formularz ten należy wypełnić i odesłać tylko w przypadku chęci odstąpienia od umowy)</p>
@@ -1001,11 +996,6 @@ export const TERMS_HTML_EN = `
 <li>The use of a specific method of out-of-court dispute resolution is possible only with the mutual consent of the Customer and StartUp. Detailed procedures for out-of-court dispute resolution are available on the website of the Office of Competition and Consumer Protection (UOKiK): www.uokik.gov.pl, on the websites of the Provincial Inspectorates of Trade Inspection, and from district (municipal) consumer ombudsmen.</li>
 <li>These Terms are effective from: 23 July 2026.</li>
 </ol>
-</section>
-
-<section class="fl-sec" id="odr-en">
-<h2>Notice on out-of-court dispute resolution</h2>
-<p>In accordance with Regulation (EU) No 524/2013 of the European Parliament and of the Council of 21 May 2013 on online dispute resolution for consumer disputes and amending Regulation (EC) No 2006/2004 and Directive 2009/22/EC (Regulation on consumer ODR), Fundacja Rozwoju Przedsiębiorczości „Twój Startup" with its registered office in Warsaw hereby provides an electronic link to the online ODR (online dispute resolution) platform: https://webgate.ec.europa.eu/odr. The ODR platform enables out-of-court resolution of disputes between businesses and consumers. Dispute resolution by this method is voluntary.</p>
 </section>
 
 <section class="fl-sec" id="withdrawal-form-en">

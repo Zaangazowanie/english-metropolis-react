@@ -1075,3 +1075,111 @@
   }
   .gh-live-dot::after { animation: none; opacity: 0; }
 }
+
+/* ── 2026-07-23 refresh: photography band + floating chips + pack add ────── */
+.gh-lessons-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+  gap: 56px;
+  align-items: center;
+  padding-bottom: 72px;
+}
+@media (max-width: 900px) {
+  .gh-lessons-band { grid-template-columns: 1fr; gap: 30px; }
+  .gh-lessons-band .gh-lessons-copy { order: -1; }
+}
+
+.gh-lessons-media { position: relative; min-width: 0; }
+.gh-photo-frame {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 34px 90px -40px rgba(23, 16, 46, 0.35);
+  transform: translateZ(0);
+}
+.gh-photo-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 700ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .gh-photo-frame:hover img { transform: scale(1.03); }
+}
+.gh-photo-frame--main { aspect-ratio: 3 / 2; }
+.gh-photo-frame--side {
+  position: absolute;
+  right: -18px;
+  bottom: -34px;
+  width: min(46%, 260px);
+  aspect-ratio: 4 / 3;
+  border: 5px solid #FDFCFF;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px -24px rgba(23, 16, 46, 0.35);
+  animation: ghGentleFloat 7s ease-in-out infinite alternate;
+}
+.gh-photo-frame--wide { aspect-ratio: 21 / 9; margin-bottom: 26px; }
+@media (max-width: 900px) {
+  .gh-photo-frame--side { right: 6px; bottom: -22px; }
+  .gh-photo-frame--wide { aspect-ratio: 16 / 9; }
+}
+
+.gh-float-chip {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(16, 10, 40, 0.08);
+  box-shadow: 0 14px 34px -14px rgba(23, 16, 46, 0.3);
+  color: #17102E;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  animation: ghGentleFloat 6s ease-in-out infinite alternate;
+}
+.gh-float-chip .material-symbols-outlined { font-size: 16px; color: #7C3AED; }
+.gh-float-chip--a { top: 18px; left: 18px; }
+.gh-float-chip--b { bottom: 18px; left: 18px; animation-delay: 1.6s; }
+.gh-night .gh-float-chip { background: rgba(20, 12, 42, 0.88); color: #F4F0FF; border-color: rgba(255, 255, 255, 0.14); }
+.gh-night .gh-photo-frame--side { border-color: #0A0718; }
+
+@keyframes ghGentleFloat {
+  from { transform: translateY(0); }
+  to { transform: translateY(-8px); }
+}
+
+.gh-lessons-points { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.gh-lessons-points li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--gh-text-soft);
+}
+.gh-lessons-points .material-symbols-outlined { font-size: 19px; color: #059669; }
+.gh-night .gh-lessons-points .material-symbols-outlined { color: #34D399; }
+
+.gh-steps-photo { min-width: 0; }
+
+/* pack add-to-cart button feedback */
+.gh-pack-add { transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), filter 180ms ease; }
+.gh-pack-add:active { transform: scale(0.98); }
+.gh-pack-add[data-added="true"] {
+  background: linear-gradient(135deg, #34D399, #10B981) !important;
+  color: #052e1b !important;
+}
+
+/* reduced motion: stills */
+.gh-still .gh-photo-frame--side,
+.gh-still .gh-float-chip { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .gh-photo-frame--side, .gh-float-chip { animation: none; }
+  .gh-photo-frame img { transition: none; }
+}

@@ -1,12 +1,12 @@
 .lp-page {
-  --lp-bg: #050309;
-  --lp-ink: #f8f3ff;
-  --lp-muted: rgba(238, 229, 255, 0.68);
-  --lp-faint: rgba(238, 229, 255, 0.46);
-  --lp-line: rgba(255, 255, 255, 0.12);
-  --lp-line-strong: rgba(255, 255, 255, 0.2);
-  --lp-panel: rgba(15, 10, 34, 0.74);
-  --lp-panel-hi: rgba(30, 21, 61, 0.84);
+  --lp-bg: #FDFCFF;
+  --lp-ink: #17102E;
+  --lp-muted: #4A4270;
+  --lp-faint: #7E76A4;
+  --lp-line: rgba(16, 10, 40, 0.10);
+  --lp-line-strong: rgba(16, 10, 40, 0.16);
+  --lp-panel: rgba(255, 255, 255, 0.8);
+  --lp-panel-hi: rgba(248, 246, 255, 0.95);
   --lp-violet: #8b5cf6;
   --lp-fuchsia: #d946ef;
   --lp-pink: #f472b6;
@@ -17,8 +17,8 @@
   color: var(--lp-ink);
   background:
     radial-gradient(ellipse 110% 68% at 50% 0%, rgba(139, 92, 246, 0.18), transparent 62%),
-    linear-gradient(180deg, #030208 0%, #070413 46%, #110722 100%);
-  font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+    linear-gradient(180deg, #FDFCFF 0%, #FAF8FF 46%, #F4F0FC 100%);
+  font-family: "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
   overflow-x: hidden;
   position: relative;
   isolation: isolate;
@@ -32,7 +32,7 @@
   pointer-events: none;
   background:
     linear-gradient(115deg, transparent 0 34%, rgba(217, 70, 239, 0.08) 48%, transparent 62%),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 72px);
+    repeating-linear-gradient(90deg, rgba(16, 10, 40, 0.02) 0 1px, transparent 1px 72px);
   opacity: 0.55;
   transform: translate3d(0, 0, 0);
   animation: lpAmbientDrift 22s ease-in-out infinite alternate;
@@ -58,9 +58,10 @@
   z-index: 30;
   pointer-events: none;
   background:
-    linear-gradient(115deg, transparent 0 32%, rgba(255, 255, 255, 0.14) 46%, transparent 58%),
+    linear-gradient(115deg, transparent 0 32%, rgba(16, 10, 40, 0.12) 46%, transparent 58%),
     linear-gradient(180deg, rgba(139, 92, 246, 0.06), transparent 52%, rgba(217, 70, 239, 0.08));
-  mix-blend-mode: screen;
+  mix-blend-mode: multiply;
+  opacity: 0.35;
   animation: lpClickBloom 780ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -86,10 +87,10 @@
   padding: 10px 12px;
   border: 1px solid var(--lp-line);
   border-radius: 8px;
-  background: rgba(5, 3, 9, 0.72);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  box-shadow: 0 24px 70px -38px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 24px 70px -38px rgba(23, 16, 46, 0.16);
   overflow: hidden;
 }
 
@@ -139,7 +140,7 @@
   padding: 3px;
   border: 1px solid var(--lp-line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(16, 10, 40, 0.05);
 }
 
 .lp-lang-toggle button {
@@ -160,7 +161,7 @@
   color: var(--lp-ink);
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.82), rgba(217, 70, 239, 0.72));
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(16, 10, 40, 0.09),
     0 0 26px -8px rgba(217, 70, 239, 1);
   transform: translateY(-1px);
 }
@@ -180,7 +181,7 @@
 .lp-nav-links a:hover,
 .lp-nav-links a:focus-visible {
   color: var(--lp-ink);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(16, 10, 40, 0.07);
   outline: none;
 }
 
@@ -200,8 +201,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(5, 3, 9, 0.93) 0%, rgba(5, 3, 9, 0.68) 46%, rgba(5, 3, 9, 0.3) 100%),
-    linear-gradient(180deg, rgba(5, 3, 9, 0.1) 0%, rgba(5, 3, 9, 0.84) 92%),
+    linear-gradient(90deg, rgba(253, 252, 255, 0.95) 0%, rgba(253, 252, 255, 0.72) 46%, rgba(253, 252, 255, 0.3) 100%),
+    linear-gradient(180deg, rgba(253, 252, 255, 0.06) 0%, rgba(253, 252, 255, 0.88) 92%),
     url("/english-metro-media/09-metro-train.jpg") center / cover;
   transform: scale(1.02);
 }
@@ -317,7 +318,7 @@
 
 .lp-button-ghost,
 .lp-button-soft {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(16, 10, 40, 0.06);
   border-color: var(--lp-line);
 }
 
@@ -326,7 +327,7 @@
 .lp-button-soft:hover,
 .lp-button-soft:focus-visible {
   border-color: var(--lp-line-strong);
-  background: rgba(255, 255, 255, 0.11);
+  background: rgba(16, 10, 40, 0.10);
 }
 
 .lp-button-soft {
@@ -339,11 +340,11 @@
   padding: 12px;
   border: 1px solid var(--lp-line);
   border-radius: 8px;
-  background: rgba(8, 5, 18, 0.64);
+  background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(16, 10, 40, 0.10),
     0 28px 88px -50px rgba(217, 70, 239, 0.82);
 }
 
@@ -351,16 +352,16 @@
   position: relative;
   overflow: hidden;
   padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(16, 10, 40, 0.07);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(16, 10, 40, 0.04);
 }
 
 .lp-hero-panel div::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 42%);
+  background: linear-gradient(135deg, rgba(16, 10, 40, 0.07), transparent 42%);
   opacity: 0.62;
   pointer-events: none;
 }
@@ -452,8 +453,8 @@
   border-radius: 8px;
   background: linear-gradient(180deg, var(--lp-panel-hi), var(--lp-panel));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 28px 72px -44px rgba(0, 0, 0, 0.8);
+    inset 0 1px 0 rgba(16, 10, 40, 0.07),
+    0 28px 72px -44px rgba(23, 16, 46, 0.20);
 }
 
 .lp-package::before,
@@ -466,7 +467,7 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.1), transparent 34%),
+    linear-gradient(145deg, rgba(16, 10, 40, 0.09), transparent 34%),
     linear-gradient(90deg, transparent, rgba(244, 114, 182, 0.09), transparent);
   opacity: 0.58;
 }
@@ -497,9 +498,9 @@
 .lp-package:hover,
 .lp-package:focus-within {
   transform: translateY(-4px);
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: rgba(16, 10, 40, 0.18);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(16, 10, 40, 0.10),
     0 34px 96px -48px rgba(217, 70, 239, 0.92);
 }
 
@@ -533,7 +534,7 @@
 .lp-package.is-selected {
   border-color: rgba(244, 114, 182, 0.7);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(16, 10, 40, 0.10),
     0 0 0 1px rgba(244, 114, 182, 0.16),
     0 0 38px -20px rgba(244, 114, 182, 0.98),
     0 34px 90px -40px rgba(217, 70, 239, 0.95);
@@ -545,7 +546,7 @@
 .lp-package-sky.is-selected {
   border-color: rgba(96, 165, 250, 0.7);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(16, 10, 40, 0.10),
     0 0 42px -20px rgba(96, 165, 250, 0.86),
     0 34px 90px -42px rgba(96, 165, 250, 0.72);
 }
@@ -553,7 +554,7 @@
 .lp-package-ember.is-selected {
   border-color: rgba(251, 146, 60, 0.7);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(16, 10, 40, 0.10),
     0 0 42px -20px rgba(251, 146, 60, 0.88),
     0 34px 90px -42px rgba(251, 146, 60, 0.72);
 }
@@ -588,7 +589,7 @@
   border-radius: 8px;
   padding: 0 13px;
   color: var(--lp-ink);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(16, 10, 40, 0.05);
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -673,7 +674,7 @@
   border-radius: 10px;
   background:
     linear-gradient(135deg, rgba(251, 146, 60, 0.11), rgba(217, 70, 239, 0.08)),
-    rgba(12, 8, 28, 0.66);
+    rgba(255, 255, 255, 0.82);
 }
 
 .lp-specialist-head {
@@ -696,7 +697,7 @@
 .lp-specialist-grid .lp-package {
   min-height: 480px;
   background:
-    linear-gradient(180deg, rgba(45, 23, 47, 0.88), rgba(19, 10, 34, 0.92)),
+    linear-gradient(180deg, rgba(253, 246, 255, 0.95), rgba(248, 243, 255, 0.95)),
     var(--lp-panel);
 }
 
@@ -715,7 +716,7 @@
   padding: 22px;
   border: 1px solid var(--lp-line);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(30, 21, 61, 0.72), rgba(15, 10, 34, 0.68));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(250, 247, 255, 0.9));
 }
 
 .lp-market-strip span,
@@ -762,9 +763,9 @@
 .lp-policy-item:hover,
 .lp-policy-item:focus-within {
   transform: translateY(-3px);
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(16, 10, 40, 0.16);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(16, 10, 40, 0.10),
     0 28px 82px -48px rgba(96, 165, 250, 0.68);
 }
 
@@ -821,7 +822,7 @@
   grid-template-columns: 18px 160px minmax(0, 1fr);
   gap: 14px;
   padding: 18px 22px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(16, 10, 40, 0.07);
 }
 
 .lp-readiness-row:last-child {
@@ -904,7 +905,7 @@
   padding: 16px;
   border: 1px solid var(--lp-line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(16, 10, 40, 0.05);
 }
 
 .lp-selected .material-symbols-outlined {
@@ -944,7 +945,7 @@
   padding: 5px;
   border: 1px solid var(--lp-line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(16, 10, 40, 0.04);
 }
 
 .lp-segment button {
@@ -977,7 +978,7 @@
   border-color: rgba(244, 114, 182, 0.42);
   background: rgba(217, 70, 239, 0.18);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(16, 10, 40, 0.09),
     0 14px 34px -24px rgba(217, 70, 239, 0.95);
   transform: translateY(-1px);
 }
@@ -996,7 +997,7 @@
   border-radius: 8px;
   padding: 12px 14px;
   color: var(--lp-ink);
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(16, 10, 40, 0.06);
   font: inherit;
   font-size: 16px;
   outline: none;
@@ -1174,7 +1175,7 @@
   }
   50% {
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 0 0 1px rgba(16, 10, 40, 0.07),
       0 24px 58px -20px rgba(217, 70, 239, 1);
   }
 }
@@ -1352,11 +1353,11 @@
   width: 100%;
   margin-top: 14px;
   padding: 12px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(16, 10, 40, 0.14);
   border-radius: 11px;
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(217, 70, 239, 0.18));
   color: var(--lp-ink);
-  font: 700 13.5px/1 "Space Grotesk", "Inter", system-ui, sans-serif;
+  font: 700 13.5px/1 "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
   cursor: pointer;
   transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms ease,
               border-color 200ms ease, box-shadow 200ms ease;
@@ -1382,7 +1383,7 @@
   max-width: 1160px;
   margin: 40px auto 0;
   padding: 22px 24px calc(28px + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(16, 10, 40, 0.09);
   font-size: 11.5px;
   line-height: 1.6;
   color: var(--lp-faint);
