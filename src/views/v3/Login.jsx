@@ -97,6 +97,16 @@ export default function LoginV3() {
   const googleBtnRef = useRef(null)
   const [googleReady, setGoogleReady] = useState(false)
 
+  // ?next=/checkout — checkout sends returning customers here and needs them
+  // back with the cart intact. Same-origin paths only.
+  const nextPath = (() => {
+    try {
+      const raw = new URLSearchParams(window.location.search).get('next') || ''
+      return raw.startsWith('/') && !raw.startsWith('//') ? raw : ''
+    } catch { return '' }
+  })()
+  const studentDestination = (slug) => nextPath || `/app/${slug}/dashboard`
+
   // PWA-launched-from-home-screen flow: when iOS opens the standalone shortcut
   // it lands on /login (manifest start_url). If the user already has a saved
   // session in localStorage[em-student-session] we redirect straight into
@@ -104,8 +114,9 @@ export default function LoginV3() {
   // this hook the home-screen shortcut would always show the login form.
   useEffect(() => {
     if (isStudentAuthenticated && resolvedSlug) {
-      window.location.replace(`/app/${resolvedSlug}/dashboard`)
+      window.location.replace(studentDestination(resolvedSlug))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStudentAuthenticated, resolvedSlug])
 
   // ── Google Sign-In handler ────────────────────────────────
@@ -140,7 +151,7 @@ export default function LoginV3() {
             JSON.stringify({ ...result.student, sessionToken: result.sessionToken }),
           )
         } catch {}
-        window.location.href = `/app/${result.student?.slug}/dashboard`
+        window.location.href = studentDestination(result.student?.slug)
         return
       }
       if (result.kind === 'superadmin') {
@@ -251,7 +262,7 @@ export default function LoginV3() {
     try {
       const student = await studentLogin(email.trim(), pw)
       if (student?.success) {
-        window.location.href = `/app/${student.student?.slug}/dashboard`
+        window.location.href = studentDestination(student.student?.slug)
         return
       }
       const admin = await adminLogin(email.trim(), pw)

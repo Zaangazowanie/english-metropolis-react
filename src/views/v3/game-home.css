@@ -1183,3 +1183,22 @@
   .gh-photo-frame--side, .gh-float-chip { animation: none; }
   .gh-photo-frame img { transition: none; }
 }
+
+/* wide photo banner: cap height so it never dominates the viewport, and give
+   it a brand wash so even a flat frame reads as intentional in both themes */
+.gh-photo-frame--wide {
+  max-height: 380px;
+  aspect-ratio: 21 / 9;
+}
+.gh-photo-frame--wide::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, rgba(124, 58, 237, 0.16), transparent 45%),
+    linear-gradient(0deg, rgba(23, 16, 46, 0.18), transparent 40%);
+}
+@media (max-width: 900px) {
+  .gh-photo-frame--wide { max-height: 300px; }
+}
