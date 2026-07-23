@@ -594,8 +594,8 @@ export const COOKIES_HTML_PL = `
 
 // Footer / checkout identity block (Przelewy24 requirement: the Foundation's
 // NIP and identity visible on the site).
-export const FOUNDATION_FOOTER_PL = 'EnglishMetro — zorganizowana część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP 5213641211 · REGON 146433467'
-export const FOUNDATION_FOOTER_EN = 'EnglishMetro — an organised business unit of Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467'
+export const FOUNDATION_FOOTER_PL = 'EnglishMetro, zorganizowana część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP 5213641211 · REGON 146433467'
+export const FOUNDATION_FOOTER_EN = 'EnglishMetro, an organised business unit of Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467'
 
 // ── English courtesy translations ─────────────────────────────────────────
 // Faithful working translations of the approved Polish documents, provided

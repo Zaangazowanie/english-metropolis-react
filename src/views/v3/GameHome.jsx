@@ -106,45 +106,45 @@ const GH = {
   en: {
     navPricing: 'Pricing', navSignin: 'Sign in', navSignup: 'Sign up', navDash: 'My dashboard',
     navPlay: 'Play the World',
-    eyebrow: 'online english school · live 1:1 lessons',
-    h1a: 'Learn it live.', h1b: 'Live it daily',
+    eyebrow: 'online English school · live 1:1 lessons',
+    h1a: 'Learn live.', h1b: 'Speak every day',
     heroSub: (n) => <>
       <b>60-minute 1:1 lessons</b> with your own teacher, courses matched to your CEFR level,
-      and every keyword you meet turned into flashcards. Between lessons, keep the streak alive
-      inside <b>EnglishMetro World</b> — our living open-city game — and {n} instant practice
-      games. Book online in minutes.</>,
-    ctaBook: 'Book your first lesson', ctaPricing: 'See pricing', ctaWorld: 'Play the World — free',
-    chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'keywords become flashcards', 'book online in minutes'],
-    arcadeBadge: 'live practice · try it now',
-    worldLink: 'Prefer the full adventure? Step into the 3D city — free',
+      and flashcards created from the vocabulary in each lesson. Between lessons, practise in
+      <b>EnglishMetro World</b>, our language game set in an open 3D city, and in {n} short
+      practice games. Book online in minutes.</>,
+    ctaBook: 'Book your first lesson', ctaPricing: 'See pricing', ctaWorld: 'Play the World for free',
+    chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'lesson vocabulary becomes flashcards', 'book online in minutes'],
+    arcadeBadge: 'quick practice · try it now',
+    worldLink: 'Explore the full 3D city for free',
     stepsKicker: 'from sign-up to speaking', stepsTitle: 'Your first lesson is four steps away',
     steps: [
-      { icon: 'person_add', title: 'Create your account', body: 'Two minutes — email and password, or one tap with Google.' },
-      { icon: 'shopping_bag', title: 'Pick a package', body: 'From a single try-out lesson to 24. Pay by invoice today — online payment is coming.' },
-      { icon: 'event_available', title: 'Book your times', body: 'Choose slots inside your teacher’s live availability. The Meet link and calendar invite land in your inbox.' },
-      { icon: 'school', title: 'Learn, then replay', body: 'Every lesson becomes a PDF in your library and its keywords become flashcards — revise, practise, repeat.' },
+      { icon: 'person_add', title: 'Create your account', body: 'It takes about two minutes: use your email and password or continue with Google.' },
+      { icon: 'shopping_bag', title: 'Pick a package', body: 'Choose one trial lesson or a package of up to 24 lessons. Pay online or by invoice.' },
+      { icon: 'event_available', title: 'Book your times', body: 'Choose an available time in your teacher’s calendar. We will email you the Google Meet link and calendar invitation.' },
+      { icon: 'school', title: 'Learn, then replay', body: 'After each lesson, a PDF is added to your library and the lesson vocabulary is turned into flashcards for further practice.' },
     ],
     packsKicker: '1:1 lesson packages', packsTitle: 'Pick your pace', packsLink: 'Full pricing & details',
     packsStart: 'Start', packsEach: '60 min each',
-    doorsKicker: 'between lessons', doorsTitle: 'The city keeps teaching',
+    doorsKicker: 'between lessons', doorsTitle: 'Keep practising in the city',
     proofLabel: 'What your route includes',
     proof: (n) => [
       { value: '1:1', label: 'live teacher' },
       { value: '60 min', label: 'every lesson' },
-      { value: 'CEFR', label: 'personal route' },
+      { value: 'CEFR', label: 'matched course' },
       { value: String(n), label: 'instant games' },
     ],
-    cityKicker: 'teacher-led · city-powered',
-    cityTitle: 'One route. A city that moves with you.',
-    cityBody: 'Your lesson sets the direction. EnglishMetro turns the words you meet into flashcards, games and places to revisit, so every practice session belongs to the same learning story.',
-    cityFeatures: ['Live feedback from your teacher', 'Vocabulary from your own lessons', 'A 3D world that keeps expanding'],
-    cityCta: 'Build my learning route',
+    cityKicker: 'live lessons · practice between sessions',
+    cityTitle: 'One learning plan. Connected practice.',
+    cityBody: 'Your teacher sets the focus. Vocabulary from each lesson becomes flashcards and games in EnglishMetro World, so you practise the same material between lessons.',
+    cityFeatures: ['Live feedback from your teacher', 'Vocabulary from your own lessons', 'A 3D world for practice between lessons'],
+    cityCta: 'Start my learning plan',
     cityLabel: 'Interactive 3D map of EnglishMetro',
     cityHint: 'Drag the city to explore',
-    lessonsKicker: 'real lessons, real people',
-    lessonsTitle: 'A teacher who knows your route.',
-    lessonsBody: 'Every lesson is live, personal and planned around your CEFR level. You talk, your teacher listens, and the city does the revision.',
-    lessonsPoints: ['Real conversation from minute one', 'Notes and a PDF after every lesson', 'Flashcards built from your own words'],
+    lessonsKicker: 'live 1:1 lessons',
+    lessonsTitle: 'A teacher who knows your goals.',
+    lessonsBody: 'Every lesson is live, individual and matched to your CEFR level. You speak, your teacher gives feedback, and your lesson vocabulary becomes practice material.',
+    lessonsPoints: ['Real conversation from minute one', 'Notes and a PDF after every lesson', 'Flashcards from your lesson vocabulary'],
     lessonsCta: 'Meet your teacher',
     lessonsAltMain: 'A student smiling during a live online English lesson',
     lessonsAltSide: 'A student laughing while practising English on a phone',
@@ -157,44 +157,44 @@ const GH = {
     navPricing: 'Cennik', navSignin: 'Zaloguj się', navSignup: 'Załóż konto', navDash: 'Mój panel',
     navPlay: 'Zagraj w World',
     eyebrow: 'szkoła angielskiego online · lekcje 1:1 na żywo',
-    h1a: 'Ucz się na żywo.', h1b: 'Mów na co dzień',
+    h1a: 'Ucz się na żywo.', h1b: 'Mów po angielsku na co dzień',
     heroSub: (n) => <>
-      <b>60-minutowe lekcje 1:1</b> z własnym lektorem, kursy dopasowane do Twojego poziomu CEFR,
-      a każde poznane słówko zamienia się w fiszki. Między lekcjami trenujesz dalej w{' '}
-      <b>EnglishMetro World</b> — naszej żywej, otwartej grze-mieście — i w {n} błyskawicznych
-      grach do ćwiczeń. Rezerwacja online w kilka minut.</>,
-    ctaBook: 'Zarezerwuj pierwszą lekcję', ctaPricing: 'Zobacz cennik', ctaWorld: 'Zagraj w World — za darmo',
-    chips: ['lekcje 1:1 na żywo, 60 min', 'kursy pod poziom CEFR', 'słówka stają się fiszkami', 'rezerwacja online w minuty'],
-    arcadeBadge: 'prawdziwe ćwiczenia · wypróbuj teraz',
-    worldLink: 'Wolisz pełną przygodę? Wejdź do miasta 3D — za darmo',
+      <b>60-minutowe lekcje 1:1</b> z własnym lektorem, kursy dopasowane do poziomu CEFR
+      i fiszki tworzone ze słownictwa z każdej lekcji. Między lekcjami ćwiczysz w{' '}
+      <b>EnglishMetro World</b>, naszej grze językowej w otwartym mieście 3D, oraz w {n} krótkich
+      grach. Rezerwacja online zajmuje kilka minut.</>,
+    ctaBook: 'Zarezerwuj pierwszą lekcję', ctaPricing: 'Zobacz cennik', ctaWorld: 'Zagraj w World za darmo',
+    chips: ['lekcje 1:1 na żywo, 60 min', 'kursy dopasowane do poziomu CEFR', 'słownictwo z lekcji trafia do fiszek', 'rezerwacja online w kilka minut'],
+    arcadeBadge: 'krótkie ćwiczenia · wypróbuj teraz',
+    worldLink: 'Poznaj całe miasto 3D za darmo',
     stepsKicker: 'od rejestracji do mówienia', stepsTitle: 'Twoja pierwsza lekcja w czterech krokach',
     steps: [
-      { icon: 'person_add', title: 'Załóż konto', body: 'Dwie minuty — e-mail i hasło albo jedno kliknięcie z Google.' },
-      { icon: 'shopping_bag', title: 'Wybierz pakiet', body: 'Od pojedynczej lekcji próbnej do 24. Dziś płatność fakturą — płatności online już wkrótce.' },
-      { icon: 'event_available', title: 'Zarezerwuj terminy', body: 'Wybierz godziny w dostępności lektora. Link Meet i zaproszenie do kalendarza trafią na Twój e-mail.' },
-      { icon: 'school', title: 'Ucz się i powtarzaj', body: 'Każda lekcja trafia jako PDF do Twojej biblioteki, a słówka stają się fiszkami — powtarzaj, ćwicz, graj.' },
+      { icon: 'person_add', title: 'Załóż konto', body: 'To około dwóch minut: podaj e-mail i hasło lub kontynuuj z Google.' },
+      { icon: 'shopping_bag', title: 'Wybierz pakiet', body: 'Wybierz pojedynczą lekcję próbną lub pakiet do 24 lekcji. Zapłać online lub na podstawie faktury.' },
+      { icon: 'event_available', title: 'Zarezerwuj terminy', body: 'Wybierz wolny termin w kalendarzu lektora. Link do Google Meet i zaproszenie do kalendarza otrzymasz e-mailem.' },
+      { icon: 'school', title: 'Ucz się i powtarzaj', body: 'Po każdej lekcji w bibliotece pojawia się plik PDF, a słownictwo z lekcji trafia do fiszek do dalszych ćwiczeń.' },
     ],
     packsKicker: 'pakiety lekcji 1:1', packsTitle: 'Wybierz swoje tempo', packsLink: 'Pełny cennik i szczegóły',
     packsStart: 'Zaczynam', packsEach: 'po 60 min',
-    doorsKicker: 'między lekcjami', doorsTitle: 'Miasto uczy dalej',
+    doorsKicker: 'między lekcjami', doorsTitle: 'Ćwicz dalej w mieście',
     proofLabel: 'Co obejmuje Twoja ścieżka',
     proof: (n) => [
       { value: '1:1', label: 'lektor na żywo' },
       { value: '60 min', label: 'każda lekcja' },
-      { value: 'CEFR', label: 'osobista ścieżka' },
+      { value: 'CEFR', label: 'dopasowany kurs' },
       { value: String(n), label: 'gier bez przygotowań' },
     ],
-    cityKicker: 'lektor prowadzi · miasto utrwala',
-    cityTitle: 'Jedna ścieżka. Miasto, które podąża za Tobą.',
-    cityBody: 'Lekcja wyznacza kierunek. EnglishMetro zamienia poznane słowa w fiszki, gry i miejsca, do których wracasz, dzięki czemu każde ćwiczenie jest częścią tej samej historii nauki.',
-    cityFeatures: ['Informacja zwrotna od lektora na żywo', 'Słownictwo z Twoich lekcji', 'Świat 3D, który stale się rozwija'],
-    cityCta: 'Zbuduj moją ścieżkę',
+    cityKicker: 'lekcje na żywo · ćwiczenia między zajęciami',
+    cityTitle: 'Jeden plan nauki. Spójne ćwiczenia.',
+    cityBody: 'Lektor wyznacza zakres materiału. Słownictwo z każdej lekcji trafia do fiszek i gier w EnglishMetro World, dzięki czemu między zajęciami ćwiczysz ten sam materiał.',
+    cityFeatures: ['Informacja zwrotna od lektora na żywo', 'Słownictwo z Twoich lekcji', 'Świat 3D do ćwiczeń między lekcjami'],
+    cityCta: 'Rozpocznij plan nauki',
     cityLabel: 'Interaktywna mapa 3D EnglishMetro',
     cityHint: 'Przeciągnij miasto, aby je odkrywać',
-    lessonsKicker: 'prawdziwe lekcje, prawdziwi ludzie',
-    lessonsTitle: 'Lektor, który zna Twoją trasę.',
-    lessonsBody: 'Każda lekcja jest na żywo, osobista i zaplanowana pod Twój poziom CEFR. Ty mówisz, lektor słucha, a miasto robi powtórki.',
-    lessonsPoints: ['Prawdziwa rozmowa od pierwszej minuty', 'Notatki i PDF po każdej lekcji', 'Fiszki z Twoich własnych słów'],
+    lessonsKicker: 'lekcje 1:1 na żywo',
+    lessonsTitle: 'Lektor, który zna Twoje cele.',
+    lessonsBody: 'Każda lekcja jest na żywo, indywidualna i dopasowana do poziomu CEFR. Ty mówisz, lektor daje informację zwrotną, a słownictwo z lekcji trafia do ćwiczeń.',
+    lessonsPoints: ['Prawdziwa rozmowa od pierwszej minuty', 'Notatki i PDF po każdej lekcji', 'Fiszki ze słownictwa z Twoich lekcji'],
     lessonsCta: 'Poznaj swojego lektora',
     lessonsAltMain: 'Uśmiechnięta uczennica podczas lekcji angielskiego online na żywo',
     lessonsAltSide: 'Uczeń śmiejący się podczas ćwiczenia angielskiego na telefonie',
@@ -598,12 +598,12 @@ function PlayOverlay({ game, onClose }) {
               boxShadow: '0 30px 80px -20px rgba(0,0,0,0.7), 0 0 60px -20px rgba(217,70,239,0.3)' }}>
               <img src="/bajla.png" alt="" width="72" height="72" style={{ objectFit: 'contain', marginBottom: 10 }}/>
               <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 24, color: DUSK.text, marginBottom: 10 }}>
-                {doneOnce ? 'Nice round.' : 'Go full screen?'}
+                {doneOnce ? 'Round complete.' : 'Go full screen?'}
               </div>
               <p style={{ color: DUSK.dim, fontSize: 14, lineHeight: 1.6, margin: '0 0 22px' }}>
                 {doneOnce
                   ? 'Create a free account to save your progress, build a streak, and unlock every district of the city.'
-                  : 'Full-screen play comes with a free account — along with saved progress and streaks.'}
+                  : 'Full-screen play comes with a free account, along with saved progress and streaks.'}
               </p>
               <ActionLink to="/signup" variant="primary" size="lg" full trailingIcon="arrow_forward">
                 Create free account
@@ -738,7 +738,7 @@ export default function GameHome() {
   }, [])
 
   const tickerNames = useMemo(() => {
-    const names = ['EnglishMetro World — OPEN BETA', ...playable3d.map((e) => `${e.title} — 3D`),
+    const names = ['EnglishMetro World · OPEN BETA', ...playable3d.map((e) => `${e.title} · 3D`),
       ...ALL_GAMES.map((g) => g.title)]
     return [...names, ...names] // doubled for a seamless -50% loop
   }, [playable3d])
@@ -1092,8 +1092,8 @@ export default function GameHome() {
                 <span style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 20 }}>The Open World</span>
               </div>
               <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: T.textDim }}>
-                The full adventure. Explore the city as Wren, ride the metro between
-                dialect districts, help the locals and level up your English district by district.
+                Explore the full city as Wren. Ride the metro between language districts,
+                help local characters and practise English as you progress.
               </p>
               <span className="gh-door-go" style={{ color: T.violet }}>
                 Start exploring <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_forward</span>
@@ -1108,11 +1108,11 @@ export default function GameHome() {
                 <span style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 20 }}>Quick Practice</span>
               </div>
               <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: T.textDim }}>
-                {ALL_GAMES.length} instant games across four metro lines — vocabulary, grammar,
-                listening, speaking. Two minutes or twenty, zero setup.
+                {ALL_GAMES.length} short games across four metro lines: vocabulary, grammar,
+                listening and speaking. Practise for two minutes or twenty.
               </p>
               <span className="gh-door-go" style={{ color: T.emerald }}>
-                Tonight&apos;s pick: {quickPick.title} <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_forward</span>
+                Recommended game: {quickPick.title} <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_forward</span>
               </span>
             </button>
           </div>
@@ -1137,15 +1137,15 @@ export default function GameHome() {
             flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: 0 }}>
-              Quick practice, four lines
+              Quick Practice across four lines
             </h2>
             <div style={{ fontSize: 12, color: T.textMute, letterSpacing: '0.08em' }}>
-              Tap a line to open it · every game plays instantly
+              Choose a line to see its games · each game starts immediately
             </div>
           </div>
           <p style={{ color: T.textDim, fontSize: 14, margin: '0 0 26px', maxWidth: 560 }}>
-            The whole catalog, folded neatly. Pick a line, pick a station, play —
-            no account needed for a first ride.
+            Browse the full catalogue by line and station. You can play your first
+            game without an account.
           </p>
 
           <div className="gh-catalog" style={{ display: 'grid', gap: 14 }}>
@@ -1153,7 +1153,7 @@ export default function GameHome() {
               <LineSection key={line.line} line={line} T={T} night={night}
                 open={openLines.has(line.line)} onToggle={() => toggleLine(line.line)}
                 count={`${line.games.length} games`}
-                subtitle={`${line.tag} — ${line.games.slice(0, 3).map((g) => g.title).join(', ')}…`}>
+                subtitle={`${line.tag} · ${line.games.slice(0, 3).map((g) => g.title).join(', ')}…`}>
                 {line.games.map((g, i) => (
                   <GameCard key={g.key} g={g} color={line.color} T={T} night={night} index={i}
                     onPlay={(game) => setPlaying({ ...game, color: line.color })}/>
@@ -1188,18 +1188,18 @@ export default function GameHome() {
           <img className="gh-bajla" src="/bajla.png" alt="Bajla, the EnglishMetro owl" width="112" height="112"/>
           <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(28px, 4vw, 46px)',
             letterSpacing: '-0.03em', margin: '0 0 12px' }}>
-            The city remembers its players.
+            Save your progress with a free account.
           </h2>
           <p style={{ color: T.textDim, fontSize: 15, lineHeight: 1.6, maxWidth: 480, margin: '0 auto 28px' }}>
-            A free account keeps your streaks, tracks every word you master, and
-            opens full-screen play across all districts — in the world and the arcade.
+            A free account saves your streaks and vocabulary progress and enables
+            full-screen play in EnglishMetro World and Quick Practice.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward">
-              Start playing free
+              Play for free
             </ActionLink>
             <ActionLink href={WORLD_URL} variant="secondary" size="lg" trailingIcon="public">
-              Try the beta world
+              Try the EnglishMetro World beta
             </ActionLink>
           </div>
         </section>
@@ -1209,7 +1209,7 @@ export default function GameHome() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             flexWrap: 'wrap', gap: 14, marginBottom: 12 }}>
             <div style={{ letterSpacing: '0.24em', textTransform: 'uppercase' }}>
-              © {CURRENT_YEAR} englishmetro.com — Warszawa → The World
+              © {CURRENT_YEAR} englishmetro.com · Warszawa → The World
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
               <Link to="/pricing" style={{ color: T.textMute, textDecoration: 'none' }}>Pricing</Link>
@@ -1222,8 +1222,8 @@ export default function GameHome() {
           </div>
           <p style={{ margin: 0, fontSize: 10.5, lineHeight: 1.6, color: T.textMute, maxWidth: 860 }}>
             {lang === 'pl'
-              ? 'EnglishMetro — zorganizowana część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP 5213641211 · REGON 146433467'
-              : 'EnglishMetro — an organised business unit of Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467'}
+              ? 'EnglishMetro, zorganizowana część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP 5213641211 · REGON 146433467'
+              : 'EnglishMetro, an organised business unit of Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467'}
           </p>
         </footer>
       </div>

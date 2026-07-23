@@ -184,7 +184,7 @@ export default function Checkout() {
       let activeSession = session
       if (!activeSession) {
         if (!emailFormValid) {
-          return setError(t('Add your name, a valid e-mail and a password of at least 8 characters.', 'Podaj imię i nazwisko, poprawny e-mail oraz hasło (min. 8 znaków).'))
+          return setError(t('Enter your full name, a valid email address and a password of at least 8 characters.', 'Podaj imię i nazwisko, poprawny adres e-mail oraz hasło składające się z co najmniej 8 znaków.'))
         }
         setPhase('account')
         const r = await callConvex('action', 'studentAuth:studentSignupAction', {
@@ -204,8 +204,8 @@ export default function Checkout() {
     } catch (ex) {
       setPhase('idle')
       setError((accountReady
-        ? t('Your account is ready, but the order was not saved. Press the button to try again.', 'Konto zostało utworzone, ale zamówienie nie zostało zapisane. Kliknij przycisk, aby spróbować ponownie.')
-        : (ex.message || t('Something went wrong. Please try again.', 'Coś poszło nie tak. Spróbuj ponownie.'))))
+        ? t('Your account was created, but we could not save the order. Try again to complete it.', 'Konto zostało utworzone, ale nie udało się zapisać zamówienia. Spróbuj ponownie, aby je dokończyć.')
+        : (ex.message || t('We could not complete this step. Please try again.', 'Nie udało się wykonać tej operacji. Spróbuj ponownie.'))))
     }
   }
 
@@ -236,7 +236,7 @@ export default function Checkout() {
           <div className="co-success-mark" aria-hidden>
             <span className="material-symbols-outlined">check</span>
           </div>
-          <h1>{t('Your account and order are ready.', 'Konto i zamówienie są gotowe.')}</h1>
+          <h1>{t('Your account has been created and your order has been placed.', 'Konto zostało utworzone, a zamówienie złożone.')}</h1>
           <p className="co-success-ref">{t('Order reference', 'Numer zamówienia')}: <strong>{done.ref}</strong></p>
           <ul className="co-status-list">
             <li data-state="ok">
@@ -249,7 +249,7 @@ export default function Checkout() {
             </li>
             <li data-state="next">
               <span className="material-symbols-outlined" aria-hidden>school</span>
-              {t('Lesson package: allocated after payment is confirmed', 'Pakiet lekcji: zostanie przydzielony po potwierdzeniu płatności')}
+              {t('Lesson package: added after payment is confirmed', 'Pakiet lekcji: zostanie dodany po potwierdzeniu płatności')}
             </li>
           </ul>
           <p className="co-success-copy">
@@ -275,7 +275,7 @@ export default function Checkout() {
         <section className="co-shell co-empty">
           <span className="material-symbols-outlined" aria-hidden>shopping_cart</span>
           <h1>{t('Your cart is empty.', 'Twój koszyk jest pusty.')}</h1>
-          <p>{t('Add a lesson package to proceed to checkout.', 'Dodaj pakiet lekcji, aby przejść do kasy.')}</p>
+          <p>{t('Add a lesson package to continue to checkout.', 'Dodaj pakiet lekcji, aby przejść do finalizacji zamówienia.')}</p>
           <Link className="lp-button lp-button-primary" to="/lessons#pricing">
             <span className="material-symbols-outlined" aria-hidden>storefront</span>
             {t('Browse packages', 'Zobacz pakiety')}
@@ -312,7 +312,7 @@ export default function Checkout() {
                       <span>{session.name} · {session.email}</span>
                     </div>
                     <button type="button" className="co-account-change" onClick={changeAccount}>
-                      {t('Change account', 'Zmień konto')}
+                      {t('Use a different account', 'Użyj innego konta')}
                     </button>
                   </div>
                 ) : (
@@ -325,7 +325,7 @@ export default function Checkout() {
                       <div ref={googleBtnRef} aria-label="Google Sign-In" />
                     </div>
                     <div className="co-divider" aria-hidden>
-                      <span>{t('or use your e-mail', 'lub użyj adresu e-mail')}</span>
+                      <span>{t('or create an account with email', 'lub załóż konto przez e-mail')}</span>
                     </div>
                     <label className="co-field">
                       <span>{t('Full name', 'Imię i nazwisko')} *</span>
@@ -337,10 +337,10 @@ export default function Checkout() {
                     </label>
                     {emailTaken && (
                       <div className="co-email-taken" role="alert">
-                        <strong>{t('This e-mail already has an account.', 'Ten adres jest już powiązany z kontem.')}</strong>
-                        <p>{t('Sign in to finish your order. Your cart and details are kept.', 'Zaloguj się, aby dokończyć zamówienie. Koszyk i dane zostaną zachowane.')}</p>
+                        <strong>{t('An account already exists for this email address.', 'Dla tego adresu e-mail istnieje już konto.')}</strong>
+                        <p>{t('Sign in to complete your order. Your cart and entered details will be saved.', 'Zaloguj się, aby dokończyć zamówienie. Koszyk i wprowadzone dane zostaną zachowane.')}</p>
                         <Link className="lp-button lp-button-primary co-email-taken-cta" to="/login?next=/checkout">
-                          {t('Sign in and return to checkout', 'Zaloguj się i wróć do kasy')}
+                          {t('Sign in and return to checkout', 'Zaloguj się i wróć do finalizacji zamówienia')}
                         </Link>
                       </div>
                     )}
@@ -358,7 +358,7 @@ export default function Checkout() {
                       </small>
                     </label>
                     <label className="co-field">
-                      <span>{t('Phone (optional)', 'Telefon (opcjonalnie)')}</span>
+                      <span>{t('Phone number (optional)', 'Numer telefonu (opcjonalnie)')}</span>
                       <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" autoComplete="tel" placeholder="+48 600 000 000" />
                     </label>
                   </>

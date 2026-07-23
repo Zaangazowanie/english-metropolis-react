@@ -77,17 +77,17 @@ const POLICIES = [
   {
     icon: 'hourglass_top',
     title: 'Lesson validity',
-    copy: 'One-off lessons are valid for 90 days. Private packs are valid for 6 months for 4-8 lessons and 12 months for 16-24 lessons. Specialist packs are valid for 6, 9, and 12 months.',
+    copy: 'One-off lessons are valid for 90 days. Private packages are valid for 6 months (4-8 lessons) or 12 months (16-24 lessons). Specialist packages are valid for 6, 9 or 12 months, as shown for each package.',
   },
   {
     icon: 'more_time',
     title: 'Extensions',
-    copy: 'Ask before expiry and we will normally extend unused lessons once at no extra charge: 3 months for smaller packs and 6 months for 16-24 lesson packs.',
+    copy: 'Contact us before expiry. We normally extend unused lessons once at no extra charge: by 3 months for smaller packages and 6 months for packages of 16-24 lessons.',
   },
   {
     icon: 'verified_user',
     title: 'Student protection',
-    copy: 'If lessons cannot happen because of EnglishMetro availability, teacher cancellation, or another reason on our side, the affected validity is extended or the unused lesson is credited or refunded.',
+    copy: 'If a lesson cannot take place because of teacher cancellation, lack of availability or another issue caused by EnglishMetro, we extend the package validity, credit the unused lesson or issue a refund.',
   },
   {
     icon: 'undo',
@@ -97,17 +97,17 @@ const POLICIES = [
   {
     icon: 'event_repeat',
     title: 'Schedule changes',
-    copy: 'Move a lesson with at least 24 hours notice. If there is illness, emergency, or a serious work or family conflict, contact us and we will try to protect the lesson fairly.',
+    copy: 'Move a lesson with at least 24 hours notice. In cases of illness or emergency, contact us as soon as possible. We review exceptional cases individually.',
   },
   {
     icon: 'receipt_long',
     title: 'Clear billing',
-    copy: 'Before paying, you see the price, package length, expiry date, extension route, invoice details, and payment method. No card details are collected on this page.',
+    copy: 'Before paying, you see the price, package length, validity period, extension terms, invoice details and payment method. No card details are collected on this page.',
   },
   {
     icon: 'lock',
     title: 'Online payments',
-    copy: 'Add packages to the cart and place your order. Online payment via Przelewy24 (BLIK, cards, fast transfer) is being activated - until then we send your secure payment link by email.',
+    copy: 'Add packages to the cart and place your order. Online payments through Przelewy24, including BLIK, cards and fast transfers, are being activated. Until then, we send the payment link by email.',
   },
 ]
 
@@ -116,56 +116,56 @@ const PACKAGE_PL = {
     pace: '1 lekcja online',
     perLesson: '135 PLN / lekcja',
     bestFor: 'Jedna konkretna lekcja z jasnym planem kolejnego kroku',
-    features: ['Sprawdzenie poziomu i celu', '1 x 60 min lekcja 1:1', 'Osobisty obraz poziomu CEFR', 'Notatki i sciezka praktyki'],
+    features: ['Sprawdzenie poziomu i celu', '1 x 60 min lekcja 1:1', 'Osobisty obraz poziomu CEFR', 'Notatki i ścieżka ćwiczeń'],
     badge: 'Jednorazowo',
   },
   'private-core': {
     pace: '4 lekcje online',
     perLesson: '120 PLN / lekcja',
-    bestFor: 'Kompaktowy pierwszy miesiac regularnej pracy nad mowieniem',
-    features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '4 x 60 min lekcje 1:1', 'Notatki po kazdej lekcji'],
+    bestFor: 'Kompaktowy pierwszy miesiąc regularnej pracy nad mówieniem',
+    features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '4 x 60 min lekcje 1:1', 'Notatki po każdej lekcji'],
     badge: 'Dobry start',
   },
   momentum: {
     pace: '8 lekcji online',
     perLesson: '110 PLN / lekcja',
-    bestFor: 'Najmocniejszy rytm stalej pracy nad plynnoscia',
+    bestFor: 'Najmocniejszy rytm stałej pracy nad płynnością',
     features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '8 x 60 min lekcje 1:1', 'Notatki i cele tygodniowe'],
-    badge: 'Najczesciej wybierany',
+    badge: 'Najczęściej wybierany',
   },
   'fluency-16': {
     pace: '16 lekcji online',
     perLesson: '100 PLN / lekcja',
-    bestFor: 'Glebszy program dla widocznego postepu w mowieniu',
-    features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '16 x 60 min lekcje 1:1', 'Notatki i przeglady postepu'],
+    bestFor: 'Głębszy program dla widocznego postępu w mówieniu',
+    features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '16 x 60 min lekcje 1:1', 'Notatki i przeglądy postępu'],
     badge: 'Dobry rytm',
   },
   'fluency-24': {
     pace: '24 lekcje online',
     perLesson: '90 PLN / lekcja',
-    bestFor: 'Najlepsza wartosc przy stalej pracy indywidualnej',
-    features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '24 x 60 min lekcje 1:1', 'Notatki i miesieczne przeglady'],
+    bestFor: 'Najlepsza wartość przy stałej pracy indywidualnej',
+    features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '24 x 60 min lekcje 1:1', 'Notatki i miesięczne przeglądy'],
     badge: 'Najlepsza cena',
   },
   specialist: {
     pace: '6 lekcji specjalistycznych',
     perLesson: '150 PLN / lekcja',
-    bestFor: 'Rozmowy kwalifikacyjne, egzaminy, relokacja i angielski w pracy',
-    features: ['Diagnostyczna rozmowa poziomujaca', 'Specjalistyczny plan CEFR', '6 x 60 min lekcje specjalistyczne', 'Notatki po kazdej lekcji'],
-    badge: 'Celowany',
+    bestFor: 'Rozmowy kwalifikacyjne, egzaminy i angielski w pracy',
+    features: ['Diagnostyczna rozmowa poziomująca', 'Specjalistyczny plan CEFR', '6 x 60 min lekcje specjalistyczne', 'Notatki po każdej lekcji'],
+    badge: 'Ukierunkowany',
   },
   'specialist-12': {
     pace: '12 lekcji specjalistycznych',
     perLesson: '130 PLN / lekcja',
-    bestFor: 'Konkretny plan pod egzamin, rozmowe kwalifikacyjna albo angielski w pracy',
-    features: ['Diagnostyczna rozmowa poziomujaca', 'Specjalistyczny plan CEFR', '12 x 60 min lekcje specjalistyczne', 'Dwa przeglady pisania lub mowienia'],
-    badge: 'Glebszy cel',
+    bestFor: 'Konkretny plan pod egzamin, rozmowę kwalifikacyjną albo angielski w pracy',
+    features: ['Diagnostyczna rozmowa poziomująca', 'Specjalistyczny plan CEFR', '12 x 60 min lekcje specjalistyczne', 'Dwa przeglądy pisania lub mówienia'],
+    badge: 'Głębszy cel',
   },
   'specialist-24': {
     pace: '24 lekcje specjalistyczne',
     perLesson: '110 PLN / lekcja',
-    bestFor: 'Najlepsza wartosc przy dluzszym coachingu specjalistycznym',
-    features: ['Diagnostyczna rozmowa poziomujaca', 'Specjalistyczny plan CEFR', '24 x 60 min lekcje specjalistyczne', 'Miesieczne przeglady i notatki'],
+    bestFor: 'Najlepsza wartość przy dłuższym coachingu specjalistycznym',
+    features: ['Diagnostyczna rozmowa poziomująca', 'Specjalistyczny plan CEFR', '24 x 60 min lekcje specjalistyczne', 'Miesieczne przeglady i notatki'],
     badge: 'Najlepsza cena specjalistyczna',
   },
 }
@@ -173,15 +173,15 @@ const PACKAGE_PL = {
 const COURSE_PL = {
   august: {
     name: 'Kurs sierpniowy',
-    detail: 'Tylko sierpien - 4 lekcje raz w tygodniu - maks. 4 osoby',
+    detail: 'Tylko sierpień - 4 lekcje raz w tygodniu - maks. 4 osoby',
   },
   september: {
-    name: 'Kurs wrzesniowy',
-    detail: 'Tylko wrzesien - 4 lekcje raz w tygodniu - maks. 4 osoby',
+    name: 'Kurs wrześniowy',
+    detail: 'Tylko wrzesień - 4 lekcje raz w tygodniu - maks. 4 osoby',
   },
   'two-month-bundle': {
-    name: 'Pakiet sierpien + wrzesien',
-    detail: 'Sierpien i wrzesien - 8 lekcji raz w tygodniu - maks. 4 osoby',
+    name: 'Pakiet sierpień + wrzesień',
+    detail: 'Sierpień i wrzesień - 8 lekcji raz w tygodniu - maks. 4 osoby',
   },
 }
 
@@ -193,32 +193,32 @@ const FORMAT_PL = {
 
 const POLICY_PL = {
   'Lesson validity': {
-    title: 'Waznosc lekcji',
-    copy: 'Lekcja jednorazowa jest wazna 90 dni. Pakiety prywatne sa wazne 6 miesiecy dla 4-8 lekcji i 12 miesiecy dla 16-24 lekcji. Pakiety specjalistyczne sa wazne 6, 9 i 12 miesiecy.',
+    title: 'Ważność lekcji',
+    copy: 'Lekcja jednorazowa jest ważna 90 dni. Pakiety prywatne są ważne 6 miesięcy (4-8 lekcji) lub 12 miesięcy (16-24 lekcji). Ważność pakietów specjalistycznych jest podana przy każdym pakiecie.',
   },
   Extensions: {
-    title: 'Przedluzenia',
-    copy: 'Napisz przed koncem waznosci. Zwykle przedluzymy niewykorzystane lekcje raz bez oplaty: o 3 miesiace dla mniejszych pakietow i o 6 miesiecy dla pakietow 16-24 lekcji.',
+    title: 'Przedłużenia',
+    copy: 'Napisz do nas przed końcem ważności. Zwykle przedłużamy niewykorzystane lekcje raz bez opłaty: o 3 miesiące dla mniejszych pakietów i o 6 miesięcy dla pakietów 16-24 lekcji.',
   },
   'Student protection': {
     title: 'Ochrona ucznia',
-    copy: 'Jesli lekcje nie moga sie odbyc z powodu dostepnosci EnglishMetro, odwolania przez nauczyciela albo innej przyczyny po naszej stronie, waznosc jest przedluzana albo niewykorzystana lekcja jest kredytowana lub zwracana.',
+    copy: 'Jeśli lekcja nie może się odbyć z powodu odwołania przez lektora, braku dostępności lub innej przyczyny po stronie EnglishMetro, przedłużamy ważność pakietu, zaliczamy lekcję na poczet kolejnych albo zwracamy pieniądze.',
   },
   'Refunds and credits': {
     title: 'Zwroty i kredyt',
-    copy: 'Niewykorzystane lekcje moga zostac zwrocone proporcjonalnie albo zostac jako kredyt w czasie waznosci lub przedluzenia pakietu. Odbyte lekcje sa rozliczane proporcjonalnie, a ustawowe prawa odstapienia sa zawsze respektowane.',
+    copy: 'Niewykorzystane lekcje możemy zwrócić proporcjonalnie albo zaliczyć jako kredyt w okresie ważności pakietu. Odbyte lekcje rozliczamy proporcjonalnie, a ustawowe prawo odstąpienia jest zawsze respektowane.',
   },
   'Schedule changes': {
     title: 'Zmiana terminu',
-    copy: 'Mozesz przelozyc lekcje z co najmniej 24-godzinnym wyprzedzeniem. Przy chorobie, naglej sytuacji albo powaznym konflikcie rodzinnym lub zawodowym napisz do nas, a postaramy sie uczciwie ochronyc lekcje.',
+    copy: 'Możesz przełożyć lekcję z co najmniej 24-godzinnym wyprzedzeniem. W razie choroby lub nagłej sytuacji napisz do nas jak najszybciej. Wyjątkowe przypadki rozpatrujemy indywidualnie.',
   },
   'Clear billing': {
-    title: 'Jasne platnosci',
-    copy: 'Przed platnoscia widzisz cene, dlugosc pakietu, date waznosci, sposob przedluzenia, dane do faktury i metode platnosci. Ta strona nie zbiera danych karty.',
+    title: 'Jasne płatności',
+    copy: 'Przed płatnością widzisz cenę, długość pakietu, okres ważności, zasady przedłużenia, dane do faktury i sposób płatności. Ta strona nie zbiera danych karty.',
   },
   'Online payments': {
-    title: 'Platnosci online',
-    copy: 'Dodaj pakiety do koszyka i zloz zamowienie. Platnosc online przez Przelewy24 (BLIK, karty, szybki przelew) jest w trakcie aktywacji - do tego czasu bezpieczny link do platnosci wysylamy e-mailem.',
+    title: 'Płatności online',
+    copy: 'Dodaj pakiety do koszyka i złóż zamówienie. Płatności online przez Przelewy24 (BLIK, karty, szybkie przelewy) są w trakcie aktywacji. Do tego czasu link do płatności wysyłamy e-mailem.',
   },
 }
 function buildSummary({ selectedPackage, format, learnerName, email, level, goals, lang }) {
@@ -304,11 +304,11 @@ export default function LessonPricingSignup() {
     event.preventDefault()
     setError('')
     if (!accepted) {
-      setError(t('Please accept the lesson and payment summary before sending the request.', 'Zaakceptuj podsumowanie lekcji i platnosci przed wyslaniem prosby.'))
+      setError(t('Confirm the lesson and payment summary before sending your request.', 'Przed wysłaniem prośby potwierdź podsumowanie lekcji i płatności.'))
       return
     }
     if (!email.trim()) {
-      setError(t('Please add an email address so we can reply with available slots.', 'Podaj email, zebysmy mogli odpisac z dostepnymi terminami.'))
+      setError(t('Enter your email address so we can send you the available times.', 'Podaj adres e-mail, abyśmy mogli przesłać dostępne terminy.'))
       return
     }
     try {
@@ -380,19 +380,19 @@ export default function LessonPricingSignup() {
         <div className="lp-hero-copy">
           <p className="lp-kicker">
             <span className="material-symbols-outlined" aria-hidden>verified</span>
-            {t('Human lessons plus EnglishMetro practice', 'Lekcje z nauczycielem plus praktyka EnglishMetro')}
+            {t('Live lessons with a teacher and EnglishMetro practice', 'Lekcje na żywo z lektorem i ćwiczenia w EnglishMetro')}
           </p>
           <h1 id="lp-title">{t('EnglishMetro private lessons', 'Prywatne lekcje EnglishMetro')}</h1>
           <p>
             {t(
-              'Live 1:1 English coaching, a playable practice route after every session, and a clear payment path after your teacher and slot are confirmed.',
-              'Lekcje angielskiego 1:1 na zywo, praktyka po kazdej lekcji i jasna platnosc dopiero po potwierdzeniu nauczyciela oraz terminu.',
+              'Live 1:1 English lessons, practice after each session, and payment only after we confirm your teacher and time.',
+              'Lekcje angielskiego 1:1 na żywo, ćwiczenia po każdych zajęciach i płatność dopiero po potwierdzeniu lektora oraz terminu.',
             )}
           </p>
           <div className="lp-hero-actions">
             <a className="lp-button lp-button-primary" href="#signup">
               <span className="material-symbols-outlined" aria-hidden>edit_calendar</span>
-              {t('Request a lesson plan', 'Popros o plan lekcji')}
+              {t('Ask for a learning plan', 'Poproś o plan nauki')}
             </a>
             <a className="lp-button lp-button-ghost" href="#pricing">
               <span className="material-symbols-outlined" aria-hidden>payments</span>
@@ -408,13 +408,13 @@ export default function LessonPricingSignup() {
           </div>
           <div>
             <span>02</span>
-            <strong>{t('Confirm slot', 'Potwierdz termin')}</strong>
-            <p>{t('Teacher fit and calendar are checked first.', 'Najpierw sprawdzamy nauczyciela i kalendarz.')}</p>
+            <strong>{t('Confirm a time', 'Potwierdź termin')}</strong>
+            <p>{t('We first match you with a teacher and confirm an available time.', 'Najpierw dobieramy lektora i potwierdzamy dostępny termin.')}</p>
           </div>
           <div>
             <span>03</span>
-            <strong>{t('Pay securely', 'Zaplac bezpiecznie')}</strong>
-            <p>{t('Checkout link or invoice follows confirmation.', 'Link do platnosci albo faktura przychodzi po potwierdzeniu.')}</p>
+            <strong>{t('Pay securely', 'Zapłać bezpiecznie')}</strong>
+            <p>{t('After confirmation, we send a payment link or invoice.', 'Po potwierdzeniu wysyłamy link do płatności lub fakturę.')}</p>
           </div>
         </div>
       </section>
@@ -422,12 +422,12 @@ export default function LessonPricingSignup() {
       <section id="packages" className="lp-band lp-intro">
         <div>
           <p className="lp-section-label">{t('Lesson packages', 'Pakiety lekcji')}</p>
-          <h2>{t('Flexible private lessons, booked by package.', 'Elastyczne lekcje indywidualne w pakietach.')}</h2>
+          <h2>{t('Flexible 1:1 lessons available in packages.', 'Elastyczne lekcje 1:1 dostępne w pakietach.')}</h2>
         </div>
         <p>
           {t(
-            'Individual lessons are not limited to summer. You book the package that fits your goals, then we confirm the schedule and payment route.',
-            'Lekcje indywidualne nie sa ograniczone do wakacji. Wybierasz pakiet do swoich celow, a potem potwierdzamy terminy i sposob platnosci.',
+            'Choose a package that fits your goals. We then confirm the schedule and payment method.',
+            'Wybierz pakiet dopasowany do swoich celów. Następnie potwierdzimy terminy i sposób płatności.',
           )}
         </p>
       </section>
@@ -436,9 +436,9 @@ export default function LessonPricingSignup() {
         <div className="lp-section-head">
           <div>
             <p className="lp-section-label">{t('Pricing', 'Cennik')}</p>
-            <h2 id="pricing-title">{t('Pick your lesson rhythm', 'Wybierz rytm lekcji')}</h2>
+            <h2 id="pricing-title">{t('Choose how often you learn', 'Wybierz częstotliwość lekcji')}</h2>
           </div>
-          <p>{t('All live lessons are 60 minutes. Prices are shown before checkout; invoice and payment details are confirmed before payment.', 'Wszystkie lekcje na zywo trwaja 60 minut. Ceny sa widoczne przed checkoutem; faktura i platnosc sa potwierdzane przed zaplata.')}</p>
+          <p>{t('All live lessons are 60 minutes. You see the price, invoice information and payment method before paying.', 'Wszystkie lekcje na żywo trwają 60 minut. Przed płatnością zobaczysz cenę, informacje o fakturze i sposób płatności.')}</p>
         </div>
 
         <div className="lp-package-grid">
@@ -481,11 +481,11 @@ export default function LessonPricingSignup() {
         <div className="lp-specialist-block" aria-labelledby="specialist-title">
           <div className="lp-specialist-head">
             <p className="lp-section-label">{t('Specialist 1:1', 'Lekcje specjalistyczne 1:1')}</p>
-            <h3 id="specialist-title">{t('Exam, interview, relocation, and business English.', 'Egzamin, rozmowa kwalifikacyjna, relokacja i angielski biznesowy.')}</h3>
+            <h3 id="specialist-title">{t('English for exams, job interviews, relocation and business.', 'Przygotowanie do egzaminów i rozmów kwalifikacyjnych oraz angielski biznesowy.')}</h3>
             <p>
               {t(
-                'These packs are separate from normal fluency coaching because they include diagnostic targeting, review work, and tighter outcomes.',
-                'Te pakiety sa oddzielone od zwyklych lekcji plynnej komunikacji, bo obejmuja diagnoze, przeglady pracy i konkretniejsze cele.',
+                'These packages focus on a specific goal and include an initial assessment, targeted practice and progress reviews.',
+                'Te pakiety są przeznaczone do pracy nad konkretnym celem i obejmują wstępną ocenę poziomu, ukierunkowane ćwiczenia oraz przeglądy postępów.',
               )}
             </p>
           </div>
@@ -532,12 +532,12 @@ export default function LessonPricingSignup() {
         <div className="lp-section-head">
           <div>
             <p className="lp-section-label">{t('Group lessons', 'Lekcje grupowe')}</p>
-            <h2 id="summer-title">{t('August and September group courses.', 'Kursy grupowe w sierpniu i wrzesniu.')}</h2>
+            <h2 id="summer-title">{t('August and September group courses.', 'Kursy grupowe w sierpniu i wrześniu.')}</h2>
           </div>
           <p>
             {t(
               'Summer lessons are group courses only: B1 pre, B1 inter, B2, and B2/C1. Choose August, September, or both. Each group is capped at 4 students and each lesson is 60 minutes.',
-              'Lekcje wakacyjne sa kursami grupowymi: B1 pre, B1 inter, B2 i B2/C1. Wybierz sierpien, wrzesien albo oba miesiace. Kazda grupa ma maksymalnie 4 osoby, a lekcja trwa 60 minut.',
+              'Lekcje wakacyjne są kursami grupowymi: B1 pre, B1 inter, B2 i B2/C1. Wybierz sierpień, wrzesień albo oba miesiące. Każda grupa ma maksymalnie 4 osoby, a lekcja trwa 60 minut.',
             )}
           </p>
         </div>
@@ -567,31 +567,31 @@ export default function LessonPricingSignup() {
       <section className="lp-section lp-payment" aria-labelledby="payment-title">
         <div className="lp-section-head">
           <div>
-            <p className="lp-section-label">{t('Payments', 'Platnosci')}</p>
-            <h2 id="payment-title">{t('Pay after your slot is confirmed.', 'Placisz po potwierdzeniu terminu.')}</h2>
+            <p className="lp-section-label">{t('Payments', 'Płatności')}</p>
+            <h2 id="payment-title">{t('Pay after your slot is confirmed.', 'Płacisz po potwierdzeniu terminu.')}</h2>
           </div>
           <p>
             {t(
               'Send a request first. We confirm the right package, schedule, and invoice details before payment.',
-              'Najpierw wysylasz prosbe o zapis. Przed platnoscia potwierdzamy pakiet, termin i dane do faktury.',
+              'Najpierw wysyłasz prośbę o zapis. Przed płatnością potwierdzamy pakiet, termin i dane do faktury.',
             )}
           </p>
         </div>
         <div className="lp-readiness">
           <div className="lp-readiness-row">
             <span className="lp-dot lp-dot-done" aria-hidden />
-            <strong>{t('Request', 'Prosba')}</strong>
-            <p>{t('Choose a package and tell us your goal.', 'Wybierz pakiet i napisz swoj cel.')}</p>
+            <strong>{t('Request', 'Prośba')}</strong>
+            <p>{t('Choose a package and tell us your goal.', 'Wybierz pakiet i napisz swój cel.')}</p>
           </div>
           <div className="lp-readiness-row">
             <span className="lp-dot lp-dot-done" aria-hidden />
             <strong>{t('Confirm', 'Potwierdzenie')}</strong>
-            <p>{t('We reply with available times and the final payment route.', 'Odpisujemy z terminami i finalna forma platnosci.')}</p>
+            <p>{t('We reply with available times and the final payment route.', 'Odpisujemy z terminami i finalną formą płatności.')}</p>
           </div>
           <div className="lp-readiness-row">
             <span className="lp-dot lp-dot-pending" aria-hidden />
-            <strong>{t('Pay', 'Platnosc')}</strong>
-            <p>{t('Online checkout will be enabled after Polish gateway approval.', 'Platnosc online zostanie wlaczona po akceptacji polskiej bramki.')}</p>
+            <strong>{t('Pay', 'Płatność')}</strong>
+            <p>{t('Online payment through Przelewy24 is being activated. Until then, we send the payment link by email.', 'Płatność online przez Przelewy24 jest w trakcie aktywacji. Do tego czasu link do płatności wysyłamy e-mailem.')}</p>
           </div>
         </div>
       </section>
@@ -729,7 +729,7 @@ export default function LessonPricingSignup() {
           )}
 
           <p className="lp-form-foot">
-            {t('Before payment, you can review', 'Przed platnoscia mozesz sprawdzic')} <Link to="/terms">{t('Terms', 'Regulamin')}</Link>, <Link to="/privacy">{t('Privacy', 'Prywatnosc')}</Link>,
+            {t('Before payment, you can review', 'Przed płatnością możesz sprawdzić')} <Link to="/terms">{t('Terms', 'Regulamin')}</Link>, <Link to="/privacy">{t('Privacy', 'Prywatność')}</Link>,
             {t(' and ', ' oraz ')}<Link to="/cookies">Cookies</Link>.
           </p>
         </form>
@@ -739,7 +739,7 @@ export default function LessonPricingSignup() {
         <p>{isPl ? FOUNDATION_FOOTER_PL : FOUNDATION_FOOTER_EN}</p>
         <nav aria-label={t('Legal', 'Dokumenty prawne')}>
           <Link to="/terms">{t('Terms', 'Regulamin')}</Link>
-          <Link to="/privacy">{t('Privacy Policy', 'Polityka prywatnosci')}</Link>
+          <Link to="/privacy">{t('Privacy Policy', 'Polityka prywatności')}</Link>
           <Link to="/cookies">{t('Cookies Policy', 'Polityka cookies')}</Link>
           <a href={`mailto:${FOUNDATION.email}`}>{FOUNDATION.email}</a>
         </nav>
