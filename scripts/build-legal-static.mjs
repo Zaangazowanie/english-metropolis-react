@@ -8,10 +8,10 @@ import { writeFileSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  TERMS_TITLE_PL, TERMS_HTML_PL,
-  PRIVACY_TITLE_PL, PRIVACY_HTML_PL,
-  COOKIES_TITLE_PL, COOKIES_HTML_PL,
-  FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN,
+  TERMS_TITLE_PL, TERMS_HTML_PL, TERMS_HTML_EN,
+  PRIVACY_TITLE_PL, PRIVACY_HTML_PL, PRIVACY_HTML_EN,
+  COOKIES_TITLE_PL, COOKIES_HTML_PL, COOKIES_HTML_EN,
+  FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN, BINDING_NOTE_EN,
 } from '../src/views/legal/foundation-legal-content.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -25,6 +25,7 @@ const PAGES = [
     ledeEn: 'The Terms of Service (Regulamin) of englishmetro.com, operated by Fundacja Rozwoju Przedsiębiorczości “Twój StartUp” — ordering, payments, withdrawal and complaints.',
     metaDesc: 'Regulamin serwisu englishmetro.com — Fundacja Rozwoju Przedsiębiorczości „Twój StartUp”, NIP 5213641211.',
     body: TERMS_HTML_PL,
+    bodyEn: TERMS_HTML_EN,
   },
   {
     dir: 'privacy', docId: 'EM-LEGAL-01',
@@ -34,6 +35,7 @@ const PAGES = [
     ledeEn: 'Who controls your personal data, why we process it and your GDPR rights.',
     metaDesc: 'Polityka prywatności serwisu englishmetro.com — administrator: Fundacja Rozwoju Przedsiębiorczości „Twój StartUp”.',
     body: PRIVACY_HTML_PL,
+    bodyEn: PRIVACY_HTML_EN,
   },
   {
     dir: 'cookies', docId: 'EM-LEGAL-02',
@@ -43,6 +45,7 @@ const PAGES = [
     ledeEn: 'Which cookies englishmetro.com uses and how you can manage them.',
     metaDesc: 'Polityka cookies serwisu englishmetro.com — Fundacja Rozwoju Przedsiębiorczości „Twój StartUp”.',
     body: COOKIES_HTML_PL,
+    bodyEn: COOKIES_HTML_EN,
   },
 ]
 
@@ -99,16 +102,18 @@ const page = (p) => `<!DOCTYPE html>
     <main class="legal-main">
       <div class="lang-en">
         <div class="fl-en-notice" role="note">
-          <p><strong>English summary.</strong> englishmetro.com is operated by ${FOUNDATION.name}
-          (Warsaw, Poland — KRS ${FOUNDATION.krs}, NIP ${FOUNDATION.nip}) through its organised business unit
-          EnglishMetro, represented by ${FOUNDATION.rep}. The legally binding version of this document is the
-          Polish text below, as approved by the Foundation's legal team. Questions? Write to
-          <a href="mailto:${FOUNDATION.email}">${FOUNDATION.email}</a> — we will gladly explain any clause in English.</p>
+          <p><strong>Courtesy translation.</strong> ${BINDING_NOTE_EN}
+          Questions? Write to <a href="mailto:${FOUNDATION.email}">${FOUNDATION.email}</a>.</p>
         </div>
+        <article class="fl-doc fl-page" lang="en">
+${p.bodyEn}
+        </article>
       </div>
-      <article class="fl-doc fl-page" lang="pl">
+      <div class="lang-pl">
+        <article class="fl-doc fl-page" lang="pl">
 ${p.body}
-      </article>
+        </article>
+      </div>
     </main>
   </div>
 

@@ -78,3 +78,21 @@
   .fl-en-notice, .fl-doc .fl-sec { animation: fl-fade 200ms ease both; }
   @keyframes fl-fade { from { opacity: 0; } to { opacity: 1; } }
 }
+
+.fl-lang {
+  display: inline-flex;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.fl-lang button {
+  padding: 5px 13px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font: 700 12px/1 inherit;
+  cursor: pointer;
+  transition: background 160ms cubic-bezier(0.23, 1, 0.32, 1), color 160ms ease;
+}
+.fl-lang button[data-active="true"] { background: #0f172a; color: #fff; }
+.fl-lang button:active { transform: scale(0.96); }

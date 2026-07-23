@@ -1,46 +1,68 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useI18n } from '../../i18n'
-import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN } from './foundation-legal-content.js'
+import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN, BINDING_NOTE_EN } from './foundation-legal-content.js'
 import './foundation-legal.css'
 
-// Shared shell for the approved Twój StartUp legal documents. The Polish text
-// is the binding version; when the UI language is English we show an
-// explanatory notice above the (Polish) document rather than an unapproved
-// translation.
-export default function FoundationLegalPage({ titlePl, titleEn, docId, bodyHtml }) {
-  const { lang } = useI18n()
+const LANG_KEY = 'em.legal.lang'
+
+// Shared shell for the approved Twój StartUp legal documents. Always lands on
+// Polish (the binding version); the toggle switches to a courtesy English
+// translation carrying BINDING_NOTE_EN. The choice is stored under its own
+// key so it never flips the app-wide language preference.
+export default function FoundationLegalPage({ titlePl, titleEn, docId, bodyHtml, bodyHtmlEn }) {
+  const [lang, setLang] = useState(() => {
+    try {
+      const v = window.localStorage.getItem(LANG_KEY)
+      return v === 'en' ? 'en' : 'pl'
+    } catch {
+      return 'pl'
+    }
+  })
   const isPl = lang === 'pl'
+
+  function chooseLang(next) {
+    setLang(next)
+    try { window.localStorage.setItem(LANG_KEY, next) } catch { /* in-memory only */ }
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 legal-page fl-page">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-sky-700 hover:text-sky-900">
           <span className="material-symbols-outlined text-base">arrow_back</span>
           {isPl ? 'Wróć do aplikacji' : 'Back to the app'}
         </Link>
-        <nav className="fl-siblings" aria-label="Legal documents">
-          <Link to="/terms">{isPl ? 'Regulamin' : 'Terms'}</Link>
-          <Link to="/privacy">{isPl ? 'Prywatność' : 'Privacy'}</Link>
-          <Link to="/cookies">Cookies</Link>
-        </nav>
+        <div className="flex items-center gap-4">
+          <nav className="fl-siblings" aria-label="Legal documents">
+            <Link to="/terms">{isPl ? 'Regulamin' : 'Terms'}</Link>
+            <Link to="/privacy">{isPl ? 'Prywatność' : 'Privacy'}</Link>
+            <Link to="/cookies">Cookies</Link>
+          </nav>
+          <div className="fl-lang" role="group" aria-label="Language">
+            <button type="button" data-active={isPl} onClick={() => chooseLang('pl')}>PL</button>
+            <button type="button" data-active={!isPl} onClick={() => chooseLang('en')}>EN</button>
+          </div>
+        </div>
       </div>
 
       <h1 className="font-headline text-3xl sm:text-4xl text-slate-900">{isPl ? titlePl : titleEn}</h1>
       <p className="mt-2 text-sm text-slate-500">
-        {docId} · {isPl ? 'Obowiązuje od' : 'Effective from'}: {FOUNDATION.effectiveDate}
+        {docId} · {isPl ? 'Obowiązuje od' : 'Effective from'}: {isPl ? FOUNDATION.effectiveDate : '23 July 2026'}
       </p>
 
       {!isPl && (
         <div className="fl-en-notice" role="note">
-          <p><strong>English summary.</strong> englishmetro.com is operated by {FOUNDATION.name}
-          {' '}(Warsaw, Poland — KRS {FOUNDATION.krs}, NIP {FOUNDATION.nip}) through its organised business
-          unit EnglishMetro, represented by {FOUNDATION.rep}. The legally binding version of this document
-          is the Polish text below, as approved by the Foundation's legal team. If you have any questions,
-          write to <a href={`mailto:${FOUNDATION.email}`}>{FOUNDATION.email}</a> and we will gladly explain
-          any clause in English.</p>
+          <p><strong>Courtesy translation.</strong> {BINDING_NOTE_EN} {' '}
+          Questions? Write to <a href={`mailto:${FOUNDATION.email}`}>{FOUNDATION.email}</a>.</p>
         </div>
       )}
 
-      <article className="fl-doc" lang="pl" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+      <article
+        key={lang}
+        className="fl-doc"
+        lang={isPl ? 'pl' : 'en'}
+        dangerouslySetInnerHTML={{ __html: isPl ? bodyHtml : (bodyHtmlEn || bodyHtml) }}
+      />
 
       <footer className="fl-foot">
         <p>{isPl ? FOUNDATION_FOOTER_PL : FOUNDATION_FOOTER_EN}</p>

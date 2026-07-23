@@ -4,28 +4,22 @@
   'use strict';
 
   // ── Language ──────────────────────────────────────────────────
+  // The legal pages always LAND on Polish (the binding version) and keep
+  // their own preference key — the app-wide em.lang is deliberately not
+  // read or written here, so toggling on a legal page never flips the app.
   function storedLang() {
     try {
-      var v = window.localStorage.getItem('em.lang');
+      var v = window.localStorage.getItem('em.legal.lang');
       if (v === 'pl' || v === 'en') return v;
     } catch (e) {}
     return null;
-  }
-
-  function browserLang() {
-    var langs = navigator.languages || [navigator.language || 'en'];
-    for (var i = 0; i < langs.length; i++) {
-      if (/^pl/i.test(langs[i])) return 'pl';
-    }
-    return 'en';
   }
 
   function setLang(lang, explicit) {
     document.documentElement.setAttribute('data-lang', lang);
     document.documentElement.setAttribute('lang', lang);
     try {
-      window.localStorage.setItem('em.lang', lang);
-      if (explicit) window.localStorage.setItem('em.lang.userExplicit', 'true');
+      if (explicit) window.localStorage.setItem('em.legal.lang', lang);
     } catch (e) {}
     var btns = document.querySelectorAll('.lang-toggle button');
     for (var i = 0; i < btns.length; i++) {
@@ -33,7 +27,7 @@
     }
   }
 
-  // initial: stored preference > Polish default for the Polish market
+  // initial: Polish unless the visitor explicitly chose EN on a legal page
   setLang(storedLang() || 'pl', false);
 
   document.addEventListener('click', function (e) {
