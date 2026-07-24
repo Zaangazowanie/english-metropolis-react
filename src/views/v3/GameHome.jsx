@@ -24,6 +24,7 @@ import { PRIVATE_PACKAGES } from '../public/packages.js'
 import { cart, parsePricePLN } from '../public/cart-store.js'
 import CartUI from '../public/CartUI.jsx'
 import HeroPracticePreview from './HeroPracticePreview.jsx'
+const ArcadeCityBackdrop = lazy(() => import('./ArcadeCityBackdrop.jsx'))
 import './game-home.css'
 
 const MetroLearningCity = lazy(() => import('./MetroLearningCity.jsx'))
@@ -122,6 +123,19 @@ const GH = {
     arcadeKicker: 'quick practice · no sign-up',
     arcadeTitle: 'Seven ways to practise. Try them now.',
     arcadeBody: 'These are the same games your flashcards feed after every lesson. Flip a card, catch a train, build a sentence. No account needed.',
+    catalogTitle: 'Quick Practice across four lines',
+    catalogHint: 'Choose a line to see its games · each game starts immediately',
+    catalogBrowse: 'Browse the full catalogue by line and station. You can play your first game without an account.',
+    catalogGames: (n) => `${n} games`,
+    catalogLive: (a, b) => `${a} live · ${b} arriving`,
+    districts3dSubtitle: 'The Fluent City in 3D. New districts land here automatically with every update.',
+    doorsBody: (n) => `${n} short games across four metro lines: vocabulary, grammar, listening and speaking. Practise for two minutes or twenty.`,
+    doorsGo: 'Recommended game:',
+    ctaTitle: 'Save your progress with a free account.',
+    ctaBody: 'A free account saves your streaks and vocabulary progress and enables full-screen play in EnglishMetro World and Quick Practice.',
+    ctaPlay: 'Play for free',
+    ctaBeta: 'Try the EnglishMetro World beta',
+    lineTags: { 'Arcade Line': 'Fast hands, faster words', 'Word Line': 'Letters into language', 'Quiz Line': 'Think quick, answer quicker', 'City Line': 'Real skills, street level' },
     worldLink: 'Explore the full 3D city for free',
     stepsKicker: 'from sign-up to speaking', stepsTitle: 'Your first lesson is four steps away',
     steps: [
@@ -178,6 +192,19 @@ const GH = {
     arcadeKicker: 'krótkie ćwiczenia · bez logowania',
     arcadeTitle: 'Siedem sposobów na ćwiczenie. Wypróbuj je teraz.',
     arcadeBody: 'To te same gry, do których po każdej lekcji trafiają Twoje fiszki. Odkryj kartę, złap pociąg, ułóż zdanie. Bez zakładania konta.',
+    catalogTitle: 'Szybkie ćwiczenia na czterech liniach',
+    catalogHint: 'Wybierz linię, aby zobaczyć jej gry · każda gra startuje od razu',
+    catalogBrowse: 'Przeglądaj pełny katalog według linii i stacji. W pierwszą grę zagrasz bez konta.',
+    catalogGames: (n) => `${n} ${n === 1 ? 'gra' : n < 5 ? 'gry' : 'gier'}`,
+    catalogLive: (a, b) => `${a} dostępne · ${b} w budowie`,
+    districts3dSubtitle: 'Fluent City w 3D. Nowe dzielnice pojawiają się tu automatycznie z każdą aktualizacją.',
+    doorsBody: (n) => `${n} krótkich gier na czterech liniach metra: słownictwo, gramatyka, słuchanie i mówienie. Ćwicz dwie minuty albo dwadzieścia.`,
+    doorsGo: 'Polecana gra:',
+    ctaTitle: 'Zapisuj postępy z darmowym kontem.',
+    ctaBody: 'Darmowe konto zapisuje Twoje serie i postępy w słownictwie oraz włącza grę na pełnym ekranie w EnglishMetro World i Szybkich ćwiczeniach.',
+    ctaPlay: 'Graj za darmo',
+    ctaBeta: 'Wypróbuj betę EnglishMetro World',
+    lineTags: { 'Arcade Line': 'Szybkie ręce, szybsze słowa', 'Word Line': 'Z liter w język', 'Quiz Line': 'Myśl szybko, odpowiadaj szybciej', 'City Line': 'Prawdziwe sytuacje, poziom ulicy' },
     worldLink: 'Poznaj całe miasto 3D za darmo',
     stepsKicker: 'od rejestracji do mówienia', stepsTitle: 'Twoja pierwsza lekcja w czterech krokach',
     steps: [
@@ -233,6 +260,7 @@ function HeroArcade({ badge, reduced, lang }) {
   const [active, setActive] = useState(0)
   const [shown, setShown] = useState(0)
   const [exiting, setExiting] = useState(false)
+  const [backdropReady, setBackdropReady] = useState(false)
   const dirRef = useRef(1)
   const swapTimer = useRef(null)
   const activeGame = HERO_GAMES[active]
@@ -282,6 +310,7 @@ function HeroArcade({ badge, reduced, lang }) {
     }
     const observer = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(([entry]) => {
       inView = entry.isIntersecting
+      if (inView) setBackdropReady(true)
       syncPlayback()
     }, { threshold: 0.08 })
     observer?.observe(arcade)
@@ -320,6 +349,11 @@ function HeroArcade({ badge, reduced, lang }) {
           <div id="gh-arcade-stage" role="tabpanel" aria-labelledby={`gh-arcade-tab-${activeGame.key}`}
             data-game={HERO_GAMES[shown].key} className="gh-arcade-stage"
             style={{ height: 'min(56dvh, 460px)', overflow: 'hidden', background: DUSK.bg }}>
+            {backdropReady && (
+              <Suspense fallback={null}>
+                <ArcadeCityBackdrop reduced={reduced}/>
+              </Suspense>
+            )}
             <div key={HERO_GAMES[shown].key} data-dir={dirRef.current}
               className={`gh-arcade-body${exiting ? ' is-exiting' : ''}`}>
               <HeroPracticePreview game={HERO_GAMES[shown].key} lang={lang}/>
@@ -1153,11 +1187,10 @@ export default function GameHome() {
                 <span style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 20 }}>Quick Practice</span>
               </div>
               <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: T.textDim }}>
-                {ALL_GAMES.length} short games across four metro lines: vocabulary, grammar,
-                listening and speaking. Practise for two minutes or twenty.
+                {W.doorsBody(ALL_GAMES.length)}
               </p>
               <span className="gh-door-go" style={{ color: T.emerald }}>
-                Recommended game: {quickPick.title} <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_forward</span>
+                {W.doorsGo} {quickPick.title} <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_forward</span>
               </span>
             </button>
           </div>
@@ -1182,23 +1215,22 @@ export default function GameHome() {
             flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: 0 }}>
-              Quick Practice across four lines
+              {W.catalogTitle}
             </h2>
             <div style={{ fontSize: 12, color: T.textMute, letterSpacing: '0.08em' }}>
-              Choose a line to see its games · each game starts immediately
+              {W.catalogHint}
             </div>
           </div>
           <p style={{ color: T.textDim, fontSize: 14, margin: '0 0 26px', maxWidth: 560 }}>
-            Browse the full catalogue by line and station. You can play your first
-            game without an account.
+            {W.catalogBrowse}
           </p>
 
           <div className="gh-catalog" style={{ display: 'grid', gap: 14 }}>
             {LINES.map((line) => (
               <LineSection key={line.line} line={line} T={T} night={night}
                 open={openLines.has(line.line)} onToggle={() => toggleLine(line.line)}
-                count={`${line.games.length} games`}
-                subtitle={`${line.tag} · ${line.games.slice(0, 3).map((g) => g.title).join(', ')}…`}>
+                count={W.catalogGames(line.games.length)}
+                subtitle={`${W.lineTags[line.line] || line.tag} · ${line.games.slice(0, 3).map((g) => g.title).join(', ')}…`}>
                 {line.games.map((g, i) => (
                   <GameCard key={g.key} g={g} color={line.color} T={T} night={night} index={i}
                     onPlay={(game) => setPlaying({ ...game, color: line.color })}/>
@@ -1211,8 +1243,8 @@ export default function GameHome() {
               line={{ line: '3D Districts', color: '#FFB347', icon: 'view_in_ar' }}
               T={T} night={night}
               open={openLines.has('3D Districts')} onToggle={() => toggleLine('3D Districts')}
-              count={`${playable3d.length} live · ${arrivingSoon.length} arriving`}
-              subtitle="The Fluent City in 3D — new districts land here automatically with every update">
+              count={W.catalogLive(playable3d.length, arrivingSoon.length)}
+              subtitle={W.districts3dSubtitle}>
               {playable3d.map((e, i) => (
                 <GameCard key={`3d-${e.shellKey}`} g={{ ...e, venue: e.district }} color="#FFB347"
                   T={T} night={night} index={i} onPlay={(game) => setPlaying(game)}/>
@@ -1233,18 +1265,17 @@ export default function GameHome() {
           <img className="gh-bajla" src="/bajla.png" alt="Bajla, the EnglishMetro owl" width="112" height="112"/>
           <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(28px, 4vw, 46px)',
             letterSpacing: '-0.03em', margin: '0 0 12px' }}>
-            Save your progress with a free account.
+            {W.ctaTitle}
           </h2>
           <p style={{ color: T.textDim, fontSize: 15, lineHeight: 1.6, maxWidth: 480, margin: '0 auto 28px' }}>
-            A free account saves your streaks and vocabulary progress and enables
-            full-screen play in EnglishMetro World and Quick Practice.
+            {W.ctaBody}
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward">
-              Play for free
+              {W.ctaPlay}
             </ActionLink>
             <ActionLink href={WORLD_URL} variant="secondary" size="lg" trailingIcon="public">
-              Try the EnglishMetro World beta
+              {W.ctaBeta}
             </ActionLink>
           </div>
         </section>

@@ -26,7 +26,9 @@
   overflow: hidden;
   padding: 16px 64px 54px;
   color: var(--preview-ink);
-  background: var(--preview-bg);
+  background: linear-gradient(180deg, rgba(13, 8, 24, 0.16) 0%, rgba(13, 8, 24, 0.42) 58%, rgba(13, 8, 24, 0.72) 100%);
+  max-width: 1120px;
+  margin-inline: auto;
   font-family: 'Space Grotesk', system-ui, sans-serif;
 }
 
@@ -705,3 +707,6 @@
 .gh-arcade-viewport.is-paused .gh-preview-scene *::after {
   animation-play-state: paused !important;
 }
+
+/* Let the three.js backdrop glow through every scene */
+.gh-preview-scene::before { opacity: 0.42; }

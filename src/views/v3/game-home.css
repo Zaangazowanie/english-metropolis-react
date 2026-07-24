@@ -1246,3 +1246,8 @@
   .gh-arcade-body.is-exiting { opacity: 0; transform: none; transition: opacity 100ms linear; animation: none; }
 }
 @keyframes gh-body-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* three.js arcade backdrop */
+.gh-arcade-backdrop { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.gh-arcade-backdrop canvas { display: block; width: 100% !important; height: 100% !important; }
+.gh-arcade-body { position: relative; z-index: 1; }
