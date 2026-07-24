@@ -1,9 +1,10 @@
-// Animated three.js dusk-metro backdrop for the practice-module showcase.
-// One shared scene behind every module: instanced skyline with lit windows,
-// a metro train sliding through on a loop, twinkling stars, a low neon sun,
-// idle camera drift plus gentle pointer parallax. Pauses when the arcade is
-// offscreen (is-paused on the viewport) and renders a single still frame
-// when the visitor prefers reduced motion.
+// Quiet three.js daylight skyline behind the practice-module stage.
+// Re-skinned for the light design system: pastel buildings, static pastel
+// windows, no bloom, no flicker, no train, no parallax. The whole canvas is
+// faded to ~10% opacity via CSS so it reads as atmosphere, never content.
+// Camera motion is nearly imperceptible (a few px over ~12s). Pauses when the
+// arcade is offscreen (is-paused on the viewport) and renders a single still
+// frame when the visitor prefers reduced motion.
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
@@ -20,34 +21,21 @@ export default function ArcadeCityBackdrop({ reduced }) {
     mount.appendChild(renderer.domElement)
 
     const scene = new THREE.Scene()
-    scene.fog = new THREE.Fog(0x0d0818, 18, 60)
+    scene.fog = new THREE.Fog(0xf6f2fb, 18, 60)
     const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 90)
     camera.position.set(0, 3.1, 15)
 
-    scene.add(new THREE.AmbientLight(0x8f7fb8, 0.85))
-    const key = new THREE.DirectionalLight(0xb983ff, 0.5)
+    scene.add(new THREE.AmbientLight(0xffffff, 0.95))
+    const key = new THREE.DirectionalLight(0xffffff, 0.35)
     key.position.set(-6, 9, 6)
     scene.add(key)
 
-    // Low sun behind the skyline
-    const sun = new THREE.Mesh(
-      new THREE.SphereGeometry(3.4, 24, 24),
-      new THREE.MeshBasicMaterial({ color: 0xd9788f }),
-    )
-    sun.position.set(7, 2.4, -34)
-    scene.add(sun)
-    const sunGlow = new THREE.Mesh(
-      new THREE.SphereGeometry(5.2, 24, 24),
-      new THREE.MeshBasicMaterial({ color: 0xb983ff, transparent: true, opacity: 0.16 }),
-    )
-    sunGlow.position.copy(sun.position)
-    scene.add(sunGlow)
-
-    // Instanced skyline, two depth rows
+    // Instanced skyline, two depth rows: far row mid tone, near row light tone
     const buildingGeo = new THREE.BoxGeometry(1, 1, 1)
-    const buildingMat = new THREE.MeshLambertMaterial({ color: 0x171126 })
+    const buildingMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
     const buildings = new THREE.InstancedMesh(buildingGeo, buildingMat, 46)
     const tmp = new THREE.Object3D()
+    const tint = new THREE.Color()
     let bi = 0
     for (let row = 0; row < 2; row += 1) {
       const z = row === 0 ? -26 : -16
@@ -60,15 +48,17 @@ export default function ArcadeCityBackdrop({ reduced }) {
         tmp.scale.set(w, h, 1.6)
         tmp.updateMatrix()
         buildings.setMatrixAt(bi, tmp.matrix)
+        tint.setHex(row === 0 ? 0xd9cbe9 : 0xe7ddf3)
+        buildings.setColorAt(bi, tint)
         bi += 1
       }
     }
     buildings.count = bi
     scene.add(buildings)
 
-    // Lit windows: instanced planes scattered on the building faces
+    // Windows: static pastel panes, violet with the occasional warm one
     const winGeo = new THREE.PlaneGeometry(0.22, 0.3)
-    const winMat = new THREE.MeshBasicMaterial({ color: 0xb983ff, transparent: true, opacity: 0.85 })
+    const winMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 })
     const windows = new THREE.InstancedMesh(winGeo, winMat, 220)
     const winColor = new THREE.Color()
     for (let i = 0; i < 220; i += 1) {
@@ -78,69 +68,25 @@ export default function ArcadeCityBackdrop({ reduced }) {
       tmp.scale.setScalar(0.8 + ((i * 7) % 5) / 6)
       tmp.updateMatrix()
       windows.setMatrixAt(i, tmp.matrix)
-      winColor.setHex([0xb983ff, 0x67d8d2, 0xf5d9a0][i % 3])
+      winColor.setHex(i % 4 === 0 ? 0xffd99a : 0xc4b0ff)
       windows.setColorAt(i, winColor)
     }
     scene.add(windows)
 
-    // Elevated rail + train
-    const rail = new THREE.Mesh(
-      new THREE.BoxGeometry(64, 0.12, 0.5),
-      new THREE.MeshLambertMaterial({ color: 0x241a33 }),
-    )
-    rail.position.set(0, 1.65, -10)
-    scene.add(rail)
-    const train = new THREE.Group()
-    const carGeo = new THREE.BoxGeometry(2.5, 0.72, 0.72)
-    const carMat = new THREE.MeshLambertMaterial({ color: 0x3d324d })
-    const carGlowMat = new THREE.MeshBasicMaterial({ color: 0x67d8d2, transparent: true, opacity: 0.9 })
-    for (let c = 0; c < 5; c += 1) {
-      const car = new THREE.Mesh(carGeo, carMat)
-      car.position.x = c * 2.75
-      train.add(car)
-      const strip = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 0.2), carGlowMat)
-      strip.position.set(c * 2.75, 0.08, 0.37)
-      train.add(strip)
-    }
-    train.position.set(-46, 2.15, -10)
-    scene.add(train)
-
-    // Stars
-    const starGeo = new THREE.BufferGeometry()
-    const starPos = new Float32Array(150 * 3)
-    for (let i = 0; i < 150; i += 1) {
-      starPos[i * 3] = -40 + ((i * 37) % 800) / 10
-      starPos[i * 3 + 1] = 6 + ((i * 53) % 260) / 14
-      starPos[i * 3 + 2] = -30 - ((i * 19) % 140) / 10
-    }
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3))
-    const starMat = new THREE.PointsMaterial({ color: 0xcabfe0, size: 0.14, transparent: true, opacity: 0.8 })
-    scene.add(new THREE.Points(starGeo, starMat))
-
-    // Street glow strip under the fog line
-    const street = new THREE.Mesh(
+    // Pale ground plane
+    const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(90, 14),
-      new THREE.MeshBasicMaterial({ color: 0x110b1f }),
+      new THREE.MeshBasicMaterial({ color: 0xefe9f6 }),
     )
-    street.rotation.x = -Math.PI / 2
-    street.position.set(0, -0.62, -8)
-    scene.add(street)
-
-    const pointer = { x: 0, y: 0, tx: 0, ty: 0 }
-    const onPointer = (e) => {
-      const rect = mount.getBoundingClientRect()
-      pointer.tx = ((e.clientX - rect.left) / rect.width - 0.5) * 1.2
-      pointer.ty = ((e.clientY - rect.top) / rect.height - 0.5) * 0.5
-    }
-    const host = mount.closest('.gh-arcade-viewport') || mount
-    const finePointer = typeof matchMedia !== 'undefined' && matchMedia('(pointer: fine)').matches
-    if (finePointer) host.addEventListener('pointermove', onPointer)
+    ground.rotation.x = -Math.PI / 2
+    ground.position.set(0, -0.62, -8)
+    scene.add(ground)
 
     const resize = () => {
       const { clientWidth: w, clientHeight: h } = mount
       if (!w || !h) return
-      // Render internally at 70% and upscale via CSS: the dusk scene is soft,
-      // nobody can tell, and it cuts fill-rate by half.
+      // Render internally at 70% and upscale via CSS: the scene is a soft
+      // pastel wash at 10% opacity, nobody can tell, and it halves fill-rate.
       renderer.setSize(Math.round(w * 0.7), Math.round(h * 0.7), false)
       camera.aspect = w / h
       camera.updateProjectionMatrix()
@@ -149,24 +95,17 @@ export default function ArcadeCityBackdrop({ reduced }) {
     const ro = new ResizeObserver(resize)
     ro.observe(mount)
 
+    const host = mount.closest('.gh-arcade-viewport') || mount
+
     let raf = 0
     const clock = new THREE.Clock()
     let elapsed = 0
     const renderFrame = () => {
       const dt = Math.min(clock.getDelta(), 0.05)
       elapsed += dt
-      // Train loop with a small sway
-      train.position.x += dt * 6.2
-      if (train.position.x > 46) train.position.x = -52
-      train.position.y = 2.15 + Math.sin(elapsed * 7) * 0.015
-      // Window shimmer
-      winMat.opacity = 0.72 + Math.sin(elapsed * 1.7) * 0.13
-      starMat.opacity = 0.65 + Math.sin(elapsed * 0.9) * 0.2
-      // Idle drift + pointer parallax
-      pointer.x += (pointer.tx - pointer.x) * 0.04
-      pointer.y += (pointer.ty - pointer.y) * 0.04
-      camera.position.x = Math.sin(elapsed * 0.11) * 0.7 + pointer.x
-      camera.position.y = 3.1 + Math.sin(elapsed * 0.07) * 0.18 - pointer.y
+      // Near-imperceptible drift: a couple of px of apparent motion per ~12s
+      camera.position.x = Math.sin(elapsed * (Math.PI / 6)) * 0.06
+      camera.position.y = 3.1 + Math.sin(elapsed * (Math.PI / 9)) * 0.03
       camera.lookAt(0, 2.2, -18)
       renderer.render(scene, camera)
     }
@@ -179,7 +118,7 @@ export default function ArcadeCityBackdrop({ reduced }) {
       renderFrame()
     }
     if (reduced) {
-      renderFrame()
+      renderFrame() // single still frame: a static skyline
     } else {
       loop()
     }
@@ -187,12 +126,10 @@ export default function ArcadeCityBackdrop({ reduced }) {
     return () => {
       cancelAnimationFrame(raf)
       ro.disconnect()
-      host.removeEventListener('pointermove', onPointer)
       renderer.dispose()
       buildingGeo.dispose(); buildingMat.dispose()
       winGeo.dispose(); winMat.dispose()
-      carGeo.dispose(); carMat.dispose(); carGlowMat.dispose()
-      starGeo.dispose(); starMat.dispose()
+      ground.geometry.dispose(); ground.material.dispose()
       mount.removeChild(renderer.domElement)
     }
   }, [reduced])

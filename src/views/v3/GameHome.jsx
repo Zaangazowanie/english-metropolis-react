@@ -322,7 +322,7 @@ function HeroArcade({ badge, reduced, lang }) {
   }, [])
   return (
     <div className="gh-hero-frame">
-      <div className="gh-postcard" style={{ background: '#120a26' }}>
+      <div className="gh-postcard" style={{ background: '#FCFAFF' }}>
         <div className="gh-arcade-toolbar">
           <div className="gh-arcade-live">
             <span className="gh-live-dot" aria-hidden/>
@@ -348,7 +348,7 @@ function HeroArcade({ badge, reduced, lang }) {
         <div ref={arcadeRef} className="gh-arcade-viewport">
           <div id="gh-arcade-stage" role="tabpanel" aria-labelledby={`gh-arcade-tab-${activeGame.key}`}
             data-game={HERO_GAMES[shown].key} className="gh-arcade-stage"
-            style={{ height: 'min(56dvh, 460px)', overflow: 'hidden', background: DUSK.bg }}>
+            style={{ minHeight: 520, overflow: 'hidden' }}>
             {backdropReady && (
               <Suspense fallback={null}>
                 <ArcadeCityBackdrop reduced={reduced}/>

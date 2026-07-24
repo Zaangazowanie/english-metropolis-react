@@ -160,28 +160,16 @@
   animation: gh-shimmer 3.2s ease-in-out infinite;
 }
 
-/* ── hero postcard frame: rotating conic halo + glass sheen ── */
-@property --gh-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-@keyframes gh-spin { to { --gh-angle: 360deg; } }
+/* ── practice stage frame: quiet light chrome ── */
 .gh-hero-frame {
-  position: relative; border-radius: 26px; padding: 5px; isolation: isolate;
-  background: linear-gradient(135deg, rgba(139,92,246,0.55), rgba(217,70,239,0.4), rgba(244,114,182,0.55));
-  box-shadow: 0 40px 110px -35px rgba(139,92,246,0.5), 0 24px 60px -30px rgba(0,0,0,0.55);
-  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms ease;
+  position: relative; border-radius: 32px; isolation: isolate;
 }
-.gh-hero-frame::before {
-  content: ''; position: absolute; inset: -3px; border-radius: 29px; z-index: -1;
-  background: conic-gradient(from var(--gh-angle),
-    rgba(139,92,246,0) 0%, rgba(217,70,239,0.8) 18%, rgba(255,179,71,0.65) 32%, rgba(139,92,246,0) 55%);
-  filter: blur(15px); opacity: 0.75;
-  animation: gh-spin 7s linear infinite;
-}
-.gh-hero-frame::after {
-  content: ''; position: absolute; inset: 5px; border-radius: 22px; pointer-events: none;
-  background: linear-gradient(165deg, rgba(255,255,255,0.26) 0%, transparent 34%);
-}
-.gh-hero-frame:hover { transform: translateY(-4px) scale(1.008); }
-.gh-postcard { position: relative; border-radius: 22px; overflow: hidden; display: block; }
+.gh-postcard { position: relative; border-radius: 32px; overflow: hidden; display: block;
+  border: 1px solid #DDD3E8;
+  box-shadow:
+    0 22px 56px rgba(40, 25, 61, 0.10),
+    0 7px 18px rgba(139, 92, 246, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.90); }
 
 .gh-hero-cta {
   position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
@@ -333,8 +321,8 @@
 .gh-sr.on, .gh-still .gh-sr { opacity: 1; transform: none; }
 
 /* The dot is semantic: this preview is playable, not a static screenshot. */
-.gh-live-dot { position: relative; width: 7px; height: 7px; flex: none; border-radius: 50%; background: #41e5e0; }
-.gh-live-dot::after { position: absolute; inset: -5px; border: 1px solid #41e5e0; border-radius: 50%; content: '';
+.gh-live-dot { position: relative; width: 7px; height: 7px; flex: none; border-radius: 50%; background: #8B5CF6; }
+.gh-live-dot::after { position: absolute; inset: -5px; border: 1px solid #8B5CF6; border-radius: 50%; content: '';
   animation: gh-live-ping 2.4s ease-out infinite; }
 @keyframes gh-live-ping {
   0% { opacity: 0.72; transform: scale(0.45); }
@@ -357,24 +345,23 @@
   transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms ease; }
 .gh-pack:hover { transform: translateY(-5px); box-shadow: 0 26px 70px -30px rgba(217,70,239,0.5); }
 
-/* Hero arcade command rail and tabs */
-.gh-arcade-toolbar { display: flex; min-height: 58px; align-items: center; gap: 10px; padding: 8px 12px;
-  border-bottom: 1px solid #3D324D;
-  background: linear-gradient(90deg, #171126, #14101f); }
+/* Hero arcade command rail and tabs (light stage chrome) */
+.gh-arcade-toolbar { display: flex; min-height: 68px; align-items: center; gap: 10px; padding: 12px 16px;
+  border-bottom: 1px solid rgba(221, 211, 232, 0.72);
+  background: rgba(255, 255, 255, 0.72); }
 .gh-arcade-live { display: inline-flex; flex: none; align-items: center; gap: 8px; }
-.gh-arcade-badge { color: #BDB3C9; font: 700 11px/1 'JetBrains Mono', ui-monospace, monospace;
-  letter-spacing: 0.14em; text-transform: uppercase; }
+.gh-arcade-badge { color: #6E6478; font: 700 11px/1 'Space Grotesk', system-ui, sans-serif;
+  letter-spacing: 0.12em; text-transform: uppercase; }
 .gh-arcade-tabs-wrap { min-width: 0; display: flex; align-items: center; margin-left: auto; }
-.gh-arcade-tab { position: relative; min-height: 44px; display: inline-flex; align-items: center; gap: 6px;
-  padding: 10px 14px; border: 1px solid transparent; border-radius: 999px; cursor: pointer;
-  color: #BDB3C9; background: transparent;
-  font-size: 14px; font-weight: 650; letter-spacing: 0.01em;
-  transition: transform 160ms ease, color 180ms ease, border-color 180ms ease, background-color 180ms ease; }
-.gh-arcade-tab:hover { color: #F8F5FB; border-color: rgba(185,131,255,0.35); background: rgba(185,131,255,0.08); }
+.gh-arcade-tab { position: relative; height: 42px; min-height: 42px; display: inline-flex; align-items: center; gap: 6px;
+  padding-inline: 16px; border: 1px solid transparent; border-radius: 14px; cursor: pointer;
+  color: #6E6478; background: transparent;
+  font-size: 14px; font-weight: 700; letter-spacing: 0.01em; white-space: nowrap;
+  transition: transform 160ms ease, color 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease; }
+.gh-arcade-tab:hover { color: #20152F; background: #F0EAF7; }
 .gh-arcade-tab:active { transform: translateY(1px) scale(0.985); }
-.gh-arcade-tab.on { color: #F8F5FB; border-color: rgba(185,131,255,0.45); background: rgba(185,131,255,0.16); }
-.gh-arcade-tab.on::after { position: absolute; right: 14px; bottom: 4px; left: 14px; height: 2px;
-  border-radius: 2px; content: ''; background: #B983FF; transition: all 220ms cubic-bezier(0.22,1,0.36,1); }
+.gh-arcade-tab.on { color: #7442E8; background: #EEE7FF; border-color: #C4B0FF;
+  box-shadow: inset 0 -2px 0 rgba(139, 92, 246, 0.20); }
 
 /* Language toggle (header) */
 .gh-lang { display: inline-flex; border-radius: 999px; overflow: hidden;
@@ -385,7 +372,7 @@
 .gh-lang-btn.on { opacity: 1; color: #fff; background: linear-gradient(135deg, #8B5CF6, #D946EF); }
 
 /* Hero arcade slider */
-.gh-arcade-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; max-width: 360px;
+.gh-arcade-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; max-width: none;
   scroll-padding-inline: 16px; scroll-snap-type: x proximity; padding-inline: 2px;
   mask-image: linear-gradient(90deg, transparent, #000 12px, #000 calc(100% - 12px), transparent); }
 .gh-arcade-tab { scroll-snap-align: center; }
@@ -398,18 +385,23 @@
 .gh-arcade-arrow:hover { background: rgba(255,255,255,0.16); }
 @media (max-width: 1100px) { .gh-arcade-badge { display: none; } .gh-arcade-tabs { max-width: none; flex: 1; } }
 
-/* One reserved bottom rail: previous, route stops, next. */
+/* Footer navigation cluster: instruction rail left (in-scene), controls right. */
 .gh-arcade-viewport { position: relative; }
-.gh-arcade-stage { position: relative; overflow: hidden !important; overscroll-behavior: contain; }
-.gh-slider-arrow { position: absolute; z-index: 45; bottom: 8px; width: 44px; height: 44px; display: flex;
-  align-items: center; justify-content: center; border: 1px solid #3D324D; border-radius: 12px;
-  cursor: pointer; color: #F8F5FB; background: rgba(23,17,38,0.88);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  transition: transform 160ms ease, border-color 180ms ease, background-color 180ms ease; }
-.gh-slider-arrow:hover { border-color: #B983FF; background: rgba(185,131,255,0.14); transform: translateY(-2px); }
-.gh-slider-arrow:active { transform: scale(0.96); }
-.gh-slider-prev { left: 10px; }
-.gh-slider-next { right: 10px; }
+.gh-arcade-stage { position: relative; display: flex; flex-direction: column; overflow: hidden !important;
+  overscroll-behavior: contain;
+  background:
+    radial-gradient(circle at 82% 12%, rgba(196, 176, 255, 0.22), transparent 31%),
+    #FCFAFF; }
+.gh-slider-arrow { position: absolute; z-index: 45; bottom: 18px; width: 44px; height: 44px; display: flex;
+  align-items: center; justify-content: center; border: 1px solid #DDD3E8; border-radius: 12px;
+  cursor: pointer; color: #20152F; background: #FFFFFF;
+  box-shadow: 0 3px 0 #DDD3E8, 0 8px 16px rgba(42,27,61,0.07);
+  transition: transform 160ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 160ms ease; }
+.gh-slider-arrow:hover { border-color: #C4B0FF; background: #F6F2FD; transform: translateY(-2px);
+  box-shadow: 0 5px 0 #C4B0FF, 0 10px 18px rgba(86,55,130,0.10); }
+.gh-slider-arrow:active { transform: translateY(2px); box-shadow: 0 1px 0 #DDD3E8; }
+.gh-slider-prev { right: 80px; left: auto; }
+.gh-slider-next { right: 28px; }
 .gh-slider-dots { position: absolute; z-index: 45; left: 50%; bottom: 8px; display: flex; height: 44px;
   align-items: center; gap: 0; padding: 2px 6px; border: 1px solid rgba(187,230,249,0.2); border-radius: 999px;
   background: rgba(7,14,35,0.82); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
@@ -554,8 +546,6 @@
   animation: gh-chip-in 700ms cubic-bezier(0.16, 1, 0.3, 1) var(--gh-chip-delay) both;
 }
 .gh-hero-stage-wrap { transform-style: preserve-3d; }
-.gh-hero-frame { transform: rotateY(-1.5deg) rotateX(0.8deg); }
-.gh-hero-frame:hover { transform: translateY(-5px) rotateY(0deg) rotateX(0deg) scale(1.008); }
 .gh-arcade-stage { animation: gh-stage-swap 480ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 .gh-text-link { transition: color 180ms ease, transform 220ms cubic-bezier(0.16, 1, 0.3, 1); }
 .gh-text-link:hover { transform: translateY(-1px); }
@@ -983,12 +973,12 @@
   .gh-hero-copy h1 { font-size: clamp(38px, 12vw, 58px) !important; }
   .gh-hero-copy .gh-action--lg { width: 100%; }
   .gh-feature-chip { width: 100%; }
-  .gh-hero-frame { margin-inline: -5px; transform: none; border-radius: 21px; padding: 3px; }
-  .gh-postcard { border-radius: 18px; }
-  .gh-arcade-stage { height: min(58dvh, 420px) !important; }
-  .gh-slider-arrow { width: 44px; height: 44px; }
-  .gh-slider-prev { left: 6px; }
-  .gh-slider-next { right: 6px; }
+  .gh-hero-frame { margin-inline: -5px; transform: none; border-radius: 24px; }
+  .gh-postcard { border-radius: 24px; }
+  .gh-arcade-stage { min-height: 600px !important; }
+  .gh-slider-arrow { width: 44px; height: 44px; bottom: 12px; }
+  .gh-slider-prev { right: 68px; left: auto; }
+  .gh-slider-next { right: 16px; }
   .gh-packs > .gh-pack-slot { grid-column: 1 / -1; }
   .gh-proof-rail { margin-bottom: 72px; padding: 8px; }
   .gh-proof-item { min-height: 76px; padding-inline: 8px; }
@@ -1072,7 +1062,7 @@
 
 @media (hover: none) and (max-width: 620px), (update: slow) {
   .gh-slider-arrow, .gh-slider-dots {
-    background: rgba(9,16,39,0.96);
+    background: #FFFFFF;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -1206,40 +1196,45 @@
   .gh-photo-frame--wide { max-height: 300px; }
 }
 
-/* Module-body transition (direction-aware, calm) + footer position label */
+/* Module-body transition: a calm 280ms cross-fade with a 5px settle. */
 .gh-arcade-body {
-  height: 100%;
-  --gh-in-x: 12px;
-  animation: gh-body-in 220ms cubic-bezier(0.22, 1, 0.36, 1) 60ms backwards;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  animation: gh-body-in 160ms cubic-bezier(0.22, 1, 0.36, 1) 120ms backwards;
 }
-.gh-arcade-body[data-dir='-1'] { --gh-in-x: -12px; --gh-out-x: 10px; }
+.gh-arcade-body > * { flex: 1; }
 .gh-arcade-body.is-exiting {
   opacity: 0;
-  transform: translateX(var(--gh-out-x, -10px)) scale(0.995);
+  transform: translateY(5px);
   transition: opacity 120ms cubic-bezier(0.4, 0, 1, 1), transform 120ms cubic-bezier(0.4, 0, 1, 1);
   animation: none;
 }
 @keyframes gh-body-in {
-  from { opacity: 0; transform: translateX(var(--gh-in-x)) scale(0.995); }
+  from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: none; }
 }
 .gh-slider-label {
   position: absolute;
   z-index: 45;
-  left: 50%;
-  bottom: 8px;
-  transform: translateX(-50%);
+  right: 136px;
+  bottom: 18px;
   display: inline-flex;
   align-items: center;
-  min-height: 34px;
+  min-height: 44px;
   padding: 6px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
-  color: #E9E2F4;
-  background: rgba(18, 10, 38, 0.78);
+  border: 1px solid #DDD3E8;
+  border-radius: 12px;
+  color: #6E6478;
+  background: #FFFFFF;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+@media (max-width: 620px) {
+  .gh-slider-label { right: auto; left: 16px; bottom: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .gh-arcade-body { animation: gh-body-fade 100ms linear backwards; }
@@ -1247,7 +1242,8 @@
 }
 @keyframes gh-body-fade { from { opacity: 0; } to { opacity: 1; } }
 
-/* three.js arcade backdrop */
-.gh-arcade-backdrop { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+/* three.js city: quiet atmospheric layer behind the whole stage */
+.gh-arcade-backdrop { position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  opacity: 0.10; filter: saturate(0.65); }
 .gh-arcade-backdrop canvas { display: block; width: 100% !important; height: 100% !important; }
 .gh-arcade-body { position: relative; z-index: 1; }
