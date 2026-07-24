@@ -383,12 +383,31 @@ function DashboardPreview({ data, design, teacherName }) {
         {show('progress') && (
           <article className="sa-preview-card">
             <h3>Accuracy</h3>
-            <p className="sa-preview-big">
-              {typeof data.avgAccuracy === 'number' ? `${Math.round(data.avgAccuracy)}%` : '—'}
-            </p>
-            <div className="sa-preview-bar" aria-hidden="true">
-              <span style={{ width: `${Math.max(0, Math.min(100, data.avgAccuracy || 0))}%` }} />
-            </div>
+            {/* avgAccuracy is derived from quizzes. A student with no quizzes
+                scores 0.0, and printing that as "0%" reads as "got everything
+                wrong" rather than "nothing measured yet". Fall back to the CEFR
+                analysis score, which is real, and only then to a dash. */}
+            {hasQuizData(data) ? (
+              <>
+                <p className="sa-preview-big">{Math.round(data.avgAccuracy)}%</p>
+                <div className="sa-preview-bar" aria-hidden="true">
+                  <span style={{ width: `${Math.max(0, Math.min(100, data.avgAccuracy))}%` }} />
+                </div>
+              </>
+            ) : typeof data.latestAnalysis?.overallScore === 'number' ? (
+              <>
+                <p className="sa-preview-big">{Math.round(data.latestAnalysis.overallScore)}</p>
+                <p className="sa-muted">Latest lesson analysis · no quizzes yet</p>
+                <div className="sa-preview-bar" aria-hidden="true">
+                  <span style={{ width: `${Math.max(0, Math.min(100, data.latestAnalysis.overallScore))}%` }} />
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="sa-preview-big">—</p>
+                <p className="sa-muted">No quiz or analysis data yet</p>
+              </>
+            )}
           </article>
         )}
         {show('keywords') && (
@@ -440,6 +459,11 @@ function stripEmpty(o) {
   const out = {}
   for (const [k, v] of Object.entries(o)) if (v !== '' && v != null) out[k] = v
   return out
+}
+
+// A zero average with zero quizzes is "not measured", not "scored zero".
+function hasQuizData(data) {
+  return (data.recentQuizzes?.length || 0) > 0 && typeof data.avgAccuracy === 'number'
 }
 
 // app_config stores JSON, but a hand-edited value could arrive as a string.
