@@ -108,14 +108,20 @@ const GH = {
     navPlay: 'Play the World',
     eyebrow: 'online English school · live 1:1 lessons',
     h1a: 'Learn live.', h1b: 'Speak every day',
-    heroSub: (n) => <>
-      <b>60-minute 1:1 lessons</b> with your own teacher, courses matched to your CEFR level,
-      and flashcards created from the vocabulary in each lesson. Between lessons, practise in
-      <b>EnglishMetro World</b>, our language game set in an open 3D city, and in {n} short
-      practice games. Book online in minutes.</>,
+    heroPoints: [
+      <>Live <b>1:1 lessons</b>, 60 minutes, with your own teacher</>,
+      <>A course matched to your <b>CEFR level</b></>,
+      <>Lesson vocabulary becomes your <b>flashcards</b></>,
+      <>Practice between lessons in <b>EnglishMetro World</b>, our 3D city</>,
+    ],
     ctaBook: 'Book your first lesson', ctaPricing: 'See pricing', ctaWorld: 'Play the World for free',
     chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'lesson vocabulary becomes flashcards', 'book online in minutes'],
     arcadeBadge: 'quick practice · try it now',
+    officeAlt: 'Students laughing together at the English Metro school',
+    officeChip: 'Our students · one school',
+    arcadeKicker: 'quick practice · no sign-up',
+    arcadeTitle: 'Seven ways to practise. Try them now.',
+    arcadeBody: 'These are the same games your flashcards feed after every lesson. Flip a card, catch a train, build a sentence. No account needed.',
     worldLink: 'Explore the full 3D city for free',
     stepsKicker: 'from sign-up to speaking', stepsTitle: 'Your first lesson is four steps away',
     steps: [
@@ -158,14 +164,20 @@ const GH = {
     navPlay: 'Zagraj w World',
     eyebrow: 'szkoła angielskiego online · lekcje 1:1 na żywo',
     h1a: 'Ucz się na żywo.', h1b: 'Mów po angielsku na co dzień',
-    heroSub: (n) => <>
-      <b>60-minutowe lekcje 1:1</b> z własnym lektorem, kursy dopasowane do poziomu CEFR
-      i fiszki tworzone ze słownictwa z każdej lekcji. Między lekcjami ćwiczysz w{' '}
-      <b>EnglishMetro World</b>, naszej grze językowej w otwartym mieście 3D, oraz w {n} krótkich
-      grach. Rezerwacja online zajmuje kilka minut.</>,
+    heroPoints: [
+      <>Lekcje <b>1:1 na żywo</b>, 60 minut, z własnym lektorem</>,
+      <>Kurs dopasowany do Twojego <b>poziomu CEFR</b></>,
+      <>Słownictwo z lekcji trafia do Twoich <b>fiszek</b></>,
+      <>Między lekcjami ćwiczysz w <b>EnglishMetro World</b>, naszym mieście 3D</>,
+    ],
     ctaBook: 'Zarezerwuj pierwszą lekcję', ctaPricing: 'Zobacz cennik', ctaWorld: 'Zagraj w World za darmo',
     chips: ['lekcje 1:1 na żywo, 60 min', 'kursy dopasowane do poziomu CEFR', 'słownictwo z lekcji trafia do fiszek', 'rezerwacja online w kilka minut'],
     arcadeBadge: 'krótkie ćwiczenia · wypróbuj teraz',
+    officeAlt: 'Uczniowie śmiejący się razem w szkole English Metro',
+    officeChip: 'Nasi uczniowie · jedna szkoła',
+    arcadeKicker: 'krótkie ćwiczenia · bez logowania',
+    arcadeTitle: 'Siedem sposobów na ćwiczenie. Wypróbuj je teraz.',
+    arcadeBody: 'To te same gry, do których po każdej lekcji trafiają Twoje fiszki. Odkryj kartę, złap pociąg, ułóż zdanie. Bez zakładania konta.',
     worldLink: 'Poznaj całe miasto 3D za darmo',
     stepsKicker: 'od rejestracji do mówienia', stepsTitle: 'Twoja pierwsza lekcja w czterech krokach',
     steps: [
@@ -850,10 +862,17 @@ export default function GameHome() {
                 WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{W.h1b}</span>
               <span style={{ color: T.ember }}>.</span>
             </h1>
-            <p className="gh-rise gh-rise-3" style={{ marginTop: 24, fontSize: 'clamp(15px, 1.6vw, 18px)',
-              color: T.textDim, lineHeight: 1.65, maxWidth: 540 }}>
-              {W.heroSub(ALL_GAMES.length)}
-            </p>
+            <ul className="gh-rise gh-rise-3" style={{ marginTop: 24, display: 'grid', gap: 12,
+              padding: 0, margin: '24px 0 0', listStyle: 'none', maxWidth: 540 }}>
+              {W.heroPoints.map((point, i) => (
+                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10,
+                  fontSize: 'clamp(15px, 1.6vw, 17px)', color: T.textDim, lineHeight: 1.5 }}>
+                  <span className="material-symbols-outlined" aria-hidden
+                    style={{ fontSize: 19, color: T.emerald, marginTop: 2 }}>check_circle</span>
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
             <div className="gh-rise gh-rise-4" style={{ marginTop: 30, display: 'flex', gap: 14,
               flexWrap: 'wrap', alignItems: 'center' }}>
               <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward"
@@ -868,28 +887,16 @@ export default function GameHome() {
                 {W.ctaWorld}
               </a>
             </div>
-            <div className="gh-rise gh-rise-4" style={{ marginTop: 22, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-              {W.chips.map((f, i) => (
-                <span key={f} className="gh-feature-chip gh-glass" style={{ display: 'inline-flex', alignItems: 'center', gap: 7,
-                  '--gh-chip-delay': `${430 + i * 70}ms`,
-                  fontSize: 12, color: T.textDim, letterSpacing: '0.04em' }}>
-                  <span className="material-symbols-outlined" aria-hidden
-                    style={{ fontSize: 15, color: T.emerald }}>check_circle</span>
-                  {f}
-                </span>
-              ))}
-            </div>
+
           </div>
 
           <div className="gh-rise gh-rise-3 gh-hero-stage-wrap" style={{ minWidth: 0 }}>
-            <HeroArcade badge={W.arcadeBadge} reduced={reduced} lang={lang}/>
-            <div style={{ marginTop: 12, textAlign: 'center' }}>
-              <a href={WORLD_URL} className="gh-text-link"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T.textDim,
-                  fontSize: 12.5, fontWeight: 600, letterSpacing: '0.04em', textDecoration: 'none' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 16, color: T.violet }}>public</span>
-                {W.worldLink}
-              </a>
+            <div className="gh-photo-frame gh-photo-frame--wide">
+              <img src="/home/photo-office-2607.webp" alt={W.officeAlt} width="1600" height="900"/>
+              <span className="gh-float-chip gh-float-chip--a">
+                <span className="material-symbols-outlined" aria-hidden>diversity_3</span>
+                {W.officeChip}
+              </span>
             </div>
           </div>
         </section>
@@ -987,6 +994,31 @@ export default function GameHome() {
               <div className="gh-three-route" aria-hidden>
                 <span>LIVE 1:1</span><i/><span>FLASHCARDS</span><i/><span>WORLD 3D</span>
               </div>
+            </div>
+          </Reveal>
+        </section>
+
+        {/* ── Quick practice modules, in their own section ── */}
+        <section className="gh-section gh-arcade-section" style={{ paddingBottom: 64 }}>
+          <Reveal className="gh-section-heading">
+            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+              textTransform: 'uppercase', color: T.fuchsia, marginBottom: 10 }}>{W.arcadeKicker}</div>
+            <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
+              letterSpacing: '-0.03em', margin: '0 0 14px' }}>
+              {W.arcadeTitle}
+            </h2>
+            <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.35vw, 17px)', lineHeight: 1.7,
+              maxWidth: 560, margin: '0 0 26px' }}>{W.arcadeBody}</p>
+          </Reveal>
+          <Reveal delay={80}>
+            <HeroArcade badge={W.arcadeBadge} reduced={reduced} lang={lang}/>
+            <div style={{ marginTop: 12, textAlign: 'center' }}>
+              <a href={WORLD_URL} className="gh-text-link"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T.textDim,
+                  fontSize: 12.5, fontWeight: 600, letterSpacing: '0.04em', textDecoration: 'none' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: T.violet }}>public</span>
+                {W.worldLink}
+              </a>
             </div>
           </Reveal>
         </section>
