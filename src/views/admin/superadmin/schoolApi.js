@@ -18,7 +18,9 @@
 // throws a readable error locally rather than sending a request that will come
 // back as an opaque Convex "Server Error".
 
-import { mutateAdminConvex, queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
+import {
+  mutateAdminConvex, queryAdminConvex, queryConvexUnscoped,
+} from '../../../contexts/AdminAuthContext.jsx'
 
 /* ─────────────────────────────────────────────────────── vocabularies ───── */
 // Sampled from live data rather than guessed. Extend deliberately.
@@ -125,7 +127,11 @@ export const archiveStudent = studentId =>
 // course list. Never call it with an org the operator has not selected.
 
 export const listCourses = organizationId =>
-  queryAdminConvex('students:listGroups', {
+  // NO session token: the deployed validator declares organizationId only, and
+  // Convex rejects any argument it does not declare. Sending the token that
+  // queryAdminConvex injects turns this into a "Server Error" and the course
+  // dropdown silently empties.
+  queryConvexUnscoped('students:listGroups', {
     organizationId: requireOrg(organizationId, 'the course list'),
   })
 

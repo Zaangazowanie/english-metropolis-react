@@ -69,6 +69,25 @@ export async function queryAdminConvex(path, args) {
   return payload.value
 }
 
+// Same as queryAdminConvex but WITHOUT the session token.
+//
+// A few deployed queries do not declare `sessionToken` in their arg validator at
+// all — students:listGroups is one — and Convex rejects an argument the
+// validator does not know about. Injecting the token there turns a working query
+// into an opaque "Server Error", which is exactly how the course dropdown ended
+// up empty. Use this only for queries whose deployed spec has no sessionToken
+// field; anything that can be scoped to a caller should be, so this is a
+// narrow exception rather than a general-purpose escape hatch.
+export async function queryConvexUnscoped(path, args) {
+  const response = await postAdminApi('/api/query', { path, args: args || {} })
+  if (!response.ok) throw new Error(`${path} failed with ${response.status}`)
+  const payload = await response.json()
+  if (payload?.status !== 'success') {
+    throw new Error(`${path} returned ${payload?.status || 'unknown status'}`)
+  }
+  return payload.value
+}
+
 export async function mutateAdminConvex(path, args) {
   const response = await postAdminApi('/api/mutation', { path, args: withSessionToken(args) })
 

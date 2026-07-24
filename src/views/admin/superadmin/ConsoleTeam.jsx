@@ -17,6 +17,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
+import { useSchool } from './SchoolShared.jsx'
 import { ConsoleEmpty, ConsoleErrorPanel, ConsoleNotLive, ConsoleSkeleton } from './ConsoleStates.jsx'
 import {
   Drawer, Field, SaveError, SortTh, bizCreate, bizDelete, bizRestore, bizUpdate,
@@ -57,15 +58,23 @@ export default function ConsoleTeam() {
   const { rows, total, error, reload } = useBizList('team_members', params)
 
   // Convex side, loaded once.
+  // teachers:listTeachers is org-scoped via resolveOrg(), which THROWS for a
+  // super_admin (organizationId: null). Calling it with no org is why this
+  // cross-reference used to report the query as failed on every load. It takes
+  // the console's selected school, and says so when none is chosen rather than
+  // firing a request that cannot succeed.
+  const { schoolId, school } = useSchool()
   const [teachers, setTeachers] = useState(null)
   const [teachersError, setTeachersError] = useState(null)
   useEffect(() => {
+    if (!schoolId) { setTeachers(null); setTeachersError(null); return undefined }
     let alive = true
-    queryAdminConvex('teachers:listTeachers', { includeRemoved: false })
+    setTeachers(null); setTeachersError(null)
+    queryAdminConvex('teachers:listTeachers', { organizationId: schoolId, includeRemoved: false })
       .then(list => { if (alive) setTeachers(list || []) })
       .catch(e => { if (alive) setTeachersError(e) })
     return () => { alive = false }
-  }, [])
+  }, [schoolId])
 
   const byEmail = useMemo(() => {
     const map = new Map()
@@ -208,13 +217,19 @@ export default function ConsoleTeam() {
         )}
       </div>
 
-      {teachersError && (
+      {(teachersError || !schoolId) && (
         <div className="sa-card" style={{ marginTop: 12 }}>
           <div className="sa-card-header"><h2>Convex cross-reference</h2></div>
           <div className="sa-card-body">
             <p style={{ margin: 0, color: 'var(--sa-text-muted)' }}>
-              <code>teachers:listTeachers</code> failed ({teachersError.message}). The team list above is unaffected; the
-              Convex user and student columns cannot be filled until that query answers.
+              {!schoolId ? (
+                <>Teaching records are stored per school. Pick a school in the top bar to fill the
+                  Convex user and student columns.</>
+              ) : (
+                <><code>teachers:listTeachers</code> failed ({teachersError.message}) for{' '}
+                  {school?.name}. The team list above is unaffected; the Convex user and student
+                  columns cannot be filled until that query answers.</>
+              )}
             </p>
           </div>
         </div>
