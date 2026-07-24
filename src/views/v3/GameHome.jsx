@@ -906,7 +906,7 @@ export default function GameHome() {
               </span>
             </div>
             <div className="gh-photo-frame gh-photo-frame--side">
-              <img src="/home/photo-practice.webp" alt={W.lessonsAltSide} loading="lazy" width="800" height="533"/>
+              <img src="/home/photo-practice-2607.webp" alt={W.lessonsAltSide} loading="lazy" width="800" height="533"/>
             </div>
           </Reveal>
           <Reveal className="gh-lessons-copy" delay={90}>
@@ -990,7 +990,7 @@ export default function GameHome() {
           </Reveal>
           <Reveal className="gh-steps-photo">
             <div className="gh-photo-frame gh-photo-frame--wide">
-              <img src="/home/photo-teacher.webp" alt={W.stepsAlt} loading="lazy" width="1600" height="900"/>
+              <img src="/home/photo-teacher-2607.webp" alt={W.stepsAlt} loading="lazy" width="1600" height="900"/>
               <span className="gh-float-chip gh-float-chip--a">
                 <span className="material-symbols-outlined" aria-hidden>co_present</span>
                 {W.stepsChip}
