@@ -151,7 +151,11 @@ export default function BajlaConnectModal() {
   const C = COPY[lang === 'pl' ? 'pl' : 'en']
   const M = MESSAGES[lang === 'pl' ? 'pl' : 'en']
   const accountKey = studentUser?._id || adminUser?._id || (isTeacherAuthenticated ? 'teacher' : null)
-  const hideForRoute = /^\/(login|logout)/i.test(location.pathname)
+  // /admin is a work tool, not a marketing surface. The popup mounts as
+  // aria-modal="true" and its scrim swallows pointer events, so auto-opening it
+  // over the console both blocks the first click and tells a screen reader the
+  // console behind it is inert. Suppressed wholesale on /admin.
+  const hideForRoute = /^\/(login|logout|admin)/i.test(location.pathname)
   // EM-branded popup must not auto-open on a school-branded subdomain
   // (e.g. conversa.englishmetro.com) — it would stomp the school's branding.
   // The minimized launcher stays available; only the auto-show is suppressed.

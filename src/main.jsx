@@ -28,6 +28,10 @@ import SuperadminLibraryDetail from './views/admin/superadmin/SuperadminLibraryD
 import SuperadminAssignments from './views/admin/superadmin/SuperadminAssignments.jsx'
 import SuperadminPipelines from './views/admin/superadmin/SuperadminPipelines.jsx'
 import ConsoleInbox from './views/admin/superadmin/ConsoleInbox.jsx'
+import ConsoleSchools from './views/admin/superadmin/ConsoleSchools.jsx'
+import ConsoleTeachers from './views/admin/superadmin/ConsoleTeachers.jsx'
+import ConsoleSchoolStudents from './views/admin/superadmin/ConsoleSchoolStudents.jsx'
+import ConsoleStudentPreview from './views/admin/superadmin/ConsoleStudentPreview.jsx'
 import ConsoleTemplates from './views/admin/superadmin/ConsoleTemplates.jsx'
 import ConsoleSequences from './views/admin/superadmin/ConsoleSequences.jsx'
 import ConsoleRevenue from './views/admin/superadmin/ConsoleRevenue.jsx'
@@ -226,6 +230,13 @@ function RootRouter() {
           <Route path="curriculum/ingest/:jobId" element={<SuperadminReview />} />
           <Route path="curriculum/queue" element={<SuperadminJobs />} />
           <Route path="curriculum/queue/:jobId" element={<SuperadminReview />} />
+
+          {/* --- SCHOOL --- */}
+          <Route path="school" element={<Navigate to="/admin/superadmin/school/schools" replace />} />
+          <Route path="school/schools" element={<ConsoleSchools />} />
+          <Route path="school/teachers" element={<ConsoleTeachers />} />
+          <Route path="school/students" element={<ConsoleSchoolStudents />} />
+          <Route path="school/preview" element={<ConsoleStudentPreview />} />
 
           {/* --- COMMS --- */}
           <Route path="comms/inbox" element={<ConsoleInbox />} />

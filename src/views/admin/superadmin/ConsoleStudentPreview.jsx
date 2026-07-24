@@ -1,0 +1,450 @@
+// ConsoleStudentPreview — School → Student preview.
+//
+// Left: what the student actually sees, rendered from the SAME payload their
+// dashboard reads (students:getStudentDashboard). Right: two tabs of controls.
+//
+//   This student   → students:updateStudent. Affects ONE student.
+//   Shared design  → /api/console/biz/config. Affects EVERY student.
+//
+// The two are deliberately separated and labelled, because "change the greeting"
+// means very different things depending on which panel you are in, and an admin
+// who confuses them changes 150 dashboards by accident.
+//
+// This is a PREVIEW, not an impersonation: it never mints a student session. It
+// renders the admin-readable dashboard payload through the shared design so you
+// can see the effect of a design change before publishing it. Anything that
+// depends on a student's own login (their password, their private settings) is
+// not shown, and the panel says so rather than faking it.
+
+import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { ConsoleEmpty, ConsoleErrorPanel, ConsoleSkeleton, LevelBadge } from './ConsoleStates.jsx'
+import { Field } from './CommsShared.jsx'
+import { consoleGet, consolePost } from './consoleApi.js'
+import { ConfirmWrite, NeedSchool, useConvexList, useSchool } from './SchoolShared.jsx'
+import {
+  CEFR_LEVELS, getStudentDashboard, listCourses, listStudents, listTeachers, updateStudent,
+} from './schoolApi.js'
+
+/* ── shared design: defaults + the config keys they persist under ────────── */
+
+const DESIGN_KEYS = {
+  accent: 'student_dashboard.accent',
+  greeting: 'student_dashboard.greeting',
+  cards: 'student_dashboard.cards',
+  showTeacher: 'student_dashboard.show_teacher',
+}
+const DEFAULT_DESIGN = {
+  accent: '#6D28D9',
+  greeting: 'Cześć, {name}!',
+  cards: ['next_lesson', 'progress', 'keywords', 'recent_lessons'],
+  showTeacher: true,
+}
+const ALL_CARDS = [
+  { id: 'next_lesson', label: 'Next lesson' },
+  { id: 'progress', label: 'Progress and accuracy' },
+  { id: 'keywords', label: 'Keyword count' },
+  { id: 'recent_lessons', label: 'Recent lessons' },
+  { id: 'quizzes', label: 'Recent quizzes' },
+]
+
+export default function ConsoleStudentPreview() {
+  const { schoolId, school } = useSchool()
+  const [params, setParams] = useSearchParams()
+  const slug = params.get('student') || ''
+  const [tab, setTab] = useState('student')
+
+  const students = useConvexList(() => listStudents(schoolId, true), [schoolId], !!schoolId)
+  const teachers = useConvexList(() => listTeachers(schoolId, false), [schoolId], !!schoolId)
+  const courses = useConvexList(() => listCourses(schoolId), [schoolId], !!schoolId)
+
+  const [dash, setDash] = useState({ data: null, error: null, loading: false })
+  const [design, setDesign] = useState(DEFAULT_DESIGN)
+  const [savedDesign, setSavedDesign] = useState(DEFAULT_DESIGN)
+  const [draft, setDraft] = useState(null)
+  const [pending, setPending] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState(null)
+
+  // Shared design lives in the business config store, not Convex — there is no
+  // deployed mutation for dashboard theming, so the console owns it.
+  useEffect(() => {
+    let alive = true
+    consoleGet('/api/console/biz/config')
+      .then(res => {
+        if (!alive) return
+        const cfg = res?.config || {}
+        const loaded = {
+          accent: cfg[DESIGN_KEYS.accent] ?? DEFAULT_DESIGN.accent,
+          greeting: cfg[DESIGN_KEYS.greeting] ?? DEFAULT_DESIGN.greeting,
+          cards: asArray(cfg[DESIGN_KEYS.cards]) ?? DEFAULT_DESIGN.cards,
+          showTeacher: cfg[DESIGN_KEYS.showTeacher] ?? DEFAULT_DESIGN.showTeacher,
+        }
+        setDesign(loaded); setSavedDesign(loaded)
+      })
+      .catch(() => { /* defaults stand; the panel shows the unsaved marker */ })
+    return () => { alive = false }
+  }, [])
+
+  const loadDash = useCallback(() => {
+    if (!slug) { setDash({ data: null, error: null, loading: false }); return }
+    setDash({ data: null, error: null, loading: true })
+    getStudentDashboard(slug)
+      .then(data => setDash({ data, error: null, loading: false }))
+      .catch(error => setDash({ data: null, error, loading: false }))
+  }, [slug])
+  useEffect(loadDash, [loadDash])
+
+  const student = dash.data?.student || null
+  useEffect(() => { setDraft(student ? toDraft(student) : null) }, [student?._id]) // eslint-disable-line
+
+  const teacherName = id => teachers.rows?.find(t => t._id === id)?.name || null
+  const designDirty = JSON.stringify(design) !== JSON.stringify(savedDesign)
+
+  if (!schoolId) {
+    return (
+      <div className="sa-page">
+        <div className="sa-page-header"><h1 className="sa-page-title">Student preview</h1></div>
+        <NeedSchool what="Students" />
+      </div>
+    )
+  }
+
+  async function run() {
+    setBusy(true)
+    try {
+      await pending.run()
+      setNote({ ok: true, text: pending.done })
+      setPending(null)
+      pending.after?.()
+    } catch (e) {
+      setNote({ ok: false, text: e.message }); setPending(null)
+    } finally { setBusy(false) }
+  }
+
+  const askSaveStudent = () => setPending({
+    title: 'Save this student', verb: 'Save changes',
+    rows: [
+      { label: 'Student', value: draft.name },
+      { label: 'Level', value: draft.level },
+      { label: 'Target level', value: draft.targetLevel || '—' },
+      { label: 'Teacher', value: teacherName(draft.primaryTeacherId) || 'unassigned' },
+      { label: 'Email', value: draft.email || '—' },
+    ],
+    warning: 'Affects this student only.',
+    done: 'Student updated.',
+    run: () => updateStudent(student._id, stripEmpty({
+      name: draft.name, level: draft.level, targetLevel: draft.targetLevel,
+      email: draft.email, phone: draft.phone, notes: draft.notes,
+      primaryTeacherId: draft.primaryTeacherId, groupId: draft.groupId,
+    })),
+    after: loadDash,
+  })
+
+  const askPublishDesign = () => setPending({
+    title: 'Publish shared design', verb: 'Publish to all students',
+    rows: [
+      { label: 'Accent', value: design.accent },
+      { label: 'Greeting', value: design.greeting },
+      { label: 'Cards', value: design.cards.join(', ') || 'none' },
+      { label: 'Show teacher', value: design.showTeacher ? 'yes' : 'no' },
+    ],
+    warning: `This is the shared dashboard design. It applies to EVERY student, not just ${student?.name || 'this one'}.`,
+    done: 'Shared design published.',
+    run: async () => {
+      await consolePost('/api/console/biz/config', {
+        values: {
+          [DESIGN_KEYS.accent]: design.accent,
+          [DESIGN_KEYS.greeting]: design.greeting,
+          [DESIGN_KEYS.cards]: design.cards,
+          [DESIGN_KEYS.showTeacher]: design.showTeacher,
+        },
+      })
+      setSavedDesign(design)
+    },
+  })
+
+  return (
+    <div className="sa-page sa-preview-page">
+      <div className="sa-page-header">
+        <div>
+          <h1 className="sa-page-title">Student preview</h1>
+          <p className="sa-page-sub">
+            What a student sees in <strong>{school?.name}</strong>, and the two places you can change it.
+          </p>
+        </div>
+        <label className="sa-inline-field">
+          <span className="sa-sr-only">Preview as student</span>
+          <select className="sa-select" value={slug}
+                  onChange={e => setParams(e.target.value ? { student: e.target.value } : {})}>
+            <option value="">Choose a student…</option>
+            {(students.rows || []).map(s => <option key={s._id} value={s.slug}>{s.name}</option>)}
+          </select>
+        </label>
+      </div>
+
+      {note && <p className={note.ok ? 'sa-note is-ok' : 'sa-note is-bad'} role="status">{note.text}</p>}
+
+      {!slug ? (
+        <ConsoleEmpty icon="visibility" title="Pick a student to preview"
+                      hint="You will see their real dashboard data rendered through the shared design, plus the controls to change either." />
+      ) : (
+        <div className="sa-preview-split">
+          {/* ───────────── left: the student's view ───────────── */}
+          <section className="sa-preview-stage" aria-label="Student dashboard preview">
+            <div className="sa-preview-chrome">
+              <span className="material-symbols-outlined" aria-hidden="true">smartphone</span>
+              englishmetro.com/app/{slug}
+              <span className="sa-badge">preview</span>
+            </div>
+            {dash.loading ? <ConsoleSkeleton rows={5} label="Loading dashboard…" />
+              : dash.error ? <ConsoleErrorPanel error={dash.error} onRetry={loadDash} />
+                : dash.data ? <DashboardPreview data={dash.data} design={design} teacherName={teacherName} />
+                  : null}
+          </section>
+
+          {/* ───────────── right: the two edit surfaces ───────────── */}
+          <aside className="sa-preview-panel">
+            <div className="sa-tabs" role="tablist">
+              <button type="button" role="tab" aria-selected={tab === 'student'}
+                      className={tab === 'student' ? 'sa-tab is-active' : 'sa-tab'}
+                      onClick={() => setTab('student')}>
+                <span className="material-symbols-outlined" aria-hidden="true">person</span>
+                This student
+              </button>
+              <button type="button" role="tab" aria-selected={tab === 'design'}
+                      className={tab === 'design' ? 'sa-tab is-active' : 'sa-tab'}
+                      onClick={() => setTab('design')}>
+                <span className="material-symbols-outlined" aria-hidden="true">palette</span>
+                Shared design
+                {designDirty && <span className="sa-badge sa-badge-queued">unsaved</span>}
+              </button>
+            </div>
+
+            {tab === 'student' ? (
+              !draft ? <ConsoleSkeleton rows={4} label="Loading student…" /> : (
+                <div className="sa-panel-body">
+                  <p className="sa-scope-note is-single">
+                    Changes here affect <strong>{draft.name}</strong> only.
+                  </p>
+                  <Field label="Name" htmlFor="p-name">
+                    <input id="p-name" className="sa-input" value={draft.name}
+                           onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
+                  </Field>
+                  <div className="sa-field-row">
+                    <Field label="Level" htmlFor="p-level">
+                      <select id="p-level" className="sa-select" value={draft.level}
+                              onChange={e => setDraft(d => ({ ...d, level: e.target.value }))}>
+                        {CEFR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="Target" htmlFor="p-target">
+                      <select id="p-target" className="sa-select" value={draft.targetLevel}
+                              onChange={e => setDraft(d => ({ ...d, targetLevel: e.target.value }))}>
+                        <option value="">—</option>
+                        {CEFR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                      </select>
+                    </Field>
+                  </div>
+                  <Field label="Primary teacher" htmlFor="p-teacher">
+                    <select id="p-teacher" className="sa-select" value={draft.primaryTeacherId}
+                            onChange={e => setDraft(d => ({ ...d, primaryTeacherId: e.target.value }))}>
+                      <option value="">— unassigned —</option>
+                      {(teachers.rows || []).map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Course" htmlFor="p-course">
+                    <select id="p-course" className="sa-select" value={draft.groupId}
+                            onChange={e => setDraft(d => ({ ...d, groupId: e.target.value }))}>
+                      <option value="">— none —</option>
+                      {(courses.rows || []).map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Email" htmlFor="p-email">
+                    <input id="p-email" type="email" className="sa-input" value={draft.email}
+                           onChange={e => setDraft(d => ({ ...d, email: e.target.value }))} />
+                  </Field>
+                  <Field label="Notes" htmlFor="p-notes">
+                    <textarea id="p-notes" className="sa-textarea" rows={3} value={draft.notes}
+                              onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} />
+                  </Field>
+                  <p className="sa-muted">
+                    Their password and private account settings are not shown here — this is a
+                    preview, not a sign-in as the student.
+                  </p>
+                  <button type="button" className="sa-btn sa-btn-primary" onClick={askSaveStudent}>
+                    Save this student
+                  </button>
+                </div>
+              )
+            ) : (
+              <div className="sa-panel-body">
+                <p className="sa-scope-note is-shared">
+                  Changes here affect <strong>every student</strong> in every school. The preview on
+                  the left updates as you type; nothing is live until you publish.
+                </p>
+                <Field label="Accent colour" htmlFor="d-accent">
+                  <span className="sa-color-field">
+                    <input id="d-accent" type="color" value={design.accent}
+                           onChange={e => setDesign(d => ({ ...d, accent: e.target.value }))} />
+                    <input className="sa-input" value={design.accent} aria-label="Accent hex"
+                           onChange={e => setDesign(d => ({ ...d, accent: e.target.value }))} />
+                  </span>
+                </Field>
+                <Field label="Greeting" htmlFor="d-greeting" hint="{name} is replaced with the student's first name.">
+                  <input id="d-greeting" className="sa-input" value={design.greeting}
+                         onChange={e => setDesign(d => ({ ...d, greeting: e.target.value }))} />
+                </Field>
+                <fieldset className="sa-fieldset">
+                  <legend>Cards shown</legend>
+                  {ALL_CARDS.map(c => (
+                    <label key={c.id} className="sa-checkbox">
+                      <input type="checkbox" checked={design.cards.includes(c.id)}
+                             onChange={e => setDesign(d => ({
+                               ...d,
+                               cards: e.target.checked
+                                 ? [...d.cards, c.id]
+                                 : d.cards.filter(x => x !== c.id),
+                             }))} />
+                      {c.label}
+                    </label>
+                  ))}
+                </fieldset>
+                <label className="sa-checkbox">
+                  <input type="checkbox" checked={design.showTeacher}
+                         onChange={e => setDesign(d => ({ ...d, showTeacher: e.target.checked }))} />
+                  Show the student their teacher&apos;s name
+                </label>
+                <div className="sa-panel-actions">
+                  <button type="button" className="sa-btn sa-btn-ghost" disabled={!designDirty}
+                          onClick={() => setDesign(savedDesign)}>Discard</button>
+                  <button type="button" className="sa-btn sa-btn-primary" disabled={!designDirty}
+                          onClick={askPublishDesign}>Publish to all students</button>
+                </div>
+                <p className="sa-muted">
+                  Published settings are stored in the console and read by the student app. Cards the
+                  student has no data for stay hidden regardless of this setting.
+                </p>
+              </div>
+            )}
+          </aside>
+        </div>
+      )}
+
+      <ConfirmWrite
+        open={!!pending}
+        title={pending?.title || ''}
+        verb={pending?.verb || 'Save'}
+        school={school}
+        rows={pending?.rows}
+        warning={pending?.warning}
+        busy={busy}
+        onConfirm={run}
+        onClose={() => setPending(null)}
+      />
+    </div>
+  )
+}
+
+/* ──────────────────────────────────────────── the preview itself ───────── */
+
+function DashboardPreview({ data, design, teacherName }) {
+  const s = data.student || {}
+  const first = String(s.name || '').trim().split(/\s+/)[0] || ''
+  const greeting = String(design.greeting || '').replace('{name}', first)
+  const lessons = [...(data.lessons || [])].sort((a, b) => (b.order || 0) - (a.order || 0))
+  const last = lessons[0]
+  const show = id => design.cards.includes(id)
+  const accent = { '--preview-accent': design.accent }
+
+  return (
+    <div className="sa-preview-app" style={accent}>
+      <header className="sa-preview-hero">
+        <h2>{greeting}</h2>
+        <p>
+          <LevelBadge level={s.level} />
+          {s.targetLevel && <span className="sa-muted"> → {s.targetLevel}</span>}
+          {design.showTeacher && teacherName(s.primaryTeacherId) && (
+            <span className="sa-muted"> · {teacherName(s.primaryTeacherId)}</span>
+          )}
+        </p>
+      </header>
+
+      <div className="sa-preview-cards">
+        {show('next_lesson') && (
+          <article className="sa-preview-card">
+            <h3>Last lesson</h3>
+            {last
+              ? <p className="sa-preview-big">{last.date || '—'}</p>
+              : <p className="sa-muted">No lessons yet</p>}
+            {last?.keywordCount != null && <p className="sa-muted">{last.keywordCount} keywords</p>}
+          </article>
+        )}
+        {show('progress') && (
+          <article className="sa-preview-card">
+            <h3>Accuracy</h3>
+            <p className="sa-preview-big">
+              {typeof data.avgAccuracy === 'number' ? `${Math.round(data.avgAccuracy)}%` : '—'}
+            </p>
+            <div className="sa-preview-bar" aria-hidden="true">
+              <span style={{ width: `${Math.max(0, Math.min(100, data.avgAccuracy || 0))}%` }} />
+            </div>
+          </article>
+        )}
+        {show('keywords') && (
+          <article className="sa-preview-card">
+            <h3>Keywords</h3>
+            <p className="sa-preview-big">{data.totalKeywords ?? '—'}</p>
+          </article>
+        )}
+        {show('quizzes') && (
+          <article className="sa-preview-card">
+            <h3>Recent quizzes</h3>
+            {data.recentQuizzes?.length
+              ? <p className="sa-preview-big">{data.recentQuizzes.length}</p>
+              : <p className="sa-muted">None yet — this card stays hidden for them.</p>}
+          </article>
+        )}
+      </div>
+
+      {show('recent_lessons') && (
+        <section className="sa-preview-list">
+          <h3>Recent lessons</h3>
+          {lessons.length ? (
+            <ul>
+              {lessons.slice(0, 5).map(l => (
+                <li key={l._id}>
+                  <span>{l.date || '—'}</span>
+                  <span className="sa-muted">{l.keywordCount ?? 0} keywords</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="sa-muted">No lessons yet</p>}
+        </section>
+      )}
+    </div>
+  )
+}
+
+/* ───────────────────────────────────────────────────────────── util ────── */
+
+function toDraft(s) {
+  return {
+    name: s.name || '', level: s.level || 'A1', targetLevel: s.targetLevel || '',
+    email: s.email || '', phone: s.phone || '', notes: s.notes || '',
+    primaryTeacherId: s.primaryTeacherId || '', groupId: s.groupId || '',
+  }
+}
+
+function stripEmpty(o) {
+  const out = {}
+  for (const [k, v] of Object.entries(o)) if (v !== '' && v != null) out[k] = v
+  return out
+}
+
+// app_config stores JSON, but a hand-edited value could arrive as a string.
+function asArray(v) {
+  if (Array.isArray(v)) return v
+  if (typeof v === 'string') { try { const p = JSON.parse(v); return Array.isArray(p) ? p : null } catch { return null } }
+  return null
+}

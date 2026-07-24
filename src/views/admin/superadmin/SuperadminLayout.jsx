@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate, Navigate } from 'react-router-dom'
+import { SchoolProvider, SchoolSwitcher } from './SchoolShared.jsx'
 import { useAdminAuth, queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
 import './console.css'
 
@@ -11,6 +12,17 @@ export const NAV_GROUPS = [
   {
     group: null,
     items: [{ to: ROOT, label: 'Overview', icon: 'dashboard', end: true }],
+  },
+  {
+    // Schools own teachers, students and courses, so this group sits above
+    // Academic: it is where those records are created, not just browsed.
+    group: 'School',
+    items: [
+      { to: `${ROOT}/school/schools`, label: 'Schools', icon: 'apartment' },
+      { to: `${ROOT}/school/teachers`, label: 'Teachers', icon: 'co_present' },
+      { to: `${ROOT}/school/students`, label: 'Students', icon: 'person_add' },
+      { to: `${ROOT}/school/preview`, label: 'Student preview', icon: 'visibility' },
+    ],
   },
   {
     group: 'Academic',
@@ -292,132 +304,141 @@ export default function SuperadminLayout() {
   }
 
   return (
-    <div className="sa-root">
-      <div className="sa-shell">
-        {drawerOpen && (
-          <div className="sa-sidebar-scrim" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
-        )}
+    // One provider around the whole shell: the topbar switcher and every
+    // routed School screen must read the SAME selected school.
+    <SchoolProvider>
+      <div className="sa-root">
+        <div className="sa-shell">
+          {drawerOpen && (
+            <div className="sa-sidebar-scrim" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
+          )}
 
-        <aside
-          className="sa-sidebar"
-          data-collapsed={collapsed ? 'true' : 'false'}
-          data-open={drawerOpen ? 'true' : 'false'}
-          aria-label="Console sections"
-        >
-          <Link to={ROOT} className="sa-sidebar-brand">
-            <span className="sa-sidebar-mark">
-              <span className="material-symbols-outlined">shield_person</span>
-            </span>
-            <span className="sa-sidebar-wordmark">
-              English Metro
-              <small>Superadmin</small>
-            </span>
-          </Link>
-
-          <nav className="sa-sidebar-scroll" ref={navRef} onKeyDown={onNavKeyDown}>
-            {NAV_GROUPS.map((group, gi) => (
-              <div className="sa-sidebar-group" key={group.group || 'root'}>
-                {group.group && (
-                  <>
-                    {gi > 0 && <div className="sa-sidebar-group-rule" aria-hidden="true" />}
-                    <div className="sa-sidebar-group-label" id={`sa-navgroup-${group.group}`}>
-                      {group.group}
-                    </div>
-                  </>
-                )}
-                <ul role="list" style={{ listStyle: 'none', margin: 0, padding: 0 }}
-                  aria-labelledby={group.group ? `sa-navgroup-${group.group}` : undefined}>
-                  {group.items.map(item => (
-                    <li key={item.to}>
-                      <NavLink
-                        to={item.to}
-                        end={item.end}
-                        title={collapsed ? item.label : undefined}
-                        className={({ isActive }) => `sa-sidebar-link${isActive ? ' is-active' : ''}`}
-                      >
-                        <span className="material-symbols-outlined" aria-hidden="true">{item.icon}</span>
-                        <span className="sa-sidebar-link-text">{item.label}</span>
-                      </NavLink>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </nav>
-
-          <div className="sa-sidebar-foot">
-            <button
-              type="button"
-              className="sa-sidebar-link"
-              style={{ width: '100%', border: 0, background: 'none', cursor: 'pointer', font: 'inherit' }}
-              onClick={() => setCollapsed(v => !v)}
-              aria-pressed={collapsed}
-              // The text label is display:none while collapsed and the icon is
-              // aria-hidden, so the button carries its own name and tooltip.
-              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">
-                {collapsed ? 'chevron_right' : 'chevron_left'}
+          <aside
+            className="sa-sidebar"
+            data-collapsed={collapsed ? 'true' : 'false'}
+            data-open={drawerOpen ? 'true' : 'false'}
+            aria-label="Console sections"
+          >
+            <Link to={ROOT} className="sa-sidebar-brand">
+              <span className="sa-sidebar-mark">
+                <span className="material-symbols-outlined">shield_person</span>
               </span>
-              <span className="sa-sidebar-link-text">Collapse</span>
-            </button>
-          </div>
-        </aside>
+              <span className="sa-sidebar-wordmark">
+                English Metro
+                <small>Superadmin</small>
+              </span>
+            </Link>
 
-        <div className="sa-main">
-          <header className="sa-topbar">
-            <button
-              type="button"
-              className="sa-icon-btn sa-nav-toggle"
-              onClick={() => setDrawerOpen(v => !v)}
-              aria-label="Toggle navigation"
-              aria-expanded={drawerOpen}
-            >
-              <span className="material-symbols-outlined">menu</span>
-            </button>
-
-            <nav className="sa-breadcrumb" aria-label="Breadcrumb">
-              <Link to={ROOT} className="sa-breadcrumb-root" style={{ color: 'inherit', textDecoration: 'none' }}>
-                Console
-              </Link>
-              {current?.group && (
-                <>
-                  <span className="sa-breadcrumb-sep" aria-hidden="true" />
-                  <span>{current.group}</span>
-                </>
-              )}
-              <span className="sa-breadcrumb-sep" aria-hidden="true" />
-              {/* No nav entry matches an unknown URL — say so instead of
-                  claiming Overview while the 404 route renders. */}
-              <strong>{current?.label || 'Not found'}</strong>
+            <nav className="sa-sidebar-scroll" ref={navRef} onKeyDown={onNavKeyDown}>
+              {NAV_GROUPS.map((group, gi) => (
+                <div className="sa-sidebar-group" key={group.group || 'root'}>
+                  {group.group && (
+                    <>
+                      {gi > 0 && <div className="sa-sidebar-group-rule" aria-hidden="true" />}
+                      <div className="sa-sidebar-group-label" id={`sa-navgroup-${group.group}`}>
+                        {group.group}
+                      </div>
+                    </>
+                  )}
+                  <ul role="list" style={{ listStyle: 'none', margin: 0, padding: 0 }}
+                    aria-labelledby={group.group ? `sa-navgroup-${group.group}` : undefined}>
+                    {group.items.map(item => (
+                      <li key={item.to}>
+                        <NavLink
+                          to={item.to}
+                          end={item.end}
+                          title={collapsed ? item.label : undefined}
+                          className={({ isActive }) => `sa-sidebar-link${isActive ? ' is-active' : ''}`}
+                        >
+                          <span className="material-symbols-outlined" aria-hidden="true">{item.icon}</span>
+                          <span className="sa-sidebar-link-text">{item.label}</span>
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </nav>
 
-            <ConsoleSearch />
-
-            <div className="sa-identity">
-              <span className="sa-avatar" aria-hidden="true">{initials(adminUser.name)}</span>
-              <span>
-                <span className="sa-identity-name" style={{ display: 'block' }}>{adminUser.name}</span>
-                <span className="sa-identity-role" style={{ display: 'block' }}>Superadmin</span>
-              </span>
+            <div className="sa-sidebar-foot">
+              <button
+                type="button"
+                className="sa-sidebar-link"
+                style={{ width: '100%', border: 0, background: 'none', cursor: 'pointer', font: 'inherit' }}
+                onClick={() => setCollapsed(v => !v)}
+                aria-pressed={collapsed}
+                // The text label is display:none while collapsed and the icon is
+                // aria-hidden, so the button carries its own name and tooltip.
+                aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  {collapsed ? 'chevron_right' : 'chevron_left'}
+                </span>
+                <span className="sa-sidebar-link-text">Collapse</span>
+              </button>
             </div>
+          </aside>
 
-            <button
-              type="button"
-              className="sa-btn sa-btn-ghost sa-btn-sm"
-              onClick={() => { adminLogout(); window.location.assign('/login') }}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">logout</span>
-              Sign out
-            </button>
-          </header>
+          <div className="sa-main">
+            <header className="sa-topbar">
+              <button
+                type="button"
+                className="sa-icon-btn sa-nav-toggle"
+                onClick={() => setDrawerOpen(v => !v)}
+                aria-label="Toggle navigation"
+                aria-expanded={drawerOpen}
+              >
+                <span className="material-symbols-outlined">menu</span>
+              </button>
 
-          <main className="sa-content">
-            <Outlet />
-          </main>
+              <nav className="sa-breadcrumb" aria-label="Breadcrumb">
+                <Link to={ROOT} className="sa-breadcrumb-root" style={{ color: 'inherit', textDecoration: 'none' }}>
+                  Console
+                </Link>
+                {current?.group && (
+                  <>
+                    <span className="sa-breadcrumb-sep" aria-hidden="true" />
+                    <span>{current.group}</span>
+                  </>
+                )}
+                <span className="sa-breadcrumb-sep" aria-hidden="true" />
+                {/* No nav entry matches an unknown URL — say so instead of
+                    claiming Overview while the 404 route renders. */}
+                <strong>{current?.label || 'Not found'}</strong>
+              </nav>
+
+              <ConsoleSearch />
+
+              {/* Teachers, students and courses are all org-scoped in Convex and a
+                  super_admin has no home org, so the working school is a global
+                  control rather than a per-screen filter. */}
+              <SchoolSwitcher compact />
+
+              <div className="sa-identity">
+                <span className="sa-avatar" aria-hidden="true">{initials(adminUser.name)}</span>
+                <span>
+                  <span className="sa-identity-name" style={{ display: 'block' }}>{adminUser.name}</span>
+                  <span className="sa-identity-role" style={{ display: 'block' }}>Superadmin</span>
+                </span>
+              </div>
+
+              <button
+                type="button"
+                className="sa-btn sa-btn-ghost sa-btn-sm"
+                onClick={() => { adminLogout(); window.location.assign('/login') }}
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">logout</span>
+                Sign out
+              </button>
+            </header>
+
+            <main className="sa-content">
+              <Outlet />
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+    </SchoolProvider>
   )
 }
