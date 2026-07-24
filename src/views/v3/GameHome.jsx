@@ -219,12 +219,26 @@ const HERO_GAMES = [
 
 function HeroArcade({ badge, reduced, lang }) {
   const [active, setActive] = useState(0)
+  const [shown, setShown] = useState(0)
+  const [exiting, setExiting] = useState(false)
+  const dirRef = useRef(1)
+  const swapTimer = useRef(null)
   const activeGame = HERO_GAMES[active]
   const tabsRef = useRef(null)
   const arcadeRef = useRef(null)
-  const go = (dir) => setActive(i => (i + dir + HERO_GAMES.length) % HERO_GAMES.length)
-  const selectFromKeyboard = (next) => {
+  const switchTo = (next) => {
+    if (next === active) return
+    dirRef.current = next > active ? 1 : -1
     setActive(next)
+    clearTimeout(swapTimer.current)
+    if (reduced) { setShown(next); setExiting(false); return }
+    setExiting(true)
+    swapTimer.current = setTimeout(() => { setShown(next); setExiting(false) }, 120)
+  }
+  useEffect(() => () => clearTimeout(swapTimer.current), [])
+  const go = (dir) => switchTo((active + dir + HERO_GAMES.length) % HERO_GAMES.length)
+  const selectFromKeyboard = (next) => {
+    switchTo(next)
     requestAnimationFrame(() => tabsRef.current?.querySelectorAll('[role="tab"]')[next]?.focus())
   }
   const onTabsKeyDown = (event) => {
@@ -279,7 +293,7 @@ function HeroArcade({ badge, reduced, lang }) {
             <div ref={tabsRef} className="gh-arcade-tabs" role="tablist" aria-label="Choose a live practice game"
               onKeyDown={onTabsKeyDown}>
               {HERO_GAMES.map((g, i) => (
-                <button key={g.key} type="button" onClick={() => setActive(i)}
+                <button key={g.key} type="button" onClick={() => switchTo(i)}
                   id={`gh-arcade-tab-${g.key}`} role="tab" tabIndex={i === active ? 0 : -1}
                   aria-selected={i === active} aria-controls="gh-arcade-stage"
                   className={`gh-arcade-tab${i === active ? ' on' : ''}`}>
@@ -292,9 +306,12 @@ function HeroArcade({ badge, reduced, lang }) {
         </div>
         <div ref={arcadeRef} className="gh-arcade-viewport">
           <div id="gh-arcade-stage" role="tabpanel" aria-labelledby={`gh-arcade-tab-${activeGame.key}`}
-            data-game={activeGame.key} key={activeGame.key} className="gh-arcade-stage"
+            data-game={HERO_GAMES[shown].key} className="gh-arcade-stage"
             style={{ height: 'min(56dvh, 460px)', overflow: 'hidden', background: DUSK.bg }}>
-            <HeroPracticePreview game={activeGame.key} lang={lang}/>
+            <div key={HERO_GAMES[shown].key} data-dir={dirRef.current}
+              className={`gh-arcade-body${exiting ? ' is-exiting' : ''}`}>
+              <HeroPracticePreview game={HERO_GAMES[shown].key} lang={lang}/>
+            </div>
           </div>
           <button type="button" className="gh-slider-arrow gh-slider-prev" aria-label="Previous exercise"
             onClick={() => go(-1)}>
@@ -304,12 +321,8 @@ function HeroArcade({ badge, reduced, lang }) {
             onClick={() => go(1)}>
             <span className="material-symbols-outlined" style={{ fontSize: 26 }}>chevron_right</span>
           </button>
-          <div className="gh-slider-dots" role="group" aria-label="Choose an exercise">
-            {HERO_GAMES.map((g, i) => (
-              <button key={g.key} type="button" aria-label={`Show ${g.title}`}
-                aria-current={i === active ? 'true' : undefined}
-                className={`gh-slider-dot${i === active ? ' on' : ''}`} onClick={() => setActive(i)}/>
-            ))}
+          <div className="gh-slider-label" aria-live="polite">
+            {active + 1} {lang === 'pl' ? 'z' : 'of'} {HERO_GAMES.length} · {activeGame.title}
           </div>
         </div>
       </div>

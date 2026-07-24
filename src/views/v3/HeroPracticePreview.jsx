@@ -130,13 +130,13 @@ function FlashcardsScene({ lang }) {
               </span>
               <span className="gh-flash-word">{card.word}</span>
               <span className="gh-flash-phonetic">{card.kind} <i/> {card.phonetic}</span>
-              <span className="gh-flash-hint"><MaterialIcon>touch_app</MaterialIcon>{copy(lang, 'Reveal Polish', 'Pokaż po polsku')}</span>
+              <span className="gh-flash-hint"><MaterialIcon>360</MaterialIcon>{copy(lang, 'Reveal meaning', 'Pokaż znaczenie')}</span>
             </span>
             <span className="gh-flash-card-face gh-flash-card-back">
               <span className="gh-flash-card-code">POLISH CONNECTION</span>
               <span className="gh-flash-translation">{card.pl}</span>
               <span className="gh-flash-example">{card.example}</span>
-              <span className="gh-flash-hint"><MaterialIcon>360</MaterialIcon>{copy(lang, 'Flip to English', 'Wróć do angielskiego')}</span>
+              <span className="gh-flash-hint"><MaterialIcon>360</MaterialIcon>{copy(lang, 'Show front', 'Pokaż przód')}</span>
             </span>
           </span>
         </button>
@@ -149,8 +149,8 @@ function FlashcardsScene({ lang }) {
           <MaterialIcon>check</MaterialIcon>{copy(lang, 'Got it', 'Umiem')}
         </button>
       </div>
-      <Feedback icon={flipped ? 'route' : 'touch_app'}>
-        {flipped ? copy(lang, 'Choose where this card goes next.', 'Wybierz, co zrobić z tą kartą.') : copy(lang, 'Tap the pass to reveal its meaning.', 'Dotknij karty, aby odkryć znaczenie.')}
+      <Feedback icon="touch_app">
+        {copy(lang, 'Tap the card to reveal the meaning, then choose Again or Got it.', 'Dotknij karty, odkryj znaczenie, a potem wybierz „Jeszcze raz” lub „Umiem”.')}
       </Feedback>
     </div>
   )
@@ -192,7 +192,7 @@ function QuizScene({ lang }) {
         </div>
       </div>
       <Feedback tone={tone}>
-        {!answer ? copy(lang, 'Select the platform word.', 'Wybierz słowo oznaczające peron.') : answer === correct ? copy(lang, 'Platform found. The train is cleared.', 'Peron znaleziony. Pociąg może ruszyć.') : copy(lang, 'Wrong platform. Try another ticket.', 'Zły peron. Wybierz inny bilet.')}
+        {copy(lang, 'Choose the answer that completes the announcement.', 'Wybierz odpowiedź, która uzupełnia komunikat.')}
       </Feedback>
     </div>
   )
@@ -238,7 +238,7 @@ function GapFillScene({ lang }) {
         </div>
       </div>
       <Feedback tone={tone}>
-        {!word ? copy(lang, 'Choose a word cartridge.', 'Wybierz kasetę ze słowem.') : word === 'latte' ? copy(lang, 'Sentence powered. The café is open.', 'Zdanie gotowe. Kawiarnia jest otwarta.') : copy(lang, 'That cartridge does not fit. Try again.', 'Ta kaseta nie pasuje. Spróbuj ponownie.')}
+        {copy(lang, 'Choose the word that completes the sentence.', 'Wybierz słowo, które uzupełnia zdanie.')}
       </Feedback>
     </div>
   )
@@ -279,7 +279,7 @@ function TrueFalseScene({ lang }) {
         </div>
       </div>
       <Feedback tone={tone}>
-        {!verdict ? copy(lang, 'The tribunal is ready for your verdict.', 'Trybunał czeka na Twój werdykt.') : verdict === 'true' ? copy(lang, 'Correct verdict. Bridge lights confirmed.', 'Dobry werdykt. Światła mostu potwierdzają fakt.') : copy(lang, 'Review the river evidence and decide again.', 'Sprawdź mapę rzeki i wybierz ponownie.')}
+        {copy(lang, 'Decide whether the sentence is true or false.', 'Zdecyduj, czy zdanie jest prawdziwe, czy fałszywe.')}
       </Feedback>
     </div>
   )
@@ -324,7 +324,7 @@ function UnjumbleScene({ lang }) {
         <span className="gh-jumble-scanner" aria-hidden/>
       </div>
       <Feedback tone={tone}>
-        {!complete ? copy(lang, 'Each cartridge extends the sentence.', 'Każda kaseta wydłuża zdanie.') : sentence === correct ? copy(lang, 'Perfect route. The sentence is locked.', 'Idealna trasa. Zdanie jest gotowe.') : copy(lang, 'The route is tangled. Remove a word or reset.', 'Trasa jest poplątana. Cofnij słowo lub zacznij od nowa.')}
+        {copy(lang, 'Tap the words in order to build the sentence.', 'Dotykaj słów w kolejności, aby ułożyć zdanie.')}
       </Feedback>
     </div>
   )
@@ -392,7 +392,7 @@ function MatchingScene({ lang }) {
         {complete && <button type="button" className="gh-scene-replay" onClick={reset}><MaterialIcon>replay</MaterialIcon>{copy(lang, 'Replay', 'Zagraj ponownie')}</button>}
       </div>
       <Feedback tone={tone}>
-        {complete ? copy(lang, 'All lines connected. The night train is moving.', 'Wszystkie linie połączone. Nocny pociąg rusza.') : missId ? copy(lang, 'Those stops use different lines. Try again.', 'Te przystanki są na innych liniach. Spróbuj ponownie.') : selected ? copy(lang, 'Now choose the Polish stop.', 'Teraz wybierz polski przystanek.') : copy(lang, 'Start from an English stop.', 'Zacznij od angielskiego przystanku.')}
+        {copy(lang, 'Match each English word to its Polish meaning.', 'Dopasuj każde angielskie słowo do polskiego znaczenia.')}
       </Feedback>
     </div>
   )
@@ -470,7 +470,7 @@ function MemoryScene({ lang }) {
         {complete && <button type="button" className="gh-scene-replay" onClick={reset}><MaterialIcon>replay</MaterialIcon>{copy(lang, 'Replay', 'Zagraj ponownie')}</button>}
       </div>
       <Feedback tone={complete ? 'success' : 'idle'} icon={complete ? 'verified' : 'grid_view'}>
-        {complete ? copy(lang, `Vault unlocked in ${moves} moves.`, `Sejf otwarty w ${moves} ruchach.`) : copy(lang, 'Matched signals stay illuminated.', 'Dopasowane sygnały pozostają podświetlone.')}
+        {copy(lang, 'Turn over two cards to find a matching pair.', 'Odkryj dwie karty, aby znaleźć pasującą parę.')}
       </Feedback>
     </div>
   )
