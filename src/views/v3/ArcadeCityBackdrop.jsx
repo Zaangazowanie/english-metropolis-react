@@ -15,7 +15,7 @@ export default function ArcadeCityBackdrop({ reduced }) {
     if (!mount) return undefined
 
     const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'low-power' })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
+    renderer.setPixelRatio(1)
     renderer.setClearColor(0x000000, 0)
     mount.appendChild(renderer.domElement)
 
@@ -133,12 +133,15 @@ export default function ArcadeCityBackdrop({ reduced }) {
       pointer.ty = ((e.clientY - rect.top) / rect.height - 0.5) * 0.5
     }
     const host = mount.closest('.gh-arcade-viewport') || mount
-    host.addEventListener('pointermove', onPointer)
+    const finePointer = typeof matchMedia !== 'undefined' && matchMedia('(pointer: fine)').matches
+    if (finePointer) host.addEventListener('pointermove', onPointer)
 
     const resize = () => {
       const { clientWidth: w, clientHeight: h } = mount
       if (!w || !h) return
-      renderer.setSize(w, h, false)
+      // Render internally at 70% and upscale via CSS: the dusk scene is soft,
+      // nobody can tell, and it cuts fill-rate by half.
+      renderer.setSize(Math.round(w * 0.7), Math.round(h * 0.7), false)
       camera.aspect = w / h
       camera.updateProjectionMatrix()
     }
@@ -167,9 +170,12 @@ export default function ArcadeCityBackdrop({ reduced }) {
       camera.lookAt(0, 2.2, -18)
       renderer.render(scene, camera)
     }
-    const loop = () => {
+    let last = 0
+    const loop = (ts) => {
       raf = requestAnimationFrame(loop)
       if (host.classList.contains('is-paused')) return
+      if (ts - last < 33) return // ~30fps is plenty for an ambient backdrop
+      last = ts
       renderFrame()
     }
     if (reduced) {

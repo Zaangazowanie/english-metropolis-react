@@ -254,7 +254,6 @@ function TrueFalseScene({ lang }) {
         detail={copy(lang, 'Choose the verdict that fits the city fact', 'Wybierz werdykt zgodny z faktem')}
         current={verdict === 'true' ? 2 : 1} total={5}/>
       <div className={`gh-tf-tribunal${verdict ? ` has-${verdict}` : ''}`}>
-        <div className="gh-tf-bridge" aria-hidden><i/><i/><i/><b/><em/></div>
         <section className="gh-tf-evidence" aria-label="Statement">
           <span><MaterialIcon>fact_check</MaterialIcon> EVIDENCE / LONDON</span>
           <strong>“Tower Bridge crosses the River Thames.”</strong>
