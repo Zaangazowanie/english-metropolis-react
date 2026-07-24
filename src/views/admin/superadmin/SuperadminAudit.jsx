@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
+import { ConsoleEmpty, ConsoleSkeleton } from './ConsoleStates.jsx'
 
 export default function SuperadminAudit() {
   const [events, setEvents] = useState([])
@@ -20,45 +21,47 @@ export default function SuperadminAudit() {
       <div className="sa-card">
         <div className="sa-card-header">
           <h2>Audit log</h2>
-          <span className="text-[10px] uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.7)' }}>
+          <span className="sa-toolbar-count">
             Last 100 events
           </span>
         </div>
         <div className="sa-card-body p-0">
-          {loading && <p className="p-6" style={{ color: 'rgba(203,213,225,0.7)' }}>Loading…</p>}
-          {error && <p className="p-6" style={{ color: '#fca5a5' }}>Error: {error}</p>}
+          {loading && <ConsoleSkeleton rows={8} />}
+          {error && <p className="p-6" style={{ color: 'var(--sa-bad)' }}>Error: {error}</p>}
           {!loading && events.length === 0 && (
-            <p className="p-6" style={{ color: 'rgba(148,163,184,0.7)' }}>No audit events yet.</p>
+            <ConsoleEmpty icon="history" title="No audit events yet." />
           )}
           {events.length > 0 && (
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr style={{ color: 'rgba(148,163,184,0.7)' }}>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest">Time</th>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest">Action</th>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest">Target</th>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest">Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {events.map(ev => (
-                  <tr key={ev._id} className="border-t" style={{ borderColor: 'rgba(148,163,184,0.08)' }}>
-                    <td className="px-5 py-3" style={{ color: 'rgba(148,163,184,0.7)', fontSize: '0.72rem' }}>
-                      {new Date(ev.timestamp).toLocaleString()}
-                    </td>
-                    <td className="px-5 py-3" style={{ color: '#e2e8f0' }}>
-                      <code style={{ fontFamily: 'ui-monospace, monospace' }}>{ev.action}</code>
-                    </td>
-                    <td className="px-5 py-3" style={{ color: 'rgba(203,213,225,0.75)' }}>
-                      {ev.targetType}{ev.targetId ? ` · ${ev.targetId.slice(0, 12)}…` : ''}
-                    </td>
-                    <td className="px-5 py-3" style={{ color: 'rgba(148,163,184,0.7)', fontSize: '0.72rem', maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {ev.details ?? ''}
-                    </td>
+            <div className="sa-table-wrap">
+              <table className="sa-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Action</th>
+                    <th>Target</th>
+                    <th>Details</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {events.map(ev => (
+                    <tr key={ev._id}>
+                      <td style={{ color: 'var(--sa-text-muted)', fontSize: 'var(--sa-fs-small)' }}>
+                        {new Date(ev.timestamp).toLocaleString()}
+                      </td>
+                      <td>
+                        <code style={{ fontFamily: 'ui-monospace, monospace' }}>{ev.action}</code>
+                      </td>
+                      <td style={{ color: 'var(--sa-text-muted)' }}>
+                        {ev.targetType}{ev.targetId ? ` · ${ev.targetId.slice(0, 12)}…` : ''}
+                      </td>
+                      <td style={{ color: 'var(--sa-text-muted)', fontSize: 'var(--sa-fs-small)', maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {ev.details ?? ''}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

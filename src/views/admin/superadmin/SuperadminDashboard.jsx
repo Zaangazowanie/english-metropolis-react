@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { mutateAdminConvex, queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
 import MiniCalendar from './MiniCalendar.jsx'
+import { ConsoleSkeleton } from './ConsoleStates.jsx'
 
 
 
@@ -113,14 +114,14 @@ export default function SuperadminDashboard() {
   const dueSoonLessons = recentLessons.filter(l => l.date >= new Date().toISOString().slice(0, 10)).length
   const latestJobStatus = recentJobs[0]?.status?.replace('_', ' ') || 'quiet'
 
-  if (loading) return <p style={{ color: 'rgba(203,213,225,0.7)' }}>Loading console...</p>
+  if (loading) return <ConsoleSkeleton rows={8} />
   // A partial failure renders as a banner over the working panels — never a
   // blank page (the console must degrade, not disappear).
   const errorBanner = error ? (
     <div className="sa-card" style={{ padding: '0.8rem 1.1rem', marginBottom: '1rem',
-      borderColor: 'rgba(248,113,113,0.4)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-      <span className="material-symbols-outlined" style={{ color: '#fca5a5', fontSize: 18 }}>warning</span>
-      <span style={{ color: '#fca5a5', fontSize: '0.85rem' }}>{error}</span>
+      borderColor: 'var(--sa-bad)', background: 'var(--sa-bad-soft)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+      <span className="material-symbols-outlined" style={{ color: 'var(--sa-bad)', fontSize: 18 }}>warning</span>
+      <span style={{ color: 'var(--sa-bad)', fontSize: '0.85rem' }}>{error}</span>
     </div>
   ) : null
 
@@ -130,25 +131,25 @@ export default function SuperadminDashboard() {
       <section className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
         <div className="sa-card overflow-hidden">
           <div className="sa-card-body" style={{ padding: 0 }}>
-            <div className="p-6 sm:p-7" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.28), rgba(56,189,248,0.16))' }}>
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em]" style={{ color: '#c4b5fd' }}>
+            <div className="p-6 sm:p-7" style={{ background: 'var(--sa-violet-100)' }}>
+              <p className="sa-stat-label" style={{ color: 'var(--sa-violet-600)', fontWeight: 600 }}>
                 English Metro Superadmin Console
               </p>
-              <h2 className="mt-3 text-3xl font-black sm:text-4xl" style={{ color: '#f8fafc', letterSpacing: '-0.03em' }}>
+              <h2 className="mt-3 text-3xl font-black sm:text-4xl" style={{ color: 'var(--sa-text)', letterSpacing: '-0.03em' }}>
                 Activity, lessons, materials, and vocab in one place.
               </h2>
-              <p className="mt-3 max-w-3xl text-sm leading-6" style={{ color: 'rgba(226,232,240,0.78)' }}>
+              <p className="mt-3 max-w-3xl text-sm leading-6" style={{ color: 'var(--sa-text-muted)' }}>
                 Use this command center to check platform health, set course material, publish taught lessons, and keep student keyword banks clean without leaving the superadmin area.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-0 border-t sm:grid-cols-4" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
+            <div className="grid grid-cols-2 gap-0 border-t sm:grid-cols-4" style={{ borderColor: 'var(--sa-border)' }}>
               {[
                 ['Active students', activeStudents],
                 ['Lessons', stats?.totalLessons ?? recentLessons.length],
                 ['Keywords', stats?.totalKeywords ?? '…'],
                 ['Pipeline', latestJobStatus],
               ].map(([label, value]) => (
-                <div key={label} className="p-5" style={{ borderRight: '1px solid rgba(148,163,184,0.08)' }}>
+                <div key={label} className="p-5" style={{ borderRight: '1px solid var(--sa-border)' }}>
                   <p className="sa-stat-label">{label}</p>
                   <p className="sa-stat-value">{value}</p>
                 </div>
@@ -160,7 +161,7 @@ export default function SuperadminDashboard() {
         <div className="sa-card">
           <div className="sa-card-header">
             <h2>Operational pulse</h2>
-            <Link to="/admin/superadmin/audit" className="text-xs font-bold uppercase tracking-widest" style={{ color: '#a5f3fc' }}>
+            <Link to="/admin/superadmin/system/audit" className="sa-chip">
               Audit
             </Link>
           </div>
@@ -175,13 +176,13 @@ export default function SuperadminDashboard() {
                 <p className="sa-stat-value">{dueSoonLessons}</p>
               </div>
             </div>
-            <div className="rounded-2xl border p-4" style={{ borderColor: 'rgba(148,163,184,0.14)', background: 'rgba(15,23,42,0.42)' }}>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: '#c4b5fd' }}>Ingestion</p>
+            <div className="rounded-2xl border p-4" style={{ borderColor: 'var(--sa-border)', background: 'var(--sa-surface-soft)' }}>
+              <p className="sa-stat-label" style={{ fontWeight: 600 }}>Ingestion</p>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                 {['queued', 'processing', 'awaiting_review'].map(key => (
                   <div key={key}>
-                    <p className="text-lg font-black" style={{ color: '#f8fafc' }}>{ingestionStats?.[key] ?? 0}</p>
-                    <p className="text-[9px] uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.74)' }}>{key.replace('_', ' ')}</p>
+                    <p className="sa-kpi-value">{ingestionStats?.[key] ?? 0}</p>
+                    <p className="sa-kpi-label">{key.replace('_', ' ')}</p>
                   </div>
                 ))}
               </div>
@@ -194,7 +195,7 @@ export default function SuperadminDashboard() {
         <div className="sa-card">
           <div className="sa-card-header">
             <h2>This month</h2>
-            <Link to="/admin/superadmin/courses" className="text-xs font-bold uppercase tracking-widest" style={{ color: '#F0ABFC' }}>
+            <Link to="/admin/superadmin/academic/students" className="sa-chip">
               Courses &amp; scheduling →
             </Link>
           </div>
@@ -209,9 +210,9 @@ export default function SuperadminDashboard() {
                 <p className="sa-stat-label">Next lessons</p>
                 {month.next.map(b => (
                   <div key={b._id} className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#34D399' }}>event</span>
-                    <span style={{ color: '#F4F0FF', fontWeight: 600 }}>{b.dateWarsaw} {b.timeWarsaw}</span>
-                    <span style={{ color: '#8A83AE' }}>{b.studentName}</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 15, color: 'var(--sa-good)' }}>event</span>
+                    <span style={{ color: 'var(--sa-text)', fontWeight: 600 }}>{b.dateWarsaw} {b.timeWarsaw}</span>
+                    <span style={{ color: 'var(--sa-text-muted)' }}>{b.studentName}</span>
                   </div>
                 ))}
               </div>
@@ -230,7 +231,7 @@ export default function SuperadminDashboard() {
         <div className="sa-card">
           <div className="sa-card-header">
             <h2>Recent lessons</h2>
-            <Link to="/admin/superadmin/students" className="text-xs font-bold uppercase tracking-widest" style={{ color: '#a5f3fc' }}>
+            <Link to="/admin/superadmin/academic/roster" className="sa-chip">
               Students
             </Link>
           </div>
@@ -241,13 +242,13 @@ export default function SuperadminDashboard() {
                 <button
                   key={lesson._id}
                   type="button"
-                  className="flex w-full items-center justify-between gap-4 border-b px-5 py-4 text-left transition hover:bg-slate-800/40"
-                  style={{ borderColor: 'rgba(148,163,184,0.08)' }}
-                  onClick={() => navigate('/admin/superadmin/courses')}
+                  className="flex w-full items-center justify-between gap-4 border-b px-5 py-4 text-left transition hover:bg-[var(--sa-surface-soft)]"
+                  style={{ borderColor: 'var(--sa-border)' }}
+                  onClick={() => navigate('/admin/superadmin/academic/students')}
                 >
                   <span>
-                    <span className="block font-semibold" style={{ color: '#f8fafc' }}>{lesson.title}</span>
-                    <span className="block text-xs" style={{ color: 'rgba(203,213,225,0.68)' }}>{student?.name || 'Unknown student'} · {lesson.date}</span>
+                    <span className="block font-semibold" style={{ color: 'var(--sa-text)' }}>{lesson.title}</span>
+                    <span className="block text-xs" style={{ color: 'var(--sa-text-muted)' }}>{student?.name || 'Unknown student'} · {lesson.date}</span>
                   </span>
                   <span className="sa-badge sa-badge-processing">{(lesson.materials || []).length} materials</span>
                 </button>
@@ -259,18 +260,18 @@ export default function SuperadminDashboard() {
         <div className="sa-card">
           <div className="sa-card-header">
             <h2>Live audit</h2>
-            <Link to="/admin/superadmin/audit" className="text-xs font-bold uppercase tracking-widest" style={{ color: '#a5f3fc' }}>
+            <Link to="/admin/superadmin/system/audit" className="sa-chip">
               Full log
             </Link>
           </div>
           <div className="sa-card-body space-y-3">
             {auditEvents.map(event => (
-              <div key={event._id} className="rounded-2xl border p-4" style={{ borderColor: 'rgba(148,163,184,0.1)', background: 'rgba(15,23,42,0.36)' }}>
+              <div key={event._id} className="rounded-2xl border p-4" style={{ borderColor: 'var(--sa-border)', background: 'var(--sa-surface-soft)' }}>
                 <div className="flex items-center justify-between gap-3">
-                  <code className="text-sm font-bold" style={{ color: '#e2e8f0' }}>{event.action}</code>
-                  <span className="text-[10px] uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.72)' }}>{formatDate(event.timestamp)}</span>
+                  <code className="text-sm font-bold" style={{ color: 'var(--sa-text)' }}>{event.action}</code>
+                  <span className="sa-stat-label">{formatDate(event.timestamp)}</span>
                 </div>
-                <p className="mt-2 text-xs" style={{ color: 'rgba(203,213,225,0.68)' }}>
+                <p className="mt-2 text-xs" style={{ color: 'var(--sa-text-muted)' }}>
                   {event.targetType}{event.targetId ? ` · ${event.targetId.slice(0, 12)}...` : ''} {safeDetails(event.details) ? `· ${safeDetails(event.details)}` : ''}
                 </p>
               </div>

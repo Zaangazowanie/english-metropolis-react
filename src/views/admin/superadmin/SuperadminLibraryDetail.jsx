@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { consoleGet, consoleGetBlob, consolePost, saveBlob, libraryHtmlPath, libraryPdfPath } from './consoleApi.js'
-import { ConsoleLoading, ConsoleNotLive, ConsoleErrorPanel, LevelBadge, BasketBadge } from './ConsoleStates.jsx'
+import { ConsoleLoading, ConsoleEmpty, ConsoleNotLive, ConsoleErrorPanel, LevelBadge, BasketBadge } from './ConsoleStates.jsx'
 import { queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
 
 // Decks are authored at exactly 1920×1080. Render the iframe at native size
@@ -43,9 +43,9 @@ function DeckFrame({ src, title }) {
         width: '100%',
         aspectRatio: `${DECK_W} / ${DECK_H}`,
         overflow: 'hidden',
-        borderRadius: '0.9rem',
-        background: '#0f172a',
-        border: '1px solid rgba(148, 163, 184, 0.15)',
+        borderRadius: 'var(--sa-radius-card)',
+        background: 'var(--sa-surface-soft)',
+        border: '1px solid var(--sa-border)',
       }}
     >
       {scale > 0 && (
@@ -229,9 +229,9 @@ export default function SuperadminLibraryDetail() {
   return (
     <div className="space-y-5">
       <Link
-        to="/admin/superadmin/library"
+        to="/admin/superadmin/curriculum/library"
         className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest"
-        style={{ color: 'rgba(148, 163, 184, 0.8)' }}
+        style={{ color: 'var(--sa-text-muted)' }}
       >
         <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_back</span>
         Course library
@@ -260,24 +260,24 @@ export default function SuperadminLibraryDetail() {
           </div>
         </div>
         <div className="sa-card-body">
-          <h3 className="text-xl font-bold" style={{ color: '#f8fafc', letterSpacing: '-0.01em' }}>{title}</h3>
-          <p className="mt-1 font-mono text-[11px]" style={{ color: 'rgba(148, 163, 184, 0.65)' }}>{lessonId}</p>
+          <h3 className="text-xl font-bold" style={{ color: 'var(--sa-text)', letterSpacing: '-0.01em' }}>{title}</h3>
+          <p className="mt-1 font-mono text-[11px]" style={{ color: 'var(--sa-text-muted)' }}>{lessonId}</p>
           {manifest && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <LevelBadge level={manifest.level} />
               <BasketBadge basket={manifest.basket} />
               {manifest.course_id && (
-                <span className="sa-badge" style={{ background: 'rgba(148, 163, 184, 0.14)', color: '#cbd5e1' }}>
+                <span className="sa-badge">
                   {manifest.course_id}
                   {manifest.lesson_number != null ? ` · #${manifest.lesson_number}` : ''}
                 </span>
               )}
               {manifest.topic && (
-                <span className="text-sm" style={{ color: 'rgba(203, 213, 225, 0.75)' }}>{manifest.topic}</span>
+                <span className="text-sm" style={{ color: 'var(--sa-text-muted)' }}>{manifest.topic}</span>
               )}
             </div>
           )}
-          {downloadError && <p className="mt-3 text-sm" style={{ color: '#fca5a5' }}>{downloadError}</p>}
+          {downloadError && <p className="mt-3 text-sm" style={{ color: 'var(--sa-bad)' }}>{downloadError}</p>}
         </div>
       </div>
 
@@ -330,9 +330,9 @@ export default function SuperadminLibraryDetail() {
                 style={{
                   width: '100%',
                   height: '72vh',
-                  border: '1px solid rgba(148, 163, 184, 0.15)',
-                  borderRadius: '0.9rem',
-                  background: '#0f172a',
+                  border: '1px solid var(--sa-border)',
+                  borderRadius: 'var(--sa-radius-card)',
+                  background: 'var(--sa-surface-soft)',
                 }}
               />
             )}
@@ -348,28 +348,24 @@ export default function SuperadminLibraryDetail() {
               {keywords.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {keywords.map(word => (
-                    <span
-                      key={word}
-                      className="rounded-full px-2.5 py-1 text-xs"
-                      style={{ background: 'rgba(148, 163, 184, 0.12)', color: '#cbd5e1' }}
-                    >
+                    <span key={word} className="sa-chip">
                       {word}
                     </span>
                   ))}
                 </div>
               ) : (
-                <p style={{ color: 'rgba(148, 163, 184, 0.6)' }}>No keywords in the manifest.</p>
+                <ConsoleEmpty icon="label_off" title="No keywords in the manifest." />
               )}
               {(topics || registry?.questions_count != null) && (
-                <div className="mt-4 border-t pt-4" style={{ borderColor: 'rgba(148, 163, 184, 0.1)' }}>
+                <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--sa-border)' }}>
                   {topics && (
-                    <p className="text-sm" style={{ color: 'rgba(203, 213, 225, 0.75)' }}>
+                    <p className="text-sm" style={{ color: 'var(--sa-text-muted)' }}>
                       <span className="sa-stat-label">Registry topics · </span>
                       {topics.join(', ')}
                     </p>
                   )}
                   {registry?.questions_count != null && (
-                    <p className="mt-2 text-sm" style={{ color: 'rgba(203, 213, 225, 0.75)' }}>
+                    <p className="mt-2 text-sm" style={{ color: 'var(--sa-text-muted)' }}>
                       <span className="sa-stat-label">Questions · </span>
                       {registry.questions_count}
                     </p>
@@ -405,7 +401,7 @@ export default function SuperadminLibraryDetail() {
                 <div className="flex flex-wrap items-center gap-2">
                   {assignMode === 'student' ? (
                     <select
-                      className="sa-input"
+                      className="sa-select"
                       value={assignStudent}
                       onChange={e => setAssignStudent(e.target.value)}
                       style={{ maxWidth: 300, width: 'auto', flex: '1 1 220px' }}
@@ -420,7 +416,7 @@ export default function SuperadminLibraryDetail() {
                     </select>
                   ) : (
                     <select
-                      className="sa-input"
+                      className="sa-select"
                       value={assignGroup}
                       onChange={e => setAssignGroup(e.target.value)}
                       style={{ maxWidth: 300, width: 'auto', flex: '1 1 220px' }}
@@ -453,14 +449,14 @@ export default function SuperadminLibraryDetail() {
                   </button>
                 </div>
                 {pickersError && (
-                  <p className="text-xs" style={{ color: '#fcd34d' }}>
+                  <p className="text-xs" style={{ color: 'var(--sa-warm-ink)' }}>
                     Loading students/groups from Convex failed: {pickersError} — reload the page, or check the
                     All Students / Groups screens.
                   </p>
                 )}
-                {assignError && <p className="text-sm" style={{ color: '#fca5a5' }}>{assignError.message}</p>}
+                {assignError && <p className="text-sm" style={{ color: 'var(--sa-bad)' }}>{assignError.message}</p>}
                 {assignResult && (
-                  <p className="text-sm" style={{ color: '#86efac' }}>
+                  <p className="text-sm" style={{ color: 'var(--sa-good)' }}>
                     Assigned to {assignResult.assigned?.length ?? 0} student
                     {(assignResult.assigned?.length ?? 0) === 1 ? '' : 's'}
                     {assignResult.assigned?.length
@@ -470,28 +466,28 @@ export default function SuperadminLibraryDetail() {
                 )}
               </form>
 
-              {unassignError && <p className="mb-3 text-sm" style={{ color: '#fca5a5' }}>{unassignError.message}</p>}
+              {unassignError && <p className="mb-3 text-sm" style={{ color: 'var(--sa-bad)' }}>{unassignError.message}</p>}
 
               {assignments.length === 0 ? (
-                <p style={{ color: 'rgba(148, 163, 184, 0.6)' }}>Not assigned to anyone yet.</p>
+                <ConsoleEmpty icon="person_off" title="Not assigned to anyone yet." />
               ) : (
                 <ul className="space-y-2">
                   {assignments.map((a, i) => (
                     <li
                       key={`${a.student_slug || a.group_id || 'row'}-${i}`}
                       className="flex flex-wrap items-center gap-2 text-sm"
-                      style={{ color: '#e2e8f0' }}
+                      style={{ color: 'var(--sa-text)' }}
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'rgba(148, 163, 184, 0.7)' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--sa-text-muted)' }}>
                         {a.group_id ? 'groups' : 'person'}
                       </span>
                       <span className="font-semibold">{a.student_slug || a.group_id}</span>
                       {a.group_id && a.student_slug && (
-                        <span style={{ color: 'rgba(148, 163, 184, 0.55)', fontSize: '0.72rem' }}>via group</span>
+                        <span style={{ color: 'var(--sa-text-muted)', fontSize: '0.72rem' }}>via group</span>
                       )}
-                      {a.date && <span style={{ color: 'rgba(203, 213, 225, 0.7)' }}>lesson {a.date}</span>}
+                      {a.date && <span style={{ color: 'var(--sa-text-muted)' }}>lesson {a.date}</span>}
                       {a.assigned_at && (
-                        <span style={{ color: 'rgba(148, 163, 184, 0.55)', fontSize: '0.72rem' }}>
+                        <span style={{ color: 'var(--sa-text-muted)', fontSize: '0.72rem' }}>
                           assigned {new Date(a.assigned_at).toLocaleString()}
                         </span>
                       )}
@@ -502,7 +498,7 @@ export default function SuperadminLibraryDetail() {
                           disabled={unassignBusy === a.student_slug}
                           className="ml-auto text-[11px] font-bold uppercase tracking-widest"
                           style={{
-                            color: '#fca5a5',
+                            color: 'var(--sa-bad)',
                             opacity: unassignBusy === a.student_slug ? 0.5 : 1,
                             cursor: unassignBusy === a.student_slug ? 'wait' : 'pointer',
                           }}
@@ -526,13 +522,18 @@ export default function SuperadminLibraryDetail() {
             <details>
               <summary
                 className="cursor-pointer text-[11px] font-bold uppercase tracking-widest"
-                style={{ color: 'rgba(148, 163, 184, 0.8)' }}
+                style={{ color: 'var(--sa-text-muted)' }}
               >
                 Show manifest.json
               </summary>
               <pre
                 className="mt-3 overflow-x-auto rounded-xl p-4 text-xs"
-                style={{ background: 'rgba(2, 6, 23, 0.6)', color: '#cbd5e1', lineHeight: 1.5 }}
+                style={{
+                  background: 'var(--sa-surface-soft)',
+                  color: 'var(--sa-text)',
+                  border: '1px solid var(--sa-border)',
+                  lineHeight: 1.5,
+                }}
               >
                 {JSON.stringify(manifest, null, 2)}
               </pre>

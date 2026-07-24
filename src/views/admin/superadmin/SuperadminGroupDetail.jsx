@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { queryAdminConvex, mutateAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
+import { ConsoleEmpty, ConsoleSkeleton, LevelBadge } from './ConsoleStates.jsx'
 
 export default function SuperadminGroupDetail() {
   const { groupId } = useParams()
@@ -77,13 +78,13 @@ export default function SuperadminGroupDetail() {
   }
 
   if (loading) {
-    return <p style={{ color: 'rgba(203,213,225,0.7)', padding: '2rem' }}>Loading...</p>
+    return <ConsoleSkeleton rows={8} />
   }
   if (error) {
-    return <p style={{ color: '#fca5a5', padding: '2rem' }}>Error: {error}</p>
+    return <p style={{ color: 'var(--sa-bad)', padding: '2rem' }}>Error: {error}</p>
   }
   if (!group) {
-    return <p style={{ color: '#fca5a5', padding: '2rem' }}>Group not found.</p>
+    return <ConsoleEmpty icon="group_off" title="Group not found." />
   }
 
   const activeMembers = members.filter(m => m.membership.isActive)
@@ -97,9 +98,9 @@ export default function SuperadminGroupDetail() {
     <div className="space-y-5">
       {/* Back link */}
       <Link
-        to="/admin/superadmin/groups"
-        className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest"
-        style={{ color: '#a78bfa' }}
+        to="/admin/superadmin/academic/groups"
+        className="inline-flex items-center gap-1"
+        style={{ color: 'var(--sa-violet-600)', fontSize: 'var(--sa-fs-small)', fontWeight: 600 }}
       >
         <span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_back</span>
         All Groups
@@ -109,10 +110,10 @@ export default function SuperadminGroupDetail() {
       <div className="sa-card">
         <div className="sa-card-header">
           <div>
-            <h2 style={{ fontSize: '1rem', color: '#f8fafc', fontWeight: 800, textTransform: 'none', letterSpacing: '-0.01em' }}>
+            <h2 style={{ fontSize: '1rem', color: 'var(--sa-text)', fontWeight: 700, textTransform: 'none', letterSpacing: '-0.01em' }}>
               {group.name}
             </h2>
-            <p className="mt-1" style={{ color: 'rgba(148,163,184,0.7)', fontSize: '0.75rem' }}>
+            <p className="mt-1" style={{ color: 'var(--sa-text-muted)', fontSize: 'var(--sa-fs-small)' }}>
               {group.slug} {group.courseId ? ` / Course ${group.courseId}` : ''}
             </p>
           </div>
@@ -161,12 +162,12 @@ export default function SuperadminGroupDetail() {
 
         {/* Add member form */}
         {adding && (
-          <div className="sa-card-body" style={{ borderBottom: '1px solid rgba(148,163,184,0.1)' }}>
+          <div className="sa-card-body" style={{ borderBottom: '1px solid var(--sa-border)' }}>
             <div className="flex items-end gap-3 flex-wrap">
               <div style={{ flex: 1, minWidth: 200 }}>
                 <label className="sa-stat-label block mb-1">Select Student</label>
                 <select
-                  className="sa-input"
+                  className="sa-select"
                   value={selectedStudentId}
                   onChange={e => setSelectedStudentId(e.target.value)}
                 >
@@ -197,54 +198,54 @@ export default function SuperadminGroupDetail() {
 
         <div className="sa-card-body p-0">
           {activeMembers.length === 0 && (
-            <p className="p-6" style={{ color: 'rgba(203,213,225,0.7)' }}>No active members.</p>
+            <ConsoleEmpty icon="person_off" title="No active members." />
           )}
           {activeMembers.length > 0 && (
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr style={{ color: 'rgba(148,163,184,0.7)' }}>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest">Name</th>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest">Slug</th>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest">Level</th>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest">Role</th>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest">Joined</th>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeMembers.map(({ membership, student }) => (
-                  <tr key={membership._id} className="border-t" style={{ borderColor: 'rgba(148,163,184,0.08)' }}>
-                    <td className="px-5 py-3 font-semibold" style={{ color: '#f1f5f9' }}>{student.name}</td>
-                    <td className="px-5 py-3" style={{ color: 'rgba(148,163,184,0.8)' }}>{student.slug}</td>
-                    <td className="px-5 py-3" style={{ color: '#a5f3fc' }}>{student.level}</td>
-                    <td className="px-5 py-3" style={{ color: 'rgba(203,213,225,0.75)' }}>{membership.role || 'member'}</td>
-                    <td className="px-5 py-3" style={{ color: 'rgba(203,213,225,0.75)' }}>
-                      {membership.joinedAt ? new Date(membership.joinedAt).toLocaleDateString() : '---'}
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        <Link
-                          to={`/admin/student/${student.slug}`}
-                          className="text-[11px] font-bold uppercase tracking-widest"
-                          style={{ color: '#a78bfa' }}
-                        >
-                          Profile
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveMember(student._id)}
-                          className="text-[11px] font-bold uppercase tracking-widest"
-                          style={{ color: '#f87171', background: 'none', border: 'none', cursor: 'pointer' }}
-                          disabled={actionLoading}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </td>
+            <div className="sa-table-wrap">
+              <table className="sa-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Slug</th>
+                    <th>Level</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {activeMembers.map(({ membership, student }) => (
+                    <tr key={membership._id}>
+                      <td style={{ fontWeight: 600 }}>{student.name}</td>
+                      <td style={{ color: 'var(--sa-text-muted)' }}>{student.slug}</td>
+                      <td>{student.level ? <LevelBadge level={student.level} /> : null}</td>
+                      <td style={{ color: 'var(--sa-text-muted)' }}>{membership.role || 'member'}</td>
+                      <td style={{ color: 'var(--sa-text-muted)' }}>
+                        {membership.joinedAt ? new Date(membership.joinedAt).toLocaleDateString() : '---'}
+                      </td>
+                      <td className="sa-td-right">
+                        <div className="flex items-center justify-end gap-3">
+                          <Link
+                            to={`/admin/student/${student.slug}`}
+                            style={{ color: 'var(--sa-violet-600)', fontSize: 'var(--sa-fs-small)', fontWeight: 600 }}
+                          >
+                            Profile
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMember(student._id)}
+                            style={{ color: 'var(--sa-bad)', fontSize: 'var(--sa-fs-small)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
+                            disabled={actionLoading}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
@@ -256,36 +257,37 @@ export default function SuperadminGroupDetail() {
             <h2>Former Members &middot; {inactiveMembers.length}</h2>
           </div>
           <div className="sa-card-body p-0">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr style={{ color: 'rgba(148,163,184,0.7)' }}>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest">Name</th>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest">Level</th>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest">Left</th>
-                  <th className="px-5 py-3 text-[10px] uppercase tracking-widest"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {inactiveMembers.map(({ membership, student }) => (
-                  <tr key={membership._id} className="border-t" style={{ borderColor: 'rgba(148,163,184,0.08)' }}>
-                    <td className="px-5 py-3" style={{ color: 'rgba(203,213,225,0.6)' }}>{student.name}</td>
-                    <td className="px-5 py-3" style={{ color: 'rgba(148,163,184,0.5)' }}>{student.level}</td>
-                    <td className="px-5 py-3" style={{ color: 'rgba(148,163,184,0.5)' }}>
-                      {membership.leftAt ? new Date(membership.leftAt).toLocaleDateString() : '---'}
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <Link
-                        to={`/admin/student/${student.slug}`}
-                        className="text-[11px] font-bold uppercase tracking-widest"
-                        style={{ color: 'rgba(167,139,250,0.5)' }}
-                      >
-                        Profile
-                      </Link>
-                    </td>
+            <div className="sa-table-wrap">
+              <table className="sa-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Level</th>
+                    <th>Left</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {inactiveMembers.map(({ membership, student }) => (
+                    <tr key={membership._id}>
+                      <td style={{ color: 'var(--sa-text-muted)' }}>{student.name}</td>
+                      <td style={{ color: 'var(--sa-text-muted)' }}>{student.level}</td>
+                      <td style={{ color: 'var(--sa-text-muted)' }}>
+                        {membership.leftAt ? new Date(membership.leftAt).toLocaleDateString() : '---'}
+                      </td>
+                      <td className="sa-td-right">
+                        <Link
+                          to={`/admin/student/${student.slug}`}
+                          style={{ color: 'var(--sa-violet-600)', fontSize: 'var(--sa-fs-small)', fontWeight: 600 }}
+                        >
+                          Profile
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

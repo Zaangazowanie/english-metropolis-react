@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { mutateAdminConvex, queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
 import CoursePublisher from './CoursePublisher.jsx'
+import { ConsoleEmpty, ConsoleSkeleton } from './ConsoleStates.jsx'
 
 const emptyKeyword = {
   word: '', translation: '', definitionEn: '', definitionPl: '',
@@ -90,13 +91,13 @@ export default function SuperadminCourses() {
     setAllocVersion(v => v + 1)
   }
 
-  if (loading) return <p style={{ color: '#8A83AE' }}>Loading…</p>
+  if (loading) return <ConsoleSkeleton />
 
   return (
     <div className="space-y-5">
       {error && (
-        <div className="sa-card" style={{ padding: '0.8rem 1.1rem', borderColor: 'rgba(251,113,133,0.4)' }}>
-          <span style={{ color: '#FB7185', fontSize: '0.85rem' }}>{error}</span>
+        <div className="sa-card" style={{ padding: '0.8rem 1.1rem', borderColor: 'var(--sa-bad)', background: 'var(--sa-bad-soft)' }}>
+          <span style={{ color: 'var(--sa-bad)', fontSize: '0.85rem' }}>{error}</span>
         </div>
       )}
 
@@ -110,14 +111,14 @@ export default function SuperadminCourses() {
             alignItems: 'center', gap: '1.25rem' }}>
             <div>
               <p className="sa-stat-label">Student</p>
-              <p className="text-lg font-black" style={{ color: '#F4F0FF' }}>{student.name}</p>
+              <p className="sa-stat-value" style={{ fontSize: '1.2rem' }}>{student.name}</p>
             </div>
             <div><p className="sa-stat-label">CEFR</p><p className="sa-stat-value" style={{ fontSize: '1.2rem' }}>{student.level || '—'}</p></div>
             <div><p className="sa-stat-label">Taught lessons</p><p className="sa-stat-value" style={{ fontSize: '1.2rem' }}>{taught.length}</p></div>
             <div>
               <p className="sa-stat-label">Lesson allocation</p>
-              <p style={{ marginTop: '0.25rem', fontSize: '0.95rem', fontWeight: 700,
-                color: remaining > 0 ? '#34D399' : '#FB7185' }}>
+              <p className="sa-stat-value" style={{ fontSize: '0.95rem',
+                color: remaining > 0 ? 'var(--sa-good)' : 'var(--sa-bad)' }}>
                 {packages === null ? '…' : `${remaining} of ${allocated} remaining`}
               </p>
             </div>
@@ -147,7 +148,7 @@ export default function SuperadminCourses() {
               )}
               {allocStep === 'confirm' && (
                 <>
-                  <span className="text-xs font-semibold" style={{ color: '#FCD34D' }}>
+                  <span className="text-xs font-semibold" style={{ color: 'var(--sa-warm-ink)' }}>
                     Allocate {Number(allocN)} lesson{Number(allocN) === 1 ? '' : 's'} to {student.name.split(' ')[0]}?
                   </span>
                   <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.4rem 0.9rem' }} onClick={allocate}>
@@ -162,7 +163,7 @@ export default function SuperadminCourses() {
               )}
             </div>
             <div className="ml-auto flex gap-2">
-              <Link to={`/admin/superadmin/students/${student.slug}/heatmap`} className="sa-btn sa-btn-ghost" style={{ padding: '0.4rem 0.9rem', textDecoration: 'none' }}>
+              <Link to={`/admin/superadmin/academic/roster/${student.slug}/heatmap`} className="sa-btn sa-btn-ghost" style={{ padding: '0.4rem 0.9rem', textDecoration: 'none' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 15 }}>local_fire_department</span>
                 Heatmap
               </Link>
@@ -187,15 +188,15 @@ export default function SuperadminCourses() {
               <div className="sa-card-body space-y-2">
                 {orders.map(o => (
                   <div key={o._id} className="rounded-xl border px-3 py-2.5"
-                    style={{ borderColor: o.status === 'pending_invoice' ? 'rgba(252,211,77,0.35)' : 'rgba(255,255,255,0.07)',
-                      background: 'rgba(255,255,255,0.02)' }}>
+                    style={{ borderColor: o.status === 'pending_invoice' ? 'var(--sa-warm-ink)' : 'var(--sa-border)',
+                      background: o.status === 'pending_invoice' ? 'var(--sa-warm-soft)' : 'var(--sa-surface)' }}>
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className="text-sm font-bold" style={{ color: '#F4F0FF' }}>{o.packageName}</span>
-                      <span className="text-xs" style={{ color: '#8A83AE' }}>{o.lessons} lessons · {o.priceLabel}</span>
+                      <span className="text-sm font-bold" style={{ color: 'var(--sa-text)' }}>{o.packageName}</span>
+                      <span className="text-xs" style={{ color: 'var(--sa-text-muted)' }}>{o.lessons} lessons · {o.priceLabel}</span>
                       <span className={`sa-badge ${o.status === 'confirmed' ? 'sa-badge-committed' : o.status === 'cancelled' ? 'sa-badge-queued' : 'sa-badge-awaiting_review'}`}>
                         {o.status === 'pending_invoice' ? 'awaiting invoice / payment' : o.status}
                       </span>
-                      <span className="text-[11px]" style={{ color: '#5E567C' }}>
+                      <span className="text-[11px]" style={{ color: 'var(--sa-text-muted)' }}>
                         {new Date(o.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </span>
                       {o.status === 'pending_invoice' && (
@@ -214,7 +215,7 @@ export default function SuperadminCourses() {
                         </span>
                       )}
                     </div>
-                    <div className="mt-1.5 text-xs" style={{ color: '#8A83AE' }}>
+                    <div className="mt-1.5 text-xs" style={{ color: 'var(--sa-text-muted)' }}>
                       {['fullName', 'email', 'phone', 'company', 'nip', 'addressLine', 'postalCode', 'city', 'country']
                         .map(k => o.billing?.[k]).filter(Boolean).join(' · ')}
                       {o.billing?.notes ? ` · “${o.billing.notes}”` : ''}
@@ -246,11 +247,11 @@ export default function SuperadminCourses() {
           <div className="sa-card">
             <div className="sa-card-header">
               <h2>Taught lessons · {taught.length}</h2>
-              <span className="text-xs" style={{ color: '#8A83AE' }}>open a lesson to edit its keyword bank</span>
+              <span className="text-xs" style={{ color: 'var(--sa-text-muted)' }}>open a lesson to edit its keyword bank</span>
             </div>
             <div className="sa-card-body space-y-1.5">
               {taught.length === 0 ? (
-                <p className="text-sm" style={{ color: '#8A83AE' }}>No taught lessons yet.</p>
+                <ConsoleEmpty icon="menu_book" title="No taught lessons yet." />
               ) : (
                 taught.map(l => <TaughtLessonRow key={l._id} lesson={l} student={student} />)
               )}
@@ -310,33 +311,33 @@ function TaughtLessonRow({ lesson, student }) {
   }
 
   return (
-    <div className="rounded-xl border" style={{ borderColor: open ? 'rgba(217,70,239,0.3)' : 'rgba(255,255,255,0.07)',
-      background: 'rgba(255,255,255,0.02)' }}>
+    <div className="rounded-xl border" style={{ borderColor: open ? 'var(--sa-violet-600)' : 'var(--sa-border)',
+      background: 'var(--sa-surface)' }}>
       <button type="button" className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
         style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>
-        <span className="font-mono text-xs" style={{ color: '#8A83AE', width: 84, flexShrink: 0 }}>{lesson.date}</span>
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: '#F4F0FF' }}>{lesson.title}</span>
+        <span className="font-mono text-xs" style={{ color: 'var(--sa-text-muted)', width: 84, flexShrink: 0 }}>{lesson.date}</span>
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: 'var(--sa-text)' }}>{lesson.title}</span>
         {open && keywords !== null && <span className="sa-badge sa-badge-processing">{keywords.length} kw</span>}
-        <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#8A83AE' }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--sa-text-muted)' }}>
           {open ? 'expand_less' : 'expand_more'}
         </span>
       </button>
 
       {open && (
         <div className="space-y-3 px-3 pb-3">
-          {notice && <p className="text-xs font-semibold" style={{ color: '#34D399' }}>{notice}</p>}
+          {notice && <p className="text-xs font-semibold" style={{ color: 'var(--sa-good)' }}>{notice}</p>}
           {keywords === null ? (
-            <p className="text-xs" style={{ color: '#8A83AE' }}>Loading keyword bank…</p>
+            <p className="sa-empty-hint text-xs">Loading keyword bank…</p>
           ) : (
             <>
-              <div className="max-h-72 space-y-0 overflow-auto rounded-xl border" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+              <div className="max-h-72 space-y-0 overflow-auto rounded-xl border" style={{ borderColor: 'var(--sa-border)' }}>
                 {keywords.length === 0 ? (
-                  <p className="p-4 text-sm" style={{ color: '#8A83AE' }}>No keywords on this lesson yet.</p>
+                  <p className="sa-empty-hint p-4">No keywords on this lesson yet.</p>
                 ) : keywords.map(k => (
-                  <div key={k._id} className="flex items-start justify-between gap-3 border-b px-3 py-2.5" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                  <div key={k._id} className="flex items-start justify-between gap-3 border-b px-3 py-2.5" style={{ borderColor: 'var(--sa-border)' }}>
                     <div>
-                      <p className="text-sm font-bold" style={{ color: '#F4F0FF' }}>{k.word}</p>
-                      <p className="text-xs" style={{ color: '#CEC8E8' }}>{k.translation || k.definitionEn}</p>
+                      <p className="text-sm font-bold" style={{ color: 'var(--sa-text)' }}>{k.word}</p>
+                      <p className="text-xs" style={{ color: 'var(--sa-text)' }}>{k.translation || k.definitionEn}</p>
                     </div>
                     <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.25rem 0.5rem' }}
                       onClick={() => removeKeyword(k._id)}>
@@ -385,52 +386,52 @@ function StudentSelect({ students, value, onPick }) {
     <div style={{ position: 'relative', maxWidth: 460 }}>
       <button type="button" onClick={() => { setOpen(o => !o); setQ('') }}
         className="flex w-full items-center gap-3 rounded-2xl border px-4 py-2.5 text-left"
-        style={{ cursor: 'pointer', borderColor: 'rgba(217,70,239,0.4)', background: 'rgba(255,255,255,0.03)' }}>
+        style={{ cursor: 'pointer', borderColor: 'var(--sa-border)', background: 'var(--sa-surface)' }}>
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black"
-          style={{ background: 'linear-gradient(135deg, #8B5CF6, #D946EF)', color: '#fff' }}>
+          style={{ background: 'var(--sa-violet-600)', color: 'var(--sa-surface)' }}>
           {(selected?.name || '?').slice(0, 1)}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-bold" style={{ color: '#F4F0FF' }}>
+          <span className="block truncate text-sm font-bold" style={{ color: 'var(--sa-text)' }}>
             {selected ? selected.name : 'Choose a student…'}
           </span>
           {selected && (
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: '#8A83AE' }}>
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: 'var(--sa-text-muted)' }}>
               {selected.level || '?'} · {selected.slug}
             </span>
           )}
         </span>
-        <span className="text-xs" style={{ color: '#8A83AE' }}>{students.length} students</span>
-        <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#8A83AE' }}>
+        <span className="text-xs" style={{ color: 'var(--sa-text-muted)' }}>{students.length} students</span>
+        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--sa-text-muted)' }}>
           {open ? 'expand_less' : 'expand_more'}
         </span>
       </button>
       {open && (
         <div className="absolute left-0 right-0 top-full z-40 mt-1 rounded-2xl border"
-          style={{ background: 'rgba(10,6,24,0.98)', borderColor: 'rgba(255,255,255,0.12)',
-            boxShadow: '0 18px 50px -18px rgba(0,0,0,0.7)' }}>
+          style={{ background: 'var(--sa-surface)', borderColor: 'var(--sa-border)',
+            boxShadow: 'var(--sa-shadow-pop)' }}>
           <div className="p-2">
             <input autoFocus type="search" className="sa-input" placeholder="Search name, slug or level…"
               value={q} onChange={e => setQ(e.target.value)} />
           </div>
           <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-            {filtered.length === 0 && <p className="p-3 text-xs" style={{ color: '#8A83AE' }}>No students match.</p>}
+            {filtered.length === 0 && <p className="sa-empty-hint p-3">No students match.</p>}
             {filtered.map(s => (
               <button key={s._id} type="button"
                 onClick={() => { onPick(s._id); setOpen(false); setQ('') }}
                 className="flex w-full items-center gap-3 px-3 py-2 text-left"
-                style={{ background: s._id === value ? 'rgba(217,70,239,0.1)' : 'none', border: 'none', cursor: 'pointer' }}>
+                style={{ background: s._id === value ? 'var(--sa-violet-100)' : 'none', border: 'none', cursor: 'pointer' }}>
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: '#CEC8E8' }}>
+                  style={{ background: 'var(--sa-surface-soft)', color: 'var(--sa-text)' }}>
                   {(s.name || '?').slice(0, 1)}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold" style={{ color: '#F4F0FF' }}>{s.name}</span>
-                  <span className="text-[10px] uppercase tracking-[0.12em]" style={{ color: '#8A83AE' }}>
+                  <span className="block truncate text-sm font-semibold" style={{ color: 'var(--sa-text)' }}>{s.name}</span>
+                  <span className="text-[10px] uppercase tracking-[0.12em]" style={{ color: 'var(--sa-text-muted)' }}>
                     {s.level || '?'} · {s.slug}
                   </span>
                 </span>
-                {s._id === value && <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#D946EF' }}>check</span>}
+                {s._id === value && <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--sa-violet-600)' }}>check</span>}
               </button>
             ))}
           </div>

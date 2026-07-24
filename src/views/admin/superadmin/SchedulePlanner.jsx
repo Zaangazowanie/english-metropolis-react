@@ -52,7 +52,7 @@ function TimeSelect({ value, onChange }) {
         onChange={e => onChange(`${e.target.value}:${m}`)}>
         {HOURS.map(x => <option key={x} value={x}>{x}</option>)}
       </select>
-      <span style={{ color: '#8A83AE' }}>:</span>
+      <span style={{ color: 'var(--sa-text-muted)' }}>:</span>
       <select className="sa-input" style={{ width: '4.4rem', padding: '0.45rem 0.5rem' }} value={m}
         onChange={e => onChange(`${h}:${e.target.value}`)}>
         {MINUTES.map(x => <option key={x} value={x}>{x}</option>)}
@@ -224,33 +224,30 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
   if (!student) return null
 
   return (
-    <div className="mt-2 rounded-2xl border p-4" style={{ borderColor: 'rgba(96,165,250,0.25)', background: 'rgba(96,165,250,0.04)' }}>
+    <div className="sa-card mt-2 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <span className="flex h-6 w-6 items-center justify-center rounded-full"
-            style={{ background: 'linear-gradient(135deg, #60A5FA, #3B82F6)', color: '#fff' }}>
+            style={{ background: 'var(--sa-violet-600)', color: 'var(--sa-surface)' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>calendar_add_on</span>
           </span>
-          <span className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: '#F4F0FF' }}>
+          <span className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--sa-text)' }}>
             Schedule lessons for {student.name.split(' ')[0]}
           </span>
         </div>
-        <div className="flex gap-1 rounded-full border p-0.5" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+        <div className="flex gap-1">
           {['weekly', 'flexible'].map(m => (
             <button key={m} type="button" onClick={() => setMode(m)}
-              className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]"
-              style={{ cursor: 'pointer', border: 'none',
-                background: mode === m ? 'linear-gradient(135deg, #60A5FA, #3B82F6)' : 'transparent',
-                color: mode === m ? '#fff' : '#8A83AE' }}>{m}</button>
+              className={`sa-chip${mode === m ? ' is-active' : ''}`}>{m}</button>
           ))}
         </div>
       </div>
 
       {!realEmail(student) && (
         <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2"
-          style={{ borderColor: 'rgba(252,211,77,0.4)', background: 'rgba(252,211,77,0.06)' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#FCD34D' }}>mark_email_unread</span>
-          <span className="text-xs" style={{ color: '#FCD34D' }}>
+          style={{ borderColor: 'var(--sa-warm-ink)', background: 'var(--sa-warm-soft)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--sa-warm-ink)' }}>mark_email_unread</span>
+          <span className="text-xs" style={{ color: 'var(--sa-warm-ink)' }}>
             {student.name.split(' ')[0]} has no personal email on file — booking confirmations can't reach them until you add one.
           </span>
           <button type="button" className="sa-btn sa-btn-ghost ml-auto" style={{ padding: '0.25rem 0.7rem' }}
@@ -262,16 +259,16 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
 
       {/* ── Allocation — the hard budget every plan is tied to ── */}
       <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border px-3 py-2"
-        style={{ borderColor: remaining > 0 ? 'rgba(52,211,153,0.3)' : 'rgba(251,113,133,0.4)',
-          background: 'rgba(8,4,20,0.4)' }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 16, color: remaining > 0 ? '#34D399' : '#FB7185' }}>token</span>
+        style={{ borderColor: remaining > 0 ? 'var(--sa-good)' : 'var(--sa-bad)',
+          background: 'var(--sa-surface-soft)' }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 16, color: remaining > 0 ? 'var(--sa-good)' : 'var(--sa-bad)' }}>token</span>
         {packages === null ? (
-          <span className="text-xs" style={{ color: '#8A83AE' }}>Loading allocation…</span>
+          <span className="text-xs" style={{ color: 'var(--sa-text-muted)' }}>Loading allocation…</span>
         ) : (
-          <span className="text-xs" style={{ color: '#CEC8E8' }}>
-            <strong style={{ color: '#F4F0FF' }}>{allocated}</strong> allocated ·{' '}
-            <strong style={{ color: '#F4F0FF' }}>{used}</strong> used ·{' '}
-            <strong style={{ color: remaining > 0 ? '#34D399' : '#FB7185' }}>{remaining} remaining</strong>
+          <span className="text-xs" style={{ color: 'var(--sa-text)' }}>
+            <strong style={{ color: 'var(--sa-text)' }}>{allocated}</strong> allocated ·{' '}
+            <strong style={{ color: 'var(--sa-text)' }}>{used}</strong> used ·{' '}
+            <strong style={{ color: remaining > 0 ? 'var(--sa-good)' : 'var(--sa-bad)' }}>{remaining} remaining</strong>
           </span>
         )}
         <span className="ml-auto" style={{ position: 'relative' }}>
@@ -282,7 +279,7 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
           </button>
           {allocOpen && (
             <span className="absolute right-0 top-full z-40 mt-1 flex items-center gap-2 rounded-xl border p-2"
-              style={{ background: 'rgba(10,6,24,0.97)', borderColor: 'rgba(255,255,255,0.12)' }}>
+              style={{ background: 'var(--sa-surface)', borderColor: 'var(--sa-border)', boxShadow: 'var(--sa-shadow-pop)' }}>
               <input type="number" min="1" max="200" className="sa-input" style={{ width: '4.5rem', padding: '0.35rem 0.5rem' }}
                 value={allocN} onChange={e => setAllocN(e.target.value)} />
               <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.3rem 0.7rem' }} onClick={allocate}>
@@ -300,13 +297,13 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
             <button type="button" onClick={() => nav(-1)} className="sa-btn sa-btn-ghost" style={{ padding: '0.2rem 0.5rem' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_left</span>
             </button>
-            <span className="text-sm font-bold" style={{ color: '#F4F0FF' }}>{MONTHS[view.m]} {view.y}</span>
+            <span className="text-sm font-bold" style={{ color: 'var(--sa-text)' }}>{MONTHS[view.m]} {view.y}</span>
             <button type="button" onClick={() => nav(1)} className="sa-btn sa-btn-ghost" style={{ padding: '0.2rem 0.5rem' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span>
             </button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
-            {DOW.map(d => <span key={d} className="text-center text-[9px] font-bold uppercase" style={{ color: '#5E567C', letterSpacing: '0.1em' }}>{d}</span>)}
+            {DOW.map(d => <span key={d} className="text-center text-[9px] font-bold uppercase" style={{ color: 'var(--sa-text-muted)', letterSpacing: '0.1em' }}>{d}</span>)}
             {cells.map((d, i) => {
               if (d === null) return <span key={`p${i}`} />
               const dateStr = ymd(view.y, view.m, d)
@@ -322,29 +319,29 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
                   style={{
                     position: 'relative', minHeight: 46, borderRadius: 10, padding: '4px 2px 12px',
                     cursor: isPast ? 'default' : 'pointer',
-                    border: inPlan ? '2px solid #D946EF' : hasAvail ? '1px solid rgba(168,85,247,0.35)' : '1px solid rgba(255,255,255,0.05)',
-                    background: isWeeklyStart || inPlan ? 'rgba(217,70,239,0.12)' : hasAvail ? 'rgba(168,85,247,0.05)' : 'transparent',
-                    color: isPast ? '#3F3958' : '#F4F0FF', fontSize: 12, fontWeight: 600,
+                    border: inPlan ? '2px solid var(--sa-violet-600)' : hasAvail ? '1px solid var(--sa-violet-300)' : '1px solid var(--sa-border)',
+                    background: isWeeklyStart || inPlan ? 'var(--sa-violet-100)' : hasAvail ? 'var(--sa-surface-soft)' : 'transparent',
+                    color: isPast ? 'var(--sa-text-muted)' : 'var(--sa-text)', fontSize: 12, fontWeight: 600,
                   }}>
                   {d}
                   <span style={{ position: 'absolute', bottom: 3, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 2 }}>
-                    {mk?.taught ? <span style={dot('#8A83AE')} title={`${mk.taught} taught`} /> : null}
-                    {mk?.upcoming ? <span style={dot('#34D399')} title={`${mk.upcoming} upcoming`} /> : null}
-                    {inPlan ? <span style={dot('#D946EF')} /> : null}
+                    {mk?.taught ? <span style={dot('var(--sa-text-muted)')} title={`${mk.taught} taught`} /> : null}
+                    {mk?.upcoming ? <span style={dot('var(--sa-good)')} title={`${mk.upcoming} upcoming`} /> : null}
+                    {inPlan ? <span style={dot('var(--sa-violet-600)')} /> : null}
                   </span>
                   {hasAvail && !isPast && (
                     <span style={{ position: 'absolute', top: 2, right: 4, width: 4, height: 4, borderRadius: '50%',
-                      background: '#A855F7' }} />
+                      background: 'var(--sa-violet-500)' }} />
                   )}
                 </button>
               )
             })}
           </div>
-          <div className="mt-2 flex flex-wrap gap-3 text-[10px]" style={{ color: '#8A83AE' }}>
-            <span><span style={{ ...dotInline('#A855F7') }} /> availability set</span>
-            <span><span style={{ ...dotInline('#8A83AE') }} /> taught</span>
-            <span><span style={{ ...dotInline('#34D399') }} /> upcoming</span>
-            <span><span style={{ ...dotInline('#D946EF') }} /> this plan</span>
+          <div className="mt-2 flex flex-wrap gap-3 text-[10px]" style={{ color: 'var(--sa-text-muted)' }}>
+            <span><span style={{ ...dotInline('var(--sa-violet-500)') }} /> availability set</span>
+            <span><span style={{ ...dotInline('var(--sa-text-muted)') }} /> taught</span>
+            <span><span style={{ ...dotInline('var(--sa-good)') }} /> upcoming</span>
+            <span><span style={{ ...dotInline('var(--sa-violet-600)') }} /> this plan</span>
           </div>
         </div>
 
@@ -356,7 +353,7 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
                 <div className="flex flex-col gap-1">
                   <span className="sa-stat-label">First lesson</span>
                   <span className="sa-input" style={{ minWidth: '9rem', padding: '0.5rem 0.8rem' }}>
-                    {weekly.start || <span style={{ color: '#5E567C' }}>click a day ←</span>}
+                    {weekly.start || <span style={{ color: 'var(--sa-text-muted)' }}>click a day ←</span>}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -364,7 +361,7 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
                   <TimeSelect value={weekly.time} onChange={t => setWeekly(w => ({ ...w, time: t }))} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="sa-stat-label">Lessons <span style={{ color: '#5E567C' }}>(of {remaining} left)</span></span>
+                  <span className="sa-stat-label">Lessons <span style={{ color: 'var(--sa-text-muted)' }}>(of {remaining} left)</span></span>
                   {remaining > 0 ? (
                     <select className="sa-input" style={{ width: '7rem' }} value={weekly.count}
                       onChange={e => setWeekly(w => ({ ...w, count: Number(e.target.value) }))}>
@@ -372,22 +369,22 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
                         .map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                   ) : (
-                    <span className="sa-input" style={{ width: 'auto', padding: '0.5rem 0.8rem', color: '#FB7185' }}>
+                    <span className="sa-input" style={{ width: 'auto', padding: '0.5rem 0.8rem', color: 'var(--sa-bad)' }}>
                       allocate first ↑
                     </span>
                   )}
                 </div>
               </div>
-              <p className="text-xs" style={{ color: '#8A83AE' }}>Same weekday &amp; time every week — the fuchsia days on the calendar are this plan.</p>
+              <p className="text-xs" style={{ color: 'var(--sa-text-muted)' }}>Same weekday &amp; time every week — the fuchsia days on the calendar are this plan.</p>
             </>
           ) : (
             <>
-              <p className="text-xs" style={{ color: '#8A83AE' }}>Click days on the calendar to add or remove them, then set each lesson's time:</p>
+              <p className="text-xs" style={{ color: 'var(--sa-text-muted)' }}>Click days on the calendar to add or remove them, then set each lesson's time:</p>
               <div className="space-y-1.5" style={{ maxHeight: 200, overflowY: 'auto' }}>
-                {flex.length === 0 && <p className="text-xs" style={{ color: '#5E567C' }}>No days picked yet.</p>}
+                {flex.length === 0 && <p className="sa-empty-hint text-xs">No days picked yet.</p>}
                 {flex.map((p, i) => (
                   <div key={p.date} className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold" style={{ color: '#F4F0FF', width: 88 }}>{p.date}</span>
+                    <span className="font-mono text-xs font-bold" style={{ color: 'var(--sa-text)', width: 88 }}>{p.date}</span>
                     <TimeSelect value={p.time} onChange={t => setFlex(f => f.map((x, j) => j === i ? { ...x, time: t } : x))} />
                     <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.2rem 0.5rem' }}
                       onClick={() => setFlex(f => f.filter((_, j) => j !== i))}>
@@ -400,21 +397,21 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
           )}
 
           {plan.length > 0 && (
-            <div className="rounded-xl border p-2.5" style={{ borderColor: 'rgba(217,70,239,0.25)', background: 'rgba(8,4,20,0.4)' }}>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: '#8A83AE' }}>
+            <div className="rounded-xl border p-2.5" style={{ borderColor: 'var(--sa-violet-300)', background: 'var(--sa-surface-soft)' }}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: 'var(--sa-text-muted)' }}>
                 This plan · {plan.length} lesson{plan.length === 1 ? '' : 's'}
               </p>
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {plan.slice(0, 12).map(p => (
                   <span key={p.date + p.time} className="sa-badge sa-badge-processing">{p.date} · {p.time}</span>
                 ))}
-                {plan.length > 12 && <span className="text-xs" style={{ color: '#8A83AE' }}>+{plan.length - 12} more</span>}
+                {plan.length > 12 && <span className="text-xs" style={{ color: 'var(--sa-text-muted)' }}>+{plan.length - 12} more</span>}
               </div>
             </div>
           )}
 
           {overBudget && (
-            <p className="text-xs font-semibold" style={{ color: '#FB7185' }}>
+            <p className="text-xs font-semibold" style={{ color: 'var(--sa-bad)' }}>
               This plan needs {plan.length} lessons but only {remaining} remain allocated — reduce the plan or allocate more.
             </p>
           )}
@@ -431,12 +428,12 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
             <div className="space-y-1">
               {booking.log.map((r, i) => (
                 <div key={i} className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="material-symbols-outlined" style={{ fontSize: 14, color: r.ok ? '#34D399' : '#FB7185' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 14, color: r.ok ? 'var(--sa-good)' : 'var(--sa-bad)' }}>
                     {r.ok ? 'event_available' : 'error'}
                   </span>
-                  <span style={{ color: '#F4F0FF', fontWeight: 600 }}>{r.when}</span>
-                  {r.ok ? <span style={{ color: '#34D399' }}>booked · confirmations sent</span>
-                    : <span style={{ color: '#FB7185' }}>{r.err}</span>}
+                  <span style={{ color: 'var(--sa-text)', fontWeight: 600 }}>{r.when}</span>
+                  {r.ok ? <span style={{ color: 'var(--sa-good)' }}>booked · confirmations sent</span>
+                    : <span style={{ color: 'var(--sa-bad)' }}>{r.err}</span>}
                 </div>
               ))}
             </div>
@@ -445,25 +442,26 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
       </div>
 
       {emailGate && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', background: 'rgba(6,4,16,0.72)', backdropFilter: 'blur(4px)' }}
-          onClick={() => !emailBusy && setEmailGate(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 460, borderRadius: 18,
-            border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(12,8,26,0.98)', padding: '1.4rem' }}>
-            <div className="flex items-center gap-2" style={{ marginBottom: '0.6rem' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#FCD34D' }}>mark_email_unread</span>
-              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#F4F0FF' }}>Add {student.name.split(' ')[0]}'s email first</h3>
+        <div className="sa-scrim" onClick={() => !emailBusy && setEmailGate(false)}>
+          <div className="sa-modal" onClick={e => e.stopPropagation()}>
+            <div className="sa-modal-header">
+              <span className="flex items-center gap-2">
+                <span className="material-symbols-outlined" style={{ fontSize: 22, color: 'var(--sa-warm-ink)' }}>mark_email_unread</span>
+                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--sa-text)' }}>Add {student.name.split(' ')[0]}'s email first</h3>
+              </span>
             </div>
-            <p className="text-sm" style={{ color: '#CEC8E8', lineHeight: 1.55, marginBottom: '1rem' }}>
-              Booking sends a confirmation to the student with the lesson time, video link and an
-              add-to-calendar button. {student.name.split(' ')[0]} only has a login placeholder on
-              file — enter their personal email address to continue.
-            </p>
-            <input autoFocus type="email" className="sa-input" placeholder="student's personal email"
-              value={emailDraft} onChange={e => setEmailDraft(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') saveStudentEmail() }} />
-            {emailErr && <p className="text-xs" style={{ color: '#FB7185', marginTop: '0.5rem' }}>{emailErr}</p>}
-            <div className="flex items-center justify-end gap-2" style={{ marginTop: '1rem' }}>
+            <div className="sa-modal-body">
+              <p className="text-sm" style={{ color: 'var(--sa-text)', lineHeight: 1.55, marginBottom: '1rem' }}>
+                Booking sends a confirmation to the student with the lesson time, video link and an
+                add-to-calendar button. {student.name.split(' ')[0]} only has a login placeholder on
+                file — enter their personal email address to continue.
+              </p>
+              <input autoFocus type="email" className="sa-input" placeholder="student's personal email"
+                value={emailDraft} onChange={e => setEmailDraft(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveStudentEmail() }} />
+              {emailErr && <p className="text-xs" style={{ color: 'var(--sa-bad)', marginTop: '0.5rem' }}>{emailErr}</p>}
+            </div>
+            <div className="sa-modal-footer">
               <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.45rem 1rem' }}
                 disabled={emailBusy} onClick={() => setEmailGate(false)}>Cancel</button>
               <button type="button" className="sa-btn sa-btn-primary" style={{ padding: '0.45rem 1rem' }}

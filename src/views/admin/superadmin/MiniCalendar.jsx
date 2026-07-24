@@ -29,23 +29,23 @@ export default function MiniCalendar({ value, onPick, marks = {}, minToday = tru
   })
 
   return (
-    <div style={{ width: 252, borderRadius: 14, border: '1px solid rgba(255,255,255,0.1)',
-      background: 'rgba(10,6,24,0.97)', padding: 10, boxShadow: '0 18px 50px -18px rgba(0,0,0,0.7)' }}>
+    <div style={{ width: 252, borderRadius: 'var(--sa-radius-card)', border: '1px solid var(--sa-border)',
+      background: 'var(--sa-surface)', padding: 10, boxShadow: 'var(--sa-shadow)' }}>
       <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
-        <button type="button" onClick={() => nav(-1)} style={navBtn}>
+        <button type="button" onClick={() => nav(-1)} className="sa-icon-btn sa-icon-btn-sm">
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_left</span>
         </button>
-        <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#F4F0FF' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--sa-text)' }}>
           {MONTHS[view.m]} {view.y}
         </span>
-        <button type="button" onClick={() => nav(1)} style={navBtn}>
+        <button type="button" onClick={() => nav(1)} className="sa-icon-btn sa-icon-btn-sm">
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span>
         </button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
         {DOW.map(d => (
           <span key={d} style={{ textAlign: 'center', fontSize: 9, fontWeight: 700,
-            letterSpacing: '0.1em', color: '#5E567C', padding: '2px 0' }}>{d}</span>
+            letterSpacing: '0.1em', color: 'var(--sa-text-muted)', padding: '2px 0' }}>{d}</span>
         ))}
         {cells.map((d, i) => {
           if (d === null) return <span key={`p${i}`} />
@@ -60,15 +60,15 @@ export default function MiniCalendar({ value, onPick, marks = {}, minToday = tru
               style={{
                 position: 'relative', height: 30, borderRadius: 8, fontSize: 12,
                 fontWeight: isSel ? 800 : 500, cursor: isPast ? 'default' : 'pointer',
-                border: isToday && !isSel ? '1px solid rgba(217,70,239,0.45)' : '1px solid transparent',
-                background: isSel ? 'linear-gradient(135deg, #8B5CF6, #D946EF)' : 'transparent',
-                color: isSel ? '#fff' : isPast ? '#3F3958' : '#CEC8E8',
+                border: isToday && !isSel ? '1px solid var(--sa-violet-600)' : '1px solid transparent',
+                background: isSel ? 'var(--sa-violet-600)' : 'transparent',
+                color: isSel ? 'var(--sa-surface)' : isPast ? 'var(--sa-text-muted)' : 'var(--sa-text)',
               }}>
               {d}
               {mark ? (
                 <span style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)',
                   width: 4, height: 4, borderRadius: '50%',
-                  background: isSel ? '#fff' : '#34D399' }} />
+                  background: isSel ? 'var(--sa-surface)' : 'var(--sa-good)' }} />
               ) : null}
             </button>
           )
@@ -76,10 +76,4 @@ export default function MiniCalendar({ value, onPick, marks = {}, minToday = tru
       </div>
     </div>
   )
-}
-
-const navBtn = {
-  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-  width: 24, height: 24, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)',
-  background: 'rgba(255,255,255,0.04)', color: '#CEC8E8', cursor: 'pointer',
 }

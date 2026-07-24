@@ -71,7 +71,7 @@ export default function SuperadminIngest() {
         args.notesStorageId = await uploadToStorage(notesFile)
       }
       const result = await mutateAdminConvex('ingestion:createIngestionJob', args)
-      navigate(`/admin/superadmin/ingest/${result.jobId}`)
+      navigate(`/admin/superadmin/curriculum/ingest/${result.jobId}`)
     } catch (e) {
       setError(e.message || String(e))
       setBusy(false)
@@ -83,7 +83,7 @@ export default function SuperadminIngest() {
       <div className="sa-card">
         <div className="sa-card-header">
           <h2>Ingest a new lesson</h2>
-          <span className="text-[10px] uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.7)' }}>
+          <span className="sa-toolbar-count">
             Claude processes → you review → you commit
           </span>
         </div>
@@ -91,7 +91,7 @@ export default function SuperadminIngest() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid gap-5 md:grid-cols-2">
               <label className="block">
-                <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(203,213,225,0.75)' }}>
+                <span className="sa-stat-label mb-1 block">
                   Student
                 </span>
                 <select
@@ -107,7 +107,7 @@ export default function SuperadminIngest() {
                 </select>
               </label>
               <label className="block">
-                <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(203,213,225,0.75)' }}>
+                <span className="sa-stat-label mb-1 block">
                   Lesson date
                 </span>
                 <input
@@ -119,7 +119,7 @@ export default function SuperadminIngest() {
                 />
               </label>
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(203,213,225,0.75)' }}>
+                <span className="sa-stat-label mb-1 block">
                   Lesson title (optional)
                 </span>
                 <input
@@ -134,7 +134,7 @@ export default function SuperadminIngest() {
 
             <div className="grid gap-5 md:grid-cols-2">
               <label className="block">
-                <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(203,213,225,0.75)' }}>
+                <span className="sa-stat-label mb-1 block">
                   Transcript file (.txt from Tactiq)
                 </span>
                 <input
@@ -146,7 +146,7 @@ export default function SuperadminIngest() {
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(203,213,225,0.75)' }}>
+                <span className="sa-stat-label mb-1 block">
                   Lesson notes PDF (optional)
                 </span>
                 <input
@@ -160,7 +160,7 @@ export default function SuperadminIngest() {
             </div>
 
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(203,213,225,0.75)' }}>
+              <span className="sa-stat-label mb-1 block">
                 …or paste transcript text directly (fallback)
               </span>
               <textarea
@@ -175,9 +175,9 @@ export default function SuperadminIngest() {
               <div
                 className="rounded-lg border p-3 text-sm"
                 style={{
-                  background: 'rgba(248, 113, 113, 0.08)',
-                  borderColor: 'rgba(248, 113, 113, 0.3)',
-                  color: '#fca5a5',
+                  background: 'var(--sa-bad-soft)',
+                  borderColor: 'var(--sa-bad)',
+                  color: 'var(--sa-bad)',
                 }}
               >
                 {error}
@@ -204,13 +204,13 @@ export default function SuperadminIngest() {
       </div>
 
       <div className="sa-card">
-        <div className="sa-card-body text-sm" style={{ color: 'rgba(203,213,225,0.78)', lineHeight: 1.65 }}>
-          <p className="mb-2 font-semibold" style={{ color: '#e2e8f0' }}>How this works</p>
+        <div className="sa-card-body text-sm" style={{ color: 'var(--sa-text-muted)', lineHeight: 1.65 }}>
+          <p className="mb-2 font-semibold" style={{ color: 'var(--sa-text)' }}>How this works</p>
           <ol className="ml-4 list-decimal space-y-1">
             <li>We upload your files straight to Convex storage.</li>
             <li>The backend calls Claude Opus 4.6 for analysis + Claude Sonnet 4.6 for keyword extraction.</li>
             <li>You land on a review page where every field is editable.</li>
-            <li>Nothing touches the live lesson timeline until you click <strong style={{ color: '#a5f3fc' }}>Commit</strong>.</li>
+            <li>Nothing touches the live lesson timeline until you click <strong style={{ color: 'var(--sa-violet-600)' }}>Commit</strong>.</li>
           </ol>
         </div>
       </div>

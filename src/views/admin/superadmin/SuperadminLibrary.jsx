@@ -7,6 +7,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { consoleGet, consoleGetBlob, consolePost, libraryPdfPath } from './consoleApi.js'
+import { ConsoleEmpty, ConsoleLoading, ConsoleSkeleton, LevelBadge } from './ConsoleStates.jsx'
 
 const BASKET_ICON = { IDEAS: 'psychology', PLACES: 'public', SOCIETY: 'newspaper', SPEC: 'work', SUM: 'sunny' }
 
@@ -45,7 +46,7 @@ export default function SuperadminLibrary() {
     return [...out.entries()]
   }, [courses, q])
 
-  if (courses === null) return <p style={{ color: '#8A83AE' }}>Loading the library…</p>
+  if (courses === null) return <ConsoleSkeleton />
 
   const totalDecks = courses.reduce((n, c) => n + c.lesson_count, 0)
 
@@ -58,24 +59,27 @@ export default function SuperadminLibrary() {
             value={q} onChange={e => setQ(e.target.value)} style={{ maxWidth: 340 }} />
         </div>
         <div className="sa-card-body space-y-6">
+          {!groups.length && (
+            <ConsoleEmpty icon="menu_book" title="No courses match" hint="Adjust the search to see decks again." />
+          )}
           {groups.map(([label, cs]) => (
             <div key={label}>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: '#8A83AE' }}>{label}</p>
+              <p className="sa-stat-label mb-2">{label}</p>
               <div className="space-y-2">
                 {cs.map(c => (
                   <div key={c.course_id} className="rounded-2xl border"
-                    style={{ borderColor: openCourse === c.course_id ? 'rgba(217,70,239,0.3)' : 'rgba(255,255,255,0.08)',
-                      background: 'rgba(255,255,255,0.02)' }}>
+                    style={{ borderColor: openCourse === c.course_id ? 'var(--sa-violet-300)' : 'var(--sa-border)',
+                      background: 'var(--sa-surface)' }}>
                     <button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left"
                       style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                       onClick={() => { setOpenCourse(openCourse === c.course_id ? '' : c.course_id); setOpenLesson('') }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#A855F7' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--sa-violet-600)' }}>
                         {BASKET_ICON[c.basket] || 'menu_book'}
                       </span>
-                      <span className="font-mono text-sm font-bold" style={{ color: '#F4F0FF' }}>{c.course_id}</span>
-                      <span className="sa-badge sa-badge-processing">{c.level || '—'}</span>
-                      <span className="text-xs" style={{ color: '#8A83AE' }}>{c.lesson_count} lessons</span>
-                      <span className="material-symbols-outlined ml-auto" style={{ fontSize: 18, color: '#8A83AE',
+                      <span className="font-mono text-sm font-bold" style={{ color: 'var(--sa-text)' }}>{c.course_id}</span>
+                      {c.level ? <LevelBadge level={c.level} /> : <span className="sa-badge">—</span>}
+                      <span className="text-xs" style={{ color: 'var(--sa-text-muted)' }}>{c.lesson_count} lessons</span>
+                      <span className="material-symbols-outlined ml-auto" style={{ fontSize: 18, color: 'var(--sa-text-muted)',
                         transform: openCourse === c.course_id ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}>
                         expand_more
                       </span>
@@ -102,16 +106,16 @@ export default function SuperadminLibrary() {
 
 function LessonStudioRow({ lesson, open, onToggle }) {
   return (
-    <div className="rounded-xl border" style={{ borderColor: open ? 'rgba(217,70,239,0.3)' : 'rgba(255,255,255,0.06)',
-      background: 'rgba(8,4,20,0.35)' }}>
+    <div className="rounded-xl border" style={{ borderColor: open ? 'var(--sa-violet-300)' : 'var(--sa-border)',
+      background: 'var(--sa-surface-soft)' }}>
       <button type="button" className="flex w-full items-center gap-3 px-3 py-2 text-left"
         style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={onToggle}>
-        <span className="font-mono text-xs font-bold" style={{ color: '#8A83AE', width: 24 }}>
+        <span className="font-mono text-xs font-bold" style={{ color: 'var(--sa-text-muted)', width: 24 }}>
           {String(lesson.lesson_number ?? '?').padStart(2, '0')}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: '#F4F0FF' }}>{lesson.title}</span>
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: 'var(--sa-text)' }}>{lesson.title}</span>
         <span className="sa-badge sa-badge-queued">{lesson.keyword_count} kw</span>
-        <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#8A83AE' }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--sa-text-muted)' }}>
           {open ? 'expand_less' : 'expand_more'}
         </span>
       </button>
@@ -190,7 +194,7 @@ function LessonStudio({ lesson }) {
   return (
     <div className="space-y-3 px-3 pb-3">
       {lesson.topic && (
-        <p className="text-xs" style={{ color: '#8A83AE', lineHeight: 1.6 }}>
+        <p className="text-xs" style={{ color: 'var(--sa-text-muted)', lineHeight: 1.6 }}>
           {String(lesson.topic).slice(0, 280)}{String(lesson.topic).length > 280 ? '…' : ''}
         </p>
       )}
@@ -209,23 +213,23 @@ function LessonStudio({ lesson }) {
       </div>
 
       {msg && (
-        <p className="text-xs font-semibold" style={{ color: msg.ok ? '#34D399' : '#FB7185' }}>{msg.text}</p>
+        <p className="text-xs font-semibold" style={{ color: msg.ok ? 'var(--sa-good)' : 'var(--sa-bad)' }}>{msg.text}</p>
       )}
 
       {/* ── PDF page order ── */}
       <div>
-        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: '#8A83AE' }}>
-          PDF pages {dirtyPg && <span style={{ color: '#FCD34D' }}>· unsaved order</span>}
+        <p className="sa-stat-label mb-1.5">
+          PDF pages {dirtyPg && <span style={{ color: 'var(--sa-warm-ink)' }}>· unsaved order</span>}
         </p>
-        {pages === null ? <p className="text-xs" style={{ color: '#8A83AE' }}>Loading…</p> : (
+        {pages === null ? <ConsoleLoading /> : (
           <div className="flex flex-wrap items-center gap-1.5">
             {pages.map((orig, idx) => (
-              <span key={idx} className="inline-flex items-center gap-0.5 rounded-lg border px-1.5 py-1"
-                style={{ borderColor: orig !== idx + 1 ? 'rgba(252,211,77,0.4)' : 'rgba(255,255,255,0.1)' }}>
+              <span key={idx} className="sa-chip" style={{ gap: 2, paddingLeft: 4, paddingRight: 4,
+                ...(orig !== idx + 1 ? { borderColor: 'var(--sa-warm-ink)', background: 'var(--sa-warm-soft)' } : null) }}>
                 <button type="button" onClick={() => movePage(idx, -1)} disabled={idx === 0} style={pgBtn}>
                   <span className="material-symbols-outlined" style={{ fontSize: 13 }}>chevron_left</span>
                 </button>
-                <span className="font-mono text-xs font-bold" style={{ color: '#F4F0FF' }} title={`original page ${orig}`}>
+                <span className="font-mono text-xs font-bold" style={{ color: 'var(--sa-text)' }} title={`original page ${orig}`}>
                   {orig}
                 </span>
                 <button type="button" onClick={() => movePage(idx, 1)} disabled={idx === pages.length - 1} style={pgBtn}>
@@ -245,10 +249,10 @@ function LessonStudio({ lesson }) {
 
       {/* ── Keyword editor ── */}
       <div>
-        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: '#8A83AE' }}>
-          Keywords {dirtyKw && <span style={{ color: '#FCD34D' }}>· unsaved changes</span>}
+        <p className="sa-stat-label mb-1.5">
+          Keywords {dirtyKw && <span style={{ color: 'var(--sa-warm-ink)' }}>· unsaved changes</span>}
         </p>
-        {kw === null ? <p className="text-xs" style={{ color: '#8A83AE' }}>Loading…</p> : (
+        {kw === null ? <ConsoleLoading /> : (
           <div className="space-y-1.5">
             {kw.map((k, i) => (
               <div key={i} className="grid gap-1.5" style={{ gridTemplateColumns: '1.1fr 1fr 1fr 1.6fr auto' }}>
@@ -288,4 +292,4 @@ function LessonStudio({ lesson }) {
 }
 
 const pad = { padding: '0.4rem 0.6rem', fontSize: '0.78rem' }
-const pgBtn = { background: 'none', border: 'none', color: '#8A83AE', cursor: 'pointer', display: 'inline-flex', padding: 0 }
+const pgBtn = { background: 'none', border: 'none', color: 'var(--sa-text-muted)', cursor: 'pointer', display: 'inline-flex', padding: 0 }

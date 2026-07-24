@@ -1,6 +1,6 @@
 import { StrictMode, Component, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import './index.css'
 
 import App from './App.jsx'
@@ -20,7 +20,6 @@ import SuperadminReview from './views/admin/superadmin/SuperadminReview.jsx'
 import SuperadminJobs from './views/admin/superadmin/SuperadminJobs.jsx'
 import SuperadminStudents from './views/admin/superadmin/SuperadminStudents.jsx'
 import SuperadminAudit from './views/admin/superadmin/SuperadminAudit.jsx'
-import SuperadminSalary from './views/admin/superadmin/SuperadminSalary.jsx'
 import SuperadminGroups from './views/admin/superadmin/SuperadminGroups.jsx'
 import SuperadminAvailability from './views/admin/superadmin/SuperadminAvailability.jsx'
 import SuperadminGroupDetail from './views/admin/superadmin/SuperadminGroupDetail.jsx'
@@ -28,6 +27,24 @@ import SuperadminLibrary from './views/admin/superadmin/SuperadminLibrary.jsx'
 import SuperadminLibraryDetail from './views/admin/superadmin/SuperadminLibraryDetail.jsx'
 import SuperadminAssignments from './views/admin/superadmin/SuperadminAssignments.jsx'
 import SuperadminPipelines from './views/admin/superadmin/SuperadminPipelines.jsx'
+import ConsoleInbox from './views/admin/superadmin/ConsoleInbox.jsx'
+import ConsoleTemplates from './views/admin/superadmin/ConsoleTemplates.jsx'
+import ConsoleSequences from './views/admin/superadmin/ConsoleSequences.jsx'
+import ConsoleRevenue from './views/admin/superadmin/ConsoleRevenue.jsx'
+import ConsoleInvoices from './views/admin/superadmin/ConsoleInvoices.jsx'
+import ConsolePayroll from './views/admin/superadmin/ConsolePayroll.jsx'
+import ConsoleContacts from './views/admin/superadmin/ConsoleContacts.jsx'
+import ConsoleCompanies from './views/admin/superadmin/ConsoleCompanies.jsx'
+import ConsolePipeline from './views/admin/superadmin/ConsolePipeline.jsx'
+import ConsolePages from './views/admin/superadmin/ConsolePages.jsx'
+import ConsoleDeploys from './views/admin/superadmin/ConsoleDeploys.jsx'
+import ConsoleTeam from './views/admin/superadmin/ConsoleTeam.jsx'
+import ConsoleRecruiting from './views/admin/superadmin/ConsoleRecruiting.jsx'
+import ConsoleIntegrations from './views/admin/superadmin/ConsoleIntegrations.jsx'
+import ConsoleCampaigns from './views/admin/superadmin/growth/ConsoleCampaigns.jsx'
+import ConsoleAdverts from './views/admin/superadmin/growth/ConsoleAdverts.jsx'
+import ConsoleSeo from './views/admin/superadmin/growth/ConsoleSeo.jsx'
+import { ConsoleEmpty } from './views/admin/superadmin/ConsoleStates.jsx'
 import StudentHeatmap from './views/admin/teacher/StudentHeatmap.jsx'
 import AdminTeachers from './views/admin/Teachers.jsx'
 import TeacherLogin from './views/teacher/TeacherLogin.jsx'
@@ -117,6 +134,40 @@ function WorldLanding() {
   )
 }
 
+// <Navigate> cannot interpolate route params, so legacy detail URLs
+// (/superadmin/groups/:groupId etc.) need this one-liner to carry them across.
+// useParams() hands back DECODED segments, so re-encode on the way out or a
+// lesson id containing / # ? or a space would rewrite the path it lands on.
+function RedirectWithParams({ to }) {
+  const params = useParams()
+  return (
+    <Navigate
+      to={to.replace(/:(\w+)/g, (_, key) => encodeURIComponent(params[key] ?? ''))}
+      replace
+    />
+  )
+}
+
+// Any /admin/superadmin/* URL that matches no route. Without this the layout
+// renders its chrome around an empty Outlet, which reads as "this screen has
+// no data" rather than "this address does not exist".
+function ConsoleNotFound() {
+  const location = useLocation()
+  return (
+    <ConsoleEmpty
+      icon="wrong_location"
+      title="No such console screen"
+      hint={
+        <p>
+          <code>{location.pathname}</code> matches no console route. Sections moved on
+          2026-07-24 (docs/console/REVAMP-SPEC.md §3); the sidebar has the current list.
+        </p>
+      }
+      action={<Link to="/admin/superadmin" className="sa-btn sa-btn-primary">Back to Overview</Link>}
+    />
+  )
+}
+
 // Gate the teacher portal: redirect to the magic-link login if no teacher session.
 function TeacherGuard({ children }) {
   const { teacher, loading } = useTeacherAuth()
@@ -158,21 +209,77 @@ function RootRouter() {
           </RootErrorBoundary>
         }>
           <Route index element={<SuperadminDashboard />} />
-          <Route path="courses" element={<SuperadminCourses />} />
-          <Route path="ingest" element={<SuperadminIngest />} />
-          <Route path="ingest/:jobId" element={<SuperadminReview />} />
-          <Route path="jobs" element={<SuperadminJobs />} />
-          <Route path="library" element={<SuperadminLibrary />} />
-          <Route path="library/:lessonId" element={<SuperadminLibraryDetail />} />
-          <Route path="assignments" element={<SuperadminAssignments />} />
-          <Route path="pipelines" element={<SuperadminPipelines />} />
-          <Route path="students" element={<SuperadminStudents />} />
-          <Route path="students/:slug/heatmap" element={<StudentHeatmap />} />
-          <Route path="groups" element={<SuperadminGroups />} />
-          <Route path="groups/:groupId" element={<SuperadminGroupDetail />} />
-          <Route path="availability" element={<SuperadminAvailability />} />
-          <Route path="audit" element={<SuperadminAudit />} />
-          <Route path="salary" element={<SuperadminSalary />} />
+
+          {/* --- ACADEMIC --- */}
+          <Route path="academic/students" element={<SuperadminCourses />} />
+          <Route path="academic/roster" element={<SuperadminStudents />} />
+          <Route path="academic/roster/:slug/heatmap" element={<StudentHeatmap />} />
+          <Route path="academic/groups" element={<SuperadminGroups />} />
+          <Route path="academic/groups/:groupId" element={<SuperadminGroupDetail />} />
+          <Route path="academic/schedule" element={<SuperadminAvailability />} />
+          <Route path="academic/assignments" element={<SuperadminAssignments />} />
+
+          {/* --- CURRICULUM --- */}
+          <Route path="curriculum/library" element={<SuperadminLibrary />} />
+          <Route path="curriculum/library/:lessonId" element={<SuperadminLibraryDetail />} />
+          <Route path="curriculum/ingest" element={<SuperadminIngest />} />
+          <Route path="curriculum/ingest/:jobId" element={<SuperadminReview />} />
+          <Route path="curriculum/queue" element={<SuperadminJobs />} />
+          <Route path="curriculum/queue/:jobId" element={<SuperadminReview />} />
+
+          {/* --- COMMS --- */}
+          <Route path="comms/inbox" element={<ConsoleInbox />} />
+          <Route path="comms/templates" element={<ConsoleTemplates />} />
+          <Route path="comms/sequences" element={<ConsoleSequences />} />
+
+          {/* --- CRM --- */}
+          <Route path="crm/contacts" element={<ConsoleContacts />} />
+          <Route path="crm/companies" element={<ConsoleCompanies />} />
+          <Route path="crm/pipeline" element={<ConsolePipeline />} />
+
+          {/* --- GROWTH --- */}
+          <Route path="growth/campaigns" element={<ConsoleCampaigns />} />
+          <Route path="growth/adverts" element={<ConsoleAdverts />} />
+          <Route path="growth/seo" element={<ConsoleSeo />} />
+
+          {/* --- WEBSITE --- */}
+          <Route path="website/pages" element={<ConsolePages />} />
+          <Route path="website/deploys" element={<ConsoleDeploys />} />
+
+          {/* --- FINANCE --- */}
+          <Route path="finance/revenue" element={<ConsoleRevenue />} />
+          <Route path="finance/invoices" element={<ConsoleInvoices />} />
+          <Route path="finance/payroll" element={<ConsolePayroll />} />
+
+          {/* --- PEOPLE --- */}
+          <Route path="people/team" element={<ConsoleTeam />} />
+          <Route path="people/recruiting" element={<ConsoleRecruiting />} />
+
+          {/* --- SYSTEM --- */}
+          <Route path="system/pipelines" element={<SuperadminPipelines />} />
+          <Route path="system/audit" element={<SuperadminAudit />} />
+          <Route path="system/integrations" element={<ConsoleIntegrations />} />
+
+          {/* --- Legacy paths: bookmarks and in-app links keep working --- */}
+          <Route path="courses" element={<Navigate to="/admin/superadmin/academic/students" replace />} />
+          <Route path="students" element={<Navigate to="/admin/superadmin/academic/roster" replace />} />
+          <Route path="students/:slug/heatmap" element={<RedirectWithParams to="/admin/superadmin/academic/roster/:slug/heatmap" />} />
+          <Route path="groups" element={<Navigate to="/admin/superadmin/academic/groups" replace />} />
+          <Route path="groups/:groupId" element={<RedirectWithParams to="/admin/superadmin/academic/groups/:groupId" />} />
+          <Route path="availability" element={<Navigate to="/admin/superadmin/academic/schedule" replace />} />
+          <Route path="assignments" element={<Navigate to="/admin/superadmin/academic/assignments" replace />} />
+          <Route path="library" element={<Navigate to="/admin/superadmin/curriculum/library" replace />} />
+          <Route path="library/:lessonId" element={<RedirectWithParams to="/admin/superadmin/curriculum/library/:lessonId" />} />
+          <Route path="ingest" element={<Navigate to="/admin/superadmin/curriculum/ingest" replace />} />
+          <Route path="ingest/:jobId" element={<RedirectWithParams to="/admin/superadmin/curriculum/ingest/:jobId" />} />
+          <Route path="jobs" element={<Navigate to="/admin/superadmin/curriculum/queue" replace />} />
+          <Route path="pipelines" element={<Navigate to="/admin/superadmin/system/pipelines" replace />} />
+          <Route path="audit" element={<Navigate to="/admin/superadmin/system/audit" replace />} />
+          {/* Salary computed pay from static JSON with hardcoded rates; Payroll replaces it. */}
+          <Route path="salary" element={<Navigate to="/admin/superadmin/finance/payroll" replace />} />
+
+          {/* Nothing above matched — a real 404, not empty chrome. */}
+          <Route path="*" element={<ConsoleNotFound />} />
         </Route>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={

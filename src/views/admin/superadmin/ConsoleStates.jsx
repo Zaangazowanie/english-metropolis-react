@@ -1,83 +1,108 @@
-// ConsoleStates — shared UI bits for the /api/console/* screens (Library,
-// Assignments, Pipelines & Ops).
+// ConsoleStates — shared UI states for the superadmin console.
 //
 // The console endpoints roll out one by one on Ricky's em-console-api; until
 // an endpoint is flipped live, nginx answers 404. That is an EXPECTED state
 // of the system, not an error — so it gets a calm explainer, identical on
 // every console screen, instead of red text (and never mock rows).
+//
+// Styling comes from console.css (.sa-empty / .sa-error / .sa-skeleton).
 
-const TONES = {
-  muted: { border: 'rgba(255, 255, 255, 0.10)', icon: '#8A83AE', title: '#CEC8E8' },
-  error: { border: 'rgba(251, 113, 133, 0.35)', icon: '#FB7185', title: '#FDA4AF' },
+export function ConsoleLoading({ label = 'Loading…' }) {
+  return (
+    <p className="sa-empty-hint" style={{ padding: '1.25rem' }} role="status" aria-live="polite">
+      {label}
+    </p>
+  )
 }
 
-function Panel({ icon, tone = 'muted', title, children }) {
-  const t = TONES[tone] || TONES.muted
+export function ConsoleEmpty({ icon = 'inbox', title, hint, action }) {
   return (
-    <div
-      className="mx-auto my-8 flex max-w-xl flex-col items-center gap-3 rounded-2xl border px-8 py-10 text-center"
-      style={{ borderColor: t.border, background: 'rgba(8, 4, 20, 0.55)', backdropFilter: 'blur(14px)' }}
-    >
-      <span className="material-symbols-outlined" style={{ fontSize: 34, color: t.icon }}>{icon}</span>
-      <p className="text-sm font-bold uppercase tracking-[0.14em]" style={{ color: t.title }}>{title}</p>
-      <div className="space-y-2 text-sm" style={{ color: '#8A83AE', lineHeight: 1.55 }}>
-        {children}
-      </div>
+    <div className="sa-empty">
+      <span className="material-symbols-outlined" aria-hidden="true">{icon}</span>
+      {title && <p className="sa-empty-title">{title}</p>}
+      {hint && <div className="sa-empty-hint">{hint}</div>}
+      {action && <div className="sa-empty-action">{action}</div>}
     </div>
   )
 }
 
-export function ConsoleLoading({ label = 'Loading…' }) {
-  return <p className="p-6" style={{ color: '#8A83AE' }}>{label}</p>
+// Table-shaped shimmer. `rows` defaults to a screenful.
+// The bars are decorative, so they stay aria-hidden — but silence is not a
+// loading state, so the same polite status ConsoleLoading uses rides along.
+export function ConsoleSkeleton({ rows = 6, label = 'Loading…' }) {
+  const widths = ['38%', '62%', '48%', '70%', '55%', '44%', '66%', '52%']
+  return (
+    <>
+      <p className="sa-sr-only" role="status" aria-live="polite">{label}</p>
+      <div className="sa-table-wrap" aria-hidden="true">
+        {Array.from({ length: rows }, (_, i) => (
+          <div className="sa-skeleton-row" key={i}>
+            <span className="sa-skeleton" style={{ flex: '0 0 88px' }} />
+            <span className="sa-skeleton" style={{ flex: `0 0 ${widths[i % widths.length]}` }} />
+            <span className="sa-skeleton" style={{ flex: '0 0 64px', marginLeft: 'auto' }} />
+          </div>
+        ))}
+      </div>
+    </>
+  )
 }
 
 export function ConsoleNotLive({ endpoint }) {
   return (
-    <Panel icon="power_off" title="Backend not live yet">
-      <p>
-        <code style={{ color: '#a5f3fc', fontSize: '0.8rem' }}>{endpoint}</code> answered 404 — this
-        endpoint has not been flipped live on em-console-api yet.
-      </p>
-      <p>
-        This screen is wired against <code style={{ fontSize: '0.8rem' }}>docs/console/API-CONTRACT.md</code> and
-        lights up with real data the moment the endpoint ships. No frontend changes needed, and no mock
-        rows by design.
-      </p>
-    </Panel>
+    <ConsoleEmpty
+      icon="power_off"
+      title="Backend not live yet"
+      hint={
+        <>
+          <p>
+            <code>{endpoint}</code> answered 404 — this endpoint has not been flipped live on
+            em-console-api yet.
+          </p>
+          <p style={{ marginTop: '0.5rem' }}>
+            This screen is wired against <code>docs/console/API-CONTRACT.md</code> and lights up with
+            real data the moment the endpoint ships. No frontend changes needed, and no mock rows by
+            design.
+          </p>
+        </>
+      }
+    />
   )
 }
 
 export function ConsoleErrorPanel({ error, onRetry }) {
   return (
-    <Panel icon="error" tone="error" title={error?.denied ? 'Access denied' : 'Request failed'}>
-      <p>{error?.message || 'Unknown error'}</p>
+    <div className="sa-error" role="alert">
+      <span className="material-symbols-outlined" aria-hidden="true">error</span>
+      <p className="sa-error-title">{error?.denied ? 'Access denied' : 'Request failed'}</p>
+      <div className="sa-error-body">{error?.message || 'Unknown error'}</div>
       {onRetry && (
-        <button type="button" className="sa-btn sa-btn-ghost mt-2" onClick={onRetry}>
-          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span>
+        <button type="button" className="sa-btn sa-btn-ghost" style={{ marginTop: '0.5rem' }} onClick={onRetry}>
+          <span className="material-symbols-outlined" aria-hidden="true">refresh</span>
           Retry
         </button>
       )}
-    </Panel>
+    </div>
   )
 }
 
 // CEFR level + basket chips, shared by the Library list and lesson detail.
+// Light palette: one violet family for brand-ish tags, semantics reserved for status.
 const LEVEL_STYLES = {
-  A2: { background: 'rgba(56, 189, 248, 0.16)', color: '#7dd3fc' },
-  B1: { background: 'rgba(74, 222, 128, 0.16)', color: '#86efac' },
-  B2: { background: 'rgba(251, 191, 36, 0.16)', color: '#fcd34d' },
-  C1: { background: 'rgba(217, 70, 239, 0.16)', color: '#f0abfc' },
+  A2: { background: 'var(--sa-surface-soft)', color: 'var(--sa-text-muted)' },
+  B1: { background: 'var(--sa-violet-100)', color: 'var(--sa-violet-600)' },
+  B2: { background: 'var(--sa-warm-soft)', color: 'var(--sa-warm-ink)' },
+  C1: { background: 'var(--sa-good-soft)', color: 'var(--sa-good)' },
 }
 
 const BASKET_STYLES = {
-  IDEAS: { background: 'rgba(139, 92, 246, 0.16)', color: '#c4b5fd' },
-  PLACES: { background: 'rgba(56, 189, 248, 0.16)', color: '#7dd3fc' },
-  SOCIETY: { background: 'rgba(74, 222, 128, 0.16)', color: '#86efac' },
-  SPEC: { background: 'rgba(251, 191, 36, 0.16)', color: '#fcd34d' },
-  SUM: { background: 'rgba(244, 114, 182, 0.16)', color: '#f9a8d4' },
+  IDEAS: { background: 'var(--sa-violet-100)', color: 'var(--sa-violet-600)' },
+  PLACES: { background: 'var(--sa-surface-soft)', color: 'var(--sa-text-muted)' },
+  SOCIETY: { background: 'var(--sa-good-soft)', color: 'var(--sa-good)' },
+  SPEC: { background: 'var(--sa-warm-soft)', color: 'var(--sa-warm-ink)' },
+  SUM: { background: 'var(--sa-bad-soft)', color: 'var(--sa-bad)' },
 }
 
-const NEUTRAL_STYLE = { background: 'rgba(148, 163, 184, 0.18)', color: '#cbd5e1' }
+const NEUTRAL_STYLE = { background: 'var(--sa-surface-soft)', color: 'var(--sa-text-muted)' }
 
 export function LevelBadge({ level }) {
   if (!level) return null

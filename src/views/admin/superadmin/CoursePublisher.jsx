@@ -18,6 +18,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { consoleGet, consoleGetBlob, consolePost, libraryPdfPath } from './consoleApi.js'
+import { ConsoleEmpty, ConsoleLoading } from './ConsoleStates.jsx'
 import SchedulePlanner from './SchedulePlanner.jsx'
 
 const BASKET_ICON = { IDEAS: 'psychology', PLACES: 'public', SOCIETY: 'newspaper', SPEC: 'work', SUM: 'sunny' }
@@ -33,12 +34,12 @@ function courseBlurb(c) {
 function LayerChip({ step, label, value, onEdit }) {
   return (
     <button type="button" onClick={onEdit} className="flex w-full items-center gap-3 rounded-2xl border px-4 py-2.5 text-left transition hover:scale-[1.005]"
-      style={{ borderColor: 'rgba(52,211,153,0.28)', background: 'rgba(52,211,153,0.05)' }}>
+      style={{ borderColor: 'var(--sa-good)', background: 'var(--sa-good-soft)' }}>
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black"
-        style={{ background: 'rgba(52,211,153,0.16)', color: '#34D399' }}>{step}</span>
-      <span className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: '#8A83AE' }}>{label}</span>
-      <span className="truncate text-sm font-semibold" style={{ color: '#F4F0FF' }}>{value}</span>
-      <span className="material-symbols-outlined ml-auto" style={{ fontSize: 16, color: '#8A83AE' }}>edit</span>
+        style={{ background: 'var(--sa-good)', color: 'var(--sa-surface)' }}>{step}</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: 'var(--sa-text-muted)' }}>{label}</span>
+      <span className="truncate text-sm font-semibold" style={{ color: 'var(--sa-text)' }}>{value}</span>
+      <span className="material-symbols-outlined ml-auto" style={{ fontSize: 16, color: 'var(--sa-text-muted)' }}>edit</span>
     </button>
   )
 }
@@ -47,9 +48,9 @@ function LayerHeading({ step, label, hint }) {
   return (
     <div className="flex items-center gap-3">
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black"
-        style={{ background: 'linear-gradient(135deg, #8B5CF6, #D946EF)', color: '#fff' }}>{step}</span>
-      <span className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: '#F4F0FF' }}>{label}</span>
-      {hint && <span className="text-xs" style={{ color: '#8A83AE' }}>{hint}</span>}
+        style={{ background: 'var(--sa-violet-600)', color: 'var(--sa-surface)' }}>{step}</span>
+      <span className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--sa-text)' }}>{label}</span>
+      {hint && <span className="text-xs" style={{ color: 'var(--sa-text-muted)' }}>{hint}</span>}
     </div>
   )
 }
@@ -64,22 +65,22 @@ function KeywordPreview({ lessonId }) {
       .catch(() => { if (alive) setState({ loading: false, keywords: [], cached: 0, total: 0 }) })
     return () => { alive = false }
   }, [lessonId])
-  if (state.loading) return <p className="px-1 py-2 text-xs" style={{ color: '#8A83AE' }}>Loading keywords…</p>
-  if (!state.keywords.length) return <p className="px-1 py-2 text-xs" style={{ color: '#8A83AE' }}>No keyword table in this deck.</p>
+  if (state.loading) return <ConsoleLoading label="Loading keywords…" />
+  if (!state.keywords.length) return <ConsoleEmpty icon="translate" title="No keyword table in this deck." />
   return (
-    <div className="mt-2 space-y-1.5 rounded-xl border p-3" style={{ borderColor: 'rgba(255,255,255,0.07)', background: 'rgba(8,4,20,0.45)' }}>
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: '#8A83AE' }}>
+    <div className="mt-2 space-y-1.5 rounded-xl border p-3" style={{ borderColor: 'var(--sa-border)', background: 'var(--sa-surface-soft)' }}>
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: 'var(--sa-text-muted)' }}>
         {state.total} keywords · {state.cached}/{state.total} YouGlish-cached
       </p>
       {state.keywords.map(k => (
         <div key={k.word} className="flex flex-wrap items-baseline gap-x-2 text-xs">
           <span className="material-symbols-outlined" title={k.youglish_cached ? 'YouGlish clips cached' : 'YouGlish caching queued'}
-            style={{ fontSize: 13, color: k.youglish_cached ? '#34D399' : '#FCD34D' }}>
+            style={{ fontSize: 13, color: k.youglish_cached ? 'var(--sa-good)' : 'var(--sa-warm-ink)' }}>
             {k.youglish_cached ? 'check_circle' : 'hourglass_top'}
           </span>
-          <span className="font-bold" style={{ color: '#F4F0FF' }}>{k.word}</span>
-          {k.ipa && <span style={{ color: '#5E567C', fontFamily: 'monospace' }}>{k.ipa}</span>}
-          <span style={{ color: '#8A83AE', fontStyle: 'italic' }}>{k.pl}</span>
+          <span className="font-bold" style={{ color: 'var(--sa-text)' }}>{k.word}</span>
+          {k.ipa && <span style={{ color: 'var(--sa-text-muted)', fontFamily: 'monospace' }}>{k.ipa}</span>}
+          <span style={{ color: 'var(--sa-text-muted)', fontStyle: 'italic' }}>{k.pl}</span>
         </div>
       ))}
     </div>
@@ -241,15 +242,15 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
             {roster.map(s => (
               <button key={s._id} type="button" onClick={() => pickStudent(s._id)}
                 className="flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition hover:scale-[1.01]"
-                style={{ borderColor: s._id === selectedStudentId ? 'rgba(217,70,239,0.45)' : 'rgba(255,255,255,0.08)',
-                  background: 'rgba(255,255,255,0.03)' }}>
+                style={{ borderColor: s._id === selectedStudentId ? 'var(--sa-violet-600)' : 'var(--sa-border)',
+                  background: 'var(--sa-surface)' }}>
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black"
-                  style={{ background: 'linear-gradient(135deg, #8B5CF6, #D946EF)', color: '#fff' }}>
+                  style={{ background: 'var(--sa-violet-600)', color: 'var(--sa-surface)' }}>
                   {(s.name || '?').slice(0, 1)}
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold" style={{ color: '#F4F0FF' }}>{s.name}</span>
-                  <span className="text-xs" style={{ color: '#8A83AE' }}>CEFR {s.level || 'unknown'}</span>
+                  <span className="block truncate text-sm font-bold" style={{ color: 'var(--sa-text)' }}>{s.name}</span>
+                  <span className="text-xs" style={{ color: 'var(--sa-text-muted)' }}>CEFR {s.level || 'unknown'}</span>
                 </span>
               </button>
             ))}
@@ -262,12 +263,12 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
         <div className="space-y-3">
           <LayerHeading step="2" label="Set the course" hint="from the preloaded Hyperagent library" />
           {courses === null ? (
-            <p className="text-sm" style={{ color: '#8A83AE' }}>Loading the course library…</p>
+            <ConsoleLoading label="Loading the course library…" />
           ) : (
             <>
               {recommended.length > 0 && (
                 <>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: '#34D399' }}>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--sa-good)' }}>
                     Recommended for {student.level}
                   </p>
                   <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -277,7 +278,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
               )}
               <button type="button" onClick={() => setShowAll(v => !v)}
                 className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.16em]"
-                style={{ color: '#8A83AE', background: 'none', border: 'none', cursor: 'pointer' }}>
+                style={{ color: 'var(--sa-text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 16, transform: showAll ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}>expand_more</span>
                 All courses ({others.length})
               </button>
@@ -311,8 +312,8 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
           <div className="space-y-1.5" style={{ maxHeight: 460, overflowY: 'auto', paddingRight: 4 }}>
             {course.lessons.map(l => (
               <div key={l.lesson_id} className="rounded-xl border px-3 py-2"
-                style={{ borderColor: picked.has(l.lesson_id) ? 'rgba(217,70,239,0.4)' : 'rgba(255,255,255,0.07)',
-                  background: l.assigned ? 'rgba(52,211,153,0.05)' : 'rgba(255,255,255,0.025)' }}>
+                style={{ borderColor: picked.has(l.lesson_id) ? 'var(--sa-violet-600)' : 'var(--sa-border)',
+                  background: l.assigned ? 'var(--sa-good-soft)' : 'var(--sa-surface)' }}>
                 <div className="flex items-center gap-3">
                   {l.assigned ? (
                     <span className="flex items-center gap-1.5" style={{ flexShrink: 0 }}>
@@ -323,8 +324,8 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
                         <span className="sa-badge"
                           title={dateByLesson[l.lesson_id].status === 'completed' ? 'taught' : 'scheduled'}
                           style={{
-                            background: dateByLesson[l.lesson_id].endUtc < Date.now() ? 'rgba(138,131,174,0.14)' : 'rgba(52,211,153,0.12)',
-                            color: dateByLesson[l.lesson_id].endUtc < Date.now() ? '#8A83AE' : '#34D399' }}>
+                            background: dateByLesson[l.lesson_id].endUtc < Date.now() ? 'var(--sa-surface-soft)' : 'var(--sa-good-soft)',
+                            color: dateByLesson[l.lesson_id].endUtc < Date.now() ? 'var(--sa-text-muted)' : 'var(--sa-good)' }}>
                           <span className="material-symbols-outlined" style={{ fontSize: 12 }}>event</span>
                           {dateByLesson[l.lesson_id].dateWarsaw} · {dateByLesson[l.lesson_id].timeWarsaw}
                         </span>
@@ -332,15 +333,15 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
                     </span>
                   ) : (
                     <input type="checkbox" checked={picked.has(l.lesson_id)} onChange={() => togglePick(l.lesson_id)}
-                      style={{ width: 16, height: 16, accentColor: '#D946EF', flexShrink: 0, cursor: 'pointer' }} />
+                      style={{ width: 16, height: 16, accentColor: 'var(--sa-violet-600)', flexShrink: 0, cursor: 'pointer' }} />
                   )}
-                  <span className="font-mono text-xs font-bold" style={{ color: '#8A83AE', width: 26, flexShrink: 0 }}>
+                  <span className="font-mono text-xs font-bold" style={{ color: 'var(--sa-text-muted)', width: 26, flexShrink: 0 }}>
                     {String(l.lesson_number ?? '?').padStart(2, '0')}
                   </span>
                   <button type="button"
                     onClick={() => { setOpenDetail(openDetail === l.lesson_id ? null : l.lesson_id); setOpenKw(null) }}
                     className="min-w-0 flex-1 truncate text-left text-sm font-semibold"
-                    style={{ color: '#F4F0FF', background: 'none', border: 'none', cursor: 'pointer' }}
+                    style={{ color: 'var(--sa-text)', background: 'none', border: 'none', cursor: 'pointer' }}
                     title="Open lesson details">
                     {l.title}
                   </button>
@@ -369,9 +370,9 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
                 {openKw === l.lesson_id && openDetail !== l.lesson_id && <KeywordPreview lessonId={l.lesson_id} />}
                 {openDetail === l.lesson_id && (
                   <div className="mt-2 space-y-2 rounded-xl border p-3"
-                    style={{ borderColor: 'rgba(217,70,239,0.22)', background: 'rgba(8,4,20,0.45)' }}>
+                    style={{ borderColor: 'var(--sa-border)', background: 'var(--sa-surface-soft)' }}>
                     {l.topic && (
-                      <p className="text-xs" style={{ color: '#8A83AE', lineHeight: 1.6 }}>
+                      <p className="text-xs" style={{ color: 'var(--sa-text-muted)', lineHeight: 1.6 }}>
                         {String(l.topic).slice(0, 300)}{String(l.topic).length > 300 ? '…' : ''}
                       </p>
                     )}
@@ -397,7 +398,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
             ))}
           </div>
           <div className="flex items-center justify-between gap-3 pt-1">
-            <span className="text-xs" style={{ color: '#8A83AE' }}>
+            <span className="text-xs" style={{ color: 'var(--sa-text-muted)' }}>
               {course.assigned_count} in course · {picked.size} selected
             </span>
             <button type="button" className="sa-btn sa-btn-primary" disabled={!picked.size} onClick={publishPicked}>
@@ -413,19 +414,18 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
         <div className="space-y-2">
           <LayerHeading step="4" label={publishing.finished ? 'Course updated' : 'Adding to course…'}
             hint={`${publishing.done}/${publishing.total}`} />
-          <div style={{ height: 6, borderRadius: 6, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${(publishing.done / publishing.total) * 100}%`,
-              background: 'linear-gradient(90deg, #8B5CF6, #D946EF)', transition: 'width 300ms ease' }} />
+          <div className="sa-progress">
+            <span style={{ width: `${(publishing.done / publishing.total) * 100}%` }} />
           </div>
           <div className="space-y-1">
             {publishing.log.map(r => (
               <div key={r.lid} className="flex items-center gap-2 text-xs">
-                <span className="material-symbols-outlined" style={{ fontSize: 14, color: r.ok ? '#34D399' : '#FB7185' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 14, color: r.ok ? 'var(--sa-good)' : 'var(--sa-bad)' }}>
                   {r.ok ? 'check_circle' : 'error'}
                 </span>
-                <span className="font-mono" style={{ color: '#F4F0FF' }}>{r.lid}</span>
-                {r.ok && r.yg > 0 && <span style={{ color: '#FCD34D' }}>· {r.yg} keyword{r.yg === 1 ? '' : 's'} queued for YouGlish</span>}
-                {r.warn && <span style={{ color: '#FCD34D' }}>· {r.warn}</span>}
+                <span className="font-mono" style={{ color: 'var(--sa-text)' }}>{r.lid}</span>
+                {r.ok && r.yg > 0 && <span style={{ color: 'var(--sa-warm-ink)' }}>· {r.yg} keyword{r.yg === 1 ? '' : 's'} queued for YouGlish</span>}
+                {r.warn && <span style={{ color: 'var(--sa-warm-ink)' }}>· {r.warn}</span>}
               </div>
             ))}
           </div>
@@ -449,20 +449,20 @@ function CourseCard({ c, onPick, highlight = false }) {
   return (
     <button type="button" onClick={() => onPick(c.course_id)}
       className="rounded-2xl border p-3.5 text-left transition hover:-translate-y-0.5"
-      style={{ borderColor: highlight ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)',
-        background: 'rgba(255,255,255,0.03)', cursor: 'pointer' }}>
+      style={{ borderColor: highlight ? 'var(--sa-good)' : 'var(--sa-border)',
+        background: 'var(--sa-surface)', cursor: 'pointer' }}>
       <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined" style={{ fontSize: 18, color: highlight ? '#34D399' : '#A855F7' }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 18, color: highlight ? 'var(--sa-good)' : 'var(--sa-violet-600)' }}>
           {BASKET_ICON[c.basket] || 'menu_book'}
         </span>
-        <span className="font-mono text-xs font-bold" style={{ color: '#F4F0FF' }}>{c.course_id}</span>
+        <span className="font-mono text-xs font-bold" style={{ color: 'var(--sa-text)' }}>{c.course_id}</span>
         <span className="sa-badge sa-badge-processing ml-auto">{c.level || '—'}</span>
       </div>
-      <p className="mt-2 text-xs" style={{ color: '#8A83AE' }}>{courseBlurb(c)}</p>
-      <div className="mt-2.5" style={{ height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${done * 100}%`, background: 'linear-gradient(90deg, #34D399, #10B981)' }} />
+      <p className="mt-2 text-xs" style={{ color: 'var(--sa-text-muted)' }}>{courseBlurb(c)}</p>
+      <div className="sa-progress mt-2.5" style={{ height: 4 }}>
+        <span style={{ width: `${done * 100}%` }} />
       </div>
-      <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: c.assigned_count ? '#34D399' : '#5E567C' }}>
+      <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: c.assigned_count ? 'var(--sa-good)' : 'var(--sa-text-muted)' }}>
         {c.assigned_count}/{c.lesson_count} in course
       </p>
     </button>

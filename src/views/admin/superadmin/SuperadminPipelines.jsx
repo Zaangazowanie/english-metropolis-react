@@ -14,16 +14,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { consoleGet } from './consoleApi.js'
-import { ConsoleLoading, ConsoleNotLive, ConsoleErrorPanel } from './ConsoleStates.jsx'
+import { ConsoleEmpty, ConsoleSkeleton, ConsoleNotLive, ConsoleErrorPanel } from './ConsoleStates.jsx'
 
 const POLL_MS = 30000
 
 const STATUS_STYLES = {
-  up: { background: 'rgba(74, 222, 128, 0.16)', color: '#86efac' },
-  degraded: { background: 'rgba(251, 191, 36, 0.16)', color: '#fcd34d' },
-  down: { background: 'rgba(248, 113, 113, 0.18)', color: '#fca5a5' },
+  up: { background: 'var(--sa-good-soft)', color: 'var(--sa-good)' },
+  degraded: { background: 'var(--sa-warm-soft)', color: 'var(--sa-warm-ink)' },
+  down: { background: 'var(--sa-bad-soft)', color: 'var(--sa-bad)' },
 }
-const STATUS_FALLBACK = { background: 'rgba(148, 163, 184, 0.18)', color: '#cbd5e1' }
+const STATUS_FALLBACK = { background: 'var(--sa-surface-soft)', color: 'var(--sa-text-muted)' }
 
 function StatusBadge({ status }) {
   return (
@@ -35,9 +35,9 @@ function StatusBadge({ status }) {
 
 function Stat({ label, value }) {
   return (
-    <div>
-      <p className="sa-stat-label">{label}</p>
-      <p className="sa-stat-value">{value ?? '—'}</p>
+    <div className="sa-kpi">
+      <p className="sa-kpi-label">{label}</p>
+      <p className="sa-kpi-value">{value ?? '—'}</p>
     </div>
   )
 }
@@ -46,7 +46,7 @@ function Stat({ label, value }) {
 // no red, no fake zeros.
 function NotWiredNote() {
   return (
-    <p className="text-sm" style={{ color: 'rgba(148, 163, 184, 0.6)', lineHeight: 1.55 }}>
+    <p className="text-sm" style={{ color: 'var(--sa-text-muted)', lineHeight: 1.55 }}>
       Not wired on em-console-api yet — this section arrives with the next backend slice.
       The field is null by contract, so nothing is rendered rather than mocked.
     </p>
@@ -123,7 +123,7 @@ export default function SuperadminPipelines() {
           </h2>
           <div className="flex items-center gap-3">
             {lastUpdated && (
-              <span className="text-[11px] uppercase tracking-widest" style={{ color: 'rgba(148, 163, 184, 0.7)' }}>
+              <span className="sa-toolbar-count">
                 updated {lastUpdated.toLocaleTimeString()}
               </span>
             )}
@@ -139,60 +139,60 @@ export default function SuperadminPipelines() {
             </button>
           </div>
         </div>
-        <div className="sa-card-body">
+        <div className="sa-card-body p-0">
           {refreshError && (
-            <p className="mb-3 text-xs" style={{ color: '#fcd34d' }}>
+            <p className="p-4 text-xs" style={{ color: 'var(--sa-warm-ink)' }}>
               Last refresh failed ({refreshError.message}) — showing the snapshot from{' '}
               {lastUpdated ? lastUpdated.toLocaleTimeString() : 'the previous load'}.
             </p>
           )}
 
-          {loading && <ConsoleLoading label="Loading pipeline health…" />}
+          {loading && <ConsoleSkeleton rows={8} />}
           {!loading && error && error.notLive && <ConsoleNotLive endpoint="GET /api/console/pipelines" />}
           {!loading && error && !error.notLive && (
             <ConsoleErrorPanel error={error} onRetry={() => load(true)} />
           )}
 
           {!loading && !error && services.length === 0 && (
-            <p className="p-4" style={{ color: 'rgba(148, 163, 184, 0.7)' }}>
-              The backend answered without any services — check em-console-api's service probe config.
-            </p>
+            <ConsoleEmpty
+              icon="lan"
+              hint="The backend answered without any services — check em-console-api's service probe config."
+            />
           )}
 
           {!loading && !error && services.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+            <div className="sa-table-wrap">
+              <table className="sa-table">
                 <thead>
-                  <tr style={{ color: 'rgba(148, 163, 184, 0.7)' }}>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest">Service</th>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest">Unit</th>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest">Port</th>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest">Status</th>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest">Latency</th>
-                    <th className="px-3 py-3 text-[10px] uppercase tracking-widest">Last error</th>
+                  <tr>
+                    <th>Service</th>
+                    <th>Unit</th>
+                    <th>Port</th>
+                    <th>Status</th>
+                    <th>Latency</th>
+                    <th>Last error</th>
                   </tr>
                 </thead>
                 <tbody>
                   {services.map((s, i) => (
-                    <tr
-                      key={`${s.name || s.unit || 'svc'}-${i}`}
-                      className="border-t align-top"
-                      style={{ borderColor: 'rgba(148, 163, 184, 0.08)' }}
-                    >
-                      <td className="px-3 py-3 font-semibold whitespace-nowrap" style={{ color: '#f1f5f9' }}>
+                    <tr key={`${s.name || s.unit || 'svc'}-${i}`}>
+                      <td className="font-semibold whitespace-nowrap" style={{ color: 'var(--sa-text)' }}>
                         {s.name || '—'}
                       </td>
-                      <td className="px-3 py-3 font-mono text-[11px] whitespace-nowrap" style={{ color: 'rgba(148, 163, 184, 0.8)' }}>
+                      <td
+                        className="font-mono whitespace-nowrap"
+                        style={{ color: 'var(--sa-text-muted)', fontSize: 'var(--sa-fs-micro)' }}
+                      >
                         {s.unit || '—'}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap" style={{ color: 'rgba(203, 213, 225, 0.75)' }}>
+                      <td className="whitespace-nowrap" style={{ color: 'var(--sa-text-muted)' }}>
                         {s.port ?? '—'}
                       </td>
-                      <td className="px-3 py-3"><StatusBadge status={s.status} /></td>
-                      <td className="px-3 py-3 whitespace-nowrap" style={{ color: 'rgba(203, 213, 225, 0.75)' }}>
+                      <td><StatusBadge status={s.status} /></td>
+                      <td className="whitespace-nowrap" style={{ color: 'var(--sa-text-muted)' }}>
                         {s.latency_ms != null ? `${s.latency_ms} ms` : '—'}
                       </td>
-                      <td className="px-3 py-3" style={{ color: s.last_error ? '#fca5a5' : 'rgba(148, 163, 184, 0.5)', maxWidth: '22rem' }}>
+                      <td style={{ color: s.last_error ? 'var(--sa-bad)' : 'var(--sa-text-muted)', maxWidth: '22rem' }}>
                         {s.last_error ? (
                           <span className="text-xs" style={{ lineHeight: 1.5 }}>{s.last_error}</span>
                         ) : (
@@ -217,13 +217,13 @@ export default function SuperadminPipelines() {
                 <div className="grid grid-cols-2 gap-4">
                   <Stat label="Decks" value={library.deck_count} />
                   <Stat label="Open PRs" value={library.open_prs} />
-                  <div className="col-span-2">
-                    <p className="sa-stat-label">Last sync</p>
-                    <p className="mt-1 text-sm" style={{ color: '#e2e8f0' }}>{library.last_sync ?? '—'}</p>
+                  <div className="sa-kpi col-span-2">
+                    <p className="sa-kpi-label">Last sync</p>
+                    <p className="mt-1 text-sm" style={{ color: 'var(--sa-text)' }}>{library.last_sync ?? '—'}</p>
                   </div>
-                  <div className="col-span-2">
-                    <p className="sa-stat-label">Gate · last cycle</p>
-                    <p className="mt-1 text-sm" style={{ color: '#e2e8f0' }}>{library.gate_last_cycle ?? '—'}</p>
+                  <div className="sa-kpi col-span-2">
+                    <p className="sa-kpi-label">Gate · last cycle</p>
+                    <p className="mt-1 text-sm" style={{ color: 'var(--sa-text)' }}>{library.gate_last_cycle ?? '—'}</p>
                   </div>
                 </div>
               ) : (
@@ -268,18 +268,18 @@ export default function SuperadminPipelines() {
               {publishes === null ? (
                 <NotWiredNote />
               ) : publishes.length === 0 ? (
-                <p style={{ color: 'rgba(148, 163, 184, 0.6)' }}>No publishes in the last 7 days.</p>
+                <ConsoleEmpty icon="upload_file" title="No publishes in the last 7 days." />
               ) : (
                 <ul className="space-y-2">
                   {publishes.map((p, i) => (
                     <li
                       key={`${p.student_slug || 'row'}-${p.date || ''}-${i}`}
                       className="flex flex-wrap items-center gap-2 text-sm"
-                      style={{ color: '#e2e8f0' }}
+                      style={{ color: 'var(--sa-text)' }}
                     >
                       <span className="font-semibold">{p.student_slug || '—'}</span>
-                      {p.date && <span style={{ color: 'rgba(148, 163, 184, 0.65)' }}>{p.date}</span>}
-                      {p.title && <span style={{ color: 'rgba(203, 213, 225, 0.75)' }}>{p.title}</span>}
+                      {p.date && <span className="sa-chip">{p.date}</span>}
+                      {p.title && <span style={{ color: 'var(--sa-text-muted)' }}>{p.title}</span>}
                     </li>
                   ))}
                 </ul>

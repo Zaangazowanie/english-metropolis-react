@@ -9,6 +9,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { queryAdminConvex, mutateAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
+import { ConsoleLoading } from './ConsoleStates.jsx'
 
 // Global lesson cadence — Mike's platform-wide policy (2026-07-09).
 const LESSON_MIN = 60
@@ -145,15 +146,15 @@ export default function SuperadminAvailability() {
         <div className="sa-card-header" style={{ gap: '0.75rem', flexWrap: 'wrap' }}>
           <h2>Teaching availability</h2>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="sa-badge sa-badge-committed" title="Global lesson cadence — applies to every block">
-              <span className="material-symbols-outlined" style={{ fontSize: 13 }}>timer</span>
+            <span className="sa-chip" title="Global lesson cadence — applies to every block">
+              <span className="material-symbols-outlined">timer</span>
               {LESSON_MIN}-min lessons · {GAP_MIN}-min breaks
             </span>
-            <select className="sa-input" value={orgId} onChange={e => setOrgId(e.target.value)} style={{ maxWidth: 260 }}>
+            <select className="sa-select" value={orgId} onChange={e => setOrgId(e.target.value)} style={{ maxWidth: 260 }}>
               <option value={GLOBAL}>🌍 Global (all my teaching)</option>
               {orgs.map(o => <option key={o._id} value={o._id}>{o.name} only</option>)}
             </select>
-            <select className="sa-input" value={teacherId} onChange={e => setTeacherId(e.target.value)} style={{ maxWidth: 220 }}>
+            <select className="sa-select" value={teacherId} onChange={e => setTeacherId(e.target.value)} style={{ maxWidth: 220 }}>
               {teachers.length === 0 && <option value="">No teachers</option>}
               {teachers.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
             </select>
@@ -167,19 +168,19 @@ export default function SuperadminAvailability() {
             Europe/Warsaw. Saving replaces only this teacher’s rows; Bajla offers every teacher’s open slots.
           </p>
 
-          {error && <p className="mt-4" style={{ color: '#FB7185' }}>Error: {error}</p>}
+          {error && <p className="mt-4" style={{ color: 'var(--sa-bad)' }}>Error: {error}</p>}
 
           {notice && (
             <div className="mt-4" style={{
-              borderRadius: '0.9rem', padding: '0.75rem 1rem', fontSize: '0.85rem', fontWeight: 600,
-              border: `1px solid ${notice.kind === 'ok' ? 'rgba(52,211,153,0.35)' : 'rgba(251,113,133,0.35)'}`,
-              background: notice.kind === 'ok' ? 'rgba(52,211,153,0.10)' : 'rgba(251,113,133,0.10)',
-              color: notice.kind === 'ok' ? '#34D399' : '#FB7185',
+              borderRadius: 'var(--sa-radius-control)', padding: '0.75rem 1rem', fontSize: '0.85rem', fontWeight: 600,
+              border: `1px solid ${notice.kind === 'ok' ? 'var(--sa-good)' : 'var(--sa-bad)'}`,
+              background: notice.kind === 'ok' ? 'var(--sa-good-soft)' : 'var(--sa-bad-soft)',
+              color: notice.kind === 'ok' ? 'var(--sa-good)' : 'var(--sa-bad)',
             }}>{notice.text}</div>
           )}
 
           {loading ? (
-            <p className="mt-5" style={{ color: '#8A83AE' }}>Loading…</p>
+            <div className="mt-5"><ConsoleLoading /></div>
           ) : (
             <div className="mt-5 grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))' }}>
               {byDay.map(({ dow, windows }) => {
@@ -188,13 +189,13 @@ export default function SuperadminAvailability() {
                   .sort((a, b) => a - b)
                 return (
                   <div key={dow} style={{
-                    borderRadius: '1rem', padding: '0.9rem 1rem',
-                    border: `1px solid ${windows.length ? 'rgba(217,70,239,0.22)' : 'rgba(255,255,255,0.07)'}`,
-                    background: windows.length ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.015)',
+                    borderRadius: 'var(--sa-radius-card)', padding: '0.9rem 1rem',
+                    border: `1px solid ${windows.length ? 'var(--sa-violet-300)' : 'var(--sa-border)'}`,
+                    background: windows.length ? 'var(--sa-surface)' : 'var(--sa-surface-soft)',
                   }}>
                     <div className="flex items-center justify-between gap-2">
-                      <span style={{ fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                        fontSize: '0.78rem', color: windows.length ? '#F4F0FF' : '#5E567C' }}>
+                      <span style={{ fontWeight: 600, fontSize: 'var(--sa-fs-title)', letterSpacing: '-0.01em',
+                        color: windows.length ? 'var(--sa-text)' : 'var(--sa-text-muted)' }}>
                         {DOW_LABEL[dow]}
                       </span>
                       <div className="flex items-center gap-2">
@@ -209,7 +210,7 @@ export default function SuperadminAvailability() {
                     </div>
 
                     {windows.length === 0 ? (
-                      <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#5E567C' }}>Off — no hours set.</p>
+                      <p style={{ marginTop: '0.5rem', fontSize: 'var(--sa-fs-small)', color: 'var(--sa-text-muted)' }}>Off — no hours set.</p>
                     ) : (
                       <div className="mt-3 space-y-2">
                         {windows.map(w => {
@@ -219,7 +220,7 @@ export default function SuperadminAvailability() {
                             <div key={w.i} className="flex flex-wrap items-center gap-2">
                               <input type="time" className="sa-input" style={{ width: '7.2rem' }}
                                 value={w.startTime} onChange={e => updateWindow(w.i, { startTime: e.target.value })} />
-                              <span style={{ color: '#8A83AE' }}>–</span>
+                              <span style={{ color: 'var(--sa-text-muted)' }}>–</span>
                               <input type="time" className="sa-input" style={{ width: '7.2rem' }}
                                 value={w.endTime} onChange={e => updateWindow(w.i, { endTime: e.target.value })} />
                               {wasted > 0 && (
@@ -231,7 +232,7 @@ export default function SuperadminAvailability() {
                                 </button>
                               )}
                               {windowSlots(w).length === 0 && (
-                                <span style={{ color: '#FB7185', fontSize: '0.72rem' }}>too short for one lesson</span>
+                                <span style={{ color: 'var(--sa-bad)', fontSize: 'var(--sa-fs-micro)' }}>too short for one lesson</span>
                               )}
                               <button onClick={() => removeWindow(w.i)} title="Remove these hours"
                                 className="sa-btn sa-btn-ghost ml-auto" style={{ padding: '0.3rem 0.6rem' }}>
@@ -253,7 +254,7 @@ export default function SuperadminAvailability() {
           )}
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-            <span style={{ fontSize: '0.8rem', color: '#8A83AE' }}>
+            <span className="sa-toolbar-count">
               {totalSlots} bookable lesson{totalSlots === 1 ? '' : 's'} per week
             </span>
             <button onClick={save} disabled={busy || loading || !teacherId} className="sa-btn sa-btn-primary">
@@ -274,7 +275,7 @@ export default function SuperadminAvailability() {
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {otherRows.slice().sort((a, b) => a.dayOfWeek - b.dayOfWeek).map((r, i) => (
-                <span key={i} className="sa-badge sa-badge-queued" style={{ fontSize: '0.72rem' }}>
+                <span key={i} className="sa-chip">
                   {DOW_SHORT[r.dayOfWeek]} {r.startTime}–{r.endTime} · {teacherById(r.teacherId) || (r.teacherId ? 'teacher' : 'org-wide')}
                 </span>
               ))}

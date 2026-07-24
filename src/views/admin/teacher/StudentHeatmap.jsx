@@ -15,7 +15,7 @@
 //   - search box
 //   - Export CSV
 //
-// Mounted at /admin/superadmin/students/:slug/heatmap (registered in
+// Mounted at /admin/superadmin/academic/roster/:slug/heatmap (registered in
 // src/main.jsx under SuperadminLayout). Uses the existing
 // queryAdminConvex auth pattern.
 
@@ -166,7 +166,7 @@ export default function StudentHeatmap() {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            to="/admin/superadmin/students"
+            to="/admin/superadmin/academic/roster"
             className="text-[11px] font-bold uppercase tracking-widest"
             style={{ color: '#a78bfa' }}
           >

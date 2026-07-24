@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { queryAdminConvex, mutateAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
+import { ConsoleSkeleton } from './ConsoleStates.jsx'
 
 const CATEGORIES = ['grammar', 'vocabulary', 'pronunciation', 'collocation', 'article', 'preposition', 'word-order', 'register', 'spelling']
 
@@ -89,7 +90,7 @@ export default function SuperadminReview() {
       const result = await mutateAdminConvex('ingestion:commitIngestionJob', {
         jobId,
       })
-      navigate('/admin/superadmin/jobs')
+      navigate('/admin/superadmin/curriculum/queue')
     } catch (e) {
       setError(e.message || String(e))
       setCommitting(false)
@@ -106,8 +107,8 @@ export default function SuperadminReview() {
     } catch (e) { setError(e.message) }
   }
 
-  if (loading) return <p style={{ color: 'rgba(203,213,225,0.7)' }}>Loading job…</p>
-  if (error && !payload) return <p style={{ color: '#fca5a5' }}>Error: {error}</p>
+  if (loading) return <ConsoleSkeleton rows={6} />
+  if (error && !payload) return <p style={{ color: 'var(--sa-bad)' }}>Error: {error}</p>
   if (!payload) return null
 
   const { job, student, prevAnalysis } = payload
@@ -115,11 +116,11 @@ export default function SuperadminReview() {
 
   // Status banner
   const statusContent = {
-    queued: { text: 'Queued for processing…', tone: '#cbd5e1' },
-    processing: { text: 'Claude is analyzing the transcript. Hold tight — typically 20-40 seconds.', tone: '#7dd3fc' },
-    awaiting_review: { text: 'Ready for review. Edit anything, then commit when you are happy.', tone: '#fcd34d' },
-    committed: { text: 'Committed to live student profile.', tone: '#86efac' },
-    failed: { text: `Processing failed: ${job.error || 'unknown error'}`, tone: '#fca5a5' },
+    queued: { text: 'Queued for processing…', tone: 'var(--sa-text-muted)', soft: 'var(--sa-surface-soft)' },
+    processing: { text: 'Claude is analyzing the transcript. Hold tight — typically 20-40 seconds.', tone: 'var(--sa-violet-600)', soft: 'var(--sa-violet-100)' },
+    awaiting_review: { text: 'Ready for review. Edit anything, then commit when you are happy.', tone: 'var(--sa-warm-ink)', soft: 'var(--sa-warm-soft)' },
+    committed: { text: 'Committed to live student profile.', tone: 'var(--sa-good)', soft: 'var(--sa-good-soft)' },
+    failed: { text: `Processing failed: ${job.error || 'unknown error'}`, tone: 'var(--sa-bad)', soft: 'var(--sa-bad-soft)' },
   }[status]
 
   return (
@@ -128,13 +129,13 @@ export default function SuperadminReview() {
       <div className="sa-card">
         <div className="sa-card-body flex flex-wrap items-center justify-between gap-3">
           <div>
-            <Link to="/admin/superadmin/jobs" className="text-[11px] uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.75)' }}>
+            <Link to="/admin/superadmin/curriculum/queue" className="sa-stat-label">
               ← Back to queue
             </Link>
-            <h1 className="mt-1 text-2xl font-bold" style={{ color: '#f8fafc' }}>
+            <h1 className="mt-1 text-2xl font-bold" style={{ color: 'var(--sa-text)' }}>
               {job.detectedTitle || 'Untitled lesson'}
             </h1>
-            <p className="text-sm" style={{ color: 'rgba(203,213,225,0.78)' }}>
+            <p className="text-sm" style={{ color: 'var(--sa-text-muted)' }}>
               {student?.name ?? 'No student'} · {job.detectedDate ?? '—'} · <span className={`sa-badge sa-badge-${status}`}>{status.replace('_', ' ')}</span>
             </p>
           </div>
@@ -162,7 +163,7 @@ export default function SuperadminReview() {
       </div>
 
       {/* Status banner */}
-      <div className="sa-card" style={{ borderColor: `${statusContent.tone}33` }}>
+      <div className="sa-card" style={{ borderColor: statusContent.tone, background: statusContent.soft, boxShadow: 'none' }}>
         <div className="sa-card-body flex items-center gap-3">
           <span className="material-symbols-outlined" style={{ color: statusContent.tone, fontSize: 22 }}>
             {status === 'processing' ? 'auto_awesome' : status === 'awaiting_review' ? 'rate_review' : status === 'failed' ? 'error' : 'info'}
@@ -173,7 +174,7 @@ export default function SuperadminReview() {
 
       {error && (
         <div className="sa-card">
-          <div className="sa-card-body" style={{ color: '#fca5a5' }}>Error: {error}</div>
+          <div className="sa-card-body" style={{ color: 'var(--sa-bad)' }}>Error: {error}</div>
         </div>
       )}
 
@@ -183,7 +184,7 @@ export default function SuperadminReview() {
           <div className="sa-card-header">
             <h2>CEFR analysis</h2>
             {prevAnalysis && (
-              <p className="text-[11px]" style={{ color: 'rgba(148,163,184,0.7)' }}>
+              <p className="sa-toolbar-count">
                 Previous score: {prevAnalysis.overallScore}/100 · {prevAnalysis.cefrBand}
               </p>
             )}
@@ -302,7 +303,7 @@ export default function SuperadminReview() {
           </div>
           <div className="sa-card-body space-y-4">
             {keywords.map((kw, i) => (
-              <div key={i} className="rounded-lg border p-4" style={{ borderColor: 'rgba(148,163,184,0.15)', background: 'rgba(15, 23, 42, 0.5)' }}>
+              <div key={i} className="rounded-lg border p-4" style={{ borderColor: 'var(--sa-border)', background: 'var(--sa-surface-soft)' }}>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <input className="sa-input" placeholder="word" value={kw.word} onChange={e => updateKw(i, 'word', e.target.value)} />
                   <input className="sa-input" placeholder="translation" value={kw.translation} onChange={e => updateKw(i, 'translation', e.target.value)} />
