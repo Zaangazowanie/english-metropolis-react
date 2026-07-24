@@ -150,7 +150,7 @@ const GH = {
     lessonsAltSide: 'A student laughing while practising English on a phone',
     lessonsChipA: 'Live 1:1 · 60 min',
     lessonsChipB: 'CEFR-matched',
-    stepsAlt: 'Your English teacher on a live video lesson',
+    stepsAlt: 'A group of English Metro students laughing and learning together',
     stepsChip: 'Live · your own teacher',
   },
   pl: {
@@ -200,7 +200,7 @@ const GH = {
     lessonsAltSide: 'Uczeń śmiejący się podczas ćwiczenia angielskiego na telefonie',
     lessonsChipA: 'Na żywo 1:1 · 60 min',
     lessonsChipB: 'Dopasowane do CEFR',
-    stepsAlt: 'Twój lektor angielskiego podczas lekcji wideo na żywo',
+    stepsAlt: 'Grupa uczniów English Metro śmiejących się i uczących razem',
     stepsChip: 'Na żywo · Twój własny lektor',
   },
 }
@@ -990,7 +990,7 @@ export default function GameHome() {
           </Reveal>
           <Reveal className="gh-steps-photo">
             <div className="gh-photo-frame gh-photo-frame--wide">
-              <img src="/home/photo-teacher-2607.webp" alt={W.stepsAlt} loading="lazy" width="1600" height="900"/>
+              <img src="/home/photo-group-2607.webp" alt={W.stepsAlt} loading="lazy" width="1600" height="900"/>
               <span className="gh-float-chip gh-float-chip--a">
                 <span className="material-symbols-outlined" aria-hidden>co_present</span>
                 {W.stepsChip}
