@@ -4,6 +4,7 @@ import { FONT, G, CEFR_COLOR } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Glass, MetricBar, Pill, Skeleton, useNumberFlow } from '../../design/v3/primitives.jsx'
 import { useI18n } from '../../i18n'
+import { applyGreeting, useStudentDesign } from '../../design/v3/studentDesign.js'
 import { fetchJSONCached } from '../../practice/lib/practice-cache'
 import { useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
 
@@ -478,6 +479,11 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
   const latestAnalysisRaw = data?.latestAnalysis
   const profile = data?.profile || {}
   const firstName = profile.firstName || t('dashboard.studentDefaultName')
+  // Shared design published from the superadmin console. Defaults are returned
+  // synchronously, so a slow or missing console API changes nothing here.
+  const design = useStudentDesign()
+  const showCard = id => design.cards.includes(id)
+  const customWelcome = applyGreeting(design.greeting, firstName)
   const cefr = profile.level || latestAnalysisRaw?.cefrBand || '—'
   const composite = useNumberFlow(numberOr(data?.averageScore))
   const [progressOpen, setProgressOpen] = useState(false)
@@ -579,9 +585,13 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
         <h1 style={{ fontFamily: FONT.display, fontWeight: 600,
           fontSize: isMobile ? 40 : 64, lineHeight: 1.05, letterSpacing: '-0.03em',
           margin: 0, color: T.text }}>
-          {t('dashboard.welcomeBackComma')}{' '}
-          <span style={{ background: G.brand, WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{firstName}</span>.
+          {customWelcome ? customWelcome : (
+            <>
+              {t('dashboard.welcomeBackComma')}{' '}
+              <span style={{ background: G.brand, WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{firstName}</span>.
+            </>
+          )}
         </h1>
         {emptyState ? (
           <p style={{ marginTop: 20, fontSize: 17, color: T.textDim, lineHeight: 1.55 }}>
@@ -598,17 +608,19 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
       <div style={{ display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
         gap: 20, marginBottom: 32 }}>
-        <UpcomingLessonCard upcoming={upcomingLesson} slug={slug} basePath={basePath} alloc={alloc}/>
+        {showCard('upcoming') && (
+          <UpcomingLessonCard upcoming={upcomingLesson} slug={slug} basePath={basePath} alloc={alloc}/>
+        )}
 
-        <ReviseCard lesson={lessons[0]} slug={slug} basePath={basePath}/>
+        {showCard('revise') && <ReviseCard lesson={lessons[0]} slug={slug} basePath={basePath}/>}
 
-        <LatestLessonCard lesson={lessons[0]} slug={slug} basePath={basePath}/>
+        {showCard('latest') && <LatestLessonCard lesson={lessons[0]} slug={slug} basePath={basePath}/>}
       </div>
 
       {/* Everything analytical lives behind one calm disclosure — full detail
           on demand, zero noise by default. The closed header still whispers
           the headline numbers so nothing feels hidden. */}
-      {!emptyState && (
+      {!emptyState && showCard('analytics') && (
         <div style={{ marginBottom: 32 }}>
           <button type="button" onClick={() => setProgressOpen(o => !o)}
             aria-expanded={progressOpen}

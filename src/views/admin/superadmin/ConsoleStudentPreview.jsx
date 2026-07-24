@@ -25,28 +25,19 @@ import { ConfirmWrite, NeedSchool, useConvexList, useSchool } from './SchoolShar
 import {
   CEFR_LEVELS, getStudentDashboard, listCourses, listStudents, listTeachers, updateStudent,
 } from './schoolApi.js'
+import { DEFAULT_STUDENT_DESIGN, STUDENT_CARDS } from '../../../design/v3/studentDesign.js'
 
-/* ── shared design: defaults + the config keys they persist under ────────── */
+/* ── shared design ───────────────────────────────────────────────────────── */
+// The card ids and defaults come from design/v3/studentDesign.js, which is what
+// the STUDENT DASHBOARD itself reads. One definition, imported by both, so the
+// console cannot offer a toggle the dashboard does not honour — the first cut of
+// this screen invented five card names that matched nothing on the real page.
 
 const DESIGN_KEYS = {
   accent: 'student_dashboard.accent',
   greeting: 'student_dashboard.greeting',
   cards: 'student_dashboard.cards',
-  showTeacher: 'student_dashboard.show_teacher',
 }
-const DEFAULT_DESIGN = {
-  accent: '#6D28D9',
-  greeting: 'Cześć, {name}!',
-  cards: ['next_lesson', 'progress', 'keywords', 'recent_lessons'],
-  showTeacher: true,
-}
-const ALL_CARDS = [
-  { id: 'next_lesson', label: 'Next lesson' },
-  { id: 'progress', label: 'Progress and accuracy' },
-  { id: 'keywords', label: 'Keyword count' },
-  { id: 'recent_lessons', label: 'Recent lessons' },
-  { id: 'quizzes', label: 'Recent quizzes' },
-]
 
 export default function ConsoleStudentPreview() {
   const { schoolId, school } = useSchool()
@@ -59,8 +50,8 @@ export default function ConsoleStudentPreview() {
   const courses = useConvexList(() => listCourses(schoolId), [schoolId], !!schoolId)
 
   const [dash, setDash] = useState({ data: null, error: null, loading: false })
-  const [design, setDesign] = useState(DEFAULT_DESIGN)
-  const [savedDesign, setSavedDesign] = useState(DEFAULT_DESIGN)
+  const [design, setDesign] = useState(DEFAULT_STUDENT_DESIGN)
+  const [savedDesign, setSavedDesign] = useState(DEFAULT_STUDENT_DESIGN)
   const [draft, setDraft] = useState(null)
   const [pending, setPending] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -75,10 +66,9 @@ export default function ConsoleStudentPreview() {
         if (!alive) return
         const cfg = res?.config || {}
         const loaded = {
-          accent: cfg[DESIGN_KEYS.accent] ?? DEFAULT_DESIGN.accent,
-          greeting: cfg[DESIGN_KEYS.greeting] ?? DEFAULT_DESIGN.greeting,
-          cards: asArray(cfg[DESIGN_KEYS.cards]) ?? DEFAULT_DESIGN.cards,
-          showTeacher: cfg[DESIGN_KEYS.showTeacher] ?? DEFAULT_DESIGN.showTeacher,
+          accent: cfg[DESIGN_KEYS.accent] ?? DEFAULT_STUDENT_DESIGN.accent,
+          greeting: cfg[DESIGN_KEYS.greeting] ?? DEFAULT_STUDENT_DESIGN.greeting,
+          cards: asArray(cfg[DESIGN_KEYS.cards]) ?? DEFAULT_STUDENT_DESIGN.cards,
         }
         setDesign(loaded); setSavedDesign(loaded)
       })
@@ -147,7 +137,6 @@ export default function ConsoleStudentPreview() {
       { label: 'Accent', value: design.accent },
       { label: 'Greeting', value: design.greeting },
       { label: 'Cards', value: design.cards.join(', ') || 'none' },
-      { label: 'Show teacher', value: design.showTeacher ? 'yes' : 'no' },
     ],
     warning: `This is the shared dashboard design. It applies to EVERY student, not just ${student?.name || 'this one'}.`,
     done: 'Shared design published.',
@@ -157,7 +146,6 @@ export default function ConsoleStudentPreview() {
           [DESIGN_KEYS.accent]: design.accent,
           [DESIGN_KEYS.greeting]: design.greeting,
           [DESIGN_KEYS.cards]: design.cards,
-          [DESIGN_KEYS.showTeacher]: design.showTeacher,
         },
       })
       setSavedDesign(design)
@@ -199,7 +187,7 @@ export default function ConsoleStudentPreview() {
             </div>
             {dash.loading ? <ConsoleSkeleton rows={5} label="Loading dashboard…" />
               : dash.error ? <ConsoleErrorPanel error={dash.error} onRetry={loadDash} />
-                : dash.data ? <DashboardPreview data={dash.data} design={design} teacherName={teacherName} />
+                : dash.data ? <DashboardPreview data={dash.data} design={design} />
                   : null}
           </section>
 
@@ -297,7 +285,7 @@ export default function ConsoleStudentPreview() {
                 </Field>
                 <fieldset className="sa-fieldset">
                   <legend>Cards shown</legend>
-                  {ALL_CARDS.map(c => (
+                  {STUDENT_CARDS.map(c => (
                     <label key={c.id} className="sa-checkbox">
                       <input type="checkbox" checked={design.cards.includes(c.id)}
                              onChange={e => setDesign(d => ({
@@ -310,11 +298,6 @@ export default function ConsoleStudentPreview() {
                     </label>
                   ))}
                 </fieldset>
-                <label className="sa-checkbox">
-                  <input type="checkbox" checked={design.showTeacher}
-                         onChange={e => setDesign(d => ({ ...d, showTeacher: e.target.checked }))} />
-                  Show the student their teacher&apos;s name
-                </label>
                 <div className="sa-panel-actions">
                   <button type="button" className="sa-btn sa-btn-ghost" disabled={!designDirty}
                           onClick={() => setDesign(savedDesign)}>Discard</button>
@@ -348,102 +331,87 @@ export default function ConsoleStudentPreview() {
 
 /* ──────────────────────────────────────────── the preview itself ───────── */
 
-function DashboardPreview({ data, design, teacherName }) {
+function DashboardPreview({ data, design }) {
   const s = data.student || {}
   const first = String(s.name || '').trim().split(/\s+/)[0] || ''
-  const greeting = String(design.greeting || '').replace('{name}', first)
+  const custom = design.greeting ? design.greeting.replace(/\{name\}/g, first) : null
   const lessons = [...(data.lessons || [])].sort((a, b) => (b.order || 0) - (a.order || 0))
   const last = lessons[0]
   const show = id => design.cards.includes(id)
-  const accent = { '--preview-accent': design.accent }
+  const accent = design.accent || 'var(--sa-violet-600)'
 
   return (
-    <div className="sa-preview-app" style={accent}>
+    <div className="sa-preview-app" style={{ '--preview-accent': accent }}>
       <header className="sa-preview-hero">
-        <h2>{greeting}</h2>
+        {/* Matches the real dashboard: a published greeting replaces the whole
+            translated welcome line, otherwise the translated one stands. */}
+        <h2>{custom || `Welcome back, ${first}.`}</h2>
         <p>
           <LevelBadge level={s.level} />
           {s.targetLevel && <span className="sa-muted"> → {s.targetLevel}</span>}
-          {design.showTeacher && teacherName(s.primaryTeacherId) && (
-            <span className="sa-muted"> · {teacherName(s.primaryTeacherId)}</span>
-          )}
+          <span className="sa-muted"> · {lessons.length} lessons</span>
         </p>
       </header>
 
       <div className="sa-preview-cards">
-        {show('next_lesson') && (
+        {show('upcoming') && (
           <article className="sa-preview-card">
-            <h3>Last lesson</h3>
-            {last
-              ? <p className="sa-preview-big">{last.date || '—'}</p>
-              : <p className="sa-muted">No lessons yet</p>}
-            {last?.keywordCount != null && <p className="sa-muted">{last.keywordCount} keywords</p>}
+            <h3>Next lesson</h3>
+            <p className="sa-preview-big">—</p>
+            <p className="sa-muted">Scheduled lessons are not in this payload; the real card shows the next booking.</p>
           </article>
         )}
-        {show('progress') && (
+        {show('revise') && (
           <article className="sa-preview-card">
-            <h3>Accuracy</h3>
-            {/* avgAccuracy is derived from quizzes. A student with no quizzes
-                scores 0.0, and printing that as "0%" reads as "got everything
-                wrong" rather than "nothing measured yet". Fall back to the CEFR
-                analysis score, which is real, and only then to a dash. */}
-            {hasQuizData(data) ? (
-              <>
-                <p className="sa-preview-big">{Math.round(data.avgAccuracy)}%</p>
-                <div className="sa-preview-bar" aria-hidden="true">
-                  <span style={{ width: `${Math.max(0, Math.min(100, data.avgAccuracy))}%` }} />
-                </div>
-              </>
-            ) : typeof data.latestAnalysis?.overallScore === 'number' ? (
-              <>
-                <p className="sa-preview-big">{Math.round(data.latestAnalysis.overallScore)}</p>
-                <p className="sa-muted">Latest lesson analysis · no quizzes yet</p>
-                <div className="sa-preview-bar" aria-hidden="true">
-                  <span style={{ width: `${Math.max(0, Math.min(100, data.latestAnalysis.overallScore))}%` }} />
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="sa-preview-big">—</p>
-                <p className="sa-muted">No quiz or analysis data yet</p>
-              </>
+            <h3>Revise last lesson</h3>
+            <p className="sa-preview-big">{last?.keywordCount ?? '—'}</p>
+            <p className="sa-muted">keywords to revise</p>
+          </article>
+        )}
+        {show('latest') && (
+          <article className="sa-preview-card">
+            <h3>Latest lesson</h3>
+            <p className="sa-preview-big">{last?.date || '—'}</p>
+            {typeof data.latestAnalysis?.overallScore === 'number' && (
+              <p className="sa-muted">analysis score {Math.round(data.latestAnalysis.overallScore)}</p>
             )}
-          </article>
-        )}
-        {show('keywords') && (
-          <article className="sa-preview-card">
-            <h3>Keywords</h3>
-            <p className="sa-preview-big">{data.totalKeywords ?? '—'}</p>
-          </article>
-        )}
-        {show('quizzes') && (
-          <article className="sa-preview-card">
-            <h3>Recent quizzes</h3>
-            {data.recentQuizzes?.length
-              ? <p className="sa-preview-big">{data.recentQuizzes.length}</p>
-              : <p className="sa-muted">None yet — this card stays hidden for them.</p>}
           </article>
         )}
       </div>
 
-      {show('recent_lessons') && (
+      {show('analytics') && (
         <section className="sa-preview-list">
-          <h3>Recent lessons</h3>
-          {lessons.length ? (
-            <ul>
-              {lessons.slice(0, 5).map(l => (
-                <li key={l._id}>
-                  <span>{l.date || '—'}</span>
-                  <span className="sa-muted">{l.keywordCount ?? 0} keywords</span>
+          <h3>Progress breakdown</h3>
+          {/* avgAccuracy is quiz-derived: 0.0 with no quizzes means "not
+              measured", not "scored zero". Show the CEFR analysis instead. */}
+          <ul>
+            {ANALYSIS_AXES.map(([key, label]) => {
+              const v = data.latestAnalysis?.[key]
+              return (
+                <li key={key}>
+                  <span>{label}</span>
+                  <span className="sa-muted">{typeof v === 'number' ? Math.round(v) : '—'}</span>
                 </li>
-              ))}
-            </ul>
-          ) : <p className="sa-muted">No lessons yet</p>}
+              )
+            })}
+            <li>
+              <span>Keywords learned</span>
+              <span className="sa-muted">{data.totalKeywords ?? '—'}</span>
+            </li>
+          </ul>
         </section>
       )}
     </div>
   )
 }
+
+const ANALYSIS_AXES = [
+  ['overallScore', 'Overall'],
+  ['grammaticalAccuracy', 'Grammar'],
+  ['fluencyAndCoherence', 'Fluency'],
+  ['vocabularyRange', 'Vocabulary'],
+  ['pronunciation', 'Pronunciation'],
+]
 
 /* ───────────────────────────────────────────────────────────── util ────── */
 
@@ -459,11 +427,6 @@ function stripEmpty(o) {
   const out = {}
   for (const [k, v] of Object.entries(o)) if (v !== '' && v != null) out[k] = v
   return out
-}
-
-// A zero average with zero quizzes is "not measured", not "scored zero".
-function hasQuizData(data) {
-  return (data.recentQuizzes?.length || 0) > 0 && typeof data.avgAccuracy === 'number'
 }
 
 // app_config stores JSON, but a hand-edited value could arrive as a string.
