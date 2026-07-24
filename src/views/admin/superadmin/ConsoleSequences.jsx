@@ -398,6 +398,11 @@ function SequenceEditor({ sequence, onClose, onSaved }) {
   const overCap = Number(form.daily_cap) > PACING.dailyCap
   const underGap = Number(form.min_gap_min) < PACING.minGapMinutes
 
+  // Nothing open. SaDrawer's own `open` guard is not enough: React evaluates
+  // the children below before the drawer can return null, and the steps editor
+  // reads sequence.id. Bail after the hooks so hook order stays stable.
+  if (!sequence) return null
+
   return (
     <SaDrawer
       open={Boolean(sequence)}
