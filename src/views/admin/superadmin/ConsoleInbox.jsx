@@ -183,7 +183,7 @@ function MailView() {
 
   return (
     <div className="em-inbox">
-      <MailboxRail accounts={accounts} address={address} onSelect={setAddress} onRefresh={loadAccounts} />
+      <MailboxRail accounts={accounts} address={address} onSelect={openMailbox} onRefresh={loadAccounts} />
 
       <div className="sa-card" style={{ overflow: 'hidden' }}>
         <div className="sa-card-header" style={{ gap: 8 }}>

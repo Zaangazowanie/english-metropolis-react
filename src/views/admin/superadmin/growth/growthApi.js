@@ -28,14 +28,17 @@ import { consoleGet, consolePost } from '../consoleApi.js'
 
 export const BIZ = '/api/console/biz'
 
-// Entity slug = registry name with underscores as hyphens. ad_metrics_daily is
-// mounted as `ad-metrics`, which is the slug the upsert route already uses.
+// Entity slug = the registry key in em_business.ENTITIES, verbatim. Underscores
+// are NOT rewritten to hyphens: the generic CRUD route looks the segment up in
+// that registry, so a hyphenated slug comes back 400 "unknown entity". Only the
+// fixed upsert sub-route is spelled `ad-metrics/upsert`, and that is a route
+// name, not an entity.
 export const ENTITY = {
   campaigns: 'campaigns',
-  adAccounts: 'ad-accounts',
-  adCampaigns: 'ad-campaigns',
-  adMetrics: 'ad-metrics',
-  seoPages: 'seo-pages',
+  adAccounts: 'ad_accounts',
+  adCampaigns: 'ad_campaigns',
+  adMetrics: 'ad_metrics_daily',
+  seoPages: 'seo_pages',
 }
 
 export const entityPath = entity => `${BIZ}/${entity}`
