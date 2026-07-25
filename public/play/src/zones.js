@@ -631,12 +631,11 @@ export class ZoneManager {
     ];
 
     const agents = [];
-    const walkers = Math.max(2, Math.round((this.quality?.crowd ?? 220) * 0.085));
+    const walkers = Math.max(3, Math.round((this.quality?.crowd ?? 220) * 0.075));
     for (let i = 0; i < walkers; i++) {
       const agent = this.crowd.spawn({
         route: routes[i % routes.length],
         speed: 0.85 + Math.random() * 0.7,
-        height: 0.9 + Math.random() * 0.2,
         dialect: z.data.code,
       });
       if (!agent) break;
@@ -652,7 +651,6 @@ export class ZoneManager {
       const agent = this.crowd.spawn({
         route: makeRoute([w, { x: w.x + 0.001, z: w.z }]),
         standing: true,
-        height: slot.height,
         dialect: z.data.code,
       });
       if (!agent) return;

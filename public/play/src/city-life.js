@@ -359,7 +359,6 @@ export class CityLife {
       const agent = this.crowd.spawn({
         route,
         speed: 0.95 + Math.random() * 0.6,
-        height: 0.93 + Math.random() * 0.16,
         dialect: 'hub',
       });
       if (!agent) break;
@@ -545,7 +544,6 @@ export function buildDistrictLife(rng, {
     .map((x, index) => ({
       x, z: nearEdge + 3.1 + (index % 2) * 0.55,
       heading: index % 2 ? -0.5 : 0.5,
-      height: 0.92 + (index % 3) * 0.04,
     }));
   addParkedFleet(g, rng, {
     accent: accentHex, secondary: secondaryHex, code, lowPower, roadLayout,

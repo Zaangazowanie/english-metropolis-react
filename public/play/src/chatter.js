@@ -114,7 +114,7 @@ export class Chatter {
       }
       slot.sprite.position.set(
         slot.agent.x,
-        slot.agent.y + 1.62 * slot.agent.height + Math.sin(slot.life * 3) * 0.02,
+        slot.agent.y + slot.agent.height * 1.22 + Math.sin(slot.life * 3) * 0.02,
         slot.agent.z,
       );
     }

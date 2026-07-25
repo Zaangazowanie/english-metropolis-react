@@ -25,7 +25,7 @@ const J = {
 };
 
 // tone slots — which per-instance colour a vertex takes
-const T = { skin: 0, hair: 1, top: 2, lower: 3, shoes: 4 };
+const T = { skin: 0, hair: 1, top: 2, lower: 3, shoes: 4, eyeWhite: 5, eyeDark: 6, mouth: 7, accent: 8, sole: 9 };
 
 const SKIN = [0xf2c9a4, 0xe0a877, 0xc78a5c, 0x9c6039, 0x6f4227, 0x4a2c1a, 0xf7d9bd, 0x8a5334];
 const HAIR = [0x191725, 0x2c1c17, 0x4b2f22, 0x6b4431, 0xa8814f, 0xd7c0a5, 0x8d352a, 0x3b3b46];
@@ -34,27 +34,36 @@ const CLOTH = [
   0xf5f2ff, 0x2f855a, 0xe8a13d, 0x6b4fa0, 0xc96f4a, 0x7ba05b, 0x8fb4c9, 0xb8452f,
 ];
 
+// Optional parts are gated per instance so one shared geometry still produces a
+// varied street: G_BUN/G_CAP/G_LONG pick one head style out of four (the fourth
+// is plain), and G_BAG is rolled independently. A vertex whose gate does not
+// match its instance collapses to a point and costs nothing to rasterise.
+const G_ALWAYS = 0, G_BUN = 1, G_CAP = 2, G_LONG = 3, G_BAG = 4;
+
 // -------------------------------------------------------------- body geometry
-// A canonical 1.0-tall body; per-instance scale gives height variety.
+// A canonical 1.0-tall body. Per-instance scale is the person's height in world
+// units, and the hero is 1.7, so the crowd must be authored around that or the
+// city fills up with people who look like children.
 function buildBodyGeometry() {
   const parts = [];
 
   // add(geometry, tone, jointA, jointB) — geometry must already be positioned.
-  const add = (geo, tone, jointA = J.none, jointB = J.none, pivotA = [0, 0, 0], pivotB = [0, 0, 0]) => {
+  const add = (geo, tone, jointA = J.none, jointB = J.none, pivotA = [0, 0, 0], pivotB = [0, 0, 0], gate = G_ALWAYS) => {
     const n = geo.attributes.position.count;
     const aJointA = new Float32Array(n * 4);
     const aJointB = new Float32Array(n * 4);
-    const aTone = new Float32Array(n);
+    const aMeta = new Float32Array(n);
     for (let i = 0; i < n; i++) {
       aJointA[i * 4] = pivotA[0]; aJointA[i * 4 + 1] = pivotA[1];
       aJointA[i * 4 + 2] = pivotA[2]; aJointA[i * 4 + 3] = jointA;
       aJointB[i * 4] = pivotB[0]; aJointB[i * 4 + 1] = pivotB[1];
       aJointB[i * 4 + 2] = pivotB[2]; aJointB[i * 4 + 3] = jointB;
-      aTone[i] = tone;
+      // tone in the low nibble, gate above it — one attribute instead of two
+      aMeta[i] = tone + gate * 16;
     }
     geo.setAttribute('aJointA', new THREE.BufferAttribute(aJointA, 4));
     geo.setAttribute('aJointB', new THREE.BufferAttribute(aJointB, 4));
-    geo.setAttribute('aTone', new THREE.BufferAttribute(aTone, 1));
+    geo.setAttribute('aMeta', new THREE.BufferAttribute(aMeta, 1));
     geo.deleteAttribute('uv');
     parts.push(geo);
   };
@@ -71,13 +80,29 @@ function buildBodyGeometry() {
   // trunk
   add(box(0.20, 0.13, 0.13, 0, 0.505, 0), T.lower);
   add(cyl(0.12, 0.105, 0.26, 8, 0, 0.665, 0), T.top, J.spine, J.none, [0, 0.5, 0]);
+  add(cyl(0.128, 0.128, 0.028, 8, 0, 0.792, 0), T.top, J.spine, J.none, [0, 0.5, 0]);   // collar
   add(cyl(0.04, 0.046, 0.06, 6, 0, 0.825, 0), T.skin, J.spine, J.none, [0, 0.5, 0]);
 
   // head — its own gentle counter-bob keeps the walk from looking rigid
-  add(sph(0.105, 6, 5, 0, 0.905, 0), T.skin, J.head, J.none, [0, 0.84, 0]);
-  add(sph(0.113, 6, 4, 0, 0.912, 0, 1.85), T.hair, J.head, J.none, [0, 0.84, 0]);
-  add(new THREE.ConeGeometry(0.016, 0.03, 4).rotateX(Math.PI / 2).translate(0, 0.902, 0.101),
-    T.skin, J.head, J.none, [0, 0.84, 0]);
+  const HEAD = [0, 0.84, 0];
+  const head = (geo, tone, gate = G_ALWAYS) => add(geo, tone, J.head, J.none, HEAD, [0, 0, 0], gate);
+  head(sph(0.105, 7, 6, 0, 0.905, 0), T.skin);
+  head(sph(0.113, 7, 5, 0, 0.912, 0, 1.18), T.hair);   // cap stops above the brow
+  head(new THREE.ConeGeometry(0.016, 0.03, 4).rotateX(Math.PI / 2).translate(0, 0.902, 0.101), T.skin);
+  // a face reads from surprisingly far away and is what stops a crowd looking
+  // like mannequins; all of it rides the head joint, so it costs only vertices
+  for (const side of [-1, 1]) {
+    head(sph(0.028, 5, 4, side * 0.037, 0.926, 0.088), T.eyeWhite);
+    head(sph(0.0125, 4, 3, side * 0.041, 0.925, 0.101), T.eyeDark);
+    head(box(0.038, 0.009, 0.012, side * 0.04, 0.945, 0.094), T.hair);          // brow
+    head(sph(0.026, 4, 3, side * 0.104, 0.905, 0.004), T.skin);                 // ear
+  }
+  head(box(0.042, 0.011, 0.011, 0, 0.868, 0.099), T.mouth);
+  // one head style per person: bun, cap, long hair, or plain
+  head(sph(0.055, 5, 4, 0, 0.972, -0.072), T.hair, G_BUN);
+  head(cyl(0.100, 0.113, 0.055, 8, 0, 0.958, 0), T.accent, G_CAP);
+  head(box(0.185, 0.015, 0.11, 0, 0.936, 0.10), T.accent, G_CAP);               // cap brim
+  head(sph(0.098, 7, 6, 0, 0.858, -0.038), T.hair, G_LONG);                     // long hair
 
   for (const side of [-1, 1]) {
     const sh = side < 0 ? J.shoulderL : J.shoulderR;
@@ -90,13 +115,21 @@ function buildBodyGeometry() {
     const kneePivot = [side * legX, KNEE_Y, 0];
 
     add(cyl(0.033, 0.038, 0.175, 6, side * (armX + 0.012), 0.7075, 0), T.top, sh, J.none, shoulderPivot);
+    add(sph(0.042, 5, 4, side * armX, 0.788, 0), T.top, sh, J.none, shoulderPivot);   // shoulder cap
     add(cyl(0.029, 0.033, 0.17, 6, side * (armX + 0.032), 0.535, 0), T.top, sh, el, shoulderPivot, elbowPivot);
-    add(sph(0.037, 4, 3, side * (armX + 0.038), 0.435, 0), T.skin, sh, el, shoulderPivot, elbowPivot);
+    add(new THREE.CapsuleGeometry(0.032, 0.05, 3, 5)
+      .translate(side * (armX + 0.038), 0.432, 0), T.skin, sh, el, shoulderPivot, elbowPivot);
 
     add(cyl(0.055, 0.048, 0.21, 6, side * legX, 0.365, 0), T.lower, hp, J.none, hipPivot);
     add(cyl(0.046, 0.04, 0.205, 6, side * legX, 0.1575, 0), T.lower, hp, kn, hipPivot, kneePivot);
-    add(box(0.075, 0.055, 0.15, side * legX, 0.0275, 0.026), T.shoes, hp, kn, hipPivot, kneePivot);
+    add(box(0.075, 0.048, 0.15, side * legX, 0.036, 0.026), T.shoes, hp, kn, hipPivot, kneePivot);
+    add(box(0.079, 0.018, 0.158, side * legX, 0.009, 0.028), T.sole, hp, kn, hipPivot, kneePivot);
   }
+
+  // a shoulder bag on roughly half the crowd — the single cheapest thing that
+  // makes walkers read as commuters rather than as a character selection screen
+  add(box(0.17, 0.21, 0.085, 0.155, 0.56, 0.02), T.accent, J.spine, J.none, [0, 0.5, 0], [0, 0, 0], G_BAG);
+  add(box(0.026, 0.012, 0.19, 0.09, 0.735, 0.0), T.accent, J.spine, J.none, [0, 0.5, 0], [0, 0, 0], G_BAG);
 
   const merged = mergeGeometries(parts, false);
   parts.forEach((p) => p.dispose());
@@ -117,13 +150,22 @@ function buildCrowdMaterial({ rimLight = true } = {}) {
         uniform float uTime;
         attribute vec4 aJointA;
         attribute vec4 aJointB;
-        attribute float aTone;
-        attribute vec4 aGait;      // x phase, y cadence, z walking, w seed
-        attribute vec3 aSkin;
-        attribute vec3 aHair;
-        attribute vec3 aTop;
-        attribute vec3 aLower;
+        attribute float aMeta;     // tone + gate*16
+        attribute vec4 aGait;       // x phase, y cadence, z walking, w seed
+        attribute vec4 aPalette;    // skin, hair, top, lower — each RGB packed in one float
+        attribute float aTrim;      // accent (cap / bag), same packing
         varying vec3 vTint;
+
+        // WebGL2 only guarantees 16 vertex attributes and instanceMatrix eats
+        // four of them, so the wardrobe travels as packed 8-bit-per-channel
+        // floats rather than five separate vec3s. Exceeding the limit does not
+        // throw — the program silently fails to link and the crowd vanishes.
+        vec3 emUnpack(float v) {
+          float r = floor(v / 65536.0);
+          float g = floor(mod(v, 65536.0) / 256.0);
+          float b = mod(v, 256.0);
+          return vec3(r, g, b) / 255.0;
+        }
 
         vec3 emRotX(vec3 p, float a) {
           float c = cos(a), s = sin(a);
@@ -187,11 +229,31 @@ function buildCrowdMaterial({ rimLight = true } = {}) {
         float breathe = (1.0 - aGait.z) * 0.004 * sin(uTime * 1.1 + aGait.x);
         transformed.y += bob + breathe;
 
-        vTint = aTop;
-        if (aTone < 0.5) vTint = aSkin;
-        else if (aTone < 1.5) vTint = aHair;
-        else if (aTone < 3.5 && aTone > 2.5) vTint = aLower;
-        else if (aTone > 3.5) vTint = aLower * 0.42;
+        float aGate = floor(aMeta / 16.0);
+        float aTone = aMeta - aGate * 16.0;
+
+        // per-instance wardrobe: one head style out of four, bag rolled apart
+        float emHeadStyle = floor(fract(aGait.w) * 4.0);
+        float emHasBag = step(0.52, fract(aGait.w * 37.0));
+        if (aGate > 0.5) {
+          bool show = aGate > 3.5
+            ? emHasBag > 0.5
+            : abs(emHeadStyle - (aGate - 1.0)) < 0.5;
+          if (!show) transformed = vec3(0.0);   // degenerate — never rasterised
+        }
+
+        vec3 emSkin = emUnpack(aPalette.x);
+        vec3 emLower = emUnpack(aPalette.w);
+        vTint = emUnpack(aPalette.z);
+        if (aTone < 0.5) vTint = emSkin;
+        else if (aTone < 1.5) vTint = emUnpack(aPalette.y);
+        else if (aTone > 2.5 && aTone < 3.5) vTint = emLower;
+        else if (aTone > 3.5 && aTone < 4.5) vTint = emLower * 0.42;
+        else if (aTone > 4.5 && aTone < 5.5) vTint = vec3(0.93, 0.92, 0.89);   // sclera
+        else if (aTone > 5.5 && aTone < 6.5) vTint = vec3(0.07, 0.06, 0.11);   // pupil
+        else if (aTone > 6.5 && aTone < 7.5) vTint = emSkin * 0.62;            // mouth
+        else if (aTone > 7.5 && aTone < 8.5) vTint = emUnpack(aTrim);          // cap / bag
+        else if (aTone > 8.5) vTint = emLower * 0.22;                          // shoe sole
       `);
 
     shader.fragmentShader = shader.fragmentShader
@@ -214,7 +276,7 @@ function buildCrowdMaterial({ rimLight = true } = {}) {
       `);
   };
   // onBeforeCompile bodies are cached by this key; bump it when the shader changes
-  mat.customProgramCacheKey = () => 'em-crowd-v1' + (rimLight ? 'r' : '');
+  mat.customProgramCacheKey = () => 'em-crowd-v2' + (rimLight ? 'r' : '');
   return mat;
 }
 
@@ -261,10 +323,8 @@ export class Crowd {
       return attr;
     };
     this.aGait = inst('aGait', 4);
-    this.aSkin = inst('aSkin', 3);
-    this.aHair = inst('aHair', 3);
-    this.aTop = inst('aTop', 3);
-    this.aLower = inst('aLower', 3);
+    this.aPalette = inst('aPalette', 4);
+    this.aTrim = inst('aTrim', 1);
     scene.add(this.mesh);
 
     // one more draw call buys every walker a contact shadow
@@ -334,13 +394,21 @@ export class Crowd {
     this.visibleCap = Math.max(0, Math.min(n, this.capacity));
   }
 
+  // Heights are METRES, matched to the cast already in the world: the player rig
+  // is normalised to 1.7 and the authored teachers to 1.78. A canonical body is
+  // 1.0 tall, so anything passed near 1.0 produces a city of children.
+  static adultHeight(rng = Math.random) {
+    if (rng() < 0.07) return 1.24 + rng() * 0.22;      // a few kids on the street
+    return 1.58 + rng() * 0.28;                        // 1.58 – 1.86
+  }
+
   // route: { points: [{x,z}...], closed, lane }  — agents advance along it
-  spawn({ route, speed = 1.15, height = 1.0, dialect = null, standing = false, at = 0 }) {
+  spawn({ route, speed = 1.15, height = null, dialect = null, standing = false, at = 0 }) {
     const slot = this.free.pop();
     if (slot === undefined) return null;
     const seed = Math.random();
     const agent = {
-      slot, route, speed, height, dialect, standing,
+      slot, route, speed, height: height ?? Crowd.adultHeight(), dialect, standing,
       t: at || Math.random() * routeLength(route),
       x: 0, z: 0, y: 0, heading: 0,
       phase: seed * Math.PI * 2,
@@ -355,15 +423,16 @@ export class Crowd {
 
     const pick = (arr) => arr[(Math.random() * arr.length) | 0];
     const c = new THREE.Color();
-    const write = (attr, hex, mul = 1) => {
+    const pack = (hex, mul = 1) => {
       c.set(hex).multiplyScalar(mul);
-      attr.setXYZ(slot, c.r, c.g, c.b);
-      attr.needsUpdate = true;
+      const q = (v) => Math.max(0, Math.min(255, Math.round(v * 255)));
+      return q(c.r) * 65536 + q(c.g) * 256 + q(c.b);
     };
-    write(this.aSkin, pick(SKIN));
-    write(this.aHair, pick(HAIR));
-    write(this.aTop, pick(CLOTH));
-    write(this.aLower, pick(CLOTH), 0.55);
+    this.aPalette.setXYZW(slot,
+      pack(pick(SKIN)), pack(pick(HAIR)), pack(pick(CLOTH)), pack(pick(CLOTH), 0.55));
+    this.aPalette.needsUpdate = true;
+    this.aTrim.setX(slot, pack(pick(CLOTH), 0.8));
+    this.aTrim.needsUpdate = true;
     this.aGait.setXYZW(slot, agent.phase, agent.cadence, agent.walking, seed);
     this.aGait.needsUpdate = true;
 
@@ -456,7 +525,7 @@ export class Crowd {
       this.mesh.setMatrixAt(a.slot, dummy.matrix);
       dummy.position.y = a.y + 0.02;
       dummy.rotation.set(0, 0, 0);
-      dummy.scale.set(0.62 * a.height, 1, 0.62 * a.height);
+      dummy.scale.set(0.42 * a.height, 1, 0.42 * a.height);
       dummy.updateMatrix();
       this.shadows.setMatrixAt(a.slot, dummy.matrix);
       drawn++;
@@ -469,7 +538,7 @@ export class Crowd {
     for (const a of this.speakers) {
       if (markers >= this.markerCap) break;
       if (a.speaker?.done) continue;
-      dummy.position.set(a.x, a.y + 1.72 * a.height + Math.sin(this.time * 2.2 + a.phase) * 0.09, a.z);
+      dummy.position.set(a.x, a.y + a.height * 1.16 + Math.sin(this.time * 2.2 + a.phase) * 0.09, a.z);
       dummy.rotation.set(0, this.time * 1.5 + a.phase, 0);
       dummy.scale.setScalar(1);
       dummy.updateMatrix();

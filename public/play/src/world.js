@@ -173,7 +173,7 @@ export class World {
   // Quality tier moved: the hub keeps a share of the crowd budget, the streamed
   // districts get the rest as they build.
   setDetail(s) {
-    this.cityLife?.setDensity(Math.round(s.crowd * 0.3));
+    this.cityLife?.setDensity(Math.round(s.crowd * 0.42));
   }
 
   // blend an instance colour toward the dialect region it stands in
