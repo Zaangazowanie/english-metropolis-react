@@ -1,5 +1,6 @@
 // Shared look: stepped toon ramps, Miami-after-dark color, sky dome, blob shadows.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const PALETTE = {
   cream: 0xf5f2ff, terracotta: 0xff5f7e, sage: 0x36e1c1, amber: 0xffb45f,
@@ -24,14 +25,141 @@ export function toonMat(color, opts = {}) {
   return new THREE.MeshToonMaterial({ color, gradientMap: toonRamp(), ...opts });
 }
 
+// A toon material that takes its colour from the vertex stream. Used with
+// GeoBatch so dozens of differently-tinted surfaces can share one draw call.
+export function toonVertexMat(opts = {}) {
+  return new THREE.MeshToonMaterial({
+    color: 0xffffff, vertexColors: true, gradientMap: toonRamp(), ...opts,
+  });
+}
+
+// ---------------------------------------------------------------- GeoBatch
+// Collects positioned geometries with a per-geometry colour and merges them
+// into ONE mesh. The city was previously spending a draw call on every paving
+// stripe, curb quad and sign post; batching by material instead of by object
+// is the single largest frame-time saving available to it.
+const BATCH_ATTRS = ['position', 'normal', 'uv'];
+
+export class GeoBatch {
+  constructor() { this.geos = []; this.tris = 0; }
+
+  get empty() { return this.geos.length === 0; }
+
+  // geometry is consumed (disposed on merge). ao multiplies the colour and is
+  // where baked occlusion lands; 1 = unoccluded.
+  add(geometry, color, ao = 1) {
+    for (const key of Object.keys(geometry.attributes)) {
+      if (!BATCH_ATTRS.includes(key)) geometry.deleteAttribute(key);
+    }
+    if (!geometry.attributes.uv) {
+      const n = geometry.attributes.position.count;
+      geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+    }
+    if (!geometry.attributes.normal) geometry.computeVertexNormals();
+    // three's primitives are a mix of indexed (Box, Cylinder, Sphere) and
+    // non-indexed (Icosahedron, Octahedron); mergeGeometries refuses a mix, so
+    // give the non-indexed ones a trivial index rather than expanding the rest.
+    if (!geometry.index) {
+      const count = geometry.attributes.position.count;
+      const idx = count > 65535 ? new Uint32Array(count) : new Uint16Array(count);
+      for (let i = 0; i < count; i++) idx[i] = i;
+      geometry.setIndex(new THREE.BufferAttribute(idx, 1));
+    }
+    const n = geometry.attributes.position.count;
+    const c = color instanceof THREE.Color ? color : new THREE.Color(color);
+    const arr = new Float32Array(n * 3);
+    const r = c.r * ao, g = c.g * ao, b = c.b * ao;
+    for (let i = 0; i < n; i++) { arr[i * 3] = r; arr[i * 3 + 1] = g; arr[i * 3 + 2] = b; }
+    geometry.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+    this.geos.push(geometry);
+    return geometry;
+  }
+
+  // Returns a single Mesh, or null when nothing was added.
+  build(material, { castShadow = true, receiveShadow = true, name = 'batch' } = {}) {
+    if (!this.geos.length) return null;
+    const merged = this.geos.length === 1 ? this.geos[0] : mergeGeometries(this.geos, false);
+    if (this.geos.length > 1) this.geos.forEach((g) => g.dispose());
+    this.geos.length = 0;
+    const mesh = new THREE.Mesh(merged, material);
+    mesh.name = name;
+    mesh.castShadow = castShadow;
+    mesh.receiveShadow = receiveShadow;
+    return mesh;
+  }
+}
+
+// ------------------------------------------------------------- baked vertex AO
+// Procedural boxes read as floating cardboard without contact darkening. This
+// bakes two cheap terms straight into the colour attribute at merge time, which
+// costs nothing at runtime and survives on hardware that could never afford SSAO:
+//   * ground contact — everything darkens toward its base
+//   * crevice occlusion — vertices near other building footprints darken
+// occluders are {x, z, hw, hd} footprints in the same local space as the mesh.
+export function bakeVertexAO(geometry, occluders = [], {
+  groundHeight = 2.6, groundStrength = 0.42, creviceStrength = 0.34, creviceRange = 2.4,
+} = {}) {
+  const pos = geometry.attributes.position;
+  const col = geometry.attributes.color;
+  if (!pos || !col) return geometry;
+  const n = pos.count;
+  const range2 = creviceRange * creviceRange;
+  for (let i = 0; i < n; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    // ground contact: 0 at the pavement, 1 above groundHeight
+    const t = Math.min(1, Math.max(0, y / groundHeight));
+    let ao = 1 - groundStrength * (1 - t * t);
+    // crevice: distance to the nearest OTHER footprint edge
+    let near = Infinity;
+    for (let k = 0; k < occluders.length; k++) {
+      const o = occluders[k];
+      const dx = Math.max(Math.abs(x - o.x) - o.hw, 0);
+      const dz = Math.max(Math.abs(z - o.z) - o.hd, 0);
+      const d2 = dx * dx + dz * dz;
+      // d2 === 0 means the vertex belongs to this footprint — skip its own box
+      if (d2 > 0.01 && d2 < near) near = d2;
+    }
+    if (near < range2) {
+      const closeness = 1 - Math.sqrt(near) / creviceRange;
+      ao *= 1 - creviceStrength * closeness * closeness * (1 - t * 0.55);
+    }
+    col.setXYZ(i, col.getX(i) * ao, col.getY(i) * ao, col.getZ(i) * ao);
+  }
+  col.needsUpdate = true;
+  return geometry;
+}
+
+// Every neon surface in the city registers here so its brightness can be
+// retuned when the render path changes. It matters: without post-processing the
+// renderer tone-maps and neon opts out with toneMapped:false, so 1.0 is already
+// as bright as the screen goes. With the post stack, the scene is rendered
+// linear and ACES runs in the composite over EVERYTHING, so neon authored at 1.0
+// comes out visibly duller — and never crosses the bloom threshold. Boosting it
+// above 1.0 in that mode restores the intent and is what makes signage glow.
+const NEON_REGISTRY = new Set();
+let neonGain = 1;
+
 export function neonMat(color, opacity = 1) {
-  return new THREE.MeshBasicMaterial({
+  const mat = new THREE.MeshBasicMaterial({
     color,
     transparent: opacity < 1,
     opacity,
     depthWrite: opacity >= 1,
     toneMapped: false,
   });
+  mat.userData.neonBase = mat.color.clone();
+  mat.color.multiplyScalar(neonGain);
+  NEON_REGISTRY.add(mat);
+  return mat;
+}
+
+export function setNeonGain(gain) {
+  if (gain === neonGain) return;
+  neonGain = gain;
+  for (const mat of NEON_REGISTRY) {
+    const base = mat.userData.neonBase;
+    if (base) mat.color.copy(base).multiplyScalar(gain);
+  }
 }
 
 // Convert a loaded GLB's PBR materials to toon while keeping baked texture maps.
@@ -117,6 +245,68 @@ export function addDuskWindows(material) {
         }
         #include <opaque_fragment>`);
   };
+  return material;
+}
+
+// ------------------------------------------------------------- wet streets
+// A night city reads as expensive mostly because the ground answers the lights.
+// Real screen-space reflections are out of reach on the devices this has to run
+// on, so the road shades itself: a world-space puddle mask, a Fresnel term that
+// only kicks in at grazing angles, a sky term from the same gradient as the
+// dome, and vertical neon smears whose colour is stable per band of street.
+// Cost is a couple of dozen ALU ops on surfaces that are already drawn.
+export function addWetStreets(material, { strength = 0.85 } = {}) {
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = uTime;
+    shader.uniforms.uWet = { value: strength };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vEmWorld;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        vEmWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', /* glsl */`
+        #include <common>
+        varying vec3 vEmWorld;
+        uniform float uTime;
+        uniform float uWet;
+        float emH(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float emNoise(vec2 p) {
+          vec2 i = floor(p), f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(emH(i), emH(i + vec2(1.0, 0.0)), f.x),
+                     mix(emH(i + vec2(0.0, 1.0)), emH(i + vec2(1.0, 1.0)), f.x), f.y);
+        }
+      `)
+      .replace('#include <opaque_fragment>', /* glsl */`
+        {
+          vec3 V = normalize(cameraPosition - vEmWorld);
+          float fres = pow(1.0 - clamp(V.y, 0.0, 1.0), 4.0);
+
+          // where the road is wet at all — broad damp patches, not polka dots
+          float damp = emNoise(vEmWorld.xz * 0.075) * 0.65 + emNoise(vEmWorld.xz * 0.21) * 0.35;
+          float wet = smoothstep(0.44, 0.78, damp) * uWet;
+
+          // the sky the puddle can see, matched to the dome's own gradient
+          vec3 skyRefl = mix(vec3(0.055, 0.075, 0.16), vec3(0.16, 0.10, 0.24),
+                             smoothstep(0.0, 0.5, V.y));
+
+          // neon smears: colour is constant across a band of street and streaks
+          // along it, which is what a reflected sign actually looks like
+          float bandId = floor(vEmWorld.x * 0.21 + vEmWorld.z * 0.06);
+          float bandLit = step(0.66, emH(vec2(bandId, 3.0)));
+          vec3 neon = mix(vec3(0.16, 0.88, 0.96), vec3(1.0, 0.30, 0.60),
+                          step(0.5, emH(vec2(bandId, 7.0))));
+          float streak = emNoise(vec2(vEmWorld.x * 1.6, vEmWorld.z * 0.16 + uTime * 0.03));
+          streak = smoothstep(0.55, 0.98, streak) * bandLit;
+
+          float mask = wet * mix(0.10, 0.82, fres);
+          outgoingLight = mix(outgoingLight, outgoingLight * 0.52 + skyRefl, mask);
+          outgoingLight += neon * streak * mask * 0.55;
+        }
+        #include <opaque_fragment>
+      `);
+  };
+  material.customProgramCacheKey = () => 'em-wet-v1';
   return material;
 }
 

@@ -87,6 +87,17 @@ export function accentProfileFor(code, speakerIndex = 0) {
   };
 }
 
+// A named face for one of the district's street locals. Deterministic per
+// (district, slot) so the same person is standing outside the same shop every
+// time you come back to that stop.
+export function streetLocalFor(code, index) {
+  const h = hash(`${code}#${index}`);
+  return {
+    name: LOCAL_GUIDES[h % LOCAL_GUIDES.length],
+    role: LOCAL_ROLES[(h >>> 8) % LOCAL_ROLES.length],
+  };
+}
+
 export function districtCastFor(data, zoneIndex) {
   const cast = data.npcs.slice();
   if (cast.length < 3) {

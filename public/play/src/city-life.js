@@ -1,17 +1,14 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { PALETTE, neonMat, toonMat } from './materials.js';
+import { PALETTE, neonMat, toonMat, toonVertexMat, GeoBatch } from './materials.js';
 import { BOULEVARD } from './transit-layout.js';
-import { heightAt } from './terrain.js';
-import { circleHitsAABB } from './collision.js';
+import { makeRoute } from './crowd.js';
 
 const RADIALS = [
   { angle: Math.PI / 2, color: PALETTE.cyan },
   { angle: Math.PI / 2 + (2 * Math.PI) / 3, color: 0x8b7dff },
   { angle: Math.PI / 2 - (2 * Math.PI) / 3, color: PALETTE.coral },
 ];
-const SKIN = [0xf0c7a8, 0x8e5d43, 0xdca47d, 0x5c382d, 0xc98562, 0xf2d2bc];
-const CLOTH = [0xff6f91, 0x4deeea, 0xffb84d, 0x8b7dff, 0x2c8c7c, 0xe9e2d0, 0x3264a8];
 
 function signTexture(title, subtitle, accent) {
   const canvas = document.createElement('canvas');
@@ -68,96 +65,85 @@ function addBox(group, size, position, material, name = '') {
 function buildCafeVenue({ title, subtitle, accent, kind = 'cafe' }) {
   const g = new THREE.Group();
   g.name = `${kind}-venue`;
-  const ink = toonMat(0x111a30);
-  const stone = toonMat(kind === 'market' ? 0x315a62 : 0xdce3e8);
-  const glass = new THREE.MeshStandardMaterial({
+  // One batched toon mesh for the whole venue plus its terrace; only the
+  // glazing and the lit sign need materials of their own.
+  const shell = new GeoBatch();
+  const ink = 0x111a30;
+  const stone = kind === 'market' ? 0x315a62 : 0xdce3e8;
+  const box = (w, h, d, x, y, z) => new THREE.BoxGeometry(w, h, d).translate(x, y, z);
+  shell.add(box(8.8, 0.5, 5.4, 0, 0.25, 0), stone);
+  shell.add(box(8.2, 3.8, 4.7, 0, 2.15, 0.15), ink);
+  for (const x of [-2.5, 0, 2.5]) shell.add(box(0.11, 2.35, 0.18, x, 1.85, -2.35), accent);
+  shell.add(box(8.7, 0.18, 1.8, 0, 3.25, -2.78), accent);
+  shell.add(box(8.7, 0.16, 5.25, 0, 4.15, 0.05), 0xc1cddd);
+  for (const x of [-2.6, 0, 2.6]) {
+    shell.add(new THREE.CylinderGeometry(0.62, 0.62, 0.12, 12).translate(x, 0.82, -4.1), 0xd8e1e6);
+    shell.add(new THREE.CylinderGeometry(0.05, 0.07, 0.76, 7).translate(x, 0.42, -4.1), 0x23324c);
+    shell.add(new THREE.ConeGeometry(1.15, 0.48, 12).rotateX(Math.PI).translate(x, 2.72, -4.1), accent);
+    shell.add(new THREE.CylinderGeometry(0.04, 0.04, 2.25, 6).translate(x, 1.65, -4.1), 0x23324c);
+    for (const side of [-1, 1]) shell.add(box(0.55, 0.62, 0.55, x + side * 0.9, 0.32, -4.1), 0x23324c);
+  }
+  g.add(shell.build(toonVertexMat(), { name: `${kind}-venue-shell` }));
+
+  const glazing = new THREE.Mesh(box(7.45, 2.25, 0.12, 0, 1.85, -2.25), new THREE.MeshStandardMaterial({
     color: 0x74d7dc, emissive: 0x14354b, emissiveIntensity: 0.88,
     metalness: 0.46, roughness: 0.19, transparent: true, opacity: 0.82,
-  });
-  const accentMat = toonMat(accent);
-  addBox(g, [8.8, 0.5, 5.4], [0, 0.25, 0], stone, 'venue-plinth');
-  addBox(g, [8.2, 3.8, 4.7], [0, 2.15, 0.15], ink, 'venue-shell');
-  addBox(g, [7.45, 2.25, 0.12], [0, 1.85, -2.25], glass, 'venue-glazing');
-  for (const x of [-2.5, 0, 2.5]) addBox(g, [0.11, 2.35, 0.18], [x, 1.85, -2.35], accentMat);
-  addBox(g, [8.7, 0.18, 1.8], [0, 3.25, -2.78], accentMat, 'venue-awning');
-  addBox(g, [8.7, 0.16, 5.25], [0, 4.15, 0.05], toonMat(0xc1cddd), 'venue-roof');
+  }));
+  g.add(glazing);
+
   const sign = new THREE.Group();
   addSign(sign, title, subtitle, `#${new THREE.Color(accent).getHexString()}`, 5.4);
   sign.position.set(0, 4.75, -2.57);
   g.add(sign);
-
-  const tableMat = toonMat(0xd8e1e6);
-  const chairMat = toonMat(0x23324c);
-  const parasolMat = toonMat(accent);
-  for (const x of [-2.6, 0, 2.6]) {
-    const table = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.12, 12), tableMat);
-    table.position.set(x, 0.82, -4.1);
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.76, 7), chairMat);
-    stem.position.set(x, 0.42, -4.1);
-    const parasol = new THREE.Mesh(new THREE.ConeGeometry(1.15, 0.48, 12), parasolMat);
-    parasol.position.set(x, 2.72, -4.1);
-    parasol.rotation.x = Math.PI;
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.25, 6), chairMat);
-    mast.position.set(x, 1.65, -4.1);
-    g.add(table, stem, parasol, mast);
-    for (const side of [-1, 1]) addBox(g, [0.55, 0.62, 0.55], [x + side * 0.9, 0.32, -4.1], chairMat);
-  }
   return g;
 }
 
 function buildVendor(kind, accent) {
   const g = new THREE.Group();
   g.name = `${kind}-vendor`;
-  const body = toonMat(kind === 'flowers' ? 0x18515b : 0x243653);
-  const trim = toonMat(accent);
-  const chrome = new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.86, roughness: 0.22 });
-  addBox(g, [2.5, 1.25, 1.35], [0, 0.83, 0], body, `${kind}-cart`);
-  addBox(g, [2.75, 0.14, 1.55], [0, 1.52, 0], chrome);
+  const shell = new GeoBatch();
+  const chromeParts = [];
+  const box = (w, h, d, x, y, z) => new THREE.BoxGeometry(w, h, d).translate(x, y, z);
+  const bodyColor = kind === 'flowers' ? 0x18515b : 0x243653;
+  shell.add(box(2.5, 1.25, 1.35, 0, 0.83, 0), bodyColor);
   for (const x of [-1.02, 1.02]) {
-    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.33, 0.16, 12), toonMat(0x101522));
-    wheel.rotation.z = Math.PI / 2;
-    wheel.position.set(x, 0.38, 0.72);
-    g.add(wheel);
+    shell.add(new THREE.CylinderGeometry(0.33, 0.33, 0.16, 12).rotateZ(Math.PI / 2)
+      .translate(x, 0.38, 0.72), 0x101522);
   }
-  for (const x of [-1.08, 1.08]) addBox(g, [0.08, 2.3, 0.08], [x, 2.55, 0], chrome);
-  addBox(g, [2.75, 0.17, 1.75], [0, 3.7, 0], trim, `${kind}-canopy`);
+  shell.add(box(2.75, 0.17, 1.75, 0, 3.7, 0), accent);
+  chromeParts.push(box(2.75, 0.14, 1.55, 0, 1.52, 0));
+  for (const x of [-1.08, 1.08]) chromeParts.push(box(0.08, 2.3, 0.08, x, 2.55, 0));
 
   if (kind === 'flowers') {
-    const stems = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.018, 0.025, 0.72, 5), toonMat(0x2a8d69), 18);
-    const blooms = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.16, 0), toonMat(0xffffff), 18);
-    const dummy = new THREE.Object3D();
-    const colors = [0xff6f91, 0xffb84d, 0xe961c2, 0xf4e5a3, 0x67e8d3];
+    const bloomColors = [0xff6f91, 0xffb84d, 0xe961c2, 0xf4e5a3, 0x67e8d3];
     for (let i = 0; i < 18; i++) {
       const x = -0.92 + (i % 6) * 0.37;
       const z = -0.38 + Math.floor(i / 6) * 0.38;
       const h = 0.58 + (i % 3) * 0.08;
-      dummy.position.set(x, 1.57 + h / 2, z);
-      dummy.rotation.set(0, 0, (i % 2 ? 1 : -1) * 0.08);
-      dummy.scale.set(1, h / 0.72, 1);
-      dummy.updateMatrix();
-      stems.setMatrixAt(i, dummy.matrix);
-      dummy.position.set(x, 1.55 + h, z);
-      dummy.rotation.set(0, 0, 0);
-      dummy.scale.setScalar(0.82 + (i % 4) * 0.08);
-      dummy.updateMatrix();
-      blooms.setMatrixAt(i, dummy.matrix);
-      blooms.setColorAt(i, new THREE.Color(colors[i % colors.length]));
+      shell.add(new THREE.CylinderGeometry(0.018, 0.025, 0.72, 5)
+        .scale(1, h / 0.72, 1).translate(x, 1.57 + h / 2, z), 0x2a8d69);
+      const s = 0.82 + (i % 4) * 0.08;
+      shell.add(new THREE.IcosahedronGeometry(0.16, 0).scale(s, s, s)
+        .translate(x, 1.55 + h, z), bloomColors[i % bloomColors.length]);
     }
-    stems.instanceMatrix.needsUpdate = blooms.instanceMatrix.needsUpdate = true;
-    if (blooms.instanceColor) blooms.instanceColor.needsUpdate = true;
-    g.add(stems, blooms);
   } else {
     for (const x of [-0.72, 0, 0.72]) {
-      const pan = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.12, 10), chrome);
-      pan.position.set(x, 1.66, 0);
-      g.add(pan);
+      chromeParts.push(new THREE.CylinderGeometry(0.3, 0.3, 0.12, 10).translate(x, 1.66, 0));
     }
     const menu = new THREE.Group();
-    addSign(menu, kind === 'coffee' ? 'ESPRESSO' : 'NIGHT BITES', kind === 'coffee' ? 'ROASTED HERE' : 'HOT + FRESH', `#${new THREE.Color(accent).getHexString()}`, 2.15);
+    addSign(menu, kind === 'coffee' ? 'ESPRESSO' : 'NIGHT BITES',
+      kind === 'coffee' ? 'ROASTED HERE' : 'HOT + FRESH',
+      `#${new THREE.Color(accent).getHexString()}`, 2.15);
     menu.scale.setScalar(0.62);
     menu.position.set(0, 2.76, 0.9);
     g.add(menu);
   }
+  g.add(shell.build(toonVertexMat(), { name: `${kind}-vendor-shell` }));
+  const chromeMesh = new THREE.Mesh(mergeGeometries(chromeParts, false),
+    new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.86, roughness: 0.22 }));
+  chromeParts.forEach((c) => c.dispose());
+  chromeMesh.castShadow = true;
+  g.add(chromeMesh);
   return g;
 }
 
@@ -315,403 +301,39 @@ function buildHubActivity(group, lowPower, animated) {
   });
 }
 
-function setSegment(mesh, index, start, end, dummy, axis, delta, thickness = 1) {
-  delta.subVectors(end, start);
-  const length = Math.max(0.01, delta.length());
-  dummy.position.copy(start).add(end).multiplyScalar(0.5);
-  dummy.quaternion.setFromUnitVectors(axis, delta.multiplyScalar(1 / length));
-  dummy.scale.set(thickness, length, thickness);
-  dummy.updateMatrix();
-  mesh.setMatrixAt(index, dummy.matrix);
-}
-
-function createCharacterBatch(parent, count, name, moving = false) {
-  const all = [];
-  const add = (key, geometry, material, multiplier = 1, castShadow = true) => {
-    const mesh = new THREE.InstancedMesh(geometry, material, count * multiplier);
-    mesh.name = name;
-    mesh.userData.characterPart = key;
-    mesh.userData.instanceMultiplier = multiplier;
-    mesh.castShadow = castShadow;
-    mesh.frustumCulled = !moving;
-    parent.add(mesh);
-    all.push(mesh);
-    return mesh;
-  };
-  const batch = {
-    all,
-    torso: add('torso', new THREE.CapsuleGeometry(0.2, 0.5, 4, 8), toonMat(0xffffff)),
-    hips: add('hips', new THREE.BoxGeometry(0.36, 0.2, 0.24), toonMat(0xffffff)),
-    collar: add('collar', new THREE.BoxGeometry(0.28, 0.08, 0.035), toonMat(0xffffff), 1, false),
-    neck: add('neck', new THREE.CylinderGeometry(0.065, 0.075, 0.14, 7), toonMat(0xffffff)),
-    head: add('head', new THREE.SphereGeometry(0.18, 12, 9), toonMat(0xffffff)),
-    ears: add('ears', new THREE.SphereGeometry(0.039, 7, 5), toonMat(0xffffff), 2, false),
-    hair: add('hair', new THREE.SphereGeometry(0.19, 11, 7, 0, Math.PI * 2, 0, Math.PI * 0.56), toonMat(0xffffff)),
-    hairBack: add('hair-back', new THREE.SphereGeometry(0.155, 9, 7), toonMat(0xffffff)),
-    bun: add('hair-bun', new THREE.SphereGeometry(0.09, 8, 6), toonMat(0xffffff)),
-    hats: add('hat', new THREE.CylinderGeometry(0.19, 0.205, 0.1, 10), toonMat(0xffffff)),
-    eyes: add('eyes', new THREE.SphereGeometry(0.027, 8, 6), toonMat(0xfaf7ef), 2, false),
-    pupils: add('pupils', new THREE.SphereGeometry(0.0115, 7, 5), toonMat(0x172036), 2, false),
-    brows: add('brows', new THREE.BoxGeometry(0.055, 0.012, 0.012), toonMat(0x251b25), 2, false),
-    nose: add('nose', new THREE.IcosahedronGeometry(0.04, 1), toonMat(0xffffff), 1, false),
-    mouth: add('mouth', new THREE.BoxGeometry(0.065, 0.014, 0.014), toonMat(0xb84c66), 1, false),
-    glasses: add('glasses', new THREE.TorusGeometry(0.039, 0.0055, 5, 10), toonMat(0x172036), 2, false),
-    upperLegs: add('upper-legs', new THREE.CylinderGeometry(0.075, 0.09, 1, 8), toonMat(0xffffff), 2),
-    lowerLegs: add('lower-legs', new THREE.CylinderGeometry(0.065, 0.078, 1, 8), toonMat(0xffffff), 2),
-    knees: add('knees', new THREE.SphereGeometry(0.078, 8, 6), toonMat(0xffffff), 2),
-    shoes: add('shoes', new THREE.BoxGeometry(0.15, 0.1, 0.3), toonMat(0xffffff), 2),
-    upperArms: add('upper-arms', new THREE.CylinderGeometry(0.055, 0.068, 1, 8), toonMat(0xffffff), 2),
-    lowerArms: add('lower-arms', new THREE.CylinderGeometry(0.047, 0.057, 1, 8), toonMat(0xffffff), 2),
-    elbows: add('elbows', new THREE.SphereGeometry(0.057, 8, 6), toonMat(0xffffff), 2),
-    hands: add('hands', new THREE.CapsuleGeometry(0.05, 0.08, 3, 6), toonMat(0xffffff), 2),
-    thumbs: add('thumbs', new THREE.SphereGeometry(0.026, 7, 5), toonMat(0xffffff), 2, false),
-    bags: add('bags', new THREE.BoxGeometry(0.27, 0.38, 0.12), toonMat(0xffffff)),
-  };
-  batch.skinMeshes = [batch.neck, batch.head, batch.ears, batch.nose, batch.hands, batch.thumbs];
-  batch.hairMeshes = [batch.hair, batch.hairBack, batch.bun];
-  batch.topMeshes = [batch.torso, batch.collar, batch.upperArms, batch.lowerArms, batch.elbows];
-  batch.lowerMeshes = [batch.hips, batch.upperLegs, batch.lowerLegs, batch.knees];
-  return batch;
-}
-
-function colorCharacter(batch, index, { skin, hair, top, lower, accent, shoes }) {
-  for (const mesh of batch.skinMeshes) {
-    if (mesh.userData.instanceMultiplier === 2) {
-      mesh.setColorAt(index * 2, skin);
-      mesh.setColorAt(index * 2 + 1, skin);
-    } else mesh.setColorAt(index, skin);
-  }
-  for (const mesh of batch.hairMeshes) mesh.setColorAt(index, hair);
-  for (const mesh of batch.topMeshes) {
-    if (mesh.userData.instanceMultiplier === 2) {
-      mesh.setColorAt(index * 2, top);
-      mesh.setColorAt(index * 2 + 1, top);
-    } else mesh.setColorAt(index, top);
-  }
-  for (const mesh of batch.lowerMeshes) {
-    if (mesh.userData.instanceMultiplier === 2) {
-      mesh.setColorAt(index * 2, lower);
-      mesh.setColorAt(index * 2 + 1, lower);
-    } else mesh.setColorAt(index, lower);
-  }
-  batch.hats.setColorAt(index, accent);
-  batch.bags.setColorAt(index, accent.clone().multiplyScalar(0.72));
-  batch.shoes.setColorAt(index * 2, shoes);
-  batch.shoes.setColorAt(index * 2 + 1, shoes);
-}
-
-function finishCharacterColors(batch) {
-  for (const mesh of batch.all) if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-}
-
-function setCharacterCount(batch, count) {
-  for (const mesh of batch.all) mesh.count = count * mesh.userData.instanceMultiplier;
-}
-
-function placePart(mesh, index, position, quaternion, scale, dummy) {
-  dummy.position.copy(position);
-  dummy.quaternion.copy(quaternion);
-  if (typeof scale === 'number') dummy.scale.setScalar(scale);
-  else dummy.scale.copy(scale);
-  dummy.updateMatrix();
-  mesh.setMatrixAt(index, dummy.matrix);
-}
-
-function poseCharacter(batch, index, pose, scratch) {
-  const {
-    dummy, axis, root, forward, right, start, middle, end, delta, temp, scale, yaw,
-  } = scratch;
-  const { x, y, z, heading, h, cycle, walking, style } = pose;
-  root.set(x, y, z);
-  forward.set(Math.sin(heading), 0, Math.cos(heading));
-  right.set(forward.z, 0, -forward.x);
-  yaw.setFromAxisAngle(axis, heading);
-  const gait = walking ? Math.sin(cycle) : 0;
-  const bob = walking ? Math.abs(gait) * 0.018 * h : Math.sin(cycle * 0.42) * 0.008 * h;
-  const width = [0.9, 0.98, 1.07, 0.94][style % 4];
-
-  start.set(x, y + 1.15 * h + bob, z);
-  scale.set(h * width, h, h * (style % 3 === 0 ? 1.06 : 0.96));
-  placePart(batch.torso, index, start, yaw, scale, dummy);
-  start.set(x, y + 0.87 * h, z);
-  scale.set(h * width, h, h);
-  placePart(batch.hips, index, start, yaw, scale, dummy);
-  start.copy(root).addScaledVector(forward, 0.205 * h);
-  start.y = y + 1.43 * h;
-  scale.set(h * width, h, h);
-  placePart(batch.collar, index, start, yaw, scale, dummy);
-  start.set(x, y + 1.51 * h, z);
-  placePart(batch.neck, index, start, yaw, h, dummy);
-
-  const headY = y + 1.72 * h + bob;
-  start.set(x, headY, z);
-  scale.set(h * (style % 3 === 1 ? 1.04 : 0.97), h, h);
-  placePart(batch.head, index, start, yaw, scale, dummy);
-  for (const side of [-1, 1]) {
-    const pairIndex = index * 2 + (side > 0 ? 1 : 0);
-    start.set(x, headY, z).addScaledVector(right, side * 0.178 * h);
-    placePart(batch.ears, pairIndex, start, yaw, h, dummy);
-  }
-  start.set(x, headY + 0.105 * h, z).addScaledVector(forward, -0.018 * h);
-  scale.set(h, h * 0.76, h);
-  placePart(batch.hair, index, start, yaw, scale, dummy);
-  start.set(x, headY + 0.01 * h, z).addScaledVector(forward, -0.105 * h);
-  scale.set(style % 3 === 0 ? h : 0.001, style % 3 === 0 ? h * 1.3 : 0.001, style % 3 === 0 ? h * 0.72 : 0.001);
-  placePart(batch.hairBack, index, start, yaw, scale, dummy);
-  start.set(x, headY + 0.16 * h, z).addScaledVector(forward, -0.12 * h);
-  placePart(batch.bun, index, start, yaw, style % 5 === 0 ? h : 0.001, dummy);
-  start.set(x, headY + 0.205 * h, z);
-  scale.set(style % 7 === 0 ? h : 0.001, style % 7 === 0 ? h : 0.001, style % 7 === 0 ? h : 0.001);
-  placePart(batch.hats, index, start, yaw, scale, dummy);
-
-  for (const side of [-1, 1]) {
-    const pairIndex = index * 2 + (side > 0 ? 1 : 0);
-    start.set(x, headY + 0.035 * h, z)
-      .addScaledVector(right, side * 0.058 * h)
-      .addScaledVector(forward, 0.166 * h);
-    placePart(batch.eyes, pairIndex, start, yaw, h, dummy);
-    start.addScaledVector(forward, 0.024 * h);
-    placePart(batch.pupils, pairIndex, start, yaw, h, dummy);
-    start.set(x, headY + 0.105 * h, z)
-      .addScaledVector(right, side * 0.058 * h)
-      .addScaledVector(forward, 0.174 * h);
-    scale.set(h, h, h);
-    placePart(batch.brows, pairIndex, start, yaw, scale, dummy);
-    start.set(x, headY + 0.035 * h, z)
-      .addScaledVector(right, side * 0.058 * h)
-      .addScaledVector(forward, 0.198 * h);
-    scale.set(style % 4 === 0 ? h : 0.001, style % 4 === 0 ? h : 0.001, style % 4 === 0 ? h : 0.001);
-    placePart(batch.glasses, pairIndex, start, yaw, scale, dummy);
-  }
-  start.set(x, headY - 0.012 * h, z).addScaledVector(forward, 0.184 * h);
-  scale.set(h * 0.7, h * 0.9, h * 1.15);
-  placePart(batch.nose, index, start, yaw, scale, dummy);
-  start.set(x, headY - 0.09 * h, z).addScaledVector(forward, 0.178 * h);
-  placePart(batch.mouth, index, start, yaw, h, dummy);
-
-  for (const side of [-1, 1]) {
-    const pairIndex = index * 2 + (side > 0 ? 1 : 0);
-    const legCycle = cycle + (side > 0 ? 0 : Math.PI);
-    const stride = walking ? Math.sin(legCycle) * 0.27 * h : side * 0.018 * h;
-    const lift = walking ? Math.max(0, Math.cos(legCycle)) * 0.085 * h : 0;
-    start.set(x, y + 0.82 * h, z).addScaledVector(right, side * 0.105 * h);
-    end.set(x, y + 0.105 * h + lift, z)
-      .addScaledVector(right, side * 0.115 * h)
-      .addScaledVector(forward, stride);
-    middle.copy(start).lerp(end, 0.5).addScaledVector(forward, (0.105 + Math.max(0, -stride) * 0.18) * h);
-    middle.y += 0.045 * h;
-    setSegment(batch.upperLegs, pairIndex, start, middle, dummy, axis, delta, h);
-    setSegment(batch.lowerLegs, pairIndex, middle, end, dummy, axis, delta, h);
-    placePart(batch.knees, pairIndex, middle, yaw, h, dummy);
-    start.copy(end).addScaledVector(forward, 0.085 * h);
-    start.y = y + 0.06 * h + lift;
-    scale.set(h, h, h);
-    placePart(batch.shoes, pairIndex, start, yaw, scale, dummy);
-
-    const armSwing = walking ? -Math.sin(legCycle) * 0.19 * h : (style % 2 ? 0.055 : -0.015) * h;
-    start.set(x, y + 1.38 * h + bob, z).addScaledVector(right, side * 0.245 * h);
-    end.set(x, y + (walking ? 0.9 : 0.96 + (style % 3) * 0.025) * h, z)
-      .addScaledVector(right, side * 0.285 * h)
-      .addScaledVector(forward, armSwing);
-    middle.copy(start).lerp(end, 0.48)
-      .addScaledVector(right, side * 0.035 * h)
-      .addScaledVector(forward, 0.055 * h);
-    setSegment(batch.upperArms, pairIndex, start, middle, dummy, axis, delta, h);
-    setSegment(batch.lowerArms, pairIndex, middle, end, dummy, axis, delta, h);
-    placePart(batch.elbows, pairIndex, middle, yaw, h, dummy);
-    delta.subVectors(end, middle).normalize();
-    temp.copy(end).addScaledVector(delta, 0.105 * h);
-    setSegment(batch.hands, pairIndex, end, temp, dummy, axis, scratch.delta2, h);
-    start.copy(end).lerp(temp, 0.62).addScaledVector(right, side * 0.045 * h).addScaledVector(forward, 0.012 * h);
-    placePart(batch.thumbs, pairIndex, start, yaw, h, dummy);
-  }
-
-  const bagSide = style % 2 ? 1 : -1;
-  start.copy(root).addScaledVector(right, bagSide * 0.275 * h).addScaledVector(forward, -0.025 * h);
-  start.y = y + 1.03 * h;
-  scale.set(style % 3 === 0 ? h : 0.001, style % 3 === 0 ? h : 0.001, style % 3 === 0 ? h : 0.001);
-  placePart(batch.bags, index, start, yaw, scale, dummy);
-}
-
-function updateCharacterMatrices(batch) {
-  for (const mesh of batch.all) mesh.instanceMatrix.needsUpdate = true;
-}
-
-class AmbientCrowd {
-  constructor(scene, { lowPower = false } = {}) {
-    this.scene = scene;
-    this.capacity = lowPower ? 26 : 52;
-    this.density = this.capacity;
-    this.people = [];
-    this.time = 0;
-    this.dummy = new THREE.Object3D();
-    this.axis = new THREE.Vector3(0, 1, 0);
-    this.colliders = [];
-    this.scratch = {
-      dummy: this.dummy, axis: this.axis,
-      forward: new THREE.Vector3(), right: new THREE.Vector3(),
-      start: new THREE.Vector3(), middle: new THREE.Vector3(), end: new THREE.Vector3(),
-      root: new THREE.Vector3(), temp: new THREE.Vector3(),
-      delta: new THREE.Vector3(), delta2: new THREE.Vector3(),
-      scale: new THREE.Vector3(), yaw: new THREE.Quaternion(), candidate: new THREE.Vector3(),
-    };
-    this.makeMeshes();
-    this.makePeople();
-    this.update(0, 0);
-  }
-
-  makeMeshes() {
-    this.batch = createCharacterBatch(this.scene, this.capacity, 'ambient-cbd-crowd', true);
-  }
-
-  makePeople() {
-    for (let i = 0; i < this.capacity; i++) {
-      const hub = i < Math.floor(this.capacity * 0.38);
-      const lineIndex = i % RADIALS.length;
-      const side = i % 2 ? 1 : -1;
-      const person = {
-        position: new THREE.Vector3(),
-        hub,
-        lineIndex,
-        side,
-        d: 36 + ((i * 47) % Math.floor(BOULEVARD.carEndD - 54)),
-        routeDir: i % 4 < 2 ? 1 : -1,
-        speed: 0.68 + (i % 7) * 0.09,
-        radius: 12.4 + (i % 4) * 1.85,
-        angle: (i * 2.399) % (Math.PI * 2),
-        phase: (i * 1.731) % (Math.PI * 2),
-        height: 0.92 + (i % 6) * 0.025,
-        collisionRadius: 0.31,
-      };
-      person.position.collisionRadius = person.collisionRadius;
-      this.people.push(person);
-      const cloth = new THREE.Color(CLOTH[i % CLOTH.length]);
-      const lower = cloth.clone().lerp(new THREE.Color(0x14233b), 0.55);
-      const skin = new THREE.Color(SKIN[i % SKIN.length]);
-      colorCharacter(this.batch, i, {
-        skin,
-        hair: new THREE.Color([0x191725, 0x3b2722, 0x6b4431, 0xd7c0a5, 0x8d352a][i % 5]),
-        top: cloth,
-        lower,
-        accent: new THREE.Color(CLOTH[(i + 3) % CLOTH.length]),
-        shoes: new THREE.Color([0x101522, 0xeee8dc, 0x422d4c][i % 3]),
-      });
+// Hub routes: a ring around the plaza plus a loop out and back along each
+// boulevard. Agents follow these instead of solving avoidance every frame.
+export function hubRoutes() {
+  const routes = [];
+  for (const radius of [12.6, 15.4, 18.2]) {
+    const points = [];
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      points.push({ x: Math.cos(a) * radius, z: Math.sin(a) * radius });
     }
-    finishCharacterColors(this.batch);
+    routes.push(makeRoute(points));
   }
-
-  setDensity(value) {
-    this.density = THREE.MathUtils.clamp(value | 0, 0, this.capacity);
-    setCharacterCount(this.batch, this.density);
-  }
-
-  setColliders(colliders) { this.colliders = colliders || []; }
-
-  routePosition(person, index, angle, distance, target) {
-    if (person.hub) {
-      target.set(Math.cos(angle) * person.radius, 0, Math.sin(angle) * person.radius);
-    } else {
-      const line = RADIALS[person.lineIndex];
-      const dirX = Math.cos(line.angle), dirZ = -Math.sin(line.angle);
-      const lat = person.side * (5.4 + (index % 4) * 0.2);
-      target.set(dirX * distance - dirZ * lat, 0, dirZ * distance + dirX * lat);
+  for (const line of RADIALS) {
+    const dirX = Math.cos(line.angle), dirZ = -Math.sin(line.angle);
+    for (const side of [-1, 1]) {
+      const lat = side * 5.6;
+      const near = 30, far = Math.min(BOULEVARD.carEndD - 8, 210);
+      routes.push(makeRoute([
+        { x: dirX * near - dirZ * lat, z: dirZ * near + dirX * lat },
+        { x: dirX * far - dirZ * lat, z: dirZ * far + dirX * lat },
+        { x: dirX * far - dirZ * (lat + side * 1.4), z: dirZ * far + dirX * (lat + side * 1.4) },
+        { x: dirX * near - dirZ * (lat + side * 1.4), z: dirZ * near + dirX * (lat + side * 1.4) },
+      ]));
     }
-    return target;
   }
-
-  personBlocksRoute(person, index, candidate, padding = 0.12) {
-    for (let otherIndex = 0; otherIndex < this.density; otherIndex++) {
-      if (otherIndex === index) continue;
-      const other = this.people[otherIndex];
-      const minDistance = person.collisionRadius + other.collisionRadius + padding;
-      const dx = candidate.x - other.position.x;
-      const dz = candidate.z - other.position.z;
-      if (dx * dx + dz * dz < minDistance * minDistance) return true;
-    }
-    return false;
-  }
-
-  routeIsOpen(person, index, candidate) {
-    return !circleHitsAABB(candidate.x, candidate.z, person.collisionRadius, this.colliders)
-      && !this.personBlocksRoute(person, index, candidate);
-  }
-
-  findOpenRoute(person, index, candidate) {
-    const baseAngle = person.angle;
-    const baseDistance = person.d;
-    for (let attempt = 0; attempt < 28; attempt++) {
-      const ring = Math.floor(attempt / 2) + 1;
-      const direction = attempt % 2 ? -1 : 1;
-      const angle = baseAngle + direction * ring * 0.16;
-      const distance = THREE.MathUtils.clamp(baseDistance + direction * ring * 2.8, 31, BOULEVARD.carEndD - 7);
-      this.routePosition(person, index, angle, distance, candidate);
-      if (this.routeIsOpen(person, index, candidate)) {
-        if (person.hub) person.angle = angle;
-        else person.d = distance;
-        return true;
-      }
-    }
-    return false;
-  }
-
-  update(t, dt) {
-    this.time = t;
-    const { candidate } = this.scratch;
-    for (let i = 0; i < this.density; i++) {
-      const p = this.people[i];
-      let heading;
-      if (p.hub) {
-        let nextAngle = p.angle + dt * p.speed / p.radius * p.routeDir;
-        this.routePosition(p, i, nextAngle, p.d, candidate);
-        const staticBlocked = circleHitsAABB(candidate.x, candidate.z, p.collisionRadius, this.colliders);
-        const personBlocked = this.personBlocksRoute(p, i, candidate);
-        if (staticBlocked) {
-          p.routeDir *= -1;
-          if (!this.findOpenRoute(p, i, candidate)) candidate.copy(p.position);
-        } else if (personBlocked) {
-          p.routeDir *= -1;
-          nextAngle = p.angle + dt * p.speed / p.radius * p.routeDir;
-          this.routePosition(p, i, nextAngle, p.d, candidate);
-          if (this.routeIsOpen(p, i, candidate)) p.angle = nextAngle;
-          else candidate.copy(p.position);
-        } else p.angle = nextAngle;
-        p.position.copy(candidate);
-        heading = p.angle + (p.routeDir > 0 ? -Math.PI / 2 : Math.PI / 2);
-      } else {
-        let nextD = p.d + dt * p.speed * p.routeDir;
-        if (nextD > BOULEVARD.carEndD - 7) { nextD = BOULEVARD.carEndD - 7; p.routeDir = -1; }
-        if (nextD < 31) { nextD = 31; p.routeDir = 1; }
-        this.routePosition(p, i, p.angle, nextD, candidate);
-        const staticBlocked = circleHitsAABB(candidate.x, candidate.z, p.collisionRadius, this.colliders);
-        const personBlocked = this.personBlocksRoute(p, i, candidate);
-        if (staticBlocked) {
-          p.routeDir *= -1;
-          if (!this.findOpenRoute(p, i, candidate)) candidate.copy(p.position);
-        } else if (personBlocked) {
-          p.routeDir *= -1;
-          nextD = p.d + dt * p.speed * p.routeDir;
-          this.routePosition(p, i, p.angle, nextD, candidate);
-          if (this.routeIsOpen(p, i, candidate)) p.d = nextD;
-          else candidate.copy(p.position);
-        } else p.d = nextD;
-        p.position.copy(candidate);
-        const line = RADIALS[p.lineIndex];
-        const dirX = Math.cos(line.angle), dirZ = -Math.sin(line.angle);
-        heading = Math.atan2(dirX * p.routeDir, dirZ * p.routeDir);
-      }
-      const ground = heightAt(p.position.x, p.position.z);
-      p.position.y = ground;
-      poseCharacter(this.batch, i, {
-        x: p.position.x, y: ground, z: p.position.z, heading, h: p.height,
-        cycle: t * (5.2 + p.speed) + p.phase, walking: true, style: i,
-      }, this.scratch);
-    }
-    updateCharacterMatrices(this.batch);
-  }
+  return routes;
 }
 
 export class CityLife {
-  constructor(scene, { lowPower = false } = {}) {
+  // crowd is the shared GPU crowd owned by main.js; CityLife just populates the
+  // hub share of it. people stays empty by design — ambient walkers step around
+  // the player themselves rather than joining an O(n) collision list.
+  constructor(scene, { lowPower = false, crowd = null } = {}) {
     this.scene = scene;
     this.lowPower = lowPower;
     this.group = new THREE.Group();
@@ -721,25 +343,33 @@ export class CityLife {
     this.scene.add(this.group);
     this.colliderObjects = this.group.userData.colliderObjects || [];
     this.colliderBoxes = this.group.userData.colliderBoxes || [];
-    this.crowd = new AmbientCrowd(scene, { lowPower });
     this.people = [];
-    this.syncPeople();
-  }
-
-  syncPeople() {
-    this.people.length = 0;
-    for (let i = 0; i < this.crowd.density; i++) this.people.push(this.crowd.people[i].position);
+    this.crowd = crowd;
+    this.routes = hubRoutes();
+    this.agents = [];
+    this.setDensity(lowPower ? 26 : 60);
   }
 
   setDensity(value) {
-    this.crowd.setDensity(value);
-    this.syncPeople();
+    if (!this.crowd) return;
+    const want = Math.max(0, value | 0);
+    while (this.agents.length > want) this.crowd.despawn(this.agents.pop());
+    while (this.agents.length < want) {
+      const route = this.routes[this.agents.length % this.routes.length];
+      const agent = this.crowd.spawn({
+        route,
+        speed: 0.95 + Math.random() * 0.6,
+        height: 0.93 + Math.random() * 0.16,
+        dialect: 'hub',
+      });
+      if (!agent) break;
+      this.agents.push(agent);
+    }
   }
 
-  setColliders(colliders) { this.crowd.setColliders(colliders); }
+  setColliders() { /* routes are authored clear of the hub furniture */ }
 
   update(t, dt) {
-    this.crowd.update(t, dt);
     for (const item of this.animated) item.userData.update?.(t, dt);
   }
 }
@@ -837,117 +467,86 @@ export function buildDistrictLife(rng, {
   g.userData.colliderBoxes = [];
   const accentHex = accent instanceof THREE.Color ? accent.getHex() : accent;
   const secondaryHex = secondary instanceof THREE.Color ? secondary.getHex() : secondary;
+  // Every cart, table, chair and parasol on this block merges into two meshes.
+  // These were eleven InstancedMesh objects holding two to twelve instances
+  // each, which is the worst of both worlds: instancing overhead with none of
+  // the amortisation.
+  const props = new GeoBatch();
+  const chrome = [];
+  const neonBits = new GeoBatch();
+  const box = (w, h, d, x, y, z, yaw = 0, s = 1) => {
+    const geo = new THREE.BoxGeometry(w * s, h * s, d * s);
+    if (yaw) geo.rotateY(yaw);
+    return geo.translate(x, y, z);
+  };
   const cartSlots = lowPower ? [-10.5] : [-12.2, 12.2];
-  const cartCount = cartSlots.length;
-  const body = new THREE.InstancedMesh(new THREE.BoxGeometry(2.25, 1.08, 1.2), toonMat(0xffffff), cartCount);
-  const counter = new THREE.InstancedMesh(
-    new THREE.BoxGeometry(2.5, 0.12, 1.42),
-    new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.84, roughness: 0.24 }),
-    cartCount,
-  );
-  const canopy = new THREE.InstancedMesh(new THREE.BoxGeometry(2.55, 0.15, 1.55), toonMat(0xffffff), cartCount);
-  const menu = new THREE.InstancedMesh(new THREE.BoxGeometry(1.5, 0.48, 0.08), neonMat(accentHex, 0.88), cartCount);
-  const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.045, 0.055, 2.15, 6), toonMat(0x32425a), cartCount * 4);
-  const wheels = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.28, 0.28, 0.14, 10), toonMat(0x101522), cartCount * 2);
-  const goods = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.13, 0), toonMat(0xffffff), cartCount * 8);
-  const tableSlots = lowPower ? [7.2] : [-7.5, 7.5];
-  const tables = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.48, 0.48, 0.1, 10), toonMat(0xbecbd6), tableSlots.length);
-  const masts = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035, 0.045, 2.1, 6), toonMat(0x1b2941), tableSlots.length);
-  const umbrellas = new THREE.InstancedMesh(new THREE.ConeGeometry(0.92, 0.38, 10), toonMat(accentHex), tableSlots.length);
-  const chairs = new THREE.InstancedMesh(new THREE.BoxGeometry(0.46, 0.5, 0.45), toonMat(0x1b2941), tableSlots.length * 2);
-  const dummy = new THREE.Object3D();
   const colors = [accentHex, secondaryHex, 0xffb84d];
   const goodsColors = [0xff6f91, 0x4deeea, 0xffb84d, 0xe6e0d6, 0x43c59e];
-  const set = (mesh, index, x, y, z, yaw = 0, scale = 1) => {
-    dummy.position.set(x, y, z);
-    dummy.rotation.set(0, yaw, 0);
-    dummy.scale.setScalar(scale);
-    dummy.updateMatrix();
-    mesh.setMatrixAt(index, dummy.matrix);
-  };
-  let poleIndex = 0, wheelIndex = 0, goodsIndex = 0;
   cartSlots.forEach((slot, index) => {
     const x = slot + (rng() - 0.5) * 0.9;
     const z = nearEdge + 0.72;
     const yaw = Math.PI + (rng() - 0.5) * 0.12;
-    set(body, index, x, 0.72, z, yaw, 0.66);
-    set(counter, index, x, 1.11, z, yaw, 0.66);
-    set(canopy, index, x, 2.55, z, yaw, 0.66);
-    set(menu, index, x, 2.05, z - 0.44, yaw, 0.66);
     g.userData.colliderBoxes.push({
       localX: x, localZ: z, hw: 0.92, hd: 0.62, source: `${code}-vendor-cart`,
     });
-    body.setColorAt(index, new THREE.Color(colors[(index + 1) % colors.length]).multiplyScalar(0.64));
-    canopy.setColorAt(index, new THREE.Color(colors[index % colors.length]));
+    props.add(box(2.25, 1.08, 1.2, x, 0.72, z, yaw, 0.66),
+      new THREE.Color(colors[(index + 1) % colors.length]).multiplyScalar(0.64));
+    chrome.push(box(2.5, 0.12, 1.42, x, 1.11, z, yaw, 0.66));
+    props.add(box(2.55, 0.15, 1.55, x, 2.55, z, yaw, 0.66),
+      new THREE.Color(colors[index % colors.length]));
+    neonBits.add(box(1.5, 0.48, 0.08, x, 2.05, z - 0.44, yaw, 0.66), accentHex);
     for (const px of [-0.72, 0.72]) for (const pz of [-0.38, 0.38]) {
-      set(poles, poleIndex++, x + px, 1.77, z + pz, 0, 0.66);
+      props.add(new THREE.CylinderGeometry(0.045, 0.055, 2.15, 6)
+        .scale(0.66, 0.66, 0.66).translate(x + px, 1.77, z + pz), 0x32425a);
     }
     for (const wx of [-0.72, 0.72]) {
-      dummy.position.set(x + wx, 0.3, z + 0.42);
-      dummy.rotation.set(0, yaw, Math.PI / 2);
-      dummy.scale.setScalar(0.66);
-      dummy.updateMatrix();
-      wheels.setMatrixAt(wheelIndex++, dummy.matrix);
+      props.add(new THREE.CylinderGeometry(0.28, 0.28, 0.14, 10)
+        .rotateZ(Math.PI / 2).scale(0.66, 0.66, 0.66)
+        .translate(x + wx, 0.3, z + 0.42), 0x101522);
     }
     for (let item = 0; item < 8; item++) {
-      set(goods, goodsIndex, x - 0.65 + (item % 4) * 0.43, 1.22 + (item % 2) * 0.08, z - 0.25 + Math.floor(item / 4) * 0.38, 0, 0.66);
-      goods.setColorAt(goodsIndex++, new THREE.Color(goodsColors[(item + index * 2) % goodsColors.length]));
+      props.add(new THREE.IcosahedronGeometry(0.13, 0).scale(0.66, 0.66, 0.66)
+        .translate(x - 0.65 + (item % 4) * 0.43, 1.22 + (item % 2) * 0.08,
+          z - 0.25 + Math.floor(item / 4) * 0.38),
+        goodsColors[(item + index * 2) % goodsColors.length]);
     }
   });
+  const tableSlots = lowPower ? [7.2] : [-7.5, 7.5];
   tableSlots.forEach((x, index) => {
     const z = nearEdge + 2.45;
     g.userData.colliderBoxes.push({
       localX: x, localZ: z, hw: 1.12, hd: 0.68, source: `${code}-cafe-table`,
     });
-    set(tables, index, x, 0.75, z);
-    set(masts, index, x, 1.43, z);
-    dummy.position.set(x, 2.42, z);
-    dummy.rotation.set(Math.PI, 0, 0);
-    dummy.scale.setScalar(1);
-    dummy.updateMatrix();
-    umbrellas.setMatrixAt(index, dummy.matrix);
-    for (const side of [-1, 1]) set(chairs, index * 2 + (side > 0 ? 1 : 0), x + side * 0.72, 0.25, z);
+    props.add(new THREE.CylinderGeometry(0.48, 0.48, 0.1, 10).translate(x, 0.75, z), 0xbecbd6);
+    props.add(new THREE.CylinderGeometry(0.035, 0.045, 2.1, 6).translate(x, 1.43, z), 0x1b2941);
+    props.add(new THREE.ConeGeometry(0.92, 0.38, 10).rotateX(Math.PI).translate(x, 2.42, z), accentHex);
+    for (const side of [-1, 1]) props.add(box(0.46, 0.5, 0.45, x + side * 0.72, 0.25, z), 0x1b2941);
   });
-  for (const mesh of [body, counter, canopy, menu, poles, wheels, goods, tables, masts, umbrellas, chairs]) {
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.castShadow = true;
-    g.add(mesh);
+  const propMesh = props.build(toonVertexMat(), { name: `${code}-street-props` });
+  if (propMesh) g.add(propMesh);
+  const neonMesh = neonBits.build(new THREE.MeshBasicMaterial({
+    vertexColors: true, transparent: true, opacity: 0.88, toneMapped: false,
+  }), { castShadow: false, receiveShadow: false, name: `${code}-street-neon` });
+  if (neonMesh) g.add(neonMesh);
+  if (chrome.length) {
+    const chromeMesh = new THREE.Mesh(
+      mergeGeometries(chrome, false),
+      new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.84, roughness: 0.24 }),
+    );
+    chrome.forEach((c) => c.dispose());
+    chromeMesh.castShadow = true;
+    g.add(chromeMesh);
   }
-  for (const mesh of [body, canopy, goods]) if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
 
-  const patronSlots = lowPower ? [-7.5, 7.5] : [-17, -9, -4, 4, 9, 17];
-  const patronCount = patronSlots.length;
-  const patrons = createCharacterBatch(g, patronCount, 'district-patron', false);
-  const patronScratch = {
-    dummy: new THREE.Object3D(), axis: new THREE.Vector3(0, 1, 0), root: new THREE.Vector3(),
-    forward: new THREE.Vector3(), right: new THREE.Vector3(), start: new THREE.Vector3(),
-    middle: new THREE.Vector3(), end: new THREE.Vector3(), temp: new THREE.Vector3(),
-    delta: new THREE.Vector3(), delta2: new THREE.Vector3(), scale: new THREE.Vector3(),
-    yaw: new THREE.Quaternion(),
-  };
-  patronSlots.forEach((x, index) => {
-    const z = nearEdge + 3.1 + (index % 2) * 0.55;
-    const h = 0.92 + (index % 3) * 0.04;
-    g.userData.colliderBoxes.push({
-      localX: x, localZ: z, hw: 0.34, hd: 0.34, source: `${code}-patron`,
-    });
-    const cloth = new THREE.Color(CLOTH[(index + Math.floor(rng() * CLOTH.length)) % CLOTH.length]);
-    const skin = new THREE.Color(SKIN[(index + 2) % SKIN.length]);
-    colorCharacter(patrons, index, {
-      skin,
-      hair: new THREE.Color([0x191725, 0x3b2722, 0x6b4431, 0xd7c0a5][(index + 1) % 4]),
-      top: cloth,
-      lower: cloth.clone().lerp(new THREE.Color(0x1a2940), 0.58),
-      accent: new THREE.Color(index % 2 ? accentHex : secondaryHex),
-      shoes: new THREE.Color(index % 3 === 0 ? 0xe7e1d5 : 0x111828),
-    });
-    poseCharacter(patrons, index, {
-      x, y: 0, z, heading: index % 2 ? -0.5 : 0.5, h,
-      cycle: index * 1.7, walking: false, style: index + 2,
-    }, patronScratch);
-  });
-  finishCharacterColors(patrons);
-  updateCharacterMatrices(patrons);
+  // Patrons used to be 27 InstancedMesh objects PER DISTRICT posed on the CPU.
+  // The district now just publishes where people should stand; the shared GPU
+  // crowd fills those spots, so a busy cafe terrace costs no extra draw calls.
+  g.userData.patronSlots = (lowPower ? [-7.5, 7.5] : [-17, -9, -4, 4, 9, 17])
+    .map((x, index) => ({
+      x, z: nearEdge + 3.1 + (index % 2) * 0.55,
+      heading: index % 2 ? -0.5 : 0.5,
+      height: 0.92 + (index % 3) * 0.04,
+    }));
   addParkedFleet(g, rng, {
     accent: accentHex, secondary: secondaryHex, code, lowPower, roadLayout,
   });

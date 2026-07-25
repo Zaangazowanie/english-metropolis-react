@@ -2,14 +2,15 @@
 // architecture tinted from each zone's palette, station signs, streaming, and
 // player zone detection. Content comes from src/gamedata/zones.json.
 import * as THREE from 'three';
-import { toonMat, blobShadow, PALETTE } from './materials.js';
+import { toonMat, toonVertexMat, GeoBatch, bakeVertexAO, addWetStreets, blobShadow, PALETTE } from './materials.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { assignGrammar, grammarForLap } from './grammar.js';
 import { instanceRig } from './rig.js';
 import { attachMarker } from './markers.js';
 import { BOULEVARD } from './transit-layout.js';
 import { buildDistrictLife } from './city-life.js';
-import { accentProfileFor, districtCastFor } from './dialects.js';
+import { makeRoute } from './crowd.js';
+import { accentProfileFor, districtCastFor, streetLocalFor } from './dialects.js';
 
 export const LINES = {
   isles:   { angle: Math.PI / 2,                    label: 'THE ISLES LINE',   color: 0x4deeea },
@@ -73,15 +74,18 @@ function addNpcSignature(wrap, seed, tint) {
 }
 
 export class ZoneManager {
-  constructor(scene, { lowPower = false, compactTouch = false } = {}) {
+  constructor(scene, { lowPower = false, compactTouch = false, quality = null } = {}) {
     this.scene = scene;
     this.lowPower = lowPower;
     this.compactTouch = compactTouch;
+    this.quality = quality;                 // quality.js settings, may be null
+    this.vertexAO = quality ? quality.vertexAO : true;
     this.zones = [];          // computed defs { data, center, stopPos, dir, side, chunk|null }
     this.current = null;      // zone the player stands in
     this.onEnter = null;      // callback(zoneDef)
     this._colliderTag = new Map();
     this._npcTag = new Map(); // zoneCode -> spawned npc entries
+    this._crowdTag = new Map(); // zoneCode -> spawned crowd agents
     this.world = null;        // bound World (npc registry lives there)
     this.npcBase = null;      // rigged template { scene, animations } (Xbot)
     this.hubNpcs = [];        // hub teacher entries (their circuit code is 'hub')
@@ -102,6 +106,7 @@ export class ZoneManager {
   }
 
   bindWorld(world) { this.world = world; }
+  setCrowd(crowd) { this.crowd = crowd; }
   setNPCBase(gltf) { this.npcBase = gltf; }              // legacy (rigged single base)
   setNPCBases(models) { this.npcBases = models; }        // array of Meshy character scenes
 
@@ -232,8 +237,10 @@ export class ZoneManager {
 
   update(playerPos, colliders) {
     const p = new THREE.Vector2(playerPos.x, playerPos.z);
-    const buildRadius = this.compactTouch ? 66 : (this.lowPower ? 84 : R_BUILD);
-    const disposeRadius = this.compactTouch ? 98 : (this.lowPower ? 124 : R_DISPOSE);
+    const buildRadius = this.quality?.buildRadius
+      ?? (this.compactTouch ? 66 : (this.lowPower ? 84 : R_BUILD));
+    const disposeRadius = this.quality?.disposeRadius
+      ?? (this.compactTouch ? 98 : (this.lowPower ? 124 : R_DISPOSE));
     for (const z of this.zones) {
       const d = p.distanceTo(z.center);
       if (!z.chunk && d < buildRadius) this.buildChunk(z, colliders);
@@ -253,9 +260,16 @@ export class ZoneManager {
     const g = new THREE.Group();
     const pal = z.data.palette;
     const lineColor = new THREE.Color(z.line.color);
-    const cPrimary = new THREE.Color(pal.primary).lerp(new THREE.Color(0xdce4e8), 0.38);
-    const cSecondary = new THREE.Color(pal.secondary).lerp(new THREE.Color(0xd7b7b0), 0.28);
-    const cAccent = new THREE.Color(pal.accent).lerp(lineColor, 0.46);
+    // The line colour is WAYFINDING, not architecture. Bleeding it 46% into the
+    // accent (and from there into every wall tone) turned cream Georgian
+    // terraces on the Isles line teal and made all 44 districts converge on
+    // three colours. Keep the authored palette on the buildings and save the
+    // line colour for signage and the vertical lightblades, where it reads as
+    // "this is the Isles line" instead of "this is what stone looks like".
+    const cPrimary = new THREE.Color(pal.primary).lerp(new THREE.Color(0xdce4e8), 0.18);
+    const cSecondary = new THREE.Color(pal.secondary).lerp(new THREE.Color(0xd7b7b0), 0.22);
+    const cAccent = new THREE.Color(pal.accent).lerp(lineColor, 0.14);
+    const cLine = new THREE.Color(pal.accent).lerp(lineColor, 0.72);   // signage only
     const cRoof = new THREE.Color(pal.roof).lerp(new THREE.Color(PALETTE.ink), 0.52);
 
     // district ground: concrete pavement with only a hint of the zone's colour
@@ -267,48 +281,39 @@ export class ZoneManager {
     const districtHalfWidth = districtWidth / 2;
     const districtDepth = farEdge - nearEdge;
     const districtMid = (farEdge + nearEdge) / 2;
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(districtWidth, districtDepth),
-      toonMat(new THREE.Color(PALETTE.plaza).lerp(cPrimary, 0.15))
-    );
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.set(0, 0.03, districtMid);
-    ground.receiveShadow = true;
-    g.add(ground);
+    // Every flat surface in the district — pavement, paving seams, sidewalk
+    // ring, curbs, carriageways, shoulders and lane paint — accumulates into ONE
+    // vertex-coloured mesh. This used to be ~30 separate draw calls per district.
+    const surfaces = new GeoBatch();
+    const flat = (w, d, x, y, zz, color, yaw = 0) => {
+      const geo = new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2);
+      if (yaw) geo.rotateY(yaw);
+      geo.translate(x, y, zz);
+      surfaces.add(geo, color);
+    };
+
+    flat(districtWidth, districtDepth, 0, 0.03, districtMid,
+      new THREE.Color(PALETTE.plaza).lerp(cPrimary, 0.15));
     for (let stripe = -2; stripe <= 2; stripe++) {
-      const pavingLine = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.11, districtDepth - 1.2),
-        toonMat(stripe % 2 ? cAccent.clone().multiplyScalar(0.72) : new THREE.Color(PALETTE.curb)),
-      );
-      pavingLine.rotation.x = -Math.PI / 2;
-        pavingLine.position.set(stripe * 8, 0.041, districtMid);
-      g.add(pavingLine);
+      flat(0.11, districtDepth - 1.2, stripe * 8, 0.041, districtMid,
+        stripe % 2 ? cAccent.clone().multiplyScalar(0.72) : new THREE.Color(PALETTE.curb));
     }
     // sidewalk ring + curb line around the block
-    const walkMat = toonMat(PALETTE.sidewalk);
-    const curbMat = toonMat(PALETTE.curb);
     for (const [w, d, x, zz] of [
       [districtWidth, 3.0, 0, nearEdge - 0.3],
       [districtWidth, 2.6, 0, farEdge + 1.3],
       [2.6, districtDepth, -(districtHalfWidth + 1.3), districtMid],
       [2.6, districtDepth, districtHalfWidth + 1.3, districtMid],
     ]) {
-      const walk = new THREE.Mesh(new THREE.PlaneGeometry(w, d), walkMat);
-      walk.rotation.x = -Math.PI / 2;
-      walk.position.set(x, 0.032, zz);
-      g.add(walk);
-      const curb = new THREE.Mesh(new THREE.PlaneGeometry(w === districtWidth ? districtWidth : 0.45, w === districtWidth ? 0.45 : districtDepth), curbMat);
-      curb.rotation.x = -Math.PI / 2;
-      curb.position.set(x, 0.034, zz);
-      g.add(curb);
+      flat(w, d, x, 0.032, zz, PALETTE.sidewalk);
+      flat(w === districtWidth ? districtWidth : 0.45, w === districtWidth ? 0.45 : districtDepth,
+        x, 0.034, zz, PALETTE.curb);
     }
 
     // A compact street hierarchy turns every streamed dialect region into real
     // blocks. The outer parallels, cross streets and diagonal carry two-way
     // traffic; the narrower centre street is a clearly arrowed one-way route.
     // Road paint is raised above the asphalt so it cannot z-fight or flash.
-    const streets = new THREE.Group();
-    streets.name = `${z.data.code}-street-grid`;
     const roadLayout = {
       twoWayWidth: 6.4,
       oneWayWidth: 4.2,
@@ -320,47 +325,28 @@ export class ZoneManager {
       markingClearance: 0.015,
       oneWayDirection: hash(z.data.code) % 2 ? 1 : -1,
     };
-    streets.userData.roadLayout = roadLayout;
-    const roadMat = toonMat(new THREE.Color(0x15243a).lerp(cPrimary, 0.08));
-    const laneMat = toonMat(new THREE.Color(0xc7d8dd).lerp(cAccent, 0.22));
-    const oneWayMat = toonMat(new THREE.Color(0xffc857).lerp(cAccent, 0.16));
-    const shoulderMat = toonMat(new THREE.Color(PALETTE.sidewalk).lerp(cPrimary, 0.08));
-    laneMat.polygonOffset = true;
-    laneMat.polygonOffsetFactor = -2;
-    laneMat.polygonOffsetUnits = -2;
-    oneWayMat.polygonOffset = true;
-    oneWayMat.polygonOffsetFactor = -3;
-    oneWayMat.polygonOffsetUnits = -3;
+    const roadColor = new THREE.Color(0x15243a).lerp(cPrimary, 0.08);
+    const laneColor = new THREE.Color(0xc7d8dd).lerp(cAccent, 0.22);
+    const oneWayColor = new THREE.Color(0xffc857).lerp(cAccent, 0.16);
+    const shoulderColor = new THREE.Color(PALETTE.sidewalk).lerp(cPrimary, 0.08);
     const ROAD_Y = 0.052;
     const MARKING_Y = ROAD_Y + roadLayout.markingClearance;
-    const addSurface = (width, length, x, zz, yaw, y, material, name) => {
-      const geometry = new THREE.PlaneGeometry(width, length);
-      geometry.rotateX(-Math.PI / 2);
-      if (yaw) geometry.rotateY(yaw);
-      const road = new THREE.Mesh(geometry, material);
-      road.name = name;
-      road.position.set(x, y, zz);
-      road.receiveShadow = true;
-      streets.add(road);
-      return road;
+    const addRoad = (width, length, x, zz, yaw = 0) => {
+      flat(width + 0.72, length + 0.36, x, ROAD_Y - 0.008, zz, shoulderColor, yaw);
+      flat(width, length, x, ROAD_Y, zz, roadColor, yaw);
     };
-    const addRoad = (width, length, x, zz, yaw = 0, kind = 'two-way') => {
-      addSurface(width + 0.72, length + 0.36, x, zz, yaw, ROAD_Y - 0.008, shoulderMat, `${kind}-shoulder`);
-      return addSurface(width, length, x, zz, yaw, ROAD_Y, roadMat, `${kind}-road`);
-    };
-    const markingTransforms = [];
-    const markingDummy = new THREE.Object3D();
+    // Lane paint sits on its own raised slab rather than a polygon-offset plane,
+    // so it merges into the same batch without ever z-fighting the asphalt.
     const addMarking = (width, length, x, zz, yaw = 0, localX = 0, localZ = 0) => {
       const cos = Math.cos(yaw), sin = Math.sin(yaw);
-      markingDummy.position.set(
+      const geo = new THREE.BoxGeometry(width, 0.018, length);
+      if (yaw) geo.rotateY(yaw);
+      geo.translate(
         x + localX * cos + localZ * sin,
         MARKING_Y,
         zz - localX * sin + localZ * cos,
       );
-      markingDummy.rotation.set(0, yaw, 0);
-      markingDummy.scale.set(width, 1, length);
-      markingDummy.updateMatrix();
-      markingTransforms.push(markingDummy.matrix.clone());
+      surfaces.add(geo, laneColor);
     };
     const addDashedCentre = (length, x, zz, yaw = 0) => {
       const spacing = 4.8;
@@ -376,7 +362,7 @@ export class ZoneManager {
       addRoad(roadLayout.twoWayWidth, parallelLength, x, districtMid);
       addDashedCentre(parallelLength, x, districtMid);
     }
-    addRoad(roadLayout.oneWayWidth, parallelLength, roadLayout.centreX, districtMid, 0, 'one-way');
+    addRoad(roadLayout.oneWayWidth, parallelLength, roadLayout.centreX, districtMid, 0);
     for (const edge of [-1, 1]) {
       addMarking(0.1, parallelLength - 1.0, roadLayout.centreX, districtMid, 0,
         edge * (roadLayout.oneWayWidth / 2 - 0.18), 0);
@@ -394,35 +380,19 @@ export class ZoneManager {
     addRoad(roadLayout.diagonalWidth, diagonalLength, diagonalMid.x, diagonalMid.y, diagonalYaw);
     addDashedCentre(diagonalLength, diagonalMid.x, diagonalMid.y, diagonalYaw);
 
-    const markingGeometry = new THREE.BoxGeometry(1, 0.018, 1);
-    const markings = new THREE.InstancedMesh(markingGeometry, laneMat, markingTransforms.length);
-    markings.name = 'raised-road-markings';
-    markingTransforms.forEach((matrix, index) => markings.setMatrixAt(index, matrix));
-    markings.instanceMatrix.needsUpdate = true;
-    markings.renderOrder = 3;
-    streets.add(markings);
-
-    const arrowParts = [
-      new THREE.BoxGeometry(0.24, 0.022, 1.18).translate(0, 0, -0.2),
-      new THREE.BoxGeometry(0.2, 0.022, 0.72).rotateY(0.65).translate(-0.22, 0, 0.52),
-      new THREE.BoxGeometry(0.2, 0.022, 0.72).rotateY(-0.65).translate(0.22, 0, 0.52),
-    ];
-    const arrowGeometry = mergeGeometries(arrowParts, false);
-    arrowParts.forEach((part) => part.dispose());
-    const arrowOffsets = [-parallelLength * 0.3, 0, parallelLength * 0.3];
-    const arrows = new THREE.InstancedMesh(arrowGeometry, oneWayMat, arrowOffsets.length);
-    arrows.name = 'one-way-direction-arrows';
-    arrowOffsets.forEach((localZ, index) => {
-      markingDummy.position.set(roadLayout.centreX, MARKING_Y + 0.003, districtMid + localZ);
-      markingDummy.rotation.set(0, roadLayout.oneWayDirection > 0 ? 0 : Math.PI, 0);
-      markingDummy.scale.setScalar(1);
-      markingDummy.updateMatrix();
-      arrows.setMatrixAt(index, markingDummy.matrix);
-    });
-    arrows.instanceMatrix.needsUpdate = true;
-    arrows.renderOrder = 4;
-    streets.add(arrows);
-    g.add(streets);
+    const arrowYaw = roadLayout.oneWayDirection > 0 ? 0 : Math.PI;
+    for (const localZ of [-parallelLength * 0.3, 0, parallelLength * 0.3]) {
+      const arrowParts = [
+        new THREE.BoxGeometry(0.24, 0.022, 1.18).translate(0, 0, -0.2),
+        new THREE.BoxGeometry(0.2, 0.022, 0.72).rotateY(0.65).translate(-0.22, 0, 0.52),
+        new THREE.BoxGeometry(0.2, 0.022, 0.72).rotateY(-0.65).translate(0.22, 0, 0.52),
+      ];
+      const arrowGeometry = mergeGeometries(arrowParts, false);
+      arrowParts.forEach((part) => part.dispose());
+      if (arrowYaw) arrowGeometry.rotateY(arrowYaw);
+      arrowGeometry.translate(roadLayout.centreX, MARKING_Y + 0.003, districtMid + localZ);
+      surfaces.add(arrowGeometry, oneWayColor);
+    }
 
     const distanceToDiagonal = (x, zz) => {
       const px = x - diagonalStart.x;
@@ -463,7 +433,14 @@ export class ZoneManager {
         });
       }
     }
-    const zoneColliders = this.buildFacadeBlock(g, slots, rng, { cPrimary, cSecondary, cAccent, cRoof });
+    const streetMat = toonVertexMat();
+    if (this.quality?.wetStreets) addWetStreets(streetMat);
+    const streetMesh = surfaces.build(streetMat, {
+      castShadow: false, receiveShadow: true, name: `${z.data.code}-streets`,
+    });
+    if (streetMesh) g.add(streetMesh);
+
+    const zoneColliders = this.buildFacadeBlock(g, slots, rng, { cPrimary, cSecondary, cAccent, cLine, cRoof });
 
     // Every stop gets an inhabited ground floor: compact food/coffee/flower
     // sellers, outdoor tables and a bright local venue sign. The whole set is
@@ -478,6 +455,7 @@ export class ZoneManager {
     });
     g.add(streetLife);
     zoneColliders.push(...(streetLife.userData.colliderBoxes || []));
+    z.patronSlots = streetLife.userData.patronSlots || [];
 
     // landmark in the courtyard — variant by zone hash
     const lm = this.buildLandmark(hash(z.data.code) % 3, cAccent, cRoof);
@@ -498,15 +476,17 @@ export class ZoneManager {
       z.stopPos.y + z.perp.y * z.side * 8.2 + z.dir.y * 5.4,
     );
     sign.rotation.y = yaw;
-    // zebra crossing over the boulevard at this stop
-    const zebra = new THREE.Group();
-    const stripeMat = toonMat(0xe8dcbb);
+    // zebra crossing over the boulevard at this stop — one batched mesh
+    const zebraBatch = new GeoBatch();
     for (let s = 0; s < 7; s++) {
-      const stripe = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 2.2), stripeMat);
-      stripe.rotation.x = -Math.PI / 2;
-      stripe.position.set(-3.9 + s * 1.3, 0.022, 0);
-      zebra.add(stripe);
+      zebraBatch.add(
+        new THREE.PlaneGeometry(1.05, 2.2).rotateX(-Math.PI / 2).translate(-3.9 + s * 1.3, 0.022, 0),
+        0xe8dcbb,
+      );
     }
+    const zebra = zebraBatch.build(toonVertexMat(), {
+      castShadow: false, receiveShadow: true, name: `${z.data.code}-zebra`,
+    });
     zebra.position.set(z.stopPos.x, 0, z.stopPos.y);
     zebra.rotation.y = Math.atan2(z.dir.x, z.dir.y);   // stripes span the road width
     this.scene.add(zebra);
@@ -550,6 +530,11 @@ export class ZoneManager {
     addSignCollider(2.7, 0.5, 0.3, 0.22, `${z.data.code}-emergency-stop`);
     colliders.push(...tagged);
     this._colliderTag.set(z.data.code, tagged);
+
+    // --- the district's own crowd: neighbours who live and work on this block ---
+    this.populateDistrict(z, {
+      yaw, cosY, sinY, nearEdge, farEdge, districtHalfWidth, districtMid, roadLayout,
+    });
 
     // --- three accent-matched locals per district, each with a unique body ---
     if (this.npcBases?.length && this.world) {
@@ -614,18 +599,106 @@ export class ZoneManager {
     }
   }
 
+  // Fill a freshly-streamed district with its own people. Walkers loop the
+  // sidewalk ring and the inner streets; patrons stand at the cafe terrace the
+  // district published. Everyone here is tagged with the district's dialect so
+  // their chatter and their street exercises speak the local English.
+  populateDistrict(z, { cosY, sinY, nearEdge, farEdge, districtHalfWidth, districtMid, roadLayout }) {
+    if (!this.crowd) return;
+    const toWorld = (lx, lz) => ({
+      x: z.center.x + lx * cosY + lz * sinY,
+      z: z.center.y - lx * sinY + lz * cosY,
+    });
+    const ring = districtHalfWidth + 1.3;
+    const routes = [
+      // the sidewalk ring around the whole block
+      makeRoute([
+        toWorld(-ring, nearEdge - 0.3), toWorld(ring, nearEdge - 0.3),
+        toWorld(ring, farEdge + 1.3), toWorld(-ring, farEdge + 1.3),
+      ]),
+      // an inner beat along the one-way street and the far cross street
+      makeRoute([
+        toWorld(roadLayout.centreX - 2.9, roadLayout.crossZs[0] + 4.2),
+        toWorld(roadLayout.centreX - 2.9, roadLayout.crossZs[1] - 4.2),
+        toWorld(roadLayout.outerXs[1] - 4.4, roadLayout.crossZs[1] - 4.2),
+        toWorld(roadLayout.outerXs[1] - 4.4, roadLayout.crossZs[0] + 4.2),
+      ]),
+      // the shopfront walk facing the boulevard, where the teachers stand
+      makeRoute([
+        toWorld(-ring + 2, nearEdge + 2.4), toWorld(ring - 2, nearEdge + 2.4),
+        toWorld(ring - 2, nearEdge + 3.9), toWorld(-ring + 2, nearEdge + 3.9),
+      ]),
+    ];
+
+    const agents = [];
+    const walkers = Math.max(2, Math.round((this.quality?.crowd ?? 220) * 0.085));
+    for (let i = 0; i < walkers; i++) {
+      const agent = this.crowd.spawn({
+        route: routes[i % routes.length],
+        speed: 0.85 + Math.random() * 0.7,
+        height: 0.9 + Math.random() * 0.2,
+        dialect: z.data.code,
+      });
+      if (!agent) break;
+      agents.push(agent);
+    }
+    // Standing locals at the terrace. A few of them have something to teach —
+    // one question each, so a street is worth walking down rather than crossing.
+    const street = z.data.streetExercises || [];
+    const lap = this.progressFor(z.data.code).laps;
+    let taught = 0;
+    (z.patronSlots || []).forEach((slot, i) => {
+      const w = toWorld(slot.x, slot.z);
+      const agent = this.crowd.spawn({
+        route: makeRoute([w, { x: w.x + 0.001, z: w.z }]),
+        standing: true,
+        height: slot.height,
+        dialect: z.data.code,
+      });
+      if (!agent) return;
+      agent.heading = slot.heading + Math.atan2(sinY, cosY);
+      agents.push(agent);
+      if (street.length && taught < 3 && i % 2 === 0) {
+        const item = street[(taught + lap) % street.length];
+        const who = streetLocalFor(z.data.code, i);
+        this.crowd.setSpeaker(agent, {
+          name: who.name,
+          role: item.role || who.role,
+          line: item.line,
+          exercise: item,
+          dialectCode: z.data.code,
+          accentProfile: accentProfileFor(z.data.code, 2 + taught),
+          done: false,
+        });
+        taught++;
+      }
+    });
+    this._crowdTag.set(z.data.code, agents);
+  }
+
+  // Street wins are lighter than a teacher's drill: they feed the journal and
+  // XP, but they never close a district's round on their own.
+  recordStreetWin(code) {
+    const p = this._ensure(code);
+    p.street = (p.street || 0) + 1;
+    this.saveProgress();
+    return p.street;
+  }
+
   // ---------- facade architecture ----------
   // Six silhouette families, merged by material, keep districts authored at
   // street level without multiplying draw calls per building.
-  buildFacadeBlock(g, slots, rng, { cPrimary, cSecondary, cAccent, cRoof }) {
+  buildFacadeBlock(g, slots, rng, { cPrimary, cSecondary, cAccent, cLine, cRoof }) {
+    // Wall variety has to come from the district's OWN palette. Mixing in fixed
+    // cream/warm/mint constants meant every district on the map got one mint
+    // building and one pink one, so a Georgian terrace, a Kingston yard and a
+    // Cape Flats street all shared a third of their colour.
     const CREAM = new THREE.Color(0xe7e3dc);
-    const WARM = new THREE.Color(0xe3b2a5);
-    const MINT = new THREE.Color(0xaed8cf);
     const wallTones = [
-      cPrimary.clone().lerp(CREAM, 0.12),
-      cSecondary.clone().lerp(WARM, 0.12),
-      WARM.clone().lerp(cAccent, 0.34),
-      MINT.clone().lerp(cPrimary, 0.34),
+      cPrimary.clone().lerp(CREAM, 0.10),
+      cSecondary.clone(),
+      cPrimary.clone().lerp(cSecondary, 0.55).offsetHSL(0, 0.03, -0.07),
+      cSecondary.clone().lerp(cAccent, 0.26).offsetHSL(0, 0, 0.05),
     ];
     const trimTone = cPrimary.clone().multiplyScalar(0.52).lerp(new THREE.Color(PALETTE.ink), 0.54);
     const bandTone = CREAM.clone().lerp(trimTone, 0.3);      // ground-floor stone
@@ -854,55 +927,65 @@ export class ZoneManager {
       zoneColliders.push({ localX: x, localZ: zz, hw: w / 2 + 0.2, hd: dpt / 2 + 0.2 });
     });
 
-    // merge each bucket into one mesh
+    // Everything that is just "a toon colour" folds into one vertex-coloured
+    // mesh; only the emissive panes and the metal keep their own material. That
+    // is 11 draw calls per district down to 3.
     const litMat = toonMat(0x10243c);
-    litMat.emissive = cAccent.clone().lerp(new THREE.Color(PALETTE.cyan), 0.35);
+    litMat.emissive = cLine.clone().lerp(new THREE.Color(PALETTE.cyan), 0.28);
     litMat.emissiveIntensity = 1.08;
-    const mats = {
-      wall0: toonMat(wallTones[0]), wall1: toonMat(wallTones[1]),
-      wall2: toonMat(wallTones[2]), wall3: toonMat(wallTones[3]),
-      trim: toonMat(trimTone), band: toonMat(bandTone), roof: toonMat(roofTone),
-      paneLit: litMat, paneDark: toonMat(0x101a2b), accent: toonMat(cAccent),
-      metal: new THREE.MeshStandardMaterial({ color: 0x8195aa, metalness: 0.76, roughness: 0.3 }),
+    const tones = {
+      wall0: wallTones[0], wall1: wallTones[1], wall2: wallTones[2], wall3: wallTones[3],
+      trim: trimTone, band: bandTone, roof: roofTone,
+      paneDark: new THREE.Color(0x101a2b), accent: cLine,
     };
-    for (const [key, list] of Object.entries(B)) {
+    const shell = new GeoBatch();
+    for (const [key, colour] of Object.entries(tones)) {
+      for (const geometry of B[key]) shell.add(geometry, colour);
+      B[key].length = 0;
+    }
+    const shellMesh = shell.build(toonVertexMat(), { name: 'district-shell' });
+    if (shellMesh) {
+      if (this.vertexAO) {
+        // Footprints of the block's own buildings are the occluders; this is what
+        // stops procedural boxes reading as cardboard cut-outs on flat ground.
+        const occluders = slots.map((s) => ({ x: s.x, z: s.z, hw: s.w / 2, hd: s.d / 2 }));
+        bakeVertexAO(shellMesh.geometry, occluders);
+      }
+      g.add(shellMesh);
+    }
+    for (const [key, mat, shadows] of [
+      ['paneLit', litMat, false],
+      ['metal', new THREE.MeshStandardMaterial({ color: 0x8195aa, metalness: 0.76, roughness: 0.3 }), true],
+    ]) {
+      const list = B[key];
       if (!list.length) continue;
       const merged = mergeGeometries(list, false);
       list.forEach((geometry) => geometry.dispose());
-      const mesh = new THREE.Mesh(merged, mats[key]);
-      if (key.startsWith('pane')) { mesh.castShadow = false; }
-      else { mesh.castShadow = true; mesh.receiveShadow = true; }
+      const mesh = new THREE.Mesh(merged, mat);
+      mesh.castShadow = shadows;
+      mesh.receiveShadow = shadows;
       g.add(mesh);
     }
     return zoneColliders;
   }
 
   buildLandmark(variant, cAccent, cRoof) {
-    const g = new THREE.Group();
+    const batch = new GeoBatch();
     if (variant === 0) {           // clock-ish tower
-      const base = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.45, 9, 8), toonMat(cAccent));
-      base.position.y = 4.5;
-      const cap = new THREE.Mesh(new THREE.ConeGeometry(1.7, 2.4, 8), toonMat(cRoof));
-      cap.position.y = 10.2;
-      const finial = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 6), toonMat(0xfff0c2));
-      finial.position.y = 11.6;
-      g.add(base, cap, finial);
+      batch.add(new THREE.CylinderGeometry(1.15, 1.45, 9, 8).translate(0, 4.5, 0), cAccent);
+      batch.add(new THREE.ConeGeometry(1.7, 2.4, 8).translate(0, 10.2, 0), cRoof);
+      batch.add(new THREE.SphereGeometry(0.32, 8, 6).translate(0, 11.6, 0), 0xfff0c2);
     } else if (variant === 1) {    // arch
-      const l = new THREE.Mesh(new THREE.BoxGeometry(1.1, 6.5, 1.1), toonMat(cAccent));
-      const r = l.clone();
-      l.position.set(-2.5, 3.25, 0); r.position.set(2.5, 3.25, 0);
-      const lintel = new THREE.Mesh(new THREE.BoxGeometry(6.8, 1.2, 1.4), toonMat(cRoof));
-      lintel.position.y = 7.1;
-      g.add(l, r, lintel);
+      batch.add(new THREE.BoxGeometry(1.1, 6.5, 1.1).translate(-2.5, 3.25, 0), cAccent);
+      batch.add(new THREE.BoxGeometry(1.1, 6.5, 1.1).translate(2.5, 3.25, 0), cAccent);
+      batch.add(new THREE.BoxGeometry(6.8, 1.2, 1.4).translate(0, 7.1, 0), cRoof);
     } else {                        // obelisk + ring
-      const ob = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 1.05, 8, 4), toonMat(cAccent));
-      ob.position.y = 4;
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.16, 8, 20), toonMat(cRoof));
-      ring.position.y = 6.2; ring.rotation.x = Math.PI / 2;
-      g.add(ob, ring);
+      batch.add(new THREE.CylinderGeometry(0.55, 1.05, 8, 4).translate(0, 4, 0), cAccent);
+      batch.add(new THREE.TorusGeometry(1.6, 0.16, 8, 20).rotateX(Math.PI / 2).translate(0, 6.2, 0), cRoof);
     }
-    g.traverse((o) => { if (o.isMesh) o.userData.zoneLandmark = true; });
-    return g;
+    const mesh = batch.build(toonVertexMat(), { name: 'district-landmark' });
+    mesh.userData.zoneLandmark = true;
+    return mesh;
   }
 
   buildStationSign(z) {
@@ -935,51 +1018,48 @@ export class ZoneManager {
     const panelBack = panel.clone();
     panelBack.rotation.y = Math.PI;
     panelBack.position.set(0, 2.9, -0.02);
-    const post1 = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 3, 6), toonMat(PALETTE.ink));
-    const post2 = post1.clone();
-    post1.position.set(-1.6, 1.5, 0); post2.position.set(1.6, 1.5, 0);
-    // platform pad
-    const pad = new THREE.Mesh(new THREE.PlaneGeometry(7, 3.4), toonMat(new THREE.Color(z.line.color).lerp(new THREE.Color(PALETTE.plaza), 0.68)));
-    pad.rotation.x = -Math.PI / 2; pad.position.y = 0.035;
+    // Everything toon-shaded on the platform batches together; the glass
+    // shelter and the chrome keep their standard materials.
+    const toonBits = new GeoBatch();
+    const inkColor = new THREE.Color(PALETTE.ink);
+    toonBits.add(new THREE.CylinderGeometry(0.07, 0.07, 3, 6).translate(-1.6, 1.5, 0), inkColor);
+    toonBits.add(new THREE.CylinderGeometry(0.07, 0.07, 3, 6).translate(1.6, 1.5, 0), inkColor);
+    toonBits.add(
+      new THREE.PlaneGeometry(7, 3.4).rotateX(-Math.PI / 2).translate(0, 0.035, 0),
+      new THREE.Color(z.line.color).lerp(new THREE.Color(PALETTE.plaza), 0.68),
+    );
+    toonBits.add(new THREE.PlaneGeometry(2.7, 0.48).translate(0, 2.12, 1.82), 0x10172b);
+    toonBits.add(new THREE.PlaneGeometry(2.35, 0.08).translate(0, 2.12, 1.79), z.line.color);
+    toonBits.add(new THREE.SphereGeometry(0.1, 8, 6).translate(2.7, 1.25, 0.33), 0xffffff);
+    const platform = toonBits.build(toonVertexMat({ side: THREE.DoubleSide }), { name: 'platform-fittings' });
+
     const shelterGlass = new THREE.MeshStandardMaterial({
       color: 0x77dce2, emissive: 0x102c45, emissiveIntensity: 0.72,
       metalness: 0.54, roughness: 0.2, transparent: true, opacity: 0.72,
     });
     const shelter = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.14, 1.65), shelterGlass);
     shelter.position.set(0, 3.72, 1.15);
-    const chrome = new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.86, roughness: 0.22 });
-    const supports = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.055, 0.075, 3.55, 7), chrome, 4);
-    const dummy = new THREE.Object3D();
-    let supportIndex = 0;
-    for (const x of [-1.65, 1.65]) for (const zz of [0.55, 1.65]) {
-      dummy.position.set(x, 1.78, zz);
-      dummy.updateMatrix();
-      supports.setMatrixAt(supportIndex++, dummy.matrix);
-    }
-    supports.instanceMatrix.needsUpdate = true;
 
-    const emergency = new THREE.Group();
-    emergency.name = `${z.data.code}-emergency-stop`;
-    const emergencyPost = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.075, 1.4, 7), chrome);
-    emergencyPost.position.y = 0.7;
+    const chromeParts = [];
+    for (const x of [-1.65, 1.65]) for (const zz of [0.55, 1.65]) {
+      chromeParts.push(new THREE.CylinderGeometry(0.055, 0.075, 3.55, 7).translate(x, 1.78, zz));
+    }
+    chromeParts.push(new THREE.CylinderGeometry(0.055, 0.075, 1.4, 7).translate(2.7, 0.7, 0.5));
+    const chromeMesh = new THREE.Mesh(
+      mergeGeometries(chromeParts, false),
+      new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.86, roughness: 0.22 }),
+    );
+    chromeParts.forEach((p) => p.dispose());
+    chromeMesh.castShadow = true;
+
     const cabinet = new THREE.Mesh(
       new THREE.BoxGeometry(0.46, 0.86, 0.26),
       new THREE.MeshStandardMaterial({ color: 0xff405f, emissive: 0x851027, emissiveIntensity: 1.5, metalness: 0.4, roughness: 0.3 }),
     );
-    cabinet.position.y = 1.2;
-    const button = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), toonMat(0xffffff));
-    button.position.set(0, 1.25, -0.17);
-    emergency.add(emergencyPost, cabinet, button);
-    emergency.position.set(2.7, 0, 0.5);
+    cabinet.position.set(2.7, 1.2, 0.5);
+    cabinet.name = `${z.data.code}-emergency-stop`;
 
-    const arrival = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.7, 0.48),
-      new THREE.MeshBasicMaterial({ color: 0x10172b, side: THREE.DoubleSide }),
-    );
-    arrival.position.set(0, 2.12, 1.82);
-    const arrivalLine = new THREE.Mesh(new THREE.PlaneGeometry(2.35, 0.08), toonMat(z.line.color));
-    arrivalLine.position.set(0, 2.12, 1.79);
-    g.add(panel, panelBack, post1, post2, pad, shelter, supports, emergency, arrival, arrivalLine);
+    g.add(panel, panelBack, platform, shelter, chromeMesh, cabinet);
     g.userData.tex = tex;
     return g;
   }
@@ -1015,5 +1095,8 @@ export class ZoneManager {
       if (i >= 0) this.world.npcs.splice(i, 1);
     }
     this._npcTag.delete(z.data.code);
+
+    for (const agent of this._crowdTag.get(z.data.code) || []) this.crowd?.despawn(agent);
+    this._crowdTag.delete(z.data.code);
   }
 }

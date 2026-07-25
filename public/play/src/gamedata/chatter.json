@@ -1,0 +1,183 @@
+{
+  "_note": "Ambient street chatter per district. Flavour comes from real regional vocabulary and idiom, not from phonetic caricature, so overhearing a district also teaches its words. 'say' lines are spoken aloud over a walker's head; 'think' lines are thought bubbles.",
+  "hub": {
+    "say": ["Three lines, forty-four accents. Take your pick.", "Mind the gap between the words and the meaning.", "First time in the city? Everyone here speaks English. Nobody speaks the same one.", "The Isles line's that way, Liberty's the purple one.", "Ask anyone. That's the whole point of this place."],
+    "think": ["…which line first…", "so many accents, one city", "…one more drill…"]
+  },
+  "uk_rp": {
+    "say": ["Do forgive me, is this the queue for the tearoom?", "I shall be there at half seven, weather permitting.", "It's frightfully good cake, if one likes that sort of thing.", "We're away for a fortnight, so do keep an eye on the roses.", "Rather a lot of fuss over a pot of tea, wouldn't you say?"],
+    "think": ["…a fortnight, not four days…", "one simply doesn't jump the queue", "…half seven means 7:30…"]
+  },
+  "uk_cockney": {
+    "say": ["Use your loaf, mate, the market shuts at six.", "Straight up the apples and pears, second door.", "Have a butcher's at this — proper bargain.", "I'm off down the rub-a-dub for a swift one.", "Nice bit of dog and bone you've got there."],
+    "think": ["dog and bone = phone", "…plates of meat are killing me…", "apples and pears… stairs"]
+  },
+  "uk_estuary": {
+    "say": ["It's proper cold down the wharf today, innit.", "Yeah no, I'm gonna get the train, it's quicker.", "That's well nice, that is.", "Sort it out, mate, we're gonna miss it.", "I ain't been down here in years, to be fair."],
+    "think": ["…innit is just a tag question…", "'well nice' = very nice", "…bit brass monkeys out…"]
+  },
+  "uk_scouse": {
+    "say": ["Alright la, you sound made up with yourself.", "Boss that, absolutely boss.", "Give us a bevvy and I'll tell you the whole thing.", "Don't be soft, it's only round the corner.", "He's dead sound, him, you'd like him."],
+    "think": ["'boss' means brilliant here", "…made up = delighted…", "dead sound = really decent"]
+  },
+  "uk_geordie": {
+    "say": ["Why aye, man, it's canny mild for the time of year.", "Howay, we'll be late for the match.", "That's proper canny, that is.", "Gan doon the toon later, are you?", "I'm gannin' hyem, it's freezing."],
+    "think": ["canny = quite / lovely", "…howay means come on…", "hyem is home"]
+  },
+  "uk_yorkshire": {
+    "say": ["Ey up, tha's looking well.", "It's a bit black over Bill's mother's.", "Put wood in th'ole, there's a draught.", "Nowt wrong with a bit of hard graft.", "Aye, summat like that."],
+    "think": ["nowt = nothing, owt = anything", "…put the wood in the hole = shut the door…", "'ey up' is just hello"]
+  },
+  "uk_west_country": {
+    "say": ["Alright my lover, lovely day for it.", "Proper job, that is.", "Where's that to, then? Down by the orchard?", "Us be going up the farm later on.", "Gurt big apple crop this year."],
+    "think": ["'gurt' means great big", "…'where's that to' asks where it is…", "proper job = well done"]
+  },
+  "uk_brummie": {
+    "say": ["That's bostin, that is.", "Alright, bab? You want a cuppa?", "Round the back of the Bullring, our kid.", "It's a bit of a trek, mind.", "Yow can't miss it, honest."],
+    "think": ["bostin = brilliant", "…'bab' is affectionate…", "our kid = my brother or mate"]
+  },
+  "uk_mancunian": {
+    "say": ["Sound, mate. Dead sound.", "It's mint, that jacket.", "Buzzing for tonight, me.", "Our kid's meeting us at the mill.", "Give over, you're winding me up."],
+    "think": ["mint = excellent", "…'buzzing' = really excited…", "give over = stop it"]
+  },
+  "uk_mle": {
+    "say": ["That's peak, fam, the shop's shut.", "Allow it, we'll go tomorrow.", "It's long, you know, all the way to the ends.", "Bare people out today.", "You're calm, don't stress."],
+    "think": ["'bare' means a lot of", "…allow it = leave it…", "'long' means too much effort"]
+  },
+  "sco_scots": {
+    "say": ["Aye, it's a braw day for the walk.", "Ah dinnae ken, but ah'll find oot.", "Wheesht, ah'm trying tae listen.", "It's a wee bit dreich the day.", "Awa' and gie yersel a shake."],
+    "think": ["dinnae ken = don't know", "…dreich is grey and drizzly…", "wee means small (and everything else)"]
+  },
+  "sco_glaswegian": {
+    "say": ["How's it gaun, pal?", "It's pure baltic oot there.", "Geez a swatch at that.", "Away ye go, ye're at it.", "Ah'm no' wantin' any bother."],
+    "think": ["baltic = freezing", "…a swatch is a look…", "'ye're at it' = you're joking"]
+  },
+  "sco_edinburgh": {
+    "say": ["Up the close and doon the stair, then left.", "It's a fair bit colder up on the Mile.", "Aye, that'll be right.", "Meet me at the foot o' the Walk.", "The haar's coming in off the Forth."],
+    "think": ["a close is a narrow alley", "…haar is a cold sea fog…", "'that'll be right' means it won't"]
+  },
+  "sco_highland": {
+    "say": ["It's a soft day, so it is.", "The ceilidh's on Friday if you're about.", "Ach, there's no hurry on you.", "Take the low road, it's kinder in this weather.", "You'll be needing a jacket up the glen."],
+    "think": ["a soft day = mild and damp", "…ceilidh is a music-and-dance night…", "no hurry on you = take your time"]
+  },
+  "ie_irish": {
+    "say": ["What's the craic? Any news?", "Sure look, it is what it is.", "That's grand altogether.", "Come here to me a minute.", "I will, yeah. Definitely not."],
+    "think": ["craic = fun, chat, atmosphere", "…'grand' means fine, not grand…", "'I will, yeah' is a polite no"]
+  },
+  "ie_dublin": {
+    "say": ["Story, bud? Where are you off to?", "It's only gas, the whole thing.", "That's deadly, so it is.", "I'm only messing with you.", "We'll head into town after, will we?"],
+    "think": ["deadly = excellent", "…'gas' means funny…", "'story?' is just hello"]
+  },
+  "ie_belfast": {
+    "say": ["What about ye? Long time.", "That's dead on, so it is.", "It's foundered out here, get in.", "Wise up, would you.", "Aye, we'll go for a wee dander."],
+    "think": ["dead on = fine, decent", "…foundered = freezing…", "a dander is a stroll"]
+  },
+  "ie_cork": {
+    "say": ["How's it going, boy? All right?", "That's savage, langer.", "The lash is coming down again.", "Sure, 'tis only up the road, like.", "Come 'ere, are you going or what?"],
+    "think": ["savage = brilliant", "…'the lash' is heavy rain…", "everything ends in 'like'"]
+  },
+  "us_general": {
+    "say": ["You could take the interstate, but traffic's rough.", "I'll swing by around seven, sound good?", "It's a couple blocks that way.", "Let me grab a coffee real quick.", "Sure thing, no problem at all."],
+    "think": ["…'real quick' is one word here…", "a couple blocks = 2-3 blocks", "…swing by = drop in…"]
+  },
+  "us_southern": {
+    "say": ["Y'all come back now, you hear?", "Bless your heart, honey.", "I'm fixin' to head down to the store.", "It's hotter than blazes out there.", "Might could do it Tuesday, if that suits."],
+    "think": ["'fixing to' means about to", "…'bless your heart' is not always kind…", "y'all is the plural you"]
+  },
+  "us_aave": {
+    "say": ["He be working late every night, not just tonight.", "That's my people right there.", "We finna head out, you coming?", "It's lit down at the corner tonight.", "Been knew that, for real."],
+    "think": ["habitual 'be' = does it regularly", "…finna = fixing to = about to…", "'been knew' = knew a long time ago"]
+  },
+  "us_nyc": {
+    "say": ["Fuhgeddaboudit, the L's down again.", "Get me a regular coffee and a bacon egg and cheese.", "You standing on line or what?", "It's on the corner of Ninth, you can't miss it.", "I'm walking here!"],
+    "think": ["'on line', not 'in line'", "…a 'regular' coffee has milk and sugar…", "the bodega has everything"]
+  },
+  "us_boston": {
+    "say": ["Pahk the cah and we'll walk from heah.", "That's wicked good, kid.", "Grab a frappe, not a milkshake.", "It's down by the Common, take a right.", "So don't I, same as you."],
+    "think": ["'wicked' = very", "…a frappe has ice cream in it…", "bubbler = drinking fountain"]
+  },
+  "us_midwestern": {
+    "say": ["Ope, just gonna sneak right past ya.", "You betcha, no trouble at all.", "It's a ways down the road yet.", "Do you wanna come with?", "Cold enough for ya?"],
+    "think": ["'come with' needs no object here", "…'ope' is the polite collision sound…", "a pop, not a soda"]
+  },
+  "us_californian": {
+    "say": ["That's so sick, dude, no cap.", "I'm gonna hit the beach, you down?", "Take the 405, but like, not at five.", "It's chill, we've got time.", "Hella people out today."],
+    "think": ["'the' before freeway numbers", "…hella = very…", "'you down?' = are you in"]
+  },
+  "us_appalachian": {
+    "say": ["We're a-goin' up the holler directly.", "That there's the old mill road.", "I reckon it'll rain 'fore supper.", "You'uns coming with us?", "It's right smart of a walk."],
+    "think": ["you'uns is the plural you", "…'directly' means soon…", "a holler is a small valley"]
+  },
+  "us_texan": {
+    "say": ["Fixin' to head out to the ranch, y'all coming?", "That's a fur piece down the road.", "All hat and no cattle, that one.", "Might could rain later on.", "Bless it, that truck's seen some miles."],
+    "think": ["'might could' is a double modal", "…a fur piece is a long way…", "everything's bigger, including the vowels"]
+  },
+  "us_pacific_nw": {
+    "say": ["It's just spitting, that's not real rain.", "Grab your rain shell, we're walking.", "The mountain's out today, look at that.", "Sure, let's do a hike this weekend.", "Nobody here uses an umbrella."],
+    "think": ["'the mountain is out' = it's clear", "…spitting = light drizzle…", "sun break: ten minutes of hope"]
+  },
+  "ca_canadian": {
+    "say": ["Sorry, could I just squeeze past there?", "It's a two-four for the long weekend, eh.", "Grab a double-double on the way.", "Give'r, we're almost there.", "That's about a klick from here."],
+    "think": ["double-double = two cream two sugar", "…a two-four is 24 beers…", "'eh' checks you're still listening"]
+  },
+  "ca_quebec": {
+    "say": ["I'll meet you at the dep, it's open late.", "Close the light before you go, please.", "We're taking the metro, it's faster.", "Open the TV, the game's on.", "It's a five-and-a-half, good size."],
+    "think": ["'open/close the light' from French", "…a dep is a corner shop…", "a 5½ counts every room"]
+  },
+  "ca_newfoundland": {
+    "say": ["Whadda y'at, b'y? Long time no see.", "Stay where you're to, I'll come where you're at.", "It's mauzy out, mind yourself.", "Best kind, that.", "Go on wit' ya, you're having me on."],
+    "think": ["'whadda y'at' = how are you", "…mauzy is warm and foggy…", "best kind = excellent"]
+  },
+  "au_australian": {
+    "say": ["How ya going? Good weekend?", "Chuck it in the esky, she'll be right.", "Reckon we'll get there by arvo.", "No worries at all, mate.", "It's a fair way down the track."],
+    "think": ["arvo = afternoon", "…'she'll be right' = it'll be fine…", "an esky is a cool box"]
+  },
+  "au_broad": {
+    "say": ["Fair dinkum, I've never seen the like.", "Yeah nah, I reckon it's too far.", "Flat out like a lizard drinking, mate.", "Chuck us a coldie, would ya.", "It's about as useful as an ashtray on a motorbike."],
+    "think": ["'yeah nah' means no", "…'nah yeah' means yes…", "flat out = very busy"]
+  },
+  "au_cultivated": {
+    "say": ["Lovely to see you, how have you been keeping?", "We're heading down to the club this afternoon.", "It's rather warm for October, isn't it.", "Do come round for a drink.", "The traffic on the Boulevard was frightful."],
+    "think": ["…the vowels are longer up here…", "'rather' does a lot of work", "…the club, always the club…"]
+  },
+  "nz_nze": {
+    "say": ["Sweet as, bro, no dramas.", "Chuck your jandals on, we're off to the beach.", "Yeah, nah, she's all good.", "Bring a plate, it's a shared lunch.", "Just down the road, eh."],
+    "think": ["'sweet as' = totally fine", "…jandals are flip-flops…", "'bring a plate' means bring food"]
+  },
+  "nz_maori": {
+    "say": ["Kia ora, welcome, come on in.", "We'll have a kai before we head off.", "Ka pai, that's the way to do it.", "Bring the whānau, there's room for everyone.", "Haere mai, don't be shy."],
+    "think": ["kai = food", "…whānau is family, broadly…", "ka pai = well done"]
+  },
+  "za_white": {
+    "say": ["Howzit, you good?", "Ja, we're braaiing later if you're keen.", "It's just now, hey, not right now.", "Shame, that's a long drive.", "Bring your costume, we're swimming."],
+    "think": ["'just now' means soon-ish", "…'now now' is sooner than 'just now'…", "shame is sympathy, not blame"]
+  },
+  "za_black": {
+    "say": ["Sharp sharp, my friend, I see you.", "Eish, that taxi was full already.", "We're going to the kasi later, come.", "Yebo, that's the one.", "Heita, long time no see."],
+    "think": ["sharp sharp = all good, see you", "…eish covers most feelings…", "yebo = yes"]
+  },
+  "za_indian": {
+    "say": ["Come, we'll get a bunny chow just now.", "That one is too much nice, hey.", "Don't make like that, man.", "You must come home, my mother will feed you.", "Is it? I never knew that."],
+    "think": ["'is it?' is a general response", "…bunny chow is curry in a bread loaf…", "'too much' = very"]
+  },
+  "za_cape_flats": {
+    "say": ["Ja nee, my bra, it's lekker here.", "Kom, we're going up the Bo-Kaap.", "Dis mos lekker, man.", "Awe, howzit my broe.", "You mustn't stress, ek sê."],
+    "think": ["lekker = nice, good, tasty", "…'ek sê' = I say…", "'ja nee' means yes, well, no"]
+  },
+  "car_caribbean": {
+    "say": ["We just limin' here, come sit down.", "Take your time, no rush, nuh.", "Everyt'ing criss, man.", "You reach already? Good good.", "Small island, big heart."],
+    "think": ["limin' = hanging out", "…'you reach' = you arrived…", "criss = perfect, brand new"]
+  },
+  "car_jamaican": {
+    "say": ["Wah gwaan? Everyt'ing bless?", "Mi soon come, hold on.", "Walk good, y'hear.", "It bad — meaning it good, y'know.", "Big up yourself, star."],
+    "think": ["'soon come' is not soon", "…walk good = travel safely…", "'bad' can mean excellent"]
+  },
+  "car_trinidadian": {
+    "say": ["Aye, what happening there?", "We liming by the Avenue tonight.", "Doh study it too much, man.", "Is Carnival time, everybody outside.", "Allyuh coming or what?"],
+    "think": ["allyuh = all of you", "…'doh study it' = don't worry…", "liming is an art form"]
+  },
+  "car_barbadian": {
+    "say": ["Wuh gine on, muh friend?", "Cheese on bread, look at that rain!", "We going down by the beach, come nuh.", "Long time I ain't see you.", "Flying fish and cou-cou, best thing going."],
+    "think": ["'wuh gine on' = what's going on", "…cheese on bread is an exclamation…", "cou-cou is cornmeal and okra"]
+  }
+}

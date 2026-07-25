@@ -3,7 +3,7 @@
 // skeletal animation; cinematic Miami-after-dark lighting with true shadows.
 import * as THREE from 'three';
 import { makeGLTFLoader } from './loaders.js';
-import { makeSky, toonifyGLB, uTime } from './materials.js';
+import { makeSky, toonifyGLB, uTime, setNeonGain } from './materials.js';
 import { loadMixamoHero } from './hero.js';
 import { Trains } from './train.js';
 import { Traffic } from './traffic.js';
@@ -16,6 +16,11 @@ import { Input } from './input.js';
 import { UI } from './ui.js';
 import { AudioManager } from './audio.js';
 import { VoiceManager } from './voice.js';
+import { Quality } from './quality.js';
+import { PostFX } from './postfx.js';
+import { Crowd } from './crowd.js';
+import { Chatter } from './chatter.js';
+import { heightAt } from './terrain.js';
 
 const app = document.getElementById('app');
 const ui = new UI();
@@ -35,22 +40,19 @@ const lowPowerHint = Boolean(
   || compactTouch
 );
 const renderer = new THREE.WebGLRenderer({
-  antialias: true,
+  // The post stack resolves its own edges with FXAA, so a multisampled
+  // backbuffer would only cost bandwidth. Weak devices skip post entirely and
+  // get real MSAA instead.
+  antialias: lowPowerHint || compactTouch,
   powerPreference: 'high-performance',
 });
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.04;
-// Mobile keeps the authored blob/contact shadows but skips the second full-city
-// shadow render. Spend that GPU budget on a sharp, antialiased canvas instead.
 renderer.shadowMap.enabled = !compactTouch;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const nativePixelRatio = Math.max(1, window.devicePixelRatio || 1);
-const MAX_PR = Math.min(nativePixelRatio, compactTouch ? 1.75 : (lowPowerHint ? 1.5 : 2));
-const MIN_EFFECTIVE_PR = Math.min(nativePixelRatio, compactTouch ? 1.25 : (lowPowerHint ? 0.9 : 1));
-const MIN_RENDER_SCALE = Math.min(1, MIN_EFFECTIVE_PR / MAX_PR);
 let renderScale = 1;
-renderer.setPixelRatio(MAX_PR * renderScale);
 renderer.setSize(window.innerWidth, window.innerHeight);
 app.appendChild(renderer.domElement);
 
@@ -60,16 +62,50 @@ scene.fog = new THREE.FogExp2(0x10172f, 0.0052);
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1200);
 camera.position.set(0, 3, 14);
 
+// ---------- quality budget + screen-space finish ----------
+const postfx = new PostFX(renderer, scene, camera);
+const quality = new Quality(renderer, { onChange: (s, tier, reason) => {
+  applyQuality(s);
+  console.info(`[EM] quality → ${tier} (${reason})`);
+  ui.setQualityTier(tier, quality.manual);
+} });
+let crowd = null;
+
+function applyQuality(s) {
+  renderer.shadowMap.enabled = s.shadows > 0;
+  sun.castShadow = s.shadows > 0;
+  if (s.shadows > 0 && sun.shadow.mapSize.width !== s.shadows) {
+    sun.shadow.mapSize.set(s.shadows, s.shadows);
+    sun.shadow.map?.dispose();
+    sun.shadow.map = null;
+  }
+  scene.fog.density = s.fog;
+  camera.far = s.far;
+  camera.updateProjectionMatrix();
+  MAX_PR = Math.min(nativePixelRatio, s.pixelRatio);
+  // Neon has to be authored above white for the composite's ACES pass to leave
+  // it looking lit, and for the bloom threshold to find it at all.
+  setNeonGain(s.postfx ? 2.15 : 1);
+  postfx.configure(s);
+  applySize();
+  crowd?.setCapacity(s.crowd);
+  crowd?.setRimLight(s.rimLight);
+  traffic?.setDensity(s.traffic);
+  zoneMgr.quality = s;
+  zoneMgr.vertexAO = s.vertexAO;
+  world.setDetail?.(s);
+}
+let MAX_PR = 2;
+
 // ---------- Miami-after-dark lighting (cinematic: real shadows near the player) ----------
 const hemi = new THREE.HemisphereLight(0x8fdcff, 0x28183f, 1.08);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xff9b9f, 1.52);
 sun.position.set(-38, 36, -58);
-sun.castShadow = !compactTouch;
-// Start conservatively on constrained devices; the adaptive tier can still
-// shed shadows entirely if sustained frame time remains high.
-const SHADOW_RES = lowPowerHint ? 1024 : (screen.width * (window.devicePixelRatio || 1)) >= 1900 ? 4096 : 2048;
-sun.shadow.mapSize.set(SHADOW_RES, SHADOW_RES);
+// Shadow budget comes from the quality tier; applyQuality resizes the map when
+// the tier moves, and the texel snap below follows whatever size is current.
+sun.castShadow = quality.s.shadows > 0;
+sun.shadow.mapSize.set(quality.s.shadows || 1024, quality.s.shadows || 1024);
 sun.shadow.camera.near = 1;
 sun.shadow.camera.far = 170;
 const S = 38;
@@ -86,10 +122,10 @@ scene.add(makeSky());
 // shadow frustum follows the player so the map covers only ~76m — crisp + cheap.
 // Position snaps to shadow-texel-sized steps so edges don't crawl/shimmer.
 const SUN_OFF = new THREE.Vector3(-38, 36, -58).normalize().multiplyScalar(90);
-const SHADOW_TEXEL = (2 * S) / SHADOW_RES;
 function updateSun(playerPos) {
-  const sx = Math.round(playerPos.x / SHADOW_TEXEL) * SHADOW_TEXEL;
-  const sz = Math.round(playerPos.z / SHADOW_TEXEL) * SHADOW_TEXEL;
+  const texel = (2 * S) / Math.max(256, sun.shadow.mapSize.width);
+  const sx = Math.round(playerPos.x / texel) * texel;
+  const sz = Math.round(playerPos.z / texel) * texel;
   sun.target.position.set(sx, 0, sz);
   sun.position.set(sx + SUN_OFF.x, SUN_OFF.y, sz + SUN_OFF.z);
 }
@@ -98,8 +134,18 @@ function updateSun(playerPos) {
 const manager = new THREE.LoadingManager();
 manager.onProgress = (_url, loaded, total) => ui.setProgress(loaded / Math.max(total, 1));
 
-const world = new World(scene, manager, { lowPower: lowPowerHint });
-const zoneMgr = new ZoneManager(scene, { lowPower: lowPowerHint, compactTouch });
+crowd = new Crowd(scene, { capacity: 360, rimLight: quality.s.rimLight });
+crowd.setCapacity(quality.s.crowd);
+// Locals talk in their own district's English — the phrasebook is the reason
+// walking two stops down a line sounds different.
+const chatter = new Chatter(scene, { pool: 6 });
+fetch('src/gamedata/chatter.json')
+  .then((r) => r.json())
+  .then((lines) => chatter.setLines(lines))
+  .catch((err) => console.warn('[EM] chatter unavailable:', err));
+const world = new World(scene, manager, { lowPower: lowPowerHint, crowd });
+const zoneMgr = new ZoneManager(scene, { lowPower: lowPowerHint, compactTouch, quality: quality.s });
+zoneMgr.setCrowd(crowd);
 const heroLoader = makeGLTFLoader(manager);
 
 // zone-entry HUD title card + the objective chip beneath it
@@ -228,8 +274,20 @@ Promise.all([
     for (let i = 0; i < n; i++) simTick(dt);
     followCam.update(1 / 60, player, { dx: 0, dy: 0, wheel: 0, looking: false }, world.colliders);
     minimap.update(0.25, player, zoneMgr, world, trains);   // force a redraw
-    renderer.render(scene, camera);
+    postfx.render(uTime.value);
   };
+  // Players on odd hardware get the final say; picking a tier stops the
+  // adaptive controller from arguing with them.
+  const gfxSelect = document.getElementById('gfx-select');
+  if (gfxSelect) {
+    gfxSelect.value = quality.manual || '';
+    gfxSelect.addEventListener('change', () => quality.setManual(gfxSelect.value || null));
+  }
+  ui.setQualityTier(quality.tier, quality.manual);
+  window.__EM.quality = quality;
+  window.__EM.postfx = postfx;
+  window.__EM.crowd = crowd;
+  applyQuality(quality.s);
   window.__EM.minimap = minimap;
   ui.setProgress(1);
   ui.showBegin(() => {
@@ -247,8 +305,10 @@ Promise.all([
 function applySize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setPixelRatio(MAX_PR * renderScale);
+  const pr = MAX_PR * renderScale;
+  renderer.setPixelRatio(pr);
   renderer.setSize(window.innerWidth, window.innerHeight);
+  postfx.setSize(window.innerWidth, window.innerHeight, pr);
 }
 window.addEventListener('resize', applySize);
 
@@ -257,26 +317,13 @@ const SIM_DT = 1 / 60;
 let accumulator = 0;
 let frameEMA = 16.7, fpsCount = 0, fpsTime = 0, scaleCooldown = 0;
 let baseFov = 55;
-let potato = false;
-
-function engagePerformanceTier() {
-  potato = true;
-  sun.castShadow = false;
-  renderer.shadowMap.enabled = false;
-  scene.fog.density = 0.0085;
-  camera.far = 700; camera.updateProjectionMatrix();
-  citizens?.setDensity(4);
-  world.cityLife?.setDensity(18);
-  traffic?.setDensity(6);
-  console.info('[EM] performance tier engaged: shadows off, far=700, citizens=4, traffic=6');
-}
+const MIN_RENDER_SCALE = 0.62;
 
 function simTick(dt) {
   if (!player) return;
   collisionPeople.length = 0;
   collisionPeople.push(player.pos);
   if (citizens?.list) collisionPeople.push(...citizens.list);
-  if (world.cityLife?.people) collisionPeople.push(...world.cityLife.people);
   if (world.npcs) collisionPeople.push(...world.npcs);
   if (!ui.dialogOpen && !ui.guideOpen) {
     player.update(dt, input, -followCam.yaw, world.colliders, collisionPeople);
@@ -286,12 +333,13 @@ function simTick(dt) {
   collisionPeople.length = 0;
   collisionPeople.push(player.pos);
   if (citizens?.list) collisionPeople.push(...citizens.list);
-  if (world.cityLife?.people) collisionPeople.push(...world.cityLife.people);
   if (world.npcs) collisionPeople.push(...world.npcs);
   citizens?.update(dt, player.pos, world.colliders, collisionPeople);
+  // The instanced crowd steps around the player itself rather than joining the
+  // pairwise collision lists — that is what keeps hundreds of walkers free.
+  crowd?.update(dt, player.pos, heightAt);
   pedestrianBuffer.length = 0;
   if (citizens?.list) pedestrianBuffer.push(...citizens.list);
-  if (world.cityLife?.people) pedestrianBuffer.push(...world.cityLife.people);
   trains?.update(dt, player.pos, pedestrianBuffer, world.npcs);
   traffic?.update(dt, player.pos);
   updateSun(player.pos);
@@ -364,10 +412,29 @@ renderer.setAnimationLoop(() => {
     }
 
     minimap.update(rdt, player, zoneMgr, world, trains);
+    chatter.update(rdt, crowd, player.pos, quality.s.bubbleRadius);
 
-    // NPC interaction
+    // NPC interaction. Teachers take priority; if none is in reach, a passing
+    // local with a street exercise will do.
     const near = world.nearestNPC(player.pos);
-    if (near && !blocked) {
+    const streetLocal = near ? null : crowd?.nearestSpeaker(player.pos);
+    if (streetLocal && !blocked) {
+      const sp = streetLocal.speaker;
+      ui.setPrompt(sp.done
+        ? `Press <b>E</b> — ${sp.name} <span style="opacity:.65">(✓ already helped)</span>`
+        : `Press <b>E</b> — ${sp.name}, ${sp.role} <span style="color:#ffc857">✦ quick one</span>`);
+      if (mouse.interact) {
+        audio.click();
+        ui.openStreetDialog(sp, {
+          onCorrect: () => {
+            sp.done = true;
+            ui.addXP(sp.exercise?.reward || 8);
+            zoneMgr.recordStreetWin(sp.dialectCode);
+          },
+          onWrong: () => audio.wrong?.(),
+        });
+      }
+    } else if (near && !blocked) {
       ui.setPrompt(near.done
         ? `Press <b>E</b> — talk to ${near.name} <span style="opacity:.65">(✓ done this round)</span>`
         : `Press <b>E</b> — talk to ${near.name} <span style="color:#ffb84d">❗ exercises</span>`);
@@ -399,23 +466,19 @@ renderer.setAnimationLoop(() => {
     }
   }
 
-  renderer.render(scene, camera);
+  postfx.render(clock.elapsedTime);
 
-  // dynamic resolution: EMA of frame time, adjust every 1.5s
+  // Two nested controls: render scale reacts within a tier for short spikes,
+  // the quality tier moves for sustained trouble.
   frameEMA = frameEMA * 0.95 + rdt * 1000 * 0.05;
+  quality.update(rdt * 1000, rdt);
   scaleCooldown -= rdt;
   if (scaleCooldown <= 0) {
-    if (frameEMA > 20) {
-      // Preserve mobile clarity: reduce expensive scene work before lowering
-      // resolution, then never cross the effective-pixel-ratio floor.
-      if (!potato && (compactTouch || frameEMA > 24)) {
-        engagePerformanceTier();
-      } else if (renderScale > MIN_RENDER_SCALE + 0.001) {
-        renderScale = Math.max(MIN_RENDER_SCALE, renderScale - 0.08);
-        applySize();
-      }
+    if (frameEMA > 21 && renderScale > MIN_RENDER_SCALE + 0.001) {
+      renderScale = Math.max(MIN_RENDER_SCALE, renderScale - 0.08);
+      applySize();
       scaleCooldown = 1.5;
-    } else if (frameEMA < 14 && renderScale < 1) {
+    } else if (frameEMA < 13.5 && renderScale < 1) {
       renderScale = Math.min(1, renderScale + 0.08);
       applySize();
       scaleCooldown = 1.5;

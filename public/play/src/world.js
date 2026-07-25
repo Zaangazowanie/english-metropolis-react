@@ -126,10 +126,11 @@ function normalizeToHeight(root, targetH) {
 }
 
 export class World {
-  constructor(scene, loadingManager, { lowPower = false } = {}) {
+  constructor(scene, loadingManager, { lowPower = false, crowd = null } = {}) {
     this.scene = scene;
     this.loader = makeGLTFLoader(loadingManager);
     this.lowPower = lowPower;
+    this.crowd = crowd;
     this.colliders = [];
     this.npcs = [];       // { obj, name, role, greeting, exercise, done, baseY }
     this.animated = [];   // objects with userData.update(t)
@@ -140,7 +141,7 @@ export class World {
     this.buildArtDecoHub();
     this.media = buildMediaFacades(this.scene, this.animated, HUB_TOWERS, { lowPower: this.lowPower });
     this.buildPlazaLife();
-    this.cityLife = new CityLife(this.scene, { lowPower: this.lowPower });
+    this.cityLife = new CityLife(this.scene, { lowPower: this.lowPower, crowd: this.crowd });
     for (const object of this.cityLife.colliderObjects) this.addAABBCollider(object, 0.12);
     for (const box of this.cityLife.colliderBoxes) {
       this.addBoxCollider(box.x, box.z, box.hw, box.hd, box.source);
@@ -168,6 +169,12 @@ export class World {
   }
 
   setZones(zoneMgr) { this.zoneMgr = zoneMgr; }
+
+  // Quality tier moved: the hub keeps a share of the crowd budget, the streamed
+  // districts get the rest as they build.
+  setDetail(s) {
+    this.cityLife?.setDensity(Math.round(s.crowd * 0.3));
+  }
 
   // blend an instance colour toward the dialect region it stands in
   regionTint(col, x, z, amt) {
@@ -1274,10 +1281,28 @@ export class World {
   update(t, dt, playerPos) {
     for (const a of this.animated) a.userData.update?.(t);
     this.cityLife?.update(t, dt);
-    // NPCs: skeletal mixers advance; unrigged ones get idle bob + gestures
+    // NPCs: skeletal mixers advance; unrigged ones get idle bob + gestures.
+    // A skinned mixer is the most expensive thing per character in the scene, so
+    // teachers in districts you can see but are not standing in stop ticking —
+    // at 40m their idle breathing is not something anyone can perceive.
+    // Each authored teacher is a ~25k-triangle Meshy bake, so a dozen streamed
+    // districts put over a million triangles on screen for characters nobody is
+    // close enough to read. Hide them past the horizon where the district's own
+    // instanced locals carry the scene instead.
+    const MIXER_RANGE = 42 * 42;
+    const DRAW_RANGE = 44 * 44;
     for (const n of this.npcs) {
-      if (n.mixer) n.mixer.update(dt);
-      else {
+      const dx = n.obj.position.x - playerPos.x;
+      const dz = n.obj.position.z - playerPos.z;
+      const d2 = dx * dx + dz * dz;
+      // Only the character body is hidden — the quest marker floating above it
+      // stays visible, so you can still see from the platform which locals in a
+      // district still need helping.
+      const visible = d2 < DRAW_RANGE;
+      if (n.model && n.model.visible !== visible) n.model.visible = visible;
+      if (n.mixer) {
+        if (d2 < MIXER_RANGE) n.mixer.update(dt);
+      } else {
         let y = Math.sin(t * 1.4 + n.phase) * 0.03;
         if (n.gesture) {
           const g = n.gesture; g.t += dt;
@@ -1301,10 +1326,8 @@ export class World {
         const pulse = n.done ? 1 : 1 + 0.1 * Math.sin(t * 3.4 + n.phase);
         n.marker.scale.set(0.6 * pulse, 0.8 * pulse, 1);
       }
-      const dx = playerPos.x - n.obj.position.x, dz = playerPos.z - n.obj.position.z;
-      const d2 = dx * dx + dz * dz;
       if (d2 < 36) {
-        const target = Math.atan2(dx, dz);
+        const target = Math.atan2(-dx, -dz);
         let diff = target - n.obj.rotation.y;
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;

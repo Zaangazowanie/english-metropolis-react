@@ -245,6 +245,59 @@ export class UI {
     opts.append(later);
   }
 
+  // A passer-by's one-question exercise. Deliberately lighter than a teacher's
+  // drill: it exists so that walking down a street is itself practice, and so
+  // the crowd is something you talk to rather than scenery you walk past.
+  openStreetDialog(speaker, hooks = {}) {
+    this.dialogOpen = true;
+    const d = this.$('dialog');
+    d.style.display = 'block';
+    d.querySelector('.who').textContent = `${speaker.name} — ${speaker.role}`;
+    const text = d.querySelector('.text');
+    const opts = d.querySelector('.opts');
+    opts.innerHTML = '';
+    this.voice?.speak(null, speaker.line, { profile: speaker.accentProfile });
+
+    if (speaker.done || !speaker.exercise) {
+      text.textContent = speaker.line;
+      const bye = document.createElement('button');
+      bye.textContent = '✦ Nice one, see you around';
+      bye.addEventListener('click', () => this.closeDialog());
+      opts.appendChild(bye);
+      return;
+    }
+
+    const ex = speaker.exercise;
+    text.innerHTML = `<span style="opacity:.72">"${speaker.line}"</span><br><br>${ex.prompt}`;
+    ex.options.forEach((opt, i) => {
+      const b = document.createElement('button');
+      b.textContent = opt;
+      b.addEventListener('click', () => {
+        if (i === ex.answerIndex) {
+          b.classList.add('right');
+          this.audio?.correct();
+          hooks.onCorrect?.();
+          text.innerHTML = `<b>${ex.explain || 'Spot on.'}</b>`;
+          opts.innerHTML = '';
+          const done = document.createElement('button');
+          done.textContent = `✦ +${ex.reward || 8} XP — cheers!`;
+          done.addEventListener('click', () => this.closeDialog());
+          opts.appendChild(done);
+        } else {
+          b.classList.add('wrong');
+          b.disabled = true;
+          this.audio?.wrong();
+          hooks.onWrong?.();
+        }
+      });
+      opts.appendChild(b);
+    });
+    const later = document.createElement('button');
+    later.textContent = 'Maybe later';
+    later.addEventListener('click', () => this.closeDialog());
+    opts.appendChild(later);
+  }
+
   // ---------- grammar drill (multi-question MCQ session) ----------
   openDrill(npc, hooks = {}) {
     const g = npc.grammar;
@@ -364,7 +417,15 @@ export class UI {
   }
 
   setFPS(fps, scale) {
-    this.$('fps').textContent = `${fps | 0} fps · ${(scale * 100) | 0}%`;
+    this.$('fps').textContent = `${fps | 0} fps · ${(scale * 100) | 0}%`
+      + (this.qualityTier ? ` · ${this.qualityTier}${this.qualityManual ? '*' : ''}` : '');
+  }
+
+  // Shown next to the FPS chip so a player can see the game adapt, and so a
+  // manual override is visibly distinct from an automatic one.
+  setQualityTier(tier, manual) {
+    this.qualityTier = tier;
+    this.qualityManual = !!manual;
   }
 
   // ---------- city map (M) ----------

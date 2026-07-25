@@ -64,6 +64,60 @@
      "answerIndex": 1,
      "reward": 15
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Do forgive me — the tearoom shuts at half four, not half five.",
+     "role": "tearoom regular",
+     "prompt": "What time does the tearoom shut?",
+     "options": [
+      "4:30",
+      "5:30",
+      "4:00"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Half four' means half past four — 4:30. British speakers drop the 'past'."
+    },
+    {
+     "line": "We're away for a fortnight, so the roses will have to fend for themselves.",
+     "role": "park warden",
+     "prompt": "How long will they be away?",
+     "options": [
+      "Four days",
+      "Two weeks",
+      "Two months"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "A fortnight is fourteen nights — two weeks."
+    },
+    {
+     "line": "It was rather a good concert, actually. Quite splendid.",
+     "role": "concert-goer",
+     "prompt": "How did she find the concert?",
+     "options": [
+      "Disappointing",
+      "Very good",
+      "Too long"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "In this register 'rather good' and 'quite splendid' are strong praise, not faint."
+    },
+    {
+     "line": "I shan't be a moment — just popping to the pillar box.",
+     "role": "letter writer",
+     "prompt": "Where is he going?",
+     "options": [
+      "To post a letter",
+      "To buy a newspaper",
+      "To catch a train"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A pillar box is the red street postbox. 'Popping' means going briefly."
+    }
    ]
   },
   {
@@ -130,6 +184,60 @@
      "answerIndex": 1,
      "reward": 20
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Use your loaf, mate — the market shuts at six.",
+     "role": "stallholder",
+     "prompt": "What is he telling you to do?",
+     "options": [
+      "Buy some bread",
+      "Use your head",
+      "Hurry along"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "'Loaf of bread' rhymes with 'head' — so 'use your loaf' means think."
+    },
+    {
+     "line": "Straight up the apples and pears, second door on your right.",
+     "role": "caretaker",
+     "prompt": "Where should you go?",
+     "options": [
+      "Up the stairs",
+      "Past the fruit stall",
+      "Along the road"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Apples and pears' is rhyming slang for stairs."
+    },
+    {
+     "line": "Give us a bell later, would you? I'm on the dog and bone all morning.",
+     "role": "market trader",
+     "prompt": "What is he doing all morning?",
+     "options": [
+      "Walking his dog",
+      "On the telephone",
+      "At the market"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "'Dog and bone' rhymes with phone; 'give us a bell' means call me."
+    },
+    {
+     "line": "Have a butcher's at this jacket — proper bargain, that.",
+     "role": "clothes seller",
+     "prompt": "What is he asking you to do?",
+     "options": [
+      "Take a look",
+      "Try it on",
+      "Buy it now"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Butcher's hook' rhymes with look."
+    }
    ]
   },
   {
@@ -194,6 +302,60 @@
      ],
      "answerIndex": 1,
      "reward": 15
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "It's well cold down the wharf today, innit.",
+     "role": "dock hand",
+     "prompt": "What does 'well cold' mean here?",
+     "options": [
+      "Slightly cold",
+      "Very cold",
+      "Not cold at all"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "In Estuary English 'well' works as an intensifier: well cold, well nice, well far."
+    },
+    {
+     "line": "Yeah no, I'm gonna get the train — it's quicker, innit.",
+     "role": "commuter",
+     "prompt": "What is he going to do?",
+     "options": [
+      "Take the train",
+      "Not take the train",
+      "Still deciding"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Yeah no' softens the start of a sentence; the decision is in what follows."
+    },
+    {
+     "line": "Sort it out, mate, we're gonna miss the last one.",
+     "role": "friend at the station",
+     "prompt": "What is he urging?",
+     "options": [
+      "Fix something and hurry",
+      "Buy a ticket",
+      "Find a seat"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Sort it out' means deal with it quickly; 'the last one' is the last train."
+    },
+    {
+     "line": "That new caff is proper nice — I ain't been in years, mind.",
+     "role": "cafe regular",
+     "prompt": "Has he been recently?",
+     "options": [
+      "Yes, last week",
+      "No, not for years",
+      "He goes daily"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "'I ain't been in years' is a negative — 'mind' adds a contrasting afterthought."
     }
    ]
   },
@@ -261,6 +423,60 @@
      "answerIndex": 1,
      "reward": 15
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Alright la — that ferry's boss this time of day.",
+     "role": "ferry hand",
+     "prompt": "What does 'boss' mean here?",
+     "options": [
+      "Expensive",
+      "Excellent",
+      "Crowded"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "'Boss' is Liverpool English for brilliant or excellent."
+    },
+    {
+     "line": "He's dead sound, him — you'd get on with him.",
+     "role": "neighbour",
+     "prompt": "What is he saying about his friend?",
+     "options": [
+      "He is very decent",
+      "He sleeps a lot",
+      "He is unwell"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Dead' means very; 'sound' means decent and reliable."
+    },
+    {
+     "line": "She was made up when she heard the news.",
+     "role": "barber",
+     "prompt": "How did she feel?",
+     "options": [
+      "Delighted",
+      "Confused",
+      "Embarrassed"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Made up' means very pleased in Scouse."
+    },
+    {
+     "line": "Don't be soft, it's only round the corner.",
+     "role": "shopkeeper",
+     "prompt": "What does 'don't be soft' mean?",
+     "options": [
+      "Don't be silly",
+      "Don't be gentle",
+      "Don't be late"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Soft' here means daft or silly, not gentle."
+    }
    ]
   },
   {
@@ -325,6 +541,60 @@
      ],
      "answerIndex": 0,
      "reward": 10
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "Why aye, man — it's canny mild for the time of year.",
+     "role": "bridge painter",
+     "prompt": "What does 'canny' mean here?",
+     "options": [
+      "Clever",
+      "Quite / fairly",
+      "Cold"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "In Geordie 'canny' works as 'quite' or 'rather', and also as 'nice'."
+    },
+    {
+     "line": "Howay, we'll be late for the match.",
+     "role": "supporter",
+     "prompt": "What is he saying?",
+     "options": [
+      "Come on, hurry",
+      "Which way?",
+      "How much?"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Howay' is the Tyneside call to come on."
+    },
+    {
+     "line": "I'm gannin' hyem — it's freezing out here.",
+     "role": "market seller",
+     "prompt": "Where is he going?",
+     "options": [
+      "Home",
+      "To the game",
+      "To work"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Gannin' hyem' is going home."
+    },
+    {
+     "line": "Are ye gannin' doon the toon later?",
+     "role": "student",
+     "prompt": "What is being asked?",
+     "options": [
+      "Are you going into town later?",
+      "Are you going down the hill?",
+      "Are you working late?"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Doon the toon' means into the town centre — a night out."
     }
    ]
   },
@@ -391,6 +661,60 @@
      "answerIndex": 0,
      "reward": 15
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Ey up — there's nowt wrong with a bit of hard graft.",
+     "role": "mill foreman",
+     "prompt": "What does 'nowt' mean?",
+     "options": [
+      "Nothing",
+      "Everything",
+      "Something"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Nowt = nothing, owt = anything. 'Graft' is hard work."
+    },
+    {
+     "line": "It's a bit black over Bill's mother's.",
+     "role": "allotment keeper",
+     "prompt": "What is he commenting on?",
+     "options": [
+      "Rain is coming",
+      "A house is dirty",
+      "A neighbour is unwell"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A Yorkshire way of saying dark clouds are gathering."
+    },
+    {
+     "line": "Put wood in th'ole, there's a draught.",
+     "role": "pub landlord",
+     "prompt": "What does he want?",
+     "options": [
+      "The door shut",
+      "More firewood",
+      "A window opened"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Put the wood in the hole' means close the door."
+    },
+    {
+     "line": "Aye, summat like that — near enough.",
+     "role": "farmer",
+     "prompt": "What does 'summat' mean?",
+     "options": [
+      "Something",
+      "Summer",
+      "Someone"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Summat = something; the pair to 'nowt'."
+    }
    ]
   },
   {
@@ -455,6 +779,60 @@
      ],
      "answerIndex": 1,
      "reward": 15
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "Alright my lover — gurt big apple crop this year.",
+     "role": "cider maker",
+     "prompt": "What does 'gurt' mean?",
+     "options": [
+      "Great big",
+      "Very small",
+      "Very early"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Gurt' is West Country for great or huge. 'My lover' is a friendly greeting, not romantic."
+    },
+    {
+     "line": "Where's that to, then? Down by the orchard?",
+     "role": "lane walker",
+     "prompt": "What is she asking?",
+     "options": [
+      "Where is it?",
+      "Where are you going?",
+      "What is it for?"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Where's that to?' means where is it — a West Country construction."
+    },
+    {
+     "line": "Proper job, that is.",
+     "role": "thatcher",
+     "prompt": "What does this mean?",
+     "options": [
+      "A real occupation",
+      "Well done",
+      "Hard work"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "'Proper job' is high praise for something done well."
+    },
+    {
+     "line": "Us be going up the farm after dinner.",
+     "role": "farmhand",
+     "prompt": "What is unusual here grammatically?",
+     "options": [
+      "'Us' is used as the subject",
+      "'Be' means will",
+      "'Up' means down"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Traditional West Country English uses 'us' where standard English uses 'we'."
     }
    ]
   },
@@ -521,6 +899,60 @@
      "answerIndex": 3,
      "reward": 20
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "That's bostin, that is — best pie in the Basin.",
+     "role": "pie seller",
+     "prompt": "What does 'bostin' mean?",
+     "options": [
+      "Broken",
+      "Brilliant",
+      "Expensive"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "'Bostin' is Birmingham and Black Country for excellent."
+    },
+    {
+     "line": "Alright, bab? You want a cuppa before you go?",
+     "role": "cafe owner",
+     "prompt": "What is 'bab'?",
+     "options": [
+      "A friendly term for a person",
+      "A kind of bread",
+      "A small child only"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Bab' is an affectionate Brummie address for anyone."
+    },
+    {
+     "line": "Our kid'll meet us round the back.",
+     "role": "canal boatman",
+     "prompt": "Who is 'our kid'?",
+     "options": [
+      "His child",
+      "His brother or close mate",
+      "A stranger"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "'Our kid' usually means a sibling or very close friend, not a child."
+    },
+    {
+     "line": "Yow can't miss it, honest — it's by the canal.",
+     "role": "lock keeper",
+     "prompt": "What is 'yow'?",
+     "options": [
+      "You",
+      "Now",
+      "Yes"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Yow' is the local form of 'you'."
+    }
    ]
   },
   {
@@ -586,6 +1018,60 @@
      "answerIndex": 0,
      "reward": 15
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Sound, mate. Dead sound.",
+     "role": "record shop owner",
+     "prompt": "What is he expressing?",
+     "options": [
+      "Approval",
+      "Doubt",
+      "Complaint"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Sound' means good or fine; 'dead' intensifies it."
+    },
+    {
+     "line": "It's mint, that jacket — where'd you get it?",
+     "role": "market stallholder",
+     "prompt": "What does 'mint' mean?",
+     "options": [
+      "Green",
+      "Excellent",
+      "New"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "'Mint' is northern English for excellent."
+    },
+    {
+     "line": "Buzzing for tonight, me.",
+     "role": "gig-goer",
+     "prompt": "How does she feel?",
+     "options": [
+      "Very excited",
+      "Very tired",
+      "Annoyed"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Buzzing' means excited. Note the tag 'me' at the end for emphasis."
+    },
+    {
+     "line": "Give over — you're winding me up.",
+     "role": "mill worker",
+     "prompt": "What does he think?",
+     "options": [
+      "You are joking with him",
+      "You are helping him",
+      "You are leaving"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Winding someone up' is teasing them; 'give over' means stop it."
+    }
    ]
   },
   {
@@ -650,6 +1136,60 @@
      ],
      "answerIndex": 1,
      "reward": 20
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "That's peak, fam — the shop's shut already.",
+     "role": "corner shop regular",
+     "prompt": "What does 'peak' mean here?",
+     "options": [
+      "Excellent",
+      "Unfortunate",
+      "Busy"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "In Multicultural London English 'peak' means a bad situation."
+    },
+    {
+     "line": "Allow it, we'll go tomorrow instead.",
+     "role": "student",
+     "prompt": "What is he suggesting?",
+     "options": [
+      "Permit it",
+      "Leave it / forget it",
+      "Pay for it"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "'Allow it' means drop it or don't bother."
+    },
+    {
+     "line": "It's long, you know — all the way to the ends.",
+     "role": "bus rider",
+     "prompt": "What does 'long' mean here?",
+     "options": [
+      "Physically lengthy only",
+      "Too much effort",
+      "Very late"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "'Long' describes something tedious or not worth the effort."
+    },
+    {
+     "line": "Bare people out today, still.",
+     "role": "barber",
+     "prompt": "What does 'bare' mean?",
+     "options": [
+      "A lot of",
+      "Very few",
+      "Uncovered"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Bare' means many or a lot of."
     }
    ]
   },
@@ -718,6 +1258,60 @@
      "answerIndex": 0,
      "reward": 20
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "It's a braw day for the walk, but it'll turn dreich by four.",
+     "role": "hill guide",
+     "prompt": "What will the weather do?",
+     "options": [
+      "Turn grey and drizzly",
+      "Turn hot",
+      "Turn windy only"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Braw' is fine or splendid; 'dreich' is that grey, damp, dispiriting Scottish weather."
+    },
+    {
+     "line": "Ah dinnae ken, but ah'll find oot for ye.",
+     "role": "librarian",
+     "prompt": "What is she saying?",
+     "options": [
+      "I don't know, but I'll find out",
+      "I don't care",
+      "I can't help"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Dinnae ken' is 'don't know' — 'ken' is the Scots verb to know."
+    },
+    {
+     "line": "Wheesht a minute, ah'm trying tae listen.",
+     "role": "fiddler",
+     "prompt": "What is he asking for?",
+     "options": [
+      "Quiet",
+      "Help",
+      "Directions"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Wheesht' means hush or be quiet."
+    },
+    {
+     "line": "Just a wee bit further and ye're there.",
+     "role": "crofter",
+     "prompt": "What does 'wee' mean?",
+     "options": [
+      "Small / a little",
+      "Long",
+      "Steep"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Wee' means small, and Scots speakers use it constantly to soften a statement."
+    }
    ]
   },
   {
@@ -784,6 +1378,60 @@
      ],
      "answerIndex": 2,
      "reward": 15
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "How's it gaun, pal? Pure baltic oot there the day.",
+     "role": "shipyard worker",
+     "prompt": "What is the weather like?",
+     "options": [
+      "Freezing",
+      "Mild",
+      "Raining hard"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Baltic' means bitterly cold; 'pure' is a Glasgow intensifier."
+    },
+    {
+     "line": "Geez a swatch at that, would ye.",
+     "role": "market trader",
+     "prompt": "What is he asking?",
+     "options": [
+      "Give me a look",
+      "Give me a hand",
+      "Give me a minute"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A 'swatch' is a look; 'geez' is 'give us'."
+    },
+    {
+     "line": "Away ye go — ye're at it.",
+     "role": "taxi driver",
+     "prompt": "What does he think?",
+     "options": [
+      "You are joking or exaggerating",
+      "You should leave",
+      "You are right"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'You're at it' means you're winding me up."
+    },
+    {
+     "line": "Ah'm no' wantin' any bother, son.",
+     "role": "doorman",
+     "prompt": "What does he want?",
+     "options": [
+      "No trouble",
+      "Some help",
+      "To close early"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'No' before a verb is the Scots negative — 'I'm not wanting any trouble'."
     }
    ]
   },
@@ -852,6 +1500,60 @@
      "answerIndex": 3,
      "reward": 20
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Up the close and doon the stair, then left.",
+     "role": "tour guide",
+     "prompt": "What is a 'close'?",
+     "options": [
+      "A narrow alley between buildings",
+      "A dead end",
+      "A shop"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "An Edinburgh close is the narrow passage running off the street between tenements."
+    },
+    {
+     "line": "The haar's coming in off the Forth again.",
+     "role": "harbour master",
+     "prompt": "What is coming in?",
+     "options": [
+      "A cold sea fog",
+      "A high tide",
+      "A ferry"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Haar' is the cold coastal fog that rolls in from the North Sea."
+    },
+    {
+     "line": "Aye, that'll be right.",
+     "role": "bookshop owner",
+     "prompt": "What does she mean?",
+     "options": [
+      "She agrees",
+      "She strongly doubts it",
+      "She is unsure"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "Said flatly, 'that'll be right' means the opposite — it certainly will not."
+    },
+    {
+     "line": "Meet me at the foot o' the Walk about six.",
+     "role": "student",
+     "prompt": "Where is the meeting?",
+     "options": [
+      "At the bottom end of a street called the Walk",
+      "On a walking path",
+      "At a shoe shop"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'The Walk' is Leith Walk; 'the foot' is its lower end."
+    }
    ]
   },
   {
@@ -918,6 +1620,60 @@
      ],
      "answerIndex": 0,
      "reward": 15
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "It's a soft day — you'll want a jacket up the glen.",
+     "role": "ghillie",
+     "prompt": "What is a 'soft day'?",
+     "options": [
+      "Mild and damp",
+      "Bright and hot",
+      "Bitterly cold"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A soft day is mild with fine drizzle in the air — common across the Highlands and Ireland."
+    },
+    {
+     "line": "The ceilidh's on Friday if you're about.",
+     "role": "hall keeper",
+     "prompt": "What is a ceilidh?",
+     "options": [
+      "A music and dance evening",
+      "A market",
+      "A church service"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A ceilidh is a social evening of traditional music and dancing."
+    },
+    {
+     "line": "Ach, there's no hurry on you at all.",
+     "role": "innkeeper",
+     "prompt": "What is she saying?",
+     "options": [
+      "Take your time",
+      "Please be quick",
+      "You are late"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'No hurry on you' is a gentle way of saying there is no rush."
+    },
+    {
+     "line": "Take the low road — it's kinder in this weather.",
+     "role": "postman",
+     "prompt": "Why take the low road?",
+     "options": [
+      "It is easier in bad weather",
+      "It is shorter",
+      "It is prettier"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Kinder' here means gentler or easier going."
     }
    ]
   },
@@ -986,6 +1742,60 @@
      "answerIndex": 1,
      "reward": 20
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "What's the craic? Any news at all?",
+     "role": "shopkeeper",
+     "prompt": "What is he asking?",
+     "options": [
+      "What's the news / how are things",
+      "What is the price",
+      "Where are you going"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Craic' means fun, chat and news all at once. 'What's the craic?' is a greeting."
+    },
+    {
+     "line": "Sure look, it is what it is.",
+     "role": "farmer",
+     "prompt": "What attitude is this?",
+     "options": [
+      "Accepting a situation",
+      "Refusing to help",
+      "Asking a question"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A very Irish shrug: nothing to be done, so accept it."
+    },
+    {
+     "line": "That's grand altogether, so it is.",
+     "role": "baker",
+     "prompt": "How good is 'grand' here?",
+     "options": [
+      "Magnificent",
+      "Perfectly fine",
+      "Disappointing"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "In Ireland 'grand' means fine or okay, not grand in the English sense."
+    },
+    {
+     "line": "Ah, I will, yeah.",
+     "role": "neighbour",
+     "prompt": "What does he actually mean?",
+     "options": [
+      "Yes, definitely",
+      "No, he won't",
+      "He is unsure"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "Said in this tone, 'I will, yeah' is a well-known Irish way of saying no."
+    }
    ]
   },
   {
@@ -1052,6 +1862,60 @@
      ],
      "answerIndex": 2,
      "reward": 20
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "Story, bud? Where are you off to?",
+     "role": "market trader",
+     "prompt": "What is 'story?' here?",
+     "options": [
+      "A greeting",
+      "A request for a tale",
+      "A complaint"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'What's the story?' shortened to 'story?' is a Dublin hello."
+    },
+    {
+     "line": "It's only gas, the whole thing.",
+     "role": "busker",
+     "prompt": "What does 'gas' mean?",
+     "options": [
+      "Funny",
+      "Expensive",
+      "Dangerous"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Gas' means very funny or amusing in Irish English."
+    },
+    {
+     "line": "That's deadly, so it is.",
+     "role": "student",
+     "prompt": "Is this good or bad?",
+     "options": [
+      "Good — excellent",
+      "Bad — dangerous",
+      "Neutral"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Deadly' means excellent. The tag 'so it is' reinforces the statement."
+    },
+    {
+     "line": "I'm only messing with you, relax.",
+     "role": "fishmonger",
+     "prompt": "What has he been doing?",
+     "options": [
+      "Joking",
+      "Cleaning",
+      "Arguing"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Only messing' means just joking."
     }
    ]
   },
@@ -1120,6 +1984,60 @@
      "answerIndex": 2,
      "reward": 20
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "What about ye? Long time no see.",
+     "role": "dockworker",
+     "prompt": "What is he asking?",
+     "options": [
+      "How are you?",
+      "What is that about?",
+      "Where were you?"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'What about ye?' is the standard Belfast greeting."
+    },
+    {
+     "line": "That's dead on, so it is.",
+     "role": "cafe owner",
+     "prompt": "What does 'dead on' mean?",
+     "options": [
+      "Fine, correct, decent",
+      "Exactly on time only",
+      "Very serious"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Dead on' means fine or decent — of a plan or of a person."
+    },
+    {
+     "line": "It's foundered out here — get in and shut that door.",
+     "role": "shipbuilder",
+     "prompt": "What does 'foundered' mean?",
+     "options": [
+      "Freezing cold",
+      "Flooded",
+      "Noisy"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "To be foundered is to be perished with cold."
+    },
+    {
+     "line": "We'll go for a wee dander down the towpath.",
+     "role": "neighbour",
+     "prompt": "What is a 'dander'?",
+     "options": [
+      "A stroll",
+      "An argument",
+      "A meal"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A dander is a leisurely walk."
+    }
    ]
   },
   {
@@ -1187,6 +2105,60 @@
      "answerIndex": 0,
      "reward": 15
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "How's it going, boy? All right?",
+     "role": "quay worker",
+     "prompt": "Who is 'boy' addressed to?",
+     "options": [
+      "Any man, of any age",
+      "Only a child",
+      "Only a stranger"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "In Cork 'boy' is a general friendly address for a man."
+    },
+    {
+     "line": "That's savage, like.",
+     "role": "student",
+     "prompt": "What does 'savage' mean here?",
+     "options": [
+      "Brilliant",
+      "Cruel",
+      "Difficult"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Savage' means great or brilliant in Cork English."
+    },
+    {
+     "line": "The lash is coming down again, look.",
+     "role": "market seller",
+     "prompt": "What is happening?",
+     "options": [
+      "Heavy rain",
+      "A sale",
+      "An argument"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'The lash' is heavy rain."
+    },
+    {
+     "line": "Sure, 'tis only up the road, like.",
+     "role": "publican",
+     "prompt": "How far is it?",
+     "options": [
+      "Not far",
+      "Very far",
+      "He doesn't know"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Only up the road' means close by — though the distance can be optimistic."
+    }
    ]
   },
   {
@@ -1252,6 +2224,60 @@
      "answerIndex": 0,
      "reward": 10
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "I'll swing by around seven — sound good?",
+     "role": "neighbour",
+     "prompt": "What does 'swing by' mean?",
+     "options": [
+      "Call ahead",
+      "Drop in briefly",
+      "Send someone"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "To swing by is to visit briefly on your way somewhere else."
+    },
+    {
+     "line": "It's a couple blocks that way, on your right.",
+     "role": "barista",
+     "prompt": "How far is it?",
+     "options": [
+      "About two or three streets",
+      "About two miles",
+      "Right next door"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A 'block' is the stretch of street between two intersections."
+    },
+    {
+     "line": "Let me grab a coffee real quick and we'll go.",
+     "role": "office worker",
+     "prompt": "What does 'real quick' mean?",
+     "options": [
+      "Very fast, briefly",
+      "Immediately, no delay",
+      "Actually fast"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Real quick' is an American adverbial: I'll do it briefly."
+    },
+    {
+     "line": "Traffic on the interstate is rough this time of day.",
+     "role": "driver",
+     "prompt": "What is an interstate?",
+     "options": [
+      "A long-distance highway",
+      "A city street",
+      "A state border"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Interstates are the major American long-distance motorways."
+    }
    ]
   },
   {
@@ -1316,6 +2342,60 @@
      "answerIndex": 0,
      "reward": 15
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "I'm fixin' to head down to the store — need anything?",
+     "role": "porch sitter",
+     "prompt": "What does 'fixing to' mean?",
+     "options": [
+      "About to",
+      "Repairing",
+      "Refusing to"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Fixing to' means about to do something — a Southern US construction."
+    },
+    {
+     "line": "Y'all come back now, you hear?",
+     "role": "shop owner",
+     "prompt": "Who is 'y'all' addressed to?",
+     "options": [
+      "One person",
+      "More than one person",
+      "Nobody in particular"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "'Y'all' is the Southern plural 'you' — English otherwise lacks one."
+    },
+    {
+     "line": "Bless your heart, honey, you've had a day of it.",
+     "role": "diner waitress",
+     "prompt": "What is she expressing here?",
+     "options": [
+      "Sympathy",
+      "Anger",
+      "Congratulation"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Said warmly it is sympathy — though the same phrase can be gently cutting."
+    },
+    {
+     "line": "We might could do it Tuesday, if that suits.",
+     "role": "handyman",
+     "prompt": "What is unusual grammatically?",
+     "options": [
+      "Two modal verbs together",
+      "A missing subject",
+      "A wrong tense"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Might could' is a double modal, standard in Southern US English."
+    }
    ]
   },
   {
@@ -1379,6 +2459,60 @@
      ],
      "answerIndex": 1,
      "reward": 10
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "He be working late every night, not just tonight.",
+     "role": "barber",
+     "prompt": "What does 'he be working' mean?",
+     "options": [
+      "He is working right now",
+      "He works regularly, habitually",
+      "He worked once"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "The habitual 'be' marks something that happens repeatedly — a grammatical distinction standard English cannot make in one word."
+    },
+    {
+     "line": "We finna head out — you coming?",
+     "role": "student",
+     "prompt": "What does 'finna' mean?",
+     "options": [
+      "Finished",
+      "About to",
+      "Refusing"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "'Finna' comes from 'fixing to' and means about to."
+    },
+    {
+     "line": "I been knew that, for real.",
+     "role": "record seller",
+     "prompt": "When did she learn it?",
+     "options": [
+      "Just now",
+      "A long time ago",
+      "She hasn't"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "Stressed 'been' marks the remote past: I have known that for a long time."
+    },
+    {
+     "line": "That's my people right there.",
+     "role": "neighbour",
+     "prompt": "What does he mean?",
+     "options": [
+      "Those are his friends or family",
+      "Those are his employees",
+      "Those are strangers"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'My people' means the ones close to you."
     }
    ]
   },
@@ -1445,6 +2579,60 @@
      "answerIndex": 2,
      "reward": 10
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "You standing on line or what?",
+     "role": "deli owner",
+     "prompt": "What is he asking?",
+     "options": [
+      "Are you queuing?",
+      "Are you on the phone?",
+      "Are you in the way?"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "New Yorkers stand 'on line'; the rest of America stands 'in line'."
+    },
+    {
+     "line": "Get me a regular coffee and a bacon egg and cheese.",
+     "role": "bodega regular",
+     "prompt": "What is a 'regular' coffee in New York?",
+     "options": [
+      "Black, no sugar",
+      "With milk and sugar",
+      "Decaffeinated"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "Ordering 'regular' in a New York deli gets you milk and sugar as standard."
+    },
+    {
+     "line": "Fuhgeddaboudit — the L is down again.",
+     "role": "commuter",
+     "prompt": "What is she saying about the plan?",
+     "options": [
+      "Forget it, it won't work",
+      "Definitely do it",
+      "Ask someone else"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Forget about it' compressed — meaning it's hopeless, or sometimes the opposite: it's beyond question."
+    },
+    {
+     "line": "It's on the corner of Ninth — you can't miss it.",
+     "role": "newsstand seller",
+     "prompt": "What does 'you can't miss it' mean?",
+     "options": [
+      "It is very easy to find",
+      "It is closed",
+      "It is a must-see"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A reassurance that the place is obvious — famously not always true."
+    }
    ]
   },
   {
@@ -1509,6 +2697,60 @@
      ],
      "answerIndex": 0,
      "reward": 20
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "Pahk the cah and we'll walk from heah.",
+     "role": "cabbie",
+     "prompt": "What is he saying?",
+     "options": [
+      "Park the car and walk",
+      "Pack the car and wait",
+      "Push the cart here"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Boston English is non-rhotic: the r in 'park' and 'car' is not pronounced."
+    },
+    {
+     "line": "That's wicked good, kid.",
+     "role": "pub regular",
+     "prompt": "What does 'wicked' mean here?",
+     "options": [
+      "Evil",
+      "Very",
+      "Slightly"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "In New England 'wicked' is an intensifier: wicked good, wicked cold."
+    },
+    {
+     "line": "Grab a frappe, not a milkshake — there's a difference.",
+     "role": "ice cream seller",
+     "prompt": "What is the difference in Boston?",
+     "options": [
+      "A frappe has ice cream in it",
+      "A frappe is hot",
+      "A frappe has no milk"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "In Massachusetts a milkshake is just flavoured milk; the frappe has the ice cream."
+    },
+    {
+     "line": "There's a bubbler round the back if you're thirsty.",
+     "role": "park keeper",
+     "prompt": "What is a bubbler?",
+     "options": [
+      "A drinking fountain",
+      "A fountain to look at",
+      "A kettle"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Bubbler' is the New England and Wisconsin word for a drinking fountain."
     }
    ]
   },
@@ -1575,6 +2817,60 @@
      "answerIndex": 1,
      "reward": 15
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Ope — just gonna sneak right past ya there.",
+     "role": "shopper",
+     "prompt": "What is 'ope'?",
+     "options": [
+      "A polite noise when you nearly bump someone",
+      "A greeting",
+      "A complaint"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Ope' is the involuntary Midwestern sound of a near-collision, followed by an apology."
+    },
+    {
+     "line": "You betcha, no trouble at all.",
+     "role": "farmer",
+     "prompt": "What does 'you betcha' mean?",
+     "options": [
+      "Certainly",
+      "Maybe",
+      "I don't think so"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'You betcha' is an emphatic yes."
+    },
+    {
+     "line": "Do you wanna come with?",
+     "role": "neighbour",
+     "prompt": "What is unusual here?",
+     "options": [
+      "'With' has no object",
+      "The tense is wrong",
+      "'Wanna' is a noun"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Midwestern English allows 'come with' as a complete phrase — from Scandinavian and German settlement patterns."
+    },
+    {
+     "line": "Grab a pop from the cooler.",
+     "role": "gas station clerk",
+     "prompt": "What is 'pop'?",
+     "options": [
+      "A fizzy drink",
+      "A snack",
+      "A newspaper"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Pop in the Midwest, soda on the coasts, coke across much of the South."
+    }
    ]
   },
   {
@@ -1639,6 +2935,60 @@
      ],
      "answerIndex": 1,
      "reward": 20
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "Take the 405, but like, not at five.",
+     "role": "surfer",
+     "prompt": "What is unusual about '405' here?",
+     "options": [
+      "It takes 'the' before the number",
+      "It is a bus",
+      "It is a time"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Southern Californians say 'the 405', 'the 101' — a regional marker."
+    },
+    {
+     "line": "That's so sick, dude — no cap.",
+     "role": "skater",
+     "prompt": "What does 'no cap' mean?",
+     "options": [
+      "No exaggeration, truthfully",
+      "No hat",
+      "No limit"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'No cap' means I'm not lying. 'Sick' here means excellent."
+    },
+    {
+     "line": "Hella people out today.",
+     "role": "beach vendor",
+     "prompt": "What does 'hella' mean?",
+     "options": [
+      "Very / a lot of",
+      "Almost no",
+      "Strange"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Hella' is a Northern Californian intensifier that spread statewide."
+    },
+    {
+     "line": "It's chill, we've got time.",
+     "role": "barista",
+     "prompt": "What does 'it's chill' mean?",
+     "options": [
+      "It's fine, relax",
+      "It's cold",
+      "It's boring"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Chill' means relaxed or fine."
     }
    ]
   },
@@ -1705,6 +3055,60 @@
      "answerIndex": 1,
      "reward": 10
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "We're a-goin' up the holler directly.",
+     "role": "fiddle maker",
+     "prompt": "What does 'directly' mean here?",
+     "options": [
+      "Soon",
+      "In a straight line",
+      "Immediately"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "In Appalachian English 'directly' means presently or after a while."
+    },
+    {
+     "line": "You'uns coming with us or staying?",
+     "role": "storekeeper",
+     "prompt": "Who is 'you'uns'?",
+     "options": [
+      "All of you",
+      "One of you",
+      "Nobody"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'You'uns' (or 'yinz' further north) is the plural you."
+    },
+    {
+     "line": "That's right smart of a walk from here.",
+     "role": "ridge farmer",
+     "prompt": "What does 'right smart' mean?",
+     "options": [
+      "A considerable amount",
+      "A clever route",
+      "A short distance"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Right smart' means quite a lot — of distance, time or anything else."
+    },
+    {
+     "line": "I reckon it'll rain 'fore supper.",
+     "role": "beekeeper",
+     "prompt": "What does 'I reckon' mean?",
+     "options": [
+      "I think / I expect",
+      "I calculate exactly",
+      "I hope"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Reckon' is a general verb of supposing, still common across the South and Appalachia."
+    }
    ]
   },
   {
@@ -1770,6 +3174,60 @@
      "answerIndex": 1,
      "reward": 15
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Fixin' to head out to the ranch — y'all coming?",
+     "role": "rancher",
+     "prompt": "When is he leaving?",
+     "options": [
+      "Very soon",
+      "Next week",
+      "He isn't"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Fixing to' means about to."
+    },
+    {
+     "line": "That's a fur piece down the road.",
+     "role": "gas station owner",
+     "prompt": "How far is it?",
+     "options": [
+      "A long way",
+      "Just around the corner",
+      "Uphill"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'A fur piece' means a considerable distance."
+    },
+    {
+     "line": "All hat and no cattle, that one.",
+     "role": "auctioneer",
+     "prompt": "What is she saying about him?",
+     "options": [
+      "He is all show and no substance",
+      "He is a real rancher",
+      "He is very rich"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A Texan way of calling someone a pretender."
+    },
+    {
+     "line": "Bless it, that truck's seen some miles.",
+     "role": "mechanic",
+     "prompt": "What is he saying about the truck?",
+     "options": [
+      "It is old and worn",
+      "It is brand new",
+      "It is stolen"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Seen some miles' means well used; 'bless it' adds affection."
+    }
    ]
   },
   {
@@ -1834,6 +3292,60 @@
      ],
      "answerIndex": 0,
      "reward": 15
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "It's just spitting — that's not real rain.",
+     "role": "coffee roaster",
+     "prompt": "What is 'spitting'?",
+     "options": [
+      "Very light drizzle",
+      "A downpour",
+      "Hail"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Spitting' is the lightest possible rain, which locals refuse to count."
+    },
+    {
+     "line": "The mountain's out today — look at that.",
+     "role": "ferry hand",
+     "prompt": "What does 'the mountain is out' mean?",
+     "options": [
+      "The sky is clear enough to see it",
+      "The mountain is closed",
+      "There is a landslide"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A Seattle and Portland phrase: the cloud has lifted and the peak is visible."
+    },
+    {
+     "line": "Grab your rain shell, we're walking.",
+     "role": "hiker",
+     "prompt": "What is a rain shell?",
+     "options": [
+      "A waterproof jacket",
+      "An umbrella",
+      "A hat"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A light waterproof outer layer — the regional uniform."
+    },
+    {
+     "line": "We might get a sun break this afternoon.",
+     "role": "park ranger",
+     "prompt": "What is a 'sun break'?",
+     "options": [
+      "A brief gap of sunshine between clouds",
+      "A holiday",
+      "A sunburn"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Sun break' is Pacific Northwest forecast vocabulary for a short sunny spell."
     }
    ]
   },
@@ -1901,6 +3413,60 @@
      "answerIndex": 1,
      "reward": 20
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Sorry, could I just squeeze past there? Sorry.",
+     "role": "cafe regular",
+     "prompt": "Why is he apologising twice?",
+     "options": [
+      "He broke something",
+      "Canadian 'sorry' is often just politeness",
+      "He is late"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "In Canadian English 'sorry' frequently works as 'excuse me' rather than an admission."
+    },
+    {
+     "line": "Grab me a double-double on the way, would you?",
+     "role": "hockey coach",
+     "prompt": "What is a double-double?",
+     "options": [
+      "Coffee with two creams and two sugars",
+      "Two coffees",
+      "A double sandwich"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A Canadian coffee order: two creams, two sugars."
+    },
+    {
+     "line": "It's about a klick from here, maybe two.",
+     "role": "trail guide",
+     "prompt": "What is a 'klick'?",
+     "options": [
+      "A kilometre",
+      "A minute",
+      "A block"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Klick' is informal for a kilometre."
+    },
+    {
+     "line": "We're bringing a two-four for the long weekend, eh.",
+     "role": "cottager",
+     "prompt": "What is a two-four?",
+     "options": [
+      "A case of 24 beers",
+      "A 24-hour trip",
+      "Two dollars forty"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A two-four is a 24-bottle case; the May long weekend is even nicknamed the May two-four."
+    }
    ]
   },
   {
@@ -1967,6 +3533,60 @@
      "answerIndex": 1,
      "reward": 20
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Close the light before you go, please.",
+     "role": "landlord",
+     "prompt": "What does she want?",
+     "options": [
+      "Switch off the light",
+      "Shut the curtains",
+      "Dim the lamp"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A direct translation of French 'fermer la lumière' — Quebec English says close and open the light."
+    },
+    {
+     "line": "I'll meet you at the dep, it's open late.",
+     "role": "student",
+     "prompt": "What is a 'dep'?",
+     "options": [
+      "A corner shop",
+      "A train station",
+      "A department store"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "From 'dépanneur' — the Quebec corner store."
+    },
+    {
+     "line": "It's a five-and-a-half, good size for the price.",
+     "role": "letting agent",
+     "prompt": "What does 'five-and-a-half' describe?",
+     "options": [
+      "The number of rooms in a flat",
+      "The rent in hundreds",
+      "The floor number"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Quebec flats are counted in rooms, with the half being the bathroom."
+    },
+    {
+     "line": "Open the TV, the game's starting.",
+     "role": "neighbour",
+     "prompt": "What is he asking?",
+     "options": [
+      "Turn on the TV",
+      "Repair the TV",
+      "Move the TV"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Again from French: 'ouvrir la télé' becomes open the TV."
+    }
    ]
   },
   {
@@ -2031,6 +3651,60 @@
      ],
      "answerIndex": 1,
      "reward": 20
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "Whadda y'at, b'y? Long time.",
+     "role": "fisherman",
+     "prompt": "What is he asking?",
+     "options": [
+      "How are you?",
+      "Where are you?",
+      "What are you doing that for?"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'What are you at?' is the standard Newfoundland greeting; 'b'y' is 'boy' as a friendly address."
+    },
+    {
+     "line": "Stay where you're to, I'll come where you're at.",
+     "role": "harbour keeper",
+     "prompt": "What is he saying?",
+     "options": [
+      "Stay there and he'll come to you",
+      "Move towards him",
+      "Wait for a boat"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A well-known Newfoundland phrase — 'where you're to' means where you are."
+    },
+    {
+     "line": "It's mauzy out, mind yourself on the path.",
+     "role": "lighthouse keeper",
+     "prompt": "What does 'mauzy' mean?",
+     "options": [
+      "Warm, damp and foggy",
+      "Icy",
+      "Windy and clear"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Mauzy weather is close, muggy and misty."
+    },
+    {
+     "line": "That's the best kind, that is.",
+     "role": "baker",
+     "prompt": "What does 'best kind' mean?",
+     "options": [
+      "Excellent",
+      "The cheapest option",
+      "The last one"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Best kind' is Newfoundland for great, or for a thoroughly good person."
     }
    ]
   },
@@ -2098,6 +3772,60 @@
      "answerIndex": 0,
      "reward": 15
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "How ya going? Chuck it in the esky, she'll be right.",
+     "role": "surf lifesaver",
+     "prompt": "What is an esky?",
+     "options": [
+      "A cool box",
+      "A locker",
+      "A bin"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "An esky is a portable cooler; 'she'll be right' means it will be fine."
+    },
+    {
+     "line": "Reckon we'll get there by arvo.",
+     "role": "road tripper",
+     "prompt": "When will they arrive?",
+     "options": [
+      "In the afternoon",
+      "At dawn",
+      "Tomorrow"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Arvo' is afternoon. Australians abbreviate almost everything."
+    },
+    {
+     "line": "No worries at all, mate — happy to help.",
+     "role": "shopkeeper",
+     "prompt": "What is he expressing?",
+     "options": [
+      "Willing agreement",
+      "Concern",
+      "Refusal"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'No worries' is the all-purpose Australian yes, thanks, and you're welcome."
+    },
+    {
+     "line": "It's a fair way down the track yet.",
+     "role": "stockman",
+     "prompt": "How far is it?",
+     "options": [
+      "Quite a long way",
+      "Almost there",
+      "He doesn't know"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'A fair way' means a considerable distance."
+    }
    ]
   },
   {
@@ -2164,6 +3892,60 @@
      "answerIndex": 0,
      "reward": 10
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Yeah, nah — I reckon it's too far.",
+     "role": "ute driver",
+     "prompt": "Is he agreeing or disagreeing?",
+     "options": [
+      "Disagreeing — the answer is no",
+      "Agreeing — the answer is yes",
+      "He is undecided"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "In 'yeah nah' the last word carries the meaning. 'Nah yeah' would be yes."
+    },
+    {
+     "line": "Flat out like a lizard drinking, mate.",
+     "role": "shearer",
+     "prompt": "What does this mean?",
+     "options": [
+      "Extremely busy",
+      "Lying down resting",
+      "Very thirsty"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A classic Australian simile for working at full speed."
+    },
+    {
+     "line": "Fair dinkum, I've never seen the like.",
+     "role": "publican",
+     "prompt": "What does 'fair dinkum' mean?",
+     "options": [
+      "Genuine / honestly",
+      "Fairly good",
+      "Not fair"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Fair dinkum' means genuine or true — used to insist you are not exaggerating."
+    },
+    {
+     "line": "He's about as useful as an ashtray on a motorbike.",
+     "role": "mechanic",
+     "prompt": "What is she saying?",
+     "options": [
+      "He is completely useless",
+      "He is very practical",
+      "He rides motorbikes"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Australian English is rich in this kind of extended comparison."
+    }
    ]
   },
   {
@@ -2229,6 +4011,60 @@
      ],
      "answerIndex": 0,
      "reward": 15
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "Lovely to see you — how have you been keeping?",
+     "role": "club member",
+     "prompt": "What is being asked?",
+     "options": [
+      "How have you been?",
+      "Where have you been?",
+      "What is your job?"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'How have you been keeping?' is a slightly formal enquiry after health and wellbeing."
+    },
+    {
+     "line": "It's rather warm for October, isn't it.",
+     "role": "gardener",
+     "prompt": "What is the function of 'isn't it' here?",
+     "options": [
+      "A tag question inviting agreement",
+      "A real question",
+      "A correction"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Tag questions soften a statement into an invitation to agree."
+    },
+    {
+     "line": "Do come round for a drink before the weekend.",
+     "role": "neighbour",
+     "prompt": "What is this?",
+     "options": [
+      "An invitation",
+      "A complaint",
+      "A refusal"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Do' before an imperative makes it warmer and more insistent, in a polite way."
+    },
+    {
+     "line": "The traffic on the Boulevard was frightful.",
+     "role": "commuter",
+     "prompt": "What does 'frightful' mean here?",
+     "options": [
+      "Very bad",
+      "Frightening",
+      "Unusual"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "In this register 'frightful' simply means awful, with no fear involved."
     }
    ]
   },
@@ -2297,6 +4133,60 @@
      "answerIndex": 0,
      "reward": 15
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Sweet as, bro — no dramas at all.",
+     "role": "kayak hire",
+     "prompt": "What does 'sweet as' mean?",
+     "options": [
+      "Completely fine",
+      "As sweet as sugar",
+      "Almost fine"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "New Zealanders leave the comparison hanging: sweet as, easy as, cheap as."
+    },
+    {
+     "line": "Chuck your jandals on, we're off to the beach.",
+     "role": "beach local",
+     "prompt": "What are jandals?",
+     "options": [
+      "Flip-flops",
+      "Shorts",
+      "Sunglasses"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Jandal' comes from Japanese sandal — thongs in Australia, flip-flops in Britain."
+    },
+    {
+     "line": "Bring a plate, it's a shared lunch.",
+     "role": "community hall keeper",
+     "prompt": "What should you bring?",
+     "options": [
+      "Food to share",
+      "An empty plate",
+      "Nothing"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Bring a plate' means bring a dish of food for everyone — a famous trap for newcomers."
+    },
+    {
+     "line": "Yeah, nah, she's all good, eh.",
+     "role": "farmer",
+     "prompt": "What is the overall message?",
+     "options": [
+      "Everything is fine",
+      "Something is wrong",
+      "He disagrees strongly"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'She's all good' means it's fine; 'eh' invites agreement."
+    }
    ]
   },
   {
@@ -2363,6 +4253,60 @@
      ],
      "answerIndex": 0,
      "reward": 15
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "Kia ora, haere mai — come on in.",
+     "role": "marae host",
+     "prompt": "What is being said?",
+     "options": [
+      "A greeting and a welcome",
+      "A farewell",
+      "A warning"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Kia ora' is hello and also thanks; 'haere mai' is welcome, come here."
+    },
+    {
+     "line": "We'll have a kai before we head off.",
+     "role": "cook",
+     "prompt": "What is 'kai'?",
+     "options": [
+      "Food",
+      "A rest",
+      "A song"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Kai is the te reo Māori word for food, used across New Zealand English."
+    },
+    {
+     "line": "Ka pai — that's the way to do it.",
+     "role": "carver",
+     "prompt": "What does 'ka pai' mean?",
+     "options": [
+      "Well done / good",
+      "Try again",
+      "Be careful"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Ka pai' is a warm well done."
+    },
+    {
+     "line": "Bring the whānau, there's room for everyone.",
+     "role": "elder",
+     "prompt": "Who is the whānau?",
+     "options": [
+      "Extended family and close community",
+      "Only children",
+      "Neighbours you have not met"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Whānau is family in a broad sense — beyond just parents and children."
     }
    ]
   },
@@ -2431,6 +4375,60 @@
      "answerIndex": 0,
      "reward": 20
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Howzit — we're braaiing later if you're keen.",
+     "role": "neighbour",
+     "prompt": "What is a braai?",
+     "options": [
+      "A barbecue",
+      "A market",
+      "A card game"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A braai is the South African barbecue — and a whole social institution."
+    },
+    {
+     "line": "I'll be there just now, hey.",
+     "role": "shop owner",
+     "prompt": "When will he arrive?",
+     "options": [
+      "Immediately",
+      "Fairly soon, but not right away",
+      "Tomorrow"
+     ],
+     "answerIndex": 1,
+     "reward": 8,
+     "explain": "'Just now' means soon-ish. 'Now now' is sooner. 'Now' on its own is the vaguest of all."
+    },
+    {
+     "line": "Shame, that's a long drive for you.",
+     "role": "petrol attendant",
+     "prompt": "What is 'shame' expressing?",
+     "options": [
+      "Sympathy",
+      "Disapproval",
+      "Embarrassment"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "In South African English 'shame' is warm sympathy — or affection at something sweet."
+    },
+    {
+     "line": "Bring your costume, we're swimming after.",
+     "role": "lifeguard",
+     "prompt": "What is a 'costume' here?",
+     "options": [
+      "A swimming suit",
+      "Fancy dress",
+      "A uniform"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Costume' (or 'cozzie') means swimwear in South African English."
+    }
    ]
   },
   {
@@ -2497,6 +4495,60 @@
      ],
      "answerIndex": 0,
      "reward": 20
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "Sharp sharp, my friend — I see you.",
+     "role": "taxi guard",
+     "prompt": "What does 'sharp sharp' mean?",
+     "options": [
+      "All good / see you",
+      "Be careful",
+      "Hurry up"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Sharp sharp' works as both hello and goodbye and general approval."
+    },
+    {
+     "line": "Eish, that taxi was full already.",
+     "role": "commuter",
+     "prompt": "What does 'eish' express?",
+     "options": [
+      "A range of feeling — frustration, surprise, sympathy",
+      "Only anger",
+      "Only joy"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Eish' is an all-purpose exclamation covering most of the emotional range."
+    },
+    {
+     "line": "We're going to the kasi later, come.",
+     "role": "student",
+     "prompt": "What is the 'kasi'?",
+     "options": [
+      "The township neighbourhood",
+      "The city centre",
+      "The coast"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Kasi' comes from 'lokasie' and means the township — home."
+    },
+    {
+     "line": "Yebo, that's the one.",
+     "role": "market seller",
+     "prompt": "What does 'yebo' mean?",
+     "options": [
+      "Yes",
+      "No",
+      "Maybe"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Yebo' is yes, from isiZulu, used widely in South African English."
     }
    ]
   },
@@ -2565,6 +4617,60 @@
      "answerIndex": 0,
      "reward": 15
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Come, we'll get a bunny chow just now.",
+     "role": "cafe owner",
+     "prompt": "What is a bunny chow?",
+     "options": [
+      "A curry served in a hollowed loaf of bread",
+      "A rabbit dish",
+      "A dessert"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Bunny chow is a Durban invention: curry in a quarter loaf of white bread."
+    },
+    {
+     "line": "That one is too much nice, hey.",
+     "role": "spice merchant",
+     "prompt": "What does 'too much nice' mean?",
+     "options": [
+      "Very nice",
+      "Excessively sweet",
+      "Not nice enough"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Too much' works as an intensifier here rather than a complaint."
+    },
+    {
+     "line": "Is it? I never knew that.",
+     "role": "tailor",
+     "prompt": "What is 'is it?' doing?",
+     "options": [
+      "A general response showing interest",
+      "Asking about an object",
+      "Correcting you"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Is it?' is the South African all-purpose 'really?' — it doesn't need to match the verb."
+    },
+    {
+     "line": "You must come home, my mother will feed you.",
+     "role": "neighbour",
+     "prompt": "What is 'you must' doing here?",
+     "options": [
+      "A warm invitation",
+      "A strict order",
+      "A warning"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'You must come' is hospitality, not obligation."
+    }
    ]
   },
   {
@@ -2632,6 +4738,60 @@
      "answerIndex": 0,
      "reward": 10
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Ja nee, my bra — it's lekker here by the Bo-Kaap.",
+     "role": "guide",
+     "prompt": "What does 'lekker' mean?",
+     "options": [
+      "Nice / good",
+      "Steep",
+      "Crowded"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Lekker' from Afrikaans covers nice, tasty, fun and good."
+    },
+    {
+     "line": "Ja nee, I'll see what I can do.",
+     "role": "handyman",
+     "prompt": "What does 'ja nee' signal?",
+     "options": [
+      "A hedged, thinking-it-over yes",
+      "A firm no",
+      "A question"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Literally 'yes no' — a way of agreeing while reserving something."
+    },
+    {
+     "line": "You mustn't stress, ek sê.",
+     "role": "barber",
+     "prompt": "What does 'ek sê' add?",
+     "options": [
+      "Emphasis, like 'I'm telling you'",
+      "A question",
+      "A name"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Ek sê' is Afrikaans for 'I say', used as a tag for emphasis."
+    },
+    {
+     "line": "Awe, howzit my broe.",
+     "role": "fish seller",
+     "prompt": "What is this?",
+     "options": [
+      "A greeting",
+      "A complaint",
+      "A price"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Awe' is a Cape Flats greeting; 'my broe' is my brother."
+    }
    ]
   },
   {
@@ -2698,6 +4858,60 @@
      "answerIndex": 0,
      "reward": 20
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "We just limin' here, come sit down.",
+     "role": "street vendor",
+     "prompt": "What is 'liming'?",
+     "options": [
+      "Hanging out and chatting",
+      "Selling fruit",
+      "Painting"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Liming is unhurried socialising — a Caribbean art form."
+    },
+    {
+     "line": "You reach already? Good, good.",
+     "role": "neighbour",
+     "prompt": "What does 'you reach' mean?",
+     "options": [
+      "You have arrived",
+      "You can reach it",
+      "You called"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'To reach' is used intransitively for arriving."
+    },
+    {
+     "line": "Everyt'ing criss, man.",
+     "role": "boat hand",
+     "prompt": "What does 'criss' mean?",
+     "options": [
+      "Perfect / brand new",
+      "Broken",
+      "Expensive"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "From 'crisp' — meaning fresh, perfect, in good order."
+    },
+    {
+     "line": "Take your time, no rush, nuh.",
+     "role": "shopkeeper",
+     "prompt": "What is 'nuh' doing at the end?",
+     "options": [
+      "Softening the sentence, like a tag",
+      "Making it a negative",
+      "Naming someone"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A tag particle that softens the instruction into friendly encouragement."
+    }
    ]
   },
   {
@@ -2763,6 +4977,60 @@
      ],
      "answerIndex": 0,
      "reward": 20
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "Wah gwaan? Everyt'ing bless?",
+     "role": "market trader",
+     "prompt": "What is being asked?",
+     "options": [
+      "What's going on, are you well?",
+      "Where are you going?",
+      "What is the cost?"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'What's going on?' plus a wish for blessings — a standard Jamaican greeting."
+    },
+    {
+     "line": "Mi soon come, hold on.",
+     "role": "cook",
+     "prompt": "When will she be back?",
+     "options": [
+      "Perhaps not soon at all",
+      "Within one minute",
+      "Never"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Soon come' is famously elastic — it means she is coming, eventually."
+    },
+    {
+     "line": "That tune bad, you know.",
+     "role": "sound engineer",
+     "prompt": "What does he think of the tune?",
+     "options": [
+      "It is excellent",
+      "It is poor",
+      "It is too loud"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "In Jamaican Patois 'bad' can be strong praise, as with 'wicked' in British slang."
+    },
+    {
+     "line": "Walk good, y'hear.",
+     "role": "elder",
+     "prompt": "What is this?",
+     "options": [
+      "A farewell wishing you a safe journey",
+      "An order to walk properly",
+      "A warning about the path"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Walk good' is a parting blessing — travel safely."
     }
    ]
   },
@@ -2831,6 +5099,60 @@
      "answerIndex": 0,
      "reward": 20
     }
+   ],
+   "streetExercises": [
+    {
+     "line": "Aye, what happening there?",
+     "role": "steelpan tuner",
+     "prompt": "What is this?",
+     "options": [
+      "A greeting",
+      "A complaint",
+      "A question about an event"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'What happening?' with no auxiliary is the everyday Trini hello."
+    },
+    {
+     "line": "Allyuh coming or what?",
+     "role": "masquerade maker",
+     "prompt": "Who is 'allyuh'?",
+     "options": [
+      "All of you",
+      "One of you",
+      "Nobody"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Allyuh' is the plural you — from 'all of you'."
+    },
+    {
+     "line": "Doh study it too much, man.",
+     "role": "doubles vendor",
+     "prompt": "What is he advising?",
+     "options": [
+      "Don't worry about it",
+      "Study it carefully",
+      "Don't buy it"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Doh study it' means don't dwell on it or worry."
+    },
+    {
+     "line": "Is Carnival time — everybody outside.",
+     "role": "band leader",
+     "prompt": "What is unusual about 'Is Carnival time'?",
+     "options": [
+      "The subject 'it' is dropped",
+      "The tense is wrong",
+      "'Is' should be 'are'"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Caribbean Englishes commonly drop the dummy subject: 'Is raining', 'Is time to go'."
+    }
    ]
   },
   {
@@ -2897,6 +5219,60 @@
      ],
      "answerIndex": 0,
      "reward": 15
+    }
+   ],
+   "streetExercises": [
+    {
+     "line": "Wuh gine on, muh friend?",
+     "role": "fish seller",
+     "prompt": "What is being asked?",
+     "options": [
+      "What's going on?",
+      "Where are you going?",
+      "What is that?"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Wuh gine on' is Bajan for what's going on."
+    },
+    {
+     "line": "Cheese on bread, look at that rain!",
+     "role": "beach vendor",
+     "prompt": "What is 'cheese on bread'?",
+     "options": [
+      "An exclamation of surprise",
+      "A menu item",
+      "A weather term"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "A distinctly Barbadian exclamation — surprise, exasperation or awe."
+    },
+    {
+     "line": "Long time I ain't see you.",
+     "role": "neighbour",
+     "prompt": "What does she mean?",
+     "options": [
+      "It has been a long time since she saw you",
+      "She cannot see you",
+      "She saw you recently"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "'Long time I ain't see you' fronts the time phrase — a common Caribbean structure."
+    },
+    {
+     "line": "Flying fish and cou-cou — best thing going.",
+     "role": "cook",
+     "prompt": "What is she describing?",
+     "options": [
+      "The national dish of Barbados",
+      "A fishing method",
+      "A boat"
+     ],
+     "answerIndex": 0,
+     "reward": 8,
+     "explain": "Cou-cou is cornmeal and okra; with flying fish it is the Barbadian national dish."
     }
    ]
   }

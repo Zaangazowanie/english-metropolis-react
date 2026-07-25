@@ -123,6 +123,10 @@
     #dialog .explain i { color: rgba(244,240,255,0.7); font-size: 12.5px; }
     #fps { position: fixed; z-index: 21; bottom: 8px; right: 10px; color: rgba(244,240,255,0.4);
       font: 11px monospace; }
+    #gfx { position: fixed; z-index: 21; bottom: 24px; right: 10px; display: flex; gap: 4px;
+      align-items: center; font: 11px monospace; color: rgba(244,240,255,0.4); pointer-events: auto; }
+    #gfx select { font: 11px monospace; color: rgba(244,240,255,0.72); background: rgba(12,18,38,0.72);
+      border: 1px solid rgba(244,240,255,0.16); border-radius: 4px; padding: 1px 4px; cursor: pointer; }
     #minimap { position: absolute; left: 16px; bottom: 46px; width: 124px; height: 124px;
       pointer-events: auto; cursor: pointer; filter: drop-shadow(0 3px 8px rgba(20,12,6,0.4)); }
     /* On touch the bottom-left corner belongs to the movement stick —
@@ -214,6 +218,16 @@
     <div class="opts"></div>
   </div>
   <div id="fps"></div>
+  <div id="gfx">graphics
+    <select id="gfx-select" title="Graphics quality. Auto adapts to your device as you play.">
+      <option value="">auto</option>
+      <option value="potato">lowest</option>
+      <option value="low">low</option>
+      <option value="medium">medium</option>
+      <option value="high">high</option>
+      <option value="ultra">ultra</option>
+    </select>
+  </div>
 
   <div id="journal">
     <div class="panel">
