@@ -9,8 +9,69 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { p24Config, p24NotificationSign, verifyAtP24 } from "./p24";
 
 const http = httpRouter();
+
+// Przelewy24 successful-payment notification. A valid checksum is necessary
+// but not sufficient: amounts and merchant IDs must match our stored payment,
+// then P24's transaction/verify endpoint must accept the transaction before
+// lessons are allocated.
+http.route({
+  path: "/p24/status",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    try {
+      const body: any = await req.json();
+      const cfg = p24Config();
+      const requiredIntegers = ["merchantId", "posId", "amount", "originAmount", "orderId", "methodId"];
+      if (
+        !body ||
+        typeof body.sessionId !== "string" ||
+        typeof body.currency !== "string" ||
+        typeof body.statement !== "string" ||
+        typeof body.sign !== "string" ||
+        requiredIntegers.some(key => !Number.isSafeInteger(body[key]))
+      ) {
+        return new Response("invalid notification", { status: 400 });
+      }
+      if (body.merchantId !== cfg.merchantId || body.posId !== cfg.posId) {
+        return new Response("merchant mismatch", { status: 403 });
+      }
+
+      const expectedSign = await p24NotificationSign(body, cfg.crc);
+      if (body.sign.toLowerCase() !== expectedSign) {
+        return new Response("invalid signature", { status: 403 });
+      }
+      const payment: any = await ctx.runQuery(internal.p24.getPaymentForWebhook, {
+        sessionId: body.sessionId,
+      });
+      if (!payment) return new Response("payment not found", { status: 404 });
+      if (
+        payment.amount !== body.amount ||
+        payment.amount !== body.originAmount ||
+        payment.currency !== body.currency
+      ) {
+        return new Response("payment details mismatch", { status: 409 });
+      }
+      if (payment.status === "paid") {
+        return Response.json({ ok: true, alreadyPaid: true });
+      }
+
+      await verifyAtP24(body);
+      const result = await ctx.runMutation(internal.p24.finalizePaid, {
+        sessionId: body.sessionId,
+        p24OrderId: body.orderId,
+        methodId: body.methodId,
+        statement: body.statement.slice(0, 250),
+      });
+      return Response.json(result);
+    } catch (error: any) {
+      console.error("P24 status error:", String(error?.message || error).slice(0, 700));
+      return new Response("verification failed", { status: 502 });
+    }
+  }),
+});
 
 // Shared-secret auth. The watcher and the Drive bridge supply
 // X-Ingest-Token: <secret>. The secret must match the Convex env

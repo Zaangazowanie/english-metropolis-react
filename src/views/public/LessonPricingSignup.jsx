@@ -107,7 +107,7 @@ const POLICIES = [
   {
     icon: 'lock',
     title: 'Online payments',
-    copy: 'Add packages to the cart and place your order. Online payments through Przelewy24, including BLIK, cards and fast transfers, are being activated. Until then, we send the payment link by email.',
+    copy: 'Add packages to the cart and place your order. Secure online payment opens in Przelewy24, with the methods available for your transaction.',
   },
 ]
 
@@ -591,7 +591,7 @@ export default function LessonPricingSignup() {
           <div className="lp-readiness-row">
             <span className="lp-dot lp-dot-pending" aria-hidden />
             <strong>{t('Pay', 'Płatność')}</strong>
-            <p>{t('Online payment through Przelewy24 is being activated. Until then, we send the payment link by email.', 'Płatność online przez Przelewy24 jest w trakcie aktywacji. Do tego czasu link do płatności wysyłamy e-mailem.')}</p>
+            <p>{t('Secure online payment opens in Przelewy24, with the methods available for your transaction.', 'Bezpieczna płatność online otwiera się w Przelewy24, z metodami dostępnymi dla danej transakcji.')}</p>
           </div>
         </div>
       </section>
@@ -737,6 +737,10 @@ export default function LessonPricingSignup() {
 
       <footer className="lp-footer">
         <p>{isPl ? FOUNDATION_FOOTER_PL : FOUNDATION_FOOTER_EN}</p>
+        <p>{t(
+          'Online payments and payment-card processing are operated by PayPro S.A. Agent Rozliczeniowy, ul. Pastelowa 8, 60-198 Poznań, KRS 0000347935, NIP 7792369887, REGON 301345068.',
+          'Operatorem płatności online i kart płatniczych jest PayPro S.A. Agent Rozliczeniowy, ul. Pastelowa 8, 60-198 Poznań, KRS 0000347935, NIP 7792369887, REGON 301345068.',
+        )}</p>
         <nav aria-label={t('Legal', 'Dokumenty prawne')}>
           <Link to="/terms">{t('Terms', 'Regulamin')}</Link>
           <Link to="/privacy">{t('Privacy Policy', 'Polityka prywatności')}</Link>

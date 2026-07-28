@@ -892,6 +892,10 @@ export default defineSchema({
       notes: v.optional(v.string()),
     }),
     status: v.string(),                // "pending_invoice" | "confirmed" | "cancelled"
+    paymentId: v.optional(v.id("p24Payments")),
+    paymentAmount: v.optional(v.number()), // gross amount in grosze
+    p24SessionId: v.optional(v.string()),
+    p24OrderId: v.optional(v.number()),
     confirmedBy: v.optional(v.string()),
     confirmedAt: v.optional(v.number()),
     packageRef: v.optional(v.id("lessonPackages")),   // created on confirm
@@ -900,6 +904,35 @@ export default defineSchema({
   })
     .index("by_student", ["studentId"])
     .index("by_organization", ["organizationId"])
+    .index("by_status", ["status"]),
+
+  // One P24 transaction may pay for several lesson-package order lines.
+  // The webhook resolves the transaction by the random sessionId and allocates
+  // packages idempotently only after transaction/verify succeeds.
+  p24Payments: defineTable({
+    checkoutRef: v.string(),
+    sessionId: v.string(),
+    organizationId: v.id("organizations"),
+    studentId: v.id("students"),
+    orderIds: v.array(v.id("lessonOrders")),
+    amount: v.number(),                 // grosze
+    currency: v.string(),
+    email: v.string(),
+    lang: v.string(),
+    status: v.string(),                 // created | registered | registration_failed | paid
+    token: v.optional(v.string()),
+    p24OrderId: v.optional(v.number()),
+    methodId: v.optional(v.number()),
+    statement: v.optional(v.string()),
+    error: v.optional(v.string()),
+    registeredAt: v.optional(v.number()),
+    verifiedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_checkout_ref", ["checkoutRef"])
+    .index("by_session_id", ["sessionId"])
+    .index("by_student", ["studentId"])
     .index("by_status", ["status"]),
 
   certificates: defineTable({

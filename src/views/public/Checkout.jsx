@@ -1,28 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Skyline } from '../../design/v3/primitives.jsx'
 import { useCart, cart, cartTotalPLN, formatPLN } from './cart-store.js'
 import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN } from '../legal/foundation-legal-content.js'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 import './checkout.css'
 
-// Checkout = account + order in one progressive page (GPT-5.6 Sol consultation,
-// 2026-07-23): Konto → Zamówienie → Płatność. Creating the account is a visible
-// part of the purchase — Google or e-mail+password — and the order is written
-// through Convex orders:createOrder against that student. The old guest relay
-// is no longer called from here; the Convex order pipeline is authoritative.
+// Checkout = account + order + server-registered Przelewy24 payment. The
+// browser sends only catalog IDs and quantities; Convex is the price authority
+// and returns the P24 redirect after storing the payment session and order lines.
 const GOOGLE_CLIENT_ID = '960729188616-r2ql4rjid9aibbo1psi678gonf8lp04o.apps.googleusercontent.com'
 
 const ADMIN_NOTICE_PL = 'Administratorem danych wprowadzonych do formularza jest Fundacja Rozwoju Przedsiębiorczości „Twój StartUp". Dane będą przetwarzane w celu zrealizowania usługi oraz w celach marketingowych – w przypadku wyrażenia zgody. Informujemy o możliwości wycofania zgody. Pełne informacje o przetwarzaniu danych i przysługujących prawach znajdują się w polityce prywatności.'
 const ADMIN_NOTICE_EN = 'The controller of the data entered in this form is Fundacja Rozwoju Przedsiębiorczości "Twój StartUp". The data will be processed to deliver the service and, if you consent, for marketing purposes. Consent can be withdrawn at any time. Full information about data processing and your rights is available in the privacy policy.'
-
-// Lessons allocated per catalog id — mirrors PACKAGE_LESSONS plus the
-// specialist packs and summer group courses sold on /lessons.
-const LESSONS_BY_ID = {
-  single: 1, 'private-core': 4, momentum: 8, 'fluency-16': 16, 'fluency-24': 24,
-  specialist: 6, 'specialist-12': 12, 'specialist-24': 24,
-  august: 4, september: 4, 'two-month-bundle': 8,
-}
 
 async function callConvex(kind, path, args) {
   const response = await fetchWithTimeout(`/api/${kind}`, {
@@ -48,7 +38,6 @@ function persistSession(student, sessionToken) {
 }
 
 export default function Checkout() {
-  const navigate = useNavigate()
   const state = useCart()
   const [lang, setLang] = useState('pl')
   // Account section
@@ -72,9 +61,8 @@ export default function Checkout() {
   const [consentImmediate, setConsentImmediate] = useState(false)
   const [consentMarketing, setConsentMarketing] = useState(false)
   const [error, setError] = useState('')
-  const [phase, setPhase] = useState('idle') // idle | account | order | done
+  const [phase, setPhase] = useState('idle') // idle | account | order
   const [accountReady, setAccountReady] = useState(false)
-  const [done, setDone] = useState(null)
 
   const total = cartTotalPLN(state)
   const isPl = lang === 'pl'
@@ -145,10 +133,9 @@ export default function Checkout() {
     setAccountReady(false)
   }
 
-  // ── Submit: (create account) → create the Convex order(s) ──
-  async function placeOrders(activeSession) {
+  // ── Submit: (create account) → register one P24 transaction ──
+  async function startPayment(activeSession) {
     setPhase('order')
-    const consentNote = `[${orderRef}] Zgody: regulamin TAK; niezwłoczna realizacja ${consentImmediate ? 'TAK' : 'NIE'}; marketing ${consentMarketing ? 'TAK' : 'NIE'}.`
     const billing = {
       fullName: activeSession.name || fullName.trim(),
       email: activeSession.email || email.trim(),
@@ -156,22 +143,22 @@ export default function Checkout() {
       company: company.trim() || undefined,
       nip: nip.trim() || undefined,
       addressLine: address.trim() || undefined,
-      notes: [notes.trim(), consentNote].filter(Boolean).join('\n'),
+      notes: notes.trim() || undefined,
     }
-    for (const item of state.items) {
-      const lessons = (LESSONS_BY_ID[item.id] || 1) * item.qty
-      await callConvex('mutation', 'orders:createOrder', {
-        studentId: activeSession._id,
-        packageId: item.id,
-        packageName: item.qty > 1 ? `${item.name} ×${item.qty}` : item.name,
-        lessons,
-        priceLabel: formatPLN(item.pricePLN * item.qty),
-        billing,
-      })
+    const payment = await callConvex('action', 'p24:createPayment', {
+      sessionToken: activeSession.sessionToken,
+      checkoutRef: orderRef,
+      items: state.items.map(item => ({ packageId: item.id, qty: item.qty })),
+      billing,
+      lang,
+      consentTerms,
+      consentImmediate,
+      consentMarketing,
+    })
+    if (!payment?.redirectUrl || !/^https:\/\//.test(payment.redirectUrl)) {
+      throw new Error(t('The secure payment link was not returned.', 'Nie otrzymaliśmy bezpiecznego linku do płatności.'))
     }
-    setDone({ ref: orderRef, email: activeSession.email || email.trim(), name: activeSession.name || fullName.trim() })
-    cart.clear()
-    setPhase('done')
+    window.location.assign(payment.redirectUrl)
   }
 
   async function submitOrder(event) {
@@ -200,7 +187,7 @@ export default function Checkout() {
         setSession(activeSession)
       }
       setAccountReady(true)
-      await placeOrders(activeSession)
+      await startPayment(activeSession)
     } catch (ex) {
       setPhase('idle')
       setError((accountReady
@@ -212,7 +199,7 @@ export default function Checkout() {
   const buttonLabel = phase === 'account'
     ? t('Creating your account…', 'Tworzymy konto…')
     : phase === 'order'
-      ? t('Saving your order…', 'Zapisujemy zamówienie…')
+      ? t('Opening secure payment…', 'Otwieramy bezpieczną płatność…')
       : t('Order with an obligation to pay', 'Zamówienie z obowiązkiem zapłaty')
 
   return (
@@ -231,47 +218,7 @@ export default function Checkout() {
         </div>
       </header>
 
-      {done ? (
-        <section className="co-shell co-success" aria-live="polite">
-          <div className="co-success-mark" aria-hidden>
-            <span className="material-symbols-outlined">check</span>
-          </div>
-          <h1>{t('Your account has been created and your order has been placed.', 'Konto zostało utworzone, a zamówienie złożone.')}</h1>
-          <p className="co-success-ref">{t('Order reference', 'Numer zamówienia')}: <strong>{done.ref}</strong></p>
-          <ul className="co-status-list">
-            <li data-state="ok">
-              <span className="material-symbols-outlined" aria-hidden>check_circle</span>
-              {t('EnglishMetro account: created', 'Konto EnglishMetro: utworzone')} · {done.email}
-            </li>
-            <li data-state="wait">
-              <span className="material-symbols-outlined" aria-hidden>schedule</span>
-              {t('Order: awaiting payment', 'Zamówienie: oczekuje na płatność')}
-            </li>
-            <li data-state="next">
-              <span className="material-symbols-outlined" aria-hidden>school</span>
-              {t('Lesson package: added after payment is confirmed', 'Pakiet lekcji: zostanie dodany po potwierdzeniu płatności')}
-            </li>
-          </ul>
-          <p className="co-success-copy">
-            {t(
-              `We sent the confirmation, the Terms (with the withdrawal form) and the secure payment link details to ${done.email}. Payment runs through Przelewy24 (BLIK, cards, fast transfer).`,
-              `Potwierdzenie, Regulamin (z formularzem odstąpienia) oraz informacje o bezpiecznej płatności wysłaliśmy na adres ${done.email}. Płatność realizuje Przelewy24 (BLIK, karty, szybki przelew).`,
-            )}
-          </p>
-          <div className="co-success-actions">
-            {session?.slug && (
-              <a className="lp-button lp-button-primary" href={`/app/${session.slug}/dashboard`}>
-                <span className="material-symbols-outlined" aria-hidden>dashboard</span>
-                {t('Go to your account', 'Przejdź do konta')}
-              </a>
-            )}
-            <Link className="lp-button lp-button-ghost" to="/lessons">
-              <span className="material-symbols-outlined" aria-hidden>school</span>
-              {t('Back to lessons', 'Wróć do lekcji')}
-            </Link>
-          </div>
-        </section>
-      ) : state.items.length === 0 ? (
+      {state.items.length === 0 ? (
         <section className="co-shell co-empty">
           <span className="material-symbols-outlined" aria-hidden>shopping_cart</span>
           <h1>{t('Your cart is empty.', 'Twój koszyk jest pusty.')}</h1>
@@ -452,10 +399,10 @@ export default function Checkout() {
 
                 <p className="co-next-line">
                   {session
-                    ? t('Pressing the button places the order on your account. The secure payment link arrives by e-mail.',
-                        'Klikając przycisk, złożysz zamówienie na swoim koncie. Link do bezpiecznej płatności otrzymasz e-mailem.')
-                    : t('Pressing the button creates your EnglishMetro account and places the order. The secure payment link arrives by e-mail.',
-                        'Klikając przycisk, utworzysz konto EnglishMetro i złożysz zamówienie. Link do bezpiecznej płatności otrzymasz e-mailem.')}
+                    ? t('Pressing the button registers the order and opens the secure Przelewy24 payment page.',
+                        'Klikając przycisk, zarejestrujesz zamówienie i przejdziesz do bezpiecznej płatności Przelewy24.')
+                    : t('Pressing the button creates your EnglishMetro account, registers the order and opens Przelewy24.',
+                        'Klikając przycisk, utworzysz konto EnglishMetro, zarejestrujesz zamówienie i przejdziesz do Przelewy24.')}
                 </p>
 
                 <p className="co-admin-note">{isPl ? ADMIN_NOTICE_PL : ADMIN_NOTICE_EN}</p>
@@ -488,13 +435,13 @@ export default function Checkout() {
               <div className="co-payment">
                 <h3>{t('Payment', 'Płatność')}</h3>
                 <div className="co-pay-method" data-active="true">
-                  <span className="co-pay-brand">{t('Payment link by e-mail', 'Link do płatności e-mailem')}</span>
+                  <span className="co-pay-brand">{t('Secure online payment', 'Bezpieczna płatność online')}</span>
                   <span className="co-pay-kinds">{t('Processed securely by Przelewy24 · BLIK · cards · fast transfer', 'Realizowana bezpiecznie przez Przelewy24 · BLIK · karty · szybki przelew')}</span>
                 </div>
                 <ol className="co-next-steps">
                   <li>{t('We create your account and order.', 'Utworzymy konto i zamówienie.')}</li>
-                  <li>{t('You receive the payment link.', 'Otrzymasz link do płatności.')}</li>
-                  <li>{t('After payment, the lessons are allocated.', 'Po płatności przydzielimy lekcje.')}</li>
+                  <li>{t('You pay on the secure Przelewy24 page.', 'Płacisz na bezpiecznej stronie Przelewy24.')}</li>
+                  <li>{t('After verified payment, lessons are allocated automatically.', 'Po zweryfikowaniu płatności lekcje zostaną przydzielone automatycznie.')}</li>
                 </ol>
                 <p className="co-pay-note">
                   {t(
@@ -513,6 +460,12 @@ export default function Checkout() {
 
       <footer className="co-foot">
         <p>{isPl ? FOUNDATION_FOOTER_PL : FOUNDATION_FOOTER_EN}</p>
+        <p className="co-payment-operator">
+          {t(
+            'Online payments and payment-card processing are operated by PayPro S.A. Agent Rozliczeniowy, ul. Pastelowa 8, 60-198 Poznań, KRS 0000347935, NIP 7792369887, REGON 301345068.',
+            'Operatorem płatności online i kart płatniczych jest PayPro S.A. Agent Rozliczeniowy, ul. Pastelowa 8, 60-198 Poznań, KRS 0000347935, NIP 7792369887, REGON 301345068.',
+          )}
+        </p>
         <p>{t('Contact', 'Kontakt')}: <a href={`mailto:${FOUNDATION.email}`}>{FOUNDATION.email}</a> · {FOUNDATION.phone}</p>
       </footer>
     </main>

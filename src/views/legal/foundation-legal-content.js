@@ -310,6 +310,7 @@ export const TERMS_HTML_PL = `
 <li>zwykłym przelewem bankowym, na rachunek wskazany przez StartUp.</li>
 </ol></li>
 <li>Klient, aby móc skorzystać z jednego z systemów płatności elektronicznych, musi zaakceptować regulamin i warunki korzystania z danego systemu płatności elektronicznej. Lista dostępnych w Serwisie systemów płatności elektronicznych dostępna jest podczas finalizacji zamówienia.</li>
+<li>Operatorem płatności online oraz operatorem kart płatniczych jest PayPro S.A. Agent Rozliczeniowy, ul. Pastelowa 8, 60-198 Poznań, wpisany do Rejestru Przedsiębiorców Krajowego Rejestru Sądowego prowadzonego przez Sąd Rejonowy Poznań Nowe Miasto i Wilda w Poznaniu, VIII Wydział Gospodarczy Krajowego Rejestru Sądowego pod numerem KRS 0000347935, NIP 7792369887, REGON 301345068.</li>
 <li>W przypadku odstąpienia od umowy, zwrot środków następuje w taki sam sposób, w jaki została dokonana płatność przez Klienta, chyba że Klient wyraźnie zgodził się na inny sposób zwrotu, który nie wiąże się dla niego z żadnymi kosztami.</li>
 <li>StartUp nie umożliwia Klientom dokonywania płatności gotówką.</li>
 </ol>
@@ -888,6 +889,7 @@ export const TERMS_HTML_EN = `
 <li>by ordinary bank transfer to the account indicated by StartUp.</li>
 </ol></li>
 <li>To use one of the electronic payment systems, the Customer must accept the terms and conditions of use of the given electronic payment system. The list of electronic payment systems available in the Service is available when finalising the order.</li>
+<li>Online payments and payment-card processing are operated by PayPro S.A. Agent Rozliczeniowy, ul. Pastelowa 8, 60-198 Poznań, entered in the Register of Entrepreneurs of the National Court Register maintained by the District Court Poznań Nowe Miasto and Wilda in Poznań, 8th Commercial Division of the National Court Register, under KRS 0000347935, NIP 7792369887, REGON 301345068.</li>
 <li>In the event of withdrawal from the contract, funds are refunded in the same way in which the Customer made the payment, unless the Customer has expressly agreed to a different refund method that does not involve any costs for the Customer.</li>
 <li>StartUp does not enable Customers to pay in cash.</li>
 </ol>
