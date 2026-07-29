@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { requireStudent } from "./authHelpers";
 
 const CURRENCY = "PLN";
-const TERMS_VERSION = "EM-LEGAL-03 (2026-07-29, revision 2)";
+const TERMS_VERSION = "EM-LEGAL-03 (2026-07-29, revision 3)";
 const WITHDRAWAL_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
 
 // This is the server-side price authority for payment registration. Never use
@@ -133,6 +133,9 @@ export const preparePayment = internalMutation({
   handler: async (ctx, args) => {
     const { student } = await requireStudent(ctx, args.sessionToken);
     if (!args.consentTerms) throw new Error("Terms must be accepted");
+    if (!args.consentImmediate) {
+      throw new Error("An express request for immediate service performance is required");
+    }
     if (!args.items.length || args.items.length > 20) throw new Error("Cart is empty or too large");
     if (!args.billing.fullName.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(args.billing.email)) {
       throw new Error("Billing name and a valid e-mail are required");
@@ -179,9 +182,7 @@ export const preparePayment = internalMutation({
       updatedAt: now,
     });
 
-    const consentNote = args.consentImmediate
-      ? `[${args.checkoutRef}] ${TERMS_VERSION}: Klient wyraźnie zażądał rozpoczęcia świadczenia usług przed upływem 14 dni i przyjął do wiadomości obowiązek proporcjonalnej zapłaty za usługi spełnione do chwili odstąpienia oraz utratę prawa odstąpienia po pełnym wykonaniu usługi. Data żądania: ${new Date(now).toISOString()}.`
-      : `[${args.checkoutRef}] ${TERMS_VERSION}: Klient wybrał rozpoczęcie świadczenia usług po upływie 14-dniowego terminu odstąpienia. Data wyboru: ${new Date(now).toISOString()}.`;
+    const consentNote = `[${args.checkoutRef}] ${TERMS_VERSION}: Klient wyraźnie zażądał rozpoczęcia świadczenia usług niezwłocznie po potwierdzeniu płatności, przed upływem 14 dni, w tym aktywacji pakietu oraz udostępnienia rezerwacji i realizacji lekcji, i przyjął do wiadomości obowiązek proporcjonalnej zapłaty za usługi spełnione do chwili odstąpienia oraz utratę prawa odstąpienia po pełnym wykonaniu usługi. Data żądania: ${new Date(now).toISOString()}.`;
     const billing = {
       ...args.billing,
       notes: [args.billing.notes?.trim(), consentNote].filter(Boolean).join("\n") || undefined,
