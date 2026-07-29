@@ -1,7 +1,8 @@
 // Approved Twój StartUp legal documents (legal review completed 2026-07-22) —
 // SINGLE SOURCE OF TRUTH for /terms, /privacy and /cookies. The React pages
-// render these bodies, and scripts/build-legal-static.mjs bakes the same HTML
-// into the static public/{terms,privacy,cookies}/index.html pages.
+// render these bodies, scripts/build-legal-static.mjs bakes the same HTML
+// into the static public/{terms,privacy,cookies}/index.html pages, and
+// scripts/build-legal-pdf.py builds the binding Polish Regulamin PDF.
 //
 // The Polish text is the binding document as approved by the Foundation's
 // legal team. Administrative blanks completed at publication (contact e-mail
@@ -23,7 +24,7 @@ export const FOUNDATION = {
   phone: '+48 662 563 507',
   serviceAddress: 'ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki',
   rodoEmail: 'rodo@twojstartup.pl',
-  effectiveDate: '23 lipca 2026 r.',
+  effectiveDate: '29 lipca 2026 r.',
 }
 
 export const TERMS_TITLE_PL = 'Regulamin serwisu englishmetro.com'
@@ -183,7 +184,7 @@ export const TERMS_HTML_PL = `
 <li>Jeżeli do złożenia zamówienia w Serwisie, używa się przycisku lub podobnej funkcji, są one oznaczone w łatwo czytelny sposób słowami „zamówienie z obowiązkiem zapłaty" lub innego równoważnego jednoznacznego sformułowania.</li>
 <li>Złożenie i zatwierdzenie zamówienia pociąga za sobą obowiązek zapłaty przez Klienta wynagrodzenia za Usługi i ewentualne koszty dodatkowe. Potwierdzenie zamówienia przez StartUp jest momentem zawarcia umowy o świadczenie usług pomiędzy StartUp a Klientem.</li>
 <li>O terminie rozpoczęcia i zakończenia świadczenia Usług Klient jest informowany przed zawarciem Umowy, w szczególności za pośrednictwem Serwisu.</li>
-<li>Jeżeli, na wyraźne żądanie Klienta, wykonywanie Usługi ma się rozpocząć przed upływem terminu do odstąpienia od umowy zawartej poza lokalem przedsiębiorstwa, StartUp wymaga od Klienta złożenia oświadczenia:
+<li>Jeżeli, na wyraźne żądanie Klienta, wykonywanie Usługi ma się rozpocząć przed upływem terminu do odstąpienia od umowy zawartej na odległość, StartUp wymaga od Klienta złożenia oświadczenia:
 <ol class="fl-ol-alpha">
 <li>zawierającego takie wyraźne żądanie na trwałym nośniku;</li>
 <li>że przyjął do wiadomości informację o utracie prawa do odstąpienia od umowy z chwilą jej pełnego wykonania przez StartUp.</li>
@@ -310,7 +311,7 @@ export const TERMS_HTML_PL = `
 <li>zwykłym przelewem bankowym, na rachunek wskazany przez StartUp.</li>
 </ol></li>
 <li>Klient, aby móc skorzystać z jednego z systemów płatności elektronicznych, musi zaakceptować regulamin i warunki korzystania z danego systemu płatności elektronicznej. Lista dostępnych w Serwisie systemów płatności elektronicznych dostępna jest podczas finalizacji zamówienia.</li>
-<li>Operatorem płatności online oraz operatorem kart płatniczych jest PayPro S.A. Agent Rozliczeniowy, ul. Pastelowa 8, 60-198 Poznań, wpisany do Rejestru Przedsiębiorców Krajowego Rejestru Sądowego prowadzonego przez Sąd Rejonowy Poznań Nowe Miasto i Wilda w Poznaniu, VIII Wydział Gospodarczy Krajowego Rejestru Sądowego pod numerem KRS 0000347935, NIP 7792369887, REGON 301345068.</li>
+<li>Płatności elektroniczne są obsługiwane przez PayPro S.A. z siedzibą w Poznaniu (60-198), ul. Pastelowa 8, wpisaną do Rejestru Przedsiębiorców Krajowego Rejestru Sądowego (KRS) pod numerem 0000347935, NIP 7792369887, REGON 301345068, prowadzącą serwis płatniczy Przelewy24.</li>
 <li>W przypadku odstąpienia od umowy, zwrot środków następuje w taki sam sposób, w jaki została dokonana płatność przez Klienta, chyba że Klient wyraźnie zgodził się na inny sposób zwrotu, który nie wiąże się dla niego z żadnymi kosztami.</li>
 <li>StartUp nie umożliwia Klientom dokonywania płatności gotówką.</li>
 </ol>
@@ -417,7 +418,7 @@ export const TERMS_HTML_PL = `
 </ol></li>
 <li>Spory związane z Umowami zawartymi na podstawie Regulaminu będą rozstrzygane przez sąd właściwy miejscowo dla StartUp. Zapis niniejszy nie dotyczy Umów zawieranych z Konsumentem.</li>
 <li>Zastosowanie określonego sposobu pozasądowego rozstrzygnięcia sporu możliwe jest tylko za obopólną zgodą Klienta i StartUp. Szczegółowe procedury pozasądowego rozstrzygania sporów, dostępne są na stronie internetowej Urzędu Ochrony Konkurencji i Konsumentów: www.uokik.gov.pl, na stronach internetowych Wojewódzkich Inspektoratów Inspekcji Handlowej, a także u powiatowych (miejskich) rzeczników konsumentów.</li>
-<li>Regulamin obowiązuje od dnia: 23 lipca 2026 r.</li>
+<li>Regulamin obowiązuje od dnia: 29 lipca 2026 r.</li>
 </ol>
 </section>
 
@@ -495,6 +496,7 @@ export const PRIVACY_HTML_PL = `
 <li>Organy władzy publicznej, w zakresie, w którym nie otrzymują danych w ramach konkretnego postępowania na podstawie prawa np. w związku z przeciwdziałaniem praniu pieniędzy;</li>
 <li>Podmioty, które przetwarzają Pana/Pani dane osobowe w imieniu Fundacji na podstawie zawartej z Fundacją umowy powierzania przetwarzania danych osobowych (tzw. podmioty przetwarzające). Będą to, m.in.: Beneficjenci Fundacji, informatycy, firmy archiwizujące, firmy hostingowe;</li>
 <li>Zewnętrzni administratorzy danych (tzw. Równoległy Administrator, któremu dane są udostępniane, np. radcy prawni i adwokaci, podmioty prowadzące działalność kurierską lub pocztową, podmioty nabywające wierzytelności - w razie niezapłacenia przez Państwa naszych faktur w terminie);</li>
+<li>PayPro S.A. z siedzibą w Poznaniu (60-198), ul. Pastelowa 8, operator serwisu płatniczego Przelewy24, jako odrębny administrator danych — w zakresie niezbędnym do zainicjowania i obsługi wybranej przez Państwa płatności elektronicznej;</li>
 <li>Podmioty znajdujące się poza EOG, lecz tylko wtedy, gdy jest to konieczne i z zapewnieniem odpowiedniego stopnia ochrony, przede wszystkim poprzez:
 <ol class="fl-ol-alpha">
 <li>współpracę z podmiotami w państwach, w odniesieniu, do których została wydana stosowna decyzja Komisji Europejskiej;</li>
@@ -762,7 +764,7 @@ export const TERMS_HTML_EN = `
 <li>If a button or similar function is used to place an order in the Service, it is marked in an easily legible manner with the words "order with an obligation to pay" ("zamówienie z obowiązkiem zapłaty") or other equivalent unambiguous wording.</li>
 <li>Placing and confirming an order entails the Customer's obligation to pay the remuneration for the Services and any additional costs. StartUp's confirmation of the order is the moment the contract for the provision of services is concluded between StartUp and the Customer.</li>
 <li>The Customer is informed of the start and end date of the provision of Services before the Contract is concluded, in particular through the Service.</li>
-<li>If, at the Customer's express request, performance of a Service is to begin before the expiry of the withdrawal period for a contract concluded off-premises, StartUp requires the Customer to submit a declaration:
+<li>If, at the Customer's express request, performance of a Service is to begin before the expiry of the withdrawal period for a distance contract, StartUp requires the Customer to submit a declaration:
 <ol class="fl-ol-alpha">
 <li>containing such an express request on a durable medium;</li>
 <li>that they acknowledge the information about the loss of the right to withdraw from the contract once it has been fully performed by StartUp.</li>
@@ -889,7 +891,7 @@ export const TERMS_HTML_EN = `
 <li>by ordinary bank transfer to the account indicated by StartUp.</li>
 </ol></li>
 <li>To use one of the electronic payment systems, the Customer must accept the terms and conditions of use of the given electronic payment system. The list of electronic payment systems available in the Service is available when finalising the order.</li>
-<li>Online payments and payment-card processing are operated by PayPro S.A. Agent Rozliczeniowy, ul. Pastelowa 8, 60-198 Poznań, entered in the Register of Entrepreneurs of the National Court Register maintained by the District Court Poznań Nowe Miasto and Wilda in Poznań, 8th Commercial Division of the National Court Register, under KRS 0000347935, NIP 7792369887, REGON 301345068.</li>
+<li>Electronic payments are processed by PayPro S.A., with its registered office in Poznań (60-198), ul. Pastelowa 8, entered into the Register of Entrepreneurs of the National Court Register (KRS) under number 0000347935, NIP 7792369887, REGON 301345068, operating the Przelewy24 payment service.</li>
 <li>In the event of withdrawal from the contract, funds are refunded in the same way in which the Customer made the payment, unless the Customer has expressly agreed to a different refund method that does not involve any costs for the Customer.</li>
 <li>StartUp does not enable Customers to pay in cash.</li>
 </ol>
@@ -996,7 +998,7 @@ export const TERMS_HTML_EN = `
 </ol></li>
 <li>Disputes related to Contracts concluded under these Terms will be resolved by the court with territorial jurisdiction over StartUp. This provision does not apply to Contracts concluded with a Consumer.</li>
 <li>The use of a specific method of out-of-court dispute resolution is possible only with the mutual consent of the Customer and StartUp. Detailed procedures for out-of-court dispute resolution are available on the website of the Office of Competition and Consumer Protection (UOKiK): www.uokik.gov.pl, on the websites of the Provincial Inspectorates of Trade Inspection, and from district (municipal) consumer ombudsmen.</li>
-<li>These Terms are effective from: 23 July 2026.</li>
+<li>These Terms are effective from: 29 July 2026.</li>
 </ol>
 </section>
 
@@ -1074,6 +1076,7 @@ export const PRIVACY_HTML_EN = `
 <li>Public authorities, to the extent that they do not receive data as part of specific proceedings under the law, e.g. in connection with counteracting money laundering;</li>
 <li>Entities that process your personal data on behalf of the Foundation under a data-processing agreement concluded with the Foundation (so-called processors). These will include, among others: the Foundation's Beneficiaries, IT specialists, archiving companies, hosting companies;</li>
 <li>External data controllers (so-called Parallel Controllers to whom data is disclosed, e.g. legal advisers and attorneys, courier or postal operators, debt-purchasing entities - in the event you fail to pay our invoices on time);</li>
+<li>PayPro S.A., with its registered office in Poznań (60-198), ul. Pastelowa 8, operator of the Przelewy24 payment service, as a separate data controller — to the extent necessary to initiate and process the electronic payment you select;</li>
 <li>Entities located outside the EEA, but only where necessary and with an adequate level of protection ensured, primarily through:
 <ol class="fl-ol-alpha">
 <li>cooperation with entities in countries for which an appropriate European Commission decision has been issued;</li>

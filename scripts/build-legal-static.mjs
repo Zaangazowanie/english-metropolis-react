@@ -19,6 +19,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const PAGES = [
   {
     dir: 'terms', docId: 'EM-LEGAL-03',
+    effectiveEn: '29 July 2026', effectivePl: FOUNDATION.effectiveDate,
     titlePl: TERMS_TITLE_PL, titleEn: 'Terms of Service (Regulamin)',
     heroPl: 'Regulamin <em>serwisu.</em>', heroEn: 'The rules of the <em>platform.</em>',
     ledePl: 'Regulamin serwisu englishmetro.com prowadzonego przez Fundację Rozwoju Przedsiębiorczości „Twój StartUp” — warunki zamówień, płatności, odstąpienia od umowy i reklamacji.',
@@ -29,6 +30,7 @@ const PAGES = [
   },
   {
     dir: 'privacy', docId: 'EM-LEGAL-01',
+    effectiveEn: '23 July 2026', effectivePl: '23 lipca 2026 r.',
     titlePl: PRIVACY_TITLE_PL, titleEn: 'Privacy Policy (Polityka prywatności)',
     heroPl: 'Polityka <em>prywatności.</em>', heroEn: 'Your <em>privacy.</em>',
     ledePl: 'Kto jest administratorem Twoich danych, po co je przetwarzamy i jakie masz prawa (RODO).',
@@ -39,6 +41,7 @@ const PAGES = [
   },
   {
     dir: 'cookies', docId: 'EM-LEGAL-02',
+    effectiveEn: '23 July 2026', effectivePl: '23 lipca 2026 r.',
     titlePl: COOKIES_TITLE_PL, titleEn: 'Cookies Policy (Polityka Cookies)',
     heroPl: 'Polityka <em>cookies.</em>', heroEn: 'Cookies <em>policy.</em>',
     ledePl: 'Jakie pliki cookies wykorzystuje serwis englishmetro.com i jak możesz nimi zarządzać.',
@@ -82,8 +85,8 @@ const page = (p) => `<!DOCTYPE html>
     <div class="legal-hero-inner">
       <div class="legal-doc-meta">
         <span>DOC <strong>${p.docId}</strong></span>
-        <span class="lang-en">Effective from <strong>23 July 2026</strong></span>
-        <span class="lang-pl">Obowiązuje od <strong>${FOUNDATION.effectiveDate}</strong></span>
+        <span class="lang-en">Effective from <strong>${p.effectiveEn}</strong></span>
+        <span class="lang-pl">Obowiązuje od <strong>${p.effectivePl}</strong></span>
         <span class="lang-en">Applies to <strong>englishmetro.com</strong></span>
         <span class="lang-pl">Dotyczy <strong>englishmetro.com</strong></span>
       </div>

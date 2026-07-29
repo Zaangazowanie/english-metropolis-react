@@ -462,8 +462,8 @@ export default function Checkout() {
         <p>{isPl ? FOUNDATION_FOOTER_PL : FOUNDATION_FOOTER_EN}</p>
         <p className="co-payment-operator">
           {t(
-            'Online payments and payment-card processing are operated by PayPro S.A. Agent Rozliczeniowy, ul. Pastelowa 8, 60-198 Poznań, KRS 0000347935, NIP 7792369887, REGON 301345068.',
-            'Operatorem płatności online i kart płatniczych jest PayPro S.A. Agent Rozliczeniowy, ul. Pastelowa 8, 60-198 Poznań, KRS 0000347935, NIP 7792369887, REGON 301345068.',
+            'Electronic payments are processed by PayPro S.A., with its registered office in Poznań (60-198), ul. Pastelowa 8, KRS 0000347935, NIP 7792369887, REGON 301345068, operating the Przelewy24 payment service.',
+            'Płatności elektroniczne są obsługiwane przez PayPro S.A. z siedzibą w Poznaniu (60-198), ul. Pastelowa 8, KRS 0000347935, NIP 7792369887, REGON 301345068, prowadzącą serwis płatniczy Przelewy24.',
           )}
         </p>
         <p>{t('Contact', 'Kontakt')}: <a href={`mailto:${FOUNDATION.email}`}>{FOUNDATION.email}</a> · {FOUNDATION.phone}</p>

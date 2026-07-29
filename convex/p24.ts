@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { requireStudent } from "./authHelpers";
 
 const CURRENCY = "PLN";
+const TERMS_VERSION = "EM-LEGAL-03 (2026-07-29)";
 
 // This is the server-side price authority for payment registration. Never use
 // names, lesson counts, or amounts sent by the browser to charge a customer.
@@ -172,7 +173,7 @@ export const preparePayment = internalMutation({
       updatedAt: now,
     });
 
-    const consentNote = `[${args.checkoutRef}] Zgody: regulamin TAK; niezwłoczna realizacja ${args.consentImmediate ? "TAK" : "NIE"}; marketing ${args.consentMarketing ? "TAK" : "NIE"}.`;
+    const consentNote = `[${args.checkoutRef}] Zgody: regulamin ${TERMS_VERSION} TAK; niezwłoczna realizacja ${args.consentImmediate ? "TAK" : "NIE"}; marketing ${args.consentMarketing ? "TAK" : "NIE"}.`;
     const billing = {
       ...args.billing,
       notes: [args.billing.notes?.trim(), consentNote].filter(Boolean).join("\n") || undefined,
