@@ -1074,6 +1074,10 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
 
   const band = analysis?.cefrBand
   const overall = analysis?.overallScore
+  const hasAccuracyPractice = studentSlug === 'aleksandra-gorska' && (
+    String(lesson.date || '').slice(0, 10) === '2026-07-29'
+    || String(lesson.title || '').toLowerCase().includes('instant city')
+  )
 
   return (
     <div style={{ display: 'grid', gap: 22 }}>
@@ -1124,6 +1128,68 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
 
       {/* Vocabulary FIRST — the keywords (with TTS + YouGlish previews) are
           what a student revises; the full analysis follows on demand. */}
+      {hasAccuracyPractice && (
+        <Glass padding={0} style={{
+          overflow: 'hidden',
+          borderColor: 'rgba(217,70,239,0.26)',
+          background: isDay
+            ? 'linear-gradient(120deg, #FAF5FF, #FFF7ED)'
+            : 'linear-gradient(120deg, rgba(76,29,149,0.2), rgba(217,70,239,0.08) 55%, rgba(251,191,36,0.08))',
+        }}>
+          <div style={{
+            padding: 20,
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'auto minmax(0,1fr) auto',
+            alignItems: 'center',
+            gap: 16,
+          }}>
+            <div style={{
+              width: 48, height: 48, display: 'grid', placeItems: 'center',
+              borderRadius: 14, color: '#fff', background: G.brand,
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 24 }}>speed</span>
+            </div>
+            <div>
+              <div style={{
+                color: T.brandInk || T.brand, fontSize: 9, fontWeight: 750,
+                letterSpacing: '0.18em', textTransform: 'uppercase',
+              }}>
+                Practice for this lesson
+              </div>
+              <div style={{ marginTop: 4, color: T.text, fontFamily: FONT.display, fontSize: 20, fontWeight: 650 }}>
+                Accuracy at Speed
+              </div>
+              <p style={{ margin: '5px 0 0', color: T.textDim, fontSize: 12, lineHeight: 1.5 }}>
+                Build faster, more reliable grammar with a tap challenge or spoken coaching from Bajla.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button"
+                onClick={() => navigate(`${basePath || ''}/${studentSlug}/practice?activity=accuracy-at-speed&mode=choice`)}
+                style={{
+                  minHeight: 42, padding: '0 14px', display: 'inline-flex', alignItems: 'center', gap: 7,
+                  border: 0, borderRadius: 11, cursor: 'pointer', color: '#fff', background: G.brand,
+                  fontSize: 12, fontWeight: 700,
+                }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>touch_app</span>
+                Tap challenge
+              </button>
+              <button type="button"
+                onClick={() => navigate(`${basePath || ''}/${studentSlug}/practice?activity=accuracy-at-speed&mode=speech&round=all`)}
+                style={{
+                  minHeight: 42, padding: '0 14px', display: 'inline-flex', alignItems: 'center', gap: 7,
+                  border: `1px solid ${T.border}`, borderRadius: 11, cursor: 'pointer',
+                  color: T.text, background: isDay ? '#fff' : 'rgba(255,255,255,0.05)',
+                  fontSize: 12, fontWeight: 700,
+                }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mic</span>
+                Speak with Bajla
+              </button>
+            </div>
+          </div>
+        </Glass>
+      )}
+
       {lesson.keywords?.length > 0 && (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',

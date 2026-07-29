@@ -185,6 +185,59 @@ function LatestLessonCard({ lesson, slug, basePath }) {
   )
 }
 
+function AccuracyAtSpeedCard({ slug, basePath }) {
+  const { T, isMobile } = useV3Theme()
+  const practicePath = `${basePath}/${slug}/practice`
+  return (
+    <Glass padding={0} style={{
+      marginBottom: 24,
+      overflow: 'hidden',
+      borderColor: 'rgba(217,70,239,0.26)',
+      background: 'linear-gradient(120deg, rgba(76,29,149,0.14), rgba(217,70,239,0.08) 52%, rgba(251,191,36,0.08))',
+    }}>
+      <div style={{
+        padding: isMobile ? 22 : '24px 28px',
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : 'auto minmax(0,1fr) auto',
+        alignItems: 'center',
+        gap: isMobile ? 18 : 24,
+      }}>
+        <div style={{
+          width: 58, height: 58, display: 'grid', placeItems: 'center',
+          borderRadius: 16, color: '#fff',
+          background: G.brand,
+          boxShadow: '0 18px 36px -20px rgba(217,70,239,0.9)',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 28 }}>speed</span>
+        </div>
+        <div>
+          <div style={{
+            marginBottom: 5, color: T.brandInk || T.brand,
+            fontSize: 9, fontWeight: 750, letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+          }}>
+            New practice from your 29 July lesson
+          </div>
+          <div style={{ color: T.text, fontFamily: FONT.display, fontSize: 23, fontWeight: 650 }}>
+            Accuracy at Speed
+          </div>
+          <p style={{ margin: '6px 0 0', color: T.textDim, fontSize: 13, lineHeight: 1.5 }}>
+            Train the same errors with a 60 second tap sprint or practise them aloud with Bajla.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
+          <Link to={`${practicePath}?activity=accuracy-at-speed&mode=choice`} style={{ textDecoration: 'none' }}>
+            <Btn variant="primary" size="md" icon="touch_app">Tap challenge</Btn>
+          </Link>
+          <Link to={`${practicePath}?activity=accuracy-at-speed&mode=speech&round=all`} style={{ textDecoration: 'none' }}>
+            <Btn variant="ghost" size="md" icon="mic">Speak with Bajla</Btn>
+          </Link>
+        </div>
+      </div>
+    </Glass>
+  )
+}
+
 function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null }) {
   const { T } = useV3Theme()
   const { t } = useI18n()
@@ -602,6 +655,10 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
             preferShort t={t}/>
         ) : null}
       </div>
+
+      {slug === 'aleksandra-gorska' && (
+        <AccuracyAtSpeedCard slug={slug} basePath={basePath}/>
+      )}
 
       {/* The "right now" row — what a student actually needs when they log in:
           join the next lesson, revise the last one, reread its analysis. */}

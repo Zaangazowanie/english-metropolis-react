@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useShellProgress } from '../lib/convex-stubs';
 import './accuracy-at-speed.css';
 
-export type RoundId = 'A' | 'B' | 'C' | 'D' | 'D2';
+export type RoundId = 'P' | 'A' | 'B' | 'C' | 'D' | 'D2';
 
 interface Round {
   id: RoundId;
@@ -25,6 +25,35 @@ interface VoiceResult {
 }
 
 const ROUNDS: Round[] = [
+  {
+    id: 'P',
+    title: 'Preposition reflex',
+    focus: 'Keep the whole phrase together',
+    instruction: 'Say every complete sentence with the correct preposition.',
+    timer: 60,
+    mode: 'read',
+    accent: '#FB923C',
+    cues: [
+      'She is interested in urban planning.',
+      'According to the master plan, the district needs more trees.',
+      'This district is connected to the centre by tram.',
+      'The project will have an influence on traffic.',
+      'People depend on reliable public transport.',
+      'The old town is famous for its cafés.',
+      'We arrived at the station early.',
+      'She is responsible for dealer training.',
+    ],
+    target: [
+      'She is interested in urban planning.',
+      'According to the master plan, the district needs more trees.',
+      'This district is connected to the centre by tram.',
+      'The project will have an influence on traffic.',
+      'People depend on reliable public transport.',
+      'The old town is famous for its cafés.',
+      'We arrived at the station early.',
+      'She is responsible for dealer training.',
+    ],
+  },
   {
     id: 'A',
     title: 'First conditional reflex',
@@ -159,6 +188,24 @@ const ROUNDS: Round[] = [
 ];
 
 const EXERCISE_ID = 'aleksandra-accuracy-at-speed-2026-07-29';
+const CHOICE_EXERCISE_ID = `${EXERCISE_ID}-preposition-sprint`;
+
+interface ChoiceQuestion {
+  sentence: string;
+  options: string[];
+  answer: string;
+}
+
+const PREPOSITION_QUESTIONS: ChoiceQuestion[] = [
+  { sentence: 'She is interested ___ urban planning.', options: ['at', 'in', 'on'], answer: 'in' },
+  { sentence: 'According ___ the master plan, the district needs more trees.', options: ['to', 'with', 'for'], answer: 'to' },
+  { sentence: 'This district is connected ___ the centre by tram.', options: ['at', 'to', 'on'], answer: 'to' },
+  { sentence: 'The project will have an influence ___ traffic.', options: ['for', 'on', 'at'], answer: 'on' },
+  { sentence: 'People depend ___ reliable public transport.', options: ['on', 'from', 'in'], answer: 'on' },
+  { sentence: 'The old town is famous ___ its cafés.', options: ['of', 'with', 'for'], answer: 'for' },
+  { sentence: 'We arrived ___ the station early.', options: ['to', 'at', 'on'], answer: 'at' },
+  { sentence: 'She is responsible ___ dealer training.', options: ['for', 'to', 'with'], answer: 'for' },
+];
 
 function readVoice(): string {
   try {
@@ -197,12 +244,14 @@ interface AccuracyAtSpeedProps {
 
 interface AccuracyAtSpeedLauncherProps {
   completed?: boolean;
-  onStart: (selection: RoundId | 'all') => void;
+  onStartChoice: () => void;
+  onStartSpeech: (selection: RoundId | 'all') => void;
 }
 
 export function AccuracyAtSpeedLauncher({
   completed = false,
-  onStart,
+  onStartChoice,
+  onStartSpeech,
 }: AccuracyAtSpeedLauncherProps): React.ReactElement {
   const [selection, setSelection] = useState<RoundId | 'all'>('all');
   return (
@@ -221,17 +270,17 @@ export function AccuracyAtSpeedLauncher({
         </div>
         <h2 id="aas-launcher-title">Aleksandra, make accuracy automatic.</h2>
         <p>
-          Four short spoken reflex blocks built from today's fossilized errors.
-          Bajla listens, scores the exact target, and coaches the next attempt.
+          A timed tap challenge and a spoken workout built from today's fossilized errors.
+          Choose first, then say the same patterns aloud with Bajla.
         </p>
         <div className="aas-launcher-stats">
-          <span><strong>4 + 1</strong> reflex blocks and transfer</span>
-          <span><strong>4:05</strong> target time</span>
-          <span><strong>Voice</strong> scored by Bajla</span>
+          <span><strong>8</strong> fast preposition choices</span>
+          <span><strong>5 + 1</strong> spoken blocks and transfer</span>
+          <span><strong>Bajla</strong> checks your speech</span>
         </div>
       </div>
       <div className="aas-launcher-controls">
-        <label htmlFor="aas-workout-select">Choose today's practice</label>
+        <label htmlFor="aas-workout-select">Choose a spoken block</label>
         <div className="aas-select-wrap">
           <select
             id="aas-workout-select"
@@ -239,6 +288,7 @@ export function AccuracyAtSpeedLauncher({
             onChange={(event) => setSelection(event.target.value as RoundId | 'all')}
           >
             <option value="all">Full Accuracy at Speed workout</option>
+            <option value="P">P: Preposition reflex</option>
             <option value="A">A: First conditional reflex</option>
             <option value="B">B: Agreement under speed</option>
             <option value="C">C: There are and these</option>
@@ -247,13 +297,219 @@ export function AccuracyAtSpeedLauncher({
           </select>
           <span className="material-symbols-outlined" aria-hidden>expand_more</span>
         </div>
-        <button type="button" className="aas-launcher-start" onClick={() => onStart(selection)}>
-          <span className="material-symbols-outlined" aria-hidden>mic</span>
-          Start spoken practice
-        </button>
-        <small>Microphone permission is requested only when you press start.</small>
+        <div className="aas-launcher-actions">
+          <button type="button" className="aas-launcher-start aas-launcher-choice" onClick={onStartChoice}>
+            <span className="material-symbols-outlined" aria-hidden>touch_app</span>
+            Fast tap challenge
+          </button>
+          <button type="button" className="aas-launcher-start" onClick={() => onStartSpeech(selection)}>
+            <span className="material-symbols-outlined" aria-hidden>mic</span>
+            Speak with Bajla
+          </button>
+        </div>
+        <small>The microphone is requested only when you choose spoken practice.</small>
       </div>
     </section>
+  );
+}
+
+interface AccuracyAtSpeedChoiceProps {
+  onExit: () => void;
+  onSpeak: () => void;
+}
+
+export function AccuracyAtSpeedChoice({
+  onExit,
+  onSpeak,
+}: AccuracyAtSpeedChoiceProps): React.ReactElement {
+  const progress = useShellProgress('accuracy-at-speed-choice', CHOICE_EXERCISE_ID);
+  const [phase, setPhase] = useState<'ready' | 'playing' | 'complete'>('ready');
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(60);
+  const [score, setScore] = useState(0);
+  const [selection, setSelection] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<Array<{ answer: string; correct: boolean }>>([]);
+  const deadlineRef = useRef<number | null>(null);
+  const advanceRef = useRef<number | null>(null);
+  const question = PREPOSITION_QUESTIONS[questionIndex];
+
+  const complete = useCallback((nextAnswers: Array<{ answer: string; correct: boolean }>) => {
+    const correct = nextAnswers.filter((answer) => answer.correct).length;
+    progress.save({
+      progress: 1,
+      completed: true,
+      lastState: 'complete',
+      meta: {
+        activity: 'Aleksandra - Preposition Sprint',
+        lessonDate: '2026-07-29',
+        score: correct,
+        total: PREPOSITION_QUESTIONS.length,
+        answers: nextAnswers,
+      },
+    });
+    setScore(correct);
+    setPhase('complete');
+  }, [progress]);
+
+  useEffect(() => {
+    if (phase !== 'playing' || !deadlineRef.current) return undefined;
+    const tick = () => {
+      const next = Math.max(0, Math.ceil((deadlineRef.current! - Date.now()) / 1000));
+      setSecondsLeft(next);
+      if (next === 0) complete(answers);
+    };
+    tick();
+    const timer = window.setInterval(tick, 200);
+    return () => window.clearInterval(timer);
+  }, [answers, complete, phase]);
+
+  useEffect(() => () => {
+    if (advanceRef.current) window.clearTimeout(advanceRef.current);
+  }, []);
+
+  const start = useCallback(() => {
+    setQuestionIndex(0);
+    setSecondsLeft(60);
+    setScore(0);
+    setSelection(null);
+    setAnswers([]);
+    deadlineRef.current = Date.now() + 60_000;
+    setPhase('playing');
+  }, []);
+
+  const choose = useCallback((answer: string) => {
+    if (phase !== 'playing' || selection || !question) return;
+    const correct = answer === question.answer;
+    const nextAnswers = [...answers, { answer, correct }];
+    setSelection(answer);
+    setAnswers(nextAnswers);
+    setScore(nextAnswers.filter((item) => item.correct).length);
+    advanceRef.current = window.setTimeout(() => {
+      if (questionIndex >= PREPOSITION_QUESTIONS.length - 1) {
+        complete(nextAnswers);
+      } else {
+        setQuestionIndex((index) => index + 1);
+        setSelection(null);
+      }
+    }, 620);
+  }, [answers, complete, phase, question, questionIndex, selection]);
+
+  if (phase === 'complete') {
+    const percentage = Math.round((score / PREPOSITION_QUESTIONS.length) * 100);
+    return (
+      <main className="aas-page aas-choice-page">
+        <section className="aas-choice-results" aria-labelledby="aas-choice-result-title">
+          <div className="aas-kicker">Tap challenge complete</div>
+          <h1 id="aas-choice-result-title">{score === PREPOSITION_QUESTIONS.length ? 'Clean sweep.' : 'Now make it automatic.'}</h1>
+          <p>You chose {score} of {PREPOSITION_QUESTIONS.length} prepositions correctly. The next step is to say every full phrase aloud.</p>
+          <div className="aas-choice-tally">
+            <div className="aas-score-orbit" style={{ '--aas-score': `${percentage * 3.6}deg` } as React.CSSProperties}>
+              <div><strong>{score}/{PREPOSITION_QUESTIONS.length}</strong><span>correct</span></div>
+            </div>
+            <div>
+              <strong>{secondsLeft}s</strong>
+              <span>left on the clock</span>
+            </div>
+          </div>
+          <div className="aas-actions">
+            <button type="button" className="aas-button aas-button-primary" onClick={onSpeak}>
+              <span className="material-symbols-outlined" aria-hidden>mic</span>
+              Practise these aloud
+            </button>
+            <button type="button" className="aas-button" onClick={start}>
+              <span className="material-symbols-outlined" aria-hidden>replay</span>
+              Repeat tap challenge
+            </button>
+            <button type="button" className="aas-button aas-button-quiet" onClick={onExit}>Back to Practice</button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="aas-page aas-choice-page">
+      <nav className="aas-topbar" aria-label="Preposition sprint controls">
+        <button type="button" className="aas-back" onClick={onExit}>
+          <span className="material-symbols-outlined" aria-hidden>arrow_back</span>
+          Practice
+        </button>
+        <div className="aas-brand">
+          <img src="/bajla.png" alt="" />
+          <div><span>Today's lesson practice</span><strong>Preposition Sprint</strong></div>
+        </div>
+        <div className="aas-round-count">{phase === 'ready' ? '8 prompts' : `${questionIndex + 1} / ${PREPOSITION_QUESTIONS.length}`}</div>
+      </nav>
+
+      {phase === 'ready' ? (
+        <section className="aas-choice-intro">
+          <div className="aas-choice-intro-copy">
+            <div className="aas-kicker">Fast tap challenge</div>
+            <h1>Choose the phrase before the clock wins.</h1>
+            <p>Eight prepositions from Aleksandra's lesson patterns. Choose one answer for each sentence. Accuracy comes first, then speed.</p>
+            <ul>
+              <li><span className="material-symbols-outlined" aria-hidden>timer</span>60 second total timer</li>
+              <li><span className="material-symbols-outlined" aria-hidden>touch_app</span>One tap per sentence</li>
+              <li><span className="material-symbols-outlined" aria-hidden>mic</span>Spoken follow-up with Bajla</li>
+            </ul>
+          </div>
+          <div className="aas-choice-start-panel">
+            <div className="aas-choice-preview">
+              <span>Example</span>
+              <p>The area is famous <strong>for</strong> its cafés.</p>
+            </div>
+            <button type="button" className="aas-button aas-button-primary" onClick={start}>
+              Start 60 second sprint
+              <span className="material-symbols-outlined" aria-hidden>arrow_forward</span>
+            </button>
+          </div>
+        </section>
+      ) : (
+        <section className="aas-choice-stage" aria-live="polite">
+          <header>
+            <div>
+              <div className="aas-kicker">Choose the correct preposition</div>
+              <span>{score} correct so far</span>
+            </div>
+            <div
+              className="aas-timer is-live"
+              style={{ '--aas-timer': `${(secondsLeft / 60) * 360}deg` } as React.CSSProperties}
+              aria-label={`${secondsLeft} seconds remaining`}
+            >
+              <div><strong>{secondsLeft}</strong><span>seconds</span></div>
+            </div>
+          </header>
+          <div className="aas-choice-question">
+            <span>Sentence {String(questionIndex + 1).padStart(2, '0')}</span>
+            <h1>{question.sentence}</h1>
+          </div>
+          <div className="aas-choice-options" role="group" aria-label="Answer choices">
+            {question.options.map((option) => {
+              const isSelected = selection === option;
+              const isCorrect = selection && option === question.answer;
+              return (
+                <button
+                  type="button"
+                  key={option}
+                  className={`${isSelected ? 'is-selected' : ''}${isCorrect ? ' is-correct' : ''}${isSelected && !isCorrect ? ' is-wrong' : ''}`}
+                  onClick={() => choose(option)}
+                  disabled={Boolean(selection)}
+                >
+                  <span>{option}</span>
+                  {isCorrect ? <span className="material-symbols-outlined" aria-hidden>check</span> : null}
+                  {isSelected && !isCorrect ? <span className="material-symbols-outlined" aria-hidden>close</span> : null}
+                </button>
+              );
+            })}
+          </div>
+          <div className="aas-choice-progress" aria-hidden>
+            {PREPOSITION_QUESTIONS.map((_, index) => (
+              <i key={index} className={index < answers.length ? (answers[index]?.correct ? 'is-correct' : 'is-wrong') : index === questionIndex ? 'is-current' : ''} />
+            ))}
+          </div>
+        </section>
+      )}
+    </main>
   );
 }
 

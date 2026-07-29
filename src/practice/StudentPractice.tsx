@@ -23,6 +23,7 @@
 // when no student session exists).
 
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { usePracticeSession } from './lib/usePracticeSession';
 import { useStudentVocab, type VocabItem } from './lib/useStudentVocab';
 import { useShellProgress } from './lib/convex-stubs';
@@ -155,6 +156,7 @@ import {
 import { refreshSentencesForVocab } from './lib/sentenceFreshness';
 import {
   AccuracyAtSpeed,
+  AccuracyAtSpeedChoice,
   AccuracyAtSpeedLauncher,
   type RoundId as AccuracyRoundId,
 } from './lessonPractice/AccuracyAtSpeed';
@@ -1329,12 +1331,67 @@ interface WrongAnswerInfo {
 
 export function StudentPractice(): React.ReactElement {
   const session = usePracticeSession();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeShell, setActiveShell] = useState<ShellKey | null>(null);
   const [accuracySelection, setAccuracySelection] = useState<AccuracyRoundId | 'all' | null>(null);
+  const [accuracyMode, setAccuracyMode] = useState<'choice' | 'speech' | null>(null);
   const accuracyProgress = useShellProgress(
     'accuracy-at-speed',
     'aleksandra-accuracy-at-speed-2026-07-29',
   );
+
+  const openAccuracyChoice = useCallback(() => {
+    setAccuracyMode('choice');
+    setAccuracySelection(null);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('activity', 'accuracy-at-speed');
+      next.set('mode', 'choice');
+      next.delete('round');
+      return next;
+    });
+  }, [setSearchParams]);
+
+  const openAccuracySpeech = useCallback((round: AccuracyRoundId | 'all' = 'all') => {
+    setAccuracyMode('speech');
+    setAccuracySelection(round);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('activity', 'accuracy-at-speed');
+      next.set('mode', 'speech');
+      next.set('round', round);
+      return next;
+    });
+  }, [setSearchParams]);
+
+  const closeAccuracy = useCallback(() => {
+    setAccuracyMode(null);
+    setAccuracySelection(null);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('activity');
+      next.delete('mode');
+      next.delete('round');
+      return next;
+    });
+  }, [setSearchParams]);
+
+  useEffect(() => {
+    if (session.studentSlug !== 'aleksandra-gorska') return;
+    if (searchParams.get('activity') !== 'accuracy-at-speed') return;
+    if (searchParams.get('mode') === 'speech') {
+      const requested = searchParams.get('round');
+      const supported: Array<AccuracyRoundId | 'all'> = ['all', 'P', 'A', 'B', 'C', 'D', 'D2'];
+      const round = supported.includes(requested as AccuracyRoundId | 'all')
+        ? requested as AccuracyRoundId | 'all'
+        : 'all';
+      setAccuracyMode('speech');
+      setAccuracySelection(round);
+    } else {
+      setAccuracyMode('choice');
+      setAccuracySelection(null);
+    }
+  }, [searchParams, session.studentSlug]);
   // ── Sprint-2 (2026-05-02): topic-grouping nav state ────────────────────
   // currentView toggles between the atlas (default), the topic-groups card
   // grid, and a per-group detail page. activeGroup carries the context that
@@ -1931,12 +1988,19 @@ export function StudentPractice(): React.ReactElement {
         </div>
       </div>
     );
-  } else if (accuracySelection && session.studentSlug === 'aleksandra-gorska') {
+  } else if (accuracyMode === 'choice' && session.studentSlug === 'aleksandra-gorska') {
+    inner = (
+      <AccuracyAtSpeedChoice
+        onExit={closeAccuracy}
+        onSpeak={() => openAccuracySpeech('P')}
+      />
+    );
+  } else if (accuracyMode === 'speech' && accuracySelection && session.studentSlug === 'aleksandra-gorska') {
     inner = (
       <AccuracyAtSpeed
         studentSlug={session.studentSlug}
         initialRound={accuracySelection}
-        onExit={() => setAccuracySelection(null)}
+        onExit={closeAccuracy}
       />
     );
   } else if (currentView === 'groups' && !activeShell) {
@@ -4426,18 +4490,21 @@ export function StudentPractice(): React.ReactElement {
     inner = (
       <div className="em-dash">
         <div className="em-dash-inner">
+          {session.studentSlug === 'aleksandra-gorska' ? (
+            <div id="accuracy-at-speed">
+              <AccuracyAtSpeedLauncher
+                completed={accuracyProgress.completed}
+                onStartChoice={openAccuracyChoice}
+                onStartSpeech={openAccuracySpeech}
+              />
+            </div>
+          ) : null}
           <PitchCard
             time="dusk"
             onSelectShell={setActiveShell}
             onBrowseByTopic={() => setCurrentView('groups')}
             studentSlug={session.studentSlug}
           />
-          {session.studentSlug === 'aleksandra-gorska' ? (
-            <AccuracyAtSpeedLauncher
-              completed={accuracyProgress.completed}
-              onStart={setAccuracySelection}
-            />
-          ) : null}
           <header className="em-dash-head">
             <div>
               <div className="em-dash-eyebrow">
