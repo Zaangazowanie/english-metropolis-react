@@ -228,6 +228,49 @@ export const createPackage = mutation({
   },
 });
 
+// Admin-only metadata correction for an existing package. Balance fields are
+// deliberately excluded: allocation is derived from bookings/lessons and must
+// never be edited by hand.
+export const updatePackageMetadata = mutation({
+  args: {
+    sessionToken: v.string(),
+    packageId: v.id("lessonPackages"),
+    name: v.optional(v.string()),
+    expiresAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const pkg = await ctx.db.get(args.packageId);
+    if (!pkg) throw new Error("Package not found");
+    if (!isSuperadmin(user.role) && String(pkg.organizationId) !== String(user.organizationId)) {
+      throw new Error("Unauthorized");
+    }
+    const { sessionToken, packageId, ...updates } = args;
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, val]) => val !== undefined)
+    );
+    if (typeof cleanUpdates.name === "string") {
+      cleanUpdates.name = cleanUpdates.name.trim();
+    }
+    if (typeof cleanUpdates.notes === "string") {
+      cleanUpdates.notes = cleanUpdates.notes.trim();
+    }
+    const now = Date.now();
+    await ctx.db.patch(packageId, { ...cleanUpdates, updatedAt: now });
+    await ctx.db.insert("auditLog", {
+      organizationId: pkg.organizationId,
+      userId: user._id,
+      action: "package.metadata_updated",
+      targetType: "lessonPackage",
+      targetId: String(packageId),
+      details: JSON.stringify(cleanUpdates),
+      timestamp: now,
+    });
+    return { ok: true };
+  },
+});
+
 export const cancelPackage = mutation({
   args: { sessionToken: v.string(), packageId: v.id("lessonPackages") },
   handler: async (ctx, args) => {
