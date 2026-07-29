@@ -153,6 +153,11 @@ import {
 // The map below is consulted by buildShellPuzzle BEFORE the generators
 // run, so every downstream shell gets the fresh sentence transparently.
 import { refreshSentencesForVocab } from './lib/sentenceFreshness';
+import {
+  AccuracyAtSpeed,
+  AccuracyAtSpeedLauncher,
+  type RoundId as AccuracyRoundId,
+} from './lessonPractice/AccuracyAtSpeed';
 
 // Generators (deterministic, pure).
 import {
@@ -1325,6 +1330,11 @@ interface WrongAnswerInfo {
 export function StudentPractice(): React.ReactElement {
   const session = usePracticeSession();
   const [activeShell, setActiveShell] = useState<ShellKey | null>(null);
+  const [accuracySelection, setAccuracySelection] = useState<AccuracyRoundId | 'all' | null>(null);
+  const accuracyProgress = useShellProgress(
+    'accuracy-at-speed',
+    'aleksandra-accuracy-at-speed-2026-07-29',
+  );
   // ── Sprint-2 (2026-05-02): topic-grouping nav state ────────────────────
   // currentView toggles between the atlas (default), the topic-groups card
   // grid, and a per-group detail page. activeGroup carries the context that
@@ -1920,6 +1930,14 @@ export function StudentPractice(): React.ReactElement {
           <p className="em-dash-sub">{session.error}</p>
         </div>
       </div>
+    );
+  } else if (accuracySelection && session.studentSlug === 'aleksandra-gorska') {
+    inner = (
+      <AccuracyAtSpeed
+        studentSlug={session.studentSlug}
+        initialRound={accuracySelection}
+        onExit={() => setAccuracySelection(null)}
+      />
     );
   } else if (currentView === 'groups' && !activeShell) {
     // Sprint-2: topic atlas
@@ -4414,6 +4432,12 @@ export function StudentPractice(): React.ReactElement {
             onBrowseByTopic={() => setCurrentView('groups')}
             studentSlug={session.studentSlug}
           />
+          {session.studentSlug === 'aleksandra-gorska' ? (
+            <AccuracyAtSpeedLauncher
+              completed={accuracyProgress.completed}
+              onStart={setAccuracySelection}
+            />
+          ) : null}
           <header className="em-dash-head">
             <div>
               <div className="em-dash-eyebrow">
