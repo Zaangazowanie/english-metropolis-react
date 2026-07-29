@@ -186,6 +186,10 @@ export async function fetchJSONCached<T = unknown>(
     async () => {
       const r = await fetchWithTimeout(url, opts.init, opts.timeoutMs);
       if (!r.ok) throw new Error(`Fetch ${url} failed: ${r.status}`);
+      const contentType = r.headers.get('content-type')?.toLowerCase() ?? '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(`Fetch ${url} returned ${contentType || 'an unknown content type'}, not JSON`);
+      }
       return (await r.json()) as T;
     },
     opts.ttlMs,

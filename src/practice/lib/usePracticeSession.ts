@@ -104,13 +104,19 @@ export function usePracticeSession(slugOverride?: string): PracticeSession {
         });
       } catch (err) {
         if (cancelled) return;
+        // The KB is an optional personalisation layer, not a prerequisite for
+        // entering Practice. Production deliberately falls back to the SPA for
+        // unknown static paths, so a missing /knowledge-base/<slug>.json can
+        // arrive as HTML with a 200 response. Keep the generic districts and
+        // assigned lesson-practice activities available instead of replacing
+        // the whole screen with a JSON parse error.
         setSession({
           studentSlug: slug,
           studentLevel: ctx.level || 'B1',
           kb: null,
           picks: [],
-          status: 'error',
-          error: err instanceof Error ? err.message : 'unknown',
+          status: 'ready',
+          error: 'kb-unavailable',
         });
       }
     })();
