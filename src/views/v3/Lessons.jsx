@@ -1036,7 +1036,7 @@ function LessonSummaryOnion({ summary, title, deeperLabel }) {
 /* ============================================================================
    LessonDetail — full per-lesson modal body
    ============================================================================ */
-function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, studentSlug, basePath }) {
+function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, studentSlug, basePath, pdfUrl }) {
   const { T, mode, isMobile } = useV3Theme()
   const isDay = mode === 'day'
   const { t } = useI18n()
@@ -1123,6 +1123,21 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                 color: T.text }}>{Math.round(overall)}<span style={{ fontSize: 12, color: T.textDim }}>/100</span></span>
             )}
           </div>
+        )}
+        {pdfUrl && (
+          <a href={pdfUrl} download target="_blank" rel="noopener noreferrer"
+            title={t('lessons.rawNotesTitle')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              padding: '6px 12px', borderRadius: 999, textDecoration: 'none',
+              background: isDay ? '#fff' : 'rgba(255,255,255,0.05)',
+              border: `1px solid ${T.border}`, color: T.textSoft,
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>download</span>
+            {t('lessons.rawNotes')}
+          </a>
         )}
       </div>
 
@@ -1603,7 +1618,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
 /* ============================================================================
    LessonDetailModal — full-height modal wrapper
    ============================================================================ */
-function LessonDetailModal({ lesson, onClose, onYouglish, focusKeyword, cameFromVocab, studentSlug, basePath }) {
+function LessonDetailModal({ lesson, onClose, onYouglish, focusKeyword, cameFromVocab, studentSlug, basePath, pdfUrl }) {
   const { T, mode, isMobile } = useV3Theme()
   const isDay = mode === 'day'
   const { t } = useI18n()
@@ -1664,7 +1679,8 @@ function LessonDetailModal({ lesson, onClose, onYouglish, focusKeyword, cameFrom
             focusKeyword={focusKeyword}
             cameFromVocab={cameFromVocab}
             studentSlug={studentSlug}
-            basePath={basePath}/>
+            basePath={basePath}
+            pdfUrl={pdfUrl}/>
         </div>
       </div>
     </div>
@@ -1824,7 +1840,7 @@ function LessonCard({ lesson, analysis, pdfUrl, onOpen, onTopicClick, topicFilte
             </a>
           )}
           {pdfUrl && (
-            <a href={pdfUrl} target="_blank" rel="noopener"
+            <a href={pdfUrl} download target="_blank" rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               title={t('lessons.rawNotesTitle')}
               style={{
@@ -2249,7 +2265,9 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
           focusKeyword={focusKeyword}
           cameFromVocab={cameFromVocab}
           studentSlug={studentSlug}
-          basePath={basePath}/>
+          basePath={basePath}
+          pdfUrl={(pdfMap[studentSlug || ''] || [])
+            .find(pdf => pdf.date === selectedLesson.date)?.url}/>
       )}
       {youglishWord && (
         <YouGlishModal word={youglishWord} onClose={() => setYouglishWord(null)}/>

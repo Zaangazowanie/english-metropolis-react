@@ -117,7 +117,7 @@ function MetricCard({ axis, score, slug, basePath }) {
   )
 }
 
-function LatestLessonCard({ lesson, slug, basePath }) {
+function LatestLessonCard({ lesson, slug, basePath, pdfUrl }) {
   const { T } = useV3Theme()
   const { t } = useI18n()
   if (!lesson) {
@@ -174,12 +174,20 @@ function LatestLessonCard({ lesson, slug, basePath }) {
           {topics.map(t => <Pill key={t} tone="neutral" size="sm">{t}</Pill>)}
         </div>
       )}
-      <div style={{ marginTop: 20 }}>
+      <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <Link to={lessonPath} style={{ textDecoration: 'none' }}>
           <Btn variant="primary" size="md" trailingIcon="arrow_forward">
             {t('dashboard.latest.readAnalysis')}
           </Btn>
         </Link>
+        {pdfUrl && (
+          <a href={pdfUrl} download target="_blank" rel="noopener noreferrer"
+            style={{ textDecoration: 'none' }}>
+            <Btn variant="ghost" size="md" icon="download">
+              {t('dashboard.latest.downloadNotes')}
+            </Btn>
+          </a>
+        )}
       </div>
     </Glass>
   )
@@ -541,6 +549,7 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
   const composite = useNumberFlow(numberOr(data?.averageScore))
   const [progressOpen, setProgressOpen] = useState(false)
   const [alloc, setAlloc] = useState(null)
+  const [pdfMap, setPdfMap] = useState({})
   const { studentUser } = useStudentAuth()
   useEffect(() => {
     const sid = studentUser?._id
@@ -553,6 +562,14 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
       .catch(() => {})
     return () => { cancelled = true }
   }, [studentUser?._id])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchJSONCached('/lesson-pdfs.json', { cacheKey: 'lesson-pdfs' })
+      .then(d => { if (!cancelled) setPdfMap(d || {}) })
+      .catch(() => { if (!cancelled) setPdfMap({}) })
+    return () => { cancelled = true }
+  }, [])
 
   // Bilingual overlay — fetch /lesson-summaries/<slug>.json once and
   // merge per-date PL + EN-simple fields onto the matching analysis. Lets
@@ -622,6 +639,8 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
   const studentGreeting = latestAnalysis?.studentGreeting
   const greetingFallback = latestAnalysis?.topicHighlights || latestAnalysis?.lessonSummary
   const greeting = studentGreeting || greetingFallback
+  const latestLessonPdf = (pdfMap[slug || ''] || [])
+    .find(pdf => pdf.date === lessons[0]?.date)
 
   return (
     <div style={{ maxWidth: 1840, margin: '0 auto',
@@ -671,7 +690,10 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
 
         {showCard('revise') && <ReviseCard lesson={lessons[0]} slug={slug} basePath={basePath}/>}
 
-        {showCard('latest') && <LatestLessonCard lesson={lessons[0]} slug={slug} basePath={basePath}/>}
+        {showCard('latest') && (
+          <LatestLessonCard lesson={lessons[0]} slug={slug} basePath={basePath}
+            pdfUrl={latestLessonPdf?.url}/>
+        )}
       </div>
 
       {/* Everything analytical lives behind one calm disclosure — full detail

@@ -143,6 +143,7 @@
   "dashboard.latest.empty.body": "Twoja pierwsza lekcja pojawi się tutaj zaraz po jej wczytaniu.",
   "dashboard.latest.fallbackTitle": "Twoja ostatnia sesja",
   "dashboard.latest.readAnalysis": "Przeczytaj analizę",
+  "dashboard.latest.downloadNotes": "Pobierz PDF z lekcji",
   "dashboard.upcoming.kicker": "Nadchodząca lekcja",
   "dashboard.revise.kicker": "Powtórka słówek",
   "dashboard.revise.title": "Powtórz ostatnią lekcję",

@@ -143,6 +143,7 @@
   "dashboard.latest.empty.body": "Your first lesson will appear here once it's been ingested.",
   "dashboard.latest.fallbackTitle": "Your latest session",
   "dashboard.latest.readAnalysis": "Read the analysis",
+  "dashboard.latest.downloadNotes": "Download lesson PDF",
   "dashboard.upcoming.kicker": "Upcoming Lesson",
   "dashboard.revise.kicker": "Keyword Revision",
   "dashboard.revise.title": "Revise your last lesson",
