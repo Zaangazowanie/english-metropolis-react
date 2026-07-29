@@ -448,6 +448,38 @@ export const listBookings = query({
   },
 });
 
+// Admin correction path for operational booking notes. This is intentionally
+// separate from the student booking/cancellation flow: changing a note must not
+// alter the slot, its billing status, or trigger another confirmation email.
+export const updateBookingNotes = mutation({
+  args: {
+    sessionToken: v.string(),
+    bookingId: v.id("lessonBookings"),
+    notes: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const booking = await ctx.db.get(args.bookingId);
+    if (!booking) throw new Error("Booking not found");
+    if (!isSuperadmin(user.role) && booking.organizationId !== user.organizationId) {
+      throw new Error("Unauthorized");
+    }
+    const now = Date.now();
+    const notes = args.notes.trim();
+    await ctx.db.patch(args.bookingId, { notes, updatedAt: now });
+    await ctx.db.insert("auditLog", {
+      organizationId: booking.organizationId,
+      userId: user._id,
+      action: "booking.notes_updated",
+      targetType: "lessonBooking",
+      targetId: String(args.bookingId),
+      details: JSON.stringify({ notes }),
+      timestamp: now,
+    });
+    return { ok: true };
+  },
+});
+
 export const bookLesson = mutation({
   args: {
     sessionToken: v.optional(v.string()),
