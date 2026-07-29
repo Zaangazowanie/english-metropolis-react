@@ -72,6 +72,7 @@ function shell(heading, body) {
         </td></tr>
         <tr><td style="padding:20px 34px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#64748b;font:11px/1.6 -apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif;">
           Fundacja Rozwoju Przedsiębiorczości „Twój StartUp”, Atlas Tower, Al. Jerozolimskie 123a, 18 piętro, 02-017 Warszawa<br>
+          EnglishMetro – Moemedi Michael Poncana<br>
           Adres do doręczeń: ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki · KRS 0000442857 · NIP 5213641211
         </td></tr>
       </table>
