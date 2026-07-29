@@ -2,8 +2,8 @@
 //
 // Teacher availability (recurring weekly windows, Europe/Warsaw times) +
 // lesson bookings with the 12-hour cancellation policy:
-//   - cancel ≥ 12h before start  → status "cancelled"        (not billed)
-//   - cancel  < 12h before start → status "cancelled_late"   (BILLED)
+//   - cancel ≥ 24h before start  → status "cancelled"        (not billed)
+//   - cancel  < 24h before start → status "cancelled_late"   (BILLED)
 //
 // Monthly billing figure = completed lessons (from the `lessons` table —
 // the authoritative taught record written by the post-lesson pipeline)
@@ -15,7 +15,7 @@ import { v } from "convex/values";
 import { requireAdmin, requireAdminOrStudent, isSuperadmin } from "./authHelpers";
 import { billableUnitsForStudent, allocateBalances } from "./billing";
 
-export const CANCELLATION_WINDOW_MS = 12 * 60 * 60 * 1000;
+export const CANCELLATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const NO_SHOW_WAIT_MS = 20 * 60 * 1000;
 
 // ─── Meet link generation ────────────────────────────────────────────────────

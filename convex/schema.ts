@@ -980,7 +980,7 @@ export default defineSchema({
     cancelledAt: v.optional(v.number()),
     noShowAt: v.optional(v.number()),
     noShowMarkedBy: v.optional(v.string()),
-    billable: v.optional(v.boolean()),       // true: completed, no-show, or cancelled within 12h
+    billable: v.optional(v.boolean()),       // true: completed, no-show, or cancelled within 24h
     notes: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),

@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { requireStudent } from "./authHelpers";
 
 const CURRENCY = "PLN";
-const TERMS_VERSION = "EM-LEGAL-03 (2026-07-29, revision 3)";
+const TERMS_VERSION = "EM-LEGAL-03 (2026-07-29, revision 4)";
 const WITHDRAWAL_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
 
 // This is the server-side price authority for payment registration. Never use

@@ -97,7 +97,7 @@ const POLICIES = [
   {
     icon: 'event_repeat',
     title: 'Schedule changes',
-    copy: 'Move a lesson with at least 12 hours notice. If you do not join within 20 minutes and do not tell us you are late, the reserved lesson is treated as used. Illness and emergencies are reviewed individually.',
+    copy: 'Move a lesson with at least 24 hours notice. If you do not join within 20 minutes and do not tell us you are late, the reserved lesson is treated as used. Illness and emergencies are reviewed individually.',
   },
   {
     icon: 'receipt_long',

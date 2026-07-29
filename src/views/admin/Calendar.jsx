@@ -14,12 +14,12 @@ import { queryAdminConvex, mutateAdminConvex, useAdminAuth } from '../../context
 
 const CONVERSA_ORG = 'js7cb568fpf7qhkqqe55a7jz5s83sadf'
 const DAY_MS = 24 * 60 * 60 * 1000
-const CANCELLATION_WINDOW_MS = 12 * 60 * 60 * 1000
+const CANCELLATION_WINDOW_MS = 24 * 60 * 60 * 1000
 const NO_SHOW_WAIT_MS = 20 * 60 * 1000
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-const POLICY_TEXT = 'Cancel or reschedule at least 12 hours before the start for no charge. After 20 minutes without the student or notice of delay, the reserved lesson may be marked as a billable no-show (not as taught).'
+const POLICY_TEXT = 'Cancel or reschedule at least 24 hours before the start for no charge. After 20 minutes without the student or notice of delay, the reserved lesson may be marked as a billable no-show (not as taught).'
 
 function ymd(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -234,8 +234,8 @@ export default function AdminCalendar() {
         cancelledByName: adminUser?.name || 'School Admin',
       })
       setNotice(result.billable
-        ? { kind: 'warn', text: `Lesson cancelled. Because this was within 12 hours of the start time, one lesson is treated as used and billed.` }
-        : { kind: 'ok', text: 'Lesson cancelled — no charge (at least 12 hours ahead).' })
+        ? { kind: 'warn', text: `Lesson cancelled. Because this was within 24 hours of the start time, one lesson is treated as used and billed.` }
+        : { kind: 'ok', text: 'Lesson cancelled — no charge (at least 24 hours ahead).' })
       setCancelTarget(null)
       await load()
     } catch (err) {
@@ -325,7 +325,7 @@ export default function AdminCalendar() {
             <StatCard label="Completed Lessons" value={currentMonthStats?.completedLessons ?? 0} delay={0} />
             <StatCard label="Late Cancellations" value={currentMonthStats?.lateCancellations ?? 0}
               accent={currentMonthStats?.lateCancellations ? 'text-rose-600' : 'text-slate-900'}
-              sub="Cancelled < 12h before start — billed" delay={90} />
+              sub="Cancelled < 24h before start — billed" delay={90} />
             <StatCard label="Student No-shows" value={currentMonthStats?.noShows ?? 0}
               accent={currentMonthStats?.noShows ? 'text-amber-600' : 'text-slate-900'}
               sub="20-minute wait elapsed — billed" delay={180} />
@@ -551,8 +551,8 @@ export default function AdminCalendar() {
           </h3>
           <p className={`mt-3 text-sm font-semibold leading-relaxed ${cancelIsLate ? 'text-rose-700' : 'text-emerald-700'}`}>
             {cancelIsLate
-              ? '⚠ This lesson starts in less than 12 hours. Cancelling now means one lesson will be treated as used and billed.'
-              : 'This cancellation is at least 12 hours before the start time — no charge.'}
+              ? '⚠ This lesson starts in less than 24 hours. Cancelling now means one lesson will be treated as used and billed.'
+              : 'This cancellation is at least 24 hours before the start time — no charge.'}
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <button onClick={doCancel} disabled={busy}
