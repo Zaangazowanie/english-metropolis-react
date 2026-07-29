@@ -22,9 +22,12 @@ from reportlab.platypus import (
     KeepTogether,
     ListFlowable,
     ListItem,
+    PageBreak,
     PageTemplate,
     Paragraph,
     Spacer,
+    Table,
+    TableStyle,
 )
 
 
@@ -193,6 +196,24 @@ FORM = ParagraphStyle(
     borderPadding=8,
     backColor=colors.HexColor("#FBFCFE"),
 )
+FORM_TEXT = ParagraphStyle(
+    "FormText",
+    parent=BODY_COMPACT,
+    fontName=REGULAR,
+    fontSize=8.7,
+    leading=12.6,
+    spaceAfter=1.8 * mm,
+)
+FORM_TITLE = ParagraphStyle(
+    "FormTitle",
+    parent=FORM_TEXT,
+    fontName=BOLD,
+    fontSize=10.2,
+    leading=13.5,
+    alignment=TA_CENTER,
+    spaceBefore=2 * mm,
+    spaceAfter=2 * mm,
+)
 
 
 def list_flowable(element, level: int = 0):
@@ -251,6 +272,8 @@ def body_story() -> list:
     ]
 
     for section in root.xpath("./section"):
+        if section.get("id") in {"withdrawal-form", "complaint-form"}:
+            story.append(PageBreak())
         heading = section.find("h2")
         if heading is not None:
             story.append(Paragraph(inline_markup(heading), H2))
@@ -263,9 +286,26 @@ def body_story() -> list:
             elif tag in {"ol", "ul"}:
                 story.append(list_flowable(child))
             elif tag == "div":
-                block = inline_markup(child)
-                if block:
-                    story.append(KeepTogether([Paragraph(block, FORM), Spacer(1, 3 * mm)]))
+                form_flows = []
+                for form_child in child:
+                    form_tag = form_child.tag.lower() if isinstance(form_child.tag, str) else ""
+                    if form_tag == "p":
+                        style = FORM_TITLE if "fl-form-title" in form_child.get("class", "") else FORM_TEXT
+                        form_flows.append(Paragraph(inline_markup(form_child), style))
+                    elif form_tag in {"ol", "ul"}:
+                        form_flows.append(list_flowable(form_child))
+                if form_flows:
+                    table = Table([[form_flows]], colWidths=[170 * mm])
+                    table.setStyle(TableStyle([
+                        ("BOX", (0, 0), (-1, -1), 0.7, LINE),
+                        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FBFCFE")),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 5 * mm),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 5 * mm),
+                        ("TOPPADDING", (0, 0), (-1, -1), 4 * mm),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 4 * mm),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ]))
+                    story.append(KeepTogether([table, Spacer(1, 3 * mm)]))
     return story
 
 

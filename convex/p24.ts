@@ -1,10 +1,11 @@
-import { action, internalMutation, internalQuery, query } from "./_generated/server";
+import { action, internalAction, internalMutation, internalQuery, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { requireStudent } from "./authHelpers";
 
 const CURRENCY = "PLN";
-const TERMS_VERSION = "EM-LEGAL-03 (2026-07-29)";
+const TERMS_VERSION = "EM-LEGAL-03 (2026-07-29, revision 2)";
+const WITHDRAWAL_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
 
 // This is the server-side price authority for payment registration. Never use
 // names, lesson counts, or amounts sent by the browser to charge a customer.
@@ -168,12 +169,19 @@ export const preparePayment = internalMutation({
       currency: CURRENCY,
       email: args.billing.email.toLowerCase(),
       lang: args.lang,
+      consentTerms: args.consentTerms,
+      consentImmediate: args.consentImmediate,
+      consentMarketing: args.consentMarketing,
+      consentCapturedAt: now,
+      termsVersion: TERMS_VERSION,
       status: "created",
       createdAt: now,
       updatedAt: now,
     });
 
-    const consentNote = `[${args.checkoutRef}] Zgody: regulamin ${TERMS_VERSION} TAK; niezwłoczna realizacja ${args.consentImmediate ? "TAK" : "NIE"}; marketing ${args.consentMarketing ? "TAK" : "NIE"}.`;
+    const consentNote = args.consentImmediate
+      ? `[${args.checkoutRef}] ${TERMS_VERSION}: Klient wyraźnie zażądał rozpoczęcia świadczenia usług przed upływem 14 dni i przyjął do wiadomości obowiązek proporcjonalnej zapłaty za usługi spełnione do chwili odstąpienia oraz utratę prawa odstąpienia po pełnym wykonaniu usługi. Data żądania: ${new Date(now).toISOString()}.`
+      : `[${args.checkoutRef}] ${TERMS_VERSION}: Klient wybrał rozpoczęcie świadczenia usług po upływie 14-dniowego terminu odstąpienia. Data wyboru: ${new Date(now).toISOString()}.`;
     const billing = {
       ...args.billing,
       notes: [args.billing.notes?.trim(), consentNote].filter(Boolean).join("\n") || undefined,
@@ -193,6 +201,9 @@ export const preparePayment = internalMutation({
         paymentId,
         paymentAmount: lineAmount,
         p24SessionId: args.sessionId,
+        earlyPerformanceRequested: args.consentImmediate,
+        earlyPerformanceRequestedAt: now,
+        termsVersion: TERMS_VERSION,
         createdAt: now,
         updatedAt: now,
       });
@@ -274,6 +285,10 @@ export const finalizePaid = internalMutation({
         name: `${order.packageName} (P24)`,
         totalLessons: order.lessons,
         purchasedAt: now,
+        availableFrom: order.earlyPerformanceRequested ? now : now + WITHDRAWAL_PERIOD_MS,
+        earlyPerformanceRequested: order.earlyPerformanceRequested ?? false,
+        earlyPerformanceRequestedAt: order.earlyPerformanceRequestedAt,
+        termsVersion: order.termsVersion ?? TERMS_VERSION,
         notes: `P24 order ${args.p24OrderId} · ${order.priceLabel} · session ${args.sessionId}`,
         status: "active",
         createdAt: now,
@@ -296,7 +311,59 @@ export const finalizePaid = internalMutation({
       verifiedAt: now,
       updatedAt: now,
     });
+    for (const orderId of payment.orderIds) {
+      await ctx.scheduler.runAfter(0, internal.p24.notifyPaidOrder, { orderId });
+    }
     return { ok: true, alreadyPaid: false };
+  },
+});
+
+export const getPaidOrderForEmail = internalQuery({
+  args: { orderId: v.id("lessonOrders") },
+  handler: async (ctx, args) => {
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.status !== "confirmed") return null;
+    const student = await ctx.db.get(order.studentId);
+    return {
+      orderId: String(order._id),
+      packageName: order.packageName,
+      lessons: order.lessons,
+      priceLabel: order.priceLabel,
+      billing: order.billing,
+      studentName: student?.name ?? order.billing.fullName,
+      studentSlug: student?.slug ?? "",
+      studentEmail: (student as any)?.googleEmail ?? student?.email ?? order.billing.email,
+      earlyPerformanceRequested: order.earlyPerformanceRequested ?? false,
+      earlyPerformanceRequestedAt: order.earlyPerformanceRequestedAt,
+      termsVersion: order.termsVersion ?? TERMS_VERSION,
+    };
+  },
+});
+
+export const notifyPaidOrder = internalAction({
+  args: { orderId: v.id("lessonOrders") },
+  handler: async (ctx, args) => {
+    const base = process.env.BOOKING_NOTIFY_URL;
+    const key = process.env.BOOKING_NOTIFY_KEY;
+    if (!base || !key) {
+      console.warn("p24:notifyPaidOrder skipped — BOOKING_NOTIFY_URL/KEY unset");
+      return;
+    }
+    const order = await ctx.runQuery(internal.p24.getPaidOrderForEmail, { orderId: args.orderId });
+    if (!order) return;
+    const url = base.replace("booking-confirm", "order-confirm");
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-booking-key": key },
+        body: JSON.stringify(order),
+      });
+      if (!response.ok) {
+        console.error("p24 order-confirm notify failed:", response.status, (await response.text()).slice(0, 200));
+      }
+    } catch (error: any) {
+      console.error("p24 order-confirm notify error:", error?.message);
+    }
   },
 });
 

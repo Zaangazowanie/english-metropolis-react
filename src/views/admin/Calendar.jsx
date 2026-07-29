@@ -14,10 +14,12 @@ import { queryAdminConvex, mutateAdminConvex, useAdminAuth } from '../../context
 
 const CONVERSA_ORG = 'js7cb568fpf7qhkqqe55a7jz5s83sadf'
 const DAY_MS = 24 * 60 * 60 * 1000
+const CANCELLATION_WINDOW_MS = 12 * 60 * 60 * 1000
+const NO_SHOW_WAIT_MS = 20 * 60 * 1000
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-const POLICY_TEXT = 'Lessons cancelled within 24 hours of the scheduled start time are billed in full.'
+const POLICY_TEXT = 'Cancel or reschedule at least 12 hours before the start for no charge. After 20 minutes without the student or notice of delay, the reserved lesson may be marked as a billable no-show (not as taught).'
 
 function ymd(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -72,6 +74,7 @@ export default function AdminCalendar() {
   const [bookStudent, setBookStudent] = useState('')
   const [bookSlot, setBookSlot] = useState(null)
   const [cancelTarget, setCancelTarget] = useState(null)
+  const [noShowTarget, setNoShowTarget] = useState(null)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState(null)   // { kind: 'ok' | 'warn' | 'err', text }
 
@@ -80,8 +83,10 @@ export default function AdminCalendar() {
   // panel into view so the click visibly does something.
   const bookingRef = useRef(null)
   const cancelRef = useRef(null)
+  const noShowRef = useRef(null)
   useEffect(() => { if (bookingPanel) bookingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, [bookingPanel])
   useEffect(() => { if (cancelTarget) cancelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, [cancelTarget])
+  useEffect(() => { if (noShowTarget) noShowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, [noShowTarget])
 
   const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1)
   const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0)
@@ -168,6 +173,18 @@ export default function AdminCalendar() {
       .sort((a, b) => a.startUtc - b.startUtc),
     [data.bookings])
 
+  const attendancePending = useMemo(() => {
+    const now = Date.now()
+    return data.bookings
+      .filter(b =>
+        ['scheduled', 'completed'].includes(b.status) &&
+        !b.hasTaughtRecord &&
+        b.startUtc + NO_SHOW_WAIT_MS <= now &&
+        b.startUtc >= now - 45 * DAY_MS
+      )
+      .sort((a, b) => b.startUtc - a.startUtc)
+  }, [data.bookings])
+
   const stats = data.stats
   const currentMonthStats = stats?.currentMonth
   const cursorMonthStats = stats?.months?.find(m => m.month === monthKey(cursor)) || null
@@ -217,8 +234,8 @@ export default function AdminCalendar() {
         cancelledByName: adminUser?.name || 'School Admin',
       })
       setNotice(result.billable
-        ? { kind: 'warn', text: `Lesson cancelled. Because this was within 24 hours of the start time, this lesson WILL BE BILLED.` }
-        : { kind: 'ok', text: 'Lesson cancelled — no charge (more than 24 hours ahead).' })
+        ? { kind: 'warn', text: `Lesson cancelled. Because this was within 12 hours of the start time, one lesson is treated as used and billed.` }
+        : { kind: 'ok', text: 'Lesson cancelled — no charge (at least 12 hours ahead).' })
       setCancelTarget(null)
       await load()
     } catch (err) {
@@ -226,7 +243,20 @@ export default function AdminCalendar() {
     } finally { setBusy(false) }
   }
 
-  const cancelIsLate = cancelTarget && (cancelTarget.startUtc - Date.now() < DAY_MS)
+  const doMarkNoShow = async () => {
+    if (!noShowTarget || busy) return
+    setBusy(true); setNotice(null)
+    try {
+      await mutateAdminConvex('scheduling:markStudentNoShow', { bookingId: noShowTarget._id })
+      setNotice({ kind: 'warn', text: `${noShowTarget.studentName} was marked as a billable no-show. The booking was not recorded as a lesson taught.` })
+      setNoShowTarget(null)
+      await load()
+    } catch (err) {
+      setNotice({ kind: 'err', text: String(err?.message || 'Could not mark no-show.').replace(/^.*Error: /, '') })
+    } finally { setBusy(false) }
+  }
+
+  const cancelIsLate = cancelTarget && (cancelTarget.startUtc - Date.now() < CANCELLATION_WINDOW_MS)
 
   // ── render ──
   if (data.loading && !data.stats) {
@@ -291,14 +321,17 @@ export default function AdminCalendar() {
           <h2 className="mt-1 font-headline text-3xl text-slate-900">
             Lessons This <span className="italic text-sky-600">Month</span>
           </h2>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <StatCard label="Completed Lessons" value={currentMonthStats?.completedLessons ?? 0} delay={0} />
             <StatCard label="Late Cancellations" value={currentMonthStats?.lateCancellations ?? 0}
               accent={currentMonthStats?.lateCancellations ? 'text-rose-600' : 'text-slate-900'}
-              sub="Cancelled < 24h before start — billed" delay={90} />
+              sub="Cancelled < 12h before start — billed" delay={90} />
+            <StatCard label="Student No-shows" value={currentMonthStats?.noShows ?? 0}
+              accent={currentMonthStats?.noShows ? 'text-amber-600' : 'text-slate-900'}
+              sub="20-minute wait elapsed — billed" delay={180} />
             <StatCard label="Total Billable" value={currentMonthStats?.billableTotal ?? 0}
-              accent="text-sky-700" sub="Completed + late cancellations" delay={180} />
-            <StatCard label="Scheduled Ahead" value={upcoming.length} sub="Upcoming booked lessons" delay={270} />
+              accent="text-sky-700" sub="Completed + late cancellations + no-shows" delay={270} />
+            <StatCard label="Scheduled Ahead" value={upcoming.length} sub="Upcoming booked lessons" delay={360} />
           </div>
           <PolicyNotice />
         </div>
@@ -334,7 +367,7 @@ export default function AdminCalendar() {
           <div className="flex items-center gap-3">
             {cursorMonthStats && (
               <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-label font-bold uppercase tracking-[0.14em] text-sky-700">
-                {cursorMonthStats.completedLessons} completed · {cursorMonthStats.lateCancellations} late cancel
+                {cursorMonthStats.completedLessons} completed · {cursorMonthStats.lateCancellations} late cancel · {cursorMonthStats.noShows ?? 0} no-show
               </span>
             )}
             <button onClick={() => { setBookingPanel(p => !p); setNotice(null); setCancelTarget(null) }}
@@ -350,6 +383,7 @@ export default function AdminCalendar() {
           <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-sky-500" /> Taught lesson</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Scheduled</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> Late cancellation (billed)</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Student no-show (billed, not taught)</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-slate-300" /> Cancelled</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full border-2 border-dashed border-sky-400 bg-transparent" /> Open slot</span>
         </div>
@@ -394,6 +428,7 @@ export default function AdminCalendar() {
                     const isCancelled = b.status === 'cancelled'
                     const isScheduled = b.status === 'scheduled'
                     const isCompleted = b.status === 'completed'
+                    const isNoShow = b.status === 'no_show'
                     return (
                       <button key={b._id} type="button"
                         onClick={() => { if (isScheduled) { setCancelTarget(b); setBookingPanel(false); setNotice(null) } }}
@@ -402,9 +437,10 @@ export default function AdminCalendar() {
                           isScheduled ? 'bg-emerald-100 border-emerald-300 text-emerald-800 cursor-pointer hover:bg-emerald-200'
                           : isCompleted ? 'bg-sky-100 border-sky-200 text-sky-800'
                           : isLate ? 'bg-rose-100 border-rose-300 text-rose-700 line-through'
+                          : isNoShow ? 'bg-amber-100 border-amber-300 text-amber-800'
                           : 'bg-slate-100 border-slate-200 text-slate-400 line-through'
                         }`}>
-                        {b.timeWarsaw} {b.studentName?.split(' ')[0]}{isLate ? ' (billed)' : ''}
+                        {b.timeWarsaw} {b.studentName?.split(' ')[0]}{isLate ? ' (billed)' : isNoShow ? ' (no-show)' : ''}
                       </button>
                     )
                   })}
@@ -515,8 +551,8 @@ export default function AdminCalendar() {
           </h3>
           <p className={`mt-3 text-sm font-semibold leading-relaxed ${cancelIsLate ? 'text-rose-700' : 'text-emerald-700'}`}>
             {cancelIsLate
-              ? '⚠ This lesson starts in less than 24 hours. Cancelling now means the lesson WILL STILL BE BILLED in full.'
-              : 'This cancellation is more than 24 hours before the start time — no charge.'}
+              ? '⚠ This lesson starts in less than 12 hours. Cancelling now means one lesson will be treated as used and billed.'
+              : 'This cancellation is at least 12 hours before the start time — no charge.'}
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <button onClick={doCancel} disabled={busy}
@@ -529,6 +565,53 @@ export default function AdminCalendar() {
             <button onClick={() => setCancelTarget(null)} disabled={busy}
               className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 transition cursor-pointer">
               Keep the lesson
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* Attendance review: the 20-minute wait has elapsed and no taught record exists. */}
+      {attendancePending.length > 0 && (
+        <section className="glass-panel rounded-[2rem] border border-amber-200 bg-amber-50/45 px-5 py-6 editorial-shadow sm:px-8">
+          <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-amber-700">Attendance review</p>
+          <h3 className="mt-1 font-headline text-3xl text-slate-900">Unconfirmed past <span className="italic text-amber-700">bookings</span></h3>
+          <p className="mt-2 text-sm text-slate-600">Only mark a no-show if the student did not join within 20 minutes and did not notify you that they would be late.</p>
+          <div className="mt-4 space-y-2">
+            {attendancePending.map(b => (
+              <div key={b._id} className="flex flex-wrap items-center gap-3 rounded-[1.15rem] border border-amber-200 bg-white/80 px-4 py-3">
+                <span className="font-mono text-xs font-bold text-amber-800">{b.timeWarsaw}</span>
+                <span className="text-sm font-semibold text-slate-900">{b.studentName}</span>
+                <span className="text-sm text-slate-500">{prettyDate(b.dateWarsaw)}</span>
+                <button
+                  onClick={() => { setNoShowTarget(b); setCancelTarget(null); setBookingPanel(false); setNotice(null) }}
+                  className="ml-auto rounded-full border border-amber-300 bg-white px-4 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-50 transition cursor-pointer"
+                >
+                  Review no-show
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {noShowTarget && (
+        <section ref={noShowRef} className="glass-panel rounded-[2rem] border border-amber-300 bg-amber-50/60 px-6 py-6 editorial-shadow">
+          <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-amber-700">Confirm student no-show</p>
+          <h3 className="mt-1 font-headline text-2xl text-slate-900">
+            {noShowTarget.studentName} — {prettyDate(noShowTarget.dateWarsaw)} at {noShowTarget.timeWarsaw}
+          </h3>
+          <p className="mt-3 text-sm leading-relaxed text-amber-900">
+            Confirm only if the student did not join within 20 minutes and gave no notice of delay. One reserved lesson will be treated as used and billed; it will not be recorded as taught.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button onClick={doMarkNoShow} disabled={busy}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-600 to-orange-700 px-6 py-3 text-sm font-semibold text-white shadow-md transition enabled:hover:shadow-lg enabled:cursor-pointer disabled:opacity-40">
+              <span className="material-symbols-outlined text-lg">person_off</span>
+              {busy ? 'Saving…' : 'Confirm no-show (billable)'}
+            </button>
+            <button onClick={() => setNoShowTarget(null)} disabled={busy}
+              className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 transition cursor-pointer">
+              Do not mark
             </button>
           </div>
         </section>
@@ -571,6 +654,7 @@ export default function AdminCalendar() {
                   <th className="py-2 pr-4 font-label text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Month</th>
                   <th className="py-2 pr-4 font-label text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Completed</th>
                   <th className="py-2 pr-4 font-label text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Late Cancellations</th>
+                  <th className="py-2 pr-4 font-label text-xs font-bold uppercase tracking-[0.18em] text-slate-400">No-shows</th>
                   <th className="py-2 pr-4 font-label text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Total Billable</th>
                 </tr>
               </thead>
@@ -586,6 +670,11 @@ export default function AdminCalendar() {
                       <td className="py-2.5 pr-4">
                         {m.lateCancellations
                           ? <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-xs font-semibold text-rose-700">{m.lateCancellations}</span>
+                          : <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-500">0</span>}
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        {m.noShows
+                          ? <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-xs font-semibold text-amber-800">{m.noShows}</span>
                           : <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-500">0</span>}
                       </td>
                       <td className="py-2.5 pr-4 font-headline text-lg bg-gradient-to-r from-sky-600 to-blue-700 bg-clip-text text-transparent">{m.billableTotal}</td>

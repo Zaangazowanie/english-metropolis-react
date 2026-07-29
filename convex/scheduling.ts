@@ -1,13 +1,13 @@
 // Scheduling — Conversa calendar system (built 2026-06-02).
 //
 // Teacher availability (recurring weekly windows, Europe/Warsaw times) +
-// lesson bookings with the 24-hour cancellation policy:
-//   - cancel ≥ 24h before start  → status "cancelled"        (not billed)
-//   - cancel  < 24h before start → status "cancelled_late"   (BILLED)
+// lesson bookings with the 12-hour cancellation policy:
+//   - cancel ≥ 12h before start  → status "cancelled"        (not billed)
+//   - cancel  < 12h before start → status "cancelled_late"   (BILLED)
 //
 // Monthly billing figure = completed lessons (from the `lessons` table —
 // the authoritative taught record written by the post-lesson pipeline)
-// + billable late cancellations (from `lessonBookings`).
+// + billable late cancellations and student no-shows (from `lessonBookings`).
 
 import { query, mutation, internalQuery, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -15,7 +15,8 @@ import { v } from "convex/values";
 import { requireAdmin, requireAdminOrStudent, isSuperadmin } from "./authHelpers";
 import { billableUnitsForStudent, allocateBalances } from "./billing";
 
-export const CANCELLATION_WINDOW_MS = 24 * 60 * 60 * 1000;
+export const CANCELLATION_WINDOW_MS = 12 * 60 * 60 * 1000;
+export const NO_SHOW_WAIT_MS = 20 * 60 * 1000;
 
 // ─── Meet link generation ────────────────────────────────────────────────────
 // Provider seam (Mike's call 2026-06-04): Jitsi now (free, scales across any
@@ -427,7 +428,21 @@ export const listBookings = query({
     const result = [];
     for (const b of bookings) {
       const student = await ctx.db.get(b.studentId);
-      result.push({ ...b, studentName: student?.name ?? "Unknown", studentSlug: student?.slug ?? null });
+      const taughtRows = await ctx.db
+        .query("lessons")
+        .withIndex("by_student_date", q =>
+          q.eq("studentId", b.studentId).eq("date", b.dateWarsaw)
+        )
+        .collect();
+      const hasTaughtRecord = taughtRows.some(
+        lesson => lesson.status !== "cancelled" && lesson.status !== "planned"
+      );
+      result.push({
+        ...b,
+        studentName: student?.name ?? "Unknown",
+        studentSlug: student?.slug ?? null,
+        hasTaughtRecord,
+      });
     }
     return result.sort((a, b) => a.startUtc - b.startUtc);
   },
@@ -480,7 +495,9 @@ export const bookLesson = mutation({
       const packages = (await ctx.db
         .query("lessonPackages")
         .withIndex("by_student", q => q.eq("studentId", args.studentId))
-        .collect()).filter(p => p.status !== "cancelled");
+        .collect()).filter(p =>
+          p.status !== "cancelled" && (!p.availableFrom || p.availableFrom <= now)
+        );
       const units = await billableUnitsForStudent(ctx, args.studentId);
       const remaining = allocateBalances(packages, units)
         .reduce((n: number, p: any) => n + (p.remainingLessons ?? 0), 0);
@@ -673,6 +690,60 @@ export const cancelBooking = mutation({
   },
 });
 
+// A teacher/admin may record a student no-show only after waiting 20 minutes
+// from the scheduled start. It consumes one prepaid lesson because the teacher
+// reserved the slot and remained available; it is deliberately not described
+// or stored as a lesson taught. If the teaching pipeline has already produced
+// a real lesson record for that student/date, the booking cannot be reclassified.
+export const markStudentNoShow = mutation({
+  args: {
+    sessionToken: v.string(),
+    bookingId: v.id("lessonBookings"),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const booking = await ctx.db.get(args.bookingId);
+    if (!booking) throw new Error("Booking not found");
+    if (!isSuperadmin(user.role) && booking.organizationId !== user.organizationId) {
+      throw new Error("Unauthorized");
+    }
+    if (user.role === "teacher") {
+      const student = await ctx.db.get(booking.studentId);
+      const effectiveTeacherId = booking.teacherId ?? student?.primaryTeacherId;
+      if (!effectiveTeacherId || String(effectiveTeacherId) !== String(user._id)) {
+        throw new Error("Unauthorized");
+      }
+    }
+    if (!["scheduled", "completed"].includes(booking.status)) {
+      throw new Error("Only an unreviewed scheduled lesson can be marked as a no-show");
+    }
+
+    const now = Date.now();
+    if (now < booking.startUtc + NO_SHOW_WAIT_MS) {
+      throw new Error("Wait at least 20 minutes after the scheduled start before marking a no-show");
+    }
+
+    const taughtRows = await ctx.db
+      .query("lessons")
+      .withIndex("by_student_date", q =>
+        q.eq("studentId", booking.studentId).eq("date", booking.dateWarsaw)
+      )
+      .collect();
+    if (taughtRows.some(lesson => lesson.status !== "cancelled" && lesson.status !== "planned")) {
+      throw new Error("A taught lesson record already exists for this student and date");
+    }
+
+    await ctx.db.patch(args.bookingId, {
+      status: "no_show",
+      billable: true,
+      noShowAt: now,
+      noShowMarkedBy: user.name || user.email,
+      updatedAt: now,
+    });
+    return { status: "no_show", billable: true, waitedMinutes: Math.floor((now - booking.startUtc) / 60000) };
+  },
+});
+
 // Hard-delete a booking (admin correction tool — e.g. booked the wrong
 // student/slot by mistake). Distinct from cancellation: leaves no trace and
 // never bills. Restricted to admin roles.
@@ -722,7 +793,8 @@ export const reconcilePastBookings = mutation({
 
 // ─── Monthly stats (billing figure) ─────────────────────────────────────────
 // Completed lessons come from the `lessons` table (taught record, written by
-// the post-lesson pipeline). Billable late cancellations come from bookings.
+// the post-lesson pipeline). Billable late cancellations and no-shows come
+// from bookings.
 
 export const getMonthlyLessonStats = query({
   args: { sessionToken: v.string(), organizationId: v.optional(v.id("organizations")) },
@@ -741,23 +813,24 @@ export const getMonthlyLessonStats = query({
       month: string;                 // "2026-06"
       completedLessons: number;
       lateCancellations: number;
+      noShows: number;
       cancellations: number;
       scheduled: number;
       billableTotal: number;
-      perStudent: Record<string, { name: string; completed: number; lateCancellations: number }>;
+      perStudent: Record<string, { name: string; completed: number; lateCancellations: number; noShows: number }>;
     };
     const months: Record<string, MonthRow> = {};
     const ensureMonth = (key: string): MonthRow => {
       if (!months[key]) {
         months[key] = {
-          month: key, completedLessons: 0, lateCancellations: 0, cancellations: 0,
+          month: key, completedLessons: 0, lateCancellations: 0, noShows: 0, cancellations: 0,
           scheduled: 0, billableTotal: 0, perStudent: {},
         };
       }
       return months[key];
     };
     const ensureStudent = (row: MonthRow, id: string, name: string) => {
-      if (!row.perStudent[id]) row.perStudent[id] = { name, completed: 0, lateCancellations: 0 };
+      if (!row.perStudent[id]) row.perStudent[id] = { name, completed: 0, lateCancellations: 0, noShows: 0 };
       return row.perStudent[id];
     };
 
@@ -798,6 +871,10 @@ export const getMonthlyLessonStats = query({
         row.lateCancellations++;
         row.billableTotal++;
         ensureStudent(row, String(b.studentId), name).lateCancellations++;
+      } else if (b.status === "no_show") {
+        row.noShows++;
+        row.billableTotal++;
+        ensureStudent(row, String(b.studentId), name).noShows++;
       } else if (b.status === "cancelled") {
         row.cancellations++;
       } else if (b.status === "scheduled") {
@@ -810,7 +887,7 @@ export const getMonthlyLessonStats = query({
     const currentMonthKey = nowWarsaw.date.slice(0, 7);
     return {
       currentMonth: months[currentMonthKey] ?? {
-        month: currentMonthKey, completedLessons: 0, lateCancellations: 0, cancellations: 0,
+        month: currentMonthKey, completedLessons: 0, lateCancellations: 0, noShows: 0, cancellations: 0,
         scheduled: 0, billableTotal: 0, perStudent: {},
       },
       months: sorted,

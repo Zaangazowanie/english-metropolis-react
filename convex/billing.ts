@@ -4,7 +4,7 @@
 //   1. Organization billing contact (for the consolidated monthly statement —
 //      the statement numbers themselves come from scheduling.getMonthlyLessonStats).
 //   2. Prepaid lesson packages: balance is COMPUTED on read, never stored —
-//      billable units (completed lessons + late cancellations) after a package's
+//      billable units (completed lessons + late cancellations + no-shows) after a package's
 //      purchasedAt are allocated to that student's active packages oldest-first.
 //   3. CEFR certificates with public verification by verificationId.
 
@@ -25,7 +25,7 @@ async function resolveOrg(ctx: any, sessionToken: string, organizationId: any) {
 }
 
 // Billable units for one student, sorted oldest-first:
-// completed lessons (taught record) + late-cancelled bookings.
+// completed lessons (taught record) + late-cancelled bookings + no-shows.
 export async function billableUnitsForStudent(ctx: any, studentId: any): Promise<number[]> {
   const units: number[] = [];
   const lessons = await ctx.db
@@ -33,7 +33,8 @@ export async function billableUnitsForStudent(ctx: any, studentId: any): Promise
     .withIndex("by_student", (q: any) => q.eq("studentId", studentId))
     .collect();
   // Scheduled bookings consume allocation IMMEDIATELY (Mike, 2026-07-09):
-  // a booked slot is a committed lesson. Completed + late-cancelled count too.
+  // a booked slot is a committed lesson. Completed + late-cancelled + no-show
+  // bookings count too.
   // Taught `lessons` rows only count when no booking covers the same date
   // (avoids double-charging once a booking is taught and a lesson row lands).
   const bookings = await ctx.db
@@ -42,7 +43,12 @@ export async function billableUnitsForStudent(ctx: any, studentId: any): Promise
     .collect();
   const bookedDates = new Set<string>();
   for (const b of bookings) {
-    if (b.status === "scheduled" || b.status === "completed" || b.status === "cancelled_late") {
+    if (
+      b.status === "scheduled" ||
+      b.status === "completed" ||
+      b.status === "cancelled_late" ||
+      b.status === "no_show"
+    ) {
       units.push(b.startUtc);
       bookedDates.add(b.dateWarsaw);
     }
@@ -58,7 +64,7 @@ export async function billableUnitsForStudent(ctx: any, studentId: any): Promise
 
 // Allocate a student's billable units across their packages and return each
 // package with { used, remaining, lowBalance, depleted }. Each unit (lesson /
-// late cancellation, chronological order) consumes from the OLDEST package
+// late cancellation / no-show, chronological order) consumes from the OLDEST package
 // that was already purchased when the unit happened and still has capacity.
 // Units that no package covers are simply unallocated (billed per-lesson).
 export function allocateBalances(packages: any[], unitTimestamps: number[]) {

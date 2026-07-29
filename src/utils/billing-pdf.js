@@ -146,7 +146,7 @@ export async function downloadStatementPdf(org, monthRow) {
   const H = doc.internal.pageSize.getHeight()
   doc.setFont('NotoSans', 'normal').setFontSize(8).setTextColor(...C.light)
   doc.text(
-    `Generated ${new Date().toISOString().slice(0, 10)} · Completed lessons and late cancellations (<24h) are billable.`,
+    `Generated ${new Date().toISOString().slice(0, 10)} · Completed lessons, late cancellations (<12h), and student no-shows after 20 minutes are billable.`,
     M, H - 40,
   )
 

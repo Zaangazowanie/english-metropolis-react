@@ -860,6 +860,10 @@ export default defineSchema({
     name: v.string(),                  // "10-lesson block"
     totalLessons: v.number(),          // prepaid lesson count
     purchasedAt: v.number(),           // epoch ms — consumption counts from here
+    availableFrom: v.optional(v.number()), // booking gate when early performance was not requested
+    earlyPerformanceRequested: v.optional(v.boolean()),
+    earlyPerformanceRequestedAt: v.optional(v.number()),
+    termsVersion: v.optional(v.string()),
     expiresAt: v.optional(v.number()),
     notes: v.optional(v.string()),
     status: v.string(),                // "active" | "cancelled"
@@ -896,6 +900,9 @@ export default defineSchema({
     paymentAmount: v.optional(v.number()), // gross amount in grosze
     p24SessionId: v.optional(v.string()),
     p24OrderId: v.optional(v.number()),
+    earlyPerformanceRequested: v.optional(v.boolean()),
+    earlyPerformanceRequestedAt: v.optional(v.number()),
+    termsVersion: v.optional(v.string()),
     confirmedBy: v.optional(v.string()),
     confirmedAt: v.optional(v.number()),
     packageRef: v.optional(v.id("lessonPackages")),   // created on confirm
@@ -919,6 +926,11 @@ export default defineSchema({
     currency: v.string(),
     email: v.string(),
     lang: v.string(),
+    consentTerms: v.optional(v.boolean()),
+    consentImmediate: v.optional(v.boolean()),
+    consentMarketing: v.optional(v.boolean()),
+    consentCapturedAt: v.optional(v.number()),
+    termsVersion: v.optional(v.string()),
     status: v.string(),                 // created | registered | registration_failed | paid
     token: v.optional(v.string()),
     p24OrderId: v.optional(v.number()),
@@ -959,14 +971,16 @@ export default defineSchema({
     endUtc: v.number(),              // epoch ms — slot end
     dateWarsaw: v.string(),          // "2026-06-05" (Europe/Warsaw, for display/grouping)
     timeWarsaw: v.string(),          // "17:10" (Europe/Warsaw)
-    status: v.string(),              // "scheduled" | "completed" | "cancelled" | "cancelled_late"
+    status: v.string(),              // "scheduled" | "completed" | "cancelled" | "cancelled_late" | "no_show"
     meetLink: v.optional(v.string()),// video room for this lesson (Jitsi now; 8x8 JaaS later)
     bookedBy: v.string(),            // "student" | "school_admin" | "superadmin"
     bookedByName: v.optional(v.string()),
     cancelledBy: v.optional(v.string()),     // same actor vocabulary
     cancelledByName: v.optional(v.string()),
     cancelledAt: v.optional(v.number()),
-    billable: v.optional(v.boolean()),       // true: completed OR cancelled within 24h
+    noShowAt: v.optional(v.number()),
+    noShowMarkedBy: v.optional(v.string()),
+    billable: v.optional(v.boolean()),       // true: completed, no-show, or cancelled within 12h
     notes: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),

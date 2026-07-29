@@ -15,6 +15,7 @@ import { useI18n } from '../../i18n'
 import { CONVEX_URL } from '../../data/studentConfig.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
+const CANCELLATION_WINDOW_MS = 12 * 60 * 60 * 1000
 
 async function convexCall(kind, path, args) {
   const res = await fetch(`${CONVEX_URL}/api/${kind}`, {
@@ -311,9 +312,36 @@ export default function LessonBooking() {
     )
   }
 
-  if (state.unavailable) return null
+  const pendingActivation = alloc?.pendingUntil && alloc.pendingUntil > nowMs
 
-  const cancelIsLate = pendingCancel && (pendingCancel.startUtc - nowMs < DAY_MS)
+  if (state.unavailable && !pendingActivation) return null
+
+  if (pendingActivation) {
+    const availableDate = new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'long',
+      timeStyle: 'short',
+      timeZone: 'Europe/Warsaw',
+    }).format(new Date(alloc.pendingUntil))
+    return (
+      <div id="lesson-booking" style={{ marginBottom: 32 }}>
+        <Glass padding={isMobile ? 18 : 26} style={{ borderRadius: 28 }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 28, color: T.brand }}>hourglass_top</span>
+            <div>
+              <h2 style={{ margin: 0, fontFamily: FONT.display, color: T.text, fontSize: 24 }}>
+                {t('booking.pendingActivationTitle')}
+              </h2>
+              <p style={{ margin: '8px 0 0', color: T.textSoft, fontSize: 14, lineHeight: 1.6 }}>
+                {t('booking.pendingActivationBody', { date: availableDate })}
+              </p>
+            </div>
+          </div>
+        </Glass>
+      </div>
+    )
+  }
+
+  const cancelIsLate = pendingCancel && (pendingCancel.startUtc - nowMs < CANCELLATION_WINDOW_MS)
   const panelGrid = isMobile ? '1fr' : 'minmax(0, 1.15fr) minmax(280px, 0.85fr)'
 
   return (

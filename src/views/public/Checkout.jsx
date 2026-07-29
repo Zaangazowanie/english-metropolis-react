@@ -58,7 +58,8 @@ export default function Checkout() {
   const [notes, setNotes] = useState('')
   // Consents + submission
   const [consentTerms, setConsentTerms] = useState(false)
-  const [consentImmediate, setConsentImmediate] = useState(false)
+  // No default: the customer must actively choose when service may begin.
+  const [consentImmediate, setConsentImmediate] = useState(null)
   const [consentMarketing, setConsentMarketing] = useState(false)
   const [error, setError] = useState('')
   const [phase, setPhase] = useState('idle') // idle | account | order
@@ -167,6 +168,10 @@ export default function Checkout() {
     setError('')
     setEmailTaken(false)
     if (!consentTerms) return setError(t('Accepting the Terms (Regulamin) is required to place an order.', 'Do złożenia zamówienia wymagana jest akceptacja Regulaminu.'))
+    if (consentImmediate === null) return setError(t(
+      'Choose whether lessons may begin during the 14-day withdrawal period.',
+      'Wybierz, czy lekcje mogą rozpocząć się w 14-dniowym terminie na odstąpienie od umowy.',
+    ))
     try {
       let activeSession = session
       if (!activeSession) {
@@ -371,18 +376,50 @@ export default function Checkout() {
                       )}
                     </span>
                   </label>
-                  <label className="co-check">
-                    <input type="checkbox" checked={consentImmediate} onChange={(e) => setConsentImmediate(e.target.checked)} />
-                    <span>
-                      {isPl
-                        ? 'Chcę, aby usługa została zrealizowana niezwłocznie i przyjmuję do wiadomości, że z chwilą spełnienia świadczenia przez Fundację Rozwoju Przedsiębiorczości „Twój StartUp", utracę prawo do odstąpienia od umowy.'
-                        : 'I want the service to begin immediately and I acknowledge that once the service has been fully performed by Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", I lose the right to withdraw from the contract.'}
-                      <small className="co-consent-hint">
-                        {t('Optional. This concerns starting lessons before the 14-day withdrawal period ends.',
-                           'Opcjonalne. Dotyczy rozpoczęcia lekcji przed upływem 14-dniowego terminu odstąpienia.')}
-                      </small>
-                    </span>
-                  </label>
+                  <fieldset className="co-performance-choice">
+                    <legend>{t('When may your lessons begin? *', 'Kiedy mogą rozpocząć się Twoje lekcje? *')}</legend>
+                    <label className="co-check">
+                      <input
+                        type="radio"
+                        name="performance-start"
+                        checked={consentImmediate === true}
+                        onChange={() => setConsentImmediate(true)}
+                        required
+                      />
+                      <span>
+                        {isPl
+                          ? 'Wyraźnie żądam rozpoczęcia świadczenia usług, w tym możliwości rezerwowania i realizowania lekcji, przed upływem 14 dni od zawarcia umowy.'
+                          : 'I expressly request that the services begin, including access to booking and taking lessons, before 14 days have passed from conclusion of the contract.'}
+                        <small className="co-consent-hint">
+                          {t(
+                            'If I withdraw during that period, I will pay proportionately for lessons supplied before withdrawal. I lose the withdrawal right only after the service has been fully performed.',
+                            'Jeżeli odstąpię w tym terminie, zapłacę proporcjonalnie za lekcje zrealizowane przed odstąpieniem. Prawo odstąpienia utracę dopiero po pełnym wykonaniu usługi.',
+                          )}
+                        </small>
+                      </span>
+                    </label>
+                    <label className="co-check">
+                      <input
+                        type="radio"
+                        name="performance-start"
+                        checked={consentImmediate === false}
+                        onChange={() => setConsentImmediate(false)}
+                        required
+                      />
+                      <span>
+                        {t(
+                          'Start after the 14-day withdrawal period.',
+                          'Rozpoczęcie po upływie 14-dniowego terminu na odstąpienie.',
+                        )}
+                        <small className="co-consent-hint">
+                          {t(
+                            'The package will be confirmed after payment, but lessons cannot be booked or taken until the period ends.',
+                            'Pakiet zostanie potwierdzony po płatności, ale rezerwowanie i realizowanie lekcji będzie możliwe dopiero po upływie tego terminu.',
+                          )}
+                        </small>
+                      </span>
+                    </label>
+                  </fieldset>
                   <label className="co-check">
                     <input type="checkbox" checked={consentMarketing} onChange={(e) => setConsentMarketing(e.target.checked)} />
                     <span>

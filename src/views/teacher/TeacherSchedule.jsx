@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { queryTeacherConvex } from '../../contexts/TeacherAuthContext.jsx'
+import { mutateTeacherConvex, queryTeacherConvex } from '../../contexts/TeacherAuthContext.jsx'
 import { getTeacherSchedule } from './consoleApi.js'
 import { BackendNotLive, SectionError, SectionLoading, StatusChip } from './TeacherPanels.jsx'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const NO_SHOW_WAIT_MS = 20 * 60 * 1000
 
 function prettyDate(dateStr) {
   const str = String(dateStr || '')
@@ -97,6 +98,8 @@ export default function TeacherSchedule() {
   const teacherId = teacher?._id
 
   const [bookingsState, setBookingsState] = useState({ loading: true, error: '', rows: [] })
+  const [attendanceBusy, setAttendanceBusy] = useState('')
+  const [attendanceNotice, setAttendanceNotice] = useState(null)
   const loadBookings = useCallback(async () => {
     if (!organizationId || !teacherId) return
     setBookingsState(s => ({ ...s, loading: true, error: '' }))
@@ -116,6 +119,37 @@ export default function TeacherSchedule() {
       .sort((a, b) => a.startUtc - b.startUtc),
     [bookingsState.rows],
   )
+
+  const attendancePending = useMemo(() => {
+    const now = Date.now()
+    return (bookingsState.rows || [])
+      .filter(b =>
+        ['scheduled', 'completed'].includes(b.status) &&
+        !b.hasTaughtRecord &&
+        b.startUtc + NO_SHOW_WAIT_MS <= now &&
+        b.startUtc >= now - 45 * 24 * 60 * 60 * 1000
+      )
+      .sort((a, b) => b.startUtc - a.startUtc)
+  }, [bookingsState.rows])
+
+  const markNoShow = useCallback(async (booking) => {
+    if (!booking || attendanceBusy) return
+    const confirmed = window.confirm(
+      `Confirm that ${booking.studentName || 'the student'} did not join within 20 minutes and gave no notice of delay? One lesson will be treated as used and billed, but not recorded as taught.`
+    )
+    if (!confirmed) return
+    setAttendanceBusy(booking._id)
+    setAttendanceNotice(null)
+    try {
+      await mutateTeacherConvex('scheduling:markStudentNoShow', { bookingId: booking._id })
+      setAttendanceNotice({ kind: 'ok', text: `${booking.studentName || 'Student'} marked as a billable no-show (not taught).` })
+      await loadBookings()
+    } catch (err) {
+      setAttendanceNotice({ kind: 'error', text: String(err?.message || 'Could not mark no-show.').replace(/^.*Error: /, '') })
+    } finally {
+      setAttendanceBusy('')
+    }
+  }, [attendanceBusy, loadBookings])
 
   const [presetKey, setPresetKey] = useState('next30')
   const [consoleState, setConsoleState] = useState({ loading: true, error: null, data: null })
@@ -226,6 +260,40 @@ export default function TeacherSchedule() {
               </div>
             )}
           </div>
+
+          {attendancePending.length > 0 && (
+            <div className="mt-6 rounded-[1.6rem] border border-amber-200 bg-amber-50/65 p-4">
+              <div className="font-label text-[11px] font-black uppercase tracking-[0.16em] text-amber-800">Attendance review</div>
+              <p className="mt-2 text-sm text-amber-950">Mark a no-show only after the 20-minute wait and only if the student gave no notice of delay.</p>
+              <div className="mt-3 grid gap-2">
+                {attendancePending.map(b => (
+                  <div key={b._id} className="flex flex-wrap items-center gap-3 rounded-[1rem] border border-amber-200 bg-white/85 px-4 py-3">
+                    <span className="font-mono text-xs font-black text-amber-800">{b.timeWarsaw}</span>
+                    <span className="text-sm font-black text-slate-950">{b.studentName}</span>
+                    <span className="text-sm text-slate-500">{prettyDate(b.dateWarsaw)}</span>
+                    <button
+                      type="button"
+                      onClick={() => markNoShow(b)}
+                      disabled={Boolean(attendanceBusy)}
+                      className="ml-auto rounded-full border border-amber-300 bg-white px-4 py-2 text-xs font-black text-amber-800 transition hover:bg-amber-50 disabled:opacity-50"
+                    >
+                      {attendanceBusy === b._id ? 'Saving…' : 'Mark no-show'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {attendanceNotice && (
+            <div className={`mt-4 rounded-[1rem] border px-4 py-3 text-sm font-semibold ${
+              attendanceNotice.kind === 'ok'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-rose-200 bg-rose-50 text-rose-800'
+            }`}>
+              {attendanceNotice.text}
+            </div>
+          )}
         </div>
       </section>
 

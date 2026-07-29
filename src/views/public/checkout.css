@@ -123,6 +123,19 @@
 
 /* ── Consents ──────────────────────────────────────────────── */
 .co-consents { display: flex; flex-direction: column; gap: 4px; }
+.co-performance-choice {
+  margin: 6px 0;
+  padding: 10px 8px 8px;
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 16px;
+  background: rgba(124, 58, 237, 0.035);
+}
+.co-performance-choice > legend {
+  padding: 0 6px;
+  color: #3D3560;
+  font-size: 12px;
+  font-weight: 800;
+}
 .co-check {
   display: flex;
   align-items: flex-start;

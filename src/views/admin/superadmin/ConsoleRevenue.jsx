@@ -221,7 +221,7 @@ export default function ConsoleRevenue() {
             <Kpi
               label={`Billable · ${data.currentMonth}`}
               value={thisMonth?.billableTotal ?? 0}
-              hint={`incl. ${thisMonth?.lateCancellations ?? 0} late cancellation(s)`}
+              hint={`incl. ${thisMonth?.lateCancellations ?? 0} late cancellation(s) + ${thisMonth?.noShows ?? 0} no-show(s)`}
             />
             <Kpi
               label="Lessons allocated"

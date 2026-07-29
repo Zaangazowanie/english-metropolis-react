@@ -194,7 +194,7 @@ export default function AdminDashboard() {
           ))}
         </div>
         {m?.lateCancellations ? (
-          <p className="mt-3 text-xs text-slate-500">Total billable includes {m.lateCancellations} late cancellation{m.lateCancellations === 1 ? '' : 's'} (billed).</p>
+          <p className="mt-3 text-xs text-slate-500">Total billable includes {m.lateCancellations} late cancellation{m.lateCancellations === 1 ? '' : 's'} and {m.noShows ?? 0} student no-show{m.noShows === 1 ? '' : 's'} (billed).</p>
         ) : null}
       </section>
 

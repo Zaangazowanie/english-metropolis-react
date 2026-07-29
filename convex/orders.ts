@@ -129,15 +129,21 @@ export const listMyOrders = query({
 export const getStudentAllocation = query({
   args: { studentId: v.id("students") },
   handler: async (ctx, args) => {
-    const packages = (await ctx.db
+    const now = Date.now();
+    const allPackages = (await ctx.db
       .query("lessonPackages")
       .withIndex("by_student", q => q.eq("studentId", args.studentId))
       .collect()).filter(p => p.status !== "cancelled");
+    const packages = allPackages.filter(p => !p.availableFrom || p.availableFrom <= now);
     const units = await billableUnitsForStudent(ctx, args.studentId);
     const withBalances = allocateBalances(packages, units);
     const allocated = packages.reduce((n: number, p: any) => n + (p.totalLessons || 0), 0);
     const remaining = withBalances.reduce((n: number, p: any) => n + (p.remainingLessons ?? 0), 0);
-    return { allocated, remaining, used: allocated - remaining };
+    const pendingUntil = allPackages
+      .filter(p => p.availableFrom && p.availableFrom > now)
+      .reduce((earliest: number | null, p: any) =>
+        earliest === null || p.availableFrom < earliest ? p.availableFrom : earliest, null);
+    return { allocated, remaining, used: allocated - remaining, pendingUntil };
   },
 });
 
