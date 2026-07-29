@@ -324,6 +324,7 @@ export const getPaidOrderForEmail = internalQuery({
     const order = await ctx.db.get(args.orderId);
     if (!order || order.status !== "confirmed") return null;
     const student = await ctx.db.get(order.studentId);
+    const lessonPackage = order.packageRef ? await ctx.db.get(order.packageRef) : null;
     return {
       orderId: String(order._id),
       packageName: order.packageName,
@@ -335,6 +336,7 @@ export const getPaidOrderForEmail = internalQuery({
       studentEmail: (student as any)?.googleEmail ?? student?.email ?? order.billing.email,
       earlyPerformanceRequested: order.earlyPerformanceRequested ?? false,
       earlyPerformanceRequestedAt: order.earlyPerformanceRequestedAt,
+      availableFrom: lessonPackage?.availableFrom ?? order.confirmedAt,
       termsVersion: order.termsVersion ?? TERMS_VERSION,
     };
   },
