@@ -228,7 +228,7 @@
 
 .em-practice-root .aas-launcher-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 9px;
 }
 
@@ -1341,11 +1341,34 @@
 
   .em-practice-root .aas-choice-intro {
     grid-template-columns: 1fr;
+    min-height: 0;
+    margin-top: 12px;
+  }
+
+  .em-practice-root .aas-choice-intro-copy {
+    padding: 26px 20px 20px;
+  }
+
+  .em-practice-root .aas-choice-intro h1 {
+    font-size: 36px;
+  }
+
+  .em-practice-root .aas-choice-intro p {
+    margin-top: 15px;
+  }
+
+  .em-practice-root .aas-choice-intro ul {
+    margin-top: 20px;
   }
 
   .em-practice-root .aas-choice-start-panel {
+    padding: 18px 20px 26px;
     border-top: 1px solid var(--em-line);
     border-left: 0;
+  }
+
+  .em-practice-root .aas-choice-preview {
+    display: none;
   }
 
   .em-practice-root .aas-select-wrap {

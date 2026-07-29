@@ -23,7 +23,7 @@
 // when no student session exists).
 
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { usePracticeSession } from './lib/usePracticeSession';
 import { useStudentVocab, type VocabItem } from './lib/useStudentVocab';
 import { useShellProgress } from './lib/convex-stubs';
@@ -1330,7 +1330,8 @@ interface WrongAnswerInfo {
 }
 
 export function StudentPractice(): React.ReactElement {
-  const session = usePracticeSession();
+  const { slug: routeSlug } = useParams<{ slug?: string }>();
+  const session = usePracticeSession(routeSlug);
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeShell, setActiveShell] = useState<ShellKey | null>(null);
   const [accuracySelection, setAccuracySelection] = useState<AccuracyRoundId | 'all' | null>(null);
