@@ -77,6 +77,7 @@ import EnglishMetroWorld from './world/EnglishMetroWorld'
 import LessonPricingSignup from './views/public/LessonPricingSignup.jsx'
 import Checkout from './views/public/Checkout.jsx'
 import PaymentReturn from './views/public/PaymentReturn.jsx'
+import WithdrawalPage from './views/public/WithdrawalPage.jsx'
 import Signup from './views/v3/Signup.jsx'
 import Logout from './views/Logout.jsx'
 import Settings from './views/Settings.jsx'
@@ -173,6 +174,21 @@ function ConsoleNotFound() {
   )
 }
 
+function WithdrawalShortcut() {
+  const { pathname } = useLocation()
+  if (
+    pathname === '/withdraw'
+    || pathname.startsWith('/admin')
+    || pathname.startsWith('/teacher')
+  ) return null
+  return (
+    <Link className="em-withdrawal-shortcut" to="/withdraw">
+      <span>Odstąp od umowy tutaj</span>
+      <small>Withdraw online</small>
+    </Link>
+  )
+}
+
 // Gate the teacher portal: redirect to the magic-link login if no teacher session.
 function TeacherGuard({ children }) {
   const { teacher, loading } = useTeacherAuth()
@@ -189,6 +205,7 @@ function RootRouter() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/cookies" element={<CookiePolicy />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/withdraw" element={<WithdrawalPage />} />
 
         {/* englishmetro.com landing - arcade home first.
             Keep the 3D world available explicitly, but do not make it the homepage. */}
@@ -361,6 +378,7 @@ function RootRouter() {
         <Route path="/app/*" element={<App basePath="/app" />} />
         <Route path="/*" element={<App />} />
       </Routes>
+      {IS_ENGLISHMETRO && <WithdrawalShortcut />}
       {/* Consent banner rendered once at the root so it's visible everywhere */}
       <ConsentBanner />
       {/* Bajla WhatsApp connect popup — reaches all portals from here */}

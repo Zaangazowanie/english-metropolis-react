@@ -37,6 +37,7 @@ export default function FoundationLegalPage({ titlePl, titleEn, docId, bodyHtml,
             <Link to="/terms">{isPl ? 'Regulamin' : 'Terms'}</Link>
             <Link to="/privacy">{isPl ? 'Prywatność' : 'Privacy'}</Link>
             <Link to="/cookies">Cookies</Link>
+            <Link className="fl-withdraw-link" to="/withdraw">{isPl ? 'Odstąp online' : 'Withdraw online'}</Link>
           </nav>
           <div className="fl-lang" role="group" aria-label="Language">
             <button type="button" data-active={isPl} onClick={() => chooseLang('pl')}>PL</button>
@@ -66,6 +67,9 @@ export default function FoundationLegalPage({ titlePl, titleEn, docId, bodyHtml,
 
       <footer className="fl-foot">
         <p>{isPl ? FOUNDATION_FOOTER_PL : FOUNDATION_FOOTER_EN}</p>
+        <Link className="fl-withdraw-cta" to="/withdraw">
+          {isPl ? 'Odstąp od umowy tutaj' : 'Withdraw from a contract here'}
+        </Link>
       </footer>
     </div>
   )

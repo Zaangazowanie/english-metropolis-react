@@ -361,9 +361,13 @@ export default function Checkout() {
                     <input type="checkbox" checked={consentTerms} onChange={(e) => setConsentTerms(e.target.checked)} required />
                     <span>
                       {isPl ? (
-                        <>Akceptuję <Link to="/terms" target="_blank">Regulamin</Link> serwisu prowadzonego przez Fundację Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie. *</>
+                        <>Akceptuję <Link to="/terms" target="_blank">Regulamin</Link> serwisu prowadzonego przez Fundację Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie. *
+                          <small className="co-consent-hint">Prawo odstąpienia możesz wykonać bez logowania przez stale dostępną funkcję <Link to="/withdraw" target="_blank">„Odstąp od umowy tutaj”</Link>.</small>
+                        </>
                       ) : (
-                        <>I accept the <Link to="/terms" target="_blank">Terms (Regulamin)</Link> of the service operated by Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw. *</>
+                        <>I accept the <Link to="/terms" target="_blank">Terms (Regulamin)</Link> of the service operated by Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw. *
+                          <small className="co-consent-hint">You can exercise the right of withdrawal without signing in through the continuously available <Link to="/withdraw" target="_blank">“Withdraw from a contract here”</Link> function.</small>
+                        </>
                       )}
                     </span>
                   </label>

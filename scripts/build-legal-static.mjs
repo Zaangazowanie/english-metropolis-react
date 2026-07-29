@@ -74,6 +74,7 @@ const page = (p) => `<!DOCTYPE html>
       <a href="/privacy/"${p.dir === 'privacy' ? ' aria-current="page"' : ''}><span class="lang-en">Privacy</span><span class="lang-pl">Prywatność</span></a>
       <a href="/cookies/"${p.dir === 'cookies' ? ' aria-current="page"' : ''}><span class="lang-en">Cookies</span><span class="lang-pl">Cookies</span></a>
       <a href="/terms/"${p.dir === 'terms' ? ' aria-current="page"' : ''}><span class="lang-en">Terms</span><span class="lang-pl">Regulamin</span></a>
+      <a href="/withdraw"><span class="lang-en">Withdraw online</span><span class="lang-pl">Odstąp online</span></a>
       <span class="lang-toggle" role="group" aria-label="Language">
         <button type="button" data-lang="en">EN</button>
         <button type="button" data-lang="pl">PL</button>
@@ -131,10 +132,18 @@ ${p.body}
         <a href="/privacy/"><span class="lang-en">Privacy Policy</span><span class="lang-pl">Polityka prywatności</span></a>
         <a href="/cookies/"><span class="lang-en">Cookies Policy</span><span class="lang-pl">Polityka cookies</span></a>
         <a href="/terms/"><span class="lang-en">Terms of Service</span><span class="lang-pl">Regulamin</span></a>
+        <a class="fl-withdraw-cta" href="/withdraw"><span class="lang-en">Withdraw from a contract here</span><span class="lang-pl">Odstąp od umowy tutaj</span></a>
         <a href="mailto:${FOUNDATION.email}">${FOUNDATION.email}</a>
       </nav>
     </div>
   </footer>
+
+  <a class="fl-static-withdraw" href="/withdraw">
+    <span class="lang-en">Withdraw from a contract here</span>
+    <span class="lang-pl">Odstąp od umowy tutaj</span>
+    <small class="lang-en">Online withdrawal function</small>
+    <small class="lang-pl">Funkcja odstąpienia online</small>
+  </a>
 
 </body>
 </html>
