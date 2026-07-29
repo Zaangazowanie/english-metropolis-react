@@ -314,7 +314,7 @@ export function AccuracyAtSpeed({
       body.append('student_id', studentSlug);
       body.append('voice', readVoice());
       body.append('history', '[]');
-      body.append('mode', round.mode === 'transfer' ? 'accuracy_transfer' : 'pronunciation_drill');
+      body.append('mode', round.mode === 'transfer' ? 'accuracy_transfer' : 'accuracy_speed');
       body.append('pronunciation_target', round.target.join(' '));
       body.append('identity', JSON.stringify({ kind: 'student', slug: studentSlug }));
       const response = await fetch('/api/conversa/voice', { method: 'POST', body });
