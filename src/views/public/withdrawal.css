@@ -1,44 +1,3 @@
-.em-withdrawal-shortcut {
-  position: fixed;
-  right: 0;
-  bottom: 88px;
-  z-index: 10020;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  max-width: 150px;
-  padding: 8px 11px 8px 9px;
-  border: 1px solid #d8dee8;
-  border-right: 0;
-  border-radius: 12px 0 0 12px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-  color: #283449;
-  font: 700 11px/1.15 Inter, system-ui, sans-serif;
-  text-decoration: none;
-  backdrop-filter: blur(10px);
-  transition: background 160ms ease, box-shadow 160ms ease, color 160ms ease;
-}
-.em-withdrawal-shortcut__arrow {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  flex: 0 0 22px;
-  border-radius: 7px;
-  background: #f1edff;
-  color: #6d28d9;
-  font-size: 16px;
-  line-height: 1;
-}
-.em-withdrawal-shortcut__label { text-wrap: balance; }
-.em-withdrawal-shortcut:hover {
-  background: #fff;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.17);
-  color: #111827;
-}
-.em-withdrawal-shortcut:focus-visible { outline: 3px solid #a78bfa; outline-offset: 3px; }
-
 .wd-page {
   min-height: 100vh;
   padding: 24px clamp(16px, 4vw, 48px) 48px;
@@ -118,15 +77,9 @@
 .wd-actions { display: flex; align-items: center; gap: 20px; margin-top: 28px; }
 
 @media (max-width: 640px) {
-  .em-withdrawal-shortcut { bottom: 82px; max-width: 118px; padding: 7px 9px 7px 7px; }
-  .em-withdrawal-shortcut__label { font-size: 10px; }
   .wd-topbar { margin-bottom: 42px; }
   .wd-grid { grid-template-columns: 1fr; }
   .wd-footer { display: grid; }
   .wd-receipt div { grid-template-columns: 1fr; gap: 4px; }
   .wd-actions { align-items: stretch; flex-direction: column; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .em-withdrawal-shortcut { transition: none; }
 }

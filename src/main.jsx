@@ -174,32 +174,6 @@ function ConsoleNotFound() {
   )
 }
 
-function WithdrawalShortcut() {
-  const { pathname } = useLocation()
-  const isCustomerSurface = (
-    pathname.startsWith('/app/')
-    || pathname === '/checkout'
-    || pathname === '/payment/return'
-  )
-  if (
-    pathname === '/withdraw'
-    || !isCustomerSurface
-    || pathname.startsWith('/admin')
-    || pathname.startsWith('/teacher')
-  ) return null
-  return (
-    <Link
-      className="em-withdrawal-shortcut"
-      to="/withdraw"
-      aria-label="Withdraw from contract here · Odstąp od umowy tutaj"
-      title="Withdraw from contract here · Odstąp od umowy tutaj"
-    >
-      <span className="em-withdrawal-shortcut__arrow" aria-hidden>↩</span>
-      <span className="em-withdrawal-shortcut__label">Withdraw from contract</span>
-    </Link>
-  )
-}
-
 // Gate the teacher portal: redirect to the magic-link login if no teacher session.
 function TeacherGuard({ children }) {
   const { teacher, loading } = useTeacherAuth()
@@ -389,7 +363,6 @@ function RootRouter() {
         <Route path="/app/*" element={<App basePath="/app" />} />
         <Route path="/*" element={<App />} />
       </Routes>
-      {IS_ENGLISHMETRO && <WithdrawalShortcut />}
       {/* Consent banner rendered once at the root so it's visible everywhere */}
       <ConsentBanner />
       {/* Bajla WhatsApp connect popup — reaches all portals from here */}

@@ -73,6 +73,10 @@ export default function SettingsMenu({ userName = 'Guest', userEmail = '' }) {
             <span className="material-symbols-outlined text-[16px]">tune</span>
             {t('header.menu.settings')}
           </Link>
+          <Link to="/withdraw" className="em-pop-link" onClick={() => setOpen(false)}>
+            <span className="material-symbols-outlined text-[16px]">assignment_return</span>
+            {t('chrome.menu.withdraw')}
+          </Link>
           <Link to="/logout" className="em-pop-link" onClick={() => setOpen(false)}>
             <span className="material-symbols-outlined text-[16px]">logout</span>
             {t('header.menu.logout')}

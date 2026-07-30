@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
 import { useTheme } from '../contexts/ThemeContext'
 
@@ -167,6 +168,20 @@ export default function Settings() {
         <Row label={t('settings.audio.autoplay')}>
           <Toggle checked={audio.autoplay} onChange={v => setAudio(a => ({ ...a, autoplay: v }))} />
         </Row>
+      </Section>
+
+      <Section title={t('settings.section.contract')}>
+        <div className="em-settings-row">
+          <div className="em-settings-row-text">
+            <strong>{t('settings.contract.withdraw')}</strong>
+            <span>{t('settings.contract.withdrawHint')}</span>
+          </div>
+          <div className="em-settings-row-control">
+            <Link to="/withdraw" className="em-btn em-btn-ghost">
+              {t('settings.contract.open')}
+            </Link>
+          </div>
+        </div>
       </Section>
 
       <Section title={t('settings.section.security')}>

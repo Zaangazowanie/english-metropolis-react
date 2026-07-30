@@ -296,6 +296,31 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
                   </button>
                 ))}
               </div>
+              <div style={{ height: 1, background: T.border, margin: '4px 0 6px' }} />
+              <Link
+                to={`${tabBase}/settings`}
+                onClick={() => setMenuOpen(false)}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px',
+                  color: T.textSoft, fontFamily: FONT.body, fontSize: 13,
+                  textDecoration: 'none', borderRadius: 8,
+                  display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>tune</span>
+                {t('header.menu.settings')}
+              </Link>
+              <Link
+                to="/withdraw"
+                onClick={() => setMenuOpen(false)}
+                aria-label={t('chrome.menu.withdraw')}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px',
+                  color: T.textSoft, fontFamily: FONT.body, fontSize: 13,
+                  textDecoration: 'none', borderRadius: 8,
+                  display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>assignment_return</span>
+                <span style={{ display: 'grid', gap: 2 }}>
+                  <span>{t('chrome.menu.withdraw')}</span>
+                  <span style={{ color: T.textDim, fontSize: 10 }}>{t('chrome.menu.withdrawHint')}</span>
+                </span>
+              </Link>
               <button onClick={() => { studentLogout(); window.location.href = '/login' }}
                 style={{ width: '100%', padding: '10px 10px', border: 'none',
                   cursor: 'pointer', background: 'transparent',
