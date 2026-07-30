@@ -157,10 +157,30 @@ ${p.body}
 </html>
 `
 
+// Cloudflare Scrape Shield rewrites mailto links and bare addresses into
+// /cdn-cgi/l/email-protection, which only resolves once its JS runs. Przelewy24
+// verification requires the contact address to be readable in the served HTML,
+// so mark every address on these pages with Cloudflare's documented opt-out
+// (<!--email_off-->). Obfuscation stays on for the rest of the zone.
+const MAILTO_ANCHOR = /<a\b[^>]*href="mailto:[^"]*"[^>]*>[\s\S]*?<\/a>/g
+const BARE_EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g
+const OFF = (s) => `<!--email_off-->${s}<!--/email_off-->`
+
+function shieldEmails(html) {
+  // \u0000 cannot occur in the source documents, so it is a safe sentinel.
+  // A bare numeric placeholder would also match section numbers like "§ 3 ".
+  const held = []
+  let out = html.replace(MAILTO_ANCHOR, (m) => `\u0000${held.push(m) - 1}\u0000`)
+  out = out.replace(BARE_EMAIL, OFF)
+  out = out.replace(/\u0000(\d+)\u0000/g, (_, i) => OFF(held[Number(i)]))
+  if (out.includes('\u0000')) throw new Error('shieldEmails: unrestored placeholder')
+  return out
+}
+
 for (const p of PAGES) {
   const dir = join(ROOT, 'public', p.dir)
   mkdirSync(dir, { recursive: true })
-  writeFileSync(join(dir, 'index.html'), page(p))
+  writeFileSync(join(dir, 'index.html'), shieldEmails(page(p)))
   console.log(`wrote public/${p.dir}/index.html`)
 }
 // The static pages reference /legal/foundation-legal.css — copy the module CSS
