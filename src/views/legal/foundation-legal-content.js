@@ -46,6 +46,7 @@ export const TERMS_HTML_PL = `
 <li>szczególne uprawnienia Klienta będącego konsumentem.</li>
 </ol></li>
 <li>StartUp prowadzi sprzedaż i świadczy Usługi za pośrednictwem Serwisu, z wykorzystaniem środków komunikowania się na odległość. Umowy zawierane przez Klienta ze StartUp za pośrednictwem Serwisu są umowami zawartymi na odległość, w rozumieniu ustawy z dnia 30 maja 2014 r. o prawach konsumenta.</li>
+<li><strong>Zakres oferty Serwisu.</strong> Przedmiotem oferty Serwisu są wyłącznie Usługi oraz Usługi cyfrowe, to jest lekcje języka angielskiego prowadzone zdalnie (online) przez lektora, pakiety takich lekcji oraz powiązane z nimi materiały i funkcje cyfrowe udostępniane Klientowi na koncie w Serwisie. Serwis nie prowadzi sprzedaży Towarów (rzeczy ruchomych), nie realizuje wysyłki ani dostawy fizycznej i nie pobiera kosztów przesyłki. W konsekwencji postanowienia Regulaminu odnoszące się do Towarów — w szczególności § 3, § 4, a także postanowienia dotyczące sposobów i kosztów dostawy oraz zwrotu rzeczy — nie znajdują zastosowania do umów zawieranych za pośrednictwem Serwisu tak długo, jak oferta Serwisu nie obejmuje Towarów; zachowują one moc wyłącznie na wypadek rozszerzenia oferty o Towary, o czym Klient zostanie poinformowany w Serwisie przed złożeniem zamówienia.</li>
 <li>Klient uprawniony jest i zobowiązany do korzystania z Serwisu zgodnie z jego przeznaczeniem oraz zasadami współżycia społecznego i dobrymi obyczajami.</li>
 <li>Przeglądanie Serwisu nie wymaga rejestracji, a samodzielne składanie zamówień przez Klienta na Produkty nie wymaga zarejestrowania konta.</li>
 <li>Regulamin jest dostępny nieodpłatnie w Serwisie, w formie umożliwiającej jego pozyskanie, odtworzenie oraz utrwalenie.</li>
@@ -100,6 +101,7 @@ export const TERMS_HTML_PL = `
 
 <section class="fl-sec" id="par-3">
 <h2>§ 3 Sprzedaż Towarów - warunki i czas realizacji zamówienia</h2>
+<p class="fl-note"><strong>Nie dotyczy aktualnej oferty Serwisu.</strong> Zgodnie z § 1 ust. 5 oferta Serwisu obejmuje wyłącznie Usługi i Usługi cyfrowe. Niniejszy paragraf znajdzie zastosowanie dopiero w razie rozszerzenia oferty o Towary. Warunki zamawiania lekcji i pakietów lekcji określa § 5.</p>
 <ol class="fl-ol">
 <li>StartUp za pośrednictwem Serwisu zawiera z Klientami umowy sprzedaży Towarów. Na podstawie umowy sprzedaży StartUp zobowiązuje się przenieść na Klienta własność Towaru i wydać mu Towar, a Klient zobowiązuje się Towar odebrać i zapłacić StartUp cenę.</li>
 <li>Klient w celu złożenia zamówienia, wskazuje Towary, którymi jest zainteresowany, przez użycie znajdującego się na stronie danego Towaru polecenia „Do koszyka" lub inne równoważne sformułowanie, a następnie wskazuje dane, sposób dostawy i płatności.</li>
@@ -131,6 +133,7 @@ export const TERMS_HTML_PL = `
 
 <section class="fl-sec" id="par-4">
 <h2>§ 4 Odpowiedzialność za brak zgodności Towaru z Umową</h2>
+<p class="fl-note"><strong>Nie dotyczy aktualnej oferty Serwisu.</strong> Odpowiedzialność za brak zgodności Usługi z Umową regulują § 6, a treści i usług cyfrowych — § 8.</p>
 <ol class="fl-ol">
 <li>Zapisy niniejszego paragrafu Regulaminu, zgodnie z przepisami rozdziału 5a ustawy z dnia 30 maja 2014 r. o prawach konsumenta, stosuje się do odpowiedzialności StartUp z tytułu niezgodności Towaru z Umową zawartą z:
 <ol class="fl-ol-alpha">
@@ -290,6 +293,7 @@ export const TERMS_HTML_PL = `
 
 <section class="fl-sec" id="par-9">
 <h2>§ 9 Ceny Produktów i koszt dostawy</h2>
+<p class="fl-note"><strong>Brak kosztów dostawy.</strong> Ponieważ oferta Serwisu obejmuje wyłącznie Usługi i Usługi cyfrowe (§ 1 ust. 5), do zamówień składanych w Serwisie nie dolicza się kosztów przesyłki ani dostawy. Łączną kwotą do zapłaty jest cena brutto wybranej lekcji lub pakietu lekcji podana w Serwisie. Postanowienia ust. 2–4 oraz ust. 5 lit. a poniżej dotyczą wyłącznie Towarów i znajdą zastosowanie dopiero w razie rozszerzenia oferty o Towary.</p>
 <ol class="fl-ol">
 <li>Ceny zamieszczane przy oferowanych w Serwisie Produktach są cenami brutto, to znaczy, że zawierają podatek od towarów i usług (VAT). Ceny podawane są w polskiej walucie (złoty – PLN).</li>
 <li>Cena podana przy danym Produkcie nie zawiera kosztów przesyłki.</li>
@@ -631,6 +635,7 @@ export const TERMS_HTML_EN = `
 <li>the specific rights of a Customer who is a consumer.</li>
 </ol></li>
 <li>StartUp sells and provides Services through the Service using means of distance communication. Contracts concluded by the Customer with StartUp through the Service are distance contracts within the meaning of the Act of 30 May 2014 on Consumer Rights.</li>
+<li><strong>Scope of the Service's offer.</strong> The Service offers Services and digital Services only, namely English lessons delivered remotely (online) by a teacher, packages of such lessons, and the related materials and digital features made available to the Customer in their account. The Service does not sell Goods (movable items), does not ship or physically deliver anything and does not charge delivery costs. Accordingly, the provisions of these Terms concerning Goods — in particular § 3, § 4, and the provisions on delivery methods, delivery costs and the return of items — do not apply to contracts concluded through the Service for as long as the Service's offer does not include Goods; they remain in force only in the event that the offer is extended to Goods, of which the Customer will be informed in the Service before placing an order.</li>
 <li>The Customer is entitled and obliged to use the Service in accordance with its intended purpose, the principles of social coexistence and good practice.</li>
 <li>Browsing the Service does not require registration, and placing orders for Products by the Customer does not require creating an account.</li>
 <li>These Terms are available free of charge in the Service, in a form that allows them to be obtained, reproduced and stored.</li>
@@ -685,6 +690,7 @@ export const TERMS_HTML_EN = `
 
 <section class="fl-sec" id="par-3-en">
 <h2>§ 3 Sale of Goods - conditions and time of order fulfilment</h2>
+<p class="fl-note"><strong>Does not apply to the Service's current offer.</strong> Under § 1(5) the offer covers Services and digital Services only. This paragraph will apply only if the offer is extended to Goods. Ordering lessons and lesson packages is governed by § 5.</p>
 <ol class="fl-ol">
 <li>Through the Service, StartUp concludes contracts for the sale of Goods with Customers. Under a sales contract, StartUp undertakes to transfer ownership of the Goods to the Customer and hand them over, and the Customer undertakes to collect the Goods and pay StartUp the price.</li>
 <li>To place an order, the Customer indicates the Goods they are interested in by using the "Add to cart" ("Do koszyka") command, or an equivalent wording, on the page of the given Goods, and then provides their data and the method of delivery and payment.</li>
@@ -716,6 +722,7 @@ export const TERMS_HTML_EN = `
 
 <section class="fl-sec" id="par-4-en">
 <h2>§ 4 Liability for non-conformity of Goods with the Contract</h2>
+<p class="fl-note"><strong>Does not apply to the Service's current offer.</strong> Liability for non-conformity of a Service is governed by § 6, and of digital content and digital services by § 8.</p>
 <ol class="fl-ol">
 <li>The provisions of this paragraph, in accordance with Chapter 5a of the Act of 30 May 2014 on Consumer Rights, apply to StartUp's liability for non-conformity of Goods with a Contract concluded with:
 <ol class="fl-ol-alpha">
@@ -875,6 +882,7 @@ export const TERMS_HTML_EN = `
 
 <section class="fl-sec" id="par-9-en">
 <h2>§ 9 Product prices and delivery costs</h2>
+<p class="fl-note"><strong>No delivery costs.</strong> Because the Service's offer covers Services and digital Services only (§ 1(5)), no shipping or delivery costs are added to orders placed in the Service. The total amount payable is the gross price of the selected lesson or lesson package shown in the Service. Paragraphs 2–4 and 5(a) below concern Goods only and will apply only if the offer is extended to Goods.</p>
 <ol class="fl-ol">
 <li>Prices shown next to Products offered in the Service are gross prices, meaning they include value added tax (VAT). Prices are given in Polish currency (złoty – PLN).</li>
 <li>The price shown next to a given Product does not include shipping costs.</li>
@@ -1182,5 +1190,119 @@ export const COOKIES_HTML_EN = `
 <p>If you have questions about the processing of personal data or wish to exercise your rights, you can contact us at the addresses indicated in the "Data controller" section.</p>
 <p>In addition, information about us and your rights can be found at: <a href="https://englishmetro.com/privacy/">https://englishmetro.com/privacy/</a></p>
 <p>In the event of a breach of data protection law, you have the right to lodge a complaint with the President of the Personal Data Protection Office at <a href="https://uodo.gov.pl/" rel="noopener">https://uodo.gov.pl/</a></p>
+</section>
+`
+
+export const CONTACT_TITLE_PL = 'Kontakt i dane firmy — englishmetro.com'
+
+export const CONTACT_HTML_PL = `
+<section class="fl-sec" id="dane-firmy">
+<h2>Dane podmiotu prowadzącego serwis</h2>
+<p>Serwis internetowy <strong>englishmetro.com</strong> jest prowadzony przez <strong>EnglishMetro</strong> — zorganizowaną część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp", reprezentowaną przez Moemedi Michael Poncana.</p>
+<ul class="fl-ul">
+<li><strong>Nazwa firmy:</strong> Fundacja Rozwoju Przedsiębiorczości „Twój StartUp"</li>
+<li><strong>Marka / jednostka:</strong> EnglishMetro (zorganizowana część przedsiębiorstwa)</li>
+<li><strong>Osoba reprezentująca:</strong> Moemedi Michael Poncana</li>
+<li><strong>Numer KRS:</strong> 0000442857 — Sąd Rejonowy dla m.st. Warszawy w Warszawie, XII Wydział Gospodarczy KRS</li>
+<li><strong>NIP:</strong> 5213641211</li>
+<li><strong>REGON:</strong> 146433467</li>
+<li><strong>BDO:</strong> 000460502</li>
+</ul>
+</section>
+
+<section class="fl-sec" id="adresy">
+<h2>Adresy</h2>
+<ul class="fl-ul">
+<li><strong>Siedziba:</strong> ul. Żurawia 6/12 lok. 766, 00-503 Warszawa, Polska</li>
+<li><strong>Adres do doręczeń Fundacji:</strong> Atlas Tower, Al. Jerozolimskie 123a, 18 piętro, 02-017 Warszawa, Polska</li>
+<li><strong>Adres do doręczeń EnglishMetro (reklamacje, odstąpienie od umowy):</strong> EnglishMetro — Moemedi Michael Poncana, ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki, Polska</li>
+</ul>
+</section>
+
+<section class="fl-sec" id="kontakt">
+<h2>Kontakt</h2>
+<ul class="fl-ul">
+<li><strong>E-mail:</strong> <a href="mailto:michael.poncana@englishmetro.com">michael.poncana@englishmetro.com</a></li>
+<li><strong>Telefon:</strong> <a href="tel:+48662563507">+48 662 563 507</a></li>
+<li><strong>Strona:</strong> <a href="https://englishmetro.com">https://englishmetro.com</a></li>
+</ul>
+<p>Kontakt telefoniczny i e-mailowy jest dostępny w dni robocze. Odpowiadamy na wiadomości e-mail najpóźniej w terminie 14 dni; reklamacje rozpatrujemy w terminie 14 dni od ich otrzymania.</p>
+</section>
+
+<section class="fl-sec" id="oferta">
+<h2>Czego dotyczy oferta</h2>
+<p>EnglishMetro oferuje wyłącznie <strong>usługi i usługi cyfrowe</strong>: lekcje języka angielskiego prowadzone zdalnie (online) przez lektora, pakiety takich lekcji oraz powiązane materiały i funkcje cyfrowe dostępne na koncie Klienta. Serwis nie prowadzi sprzedaży towarów (rzeczy ruchomych) i nie realizuje wysyłki, w związku z czym do zamówień nie są doliczane koszty dostawy.</p>
+</section>
+
+<section class="fl-sec" id="platnosci">
+<h2>Płatności</h2>
+<p>Płatności elektroniczne są obsługiwane przez PayPro S.A. z siedzibą w Poznaniu, ul. Pastelowa 8, 60-198 Poznań, KRS 0000347935, NIP 7792369887, REGON 301345068, prowadzącą serwis płatniczy Przelewy24.</p>
+</section>
+
+<section class="fl-sec" id="dokumenty">
+<h2>Dokumenty</h2>
+<ul class="fl-ul">
+<li><a href="/terms/">Regulamin serwisu</a></li>
+<li><a href="/privacy/">Polityka prywatności</a></li>
+<li><a href="/cookies/">Polityka cookies</a></li>
+<li><a href="/withdraw">Odstąpienie od umowy — formularz online</a></li>
+</ul>
+</section>
+`
+
+export const CONTACT_TITLE_EN = 'Contact and company details — englishmetro.com'
+
+export const CONTACT_HTML_EN = `
+<section class="fl-sec" id="company-details">
+<h2>Company operating the Service</h2>
+<p>The <strong>englishmetro.com</strong> website is operated by <strong>EnglishMetro</strong> — an organised business unit of Fundacja Rozwoju Przedsiębiorczości „Twój StartUp", represented by Moemedi Michael Poncana.</p>
+<ul class="fl-ul">
+<li><strong>Company name:</strong> Fundacja Rozwoju Przedsiębiorczości „Twój StartUp"</li>
+<li><strong>Brand / business unit:</strong> EnglishMetro (organised business unit)</li>
+<li><strong>Representative:</strong> Moemedi Michael Poncana</li>
+<li><strong>Registration number (KRS):</strong> 0000442857 — District Court for the Capital City of Warsaw, 12th Commercial Division of the National Court Register</li>
+<li><strong>NIP (Tax ID):</strong> 5213641211</li>
+<li><strong>REGON:</strong> 146433467</li>
+<li><strong>BDO:</strong> 000460502</li>
+</ul>
+</section>
+
+<section class="fl-sec" id="addresses">
+<h2>Addresses</h2>
+<ul class="fl-ul">
+<li><strong>Registered office:</strong> ul. Żurawia 6/12 lok. 766, 00-503 Warszawa, Poland</li>
+<li><strong>Foundation correspondence address:</strong> Atlas Tower, Al. Jerozolimskie 123a, 18th floor, 02-017 Warszawa, Poland</li>
+<li><strong>EnglishMetro service address (complaints, contract withdrawal):</strong> EnglishMetro — Moemedi Michael Poncana, ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki, Poland</li>
+</ul>
+</section>
+
+<section class="fl-sec" id="contact">
+<h2>Contact</h2>
+<ul class="fl-ul">
+<li><strong>Email:</strong> <a href="mailto:michael.poncana@englishmetro.com">michael.poncana@englishmetro.com</a></li>
+<li><strong>Phone:</strong> <a href="tel:+48662563507">+48 662 563 507</a></li>
+<li><strong>Website:</strong> <a href="https://englishmetro.com">https://englishmetro.com</a></li>
+</ul>
+<p>Phone and email contact is available on business days. We reply to emails within 14 days at the latest, and complaints are handled within 14 days of receipt.</p>
+</section>
+
+<section class="fl-sec" id="offer">
+<h2>What the offer covers</h2>
+<p>EnglishMetro offers <strong>services and digital services only</strong>: English lessons delivered remotely (online) by a teacher, packages of such lessons, and the related materials and digital features available in the Customer's account. The Service does not sell goods (movable items) and does not ship anything, so no delivery costs are added to orders.</p>
+</section>
+
+<section class="fl-sec" id="payments">
+<h2>Payments</h2>
+<p>Electronic payments are handled by PayPro S.A., ul. Pastelowa 8, 60-198 Poznań, Poland, KRS 0000347935, NIP 7792369887, REGON 301345068, operator of the Przelewy24 payment service.</p>
+</section>
+
+<section class="fl-sec" id="documents">
+<h2>Documents</h2>
+<ul class="fl-ul">
+<li><a href="/terms/">Terms of Service</a></li>
+<li><a href="/privacy/">Privacy Policy</a></li>
+<li><a href="/cookies/">Cookies Policy</a></li>
+<li><a href="/withdraw">Contract withdrawal — online form</a></li>
+</ul>
 </section>
 `

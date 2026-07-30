@@ -745,7 +745,9 @@ export default function LessonPricingSignup() {
           <Link to="/terms">{t('Terms', 'Regulamin')}</Link>
           <Link to="/privacy">{t('Privacy Policy', 'Polityka prywatności')}</Link>
           <Link to="/cookies">{t('Cookies Policy', 'Polityka cookies')}</Link>
+          <a href="/kontakt/">{t('Contact & company details', 'Kontakt i dane firmy')}</a>
           <a href={`mailto:${FOUNDATION.email}`}>{FOUNDATION.email}</a>
+          <a href="tel:+48662563507">{FOUNDATION.phone}</a>
         </nav>
       </footer>
 

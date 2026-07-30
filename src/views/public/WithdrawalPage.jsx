@@ -199,6 +199,7 @@ export default function WithdrawalPage() {
           <Link to="/terms">{t('Regulamin', 'Terms')}</Link>
           <Link to="/privacy">{t('Prywatność', 'Privacy')}</Link>
           <Link to="/cookies">Cookies</Link>
+          <a href="/kontakt/">{t('Kontakt', 'Contact')}</a>
         </nav>
       </footer>
     </main>

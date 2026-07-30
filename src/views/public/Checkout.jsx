@@ -485,7 +485,7 @@ export default function Checkout() {
             'Płatności elektroniczne są obsługiwane przez PayPro S.A. z siedzibą w Poznaniu (60-198), ul. Pastelowa 8, KRS 0000347935, NIP 7792369887, REGON 301345068, prowadzącą serwis płatniczy Przelewy24.',
           )}
         </p>
-        <p>{t('Contact', 'Kontakt')}: <a href={`mailto:${FOUNDATION.email}`}>{FOUNDATION.email}</a> · {FOUNDATION.phone}</p>
+        <p>{t('Contact', 'Kontakt')}: <a href={`mailto:${FOUNDATION.email}`}>{FOUNDATION.email}</a> · <a href="tel:+48662563507">{FOUNDATION.phone}</a> · <a href="/kontakt/">{t('company details', 'dane firmy')}</a></p>
       </footer>
     </main>
   )

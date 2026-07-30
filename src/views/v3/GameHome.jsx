@@ -1293,13 +1293,22 @@ export default function GameHome() {
               <Link to="/privacy" style={{ color: T.textMute, textDecoration: 'none' }}>Privacy</Link>
               <Link to="/cookies" style={{ color: T.textMute, textDecoration: 'none' }}>Cookies</Link>
               <Link to="/terms" style={{ color: T.textMute, textDecoration: 'none' }}>Terms</Link>
-              <a href="mailto:hello@englishmetro.com" style={{ color: T.textMute, textDecoration: 'none' }}>Contact</a>
+              <a href="/kontakt/" style={{ color: T.textMute, textDecoration: 'none' }}>{lang === 'pl' ? 'Kontakt' : 'Contact'}</a>
             </div>
           </div>
           <p style={{ margin: 0, fontSize: 10.5, lineHeight: 1.6, color: T.textMute, maxWidth: 860 }}>
             {lang === 'pl'
               ? 'EnglishMetro, zorganizowana część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP 5213641211 · REGON 146433467'
-              : 'EnglishMetro, an organised business unit of Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467'}
+              : 'EnglishMetro, an organised business unit of Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467'}
+          </p>
+          <p style={{ margin: '6px 0 0', fontSize: 10.5, lineHeight: 1.6, color: T.textMute, maxWidth: 860 }}>
+            {lang === 'pl' ? 'Kontakt' : 'Contact'}:{' '}
+            <a href="mailto:michael.poncana@englishmetro.com" style={{ color: T.textMute }}>michael.poncana@englishmetro.com</a>
+            {' · '}
+            <a href="tel:+48662563507" style={{ color: T.textMute }}>+48 662 563 507</a>
+            {lang === 'pl'
+              ? ' · Adres do doręczeń: ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki'
+              : ' · Service address: ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki, Poland'}
           </p>
         </footer>
       </div>

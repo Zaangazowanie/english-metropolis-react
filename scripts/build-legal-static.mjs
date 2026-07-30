@@ -11,6 +11,7 @@ import {
   TERMS_TITLE_PL, TERMS_HTML_PL, TERMS_HTML_EN,
   PRIVACY_TITLE_PL, PRIVACY_HTML_PL, PRIVACY_HTML_EN,
   COOKIES_TITLE_PL, COOKIES_HTML_PL, COOKIES_HTML_EN,
+  CONTACT_TITLE_PL, CONTACT_HTML_PL, CONTACT_HTML_EN,
   FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN, BINDING_NOTE_EN,
 } from '../src/views/legal/foundation-legal-content.js'
 
@@ -50,6 +51,17 @@ const PAGES = [
     body: COOKIES_HTML_PL,
     bodyEn: COOKIES_HTML_EN,
   },
+  {
+    dir: 'kontakt', docId: 'EM-LEGAL-04', noEnNotice: true,
+    effectiveEn: '30 July 2026', effectivePl: '30 lipca 2026 r.',
+    titlePl: CONTACT_TITLE_PL, titleEn: 'Contact and company details',
+    heroPl: 'Dane <em>firmy.</em>', heroEn: 'Company <em>details.</em>',
+    ledePl: 'Pełne dane podmiotu prowadzącego serwis englishmetro.com — nazwa, numery rejestrowe, adresy, e-mail i telefon.',
+    ledeEn: 'Full details of the company operating englishmetro.com — name, registration numbers, addresses, email and phone.',
+    metaDesc: 'Kontakt i dane firmy englishmetro.com — Fundacja Rozwoju Przedsiębiorczości „Twój StartUp”, KRS 0000442857, NIP 5213641211, tel. +48 662 563 507.',
+    body: CONTACT_HTML_PL,
+    bodyEn: CONTACT_HTML_EN,
+  },
 ]
 
 const page = (p) => `<!DOCTYPE html>
@@ -74,6 +86,7 @@ const page = (p) => `<!DOCTYPE html>
       <a href="/privacy/"${p.dir === 'privacy' ? ' aria-current="page"' : ''}><span class="lang-en">Privacy</span><span class="lang-pl">Prywatność</span></a>
       <a href="/cookies/"${p.dir === 'cookies' ? ' aria-current="page"' : ''}><span class="lang-en">Cookies</span><span class="lang-pl">Cookies</span></a>
       <a href="/terms/"${p.dir === 'terms' ? ' aria-current="page"' : ''}><span class="lang-en">Terms</span><span class="lang-pl">Regulamin</span></a>
+      <a href="/kontakt/"${p.dir === 'kontakt' ? ' aria-current="page"' : ''}><span class="lang-en">Contact</span><span class="lang-pl">Kontakt</span></a>
       <a href="/withdraw"><span class="lang-en">Withdraw online</span><span class="lang-pl">Odstąp online</span></a>
       <span class="lang-toggle" role="group" aria-label="Language">
         <button type="button" data-lang="en">EN</button>
@@ -105,10 +118,10 @@ const page = (p) => `<!DOCTYPE html>
   <div class="legal-layout">
     <main class="legal-main">
       <div class="lang-en">
-        <div class="fl-en-notice" role="note">
+${p.noEnNotice ? '' : `        <div class="fl-en-notice" role="note">
           <p><strong>Courtesy translation.</strong> ${BINDING_NOTE_EN}
           Questions? Write to <a href="mailto:${FOUNDATION.email}">${FOUNDATION.email}</a>.</p>
-        </div>
+        </div>`}
         <article class="fl-doc fl-page" lang="en">
 ${p.bodyEn}
         </article>
@@ -132,18 +145,13 @@ ${p.body}
         <a href="/privacy/"><span class="lang-en">Privacy Policy</span><span class="lang-pl">Polityka prywatności</span></a>
         <a href="/cookies/"><span class="lang-en">Cookies Policy</span><span class="lang-pl">Polityka cookies</span></a>
         <a href="/terms/"><span class="lang-en">Terms of Service</span><span class="lang-pl">Regulamin</span></a>
+        <a href="/kontakt/"><span class="lang-en">Contact &amp; company details</span><span class="lang-pl">Kontakt i dane firmy</span></a>
         <a class="fl-withdraw-cta" href="/withdraw"><span class="lang-en">Withdraw from a contract here</span><span class="lang-pl">Odstąp od umowy tutaj</span></a>
         <a href="mailto:${FOUNDATION.email}">${FOUNDATION.email}</a>
+        <a href="tel:+48662563507">${FOUNDATION.phone}</a>
       </nav>
     </div>
   </footer>
-
-  <a class="fl-static-withdraw" href="/withdraw">
-    <span class="lang-en">Withdraw from a contract here</span>
-    <span class="lang-pl">Odstąp od umowy tutaj</span>
-    <small class="lang-en">Online withdrawal function</small>
-    <small class="lang-pl">Funkcja odstąpienia online</small>
-  </a>
 
 </body>
 </html>
