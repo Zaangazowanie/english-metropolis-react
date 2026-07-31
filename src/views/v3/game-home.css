@@ -1256,7 +1256,7 @@
   position: relative;
   border-radius: 24px;
   overflow: hidden;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 2.05 / 1;
   box-shadow: 0 34px 90px -40px rgba(23, 16, 46, 0.35);
   transform: translateZ(0);
   outline: none;
@@ -1473,4 +1473,32 @@
 .gh-section-heading,
 .gh-hs-title {
   font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif !important;
+}
+
+/* Give the slider more of the hero grid than the copy column — it was reading
+   as a square-ish panel squeezed beside the headline. */
+@media (min-width: 1100px) {
+  .gh-hero-grid { grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr) !important; }
+}
+@media (max-width: 620px) { .gh-hs { aspect-ratio: 3 / 2; } }
+
+/* ── Hero eyebrow ─────────────────────────────────────────────────────────
+   Was mono, uppercase, 0.3em tracking, emerald, beside a pulsing gradient bar:
+   the stock kicker, in a colour that appears nowhere else in the palette.
+   Now the brand sans at a readable size, restrained tracking, brand violet,
+   with a static metro-style rule instead of the pulse. */
+.gh-eyebrow-mark {
+  width: 26px !important;
+  height: 3px !important;
+  border-radius: 2px !important;
+  background: #7C3AED !important;
+  animation: none !important;
+}
+.gh-eyebrow > span:last-child {
+  font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  color: #6D28D9 !important;
 }

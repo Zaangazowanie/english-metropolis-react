@@ -108,7 +108,7 @@ const GH = {
   en: {
     navPricing: 'Pricing', navSignin: 'Sign in', navSignup: 'Sign up', navDash: 'My dashboard',
     navPlay: 'Play the World',
-    eyebrow: 'online English school · live 1:1 lessons',
+    eyebrow: 'Online English school · live 1:1 lessons',
     h1a: 'Learn live.', h1b: 'Speak every day',
     ctaBook: 'Book your first lesson', ctaPricing: 'See pricing', ctaWorld: 'Play the World for free',
     heroSliderLabel: 'What a course with us includes',
@@ -178,7 +178,7 @@ const GH = {
   pl: {
     navPricing: 'Cennik', navSignin: 'Zaloguj się', navSignup: 'Załóż konto', navDash: 'Mój panel',
     navPlay: 'Zagraj w World',
-    eyebrow: 'szkoła angielskiego online · lekcje 1:1 na żywo',
+    eyebrow: 'Szkoła angielskiego online · lekcje 1:1 na żywo',
     h1a: 'Ucz się na żywo.', h1b: 'Mów po angielsku na co dzień',
     ctaBook: 'Zarezerwuj pierwszą lekcję', ctaPricing: 'Zobacz cennik', ctaWorld: 'Zagraj w World za darmo',
     heroSliderLabel: 'Co obejmuje kurs u nas',
@@ -489,12 +489,12 @@ const WORLD_URL = '/play/'
 const HERO_MEDIA = [
   { key: 'lessons',  to: '/signup',            images: [
     '/home/hero/lessons-1.webp', '/home/hero/lessons-18.webp', '/home/hero/lessons-3.webp',
-    '/home/hero/lessons-4.webp', '/home/hero/lessons-6.webp',
+    '/home/hero/lessons-6.webp',
     '/home/hero/lessons-8.webp', '/home/hero/lessons-9.webp', '/home/hero/lessons-10.webp',
     '/home/hero/lessons-19.webp', '/home/hero/lessons-20.webp',
   ] },
   { key: 'course',   to: '/pricing',           images: [
-    '/home/hero/course-1.webp', '/home/hero/course-2.webp', '/home/hero/course-3.webp',
+    '/home/hero/course-1.webp', '/home/hero/course-3.webp',
   ] },
   { key: 'practice', href: '#gh-arcade-stage', images: ['/home/hero/practice-4.webp'] },
 ]
