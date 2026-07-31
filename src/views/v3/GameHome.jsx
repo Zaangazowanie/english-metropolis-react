@@ -489,10 +489,16 @@ const WORLD_URL = '/play/'
 // The two product pillars use real captures of the running app — we don't
 // generate imagery of our own software.
 const HERO_MEDIA = [
-  { key: 'lessons',  to: '/signup',            images: ['/home/hero/lessons-1.webp'] },
-  { key: 'course',   to: '/pricing',           images: ['/home/hero/course-1.webp'] },
-  { key: 'practice', href: '#gh-arcade-stage', images: ['/home/hero/practice-1.webp'] },
-  { key: 'world',    href: WORLD_URL,          images: ['/home/hero/world-1.webp'] },
+  { key: 'lessons',  to: '/signup',            images: [
+    '/home/hero/lessons-1.webp', '/home/hero/lessons-2.webp', '/home/hero/lessons-3.webp',
+    '/home/hero/lessons-4.webp', '/home/hero/lessons-5.webp', '/home/hero/lessons-6.webp',
+    '/home/hero/lessons-7.webp',
+  ] },
+  { key: 'course',   to: '/pricing',           images: [
+    '/home/hero/course-1.webp', '/home/hero/course-2.webp', '/home/hero/course-3.webp',
+  ] },
+  { key: 'practice', href: '#gh-arcade-stage', images: ['/home/hero/practice-2.webp'] },
+  { key: 'world',    href: WORLD_URL,          images: ['/home/hero/world-2.webp'] },
 ]
 
 // Games are art-directed for dusk; the play overlay keeps the night palette
