@@ -488,9 +488,10 @@ const WORLD_URL = '/play/'
 // generate imagery of our own software.
 const HERO_MEDIA = [
   { key: 'lessons',  to: '/signup',            images: [
-    '/home/hero/lessons-1.webp', '/home/hero/lessons-11.webp', '/home/hero/lessons-3.webp',
+    '/home/hero/lessons-1.webp', '/home/hero/lessons-12.webp', '/home/hero/lessons-3.webp',
     '/home/hero/lessons-4.webp', '/home/hero/lessons-6.webp',
     '/home/hero/lessons-8.webp', '/home/hero/lessons-9.webp', '/home/hero/lessons-10.webp',
+    '/home/hero/lessons-13.webp', '/home/hero/lessons-14.webp',
   ] },
   { key: 'course',   to: '/pricing',           images: [
     '/home/hero/course-1.webp', '/home/hero/course-2.webp', '/home/hero/course-3.webp',
