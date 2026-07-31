@@ -112,10 +112,11 @@ const GH = {
     h1a: 'Learn live.', h1b: 'Speak every day',
     ctaBook: 'Book your first lesson', ctaPricing: 'See pricing', ctaWorld: 'Play the World for free',
     heroSliderLabel: 'What a course with us includes',
+    heroSliderPrev: 'Previous slide', heroSliderNext: 'Next slide',
     heroSlides: [
       { eyebrow: 'live 1:1 lessons', title: '60 minutes, with your own teacher', cta: 'Book your first lesson' },
       { eyebrow: 'your CEFR course', title: 'A course matched to your level', cta: 'See pricing' },
-      { eyebrow: 'practice between lessons', title: 'Lesson vocabulary becomes your flashcards', cta: 'Try it now' },
+      { eyebrow: 'practice between lessons', title: 'Say it out loud — your voice moves the city', cta: 'Try it now' },
       { eyebrow: 'English Metropolis World', title: 'Practise English across a living 3D city', cta: 'Explore it free' },
     ],
     chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'lesson vocabulary becomes flashcards', 'book online in minutes'],
@@ -182,10 +183,11 @@ const GH = {
     h1a: 'Ucz się na żywo.', h1b: 'Mów po angielsku na co dzień',
     ctaBook: 'Zarezerwuj pierwszą lekcję', ctaPricing: 'Zobacz cennik', ctaWorld: 'Zagraj w World za darmo',
     heroSliderLabel: 'Co obejmuje kurs u nas',
+    heroSliderPrev: 'Poprzedni slajd', heroSliderNext: 'Następny slajd',
     heroSlides: [
       { eyebrow: 'lekcje 1:1 na żywo', title: '60 minut, z własnym lektorem', cta: 'Zarezerwuj pierwszą lekcję' },
       { eyebrow: 'Twój kurs CEFR', title: 'Kurs dopasowany do Twojego poziomu', cta: 'Zobacz cennik' },
-      { eyebrow: 'ćwiczenia między lekcjami', title: 'Słownictwo z lekcji trafia do Twoich fiszek', cta: 'Wypróbuj teraz' },
+      { eyebrow: 'ćwiczenia między lekcjami', title: 'Mów na głos — Twój głos porusza miasto', cta: 'Wypróbuj teraz' },
       { eyebrow: 'English Metropolis World', title: 'Ćwicz angielski w żywym mieście 3D', cta: 'Wejdź za darmo' },
     ],
     chips: ['lekcje 1:1 na żywo, 60 min', 'kursy dopasowane do poziomu CEFR', 'słownictwo z lekcji trafia do fiszek', 'rezerwacja online w kilka minut'],
@@ -934,6 +936,8 @@ export default function GameHome() {
           <div className="gh-rise gh-rise-3 gh-hero-stage-wrap" style={{ minWidth: 0 }}>
             <HeroSlider
               label={W.heroSliderLabel}
+              prevLabel={W.heroSliderPrev}
+              nextLabel={W.heroSliderNext}
               slides={HERO_MEDIA.map((media, i) => ({
                 ...media, ...W.heroSlides[i], alt: W.heroSlides[i].title,
               }))}

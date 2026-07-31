@@ -27,7 +27,7 @@ function Slide({ slide, active }) {
   )
 }
 
-export default function HeroSlider({ slides, label }) {
+export default function HeroSlider({ slides, label, prevLabel, nextLabel }) {
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
   const rootRef = useRef(null)
@@ -83,6 +83,15 @@ export default function HeroSlider({ slides, label }) {
           <Slide key={slide.key} slide={slide} active={i === index}/>
         ))}
       </ul>
+
+      <button type="button" className="gh-hs-arrow gh-hs-arrow--prev"
+        aria-label={prevLabel} onClick={() => go(index - 1)}>
+        <span className="material-symbols-outlined" aria-hidden>chevron_left</span>
+      </button>
+      <button type="button" className="gh-hs-arrow gh-hs-arrow--next"
+        aria-label={nextLabel} onClick={() => go(index + 1)}>
+        <span className="material-symbols-outlined" aria-hidden>chevron_right</span>
+      </button>
 
       <div className="gh-hs-dots" role="tablist" aria-label={label}>
         {slides.map((slide, i) => (

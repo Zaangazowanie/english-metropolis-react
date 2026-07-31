@@ -1339,3 +1339,37 @@
   .gh-hs-slide[data-active="true"] img { animation: none; }
   .gh-hs-dot { transition: none; }
 }
+
+/* Arrows sit inside the frame and stay visible on touch, where there is no
+   hover to reveal them. They dim rather than disappear so the control never
+   moves the moment a pointer arrives. */
+.gh-hs-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  padding: 0; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(14, 10, 27, 0.42);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+  opacity: 0.62;
+  transition: opacity 200ms ease, background 200ms ease, transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gh-hs-arrow .material-symbols-outlined { font-size: 22px; }
+.gh-hs-arrow--prev { left: 14px; }
+.gh-hs-arrow--next { right: 14px; }
+.gh-hs:hover .gh-hs-arrow { opacity: 1; }
+.gh-hs-arrow:hover { background: rgba(14, 10, 27, 0.72); }
+.gh-hs-arrow--prev:hover { transform: translateY(-50%) translateX(-2px); }
+.gh-hs-arrow--next:hover { transform: translateY(-50%) translateX(2px); }
+.gh-hs-arrow:focus-visible { opacity: 1; outline: 2px solid #fff; outline-offset: 3px; }
+@media (max-width: 620px) {
+  .gh-hs-arrow { width: 34px; height: 34px; opacity: 0.85; }
+  .gh-hs-arrow--prev { left: 8px; }
+  .gh-hs-arrow--next { right: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .gh-hs-arrow { transition: none; } }
