@@ -109,7 +109,7 @@ const GH = {
     navPricing: 'Pricing', navSignin: 'Sign in', navSignup: 'Sign up', navDash: 'My dashboard',
     navPlay: 'Play the World',
     eyebrow: 'Online English school · live 1:1 lessons',
-    h1a: 'Learn live.', h1b: 'Speak every day',
+    h1a: 'Learn live.', h1b: 'Talk from lesson one',
     ctaBook: 'Book your first lesson', ctaPricing: 'See pricing', ctaWorld: 'Play the World for free',
     heroSliderLabel: 'What a course with us includes',
     heroSliderPrev: 'Previous slide', heroSliderNext: 'Next slide',
@@ -179,7 +179,7 @@ const GH = {
     navPricing: 'Cennik', navSignin: 'Zaloguj się', navSignup: 'Załóż konto', navDash: 'Mój panel',
     navPlay: 'Zagraj w World',
     eyebrow: 'Szkoła angielskiego online · lekcje 1:1 na żywo',
-    h1a: 'Ucz się na żywo.', h1b: 'Mów po angielsku na co dzień',
+    h1a: 'Ucz się na żywo.', h1b: 'Mów na co dzień',
     ctaBook: 'Zarezerwuj pierwszą lekcję', ctaPricing: 'Zobacz cennik', ctaWorld: 'Zagraj w World za darmo',
     heroSliderLabel: 'Co obejmuje kurs u nas',
     heroSliderPrev: 'Poprzedni slajd', heroSliderNext: 'Następny slajd',
@@ -910,7 +910,7 @@ export default function GameHome() {
               </span>
             </div>
             <h1 className="gh-rise gh-rise-2" style={{ fontFamily: FONT.display, fontWeight: 700,
-              fontSize: 'clamp(42px, 6.4vw, 82px)', lineHeight: 0.98, letterSpacing: '-0.04em', margin: 0 }}>
+              fontSize: 'clamp(42px, 6.4vw, 82px)', lineHeight: 1.06, letterSpacing: '-0.04em', margin: 0 }}>
               {W.h1a}
               <br/>
               <span className="gh-gradient-word" style={{ background: G.brand, WebkitBackgroundClip: 'text',
