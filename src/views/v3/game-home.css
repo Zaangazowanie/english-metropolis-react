@@ -1522,7 +1522,7 @@
   bottom: 12px;
   width: 112px;
   height: 12px;
-  background: url('/brand/watermark-skyline-white.png') no-repeat right bottom / contain;
+  background: url('/brand/watermark-skyline-v2.png') no-repeat right bottom / contain;
   opacity: 0.72;
   filter: drop-shadow(0 1px 2px rgba(14, 10, 27, 0.45));
   pointer-events: none;
