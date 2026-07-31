@@ -114,9 +114,9 @@ const GH = {
     heroSliderLabel: 'What a course with us includes',
     heroSliderPrev: 'Previous slide', heroSliderNext: 'Next slide',
     heroSlides: [
-      { eyebrow: 'live 1:1 lessons', title: '60 minutes, with your own teacher', cta: 'Book your first lesson' },
-      { eyebrow: 'your CEFR course', title: 'A course matched to your level', cta: 'See pricing' },
-      { eyebrow: 'practice between lessons', title: 'Practise out loud, on your own time', cta: 'Try it now' },
+      { eyebrow: 'live 1:1 lessons', title: '60 minutes, with your own teacher', cta: 'Start learning', cta2: 'Find your course', to2: '/pricing' },
+      { eyebrow: 'your CEFR course', title: 'A course matched to your level', cta: 'See pricing', cta2: 'Book a lesson', to2: '/signup' },
+      { eyebrow: 'practice between lessons', title: 'Practise out loud, on your own time', cta: 'Try it now', cta2: 'See pricing', to2: '/pricing' },
     ],
     chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'lesson vocabulary becomes flashcards', 'book online in minutes'],
     arcadeBadge: 'quick practice · try it now',
@@ -184,9 +184,9 @@ const GH = {
     heroSliderLabel: 'Co obejmuje kurs u nas',
     heroSliderPrev: 'Poprzedni slajd', heroSliderNext: 'Następny slajd',
     heroSlides: [
-      { eyebrow: 'lekcje 1:1 na żywo', title: '60 minut, z własnym lektorem', cta: 'Zarezerwuj pierwszą lekcję' },
-      { eyebrow: 'Twój kurs CEFR', title: 'Kurs dopasowany do Twojego poziomu', cta: 'Zobacz cennik' },
-      { eyebrow: 'ćwiczenia między lekcjami', title: 'Ćwicz na głos, we własnym tempie', cta: 'Wypróbuj teraz' },
+      { eyebrow: 'lekcje 1:1 na żywo', title: '60 minut, z własnym lektorem', cta: 'Zacznij naukę', cta2: 'Znajdź swój kurs', to2: '/pricing' },
+      { eyebrow: 'Twój kurs CEFR', title: 'Kurs dopasowany do Twojego poziomu', cta: 'Zobacz cennik', cta2: 'Zarezerwuj lekcję', to2: '/signup' },
+      { eyebrow: 'ćwiczenia między lekcjami', title: 'Ćwicz na głos, we własnym tempie', cta: 'Wypróbuj teraz', cta2: 'Zobacz cennik', to2: '/pricing' },
     ],
     chips: ['lekcje 1:1 na żywo, 60 min', 'kursy dopasowane do poziomu CEFR', 'słownictwo z lekcji trafia do fiszek', 'rezerwacja online w kilka minut'],
     arcadeBadge: 'krótkie ćwiczenia · wypróbuj teraz',
@@ -489,8 +489,7 @@ const WORLD_URL = '/play/'
 const HERO_MEDIA = [
   { key: 'lessons',  to: '/signup',            images: [
     '/home/hero/lessons-1.webp', '/home/hero/lessons-2.webp', '/home/hero/lessons-3.webp',
-    '/home/hero/lessons-4.webp', '/home/hero/lessons-5.webp', '/home/hero/lessons-6.webp',
-    '/home/hero/lessons-7.webp',
+    '/home/hero/lessons-4.webp', '/home/hero/lessons-6.webp',
   ] },
   { key: 'course',   to: '/pricing',           images: [
     '/home/hero/course-1.webp', '/home/hero/course-2.webp', '/home/hero/course-3.webp',

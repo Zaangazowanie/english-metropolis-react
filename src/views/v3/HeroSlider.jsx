@@ -16,10 +16,16 @@ function Slide({ slide, image, active }) {
       <div className="gh-hs-caption">
         <span className="gh-hs-eyebrow">{slide.eyebrow}</span>
         <strong className="gh-hs-title">{slide.title}</strong>
-        <Wrap {...wrapProps} className="gh-hs-cta" tabIndex={active ? 0 : -1}>
-          {slide.cta}
-          <span className="material-symbols-outlined" aria-hidden>arrow_forward</span>
-        </Wrap>
+        <div className="gh-hs-actions">
+          <Wrap {...wrapProps} className="gh-hs-btn gh-hs-btn--primary" tabIndex={active ? 0 : -1}>
+            {slide.cta}
+          </Wrap>
+          {slide.cta2 && (
+            <Link to={slide.to2} className="gh-hs-btn gh-hs-btn--secondary" tabIndex={active ? 0 : -1}>
+              {slide.cta2}
+            </Link>
+          )}
+        </div>
       </div>
     </li>
   )

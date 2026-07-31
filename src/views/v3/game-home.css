@@ -1386,3 +1386,75 @@
   animation: none !important;
   padding-bottom: 0.16em;
 }
+
+/* ── Buttons ──────────────────────────────────────────────────────────────
+   The gradient-glow pill was the generated-SaaS signature: three colour stops,
+   a 34px coloured halo, an inset white highlight, a shimmer sweep and wide
+   tracking. Replaced with a solid primary and a hairline outline secondary —
+   flat colour, small radius, real edges, motion only on press. */
+.gh-action--primary {
+  letter-spacing: 0.01em !important;
+  background: #2549D6 !important;
+  border-color: #2549D6 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 1px 2px rgba(20, 30, 80, 0.16) !important;
+}
+.gh-action--primary::before { display: none !important; }   /* kill the shimmer sweep */
+.gh-action--primary:hover {
+  background: #1D3CB8 !important;
+  border-color: #1D3CB8 !important;
+  box-shadow: 0 4px 14px -4px rgba(37, 73, 214, 0.5) !important;
+}
+.gh-action--primary:active { background: #17309A !important; }
+
+.gh-action--secondary {
+  background: #fff !important;
+  color: #17102E !important;
+  border-color: #C9D2E8 !important;
+  border-radius: 10px !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+.gh-action--secondary:hover {
+  border-color: #2549D6 !important;
+  color: #2549D6 !important;
+  background: #fff !important;
+}
+.gh-action--ghost { border-radius: 10px; }
+
+/* Press, not float — the 2px lift on hover read as decoration. */
+.gh-action:hover { transform: none !important; }
+.gh-action:active { transform: translateY(1px) !important; }
+.gh-action:focus-visible { outline-color: #2549D6 !important; }
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="dark"] .gh-action--secondary {
+    background: transparent !important;
+    color: #EDEAF6 !important;
+    border-color: rgba(237, 234, 246, 0.28) !important;
+  }
+}
+
+/* Slide buttons — the pair Mike picked out: a solid primary and a light
+   outline secondary, flat colour, 10px radius, no glow and no gradient. Same
+   shapes as .gh-action so the hero and the slides agree. */
+.gh-hs-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.gh-hs-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 42px; padding: 11px 20px;
+  border-radius: 10px;
+  font: 600 13.5px/1 'Space Grotesk', system-ui, sans-serif;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+.gh-hs-btn--primary { background: #2549D6; border-color: #2549D6; color: #fff; }
+.gh-hs-btn--primary:hover { background: #1D3CB8; border-color: #1D3CB8; }
+.gh-hs-btn--secondary { background: #fff; border-color: #fff; color: #17102E; }
+.gh-hs-btn--secondary:hover { background: transparent; color: #fff; }
+.gh-hs-btn:active { transform: translateY(1px); }
+.gh-hs-btn:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+@media (max-width: 620px) { .gh-hs-btn { padding: 10px 16px; font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { .gh-hs-btn { transition: none; } }
