@@ -1373,3 +1373,16 @@
   .gh-hs-arrow--next { right: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .gh-hs-arrow { transition: none; } }
+
+/* The hero's last word kept reading as a chopped descender. Measured, the glyph
+   is never clipped — Plus Jakarta Sans just draws a short flat-cut y, and the
+   drifting gradient could land its palest stop right on that tail. Three changes
+   so it cannot read as damage regardless of browser or animation frame:
+   deepen the end stop, stop the gradient drifting, and give the inline box
+   vertical padding so no paint area can ever crop a descender. */
+.gh-hero-copy .gh-gradient-word {
+  background-image: linear-gradient(135deg, #7C3AED 0%, #C026D3 52%, #DB2777 100%) !important;
+  background-size: 100% 100% !important;
+  animation: none !important;
+  padding-bottom: 0.16em;
+}

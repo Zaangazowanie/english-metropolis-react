@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useVariant } from '../../lib/useVariant.js'
 
 const AUTOPLAY_MS = 6500
 
 // One slide = one product pillar with a fixed call to action. The photograph is
-// drawn from that pillar's pool (see useVariant), so the CTA a visitor sees is
-// always the same four while the imagery rotates between visits.
-function Slide({ slide, active }) {
-  const image = useVariant(slide.images)
+// chosen by the parent, one per pillar per page load, so the CTA a visitor sees
+// is always the same four while the imagery rotates between visits.
+function Slide({ slide, image, active }) {
   const Wrap = slide.href ? 'a' : Link
   const wrapProps = slide.href ? { href: slide.href } : { to: slide.to }
   return (
@@ -33,6 +31,20 @@ export default function HeroSlider({ slides, label, prevLabel, nextLabel }) {
   const rootRef = useRef(null)
   const touchX = useRef(null)
   const count = slides.length
+
+  // Pick every slide's photograph in one pass, refusing any file another slide
+  // has already taken. Pools are meant to be disjoint, but a shared file once
+  // put the same man on two slides at the same time, so the guard stays.
+  const [images] = useState(() => {
+    const used = new Set()
+    return slides.map((slide) => {
+      const free = slide.images.filter((src) => !used.has(src))
+      const pool = free.length ? free : slide.images
+      const pick = pool[Math.floor(Math.random() * pool.length)]
+      used.add(pick)
+      return pick
+    })
+  })
 
   const go = useCallback((next) => setIndex(((next % count) + count) % count), [count])
 
@@ -80,7 +92,7 @@ export default function HeroSlider({ slides, label, prevLabel, nextLabel }) {
     >
       <ul className="gh-hs-track">
         {slides.map((slide, i) => (
-          <Slide key={slide.key} slide={slide} active={i === index}/>
+          <Slide key={slide.key} slide={slide} image={images[i]} active={i === index}/>
         ))}
       </ul>
 

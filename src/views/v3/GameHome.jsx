@@ -117,7 +117,6 @@ const GH = {
       { eyebrow: 'live 1:1 lessons', title: '60 minutes, with your own teacher', cta: 'Book your first lesson' },
       { eyebrow: 'your CEFR course', title: 'A course matched to your level', cta: 'See pricing' },
       { eyebrow: 'practice between lessons', title: 'Practise out loud, on your own time', cta: 'Try it now' },
-      { eyebrow: 'English Metropolis World', title: 'Practise English across a living 3D city', cta: 'Explore it free' },
     ],
     chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'lesson vocabulary becomes flashcards', 'book online in minutes'],
     arcadeBadge: 'quick practice · try it now',
@@ -188,7 +187,6 @@ const GH = {
       { eyebrow: 'lekcje 1:1 na żywo', title: '60 minut, z własnym lektorem', cta: 'Zarezerwuj pierwszą lekcję' },
       { eyebrow: 'Twój kurs CEFR', title: 'Kurs dopasowany do Twojego poziomu', cta: 'Zobacz cennik' },
       { eyebrow: 'ćwiczenia między lekcjami', title: 'Ćwicz na głos, we własnym tempie', cta: 'Wypróbuj teraz' },
-      { eyebrow: 'English Metropolis World', title: 'Ćwicz angielski w żywym mieście 3D', cta: 'Wejdź za darmo' },
     ],
     chips: ['lekcje 1:1 na żywo, 60 min', 'kursy dopasowane do poziomu CEFR', 'słownictwo z lekcji trafia do fiszek', 'rezerwacja online w kilka minut'],
     arcadeBadge: 'krótkie ćwiczenia · wypróbuj teraz',
@@ -497,8 +495,7 @@ const HERO_MEDIA = [
   { key: 'course',   to: '/pricing',           images: [
     '/home/hero/course-1.webp', '/home/hero/course-2.webp', '/home/hero/course-3.webp',
   ] },
-  { key: 'practice', href: '#gh-arcade-stage', images: ['/home/hero/practice-3.webp'] },
-  { key: 'world',    href: WORLD_URL,          images: ['/home/hero/world-2.webp'] },
+  { key: 'practice', href: '#gh-arcade-stage', images: ['/home/hero/practice-4.webp'] },
 ]
 
 // Games are art-directed for dusk; the play overlay keeps the night palette
