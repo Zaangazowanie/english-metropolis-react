@@ -488,7 +488,7 @@ const WORLD_URL = '/play/'
 // generate imagery of our own software.
 const HERO_MEDIA = [
   { key: 'lessons',  to: '/signup',            images: [
-    '/home/hero/lessons-1.webp', '/home/hero/lessons-2.webp', '/home/hero/lessons-3.webp',
+    '/home/hero/lessons-1.webp', '/home/hero/lessons-11.webp', '/home/hero/lessons-3.webp',
     '/home/hero/lessons-4.webp', '/home/hero/lessons-6.webp',
     '/home/hero/lessons-8.webp', '/home/hero/lessons-9.webp', '/home/hero/lessons-10.webp',
   ] },
