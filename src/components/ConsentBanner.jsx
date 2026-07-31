@@ -87,17 +87,17 @@ export default function ConsentBanner() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[10000] p-3 sm:p-5 pointer-events-none">
-      <div className="max-w-5xl mx-auto rounded-[1.5rem] border-2 border-slate-900/10 bg-white/98 backdrop-blur-xl shadow-[0_-10px_40px_rgba(15,23,42,0.15)] p-5 sm:p-6 pointer-events-auto consent-banner-enter">
+      <div className="max-w-5xl mx-auto rounded-[16px] border border-slate-900/10 bg-white/98 backdrop-blur-xl shadow-[0_-6px_28px_rgba(15,23,42,0.12)] p-5 sm:p-6 pointer-events-auto consent-banner-enter">
         <div className="flex items-start gap-3 sm:gap-4">
-          <div className="shrink-0 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-[0.85rem] bg-gradient-to-br from-violet-500 to-fuchsia-600 shadow-md">
+          <div className="shrink-0 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-[10px] bg-[#4333C6] shadow-sm">
             <span className="material-symbols-outlined text-white text-xl sm:text-2xl">cookie</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-headline text-base sm:text-lg text-slate-900 leading-tight">
+            <h2 className="text-base sm:text-lg text-slate-900 leading-tight font-semibold tracking-[-0.02em]" style={{ fontFamily: "'Sora', 'Plus Jakarta Sans', system-ui, sans-serif" }}>
               {t('consent.title')}
             </h2>
-            <p className="mt-1.5 text-[12px] sm:text-sm text-slate-600 leading-relaxed">
-              {t('consent.blurb')} <Link to="/privacy" className="text-violet-700 font-semibold underline">{t('consent.privacyLink')}</Link> · <Link to="/cookies" className="text-violet-700 font-semibold underline">{t('consent.cookieLink')}</Link>
+            <p className="mt-1.5 text-[12px] sm:text-sm text-slate-600 leading-relaxed font-label">
+              {t('consent.blurb')} <Link to="/privacy" className="text-[#4333C6] font-semibold underline underline-offset-2 font-label">{t('consent.privacyLink')}</Link> · <Link to="/cookies" className="text-[#4333C6] font-semibold underline underline-offset-2 font-label">{t('consent.cookieLink')}</Link>
             </p>
 
             {state.expanded && (
@@ -120,8 +120,8 @@ export default function ConsentBanner() {
                       className="mt-0.5 h-4 w-4 shrink-0 accent-violet-600"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[12px] font-bold text-slate-800">{cat.label}</p>
-                      <p className="text-[11px] text-slate-500 leading-relaxed">{cat.desc}</p>
+                      <p className="text-[12px] font-bold text-slate-800 font-label">{cat.label}</p>
+                      <p className="text-[11px] text-slate-500 leading-relaxed font-label">{cat.desc}</p>
                     </div>
                   </label>
                 ))}
@@ -132,7 +132,7 @@ export default function ConsentBanner() {
               <button
                 type="button"
                 onClick={acceptAll}
-                className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 px-4 py-2 text-[11px] font-label font-bold uppercase tracking-[0.14em] text-white transition cursor-pointer shadow-md"
+                className="inline-flex items-center gap-1.5 rounded-[10px] bg-[#4333C6] hover:bg-[#3A2BAC] px-4 py-2.5 text-[13px] font-label font-semibold text-white transition cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[14px]">check_circle</span>
                 {t('consent.btn.acceptAll')}
@@ -140,7 +140,7 @@ export default function ConsentBanner() {
               <button
                 type="button"
                 onClick={rejectAll}
-                className="inline-flex items-center gap-1 rounded-full bg-white border-2 border-slate-200 hover:border-slate-400 px-4 py-2 text-[11px] font-label font-bold uppercase tracking-[0.14em] text-slate-700 hover:text-slate-900 transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-[10px] bg-white border border-slate-300 hover:border-[#4333C6] hover:text-[#4333C6] px-4 py-2.5 text-[13px] font-label font-semibold text-slate-700 transition cursor-pointer"
               >
                 {t('consent.btn.rejectAll')}
               </button>
@@ -148,7 +148,7 @@ export default function ConsentBanner() {
                 <button
                   type="button"
                   onClick={save}
-                  className="inline-flex items-center gap-1 rounded-full bg-slate-900 hover:bg-slate-800 px-4 py-2 text-[11px] font-label font-bold uppercase tracking-[0.14em] text-white transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-slate-900 hover:bg-slate-800 px-4 py-2.5 text-[13px] font-label font-semibold text-white transition cursor-pointer"
                 >
                   {t('consent.btn.save')}
                 </button>
@@ -156,7 +156,7 @@ export default function ConsentBanner() {
                 <button
                   type="button"
                   onClick={() => setState(s => ({ ...s, expanded: true }))}
-                  className="inline-flex items-center gap-1 rounded-full bg-white border border-slate-200 hover:border-violet-400 px-4 py-2 text-[11px] font-label font-bold uppercase tracking-[0.14em] text-slate-600 hover:text-violet-700 transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-white border border-slate-300 hover:border-[#4333C6] px-4 py-2.5 text-[13px] font-label font-semibold text-slate-600 hover:text-[#4333C6] transition cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[14px]">tune</span>
                   {t('consent.btn.customise')}
