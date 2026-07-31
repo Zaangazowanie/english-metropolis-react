@@ -1385,6 +1385,12 @@
   background-size: 100% 100% !important;
   animation: none !important;
   padding-bottom: 0.16em;
+  /* When the headline wraps, this span becomes several line fragments. By
+     default padding lands on the last fragment only, so "day" kept its
+     descender room while the y ending "every" had none and background-clip
+     cropped it at the line box. `clone` gives every fragment its own box. */
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 /* ── Buttons ──────────────────────────────────────────────────────────────
