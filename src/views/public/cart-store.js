@@ -5,6 +5,11 @@
 import { useSyncExternalStore } from 'react'
 
 const STORAGE_KEY = 'em.cart.v1'
+// A cart is only ever emptied by a completed payment (PaymentReturn), so until
+// Przelewy24 is activated nothing can clear one — anything added during testing
+// sits in localStorage forever and the pill keeps showing a stale count. Age the
+// cart out instead. Carts written before savedAt existed are treated as expired.
+const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 
 function load() {
   try {
@@ -12,6 +17,7 @@ function load() {
     if (!raw) return { items: [] }
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed.items)) return { items: [] }
+    if (!parsed.savedAt || Date.now() - parsed.savedAt > MAX_AGE_MS) return { items: [] }
     return { items: parsed.items.filter((i) => i && i.id && i.qty > 0) }
   } catch {
     return { items: [] }
@@ -23,7 +29,7 @@ const listeners = new Set()
 
 function persist() {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, savedAt: Date.now() }))
   } catch {
     // Cart still works in-memory when storage is unavailable.
   }

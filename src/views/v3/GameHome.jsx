@@ -23,6 +23,7 @@ import { useI18n } from '../../i18n'
 import { PRIVATE_PACKAGES } from '../public/packages.js'
 import { cart, parsePricePLN } from '../public/cart-store.js'
 import CartUI from '../public/CartUI.jsx'
+import HeroSlider from './HeroSlider.jsx'
 import HeroPracticePreview from './HeroPracticePreview.jsx'
 const ArcadeCityBackdrop = lazy(() => import('./ArcadeCityBackdrop.jsx'))
 import './game-home.css'
@@ -109,13 +110,14 @@ const GH = {
     navPlay: 'Play the World',
     eyebrow: 'online English school · live 1:1 lessons',
     h1a: 'Learn live.', h1b: 'Speak every day',
-    heroPoints: [
-      <>Live <b>1:1 lessons</b>, 60 minutes, with your own teacher</>,
-      <>A course matched to your <b>CEFR level</b></>,
-      <>Lesson vocabulary becomes your <b>flashcards</b></>,
-      <>Practice between lessons in <b>EnglishMetro World</b>, our 3D city</>,
-    ],
     ctaBook: 'Book your first lesson', ctaPricing: 'See pricing', ctaWorld: 'Play the World for free',
+    heroSliderLabel: 'What a course with us includes',
+    heroSlides: [
+      { eyebrow: 'live 1:1 lessons', title: '60 minutes, with your own teacher', cta: 'Book your first lesson' },
+      { eyebrow: 'your CEFR course', title: 'A course matched to your level', cta: 'See pricing' },
+      { eyebrow: 'practice between lessons', title: 'Lesson vocabulary becomes your flashcards', cta: 'Try it now' },
+      { eyebrow: 'English Metropolis World', title: 'Practise English across a living 3D city', cta: 'Explore it free' },
+    ],
     chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'lesson vocabulary becomes flashcards', 'book online in minutes'],
     arcadeBadge: 'quick practice · try it now',
     officeAlt: 'Students laughing together at the English Metro school',
@@ -132,9 +134,9 @@ const GH = {
     doorsBody: (n) => `${n} short games across four metro lines: vocabulary, grammar, listening and speaking. Practise for two minutes or twenty.`,
     doorsGo: 'Recommended game:',
     ctaTitle: 'Save your progress with a free account.',
-    ctaBody: 'A free account saves your streaks and vocabulary progress and enables full-screen play in EnglishMetro World and Quick Practice.',
+    ctaBody: 'A free account saves your streaks and vocabulary progress and enables full-screen play in English Metropolis World and Quick Practice.',
     ctaPlay: 'Play for free',
-    ctaBeta: 'Try the EnglishMetro World beta',
+    ctaBeta: 'Try the English Metropolis World beta',
     lineTags: { 'Arcade Line': 'Fast hands, faster words', 'Word Line': 'Letters into language', 'Quiz Line': 'Think quick, answer quicker', 'City Line': 'Real skills, street level' },
     worldLink: 'Explore the full 3D city for free',
     stepsKicker: 'from sign-up to speaking', stepsTitle: 'Your first lesson is four steps away',
@@ -156,7 +158,7 @@ const GH = {
     ],
     cityKicker: 'live lessons · practice between sessions',
     cityTitle: 'One learning plan. Connected practice.',
-    cityBody: 'Your teacher sets the focus. Vocabulary from each lesson becomes flashcards and games in EnglishMetro World, so you practise the same material between lessons.',
+    cityBody: 'Your teacher sets the focus. Vocabulary from each lesson becomes flashcards and games in English Metropolis World, so you practise the same material between lessons.',
     cityFeatures: ['Live feedback from your teacher', 'Vocabulary from your own lessons', 'A 3D world for practice between lessons'],
     cityCta: 'Start my learning plan',
     cityLabel: 'Interactive 3D map of EnglishMetro',
@@ -178,13 +180,14 @@ const GH = {
     navPlay: 'Zagraj w World',
     eyebrow: 'szkoła angielskiego online · lekcje 1:1 na żywo',
     h1a: 'Ucz się na żywo.', h1b: 'Mów po angielsku na co dzień',
-    heroPoints: [
-      <>Lekcje <b>1:1 na żywo</b>, 60 minut, z własnym lektorem</>,
-      <>Kurs dopasowany do Twojego <b>poziomu CEFR</b></>,
-      <>Słownictwo z lekcji trafia do Twoich <b>fiszek</b></>,
-      <>Między lekcjami ćwiczysz w <b>EnglishMetro World</b>, naszym mieście 3D</>,
-    ],
     ctaBook: 'Zarezerwuj pierwszą lekcję', ctaPricing: 'Zobacz cennik', ctaWorld: 'Zagraj w World za darmo',
+    heroSliderLabel: 'Co obejmuje kurs u nas',
+    heroSlides: [
+      { eyebrow: 'lekcje 1:1 na żywo', title: '60 minut, z własnym lektorem', cta: 'Zarezerwuj pierwszą lekcję' },
+      { eyebrow: 'Twój kurs CEFR', title: 'Kurs dopasowany do Twojego poziomu', cta: 'Zobacz cennik' },
+      { eyebrow: 'ćwiczenia między lekcjami', title: 'Słownictwo z lekcji trafia do Twoich fiszek', cta: 'Wypróbuj teraz' },
+      { eyebrow: 'English Metropolis World', title: 'Ćwicz angielski w żywym mieście 3D', cta: 'Wejdź za darmo' },
+    ],
     chips: ['lekcje 1:1 na żywo, 60 min', 'kursy dopasowane do poziomu CEFR', 'słownictwo z lekcji trafia do fiszek', 'rezerwacja online w kilka minut'],
     arcadeBadge: 'krótkie ćwiczenia · wypróbuj teraz',
     officeAlt: 'Uczniowie śmiejący się razem w szkole English Metro',
@@ -201,9 +204,9 @@ const GH = {
     doorsBody: (n) => `${n} krótkich gier na czterech liniach metra: słownictwo, gramatyka, słuchanie i mówienie. Ćwicz dwie minuty albo dwadzieścia.`,
     doorsGo: 'Polecana gra:',
     ctaTitle: 'Zapisuj postępy z darmowym kontem.',
-    ctaBody: 'Darmowe konto zapisuje Twoje serie i postępy w słownictwie oraz włącza grę na pełnym ekranie w EnglishMetro World i Szybkich ćwiczeniach.',
+    ctaBody: 'Darmowe konto zapisuje Twoje serie i postępy w słownictwie oraz włącza grę na pełnym ekranie w English Metropolis World i Szybkich ćwiczeniach.',
     ctaPlay: 'Graj za darmo',
-    ctaBeta: 'Wypróbuj betę EnglishMetro World',
+    ctaBeta: 'Wypróbuj betę English Metropolis World',
     lineTags: { 'Arcade Line': 'Szybkie ręce, szybsze słowa', 'Word Line': 'Z liter w język', 'Quiz Line': 'Myśl szybko, odpowiadaj szybciej', 'City Line': 'Prawdziwe sytuacje, poziom ulicy' },
     worldLink: 'Poznaj całe miasto 3D za darmo',
     stepsKicker: 'od rejestracji do mówienia', stepsTitle: 'Twoja pierwsza lekcja w czterech krokach',
@@ -225,7 +228,7 @@ const GH = {
     ],
     cityKicker: 'lekcje na żywo · ćwiczenia między zajęciami',
     cityTitle: 'Jeden plan nauki. Spójne ćwiczenia.',
-    cityBody: 'Lektor wyznacza zakres materiału. Słownictwo z każdej lekcji trafia do fiszek i gier w EnglishMetro World, dzięki czemu między zajęciami ćwiczysz ten sam materiał.',
+    cityBody: 'Lektor wyznacza zakres materiału. Słownictwo z każdej lekcji trafia do fiszek i gier w English Metropolis World, dzięki czemu między zajęciami ćwiczysz ten sam materiał.',
     cityFeatures: ['Informacja zwrotna od lektora na żywo', 'Słownictwo z Twoich lekcji', 'Świat 3D do ćwiczeń między lekcjami'],
     cityCta: 'Rozpocznij plan nauki',
     cityLabel: 'Interaktywna mapa 3D EnglishMetro',
@@ -477,6 +480,18 @@ const CURRENT_YEAR = new Date().getFullYear()
 // The world game lives OUTSIDE the SPA as static files (own loader, own
 // three.js build) — a plain anchor, not a router Link.
 const WORLD_URL = '/play/'
+
+// The four hero pillars. Copy comes from the language dictionary; each pillar
+// keeps a fixed destination and draws its photograph from a pool, one picked
+// per page load, so returning visitors don't meet the same image every time.
+// The two product pillars use real captures of the running app — we don't
+// generate imagery of our own software.
+const HERO_MEDIA = [
+  { key: 'lessons',  to: '/signup',            images: ['/home/hero/lessons-1.webp'] },
+  { key: 'course',   to: '/pricing',           images: ['/home/hero/course-1.webp'] },
+  { key: 'practice', href: '#gh-arcade-stage', images: ['/home/hero/practice-1.webp'] },
+  { key: 'world',    href: WORLD_URL,          images: ['/home/hero/world-1.webp'] },
+]
 
 // Games are art-directed for dusk; the play overlay keeps the night palette
 // in both site themes.
@@ -797,7 +812,7 @@ export default function GameHome() {
   }, [])
 
   const tickerNames = useMemo(() => {
-    const names = ['EnglishMetro World · OPEN BETA', ...playable3d.map((e) => `${e.title} · 3D`),
+    const names = ['English Metropolis World · OPEN BETA', ...playable3d.map((e) => `${e.title} · 3D`),
       ...ALL_GAMES.map((g) => g.title)]
     return [...names, ...names] // doubled for a seamless -50% loop
   }, [playable3d])
@@ -896,17 +911,9 @@ export default function GameHome() {
                 WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{W.h1b}</span>
               <span style={{ color: T.ember }}>.</span>
             </h1>
-            <ul className="gh-rise gh-rise-3" style={{ marginTop: 24, display: 'grid', gap: 12,
-              padding: 0, margin: '24px 0 0', listStyle: 'none', maxWidth: 540 }}>
-              {W.heroPoints.map((point, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10,
-                  fontSize: 'clamp(15px, 1.6vw, 17px)', color: T.textDim, lineHeight: 1.5 }}>
-                  <span className="material-symbols-outlined" aria-hidden
-                    style={{ fontSize: 19, color: T.emerald, marginTop: 2 }}>check_circle</span>
-                  <span>{point}</span>
-                </li>
-              ))}
-            </ul>
+            {/* The four pillars that used to sit here as a checklist are now the
+                four slides beside it, each with its own destination. Repeating
+                them in text made the hero say everything twice. */}
             <div className="gh-rise gh-rise-4" style={{ marginTop: 30, display: 'flex', gap: 14,
               flexWrap: 'wrap', alignItems: 'center' }}>
               <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward"
@@ -925,13 +932,12 @@ export default function GameHome() {
           </div>
 
           <div className="gh-rise gh-rise-3 gh-hero-stage-wrap" style={{ minWidth: 0 }}>
-            <div className="gh-photo-frame gh-photo-frame--wide">
-              <img src="/home/photo-office-2607.webp" alt={W.officeAlt} width="1600" height="900"/>
-              <span className="gh-float-chip gh-float-chip--a">
-                <span className="material-symbols-outlined" aria-hidden>diversity_3</span>
-                {W.officeChip}
-              </span>
-            </div>
+            <HeroSlider
+              label={W.heroSliderLabel}
+              slides={HERO_MEDIA.map((media, i) => ({
+                ...media, ...W.heroSlides[i], alt: W.heroSlides[i].title,
+              }))}
+            />
           </div>
         </section>
 
