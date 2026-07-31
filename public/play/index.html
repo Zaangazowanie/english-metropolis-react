@@ -18,6 +18,9 @@
       font-display: swap; src: url('public/assets/fonts/space-grotesk-latin-600-normal.woff2') format('woff2'); }
     @font-face { font-family: 'Space Grotesk'; font-weight: 700; font-style: normal;
       font-display: swap; src: url('public/assets/fonts/space-grotesk-latin-700-normal.woff2') format('woff2'); }
+    /* The site's display face, served from the same origin as the rest of the site. */
+    @font-face { font-family: 'Plus Jakarta Sans'; font-weight: 700; font-style: normal;
+      font-display: swap; src: url('/fonts/files/f7a01dbf-LDIoaomQNQcsA88c7O9yZ4KMCoOg4Ko70yyygA.woff2') format('woff2'); }
     :root {
       --cream: #F4F0FF; --ink: #080D20; --amber: #FFBE72; --terra: #FF4FA3;
       --sage: #4DEEEA; --purple: #9B63FF; --panel: rgba(8, 13, 32, 0.82);
@@ -36,7 +39,8 @@
         radial-gradient(ellipse 100% 80% at 50% -10%, rgba(139,92,246,0.28), transparent 60%),
         radial-gradient(ellipse 80% 60% at 80% 30%, rgba(217,70,239,0.16), transparent 60%),
         linear-gradient(180deg, #060410 0%, #0A0718 45%, #1a0f36 100%); }
-    #loading h1 { font-size: clamp(34px, 7vw, 64px); letter-spacing: -0.02em; color: var(--cream);
+    #loading h1 { font-family: 'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif;
+      font-size: clamp(34px, 7vw, 64px); letter-spacing: -0.03em; color: var(--cream);
       font-weight: 700; }
     #loading h1 span { background: var(--brand); -webkit-background-clip: text;
       background-clip: text; color: transparent; }
@@ -48,13 +52,15 @@
       background: rgba(255,255,255,0.08); overflow: hidden; }
     #bar { width: 0%; height: 100%; border-radius: 6px; background: var(--brand);
       transition: width 0.2s ease; }
-    #begin { display: none; border: 1px solid rgba(255,255,255,0.22); cursor: pointer;
-      padding: 15px 52px; font-family: inherit; font-size: 18px; font-weight: 700;
-      letter-spacing: 0.22em; color: #fff; background: var(--brand); border-radius: 999px;
-      box-shadow: 0 12px 34px -10px rgba(217,70,239,0.6);
-      transform: translateY(0); transition: transform 0.15s, box-shadow 0.15s; }
-    #begin:hover { transform: translateY(-2px); box-shadow: 0 16px 44px -10px rgba(217,70,239,0.8); }
+    /* Solid, flat, 10px radius - the site's button, not a glowing gradient pill. */
+    #begin { display: none; border: 1px solid #4333C6; cursor: pointer;
+      padding: 14px 34px; font-family: 'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif; font-size: 15px;
+      font-weight: 600; letter-spacing: 0.01em; color: #fff; background: #4333C6;
+      border-radius: 10px; box-shadow: 0 1px 2px rgba(8,13,32,0.4);
+      transition: background 0.18s ease, border-color 0.18s ease; }
+    #begin:hover { background: #3A2BAC; border-color: #3A2BAC; }
     #begin:active { transform: translateY(1px); }
+    #begin:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
     /* ---------- HUD ---------- */
     #hud { position: fixed; inset: 0; z-index: 20; pointer-events: none; opacity: 0;

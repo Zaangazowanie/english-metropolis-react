@@ -4,6 +4,10 @@ import { buildSession, recordAnswer, masteryFor, overallMastery } from './gramma
 const DRILL_N = 7;   // questions per teacher drill (pass = 70%, i.e. 5/7)
 
 export class UI {
+  // Opt-in developer HUD: englishmetro.com/play/?debug
+  static debugHUD = typeof location !== 'undefined'
+    && new URLSearchParams(location.search).has('debug');
+
   constructor() {
     this.$ = (id) => document.getElementById(id);
     this.xp = Number(localStorage.getItem('em_xp') || 0);
@@ -416,8 +420,14 @@ export class UI {
     this.voice?.stop();
   }
 
+  // The frame counter is a developer readout, not player-facing: it was
+  // shipping "49 fps · 62% · potato" to customers, and "potato" is an internal
+  // tier name. Hidden unless ?debug is on the URL. Players still see quality
+  // through the graphics dropdown, which uses the friendly labels.
   setFPS(fps, scale) {
-    this.$('fps').textContent = `${fps | 0} fps · ${(scale * 100) | 0}%`
+    const el = this.$('fps');
+    if (!UI.debugHUD) { el.style.display = 'none'; return; }
+    el.textContent = `${fps | 0} fps · ${(scale * 100) | 0}%`
       + (this.qualityTier ? ` · ${this.qualityTier}${this.qualityManual ? '*' : ''}` : '');
   }
 
