@@ -1458,3 +1458,19 @@
 .gh-hs-btn:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 @media (max-width: 620px) { .gh-hs-btn { padding: 10px 16px; font-size: 13px; } }
 @media (prefers-reduced-motion: reduce) { .gh-hs-btn { transition: none; } }
+
+/* ── Display face on the marketing page ───────────────────────────────────
+   Plus Jakarta Sans draws y, p and g with short, flat-cut descenders. Measured
+   against the font's own outline the hero was never clipping — the glyph just
+   ends bluntly, and at 82px next to the ember stop it reads as damage. Sora
+   carries a longer tapered tail, so the same word stops looking cut.
+   Scoped to this page on purpose: FONT.display drives 96 call sites across the
+   app, and re-typesetting the product is a separate decision. Headings set the
+   family inline, so these need !important to win. */
+.gh-hero-copy h1,
+.gh-hero-copy h1 span,
+.gh-section h2,
+.gh-section-heading,
+.gh-hs-title {
+  font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif !important;
+}
