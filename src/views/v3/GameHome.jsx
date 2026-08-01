@@ -978,8 +978,7 @@ export default function GameHome() {
             </div>
           </Reveal>
           <Reveal className="gh-lessons-copy" delay={90}>
-            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
-              textTransform: 'uppercase', color: T.fuchsia, marginBottom: 12 }}>{W.lessonsKicker}</div>
+            <div className="gh-kicker" style={{ marginBottom: 12 }}>{W.lessonsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(30px, 4.2vw, 52px)',
               lineHeight: 1.04, letterSpacing: '-0.035em', margin: '0 0 18px' }}>{W.lessonsTitle}</h2>
             <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.35vw, 17px)', lineHeight: 1.7,
@@ -1005,8 +1004,7 @@ export default function GameHome() {
 
         <section className="gh-city-loop gh-section">
           <Reveal className="gh-city-copy">
-            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
-              textTransform: 'uppercase', color: T.emerald, marginBottom: 12 }}>{W.cityKicker}</div>
+            <div className="gh-kicker" style={{ marginBottom: 12 }}>{W.cityKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(32px, 4.7vw, 58px)',
               lineHeight: 1.02, letterSpacing: '-0.04em', margin: '0 0 20px' }}>{W.cityTitle}</h2>
             <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.35vw, 17px)', lineHeight: 1.7,
@@ -1049,8 +1047,7 @@ export default function GameHome() {
         {/* ── Quick practice modules, in their own section ── */}
         <section className="gh-section gh-arcade-section" style={{ paddingBottom: 64 }}>
           <Reveal className="gh-section-heading">
-            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
-              textTransform: 'uppercase', color: T.fuchsia, marginBottom: 10 }}>{W.arcadeKicker}</div>
+            <div className="gh-kicker" style={{ marginBottom: 10 }}>{W.arcadeKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: '0 0 14px' }}>
               {W.arcadeTitle}
@@ -1074,8 +1071,7 @@ export default function GameHome() {
         {/* ── How lessons work ── */}
         <section className="gh-section gh-journey-section" style={{ paddingBottom: 64 }}>
           <Reveal className="gh-section-heading">
-            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
-              textTransform: 'uppercase', color: T.fuchsia, marginBottom: 10 }}>{W.stepsKicker}</div>
+            <div className="gh-kicker" style={{ marginBottom: 10 }}>{W.stepsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: '0 0 26px' }}>
               {W.stepsTitle}
@@ -1113,8 +1109,7 @@ export default function GameHome() {
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
               flexWrap: 'wrap', gap: 12, marginBottom: 26 }}>
               <div>
-                <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
-                  textTransform: 'uppercase', color: T.emerald, marginBottom: 10 }}>{W.packsKicker}</div>
+                <div className="gh-kicker" style={{ marginBottom: 10 }}>{W.packsKicker}</div>
                 <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
                   letterSpacing: '-0.03em', margin: 0 }}>
                   {W.packsTitle}
@@ -1168,8 +1163,7 @@ export default function GameHome() {
         {/* ── Two ways in — the practice layer between lessons ── */}
         <section className="gh-section gh-doors-section" style={{ paddingBottom: 58 }}>
           <Reveal className="gh-section-heading">
-            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
-              textTransform: 'uppercase', color: T.violet, marginBottom: 10 }}>{W.doorsKicker}</div>
+            <div className="gh-kicker" style={{ marginBottom: 10 }}>{W.doorsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: '0 0 26px' }}>
               {W.doorsTitle}

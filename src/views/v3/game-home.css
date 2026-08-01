@@ -1534,3 +1534,44 @@
   .gh-hs-slide::after,
   .gh-photo-frame::after { width: 86px; height: 9px; right: 10px; bottom: 9px; }
 }
+
+/* ── Section kickers ──────────────────────────────────────────────────────
+   Same treatment as the hero eyebrow, defined once instead of the mono /
+   uppercase / 0.3em inline style repeated down the page in four accent
+   colours. Modest tracking, brand violet, readable at mobile sizes. */
+.gh-kicker {
+  font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6D28D9;
+}
+.gh-night .gh-kicker { color: #C4B5FD; }
+
+/* ── Mobile ───────────────────────────────────────────────────────────────
+   Phone is where most first visits land, so this is the primary layout, not
+   a fallback. */
+@media (max-width: 620px) {
+  /* Hero CTAs were 55px slabs with 18px/32px padding at ragged widths. Equal
+     full-width stack, slimmer, is the native phone pattern. Inline styles set
+     the padding, so these have to win. */
+  .gh-hero-copy .gh-action--lg {
+    width: 100% !important;
+    min-height: 48px !important;
+    padding: 13px 20px !important;
+    font-size: 15px !important;
+    justify-content: center !important;
+  }
+  .gh-rise-4 { gap: 10px !important; }
+
+  /* The inset second photo is 46% wide at bottom-right and was sitting on top
+     of the bottom-left chip, eating the end of "Dopasowane do CEFR". The inset
+     is decorative; the chip carries information. Drop the inset on phones. */
+  .gh-photo-frame--side { display: none !important; }
+  .gh-float-chip { padding: 7px 12px; font-size: 12.5px; }
+  .gh-float-chip--a { top: 12px; left: 12px; }
+  .gh-float-chip--b { bottom: 12px; left: 12px; right: 12px; width: max-content; max-width: calc(100% - 24px); }
+
+  .gh-kicker { font-size: 11.5px; letter-spacing: 0.05em; }
+}
