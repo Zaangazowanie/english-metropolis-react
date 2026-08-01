@@ -763,7 +763,7 @@ function LineSection({ line, T, open, onToggle, count, subtitle, children }) {
             <span style={{ marginLeft: 10, fontSize: 11, fontWeight: 600, letterSpacing: '0.14em',
               color: T.textMute }}>{count}</span>
           </span>
-          <span style={{ display: 'block', fontSize: 12.5, color: T.textDim, marginTop: 2,
+          <span className="gh-acc-sub" style={{ display: 'block', fontSize: 12.5, color: T.textDim, marginTop: 2,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {subtitle}
           </span>

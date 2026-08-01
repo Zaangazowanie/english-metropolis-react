@@ -1588,3 +1588,61 @@
   .gh-hs-eyebrow { font-size: 10px; letter-spacing: 0.18em; }
   .gh-hs-slide::after { top: 12px; left: 12px; right: auto; bottom: auto; }
 }
+
+/* ── Mobile: readability and tap targets ──────────────────────────────────
+   Audited at 390px in both themes and languages. */
+@media (max-width: 620px) {
+  /* Line subtitles were nowrap+ellipsis: fine at desktop width, but at 224px
+     they hid 40% of the text ("Think quick, answer quicker · Multiple Cho…"
+     needed 413px). Polish runs longer still. Let them wrap. */
+  .gh-acc-sub {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    line-height: 1.4;
+  }
+
+  /* Tap targets to 44px, Apple's minimum. The visual size of the dots and
+     arrows stays as designed — the hit area grows behind them. */
+  .gh-hs-arrow { width: 44px; height: 44px; }
+  .gh-hs-arrow .material-symbols-outlined { font-size: 22px; }
+  .gh-hs-btn { min-height: 44px; padding: 11px 15px; }
+  .gh-hs-dots { gap: 0; top: 6px; right: 6px; }
+  .gh-hs-dot {
+    height: 44px;
+    width: 24px;
+    background: none;
+    box-shadow: none;
+    position: relative;
+  }
+  .gh-hs-dot::after {
+    content: '';
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 7px; height: 7px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 1px 3px rgba(14, 10, 27, 0.4);
+    transition: width 240ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms ease;
+  }
+  .gh-hs-dot[data-active="true"] { width: 34px; }
+  .gh-hs-dot[data-active="true"]::after { width: 20px; background: #fff; }
+  /* The World link was a 20px-tall text row. */
+  .gh-hero-copy .gh-text-link { min-height: 44px; display: inline-flex; align-items: center; }
+}
+
+@media (max-width: 620px) {
+  /* Dots to a 32px-wide hit area; the visible dot stays 7px. */
+  .gh-hs-dot { width: 32px; }
+  .gh-hs-dot[data-active="true"] { width: 40px; }
+
+  /* Footer legal links were 13-17px tall rows. Thumbs need more than that,
+     and these are the links people reach for on a phone. */
+  .gh-page > footer a,
+  footer a {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
