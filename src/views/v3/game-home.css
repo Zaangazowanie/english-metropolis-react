@@ -1575,3 +1575,16 @@
 
   .gh-kicker { font-size: 11.5px; letter-spacing: 0.05em; }
 }
+
+/* Slides on phones: the caption was taking 194px of a 239px slide and the
+   action row ran 31px under the watermark. Smaller controls, tighter caption,
+   and the watermark moves to the free top-left corner (the dots hold the
+   top-right) so nothing can overlap it. Photo frames keep it bottom-right. */
+@media (max-width: 620px) {
+  .gh-hs-btn { min-height: 36px; padding: 8px 13px; font-size: 12.5px; }
+  .gh-hs-actions { gap: 8px; margin-top: 10px; }
+  .gh-hs-caption { padding: 52px 14px 14px; gap: 5px; }
+  .gh-hs-title { font-size: 17px; line-height: 1.25; }
+  .gh-hs-eyebrow { font-size: 10px; letter-spacing: 0.18em; }
+  .gh-hs-slide::after { top: 12px; left: 12px; right: auto; bottom: auto; }
+}
