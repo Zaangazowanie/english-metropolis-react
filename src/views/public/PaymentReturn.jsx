@@ -33,12 +33,17 @@ export default function PaymentReturn() {
   const sessionId = useMemo(() => new URLSearchParams(window.location.search).get('sessionId') || '', [])
   const [payment, setPayment] = useState(null)
   const [error, setError] = useState('')
+  const [stillWaiting, setStillWaiting] = useState(false)
 
   useEffect(() => {
     if (!session?.sessionToken || !sessionId) return undefined
     let cancelled = false
     let timer
     let attempts = 0
+    // A bank transfer can confirm minutes after the customer is sent back here, so
+    // polling backs off and runs for about five minutes rather than one.
+    const DEADLINE_MS = 5 * 60 * 1000
+    const startedAt = Date.now()
     async function poll() {
       attempts += 1
       try {
@@ -54,7 +59,12 @@ export default function PaymentReturn() {
       } catch (ex) {
         if (!cancelled) setError(ex.message || 'Could not confirm payment')
       }
-      if (!cancelled && attempts < 30) timer = window.setTimeout(poll, 2000)
+      if (cancelled) return
+      if (Date.now() - startedAt > DEADLINE_MS) {
+        setStillWaiting(true)
+        return
+      }
+      timer = window.setTimeout(poll, attempts < 10 ? 2000 : 10000)
     }
     poll()
     return () => {
@@ -88,7 +98,10 @@ export default function PaymentReturn() {
             <h1>We could not identify this payment.</h1>
             <p>Sign in to your EnglishMetro account or return to checkout.</p>
             <div className="co-success-actions">
-              <Link className="lp-button lp-button-primary" to="/login?next=/payment/return">Sign in</Link>
+              <Link
+                className="lp-button lp-button-primary"
+                to={`/login?next=${encodeURIComponent(`/payment/return${window.location.search}`)}`}
+              >Sign in</Link>
               <Link className="lp-button lp-button-ghost" to="/checkout">Return to checkout</Link>
             </div>
           </>
@@ -108,6 +121,19 @@ export default function PaymentReturn() {
             <p>No lessons were allocated and no payment was confirmed. You can safely try again.</p>
             <div className="co-success-actions">
               <Link className="lp-button lp-button-primary" to="/checkout">Try payment again</Link>
+            </div>
+          </>
+        ) : stillWaiting ? (
+          <>
+            <h1>Your payment is still being confirmed.</h1>
+            <p>
+              Przelewy24 has not reported a final status yet, which is normal for a bank transfer.
+              You do not need to pay again or keep this page open. As soon as the payment is
+              verified the lessons are added to your account and we email you the confirmation.
+            </p>
+            <div className="co-success-actions">
+              {session.slug && <a className="lp-button lp-button-primary" href={`/app/${session.slug}/dashboard`}>Go to your account</a>}
+              <Link className="lp-button lp-button-ghost" to="/lessons">Back to lessons</Link>
             </div>
           </>
         ) : (

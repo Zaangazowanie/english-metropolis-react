@@ -68,11 +68,18 @@ export default function Checkout() {
   const total = cartTotalPLN(state)
   const isPl = lang === 'pl'
   const t = (en, pl) => (isPl ? pl : en)
+  // The reference identifies one cart, not one page visit. If it survived a cart
+  // edit, a retry after a failed attempt would resume the earlier payment and
+  // charge the earlier total, so it is re-minted whenever the cart changes.
+  const cartKey = state.items.map(item => `${item.id}x${item.qty}`).sort().join('|')
   const orderRef = useMemo(() => {
     const d = new Date()
     const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
-    return `EM-${ymd}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
-  }, [])
+    let hash = 0
+    for (let i = 0; i < cartKey.length; i += 1) hash = (hash * 31 + cartKey.charCodeAt(i)) >>> 0
+    const rand = crypto.getRandomValues(new Uint32Array(1))[0]
+    return `EM-${ymd}-${hash.toString(36).slice(-4).toUpperCase()}${rand.toString(36).slice(0, 6).toUpperCase()}`
+  }, [cartKey])
 
   const accountDone = !!session
   const emailFormValid = fullName.trim().length >= 2 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()) && password.length >= 8
@@ -168,10 +175,6 @@ export default function Checkout() {
     setError('')
     setEmailTaken(false)
     if (!consentTerms) return setError(t('Accepting the Terms (Regulamin) is required to place an order.', 'Do złożenia zamówienia wymagana jest akceptacja Regulaminu.'))
-    if (!consentImmediate) return setError(t(
-      'To activate the package and booking immediately, make the separate early-start request.',
-      'Aby pakiet i rezerwacje zostały aktywowane od razu, złóż odrębne żądanie wcześniejszego rozpoczęcia świadczenia.',
-    ))
     try {
       let activeSession = session
       if (!activeSession) {
@@ -195,6 +198,12 @@ export default function Checkout() {
       await startPayment(activeSession)
     } catch (ex) {
       setPhase('idle')
+      if (/CART_CHANGED/.test(ex.message || '')) {
+        return setError(t(
+          'Your cart changed after this payment was started. Reload the page and order again so you are charged the total shown.',
+          'Koszyk zmienił się po rozpoczęciu tej płatności. Odśwież stronę i złóż zamówienie ponownie, aby pobrana kwota odpowiadała wyświetlanej sumie.',
+        ))
+      }
       setError((accountReady
         ? t('Your account was created, but we could not save the order. Try again to complete it.', 'Konto zostało utworzone, ale nie udało się zapisać zamówienia. Spróbuj ponownie, aby je dokończyć.')
         : (ex.message || t('We could not complete this step. Please try again.', 'Nie udało się wykonać tej operacji. Spróbuj ponownie.'))))
@@ -377,13 +386,12 @@ export default function Checkout() {
                     </span>
                   </label>
                   <fieldset className="co-performance-choice">
-                    <legend>{t('Immediate package activation *', 'Natychmiastowa aktywacja pakietu *')}</legend>
+                    <legend>{t('Immediate package activation', 'Natychmiastowa aktywacja pakietu')}</legend>
                     <label className="co-check">
                       <input
                         type="checkbox"
                         checked={consentImmediate}
                         onChange={(e) => setConsentImmediate(e.target.checked)}
-                        required
                       />
                       <span>
                         {isPl
@@ -397,6 +405,14 @@ export default function Checkout() {
                         </small>
                       </span>
                     </label>
+                    {!consentImmediate && (
+                      <p className="co-consent-hint">
+                        {t(
+                          'Optional. Leave it unticked and the package activates once the 14-day withdrawal period ends, so booking opens then.',
+                          'Pole jest dobrowolne. Jeżeli go nie zaznaczysz, pakiet zostanie aktywowany po upływie 14-dniowego terminu na odstąpienie i wtedy otworzy się rezerwacja lekcji.',
+                        )}
+                      </p>
+                    )}
                   </fieldset>
                   <label className="co-check">
                     <input type="checkbox" checked={consentMarketing} onChange={(e) => setConsentMarketing(e.target.checked)} />

@@ -22,6 +22,7 @@ import { formatEpoch } from './financeApi.js'
 const TABS = [
   { key: 'months', label: 'Lessons by month', icon: 'calendar_month' },
   { key: 'orders', label: 'Orders', icon: 'receipt' },
+  { key: 'payments', label: 'Payments', icon: 'credit_card' },
   { key: 'packages', label: 'Package allocation', icon: 'inventory_2' },
 ]
 
@@ -58,6 +59,7 @@ export default function ConsoleRevenue() {
   const [q, setQ] = useState('')
   const [monthSort, setMonthSort] = useState('-month')
   const [orderSort, setOrderSort] = useState('-createdAt')
+  const [paymentSort, setPaymentSort] = useState('-createdAt')
   const [packageSort, setPackageSort] = useState('studentName')
   const [visible, setVisible] = useState(50)
 
@@ -80,8 +82,9 @@ export default function ConsoleRevenue() {
           return
         }
 
-        const [ordersResult, statsResults, packageResults] = await Promise.all([
+        const [ordersResult, paymentsResult, statsResults, packageResults] = await Promise.all([
           Promise.allSettled([queryAdminConvex('orders:listOrders', {})]),
+          Promise.allSettled([queryAdminConvex('p24:listPayments', {})]),
           Promise.allSettled(scope.map(o =>
             queryAdminConvex('scheduling:getMonthlyLessonStats', { organizationId: o._id }))),
           Promise.allSettled(scope.map(o =>
@@ -98,6 +101,7 @@ export default function ConsoleRevenue() {
           })
         }
         failed('orders', ordersResult)
+        failed('payments', paymentsResult)
         failed('monthly stats', statsResults)
         failed('packages', packageResults)
 
@@ -125,9 +129,12 @@ export default function ConsoleRevenue() {
 
         const packages = packageResults.flatMap(r => (r.status === 'fulfilled' ? (r.value || []) : []))
 
+        const allPayments = paymentsResult[0].status === 'fulfilled' ? (paymentsResult[0].value || []) : []
+        const payments = allPayments.filter(p => orgIds.has(String(p.organizationId)))
+
         const currentMonth = new Date().toISOString().slice(0, 7)
         setWarnings(notes)
-        setData({ months: [...months.values()], orders, packages, currentMonth })
+        setData({ months: [...months.values()], orders, payments, packages, currentMonth })
       } catch (e) {
         if (alive) setError(e)
       }
@@ -142,11 +149,15 @@ export default function ConsoleRevenue() {
   const orders = useMemo(() => (data?.orders || []).filter(o => !needle
     || `${o.studentName} ${o.packageName} ${o.billing?.company || ''} ${o.billing?.nip || ''}`
       .toLowerCase().includes(needle)), [data, needle])
+  const payments = useMemo(() => (data?.payments || []).filter(p => !needle
+    || `${p.studentName} ${p.email} ${p.checkoutRef} ${p.status}`.toLowerCase().includes(needle)),
+  [data, needle])
   const packages = useMemo(() => (data?.packages || []).filter(p => !needle
     || `${p.studentName} ${p.name}`.toLowerCase().includes(needle)), [data, needle])
 
   const sortedMonths = useSorted(data?.months || [], monthSort)
   const sortedOrders = useSorted(orders, orderSort)
+  const sortedPayments = useSorted(payments, paymentSort)
   const sortedPackages = useSorted(packages, packageSort)
 
   if (error) {
@@ -172,7 +183,7 @@ export default function ConsoleRevenue() {
   const pending = data.orders.filter(o => o.status === 'pending_invoice').length
   const nothingAtAll = !data.months.length && !data.orders.length && !data.packages.length
 
-  const rowsFor = { months: sortedMonths, orders: sortedOrders, packages: sortedPackages }[tab]
+  const rowsFor = { months: sortedMonths, orders: sortedOrders, payments: sortedPayments, packages: sortedPackages }[tab]
   const page = rowsFor.slice(0, visible)
 
   return (
@@ -257,7 +268,9 @@ export default function ConsoleRevenue() {
                   id="revenue-search"
                   type="search"
                   className="sa-input"
-                  placeholder={tab === 'orders' ? 'Student, package, company, NIP…' : 'Student or package…'}
+                  placeholder={tab === 'orders'
+                    ? 'Student, package, company, NIP…'
+                    : tab === 'payments' ? 'Student, e-mail, reference, status…' : 'Student or package…'}
                   value={q}
                   onChange={e => setQ(e.target.value)}
                   style={{ minWidth: 240 }}
@@ -272,6 +285,9 @@ export default function ConsoleRevenue() {
             )}
             {tab === 'orders' && (
               <OrdersTable rows={page} sort={orderSort} onSort={setOrderSort} filtered={Boolean(needle)} />
+            )}
+            {tab === 'payments' && (
+              <PaymentsTable rows={page} sort={paymentSort} onSort={setPaymentSort} filtered={Boolean(needle)} />
             )}
             {tab === 'packages' && (
               <PackagesTable rows={page} sort={packageSort} onSort={setPackageSort} filtered={Boolean(needle)} />
@@ -435,6 +451,78 @@ function OrdersTable({ rows, sort, onSort, filtered }) {
                   status={o.status}
                   title={o.confirmedAt ? `Confirmed ${formatEpoch(Math.floor(o.confirmedAt / 1000))}` : undefined}
                 />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// Unlike lessonOrders, a p24Payment carries an integer amount in grosze, so the
+// money here is exact rather than a label. "Needs attention" is the reason this
+// table exists: a captured payment whose lessons did not allocate is otherwise
+// invisible to everyone, including whoever has to refund it.
+function PaymentsTable({ rows, sort, onSort, filtered }) {
+  if (!rows.length) {
+    return (
+      <ConsoleEmpty
+        icon="credit_card"
+        title={filtered ? 'No payments match' : 'No Przelewy24 payments yet'}
+        hint={filtered
+          ? <p>Clear the search to see every payment again.</p>
+          : (
+            <p>Online payments taken through Przelewy24 appear here as soon as a customer starts
+              one. Lessons are allocated only after Przelewy24 verifies the transaction.</p>
+          )}
+      />
+    )
+  }
+  return (
+    <div className="sa-table-wrap">
+      <table className="sa-table">
+        <caption className="sa-sr-only">Przelewy24 payments</caption>
+        <thead>
+          <tr>
+            <SortTh col="createdAt" label="Started" sort={sort} onSort={onSort} />
+            <SortTh col="studentName" label="Student" sort={sort} onSort={onSort} />
+            <th scope="col">Reference</th>
+            <SortTh col="amount" label="Amount" sort={sort} onSort={onSort} align="right" />
+            <SortTh col="status" label="Status" sort={sort} onSort={onSort} />
+            <th scope="col">Needs attention</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(p => (
+            <tr key={p._id}>
+              <td className="sa-num">{p.createdAt ? new Date(p.createdAt).toISOString().slice(0, 10) : '—'}</td>
+              <td style={{ fontWeight: 600 }}>
+                {p.studentName}
+                <span style={{ display: 'block', color: 'var(--sa-text-muted)', fontSize: 'var(--sa-fs-micro)' }}>
+                  {p.email}
+                </span>
+              </td>
+              <td className="sa-num">{p.checkoutRef}</td>
+              <td className="sa-num">{(p.amount / 100).toFixed(2)} {p.currency}</td>
+              <td>
+                <StatusBadge
+                  status={p.status}
+                  title={p.verifiedAt ? `Verified ${formatEpoch(Math.floor(p.verifiedAt / 1000))}` : undefined}
+                />
+              </td>
+              <td>
+                {p.needsAttention
+                  ? (
+                    <span style={{ color: 'var(--sa-danger, #b42318)', fontWeight: 600 }}>
+                      {p.allocationErrors.length
+                        ? `Paid, lessons NOT allocated: ${p.allocationErrors.join('; ')}`
+                        : p.status === 'registration_failed'
+                          ? (p.error || 'Could not start at Przelewy24')
+                          : 'Sent to Przelewy24 over an hour ago and never confirmed'}
+                    </span>
+                  )
+                  : <span style={{ color: 'var(--sa-text-muted)' }}>—</span>}
               </td>
             </tr>
           ))}

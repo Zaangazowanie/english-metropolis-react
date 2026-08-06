@@ -218,7 +218,7 @@ const POLICY_PL = {
   },
   'Online payments': {
     title: 'Płatności online',
-    copy: 'Dodaj pakiety do koszyka i złóż zamówienie. Płatności online przez Przelewy24 (BLIK, karty, szybkie przelewy) są w trakcie aktywacji. Do tego czasu link do płatności wysyłamy e-mailem.',
+    copy: 'Dodaj pakiety do koszyka i złóż zamówienie. Bezpieczna płatność online otwiera się w Przelewy24, z metodami dostępnymi dla Twojej transakcji.',
   },
 }
 function buildSummary({ selectedPackage, format, learnerName, email, level, goals, lang }) {
@@ -414,7 +414,7 @@ export default function LessonPricingSignup() {
           <div>
             <span>03</span>
             <strong>{t('Pay securely', 'Zapłać bezpiecznie')}</strong>
-            <p>{t('After confirmation, we send a payment link or invoice.', 'Po potwierdzeniu wysyłamy link do płatności lub fakturę.')}</p>
+            <p>{t('You pay online through Przelewy24 and the package activates.', 'Płacisz online przez Przelewy24, a pakiet aktywuje się na koncie.')}</p>
           </div>
         </div>
       </section>

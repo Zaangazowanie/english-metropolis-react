@@ -213,7 +213,18 @@ export const cancelOrder = mutation({
     const { user } = await requireAdmin(ctx, args.sessionToken);
     const order = await ctx.db.get(args.orderId);
     if (!order) throw new Error("Order not found");
-    if (order.status !== "pending_invoice") throw new Error(`Order is already ${order.status}`);
+    // "payment_pending" is the P24 checkout state. A customer who abandons the
+    // payment page leaves one behind forever, so it has to be cancellable — but
+    // only once we are sure Przelewy24 never took the money for it.
+    if (order.status !== "pending_invoice" && order.status !== "payment_pending") {
+      throw new Error(`Order is already ${order.status}`);
+    }
+    if (order.status === "payment_pending") {
+      const payment = order.paymentId ? await ctx.db.get(order.paymentId) : null;
+      if (payment?.status === "paid") {
+        throw new Error("This order was paid through Przelewy24 and cannot be cancelled here");
+      }
+    }
     await ctx.db.patch(args.orderId, { status: "cancelled", updatedAt: Date.now(), confirmedBy: user.email });
     return { ok: true };
   },

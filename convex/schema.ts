@@ -895,7 +895,7 @@ export default defineSchema({
       nip: v.optional(v.string()),
       notes: v.optional(v.string()),
     }),
-    status: v.string(),                // "pending_invoice" | "confirmed" | "cancelled"
+    status: v.string(),                // "pending_invoice" | "payment_pending" | "confirmed" | "cancelled"
     paymentId: v.optional(v.id("p24Payments")),
     paymentAmount: v.optional(v.number()), // gross amount in grosze
     p24SessionId: v.optional(v.string()),
@@ -923,6 +923,8 @@ export default defineSchema({
     studentId: v.id("students"),
     orderIds: v.array(v.id("lessonOrders")),
     amount: v.number(),                 // grosze
+    itemsKey: v.optional(v.string()),   // "packageId×qty|…" sorted — a retry with an
+                                        // edited cart must not resume this payment
     currency: v.string(),
     email: v.string(),
     lang: v.string(),
@@ -937,6 +939,7 @@ export default defineSchema({
     methodId: v.optional(v.number()),
     statement: v.optional(v.string()),
     error: v.optional(v.string()),
+    allocationErrors: v.optional(v.array(v.string())), // captured but not allocated — needs a human
     registeredAt: v.optional(v.number()),
     verifiedAt: v.optional(v.number()),
     createdAt: v.number(),

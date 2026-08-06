@@ -1,11 +1,14 @@
 import { action, internalAction, internalMutation, internalQuery, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { requireStudent } from "./authHelpers";
+import { requireStudent, requireAdmin, isSuperadmin } from "./authHelpers";
 
 const CURRENCY = "PLN";
 const TERMS_VERSION = "EM-LEGAL-03 (2026-07-29, revision 4)";
 const WITHDRAWAL_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
+// How long an unpaid transaction stays resumable, so a returning customer is
+// sent back to the payment they already started instead of opening a second one.
+const OPEN_PAYMENT_TTL_MS = 30 * 60 * 1000;
 
 // This is the server-side price authority for payment registration. Never use
 // names, lesson counts, or amounts sent by the browser to charge a customer.
@@ -87,6 +90,24 @@ export async function p24NotificationSign(body: any, crc: string): Promise<strin
   });
 }
 
+// Ask P24 what actually happened to a transaction. Used when verify fails, to
+// tell "the payment did not go through" apart from "we already verified this and
+// P24 will not verify it twice".
+async function isSettledAtP24(cfg: ReturnType<typeof p24Config>, body: any): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `${cfg.apiBase}/api/v1/transaction/by/sessionId/${encodeURIComponent(body.sessionId)}`,
+      { headers: { "Authorization": p24AuthHeader(cfg.posId, cfg.apiKey) } },
+    );
+    if (!response.ok) return false;
+    const data: any = (await response.json())?.data;
+    // P24 status: 0 nothing paid, 1 advance payment, 2 paid, 3 returned.
+    return !!data && (data.status === 1 || data.status === 2) && data.amount === body.amount;
+  } catch {
+    return false;
+  }
+}
+
 export async function verifyAtP24(body: any): Promise<void> {
   const cfg = p24Config();
   const sign = await sha384({
@@ -114,6 +135,10 @@ export async function verifyAtP24(body: any): Promise<void> {
   });
   if (!response.ok) {
     const detail = (await response.text()).slice(0, 500);
+    // verify is not idempotent. If our first call succeeded but we never read the
+    // reply, every P24 retry lands here and the customer would stay unallocated
+    // with the money taken. Trust P24's own record of the transaction instead.
+    if (await isSettledAtP24(cfg, body)) return;
     throw new Error(`P24 verification failed (${response.status}): ${detail}`);
   }
 }
@@ -133,21 +158,14 @@ export const preparePayment = internalMutation({
   handler: async (ctx, args) => {
     const { student } = await requireStudent(ctx, args.sessionToken);
     if (!args.consentTerms) throw new Error("Terms must be accepted");
-    if (!args.consentImmediate) {
-      throw new Error("An express request for immediate service performance is required");
-    }
+    // The express request for immediate performance is deliberately NOT required.
+    // § 5 of the published Regulamin treats it as a separate, optional statement and
+    // provides for delivery after the 14-day period when it is not made, so making it
+    // a condition of buying would both breach art. 15 ust. 3 u.p.k. and contradict our
+    // own terms. Without it the package simply activates when the period expires.
     if (!args.items.length || args.items.length > 20) throw new Error("Cart is empty or too large");
     if (!args.billing.fullName.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(args.billing.email)) {
       throw new Error("Billing name and a valid e-mail are required");
-    }
-
-    const existing = await ctx.db
-      .query("p24Payments")
-      .withIndex("by_checkout_ref", q => q.eq("checkoutRef", args.checkoutRef))
-      .unique();
-    if (existing) {
-      if (existing.studentId !== student._id) throw new Error("Checkout reference already used");
-      return existing;
     }
 
     const normalized = args.items.map(item => {
@@ -160,8 +178,41 @@ export const preparePayment = internalMutation({
     if (!Number.isSafeInteger(amount) || amount < 100 || amount > 5_000_000) {
       throw new Error("Invalid payment amount");
     }
-
+    const itemsKey = normalized.map(item => `${item.packageId}x${item.qty}`).sort().join("|");
     const now = Date.now();
+
+    const existing = await ctx.db
+      .query("p24Payments")
+      .withIndex("by_checkout_ref", q => q.eq("checkoutRef", args.checkoutRef))
+      .unique();
+    if (existing) {
+      if (existing.studentId !== student._id) throw new Error("Checkout reference already used");
+      // A retry can carry an edited cart: the customer's first attempt failed, they
+      // changed a line, and clicked again with the same reference. Returning the
+      // stored row would register the old amount, so the customer would be charged
+      // a total they never saw. Only resume a payment for the identical cart.
+      if (existing.itemsKey !== itemsKey || existing.amount !== amount) {
+        throw new Error("CART_CHANGED");
+      }
+      return existing;
+    }
+
+    // One open transaction per customer per cart. A customer who paid but never saw
+    // the confirmation (slow webhook, closed tab) comes back with a full cart and a
+    // fresh checkoutRef; without this they would pay a second time for the same order.
+    const openForStudent = await ctx.db
+      .query("p24Payments")
+      .withIndex("by_student", q => q.eq("studentId", student._id))
+      .collect();
+    // Only a "registered" payment is resumable: it has a P24 token, so the customer
+    // was shown a payment page and may already have paid it. A "created" row never
+    // reached P24, so nothing can have been paid against it and a fresh one is safe.
+    const resumable = openForStudent.find(payment =>
+      payment.status === "registered" &&
+      payment.itemsKey === itemsKey &&
+      payment.amount === amount &&
+      now - payment.createdAt < OPEN_PAYMENT_TTL_MS);
+    if (resumable) return resumable;
     const paymentId = await ctx.db.insert("p24Payments", {
       checkoutRef: args.checkoutRef,
       sessionId: args.sessionId,
@@ -169,6 +220,7 @@ export const preparePayment = internalMutation({
       studentId: student._id,
       orderIds: [],
       amount,
+      itemsKey,
       currency: CURRENCY,
       email: args.billing.email.toLowerCase(),
       lang: args.lang,
@@ -182,7 +234,11 @@ export const preparePayment = internalMutation({
       updatedAt: now,
     });
 
-    const consentNote = `[${args.checkoutRef}] ${TERMS_VERSION}: Klient wyraźnie zażądał rozpoczęcia świadczenia usług niezwłocznie po potwierdzeniu płatności, przed upływem 14 dni, w tym aktywacji pakietu oraz udostępnienia rezerwacji i realizacji lekcji, i przyjął do wiadomości obowiązek proporcjonalnej zapłaty za usługi spełnione do chwili odstąpienia oraz utratę prawa odstąpienia po pełnym wykonaniu usługi. Data żądania: ${new Date(now).toISOString()}.`;
+    // Only record the express request when it was actually made. Writing this note
+    // for every order would put a statement in the file the customer never gave.
+    const consentNote = args.consentImmediate
+      ? `[${args.checkoutRef}] ${TERMS_VERSION}: Klient wyraźnie zażądał rozpoczęcia świadczenia usług niezwłocznie po potwierdzeniu płatności, przed upływem 14 dni, w tym aktywacji pakietu oraz udostępnienia rezerwacji i realizacji lekcji, i przyjął do wiadomości obowiązek proporcjonalnej zapłaty za usługi spełnione do chwili odstąpienia oraz utratę prawa odstąpienia po pełnym wykonaniu usługi. Data żądania: ${new Date(now).toISOString()}.`
+      : `[${args.checkoutRef}] ${TERMS_VERSION}: Klient nie złożył żądania rozpoczęcia świadczenia usług przed upływem 14-dniowego terminu na odstąpienie. Pakiet zostaje aktywowany po upływie tego terminu. Data zamówienia: ${new Date(now).toISOString()}.`;
     const billing = {
       ...args.billing,
       notes: [args.billing.notes?.trim(), consentNote].filter(Boolean).join("\n") || undefined,
@@ -275,11 +331,18 @@ export const finalizePaid = internalMutation({
     if (payment.status === "paid") return { ok: true, alreadyPaid: true };
 
     const now = Date.now();
+    // The money is already captured by the time this runs. Throwing here would roll
+    // the whole mutation back and answer P24 with a 502, so they retry forever and
+    // the customer stays paid-but-unallocated. Record the anomaly and carry on.
+    const allocationErrors: string[] = [];
     for (const orderId of payment.orderIds) {
       const order = await ctx.db.get(orderId);
-      if (!order) throw new Error(`Order ${String(orderId)} not found`);
+      if (!order) { allocationErrors.push(`order ${String(orderId)} not found`); continue; }
       if (order.status === "confirmed") continue;
-      if (order.status !== "payment_pending") throw new Error(`Order ${String(orderId)} cannot be confirmed`);
+      if (order.status !== "payment_pending") {
+        allocationErrors.push(`order ${String(orderId)} was ${order.status}, not payment_pending`);
+        continue;
+      }
       const packageRef = await ctx.db.insert("lessonPackages", {
         organizationId: order.organizationId,
         studentId: order.studentId,
@@ -309,13 +372,17 @@ export const finalizePaid = internalMutation({
       p24OrderId: args.p24OrderId,
       methodId: args.methodId,
       statement: args.statement,
+      allocationErrors: allocationErrors.length ? allocationErrors : undefined,
       verifiedAt: now,
       updatedAt: now,
     });
     for (const orderId of payment.orderIds) {
       await ctx.scheduler.runAfter(0, internal.p24.notifyPaidOrder, { orderId });
     }
-    return { ok: true, alreadyPaid: false };
+    if (allocationErrors.length) {
+      console.error("P24 payment captured with unallocated lines:", payment.sessionId, allocationErrors.join("; "));
+    }
+    return { ok: true, alreadyPaid: false, allocationErrors };
   },
 });
 
@@ -451,6 +518,55 @@ export const createPayment = action({
       });
       throw new Error("We could not start the secure payment. Please try again.");
     }
+  },
+});
+
+// Admin reconciliation. Without this a payment that captured money but failed to
+// allocate lessons is invisible to everyone, including the person who has to
+// refund it. "needsAttention" is the only column that matters day to day.
+export const listPayments = query({
+  args: {
+    sessionToken: v.string(),
+    organizationId: v.optional(v.id("organizations")),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    let rows;
+    if (isSuperadmin(user.role) && !args.organizationId) {
+      rows = await ctx.db.query("p24Payments").collect();
+    } else {
+      const org = args.organizationId ?? user.organizationId;
+      if (!org) throw new Error("No organization in scope");
+      rows = (await ctx.db.query("p24Payments").collect()).filter(p => p.organizationId === org);
+    }
+    const now = Date.now();
+    const out = [];
+    for (const payment of rows.sort((a, b) => b.createdAt - a.createdAt).slice(0, 200)) {
+      const student: any = await ctx.db.get(payment.studentId);
+      // Money taken but lessons not allocated, or a transaction that reached P24
+      // and then went quiet — both mean a customer is owed something.
+      const stranded = payment.status === "paid" && !!payment.allocationErrors?.length;
+      const stale = payment.status === "registered" && now - payment.createdAt > 60 * 60 * 1000;
+      out.push({
+        _id: payment._id,
+        organizationId: payment.organizationId,
+        checkoutRef: payment.checkoutRef,
+        sessionId: payment.sessionId,
+        status: payment.status,
+        amount: payment.amount,
+        currency: payment.currency,
+        email: payment.email,
+        studentName: student?.name ?? "Unknown",
+        studentSlug: student?.slug ?? null,
+        p24OrderId: payment.p24OrderId,
+        allocationErrors: payment.allocationErrors ?? [],
+        error: payment.error,
+        createdAt: payment.createdAt,
+        verifiedAt: payment.verifiedAt,
+        needsAttention: stranded || stale || payment.status === "registration_failed",
+      });
+    }
+    return out;
   },
 });
 
