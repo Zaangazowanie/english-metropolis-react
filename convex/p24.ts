@@ -154,6 +154,7 @@ export const preparePayment = internalMutation({
     consentTerms: v.boolean(),
     consentImmediate: v.boolean(),
     consentMarketing: v.boolean(),
+    requestedMethod: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { student } = await requireStudent(ctx, args.sessionToken);
@@ -212,7 +213,18 @@ export const preparePayment = internalMutation({
       payment.itemsKey === itemsKey &&
       payment.amount === amount &&
       now - payment.createdAt < OPEN_PAYMENT_TTL_MS);
-    if (resumable) return resumable;
+    if (resumable) {
+      // Same choice as before: resume, which is the guard against two live
+      // transactions for one cart.
+      if ((resumable.requestedMethod ?? null) === (args.requestedMethod ?? null)) return resumable;
+      // Different choice. P24 pin a token to its method and their page offers no
+      // way to switch, so returning this token would strand the customer on a
+      // method they just rejected until the 30-minute window expired. The old
+      // transaction is unpaid (a paid one is no longer "registered", the webhook
+      // moves it), so it is superseded and a fresh one is registered. A late
+      // webhook for it still finalises correctly: finalizePaid keys on sessionId.
+      await ctx.db.patch(resumable._id, { status: "superseded" });
+    }
     const paymentId = await ctx.db.insert("p24Payments", {
       checkoutRef: args.checkoutRef,
       sessionId: args.sessionId,
@@ -229,6 +241,7 @@ export const preparePayment = internalMutation({
       consentMarketing: args.consentMarketing,
       consentCapturedAt: now,
       termsVersion: TERMS_VERSION,
+      requestedMethod: args.requestedMethod,
       status: "created",
       createdAt: now,
       updatedAt: now,
@@ -437,6 +450,69 @@ export const notifyPaidOrder = internalAction({
   },
 });
 
+// ── Payment methods ────────────────────────────────────────────────────────
+// P24 returns only the methods actually enabled on this shop, so an empty group
+// is a group the customer must never be offered. That is the whole mechanism
+// keeping a card button off the checkout until Przelewy24 enable cards: we do
+// not maintain a local list that can disagree with their account state.
+type MethodGroupKey = "blik" | "card" | "transfer";
+
+function methodGroupOf(method: any): MethodGroupKey {
+  const group = String(method?.group || "");
+  if (group === "Blik") return "blik";
+  // 145 is Karta płatnicza. The group string is matched too so the wallets and
+  // card variants P24 may add later land here without another deploy.
+  if (method?.id === 145 || /card|karta/i.test(group)) return "card";
+  return "transfer";
+}
+
+async function fetchEnabledMethods(lang: "pl" | "en"): Promise<any[]> {
+  const cfg = p24Config();
+  const response = await fetch(`${cfg.apiBase}/api/v1/payment/methods/${lang}`, {
+    headers: { "Authorization": p24AuthHeader(cfg.posId, cfg.apiKey) },
+  });
+  if (!response.ok) throw new Error(`P24 methods failed (${response.status})`);
+  const body: any = await response.json().catch(() => ({}));
+  const data = Array.isArray(body?.data) ? body.data : [];
+  // status is P24's own per-shop enable flag. Anything not explicitly true is
+  // treated as off rather than assumed on.
+  return data.filter((m: any) => m?.status === true && Number.isSafeInteger(m?.id));
+}
+
+// Drives the checkout picker. Returns one entry per group we can actually
+// offer, never a hard-coded list. Failure is not fatal to checkout: the browser
+// falls back to a single button and Przelewy24 present their own method page.
+export const listMethods = action({
+  args: { lang: v.union(v.literal("pl"), v.literal("en")) },
+  handler: async (_ctx, args): Promise<{
+    groups: Array<{ key: MethodGroupKey; methodId: number | null; count: number }>;
+  }> => {
+    const methods = await fetchEnabledMethods(args.lang);
+    const byGroup = new Map<MethodGroupKey, number[]>();
+    for (const method of methods) {
+      const key = methodGroupOf(method);
+      byGroup.set(key, [...(byGroup.get(key) || []), method.id]);
+    }
+    const order: MethodGroupKey[] = ["blik", "card", "transfer"];
+    return {
+      groups: order.flatMap((key) => {
+        const ids = byGroup.get(key);
+        if (!ids || ids.length === 0) return [];
+        // The count is shown to the customer as a number of banks, so the manual
+        // transfer method (TraditionalTransfer, settles in days) is excluded from
+        // it while staying available in the group.
+        const count = key !== "transfer"
+          ? ids.length
+          : methods.filter(m => methodGroupOf(m) === "transfer" && m.group !== "TraditionalTransfer").length;
+        // BLIK and card resolve to one id so the customer lands straight on that
+        // screen. Transfers stay unpinned: the bank list is P24's job, and their
+        // page already handles per-bank availability hours.
+        return [{ key, methodId: key === "transfer" ? null : Math.min(...ids), count }];
+      }),
+    };
+  },
+});
+
 export const createPayment = action({
   args: {
     sessionToken: v.string(),
@@ -444,6 +520,11 @@ export const createPayment = action({
     items: v.array(ITEM_SHAPE),
     billing: BILLING_SHAPE,
     lang: v.union(v.literal("pl"), v.literal("en")),
+    // The method the customer picked on our page. Verified against the live
+    // list below and dropped if it is not currently enabled, because sending a
+    // customer to a method P24 will not honour is worse than showing their
+    // full method page.
+    method: v.optional(v.number()),
     consentTerms: v.boolean(),
     consentImmediate: v.boolean(),
     consentMarketing: v.boolean(),
@@ -451,9 +532,28 @@ export const createPayment = action({
   handler: async (ctx, args): Promise<{ sessionId: string; redirectUrl: string }> => {
     const cfg = p24Config();
     const sessionId = `EM-${crypto.randomUUID()}`;
+
+    // Resolved before the row is written, because whether we honour the choice
+    // decides whether an earlier payment is resumable. Fail open: a method that
+    // cannot be confirmed as enabled right now is dropped rather than sent, and
+    // a methods outage never blocks a sale.
+    let method: number | undefined;
+    if (args.method !== undefined) {
+      try {
+        const enabled = await fetchEnabledMethods(args.lang);
+        if (enabled.some((m: any) => m.id === args.method)) method = args.method;
+      } catch (error: any) {
+        console.error("p24 method check failed, continuing without it:", error?.message);
+      }
+    }
+
+    // method is ours alone: preparePayment takes requestedMethod instead, and
+    // Convex validators reject unknown fields, so it must not reach the spread.
+    const { method: _clientMethod, ...prepareArgs } = args;
     const payment: any = await ctx.runMutation(internal.p24.preparePayment, {
-      ...args,
+      ...prepareArgs,
       sessionId,
+      requestedMethod: method,
     });
     if (payment.status === "paid") {
       return {
@@ -489,22 +589,40 @@ export const createPayment = action({
       urlStatus: cfg.statusUrl,
       waitForResult: true,
       regulationAccept: false,
+      ...(method === undefined ? {} : { method }),
       sign,
     };
 
-    try {
+    async function register(body: Record<string, unknown>) {
       const response = await fetch(`${cfg.apiBase}/api/v1/transaction/register`, {
         method: "POST",
         headers: {
           "Authorization": p24AuthHeader(cfg.posId, cfg.apiKey),
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       });
       const responseBody: any = await response.json().catch(() => ({}));
-      const token = responseBody?.data?.token;
-      if (!response.ok || typeof token !== "string" || !token) {
-        throw new Error(`P24 registration failed (${response.status}): ${JSON.stringify(responseBody).slice(0, 350)}`);
+      return { ok: response.ok, status: response.status, body: responseBody, token: responseBody?.data?.token };
+    }
+
+    try {
+      let result = await register(payload);
+      // A method the shop cannot honour must never cost us the sale. Retrying
+      // without it puts the customer on Przelewy24's own method page, which is
+      // exactly where they were before this shortcut existed. Only ever retried
+      // when a method was pinned, so a genuine failure still surfaces.
+      if (!result.token && method !== undefined) {
+        console.error("p24 register rejected method", method, JSON.stringify(result.body).slice(0, 200));
+        const { method: _dropped, ...withoutMethod } = payload as any;
+        result = await register(withoutMethod);
+      }
+      const token = result.token;
+      if (!result.ok && !token) {
+        throw new Error(`P24 registration failed (${result.status}): ${JSON.stringify(result.body).slice(0, 350)}`);
+      }
+      if (typeof token !== "string" || !token) {
+        throw new Error(`P24 registration returned no token (${result.status})`);
       }
       await ctx.runMutation(internal.p24.markRegistered, { paymentId: payment._id, token });
       return {

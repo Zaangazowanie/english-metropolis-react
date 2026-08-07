@@ -933,10 +933,14 @@ export default defineSchema({
     consentMarketing: v.optional(v.boolean()),
     consentCapturedAt: v.optional(v.number()),
     termsVersion: v.optional(v.string()),
-    status: v.string(),                 // created | registered | registration_failed | paid
+    status: v.string(),                 // created | registered | registration_failed | paid | superseded
     token: v.optional(v.string()),
     p24OrderId: v.optional(v.number()),
-    methodId: v.optional(v.number()),
+    methodId: v.optional(v.number()),   // what P24 report was actually used
+    // What the customer picked on our checkout. Przelewy24 pin a registered
+    // transaction to this method and offer no way to change it on their page,
+    // so a resumed payment with a different choice would strand the customer.
+    requestedMethod: v.optional(v.number()),
     statement: v.optional(v.string()),
     error: v.optional(v.string()),
     allocationErrors: v.optional(v.array(v.string())), // captured but not allocated — needs a human

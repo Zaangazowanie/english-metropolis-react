@@ -4,6 +4,8 @@ import { Skyline } from '../../design/v3/primitives.jsx'
 import { useCart, cart, cartTotalPLN, formatPLN } from './cart-store.js'
 import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN } from '../legal/foundation-legal-content.js'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
+import PaymentMethods from './PaymentMethods.jsx'
+import { KNOWN_METHOD_KEYS } from './payment-method-copy.js'
 import './checkout.css'
 
 // Checkout = account + order + server-registered Przelewy24 payment. The
@@ -64,6 +66,11 @@ export default function Checkout() {
   const [error, setError] = useState('')
   const [phase, setPhase] = useState('idle') // idle | account | order
   const [accountReady, setAccountReady] = useState(false)
+  // Payment methods come from P24 at mount, never from a list kept here, so the
+  // page cannot offer something the account is not actually enabled for.
+  const [methodGroups, setMethodGroups] = useState(null)
+  const [methodsFailed, setMethodsFailed] = useState(false)
+  const [methodKey, setMethodKey] = useState(null)
 
   const total = cartTotalPLN(state)
   const isPl = lang === 'pl'
@@ -135,6 +142,26 @@ export default function Checkout() {
     } catch { /* password path still works */ }
   }, [googleReady, session])
 
+  // Fetched once, deliberately not per language. P24 localise the bank NAMES,
+  // which this page never shows, so refetching on an EN/PL toggle would only
+  // collapse the list back to skeletons and replay its entrance for nothing.
+  useEffect(() => {
+    let cancelled = false
+    callConvex('action', 'p24:listMethods', { lang: 'pl' })
+      .then((result) => {
+        if (cancelled) return
+        // A group we have no copy for would render as an invisible row that can
+        // still be submitted, so unknown keys are dropped rather than displayed.
+        const groups = (Array.isArray(result?.groups) ? result.groups : [])
+          .filter(group => KNOWN_METHOD_KEYS.includes(group?.key))
+        setMethodGroups(groups)
+        // Preselect the first method so the common path is one tap shorter.
+        setMethodKey(groups[0]?.key ?? null)
+      })
+      .catch(() => { if (!cancelled) { setMethodsFailed(true); setMethodGroups([]) } })
+    return () => { cancelled = true }
+  }, [])
+
   function changeAccount() {
     try { window.localStorage.removeItem('em-student-session') } catch { /* no-op */ }
     setSession(null)
@@ -153,6 +180,9 @@ export default function Checkout() {
       addressLine: address.trim() || undefined,
       notes: notes.trim() || undefined,
     }
+    // Transfers deliberately send no method: the bank list, and each bank's
+    // availability hours, are Przelewy24's to present.
+    const chosen = (methodGroups || []).find(group => group.key === methodKey)
     const payment = await callConvex('action', 'p24:createPayment', {
       sessionToken: activeSession.sessionToken,
       checkoutRef: orderRef,
@@ -162,6 +192,7 @@ export default function Checkout() {
       consentTerms,
       consentImmediate,
       consentMarketing,
+      ...(chosen?.methodId ? { method: chosen.methodId } : {}),
     })
     if (!payment?.redirectUrl || !/^https:\/\//.test(payment.redirectUrl)) {
       throw new Error(t('The secure payment link was not returned.', 'Nie otrzymaliśmy bezpiecznego linku do płatności.'))
@@ -209,6 +240,17 @@ export default function Checkout() {
         : (ex.message || t('We could not complete this step. Please try again.', 'Nie udało się wykonać tej operacji. Spróbuj ponownie.'))))
     }
   }
+
+  // Named from the live method list, so the summary can never advertise a
+  // method the account cannot take. Cards appear here the day P24 enable them.
+  const payKinds = (methodGroups || [])
+    .map(group => ({
+      blik: 'BLIK',
+      card: t('cards', 'karty'),
+      transfer: t('online transfer', 'przelew online'),
+    })[group.key])
+    .filter(Boolean)
+    .join(' · ')
 
   const buttonLabel = phase === 'account'
     ? t('Creating your account…', 'Tworzymy konto…')
@@ -369,6 +411,24 @@ export default function Checkout() {
                 </fieldset>
 
                 {/* ── 3. Płatność ── */}
+                <fieldset className="co-block">
+                  <legend>{t('How would you like to pay?', 'Jak chcesz zapłacić?')}</legend>
+                  <PaymentMethods
+                    lang={lang}
+                    groups={methodGroups}
+                    loading={methodGroups === null}
+                    failed={methodsFailed}
+                    value={methodKey}
+                    onChange={setMethodKey}
+                  />
+                  <p className="co-consent-hint">
+                    {t(
+                      'You finish the payment on the secure Przelewy24 page. This page never sees your card or banking details.',
+                      'Płatność dokończysz na bezpiecznej stronie Przelewy24. Ta strona nie widzi danych Twojej karty ani danych bankowych.',
+                    )}
+                  </p>
+                </fieldset>
+
                 <fieldset className="co-block co-consents">
                   <legend>{t('Consents', 'Zgody')}</legend>
                   <label className="co-check">
@@ -471,7 +531,10 @@ export default function Checkout() {
                 <h3>{t('Payment', 'Płatność')}</h3>
                 <div className="co-pay-method" data-active="true">
                   <span className="co-pay-brand">{t('Secure online payment', 'Bezpieczna płatność online')}</span>
-                  <span className="co-pay-kinds">{t('Processed securely by Przelewy24 · BLIK · cards · fast transfer', 'Realizowana bezpiecznie przez Przelewy24 · BLIK · karty · szybki przelew')}</span>
+                  <span className="co-pay-kinds">
+                    {t('Processed securely by Przelewy24', 'Realizowana bezpiecznie przez Przelewy24')}
+                    {payKinds ? ` · ${payKinds}` : ''}
+                  </span>
                 </div>
                 <ol className="co-next-steps">
                   <li>{t('We create your account and order.', 'Utworzymy konto i zamówienie.')}</li>

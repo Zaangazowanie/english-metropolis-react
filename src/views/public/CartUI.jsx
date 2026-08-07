@@ -100,8 +100,8 @@ export default function CartUI({ lang = 'pl' }) {
               </button>
               <p className="emc-note">
                 {t(
-                  'Prices in PLN, VAT included. Payment methods (Przelewy24: BLIK, cards, transfer) are shown at checkout.',
-                  'Ceny w PLN, z VAT. Metody płatności (Przelewy24: BLIK, karty, przelew) zobaczysz w kasie.',
+                  'Prices in PLN, VAT included. You choose how to pay at checkout, through Przelewy24.',
+                  'Ceny w PLN, z VAT. Sposób płatności wybierzesz w kasie, przez Przelewy24.',
                 )}
               </p>
             </footer>

@@ -527,3 +527,255 @@
   .co-account-ready, .co-account-check, .co-email-taken, .co-status-list li { animation: coFadeOnly 180ms ease both; }
   .co-later { transition: none; }
 }
+
+/* ── Payment method picker ─────────────────────────────────────────────────
+   Only methods Przelewy24 report as enabled reach this list, so every option
+   drawn here is one the customer can actually complete. */
+.co-methods {
+  --co-ease-settle: cubic-bezier(0.23, 1, 0.32, 1);
+  --co-ease-pop: cubic-bezier(0.18, 1.35, 0.32, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+
+.co-method {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 11px 14px;
+  border: 1px solid rgba(16, 10, 40, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.86);
+  cursor: pointer;
+  isolation: isolate;
+  animation: coRiseT 420ms var(--co-ease-settle) both;
+  animation-delay: calc(var(--co-i, 0) * 70ms);
+  transition:
+    border-color 200ms ease,
+    background-color 200ms ease,
+    box-shadow 260ms var(--co-ease-settle),
+    transform 160ms var(--co-ease-settle);
+}
+
+/* The tinted wash is a pseudo-element so it can cross-fade underneath the
+   content instead of repainting the card's own background. */
+.co-method::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(217, 70, 239, 0.09));
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.co-method:hover { border-color: rgba(139, 92, 246, 0.42); transform: translateY(-1px); }
+.co-method:active { transform: translateY(0) scale(0.995); }
+/* focus-within, not :has(), so the ring still appears on Firefox ESR and older
+   Safari. The radio itself is 1px and transparent, so without this a keyboard
+   user gets no focus indicator at all. Matches .lp-package in the house system. */
+.co-method:focus-within {
+  outline: 2px solid #7C3AED;
+  outline-offset: 2px;
+}
+
+.co-method[data-selected="true"] {
+  border-color: rgba(217, 70, 239, 0.55);
+  box-shadow: 0 14px 30px -20px rgba(217, 70, 239, 0.85);
+}
+.co-method[data-selected="true"]::before { opacity: 1; }
+
+.co-method input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.co-method-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: rgba(139, 92, 246, 0.10);
+  color: #6D28D9;
+  font-size: 21px;
+  transition: background-color 240ms ease, color 240ms ease, transform 320ms var(--co-ease-pop);
+}
+.co-method[data-selected="true"] .co-method-icon {
+  background: linear-gradient(135deg, #8B5CF6, #D946EF);
+  color: #fff;
+  transform: scale(1.06);
+}
+
+.co-method-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.co-method-text strong { font-size: 14.5px; font-weight: 700; color: #17102E; letter-spacing: -0.01em; }
+.co-method-text small { font-size: 12.5px; color: #5F5780; }
+
+.co-method-check { width: 24px; height: 24px; fill: none; stroke-width: 2; }
+.co-method-check circle { stroke: rgba(16, 10, 40, 0.16); fill: transparent; transition: stroke 240ms ease, fill 240ms ease; }
+.co-method-check path {
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 18;
+  stroke-dashoffset: 18;
+  transition: stroke-dashoffset 200ms ease;
+}
+.co-method[data-selected="true"] .co-method-check circle { stroke: #D946EF; fill: #D946EF; }
+.co-method[data-selected="true"] .co-method-check path {
+  animation: coCheckDraw 320ms var(--co-ease-settle) 60ms both;
+}
+@keyframes coCheckDraw { to { stroke-dashoffset: 0; } }
+
+/* Same movement as coRise, on `translate` so hover/press transforms still work. */
+@keyframes coRiseT {
+  from { opacity: 0; translate: 0 10px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+.co-methods-fallback {
+  margin: 4px 0 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(16, 10, 40, 0.12);
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #5F5780;
+}
+
+.co-method-skeleton {
+  height: 60px;
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, rgba(16, 10, 40, 0.05) 0%, rgba(139, 92, 246, 0.13) 50%, rgba(16, 10, 40, 0.05) 100%)
+    0 0 / 220% 100%;
+  animation: coSkeleton 1.25s ease-in-out infinite;
+  animation-delay: calc(var(--co-i, 0) * 110ms);
+}
+@keyframes coSkeleton {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .co-method { animation: coFadeOnly 180ms ease both; translate: none; transition: border-color 200ms ease, background-color 200ms ease; }
+  .co-method:hover, .co-method:active { transform: none; }
+  .co-method-icon { transition: background-color 200ms ease, color 200ms ease; }
+  .co-method[data-selected="true"] .co-method-icon { transform: none; }
+  .co-method[data-selected="true"] .co-method-check path { animation: none; stroke-dashoffset: 0; }
+  .co-method-skeleton { animation: none; background-position: 50% 0; }
+}
+
+/* ── Design refinement pass (2026-08-07) ───────────────────────────────────
+   Sharpens the checkout without leaving the lp-* system: real drawn payment
+   marks, money set in tabular figures, layered depth instead of flat panels,
+   and a step rail that shows progress rather than three loose chips. */
+.co-page {
+  --co-ease-settle: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Two-part shadow: a tight contact edge plus a wide soft cast. A single
+     large blur reads as fog; this reads as a card sitting on a surface. */
+  --co-lift: 0 1px 2px rgba(16, 10, 40, 0.06), 0 18px 40px -26px rgba(66, 42, 122, 0.55);
+  --co-lift-hi: 0 1px 2px rgba(16, 10, 40, 0.07), 0 26px 56px -26px rgba(139, 92, 246, 0.6);
+}
+
+/* Fine grain stops the large light panels reading as flat digital white. */
+.co-block, .co-summary {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  box-shadow: var(--co-lift);
+}
+
+/* ── Payment marks ── */
+.co-method-icon { background: rgba(139, 92, 246, 0.09); }
+.co-mark { width: 21px; height: 21px; display: block; }
+.co-method[data-selected="true"] .co-mark { stroke-width: 1.75; }
+.co-method[data-selected="true"] { box-shadow: var(--co-lift-hi); }
+
+/* ── Money ── */
+.co-total strong, .co-item-side > strong, .co-items li strong {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.co-total {
+  align-items: baseline;
+  padding-top: 14px;
+  border-top: 1px solid rgba(16, 10, 40, 0.10);
+}
+.co-total strong {
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #6D28D9, #C026D3 62%, #DB2777);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── Summary reads as a receipt, with a torn edge where the total begins ── */
+.co-summary { position: sticky; overflow: hidden; }
+.co-summary::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -7px;
+  height: 14px;
+  background:
+    radial-gradient(circle at 7px 7px, transparent 6px, rgba(255, 255, 255, 0.96) 6.5px) 0 0 / 14px 14px repeat-x;
+  pointer-events: none;
+}
+
+/* ── Step rail ── */
+.co-steps { position: relative; gap: 10px; }
+.co-steps li {
+  position: relative;
+  flex: 1;
+  justify-content: center;
+  padding: 9px 10px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(16, 10, 40, 0.05);
+  overflow: hidden;
+}
+/* The fill sweeps in from the left as each step completes, so the rail reads
+   as distance travelled rather than three independent pills. */
+.co-steps li::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.20), rgba(217, 70, 239, 0.16));
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 420ms var(--co-ease-settle);
+}
+.co-steps li[data-active="true"] { background: rgba(255, 255, 255, 0.86); isolation: isolate; }
+.co-steps li[data-active="true"]::after { transform: scaleX(1); }
+@media (max-width: 560px) { .co-steps { font-size: 11.5px; } .co-steps li { padding: 8px 6px; } }
+
+/* ── Submit ── */
+.co-submit { position: relative; overflow: hidden; letter-spacing: -0.01em; }
+.co-submit::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 42%;
+  left: -60%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+  animation: coSheen 4.2s ease-in-out 1.2s infinite;
+}
+@keyframes coSheen { 0% { left: -60%; } 42%, 100% { left: 120%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .co-steps li::after { transition: none; }
+  .co-submit::after { animation: none; opacity: 0; }
+}
