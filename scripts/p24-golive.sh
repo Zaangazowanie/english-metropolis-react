@@ -82,9 +82,14 @@ fi
 echo "   OK, token issued"
 echo
 
+# The customer is redirected to Przelewy24 itself, never through our egress
+# proxy, so this check must use the redirect base rather than the API base.
+REDIRECT=$(npx convex env get P24_REDIRECT_BASE --prod 2>/dev/null | tr -d '\r\n')
+REDIRECT=${REDIRECT:-https://secure.przelewy24.pl}
+
 echo "3. customer payment page"
-PAGE=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/trnRequest/$TOKEN")
-echo "   HTTP $PAGE $BASE/trnRequest/$TOKEN"
+PAGE=$(curl -s -o /dev/null -w '%{http_code}' "$REDIRECT/trnRequest/$TOKEN")
+echo "   HTTP $PAGE $REDIRECT/trnRequest/$TOKEN"
 [ "$PAGE" = "200" ] && echo "   OK" || { echo "   FAILED — the token did not open a payment page."; exit 1; }
 echo
 echo "Przelewy24 is live. Open the URL above to see the methods enabled for this"
