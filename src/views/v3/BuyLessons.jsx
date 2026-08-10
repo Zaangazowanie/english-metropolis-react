@@ -1,13 +1,14 @@
-// BuyLessons — the student "buy lesson packages" wizard (2026-07-10).
+// BuyLessons — the student "buy lesson packages" page.
 //
-// The Tpay gateway is not integrated yet, so the flow ends with an ORDER:
-// the student picks one of the live packages, fills billing details, and
-// submits. English Metro invoices manually; once paid, the superadmin
-// confirms the order in the console and the lessons are allocated —
-// only then can the student book. Three onion steps + an orders list.
+// On englishmetro.com picking a package adds it to the shared public cart and
+// hands over to /checkout, where the counsel-approved Przelewy24 flow (consents,
+// live method picker, server-side pricing) takes the payment and allocates the
+// lessons automatically. The legacy lexicon domain has no /checkout route, so
+// it keeps the original invoice wizard: pick, billing details, submit an order,
+// English Metro invoices manually and the superadmin confirms it.
 
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { FONT, G } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Glass, Pill } from '../../design/v3/primitives.jsx'
@@ -16,6 +17,13 @@ import { useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 import { PRIVATE_PACKAGES, PACKAGE_LESSONS } from '../public/packages.js'
 import { PL_CITIES } from '../public/pl-cities.js'
+import { cart, parsePricePLN } from '../public/cart-store.js'
+
+// Same test as main.jsx: /checkout (and the Przelewy24 flow behind it) is only
+// routed on englishmetro.com and localhost. Elsewhere the invoice wizard stays.
+const HAS_ONLINE_CHECKOUT = typeof window !== 'undefined'
+  && (/englishmetro\.com/i.test(window.location.hostname)
+    || /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname))
 
 async function convexCall(kind, path, args) {
   const r = await fetchWithTimeout(`/api/${kind}`, {
@@ -42,7 +50,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
     const id = new URLSearchParams(window.location.search).get('package')
     return PRIVATE_PACKAGES.find(p => p.id === id) || null
   }, [])
-  const [step, setStep] = useState(preselect ? 2 : 1)          // 1 pick · 2 billing · 3 review · 4 done
+  const [step, setStep] = useState(preselect && !HAS_ONLINE_CHECKOUT ? 2 : 1) // 1 pick · 2 billing · 3 review · 4 done
   const [pkg, setPkg] = useState(preselect)
   const [billing, setBilling] = useState(emptyBilling)
   const [busy, setBusy] = useState(false)
@@ -50,6 +58,38 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
   const [showErrs, setShowErrs] = useState(false)
   const [orders, setOrders] = useState(null)
   const [alloc, setAlloc] = useState(null)
+
+  const navigate = useNavigate()
+
+  // Hand the package to /checkout, where Przelewy24 payment, consents and
+  // server-side pricing live. Choosing here means "buy this one package", so
+  // the shared cart is REPLACED, not appended — a stale item left in the
+  // public cart days ago, or a Back-then-choose-again, must not inflate the
+  // charged total. Same item shape as the pricing page. Students on the old
+  // slug-only fallback have no sessionToken, and /checkout would offer them a
+  // fresh account — payment would then allocate lessons to the wrong student
+  // record — so they sign in first and come back.
+  function startCheckout(p) {
+    if (!studentUser?.sessionToken) {
+      navigate(`/login?next=${encodeURIComponent(`${basePath}/${slug}/buy`)}`)
+      return
+    }
+    cart.clear()
+    cart.add({ id: p.id, name: p.name, pace: p.pace,
+      pacePl: p.pacePl || p.pace, pricePLN: parsePricePLN(p.price) })
+    navigate('/checkout')
+  }
+
+  const preselectDone = useRef(false)
+  useEffect(() => {
+    if (!HAS_ONLINE_CHECKOUT || !preselect || preselectDone.current) return
+    preselectDone.current = true
+    // Strip ?package= first so Back from /checkout lands on the package grid
+    // instead of re-adding the package and bouncing straight back to checkout.
+    navigate(window.location.pathname, { replace: true })
+    startCheckout(preselect)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const reload = () => {
     if (!studentId) return
@@ -84,12 +124,14 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
 
   const L = pl ? {
     title: 'Dokup lekcje', kicker: 'Pakiety lekcji',
-    intro: 'Wybierz pakiet, podaj dane do faktury i wyślij zamówienie. Otrzymasz od nas fakturę — po zaksięgowaniu płatności lekcje pojawią się na Twoim koncie i będziesz mógł/mogła je rezerwować.',
+    intro: HAS_ONLINE_CHECKOUT
+      ? 'Wybierz pakiet i zapłać bezpiecznie online przez Przelewy24 (BLIK, przelew). Po potwierdzeniu płatności lekcje pojawią się na Twoim koncie i będziesz mógł/mogła je rezerwować.'
+      : 'Wybierz pakiet, podaj dane do faktury i wyślij zamówienie. Otrzymasz od nas fakturę — po zaksięgowaniu płatności lekcje pojawią się na Twoim koncie i będziesz mógł/mogła je rezerwować.',
     remaining: n => `${n} lekcji do wykorzystania`,
     step1: 'Wybierz pakiet', step2: 'Dane do rozliczenia', step3: 'Podsumowanie', step4: 'Zamówienie wysłane!',
     choose: 'Wybieram', back: 'Wstecz', next: 'Dalej', submit: 'Wyślij zamówienie',
     done: 'Dziękujemy! Twoje zamówienie dotarło do English Metro. Wyślemy Ci fakturę na podany adres e-mail — po opłaceniu lekcje zostaną dodane do Twojego konta (zwykle w ciągu 24h od zaksięgowania).',
-    myOrders: 'Twoje zamówienia', statuses: { pending_invoice: 'oczekuje na fakturę / płatność', confirmed: 'opłacone — lekcje przyznane', cancelled: 'anulowane' },
+    myOrders: 'Twoje zamówienia', statuses: { pending_invoice: 'oczekuje na fakturę / płatność', payment_pending: 'płatność online w toku', confirmed: 'opłacone — lekcje przyznane', cancelled: 'anulowane' },
     fields: { fullName: 'Imię i nazwisko *', email: 'E-mail do faktury *', phone: 'Telefon', addressLine: 'Ulica i numer *', city: 'Miejscowość *', postalCode: 'Kod pocztowy *', country: 'Kraj', company: 'Firma (opcjonalnie)', nip: 'NIP (opcjonalnie)', notes: 'Uwagi do zamówienia' },
     reviewNote: 'Płatność: faktura (przelew). Płatność online przez Przelewy24 jest dostępna przy zakupie pakietu na stronie z pakietami.',
     errors: { fullName: 'Podaj imię i nazwisko.', email: 'Podaj poprawny adres e-mail.',
@@ -98,12 +140,14 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
       postalCode: 'Kod pocztowy w formacie 00-000.' },
   } : {
     title: 'Buy lessons', kicker: 'Lesson packages',
-    intro: 'Pick a package, add your billing details and submit the order. We will send you an invoice — once payment clears, the lessons appear on your account and you can book them.',
+    intro: HAS_ONLINE_CHECKOUT
+      ? 'Pick a package and pay securely online through Przelewy24 (BLIK, online transfer). Once payment is confirmed, the lessons appear on your account and you can book them.'
+      : 'Pick a package, add your billing details and submit the order. We will send you an invoice — once payment clears, the lessons appear on your account and you can book them.',
     remaining: n => `${n} lessons remaining`,
     step1: 'Choose a package', step2: 'Billing details', step3: 'Review', step4: 'Order sent!',
     choose: 'Choose', back: 'Back', next: 'Next', submit: 'Submit order',
     done: 'Thank you! Your order has reached English Metro. We will email your invoice — once paid, the lessons are added to your account (usually within 24h of payment).',
-    myOrders: 'Your orders', statuses: { pending_invoice: 'awaiting invoice / payment', confirmed: 'paid — lessons allocated', cancelled: 'cancelled' },
+    myOrders: 'Your orders', statuses: { pending_invoice: 'awaiting invoice / payment', payment_pending: 'online payment in progress', confirmed: 'paid — lessons allocated', cancelled: 'cancelled' },
     fields: { fullName: 'Full name *', email: 'Invoice email *', phone: 'Phone', addressLine: 'Street & number *', city: 'City / town *', postalCode: 'Postal code *', country: 'Country', company: 'Company (optional)', nip: 'Tax ID / NIP (optional)', notes: 'Order notes' },
     reviewNote: 'Payment: invoice (bank transfer). Online payment through Przelewy24 is available when you buy a package on the packages page.',
     errors: { fullName: 'Enter your full name.', email: 'Enter a valid email address.',
@@ -145,8 +189,8 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
         )}
       </div>
 
-      {/* step indicator */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+      {/* step indicator — checkout has its own steps, so only the invoice wizard shows one */}
+      {!HAS_ONLINE_CHECKOUT && <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
         {[L.step1, L.step2, L.step3].map((label, i) => (
           <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '5px 12px', borderRadius: 999, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
@@ -157,7 +201,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
             {i + 1} · {label}
           </span>
         ))}
-      </div>
+      </div>}
 
       {step === 1 && (
         <div style={{ display: 'grid', gap: 16, gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))' }}>
@@ -174,7 +218,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
               <p style={{ marginTop: 10, fontSize: 13, color: T.textSoft, lineHeight: 1.5, flex: 1 }}>{p.bestFor}</p>
               <div style={{ marginTop: 14 }}>
                 <Btn variant={pkg?.id === p.id ? 'primary' : 'secondary'} size="md"
-                  onClick={() => { setPkg(p); setStep(2) }}>
+                  onClick={() => { if (HAS_ONLINE_CHECKOUT) return startCheckout(p); setPkg(p); setStep(2) }}>
                   {L.choose} →
                 </Btn>
               </div>

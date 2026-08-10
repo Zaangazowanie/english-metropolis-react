@@ -41,7 +41,12 @@ function persistSession(student, sessionToken) {
 
 export default function Checkout() {
   const state = useCart()
-  const [lang, setLang] = useState('pl')
+  // Seeded from the app's stored language so a student sent here from the
+  // English in-app UI is not consented in Polish. Visitors without the key
+  // (public site, first visit) keep the Polish default.
+  const [lang, setLang] = useState(() => {
+    try { return window.localStorage.getItem('em.lang.v2') === 'en' ? 'en' : 'pl' } catch { return 'pl' }
+  })
   // Account section
   const [session, setSession] = useState(() => readSession())
   const [fullName, setFullName] = useState('')

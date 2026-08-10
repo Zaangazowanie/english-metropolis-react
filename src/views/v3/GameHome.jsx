@@ -142,7 +142,7 @@ const GH = {
     stepsKicker: 'from sign-up to speaking', stepsTitle: 'Your first lesson is four steps away',
     steps: [
       { icon: 'person_add', title: 'Create your account', body: 'It takes about two minutes: use your email and password or continue with Google.' },
-      { icon: 'shopping_bag', title: 'Pick a package', body: 'Choose one trial lesson or a package of up to 24 lessons. Pay online or by invoice.' },
+      { icon: 'shopping_bag', title: 'Pick a package', body: 'Choose one trial lesson or a package of up to 24 lessons. Pay securely online through Przelewy24.' },
       { icon: 'event_available', title: 'Book your times', body: 'Choose an available time in your teacher’s calendar. We will email you the Google Meet link and calendar invitation.' },
       { icon: 'school', title: 'Learn, then replay', body: 'After each lesson, a PDF is added to your library and the lesson vocabulary is turned into flashcards for further practice.' },
     ],
@@ -212,7 +212,7 @@ const GH = {
     stepsKicker: 'od rejestracji do mówienia', stepsTitle: 'Twoja pierwsza lekcja w czterech krokach',
     steps: [
       { icon: 'person_add', title: 'Załóż konto', body: 'To około dwóch minut: podaj e-mail i hasło lub kontynuuj z Google.' },
-      { icon: 'shopping_bag', title: 'Wybierz pakiet', body: 'Wybierz pojedynczą lekcję próbną lub pakiet do 24 lekcji. Zapłać online lub na podstawie faktury.' },
+      { icon: 'shopping_bag', title: 'Wybierz pakiet', body: 'Wybierz pojedynczą lekcję próbną lub pakiet do 24 lekcji. Zapłać bezpiecznie online przez Przelewy24.' },
       { icon: 'event_available', title: 'Zarezerwuj terminy', body: 'Wybierz wolny termin w kalendarzu lektora. Link do Google Meet i zaproszenie do kalendarza otrzymasz e-mailem.' },
       { icon: 'school', title: 'Ucz się i powtarzaj', body: 'Po każdej lekcji w bibliotece pojawia się plik PDF, a słownictwo z lekcji trafia do fiszek do dalszych ćwiczeń.' },
     ],
