@@ -327,7 +327,7 @@ export default function BajlaConnectModal() {
             )}
           </div>
 
-          <img className="bjp-mascot" src="/bajla.png" alt="Bajla" />
+          <img className="bjp-mascot" src="/brand/em-bajla-icon.webp" alt="Bajla" />
         </div>
       </div>
     </div>
@@ -384,7 +384,8 @@ const BJP_CSS = `
 .bjp-input::placeholder{color:#a99fc4}
 .bjp-error{color:#ff9db0;font-size:14px;margin:0 0 12px}
 .bjp-back{display:block;width:100%;margin-top:12px;background:none;border:none;color:#cdb4ff;font-size:14px;cursor:pointer}
-.bjp-mascot{width:100%;max-width:240px;filter:drop-shadow(0 0 26px rgba(190,100,255,.55))}
+.bjp-mascot{width:100%;max-width:240px;border-radius:26px;display:block;
+  filter:drop-shadow(0 0 26px rgba(190,100,255,.55))}
 @media (max-width:760px){
   .bjp-card{padding:28px 22px}
   .bjp-grid{grid-template-columns:1fr}

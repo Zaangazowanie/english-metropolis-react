@@ -64,7 +64,10 @@
     'display:flex;align-items:center;justify-content:center;transition:transform .28s cubic-bezier(.34,1.56,.64,1)}',
     '.bjl-fab:hover{transform:translateY(-3px) scale(1.04)}',
     '.bjl-fab:active{transform:scale(.96)}',
-    '.bjl-fab img{width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}',
+    // The brand icon is a full-bleed plate, so it fills the button and the
+    // circle does the cropping; a contained 42px version would float inside a
+    // gradient ring and read as two competing marks.
+    '.bjl-fab img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}',
     '.bjl-halo{position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(217,70,239,.55);opacity:0;pointer-events:none}',
     '.bjl-live .bjl-halo{animation:bjlHalo 2.8s ease-out infinite}',
     '@keyframes bjlHalo{0%{transform:scale(.92);opacity:.75}70%{transform:scale(1.25);opacity:0}100%{opacity:0}}',
@@ -78,7 +81,7 @@
     'background:radial-gradient(ellipse 70% 120% at 12% 0%,rgba(217,70,239,.20),transparent 70%)}',
     '.bjl-av{width:38px;height:38px;border-radius:12px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;',
     'background:linear-gradient(135deg,#8B5CF6,#D946EF 55%,#F472B6);box-shadow:0 0 0 1px rgba(217,70,239,.45),0 0 30px -6px rgba(217,70,239,.55)}',
-    '.bjl-av img{width:28px;height:28px;object-fit:contain}',
+    '.bjl-av img{width:100%;height:100%;border-radius:12px;object-fit:cover;display:block}',
     '.bjl-name{font-size:14.5px;font-weight:600;color:#F4F0FF;letter-spacing:-.01em;line-height:1.2}',
     '.bjl-sub{font-size:11px;color:#8A83AE;margin-top:2px;line-height:1.3}',
     '.bjl-x{background:transparent;border:none;color:#8A83AE;cursor:pointer;padding:5px;border-radius:9px;line-height:0;transition:color .18s,background .18s}',
@@ -990,7 +993,7 @@
 
     var hd = el('div', 'bjl-hd');
     var av = el('div', 'bjl-av');
-    av.innerHTML = '<img src="/bajla.png" alt="">';
+    av.innerHTML = '<img src="/brand/em-bajla-icon.webp" alt="">';
     hd.appendChild(av);
     var who = el('div');
     who.style.cssText = 'flex:1;min-width:0';
@@ -1045,7 +1048,7 @@
 
     var fab = el('button', 'bjl-fab');
     fab.setAttribute('aria-label', 'Open Bajla, your English tutor');
-    fab.innerHTML = '<span class="bjl-halo"></span><img src="/bajla.png" alt="">';
+    fab.innerHTML = '<span class="bjl-halo"></span><img src="/brand/em-bajla-icon.webp" alt="">';
     fab.addEventListener('click', toggle);
 
     root.appendChild(panel);

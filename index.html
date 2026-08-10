@@ -2,8 +2,11 @@
 <html class="light" lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="alternate icon" type="image/x-icon" href="/favicon.ico" />
+    <!-- The brand mark is now the illustrated Bajla plate, which has no vector
+         form, so the SVG favicon link is gone (the file stays for reference).
+         Browsers prefer an SVG icon when one is offered and would keep serving
+         the retired "M." mark from cache. -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=4" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>English Metro.</title>
     <!-- PWA / Add-to-home-screen — Mike's new logo + brand name 2026-04-25 -->
@@ -14,13 +17,27 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
     <meta name="apple-mobile-web-app-title" content="English Metro."/>
     <meta name="application-name" content="English Metro."/>
-    <link rel="manifest" href="/manifest.webmanifest?v=3"/>
+    <link rel="manifest" href="/manifest.webmanifest?v=4"/>
     <!-- iOS picks the ONLY apple-touch-icon link with sizes; we explicitly drop
          the legacy /apple-touch-icon.png reference so iOS doesn't fall back to
-         the stale purple-skyline icon. ?v=3 cache-bust forces refetch. -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/icon-apple-180.png?v=3"/>
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=3"/>
-    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png?v=3"/>
+         the stale icon. ?v=4 cache-bust forces refetch. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-apple-180.png?v=4"/>
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=4"/>
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png?v=4"/>
+    <!-- Link previews (WhatsApp, X, Messenger) had no image, so a shared link
+         rendered as a bare grey card. They show the wordmark now. -->
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="English Metro."/>
+    <meta property="og:title" content="English Metro. — live 1:1 English lessons"/>
+    <meta property="og:description" content="Big-city English with a real teacher. Live 1:1 lessons, lesson notes after every session, and practice that fits your week."/>
+    <meta property="og:url" content="https://englishmetro.com/"/>
+    <meta property="og:image" content="https://englishmetro.com/brand/em-og-card.jpg?v=1"/>
+    <meta property="og:image:width" content="1200"/>
+    <meta property="og:image:height" content="630"/>
+    <meta name="twitter:card" content="summary_large_image"/>
+    <meta name="twitter:title" content="English Metro. — live 1:1 English lessons"/>
+    <meta name="twitter:description" content="Big-city English with a real teacher. Live 1:1 lessons, lesson notes after every session, and practice that fits your week."/>
+    <meta name="twitter:image" content="https://englishmetro.com/brand/em-og-card.jpg?v=1"/>
     <script>
       // Tell the conversa widget which student it's talking to,
       // and skip mounting it entirely on the public marketing/login pages.
@@ -100,7 +117,7 @@
     <script>
       if (!window.__EM_HIDE_TUTOR) {
         var s = document.createElement('script');
-        s.src = '/students/conversa-widget-v5.js?v=accuracy-20260729';
+        s.src = '/students/conversa-widget-v5.js?v=bajla-icon-20260810';
         s.defer = true;
         document.body.appendChild(s);
       }
