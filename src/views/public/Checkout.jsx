@@ -26,6 +26,16 @@ async function callConvex(kind, path, args) {
   return payload.value
 }
 
+// Polish NIP: 10 digits, weighted checksum (mod 11). KSeF structured invoices
+// carry the NIP as bare digits, so the value is normalized before sending.
+function validNIP(raw) {
+  const d = String(raw || '').replace(/[^0-9]/g, '')
+  if (d.length !== 10) return false
+  const w = [6, 5, 7, 2, 3, 4, 5, 6, 7]
+  const sum = w.reduce((s, wi, i) => s + wi * Number(d[i]), 0)
+  return sum % 11 === Number(d[9])
+}
+
 function readSession() {
   try {
     const s = JSON.parse(window.localStorage.getItem('em-student-session') || 'null')
@@ -62,6 +72,9 @@ export default function Checkout() {
   const [company, setCompany] = useState('')
   const [nip, setNip] = useState('')
   const [address, setAddress] = useState('')
+  const [postalCode, setPostalCode] = useState('')
+  const [city, setCity] = useState('')
+  const [country, setCountry] = useState('Polska')
   const [notes, setNotes] = useState('')
   // Consents + submission
   const [consentTerms, setConsentTerms] = useState(false)
@@ -92,6 +105,35 @@ export default function Checkout() {
     const rand = crypto.getRandomValues(new Uint32Array(1))[0]
     return `EM-${ymd}-${hash.toString(36).slice(-4).toUpperCase()}${rand.toString(36).slice(0, 6).toUpperCase()}`
   }, [cartKey])
+
+  // Invoice details: optional as a whole, but once any field is filled the set
+  // must be complete enough for a compliant faktura VAT (art. 106e: buyer name
+  // and address always; NIP for a company). Issued through KSeF, which rejects
+  // malformed buyer data outright, so this is validated here, not at the
+  // accountant's desk.
+  const invoiceUsed = [company, nip, address, postalCode, city].some(s => s.trim())
+  const isPolandInvoice = /pol|^pl$/i.test(country.trim() || 'Polska')
+  function invoiceProblem() {
+    if (!invoiceUsed) return null
+    if (company.trim() && !nip.trim()) {
+      return t('A company invoice must carry the company NIP. Add it, or clear the company name for a personal invoice.',
+        'Faktura na firmę musi zawierać NIP. Uzupełnij NIP albo usuń nazwę firmy, aby otrzymać fakturę imienną.')
+    }
+    if (nip.trim() && !validNIP(nip)) {
+      return t('The NIP looks invalid. Check the 10 digits.', 'NIP wygląda na niepoprawny. Sprawdź, czy wpisano 10 cyfr.')
+    }
+    const addr = address.trim()
+    if (addr.length < 4 || !/\d/.test(addr)) {
+      return t('The invoice needs a street with a house or flat number.', 'Do faktury potrzebny jest adres z numerem domu lub lokalu.')
+    }
+    if (isPolandInvoice ? !/^\d{2}-\d{3}$/.test(postalCode.trim()) : postalCode.trim().length < 3) {
+      return t('Enter the postal code (00-000 in Poland).', 'Podaj kod pocztowy w formacie 00-000.')
+    }
+    if (city.trim().length < 2) {
+      return t('Enter the city or town for the invoice.', 'Podaj miejscowość do faktury.')
+    }
+    return null
+  }
 
   const accountDone = !!session
   const emailFormValid = fullName.trim().length >= 2 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()) && password.length >= 8
@@ -181,8 +223,11 @@ export default function Checkout() {
       email: activeSession.email || email.trim(),
       phone: phone.trim() || undefined,
       company: company.trim() || undefined,
-      nip: nip.trim() || undefined,
+      nip: nip.replace(/[^0-9]/g, '') || undefined,
       addressLine: address.trim() || undefined,
+      postalCode: postalCode.trim() || undefined,
+      city: city.trim() || undefined,
+      country: invoiceUsed ? (country.trim() || 'Polska') : undefined,
       notes: notes.trim() || undefined,
     }
     // Transfers deliberately send no method: the bank list, and each bank's
@@ -211,6 +256,8 @@ export default function Checkout() {
     setError('')
     setEmailTaken(false)
     if (!consentTerms) return setError(t('Accepting the Terms (Regulamin) is required to place an order.', 'Do złożenia zamówienia wymagana jest akceptacja Regulaminu.'))
+    const invoiceError = invoiceProblem()
+    if (invoiceError) { setInvoiceOpen(true); return setError(invoiceError) }
     try {
       let activeSession = session
       if (!activeSession) {
@@ -384,17 +431,46 @@ export default function Checkout() {
                   </legend>
                   <div className="co-collapse" data-open={invoiceOpen}>
                     <div className="co-collapse-inner">
+                      <p className="co-consent-hint">
+                        {t(
+                          'The invoice is issued by the Foundation through the national KSeF e-invoicing system. It must carry your full address, and for a company purchase also the company NIP.',
+                          'Fakturę wystawia Fundacja w krajowym systemie e-faktur KSeF. Faktura musi zawierać pełny adres, a przy zakupie na firmę także NIP firmy.',
+                        )}
+                      </p>
                       <label className="co-field">
                         <span>{t('Company name', 'Nazwa firmy')}</span>
                         <input value={company} onChange={(e) => setCompany(e.target.value)} autoComplete="organization" />
+                        <small className="co-hint">
+                          {t('Leave empty for an invoice issued to you as a private person.', 'Zostaw puste, jeśli faktura ma być wystawiona na osobę prywatną.')}
+                        </small>
                       </label>
                       <label className="co-field">
-                        <span>NIP</span>
+                        <span>NIP{company.trim() ? ' *' : ''}</span>
                         <input value={nip} onChange={(e) => setNip(e.target.value)} inputMode="numeric" placeholder="0000000000" />
                       </label>
                       <label className="co-field">
-                        <span>{t('Address', 'Adres')}</span>
-                        <input value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" />
+                        <span>{t('Street and number', 'Ulica i numer')}{invoiceUsed ? ' *' : ''}</span>
+                        <input value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" placeholder={t('e.g. Prosta 5/12', 'np. Prosta 5/12')} />
+                      </label>
+                      <label className="co-field">
+                        <span>{t('Postal code', 'Kod pocztowy')}{invoiceUsed ? ' *' : ''}</span>
+                        <input value={postalCode} inputMode="numeric" placeholder={isPolandInvoice ? '00-000' : undefined}
+                          onChange={(e) => {
+                            let v = e.target.value
+                            if (isPolandInvoice) {
+                              const d = v.replace(/\D/g, '').slice(0, 5)
+                              v = d.length > 2 ? `${d.slice(0, 2)}-${d.slice(2)}` : d
+                            }
+                            setPostalCode(v)
+                          }} autoComplete="postal-code" />
+                      </label>
+                      <label className="co-field">
+                        <span>{t('City / town', 'Miejscowość')}{invoiceUsed ? ' *' : ''}</span>
+                        <input value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
+                      </label>
+                      <label className="co-field">
+                        <span>{t('Country', 'Kraj')}</span>
+                        <input value={country} onChange={(e) => setCountry(e.target.value)} autoComplete="country-name" />
                       </label>
                     </div>
                   </div>
