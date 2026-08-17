@@ -18,17 +18,24 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const CANCELLATION_WINDOW_MS = 12 * 60 * 60 * 1000
 
 async function convexCall(kind, path, args) {
-  const res = await fetch(`${CONVEX_URL}/api/${kind}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path, args }),
-  })
-  if (!res.ok) throw new Error(`${path} failed with ${res.status}`)
-  const payload = await res.json()
-  if (payload?.status !== 'success') {
-    throw new Error(payload?.errorMessage || `${path} returned ${payload?.status}`)
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 30000)
+  try {
+    const res = await fetch(`${CONVEX_URL}/api/${kind}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path, args }),
+      signal: controller.signal,
+    })
+    if (!res.ok) throw new Error(`${path} failed with ${res.status}`)
+    const payload = await res.json()
+    if (payload?.status !== 'success') {
+      throw new Error(payload?.errorMessage || `${path} returned ${payload?.status}`)
+    }
+    return payload.value
+  } finally {
+    clearTimeout(timer)
   }
-  return payload.value
 }
 
 function timeToMinutes(time) {
@@ -42,7 +49,7 @@ function dateParts(dateWarsaw) {
   return { y, m, d, dow }
 }
 
-function Notice({ notice, T }) {
+function Notice({ notice, T, onResend, resendLabel }) {
   if (!notice) return null
   const tone = notice.kind === 'ok'
     ? { bg: 'rgba(52,211,153,0.10)', border: 'rgba(52,211,153,0.38)', color: T.emerald, icon: 'check_circle' }
@@ -62,9 +69,18 @@ function Notice({ notice, T }) {
       color: tone.color,
       fontSize: 13,
       fontWeight: 650,
+      flexWrap: 'wrap',
     }}>
       <span className="material-symbols-outlined" style={{ fontSize: 19 }}>{tone.icon}</span>
       <span>{notice.text}</span>
+      {notice.resend && onResend && (
+        <button type="button" onClick={onResend}
+          style={{ marginLeft: 'auto', border: `1px solid ${tone.border}`, background: 'transparent',
+            color: tone.color, borderRadius: 999, padding: '6px 14px', fontSize: 12.5,
+            fontWeight: 700, cursor: 'pointer', font: 'inherit' }}>
+          {resendLabel}
+        </button>
+      )}
     </div>
   )
 }
@@ -199,6 +215,16 @@ export default function LessonBooking() {
     return `${t(`weekday.short.${dow}`)} ${d} ${t(`month.${m}`)}`
   }, [t])
 
+  // Deep links (e.g. the dashboard's "Change or cancel" button) land on
+  // #lesson-booking — scroll to the block once it has actually rendered,
+  // otherwise the section sits below the curriculum roadmap and is never seen.
+  useEffect(() => {
+    if (state.loading) return
+    if (typeof window === 'undefined' || window.location.hash !== '#lesson-booking') return
+    const el = document.getElementById('lesson-booking')
+    if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
+  }, [state.loading])
+
   const refresh = useCallback(async () => {
     if (!studentId || !organizationId) {
       setState({ loading: false, bookings: [], slots: [], unavailable: true })
@@ -208,7 +234,9 @@ export default function LessonBooking() {
       const now = new Date()
       const from = now.toISOString().slice(0, 10)
       const to = new Date(now.getTime() + 28 * DAY_MS).toISOString().slice(0, 10)
-      const slotArgs = { organizationId, fromDate: from, toDate: to }
+      // forStudent: the server hides anything inside the 24-hour lead time, so
+      // this list is exactly what can actually be booked.
+      const slotArgs = { organizationId, fromDate: from, toDate: to, forStudent: true }
       if (teacherId) slotArgs.teacherId = teacherId
       const [bookings, slots, allocation] = await Promise.all([
         convexCall('query', 'scheduling:listBookings', { organizationId, studentId }),
@@ -232,7 +260,7 @@ export default function LessonBooking() {
     .sort((a, b) => a.startUtc - b.startUtc), [state.bookings, nowMs])
   const nextLesson = upcoming[0] || null
 
-  const { slotDates, slotsByDate, firstSlot, totalSlots } = useMemo(() => {
+  const { slotDates, slotsByDate, firstSlot } = useMemo(() => {
     const byDate = {}
     for (const s of state.slots || []) {
       if (!byDate[s.dateWarsaw]) byDate[s.dateWarsaw] = []
@@ -244,7 +272,6 @@ export default function LessonBooking() {
       slotDates: dates,
       slotsByDate: byDate,
       firstSlot: dates.length ? byDate[dates[0]][0] : null,
-      totalSlots: (state.slots || []).length,
     }
   }, [state.slots])
 
@@ -253,21 +280,58 @@ export default function LessonBooking() {
     setBusy(true)
     setNotice(null)
     try {
-      await convexCall('mutation', 'scheduling:bookLesson', {
-        sessionToken: getStudentSessionToken() || undefined,
+      const token = getStudentSessionToken()
+      const bookArgs = {
         organizationId,
         studentId,
         teacherId,
         startUtc: pendingBook.startUtc,
         bookedBy: 'student',
         bookedByName: studentUser?.name,
-      })
+      }
+      try {
+        await convexCall('mutation', 'scheduling:bookLesson', {
+          ...bookArgs,
+          sessionToken: token || undefined,
+        })
+      } catch (e) {
+        // A stale/expired session token makes the backend reject the whole
+        // call. The server still supports the no-token student path, so
+        // retry once without the token before giving up.
+        if (!token) throw e
+        await convexCall('mutation', 'scheduling:bookLesson', bookArgs)
+      }
       setNotice({ kind: 'ok', text: t('booking.booked') })
       setPendingBook(null)
       await refresh()
     } catch (e) {
       const msg = String(e?.message || '')
-      setNotice({ kind: 'err', text: /No lessons remaining/i.test(msg) ? t('booking.noAllocation') : t('booking.error') })
+      // The server is the gate; this only turns its refusal into something a
+      // student can act on, and offers the one action that clears it.
+      if (/TOO_LATE_TO_BOOK/.test(msg)) {
+        setNotice({ kind: 'err', text: t('booking.tooLate') })
+      } else if (/EMAIL_NOT_VERIFIED/.test(msg)) {
+        setNotice({ kind: 'err', text: t('booking.verifyEmail'), resend: true })
+      } else {
+        setNotice({ kind: 'err', text: /No lessons remaining/i.test(msg) ? t('booking.noAllocation') : t('booking.error') })
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const doResendVerification = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      const r = await convexCall('action', 'studentAuth:resendVerification', {
+        sessionToken: getStudentSessionToken() || undefined,
+      })
+      setNotice(r?.alreadyVerified
+        ? { kind: 'ok', text: t('booking.verifyAlready') }
+        : { kind: 'ok', text: t('booking.verifySent') })
+    } catch {
+      setNotice({ kind: 'err', text: t('booking.error') })
     } finally {
       setBusy(false)
     }
@@ -278,12 +342,23 @@ export default function LessonBooking() {
     setBusy(true)
     setNotice(null)
     try {
-      const result = await convexCall('mutation', 'scheduling:cancelBooking', {
-        sessionToken: getStudentSessionToken() || undefined,
+      const token = getStudentSessionToken()
+      const cancelArgs = {
         bookingId: pendingCancel._id,
         cancelledBy: 'student',
         cancelledByName: studentUser?.name,
-      })
+      }
+      let result
+      try {
+        result = await convexCall('mutation', 'scheduling:cancelBooking', {
+          ...cancelArgs,
+          sessionToken: token || undefined,
+        })
+      } catch (e) {
+        // Stale-token fallback (see doBook): retry once without the token.
+        if (!token) throw e
+        result = await convexCall('mutation', 'scheduling:cancelBooking', cancelArgs)
+      }
       setNotice(result.billable
         ? { kind: 'warn', text: t('booking.cancelledLate') }
         : { kind: 'ok', text: t('booking.cancelled') })
@@ -487,16 +562,6 @@ export default function LessonBooking() {
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
-                  <div style={{ fontFamily: FONT.mono, color: T.text, fontSize: 18, fontWeight: 800 }}>{totalSlots}</div>
-                  <div style={{ color: T.textDim, fontSize: 12 }}>open times</div>
-                </div>
-                <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
-                  <div style={{ fontFamily: FONT.mono, color: T.text, fontSize: 18, fontWeight: 800 }}>{slotDates.length}</div>
-                  <div style={{ color: T.textDim, fontSize: 12 }}>available days</div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -517,7 +582,7 @@ export default function LessonBooking() {
             <span>{t('booking.policy')}</span>
           </div>
 
-          <Notice notice={notice} T={T} />
+          <Notice notice={notice} T={T} onResend={doResendVerification} resendLabel={t('booking.verifyResend')} />
 
           {upcoming.length > 1 && (
             <div style={{ marginTop: 20 }}>
