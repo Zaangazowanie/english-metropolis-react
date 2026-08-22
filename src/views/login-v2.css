@@ -328,3 +328,27 @@
 @media (max-width: 880px) {
   .emlv3-photo { display: none; }
 }
+
+/* ── AI disclosure ──────────────────────────────────────────
+   /home/photo-login.webp is image-model output, not a photograph of a real
+   person, so it says so — same tiny white mark as the homepage frames.
+   ::before, because ::after already carries each panel's gradient wash. */
+.eml-photo::before,
+.emlv3-photo::before {
+  content: 'AI generated';
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  z-index: 3;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: #fff;
+  opacity: 0.42;
+  text-shadow: 0 1px 2px rgba(14, 10, 27, 0.5);
+  pointer-events: none;
+}
+html[lang='pl'] .eml-photo::before,
+html[lang='pl'] .emlv3-photo::before { content: 'Wygenerowane przez AI'; }

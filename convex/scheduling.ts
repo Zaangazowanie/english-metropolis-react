@@ -16,6 +16,11 @@ import { requireAdmin, requireAdminOrStudent, isSuperadmin } from "./authHelpers
 import { billableUnitsForStudent, allocateBalances } from "./billing";
 
 export const CANCELLATION_WINDOW_MS = 24 * 60 * 60 * 1000;
+// A student books at least this far ahead (Mike, 2026-08-10). Anything closer is
+// the teacher's to give, not the student's to take: it lands in a day that is
+// already planned. Enforced in bookLesson AND hidden from getOpenSlots, because
+// offering a slot that will be refused on click is worse than not offering it.
+export const STUDENT_MIN_LEAD_MS = 24 * 60 * 60 * 1000;
 export const NO_SHOW_WAIT_MS = 20 * 60 * 1000;
 
 // ─── Meet link generation ────────────────────────────────────────────────────
@@ -332,6 +337,10 @@ export const getOpenSlots = query({
     teacherId: v.optional(v.id("users")),
     fromDate: v.string(),   // "2026-06-02"
     toDate: v.string(),     // "2026-06-30"
+    // The student app passes true so the list it shows is exactly the list it can
+    // book. The console leaves it off: a teacher may still place a lesson tomorrow
+    // morning, that restriction is only on self-service.
+    forStudent: v.optional(v.boolean()),
     // accepted-and-ignored: admin frontend auto-injects its session token
     sessionToken: v.optional(v.string()),
   },
@@ -357,6 +366,28 @@ export const getOpenSlots = query({
     const slots: Array<{ dateWarsaw: string; timeWarsaw: string; startUtc: number; endUtc: number; dayOfWeek: number }> = [];
 
     // iterate days from fromDate to toDate
+    // Weekly times owned by groups that have actually filled. A group short of
+    // its minimum is still recruiting and must NOT hold slots hostage — the
+    // teacher should keep selling those hours as 1:1 until the group is viable.
+    const groupBlocked = new Set<string>();
+    const orgGroups = await ctx.db
+      .query("groups")
+      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .collect();
+    for (const group of orgGroups) {
+      if (!group.sessions?.length) continue;
+      if (group.status && group.status !== "active") continue;
+      const members = await ctx.db
+        .query("groupMemberships")
+        .withIndex("by_group", q => q.eq("groupId", group._id))
+        .collect();
+      const active = members.filter(m => !m.leftAt).length;
+      if (active < (group.minStudents ?? 3)) continue;
+      for (const session of group.sessions) {
+        groupBlocked.add(`${session.dayOfWeek}|${session.startTime}`);
+      }
+    }
+
     const start = new Date(`${args.fromDate}T00:00:00Z`);
     const end = new Date(`${args.toDate}T00:00:00Z`);
     for (let cursor = start.getTime(); cursor <= end.getTime(); cursor += 24 * 60 * 60 * 1000) {
@@ -379,7 +410,11 @@ export const getOpenSlots = query({
           const startUtc = warsawToUtc(dateStr, timeStr);
           const endUtc = startUtc + window.slotMinutes * 60 * 1000;
           if (startUtc <= now) continue;            // past slots not bookable
+          if (args.forStudent && startUtc - now < STUDENT_MIN_LEAD_MS) continue;
           if (blockingBookings.some(b => b.startUtc < endUtc && b.endUtc > startUtc)) continue;
+          // A filled group owns its weekly times. One teacher cannot be in a
+          // group and a 1:1 at once, so those slots leave the grid entirely.
+          if (groupBlocked.has(`${dow}|${timeStr}`)) continue;
           if (offered.has(startUtc)) continue;      // overlapping weekly + one-off window
           offered.add(startUtc);
           slots.push({ dateWarsaw: dateStr, timeWarsaw: timeStr, startUtc, endUtc, dayOfWeek: dow });
@@ -480,6 +515,12 @@ export const updateBookingNotes = mutation({
   },
 });
 
+// Where e-mail confirmation is enforced. "book" gates self-service booking only;
+// "off" disables the gate entirely. Payment is never gated — see bookLesson.
+// Typed as string, not a literal union: TS narrows a const literal and then
+// reports the comparison below as unreachable whichever value is set here.
+const REQUIRE_VERIFIED_TO: string = "book";   // "book" | "off"
+
 export const bookLesson = mutation({
   args: {
     sessionToken: v.optional(v.string()),
@@ -524,6 +565,24 @@ export const bookLesson = mutation({
     // can only book while they have purchased lessons remaining. Superadmin/
     // school bookings pass — the console shows and enforces its own budget.
     if (args.bookedBy === "student") {
+      // E-mail confirmation gate (2026-08-10, Mike): a student books only from
+      // an address they have proved they control. Deliberately placed HERE and
+      // not at checkout — taking the money must never depend on someone
+      // leaving the payment page to find an e-mail. Move REQUIRE_VERIFIED_TO
+      // if that decision changes; nothing else reads the flag.
+      //
+      // Only self-service bookings are gated. A teacher or the console booking
+      // on a student's behalf passes, so nobody is ever stranded: the roster
+      // predating this field is grandfathered by studentAuth:backfillVerifiedAt,
+      // and Google sign-ins are stamped at creation.
+      if (REQUIRE_VERIFIED_TO === "book" && !student.emailVerifiedAt) {
+        throw new Error("EMAIL_NOT_VERIFIED");
+      }
+      // 24-hour lead time. Checked here and not only in the slot list, because the
+      // list is a query a browser can skip.
+      if (args.startUtc - now < STUDENT_MIN_LEAD_MS) {
+        throw new Error("TOO_LATE_TO_BOOK");
+      }
       const packages = (await ctx.db
         .query("lessonPackages")
         .withIndex("by_student", q => q.eq("studentId", args.studentId))

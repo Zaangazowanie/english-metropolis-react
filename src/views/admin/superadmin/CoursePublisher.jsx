@@ -177,8 +177,19 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
     inCourse.forEach((l, i) => { if (stuBookings[i]) map[l.lesson_id] = stuBookings[i] })
     return map
   }, [course, stuBookings])
-  const recommended = (courses || []).filter(c => c.level && student?.level &&
-    c.level.toUpperCase() === String(student.level).toUpperCase())
+  // Match on the levels a course actually TEACHES, not on one label. The
+  // specialist tracks are progressive (SPEC-BIZ runs B1 into B2, SPEC-EXAM runs
+  // B1 into C1), so an exact-string match recommended them to nobody above the
+  // level of their first lesson, which is most of the people they are for.
+  // `levels` is served by /api/console/courses; the `level` fallback keeps this
+  // working against an older API that has not been restarted yet.
+  const recommended = (courses || []).filter(c => {
+    if (!student?.level) return false
+    const want = String(student.level).toUpperCase()
+    const taught = (c.levels && c.levels.length ? c.levels : [c.level])
+      .filter(Boolean).map(x => String(x).toUpperCase())
+    return taught.includes(want)
+  })
   const others = (courses || []).filter(c => !recommended.includes(c))
 
   const pickStudent = (id) => { setSelectedStudentId(id); setCourseId(''); setPicked(new Set()); setLayer(2) }

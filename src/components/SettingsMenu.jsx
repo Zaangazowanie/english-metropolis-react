@@ -73,10 +73,10 @@ export default function SettingsMenu({ userName = 'Guest', userEmail = '' }) {
             <span className="material-symbols-outlined text-[16px]">tune</span>
             {t('header.menu.settings')}
           </Link>
-          <Link to="/withdraw" className="em-pop-link" onClick={() => setOpen(false)}>
-            <span className="material-symbols-outlined text-[16px]">assignment_return</span>
-            {t('chrome.menu.withdraw')}
-          </Link>
+          {/* Withdrawal lives in Settings → Contract (and on the public /withdraw
+              page, reachable without signing in). Regulamin § 11 ust. 4-5 requires
+              the function to exist in the Service and its location to be disclosed
+              — not that it sit in every menu. */}
           <Link to="/logout" className="em-pop-link" onClick={() => setOpen(false)}>
             <span className="material-symbols-outlined text-[16px]">logout</span>
             {t('header.menu.logout')}

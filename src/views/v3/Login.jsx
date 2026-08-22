@@ -425,6 +425,12 @@ export default function LoginV3() {
             </Btn>
           </form>
 
+          <div style={{ marginTop: 12, textAlign: 'right' }}>
+            <Link to="/reset" style={{ fontSize: 12, color: T.textDim, textDecoration: 'none' }}>
+              {t('login.meta.forgot')}
+            </Link>
+          </div>
+
           {/* ── Google Sign-In ────────────────────────────────
               Additive auth. Available on both Student and School/Admin tabs —
               the action looks up the verified email in the students table,

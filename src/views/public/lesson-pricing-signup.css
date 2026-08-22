@@ -2,7 +2,9 @@
   --lp-bg: #FDFCFF;
   --lp-ink: #17102E;
   --lp-muted: #4A4270;
-  --lp-faint: #7E76A4;
+  /* #7E76A4 measured 4.1:1 on this background, just under the 4.5 floor, and it
+     carries the descriptive line under every heading. Darkened, same hue. */
+  --lp-faint: #6C6490;
   --lp-line: rgba(16, 10, 40, 0.10);
   --lp-line-strong: rgba(16, 10, 40, 0.16);
   --lp-panel: rgba(255, 255, 255, 0.8);
@@ -11,7 +13,13 @@
   --lp-fuchsia: #d946ef;
   --lp-pink: #f472b6;
   --lp-ember: #fb923c;
+  /* Fill vs text again: #fb923c is 2.21:1 here, so the numbered step markers
+     and any other worded amber use this instead (5.07:1). */
+  --lp-ember-ink: #c2410c;
   --lp-emerald: #34d399;
+  /* #34d399 is a FILL. On this light background it reads 1.88:1, so anything
+     made of words or meaning uses this darker pair instead (5.37:1). */
+  --lp-emerald-ink: #047857;
   --lp-sky: #60a5fa;
   min-height: 100vh;
   color: var(--lp-ink);
@@ -224,7 +232,7 @@
 .lp-kicker,
 .lp-section-label {
   margin: 0 0 14px;
-  color: var(--lp-emerald);
+  color: var(--lp-emerald-ink);
   font-size: 12px;
   font-weight: 760;
   text-transform: uppercase;
@@ -376,7 +384,7 @@
 }
 
 .lp-hero-panel span {
-  color: var(--lp-ember);
+  color: var(--lp-ember-ink);
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 12px;
   font-weight: 700;
@@ -578,7 +586,7 @@
 }
 
 .lp-package-top span {
-  color: var(--lp-emerald);
+  color: var(--lp-emerald-ink);
   font-size: 12px;
   font-weight: 720;
 }
@@ -656,14 +664,18 @@
 .lp-package li {
   display: flex;
   gap: 9px;
-  color: rgba(248, 243, 255, 0.86);
+  /* Was rgba(248,243,255,.86), a near-white carried over from a dark card. This
+     page is light (--lp-bg #FDFCFF), so every package feature rendered at
+     1.07:1 and the cards showed ticks with apparently nothing beside them. The
+     text was always in the DOM; it was painted white on white. */
+  color: var(--lp-muted);
   font-size: 14px;
   line-height: 1.35;
 }
 
 .lp-package li .material-symbols-outlined {
   flex: none;
-  color: var(--lp-emerald);
+  color: var(--lp-emerald-ink);
   font-size: 18px;
 }
 
@@ -795,7 +807,7 @@
 
 .lp-course-card strong {
   margin-top: auto;
-  color: var(--lp-ember);
+  color: var(--lp-ember-ink);
   font-size: 32px;
   line-height: 1;
 }
@@ -909,7 +921,7 @@
 }
 
 .lp-selected .material-symbols-outlined {
-  color: var(--lp-ember);
+  color: var(--lp-ember-ink);
 }
 
 .lp-selected p {
@@ -1049,7 +1061,7 @@
   padding: 12px 14px;
   border: 1px solid rgba(251, 113, 133, 0.36);
   border-radius: 8px;
-  color: #fecdd3;
+  color: #9f1239;   /* was #fecdd3: a dark-theme rose, 1.38:1 on this light panel */
   background: rgba(251, 113, 133, 0.1);
   font-size: 13px;
 }
@@ -1372,9 +1384,14 @@
   }
 }
 .lp-add-cart[data-added="true"] {
-  background: linear-gradient(135deg, rgba(52, 211, 153, 0.3), rgba(16, 185, 129, 0.24));
-  border-color: rgba(52, 211, 153, 0.55);
-  color: #a7f3d0;
+  /* The "Dodano" confirmation. It fires correctly, but at #a7f3d0 on this light
+     card it measured 1.25:1, so the only signal that a click had worked was
+     invisible and the button read as dead. Same dark-theme-colour-in-a-light-
+     page fault as the feature bullets. */
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.34), rgba(16, 185, 129, 0.28));
+  border-color: rgba(4, 120, 87, 0.55);
+  color: var(--lp-emerald-ink);
+  font-weight: 700;
 }
 .lp-add-cart-course { margin-top: 12px; }
 

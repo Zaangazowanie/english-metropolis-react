@@ -75,10 +75,70 @@ export const PRIVATE_PACKAGES = [
   },
 ]
 
+export const SPECIALIST_PACKAGES = [
+  {
+    id: 'specialist',
+    name: 'Specialist Sprint',
+    pace: '6 specialist lessons',
+    price: '900 PLN',
+    perLesson: '150 PLN / lesson',
+    bestFor: 'Interview, exam, relocation, and business pressure',
+    features: ['Diagnostic placement call', 'Specialist CEFR outcome plan', '6 x 60 min specialist lessons', 'Review notes after each session'],
+    badge: 'Focused',
+    accent: 'ember',
+  },
+  {
+    id: 'specialist-12',
+    name: 'Specialist Track',
+    pace: '12 specialist lessons',
+    price: '1,560 PLN',
+    perLesson: '130 PLN / lesson',
+    bestFor: 'A focused plan for exam, interview, or business outcomes',
+    features: ['Diagnostic placement call', 'Specialist CEFR outcome plan', '12 x 60 min specialist lessons', 'Two writing or speaking reviews'],
+    badge: 'Deeper focus',
+    accent: 'ember',
+  },
+  {
+    id: 'specialist-24',
+    name: 'Specialist Mastery',
+    pace: '24 specialist lessons',
+    price: '2,640 PLN',
+    perLesson: '110 PLN / lesson',
+    bestFor: 'The best value for long-term specialist coaching',
+    features: ['Diagnostic placement call', 'Specialist CEFR outcome plan', '24 x 60 min specialist lessons', 'Monthly review and lesson notes'],
+    badge: 'Best specialist value',
+    accent: 'ember',
+  },
+]
+
+// Group courses. Fixed timetable, never self-booked: a group runs at set times
+// Mon-Thu and the student joins it. August and the two-month bundle were
+// withdrawn 2026-08-10 — September only, twice weekly, same price.
+export const GROUP_COURSES = [
+  {
+    id: 'september',
+    name: 'September Group Course',
+    namePl: 'Kurs wrześniowy',
+    pace: '8 group lessons',
+    pacePl: '8 lekcji grupowych',
+    price: '200 PLN',
+    perLesson: '25 PLN / lesson',
+    bestFor: 'Two lessons a week for the month, in a group of up to 4 at your level',
+    bestForPl: 'Dwie lekcje w tygodniu przez miesiąc, w grupie do 4 osób na Twoim poziomie',
+    badge: 'September',
+    badgePl: 'Wrzesień',
+    accent: 'sky',
+  },
+]
+
 export const PACKAGE_LESSONS = {
   single: 1,
   'private-core': 4,
   momentum: 8,
   'fluency-16': 16,
   'fluency-24': 24,
+  specialist: 6,
+  'specialist-12': 12,
+  'specialist-24': 24,
+  september: 8,
 }

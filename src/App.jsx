@@ -57,7 +57,19 @@ function App({ basePath = '' }) {
 
   if (IS_ENGLISHMETRO && slug) {
     if (!hasStudentAccess) {
-      return <Navigate to="/login" replace />
+      // Preserve the exact lesson/material link across authentication. Without
+      // this, a student opening a publish notice lands on the dashboard after
+      // Google sign-in and the lesson they were sent disappears from context.
+      // <Navigate> performs the redirect in an effect. During that hand-off
+      // this component can render once more while the browser is already on
+      // /login; reuse the existing target so it cannot become a nested
+      // /login?next=/login?next=... URL.
+      const existingNext = window.location.pathname === '/login'
+        ? new URLSearchParams(window.location.search).get('next')
+        : null
+      const requestedPath = existingNext
+        || `${window.location.pathname}${window.location.search}${window.location.hash}`
+      return <Navigate to={`/login?next=${encodeURIComponent(requestedPath)}`} replace />
     }
     if (isStudentAuthenticated && resolvedSlug && resolvedSlug !== slug) {
       return <Navigate to={`/app/${resolvedSlug}/dashboard`} replace />

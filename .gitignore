@@ -6,3 +6,12 @@ dist
 
 # CI gameplay-capture working dir (advisory; only the final GIF is committed)
 .capture-out/
+
+# Timestamped edit backups this estate makes beside a file before changing it
+# (store.py.pre-slugidentity-…, bajla.ts.pre-ttl3-…). The old rule was
+# `.env.local.bak-*`, which did not match `.env.local-backup-…` and let a
+# secrets-shaped file sit untracked-but-committable.
+*.pre-*-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]
+*.bak-*
+.env.local-backup-*
+.env.*.bak-*

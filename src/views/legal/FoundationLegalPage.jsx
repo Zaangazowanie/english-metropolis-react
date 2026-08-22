@@ -68,7 +68,7 @@ export default function FoundationLegalPage({ titlePl, titleEn, docId, bodyHtml,
       <footer className="fl-foot">
         <p>{isPl ? FOUNDATION_FOOTER_PL : FOUNDATION_FOOTER_EN}</p>
         <p>
-          {isPl ? 'Kontakt' : 'Contact'}: <a href="mailto:michael.poncana@englishmetro.com">michael.poncana@englishmetro.com</a>
+          {isPl ? 'Kontakt' : 'Contact'}: <a href="mailto:support@englishmetro.com">support@englishmetro.com</a>
           {' · '}<a href="tel:+48662563507">+48 662 563 507</a>
           {' · '}<a href="/kontakt/">{isPl ? 'Kontakt i dane firmy' : 'Contact & company details'}</a>
         </p>

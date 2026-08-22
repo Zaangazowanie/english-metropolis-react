@@ -7,7 +7,20 @@
   --emc-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* ── Floating pill ─────────────────────────────────────────── */
+/* ── Floating pill ───────────────────────────────────────────
+   Bottom-right, the conventional corner for a basket.
+
+   It spent a day on the LEFT because the Bajla widget
+   (public/students/conversa-widget-v5.js) is a separate script fixed at
+   right:20px/bottom:20px with z-index 2147483000, so a pill in this corner sat
+   underneath the launcher and was painted over by it. Stacking above the
+   launcher was no better: `.bjl-panel` opens 96px up the right edge, exactly
+   where a stacked pill lands.
+
+   That collision is gone: the widget is now kept off the marketing pages after
+   a client-side navigation too (see TutorRouteVisibility in main.jsx), and the
+   cart only ever mounts on those pages, so the two can no longer coexist. The
+   drawer-open suppression below stays as the belt to that braces. */
 .emc-pill {
   position: fixed;
   right: 22px;
@@ -62,6 +75,19 @@
 }
 
 /* ── Backdrop ──────────────────────────────────────────────── */
+/* The same widget floats over the OPEN drawer, which is the worse half of the
+   problem: the drawer is right-anchored at z-index 50 and the launcher sits at
+   z-index 2147483000, so the mascot lands in the middle of the basket. There is
+   no z-index this side can win with, so while the drawer is open the launcher
+   steps aside. Attribute + class beats the widget's own `.bjl-root` rule on
+   specificity, so injection order does not matter.
+   `visibility` rather than `display` so the widget's own open/close animation
+   is never interrupted mid-flight. */
+body[data-emc-cart-open="true"] .bjl-root {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .emc-backdrop {
   position: fixed;
   inset: 0;

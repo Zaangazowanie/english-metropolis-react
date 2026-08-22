@@ -307,20 +307,12 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>tune</span>
                 {t('header.menu.settings')}
               </Link>
-              <Link
-                to="/withdraw"
-                onClick={() => setMenuOpen(false)}
-                aria-label={t('chrome.menu.withdraw')}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px',
-                  color: T.textSoft, fontFamily: FONT.body, fontSize: 13,
-                  textDecoration: 'none', borderRadius: 8,
-                  display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>assignment_return</span>
-                <span style={{ display: 'grid', gap: 2 }}>
-                  <span>{t('chrome.menu.withdraw')}</span>
-                  <span style={{ color: T.textDim, fontSize: 10 }}>{t('chrome.menu.withdrawHint')}</span>
-                </span>
-              </Link>
+              {/* Withdrawal is reached from Settings → Contract, and from the
+                  public /withdraw page that needs no sign-in. Regulamin
+                  § 11 ust. 4-5 requires the function to exist in the Service and
+                  its location to be disclosed — the checkout consent text and the
+                  legal pages do the disclosing. It does not have to sit next to
+                  Log out on every screen. */}
               <button onClick={() => { studentLogout(); window.location.href = '/login' }}
                 style={{ width: '100%', padding: '10px 10px', border: 'none',
                   cursor: 'pointer', background: 'transparent',

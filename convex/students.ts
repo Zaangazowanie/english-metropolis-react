@@ -1,7 +1,8 @@
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { collocationsField } from "./validators.js";
-import { requireAdmin, requireSuperadmin, requireAdminOrPipelineKey, isSuperadmin } from "./authHelpers";
+import { requireAdmin, requireSuperadmin, requireAdminOrPipelineKey, requireStudent, isSuperadmin } from "./authHelpers";
+import { isGrandfathered } from "./enrolmentRules";
 
 const lessonMaterialField = v.object({
   name: v.string(),
@@ -1990,5 +1991,383 @@ export const findAccountByPhone = query({
     }
 
     return null;
+  },
+});
+
+// ═════════════════════════════════════════════════════════════
+// AI LESSON ANALYSIS — eligibility and consent (2026-08-10)
+//
+// One gate. The transcription pipeline, the checkout, the Settings toggle and
+// the student app all ask this and nothing else, so there is no second place
+// where a lesson could be analysed under a different rule.
+// ═════════════════════════════════════════════════════════════
+
+// Bump when the notice changes materially; consents record the version they saw.
+export const ANALYSIS_NOTICE_VERSION = "2026-08-10";
+
+function analysisState(student: any): { allowed: boolean; reason: string } {
+  // A child's account can never be analysed. Not "hidden", not "off by default":
+  // there is no path that turns it on, because a parent cannot consent to this
+  // on a child's behalf in a way we are willing to rely on, and lesson
+  // recordings of children are the last thing that should sit in an LLM prompt.
+  if (student.isMinor) return { allowed: false, reason: "minor" };
+  const c = student.lessonAnalysis;
+  if (!c || c.revokedAt) return { allowed: false, reason: c ? "revoked" : "no_consent" };
+  return { allowed: true, reason: "ok" };
+}
+
+// Called by the transcription/analysis pipeline before it touches a lesson.
+// Authenticated with the pipeline key, same contract as the other automation.
+// `lessonId` is optional and additive. Without it the answer is exactly what it
+// has always been (the account-wide consent), so the existing pipeline calls are
+// unchanged. With it, a lesson bought on its own also passes — that is the whole
+// point of the single-lesson product: 20 PLN must buy one analysis, not the
+// account forever. The minor check still runs first and is not reachable past.
+export const analysisEligibility = query({
+  args: {
+    studentId: v.id("students"),
+    apiKey: v.string(),
+    lessonId: v.optional(v.id("lessons")),
+  },
+  handler: async (ctx, args) => {
+    if (!process.env.PIPELINE_API_KEY || args.apiKey !== process.env.PIPELINE_API_KEY) {
+      return { allowed: false, reason: "unauthorized" };
+    }
+    const student = await ctx.db.get(args.studentId);
+    if (!student) return { allowed: false, reason: "no_student" };
+    const state = analysisState(student);
+    if (state.allowed || student.isMinor || !args.lessonId) return state;
+    const entitlement = await ctx.db
+      .query("analysisEntitlements")
+      .withIndex("by_student_lesson", q =>
+        q.eq("studentId", args.studentId).eq("lessonId", args.lessonId!))
+      .unique();
+    if (entitlement && !entitlement.revokedAt) {
+      return { allowed: true, reason: "lesson_entitlement" };
+    }
+    return state;
+  },
+});
+
+// What the backfill worker asks for: lessons that have been paid for
+// individually and still have no analysis. The account-wide product is served
+// by `dueAccountBackfill` below.
+export const dueLessonEntitlements = query({
+  args: { apiKey: v.string() },
+  handler: async (ctx, args) => {
+    if (!process.env.PIPELINE_API_KEY || args.apiKey !== process.env.PIPELINE_API_KEY) {
+      return [];
+    }
+    const rows = await ctx.db
+      .query("analysisEntitlements")
+      .withIndex("by_fulfilled", q => q.eq("fulfilledAt", undefined))
+      .collect();
+    const out = [];
+    for (const row of rows) {
+      if (row.revokedAt) continue;
+      const student = await ctx.db.get(row.studentId);
+      const lesson = await ctx.db.get(row.lessonId);
+      if (!student || !lesson) continue;
+      // Already analysed by some other route — nothing owed, just close it off.
+      const existing = await ctx.db
+        .query("transcriptAnalyses")
+        .withIndex("by_lesson", q => q.eq("lessonId", row.lessonId))
+        .unique();
+      out.push({
+        entitlementId: row._id,
+        studentId: row.studentId,
+        studentSlug: student.slug,
+        lessonId: row.lessonId,
+        date: lesson.date,
+        alreadyAnalysed: !!existing,
+      });
+    }
+    return out;
+  },
+});
+
+// The retroactive half of the account-wide product. "All my lessons" is sold as
+// covering the backlog as well as the future, so the backlog has to be worked
+// through: every taught lesson with no analysis, for every student who holds a
+// live account-wide consent. The ordinary post-lesson publisher covers the
+// future and never sees these, because its discovery window is 12 hours wide.
+//
+// Bounded per student per sweep so a 40-lesson backlog does not monopolise the
+// worker or the inference budget in one run.
+export const dueAccountBackfill = query({
+  args: { apiKey: v.string(), limitPerStudent: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    if (!process.env.PIPELINE_API_KEY || args.apiKey !== process.env.PIPELINE_API_KEY) {
+      return [];
+    }
+    const limit = Math.min(Math.max(1, Math.trunc(args.limitPerStudent ?? 3)), 20);
+    const students = await ctx.db.query("students").collect();
+    const out = [];
+    for (const student of students) {
+      if (student.isMinor) continue;
+      const consent = student.lessonAnalysis;
+      if (!consent || consent.revokedAt) continue;
+      const lessons = await ctx.db
+        .query("lessons")
+        .withIndex("by_student", q => q.eq("studentId", student._id))
+        .collect();
+      let taken = 0;
+      // Newest first: the lesson a student just had is the one they care about.
+      for (const lesson of lessons.sort((a, b) => (b.date > a.date ? 1 : -1))) {
+        if (taken >= limit) break;
+        const status = lesson.status || "";
+        if (status === "planned" || status === "cancelled") continue;
+        const existing = await ctx.db
+          .query("transcriptAnalyses")
+          .withIndex("by_lesson", q => q.eq("lessonId", lesson._id))
+          .unique();
+        if (existing) continue;
+        out.push({
+          studentId: student._id,
+          studentSlug: student.slug,
+          lessonId: lesson._id,
+          date: lesson.date,
+        });
+        taken += 1;
+      }
+    }
+    return out;
+  },
+});
+
+// Closes an entitlement once the analysis exists, so the worker never
+// regenerates one that has already been paid for and delivered.
+export const markEntitlementFulfilled = mutation({
+  args: { apiKey: v.string(), entitlementId: v.id("analysisEntitlements") },
+  handler: async (ctx, args) => {
+    if (!process.env.PIPELINE_API_KEY || args.apiKey !== process.env.PIPELINE_API_KEY) {
+      throw new Error("unauthorized");
+    }
+    const row = await ctx.db.get(args.entitlementId);
+    if (!row) return { ok: false, reason: "not_found" };
+    if (row.fulfilledAt) return { ok: true, reason: "already" };
+    await ctx.db.patch(args.entitlementId, { fulfilledAt: Date.now() });
+    return { ok: true, reason: "marked" };
+  },
+});
+
+// The signed-in student's own view of it, for Settings and the app.
+export const myAnalysisSetting = query({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    const { student } = await requireStudent(ctx, args.sessionToken);
+    const state = analysisState(student);
+    return {
+      allowed: state.allowed,
+      reason: state.reason,
+      // A minor's account must not even be offered the choice.
+      offerable: !student.isMinor,
+      noticeVersion: ANALYSIS_NOTICE_VERSION,
+      grantedAt: student.lessonAnalysis?.grantedAt ?? null,
+    };
+  },
+});
+
+// Withdrawal is always available and takes effect immediately. Granting is NOT
+// done here: it is written by the payment flow once the add-on is actually paid
+// for, so consent and purchase cannot drift apart.
+export const revokeAnalysisConsent = mutation({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    const { student } = await requireStudent(ctx, args.sessionToken);
+    const now = Date.now();
+    // ⛔ Withdrawal has to reach EVERY store that can make an analysis lawful,
+    // or it is not a withdrawal. Since 2026-08-17 there are two: the
+    // account-wide record here, and per-lesson entitlements bought one at a
+    // time. A student who only ever bought single lessons has no account-wide
+    // record at all, so patching that alone left them with no way to withdraw.
+    const entitlements = await ctx.db
+      .query("analysisEntitlements")
+      .withIndex("by_student", q => q.eq("studentId", student._id))
+      .collect();
+    let revokedAny = false;
+    for (const entitlement of entitlements) {
+      if (entitlement.revokedAt) continue;
+      await ctx.db.patch(entitlement._id, { revokedAt: now });
+      revokedAny = true;
+    }
+    if (student.lessonAnalysis && !student.lessonAnalysis.revokedAt) {
+      await ctx.db.patch(student._id, {
+        lessonAnalysis: { ...student.lessonAnalysis, revokedAt: now },
+        updatedAt: now,
+      });
+      revokedAny = true;
+    }
+    return { ok: true, revokedAny };
+  },
+});
+
+// ─────────────────────────────────────────────────────────────
+// BAJLA — same consent question, different bill (2026-08-10)
+//
+// Bajla normally switches on with the paid AI add-on, and that purchase is
+// where her consent gets captured. Students enrolled before the rule shipped
+// keep her for free (Mike: "only for new students"), which leaves them with no
+// till at which to consent — so the popup asks them once, directly.
+//
+// Free is not the same as consent-free: we still process their phone number and
+// what they say to her, so nothing is switched on until they tap.
+// ─────────────────────────────────────────────────────────────
+
+export function bajlaState(student: any): { allowed: boolean; reason: string } {
+  // A child's account can never reach Bajla. This already falls out of the
+  // paid path (a minor cannot buy the add-on) but it is restated here so the
+  // free path cannot become the way around it.
+  if (student.isMinor) return { allowed: false, reason: "minor" };
+  const paid = analysisState(student);
+  if (paid.allowed) return { allowed: true, reason: "paid" };
+  // Everyone from 2026-08-10 onwards buys the add-on to get her.
+  if (!isGrandfathered(student)) return { allowed: false, reason: "needs_purchase" };
+  const c = student.bajlaConsent;
+  if (!c || c.revokedAt) return { allowed: false, reason: c ? "revoked" : "needs_consent" };
+  return { allowed: true, reason: "grandfathered" };
+}
+
+// ── Legacy written consent (2026-08-12) ──────────────────────────────────────
+// The consent model above assumes consent is captured at checkout, because that
+// is where a NEW student first meets us. It had no way to represent the roster
+// Mike taught before any of this existed: those students signed a written
+// consent to recording and analysis years of lessons ago, and the paid add-on
+// was never meant to re-ask them. Without this, `analysisEligibility` reports
+// `no_consent` for people who demonstrably did consent, and the pipeline
+// refuses to analyse a lesson it is entitled to analyse.
+//
+// This records that pre-existing consent. It does NOT create consent — it
+// transcribes a fact into the database — so it is superadmin-only and demands
+// a written attestation naming the evidence, which is stored as the notice
+// version so the basis travels with the record.
+export const LEGACY_CONSENT_NOTICE = "legacy-written-consent-pre-platform";
+
+export const grantLegacyAnalysisConsent = mutation({
+  args: {
+    sessionToken: v.string(),
+    studentId: v.id("students"),
+    attestation: v.string(), // what written consent is held, and where
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireSuperadmin(ctx, args.sessionToken);
+    const attestation = args.attestation.trim();
+    if (attestation.length < 10) {
+      return { ok: false, reason: "attestation_required" };
+    }
+    const student = await ctx.db.get(args.studentId);
+    if (!student) return { ok: false, reason: "no_student" };
+
+    // A child's account can never be analysed, by any route. Same rule as
+    // analysisState — this must not become the back door around it.
+    if (student.isMinor) return { ok: false, reason: "minor" };
+
+    // Only the pre-platform roster. A student who signed up after the cutoff
+    // was asked properly at checkout and must go through the paid flow.
+    if (!isGrandfathered(student)) return { ok: false, reason: "not_legacy" };
+
+    const existing = student.lessonAnalysis;
+    // ⛔ Never resurrect a withdrawal. Someone who revoked has exercised a
+    // right; a bulk legacy sweep must not quietly hand it back.
+    if (existing?.revokedAt) return { ok: false, reason: "revoked" };
+    // Already consented (paid or legacy) — leave the original record alone.
+    if (existing) return { ok: true, reason: "already_granted", grantedAt: existing.grantedAt };
+
+    const now = Date.now();
+    await ctx.db.patch(student._id, {
+      lessonAnalysis: { grantedAt: now, noticeVersion: LEGACY_CONSENT_NOTICE },
+      updatedAt: now,
+    });
+    await ctx.db.insert("auditLog", {
+      organizationId: student.organizationId,
+      userId: user._id,
+      action: "student.legacyAnalysisConsentRecorded",
+      targetType: "student",
+      targetId: student._id,
+      details: JSON.stringify({ attestation, noticeVersion: LEGACY_CONSENT_NOTICE }),
+      timestamp: now,
+    });
+    return { ok: true, reason: "recorded", grantedAt: now };
+  },
+});
+
+// Granted by the student themselves, in the popup, and only where the free
+// route actually applies — a post-cutoff account cannot consent its way past
+// the paywall, and a minor's account cannot consent at all.
+export const grantBajlaConsent = mutation({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    const { student } = await requireStudent(ctx, args.sessionToken);
+    if (student.isMinor) return { ok: false, reason: "minor" };
+    if (!isGrandfathered(student)) return { ok: false, reason: "needs_purchase" };
+    await ctx.db.patch(student._id, {
+      bajlaConsent: { grantedAt: Date.now(), noticeVersion: ANALYSIS_NOTICE_VERSION },
+      updatedAt: Date.now(),
+    });
+    return { ok: true };
+  },
+});
+
+// Withdrawal, immediate, always available — the mirror of
+// revokeAnalysisConsent. Neither has a Settings surface yet.
+export const revokeBajlaConsent = mutation({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    const { student } = await requireStudent(ctx, args.sessionToken);
+    if (!student.bajlaConsent || student.bajlaConsent.revokedAt) return { ok: true };
+    await ctx.db.patch(student._id, {
+      bajlaConsent: { ...student.bajlaConsent, revokedAt: Date.now() },
+      updatedAt: Date.now(),
+    });
+    return { ok: true };
+  },
+});
+
+// ═════════════════════════════════════════════════════════════
+// INTAKE — the two questions asked right after payment (2026-08-10)
+// ═════════════════════════════════════════════════════════════
+const STUDY_DURATIONS = ["none", "lt1", "1-2", "3-5", "5plus", "rusty"];
+const SELF_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2", "unknown"];
+// The three formats sold on the pricing page.
+const LESSON_TYPES = ["one-to-one", "specialist", "group"];
+
+export const myIntake = query({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    const { student } = await requireStudent(ctx, args.sessionToken);
+    return { submitted: !!student.intake, intake: student.intake ?? null };
+  },
+});
+
+export const submitIntake = mutation({
+  args: {
+    sessionToken: v.string(),
+    studyDuration: v.string(),
+    selfLevel: v.string(),
+    lessonType: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { student } = await requireStudent(ctx, args.sessionToken);
+    if (!STUDY_DURATIONS.includes(args.studyDuration)) return { ok: false, error: "Invalid duration" };
+    if (!SELF_LEVELS.includes(args.selfLevel)) return { ok: false, error: "Invalid level" };
+    if (!LESSON_TYPES.includes(args.lessonType)) return { ok: false, error: "Invalid lesson type" };
+
+    const now = Date.now();
+    const patch: any = {
+      intake: {
+        studyDuration: args.studyDuration,
+        selfLevel: args.selfLevel,
+        lessonType: args.lessonType,
+        submittedAt: now,
+      },
+      updatedAt: now,
+    };
+    // `level` is the teacher's assessed band and drives lesson content, so a
+    // self-report only fills it when it is still empty — a brand-new account.
+    // It never overwrites an assessment, and "unknown" never writes at all:
+    // the teacher sets it after the first lesson, which is what we promised.
+    if (!student.level && args.selfLevel !== "unknown") patch.level = args.selfLevel;
+    await ctx.db.patch(student._id, patch);
+    return { ok: true };
   },
 });

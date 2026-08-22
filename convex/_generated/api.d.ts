@@ -9,6 +9,8 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as analysisOffers from "../analysisOffers.js";
+import type * as analysisPricing from "../analysisPricing.js";
 import type * as analytics from "../analytics.js";
 import type * as authHelpers from "../authHelpers.js";
 import type * as bajla from "../bajla.js";
@@ -16,6 +18,7 @@ import type * as billing from "../billing.js";
 import type * as consoleTeacher from "../consoleTeacher.js";
 import type * as crons from "../crons.js";
 import type * as curriculum from "../curriculum.js";
+import type * as enrolmentRules from "../enrolmentRules.js";
 import type * as exerciseGroups from "../exerciseGroups.js";
 import type * as exposure from "../exposure.js";
 import type * as googleAuth from "../googleAuth.js";
@@ -46,6 +49,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  analysisOffers: typeof analysisOffers;
+  analysisPricing: typeof analysisPricing;
   analytics: typeof analytics;
   authHelpers: typeof authHelpers;
   bajla: typeof bajla;
@@ -53,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   consoleTeacher: typeof consoleTeacher;
   crons: typeof crons;
   curriculum: typeof curriculum;
+  enrolmentRules: typeof enrolmentRules;
   exerciseGroups: typeof exerciseGroups;
   exposure: typeof exposure;
   googleAuth: typeof googleAuth;

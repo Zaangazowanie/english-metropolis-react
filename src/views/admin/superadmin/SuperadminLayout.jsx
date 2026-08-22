@@ -46,6 +46,7 @@ export const NAV_GROUPS = [
     group: 'Comms',
     items: [
       { to: `${ROOT}/comms/inbox`, label: 'Inbox', icon: 'inbox' },
+      { to: `${ROOT}/comms/whatsapp`, label: 'WhatsApp', icon: 'chat' },
       { to: `${ROOT}/comms/templates`, label: 'Templates', icon: 'article' },
       { to: `${ROOT}/comms/sequences`, label: 'Sequences', icon: 'forward_to_inbox' },
     ],

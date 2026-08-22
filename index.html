@@ -46,7 +46,23 @@
         var m = path.match(/^\/app\/([^\/]+)/) || path.match(/^\/admin\/students\/([^\/]+)/);
         window.__STUDENT_SLUG = m ? m[1] : null;
         window.__EM_ADMIN_MODE = /^\/admin\//.test(path);
-        window.__EM_HIDE_TUTOR = (path === '/' || path === '/login' || /^\/(lessons|pricing|signup|privacy|cookies|terms)\/?$/.test(path));
+        // One definition of "the tutor does not belong here", exported so the
+        // SPA can re-apply it on every client-side navigation. Deciding once at
+        // load is not enough: React changes the path without reloading, so
+        // arriving at the homepage from the dashboard used to carry the widget
+        // onto a page this rule says it must not appear on.
+        window.__EM_TUTOR_HIDDEN_ON = function (p) {
+          return (p === '/' || p === '/login' ||
+                  /^\/(lessons|pricing|signup|privacy|cookies|terms)\/?$/.test(p));
+        };
+        window.__EM_HIDE_TUTOR = window.__EM_TUTOR_HIDDEN_ON(path);
+        // Two-letter country from Cloudflare, substituted by nginx (sub_filter
+        // on $http_cf_ipcountry) at request time. The site stays Polish-first;
+        // this only lets a visitor outside Poland land on English instead of
+        // having to find the toggle. A saved preference always beats it.
+        // If the substitution ever fails the placeholder arrives verbatim,
+        // which src/i18n rejects and treats as Poland.
+        window.__EM_GEO_COUNTRY = '__EM_GEO__';
       })();
     </script>
 

@@ -23,6 +23,7 @@ import { useI18n } from '../../i18n'
 import { PRIVATE_PACKAGES } from '../public/packages.js'
 import { cart, parsePricePLN } from '../public/cart-store.js'
 import CartUI from '../public/CartUI.jsx'
+import { useEmailVerified } from '../../hooks/useEmailVerified'
 import HeroSlider from './HeroSlider.jsx'
 import HeroPracticePreview from './HeroPracticePreview.jsx'
 const ArcadeCityBackdrop = lazy(() => import('./ArcadeCityBackdrop.jsx'))
@@ -118,33 +119,28 @@ const GH = {
       { eyebrow: 'your CEFR course', title: 'A course matched to your level', cta: 'See pricing', cta2: 'Book a lesson', to2: '/signup' },
       { eyebrow: 'practice between lessons', title: 'Practise out loud, on your own time', cta: 'Try it now', cta2: 'See pricing', to2: '/pricing' },
     ],
-    chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'lesson vocabulary becomes flashcards', 'book online in minutes'],
-    arcadeBadge: 'quick practice · try it now',
+    chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'flashcards + YouTube clips per word', 'book online in minutes'],
     officeAlt: 'Students laughing together at the English Metro school',
     officeChip: 'Our students · one school',
-    arcadeKicker: 'quick practice · no sign-up',
-    arcadeTitle: 'Seven ways to practise. Try them now.',
-    arcadeBody: 'These are the same games your flashcards feed after every lesson. Flip a card, catch a train, build a sentence. No account needed.',
     catalogTitle: 'Quick Practice across four lines',
     catalogHint: 'Choose a line to see its games · each game starts immediately',
-    catalogBrowse: 'Browse the full catalogue by line and station. You can play your first game without an account.',
+    catalogBrowse: 'Browse the full catalogue by line and station. Every game is free with a free account.',
     catalogGames: (n) => `${n} games`,
     catalogLive: (a, b) => `${a} live · ${b} arriving`,
     districts3dSubtitle: 'The Fluent City in 3D. New districts land here automatically with every update.',
     doorsBody: (n) => `${n} short games across four metro lines: vocabulary, grammar, listening and speaking. Practise for two minutes or twenty.`,
     doorsGo: 'Recommended game:',
     ctaTitle: 'Save your progress with a free account.',
-    ctaBody: 'A free account saves your streaks and vocabulary progress and enables full-screen play in English Metropolis World and Quick Practice.',
+    ctaBody: 'English Metropolis World is free, and a free account with a confirmed email address is what opens it. The same account saves your streaks and vocabulary progress across Quick Practice.',
     ctaPlay: 'Play for free',
     ctaBeta: 'Try the English Metropolis World beta',
     lineTags: { 'Arcade Line': 'Fast hands, faster words', 'Word Line': 'Letters into language', 'Quiz Line': 'Think quick, answer quicker', 'City Line': 'Real skills, street level' },
-    worldLink: 'Explore the full 3D city for free',
     stepsKicker: 'from sign-up to speaking', stepsTitle: 'Your first lesson is four steps away',
     steps: [
       { icon: 'person_add', title: 'Create your account', body: 'It takes about two minutes: use your email and password or continue with Google.' },
       { icon: 'shopping_bag', title: 'Pick a package', body: 'Choose one trial lesson or a package of up to 24 lessons. Pay securely online through Przelewy24.' },
       { icon: 'event_available', title: 'Book your times', body: 'Choose an available time in your teacher’s calendar. We will email you the Google Meet link and calendar invitation.' },
-      { icon: 'school', title: 'Learn, then replay', body: 'After each lesson, a PDF is added to your library and the lesson vocabulary is turned into flashcards for further practice.' },
+      { icon: 'school', title: 'Learn, then replay', body: 'After each lesson, a PDF is added to your library and the lesson vocabulary becomes flashcards — every word linked to real YouTube clips, so you hear how it is pronounced and used in context.' },
     ],
     packsKicker: '1:1 lesson packages', packsTitle: 'Pick your pace', packsLink: 'Full pricing & details',
     packsStart: 'Start', packsEach: '60 min each',
@@ -166,7 +162,7 @@ const GH = {
     lessonsKicker: 'live 1:1 lessons',
     lessonsTitle: 'A teacher who knows your goals.',
     lessonsBody: 'Every lesson is live, individual and matched to your CEFR level. You speak, your teacher gives feedback, and your lesson vocabulary becomes practice material.',
-    lessonsPoints: ['Real conversation from minute one', 'Notes and a PDF after every lesson', 'Flashcards from your lesson vocabulary'],
+    lessonsPoints: ['Real conversation from minute one', 'Notes and a PDF after every lesson', 'Flashcards from your vocabulary, with YouTube clips of every word in real use'],
     lessonsCta: 'Meet your teacher',
     lessonsAltMain: 'A student smiling during a live online English lesson',
     lessonsAltSide: 'A student laughing while practising English on a phone',
@@ -188,33 +184,28 @@ const GH = {
       { eyebrow: 'Twój kurs CEFR', title: 'Kurs dopasowany do Twojego poziomu', cta: 'Zobacz cennik', cta2: 'Zarezerwuj lekcję', to2: '/signup' },
       { eyebrow: 'ćwiczenia między lekcjami', title: 'Ćwicz na głos, we własnym tempie', cta: 'Wypróbuj teraz', cta2: 'Zobacz cennik', to2: '/pricing' },
     ],
-    chips: ['lekcje 1:1 na żywo, 60 min', 'kursy dopasowane do poziomu CEFR', 'słownictwo z lekcji trafia do fiszek', 'rezerwacja online w kilka minut'],
-    arcadeBadge: 'krótkie ćwiczenia · wypróbuj teraz',
+    chips: ['lekcje 1:1 na żywo, 60 min', 'kursy dopasowane do poziomu CEFR', 'fiszki i klipy z YouTube do każdego słowa', 'rezerwacja online w kilka minut'],
     officeAlt: 'Uczniowie śmiejący się razem w szkole English Metro',
     officeChip: 'Nasi uczniowie · jedna szkoła',
-    arcadeKicker: 'krótkie ćwiczenia · bez logowania',
-    arcadeTitle: 'Siedem sposobów na ćwiczenie. Wypróbuj je teraz.',
-    arcadeBody: 'To te same gry, do których po każdej lekcji trafiają Twoje fiszki. Odkryj kartę, złap pociąg, ułóż zdanie. Bez zakładania konta.',
     catalogTitle: 'Szybkie ćwiczenia na czterech liniach',
     catalogHint: 'Wybierz linię, aby zobaczyć jej gry · każda gra startuje od razu',
-    catalogBrowse: 'Przeglądaj pełny katalog według linii i stacji. W pierwszą grę zagrasz bez konta.',
+    catalogBrowse: 'Przeglądaj pełny katalog według linii i stacji. Każda gra jest darmowa po założeniu darmowego konta.',
     catalogGames: (n) => `${n} ${n === 1 ? 'gra' : n < 5 ? 'gry' : 'gier'}`,
     catalogLive: (a, b) => `${a} dostępne · ${b} w budowie`,
     districts3dSubtitle: 'Fluent City w 3D. Nowe dzielnice pojawiają się tu automatycznie z każdą aktualizacją.',
     doorsBody: (n) => `${n} krótkich gier na czterech liniach metra: słownictwo, gramatyka, słuchanie i mówienie. Ćwicz dwie minuty albo dwadzieścia.`,
     doorsGo: 'Polecana gra:',
     ctaTitle: 'Zapisuj postępy z darmowym kontem.',
-    ctaBody: 'Darmowe konto zapisuje Twoje serie i postępy w słownictwie oraz włącza grę na pełnym ekranie w English Metropolis World i Szybkich ćwiczeniach.',
+    ctaBody: 'English Metropolis World jest darmowy, a otwiera go darmowe konto z potwierdzonym adresem e-mail. To samo konto zapisuje Twoje serie i postępy w słownictwie w Szybkich ćwiczeniach.',
     ctaPlay: 'Graj za darmo',
     ctaBeta: 'Wypróbuj betę English Metropolis World',
     lineTags: { 'Arcade Line': 'Szybkie ręce, szybsze słowa', 'Word Line': 'Z liter w język', 'Quiz Line': 'Myśl szybko, odpowiadaj szybciej', 'City Line': 'Prawdziwe sytuacje, poziom ulicy' },
-    worldLink: 'Poznaj całe miasto 3D za darmo',
     stepsKicker: 'od rejestracji do mówienia', stepsTitle: 'Twoja pierwsza lekcja w czterech krokach',
     steps: [
       { icon: 'person_add', title: 'Załóż konto', body: 'To około dwóch minut: podaj e-mail i hasło lub kontynuuj z Google.' },
       { icon: 'shopping_bag', title: 'Wybierz pakiet', body: 'Wybierz pojedynczą lekcję próbną lub pakiet do 24 lekcji. Zapłać bezpiecznie online przez Przelewy24.' },
       { icon: 'event_available', title: 'Zarezerwuj terminy', body: 'Wybierz wolny termin w kalendarzu lektora. Link do Google Meet i zaproszenie do kalendarza otrzymasz e-mailem.' },
-      { icon: 'school', title: 'Ucz się i powtarzaj', body: 'Po każdej lekcji w bibliotece pojawia się plik PDF, a słownictwo z lekcji trafia do fiszek do dalszych ćwiczeń.' },
+      { icon: 'school', title: 'Ucz się i powtarzaj', body: 'Po każdej lekcji w bibliotece pojawia się plik PDF, a słownictwo z lekcji trafia do fiszek — każde słowo z prawdziwymi klipami z YouTube, żeby usłyszeć jego wymowę i użycie w kontekście.' },
     ],
     packsKicker: 'pakiety lekcji 1:1', packsTitle: 'Wybierz swoje tempo', packsLink: 'Pełny cennik i szczegóły',
     packsStart: 'Zaczynam', packsEach: 'po 60 min',
@@ -236,7 +227,7 @@ const GH = {
     lessonsKicker: 'lekcje 1:1 na żywo',
     lessonsTitle: 'Lektor, który zna Twoje cele.',
     lessonsBody: 'Każda lekcja jest na żywo, indywidualna i dopasowana do poziomu CEFR. Ty mówisz, lektor daje informację zwrotną, a słownictwo z lekcji trafia do ćwiczeń.',
-    lessonsPoints: ['Prawdziwa rozmowa od pierwszej minuty', 'Notatki i PDF po każdej lekcji', 'Fiszki ze słownictwa z Twoich lekcji'],
+    lessonsPoints: ['Prawdziwa rozmowa od pierwszej minuty', 'Notatki i PDF po każdej lekcji', 'Fiszki z Twojego słownictwa, z klipami z YouTube z każdym słowem w użyciu'],
     lessonsCta: 'Poznaj swojego lektora',
     lessonsAltMain: 'Uśmiechnięta uczennica podczas lekcji angielskiego online na żywo',
     lessonsAltSide: 'Uczeń śmiejący się podczas ćwiczenia angielskiego na telefonie',
@@ -258,126 +249,6 @@ const HERO_GAMES = [
   { key: 'matching', title: 'Matching', icon: 'join_inner' },
   { key: 'concentration', title: 'Memory', icon: 'grid_view' },
 ]
-
-function HeroArcade({ badge, reduced, lang }) {
-  const [active, setActive] = useState(0)
-  const [shown, setShown] = useState(0)
-  const [exiting, setExiting] = useState(false)
-  const [backdropReady, setBackdropReady] = useState(false)
-  const dirRef = useRef(1)
-  const swapTimer = useRef(null)
-  const activeGame = HERO_GAMES[active]
-  const tabsRef = useRef(null)
-  const arcadeRef = useRef(null)
-  const switchTo = (next) => {
-    if (next === active) return
-    dirRef.current = next > active ? 1 : -1
-    setActive(next)
-    clearTimeout(swapTimer.current)
-    if (reduced) { setShown(next); setExiting(false); return }
-    setExiting(true)
-    swapTimer.current = setTimeout(() => { setShown(next); setExiting(false) }, 120)
-  }
-  useEffect(() => () => clearTimeout(swapTimer.current), [])
-  const go = (dir) => switchTo((active + dir + HERO_GAMES.length) % HERO_GAMES.length)
-  const selectFromKeyboard = (next) => {
-    switchTo(next)
-    requestAnimationFrame(() => tabsRef.current?.querySelectorAll('[role="tab"]')[next]?.focus())
-  }
-  const onTabsKeyDown = (event) => {
-    let next = active
-    if (event.key === 'ArrowRight') next = (active + 1) % HERO_GAMES.length
-    else if (event.key === 'ArrowLeft') next = (active - 1 + HERO_GAMES.length) % HERO_GAMES.length
-    else if (event.key === 'Home') next = 0
-    else if (event.key === 'End') next = HERO_GAMES.length - 1
-    else return
-    event.preventDefault()
-    selectFromKeyboard(next)
-  }
-  useEffect(() => {
-    const tabs = tabsRef.current
-    const activeTab = tabs?.querySelector('.gh-arcade-tab.on')
-    if (!tabs || !activeTab) return
-    const tabsBox = tabs.getBoundingClientRect()
-    const activeBox = activeTab.getBoundingClientRect()
-    const activeLeft = activeBox.left - tabsBox.left + tabs.scrollLeft
-    const left = activeLeft - (tabs.clientWidth - activeBox.width) / 2
-    tabs.scrollTo({ left, behavior: reduced ? 'auto' : 'smooth' })
-  }, [active, reduced])
-  useEffect(() => {
-    const arcade = arcadeRef.current
-    if (!arcade) return undefined
-    let inView = true
-    const syncPlayback = () => {
-      arcade.classList.toggle('is-paused', !inView || document.hidden)
-    }
-    const observer = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(([entry]) => {
-      inView = entry.isIntersecting
-      if (inView) setBackdropReady(true)
-      syncPlayback()
-    }, { threshold: 0.08 })
-    observer?.observe(arcade)
-    document.addEventListener('visibilitychange', syncPlayback)
-    return () => {
-      observer?.disconnect()
-      document.removeEventListener('visibilitychange', syncPlayback)
-    }
-  }, [])
-  return (
-    <div className="gh-hero-frame">
-      <div className="gh-postcard" style={{ background: '#FCFAFF' }}>
-        <div className="gh-arcade-toolbar">
-          <div className="gh-arcade-live">
-            <span className="gh-live-dot" aria-hidden/>
-            <span className="gh-arcade-badge">
-              {badge}
-            </span>
-          </div>
-          <div className="gh-arcade-tabs-wrap">
-            <div ref={tabsRef} className="gh-arcade-tabs" role="tablist" aria-label="Choose a live practice game"
-              onKeyDown={onTabsKeyDown}>
-              {HERO_GAMES.map((g, i) => (
-                <button key={g.key} type="button" onClick={() => switchTo(i)}
-                  id={`gh-arcade-tab-${g.key}`} role="tab" tabIndex={i === active ? 0 : -1}
-                  aria-selected={i === active} aria-controls="gh-arcade-stage"
-                  className={`gh-arcade-tab${i === active ? ' on' : ''}`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{g.icon}</span>
-                  {g.title}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div ref={arcadeRef} className="gh-arcade-viewport">
-          <div id="gh-arcade-stage" role="tabpanel" aria-labelledby={`gh-arcade-tab-${activeGame.key}`}
-            data-game={HERO_GAMES[shown].key} className="gh-arcade-stage"
-            style={{ minHeight: 520, overflow: 'hidden' }}>
-            {backdropReady && (
-              <Suspense fallback={null}>
-                <ArcadeCityBackdrop reduced={reduced}/>
-              </Suspense>
-            )}
-            <div key={HERO_GAMES[shown].key} data-dir={dirRef.current}
-              className={`gh-arcade-body${exiting ? ' is-exiting' : ''}`}>
-              <HeroPracticePreview game={HERO_GAMES[shown].key} lang={lang}/>
-            </div>
-          </div>
-          <button type="button" className="gh-slider-arrow gh-slider-prev" aria-label="Previous exercise"
-            onClick={() => go(-1)}>
-            <span className="material-symbols-outlined" style={{ fontSize: 26 }}>chevron_left</span>
-          </button>
-          <button type="button" className="gh-slider-arrow gh-slider-next" aria-label="Next exercise"
-            onClick={() => go(1)}>
-            <span className="material-symbols-outlined" style={{ fontSize: 26 }}>chevron_right</span>
-          </button>
-          <div className="gh-slider-label" aria-live="polite">
-            {active + 1} {lang === 'pl' ? 'z' : 'of'} {HERO_GAMES.length} · {activeGame.title}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── The catalog — every playable 2D shell, as a metro "line" map ───────────
 // Venue names follow src/practice/lib/shell-selector.ts. `load` mirrors the
@@ -496,7 +367,9 @@ const HERO_MEDIA = [
   { key: 'course',   to: '/pricing',           images: [
     '/home/hero/course-1.webp', '/home/hero/course-3.webp',
   ] },
-  { key: 'practice', href: '#gh-arcade-stage', images: ['/home/hero/practice-4.webp'] },
+  // The practice section this used to scroll to was removed on 2026-08-10, so the
+  // pillar now points at the free no-signup 3D world instead of a dead anchor.
+  { key: 'practice', href: WORLD_URL,          images: ['/home/hero/practice-4.webp'] },
 ]
 
 // Games are art-directed for dusk; the play overlay keeps the night palette
@@ -676,7 +549,7 @@ function PlayOverlay({ game, onClose }) {
               background: 'linear-gradient(180deg, rgba(30,20,60,0.92) 0%, rgba(15,10,35,0.92) 100%)',
               border: '1px solid rgba(217,70,239,0.35)', borderRadius: 20, padding: '36px 32px',
               boxShadow: '0 30px 80px -20px rgba(0,0,0,0.7), 0 0 60px -20px rgba(217,70,239,0.3)' }}>
-              <img src="/bajla.png" alt="" width="72" height="72" style={{ objectFit: 'contain', marginBottom: 10 }}/>
+              <img src="/brand/em-bajla-icon.webp" alt="" width="72" height="72" style={{ objectFit: 'contain', borderRadius: 16, marginBottom: 10 }}/>
               <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 24, color: DUSK.text, marginBottom: 10 }}>
                 {doneOnce ? 'Round complete.' : 'Go full screen?'}
               </div>
@@ -696,6 +569,95 @@ function PlayOverlay({ game, onClose }) {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+// ── The Quick Practice door ────────────────────────────────────────────────
+// Free, but not anonymous (Mike, 2026-08-11): the games need a free account
+// with a confirmed address, the same rule as English Metropolis World. Two
+// panels, because "you have no account" and "your address is unconfirmed" are
+// different problems with different fixes, and offering the wrong one is how a
+// student ends up creating a second account.
+function PlayGate({ game, lang, signedIn, verified, email, resend, resent, refresh, onClose }) {
+  const isPl = lang === 'pl'
+  const t = (en, pl) => (isPl ? pl : en)
+  // Signed in but the answer is still in flight. Never guess: claiming their
+  // address is unconfirmed while we are still asking is the one wrong thing
+  // this panel can say.
+  const checking = signedIn && verified === null
+  const needsAccount = !signedIn
+
+  return (
+    <div role="dialog" aria-modal="true" aria-label={t('Account needed', 'Wymagane konto')}
+      className="gh-play-overlay"
+      style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center',
+        justifyContent: 'center', padding: 24, background: 'rgba(5,3,9,0.86)',
+        backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
+      <div className="gh-rise gh-overlay-card" style={{ maxWidth: 460, width: '100%', textAlign: 'center',
+        background: 'linear-gradient(180deg, rgba(30,20,60,0.94) 0%, rgba(15,10,35,0.94) 100%)',
+        border: '1px solid rgba(217,70,239,0.35)', borderRadius: 20, padding: '34px 30px',
+        boxShadow: '0 30px 80px -20px rgba(0,0,0,0.7), 0 0 60px -20px rgba(217,70,239,0.3)' }}>
+        <img src="/brand/em-bajla-icon.webp" alt="" width="66" height="66"
+          style={{ objectFit: 'contain', borderRadius: 16, marginBottom: 12 }}/>
+        <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 23, color: DUSK.text, marginBottom: 10 }}>
+          {checking
+            ? t('One moment…', 'Chwileczkę…')
+            : needsAccount
+              ? t('Create a free account to play', 'Załóż darmowe konto, aby zagrać')
+              : t('Confirm your email to play', 'Potwierdź e-mail, aby zagrać')}
+        </div>
+        <p style={{ color: DUSK.dim, fontSize: 14, lineHeight: 1.6, margin: '0 0 22px' }}>
+          {checking
+            ? t('Checking your account.', 'Sprawdzamy Twoje konto.')
+            : needsAccount
+              ? t(`Quick Practice is free, including ${game.title}. A free account is what saves your progress and streaks, and it takes about two minutes.`,
+                  `Szybkie ćwiczenia są darmowe, także ${game.title}. Darmowe konto zapisuje Twoje postępy i serie, a założenie zajmuje około dwóch minut.`)
+              : t('The games are free, we just need to know your email address is real. Check your inbox for the confirmation link.',
+                  'Gry są darmowe, musimy tylko wiedzieć, że Twój adres e-mail jest prawdziwy. Sprawdź skrzynkę i kliknij link potwierdzający.')}
+          {!checking && !needsAccount && email ? ` (${email})` : ''}
+        </p>
+
+        {!checking && needsAccount && (
+          <>
+            <ActionLink to="/signup" variant="primary" size="lg" full trailingIcon="arrow_forward">
+              {t('Create free account', 'Załóż darmowe konto')}
+            </ActionLink>
+            <div style={{ marginTop: 12 }}>
+              <ActionLink to="/login" variant="secondary" size="md" full>
+                {t('I already have an account', 'Mam już konto')}
+              </ActionLink>
+            </div>
+          </>
+        )}
+
+        {!checking && !needsAccount && (
+          <>
+            <button type="button" onClick={resend} disabled={resent === 'sending' || resent === 'sent'}
+              className="gh-gate-btn"
+              style={{ width: '100%', padding: '14px 20px', borderRadius: 12, border: 'none',
+                background: resent === 'sent' ? 'rgba(255,255,255,0.12)' : '#4333C6', color: '#fff',
+                fontWeight: 700, fontSize: 15, cursor: resent === 'sent' ? 'default' : 'pointer' }}>
+              {resent === 'sending' ? t('Sending…', 'Wysyłanie…')
+                : resent === 'sent' ? t('Sent — check your inbox', 'Wysłano — sprawdź skrzynkę')
+                : resent === 'error' ? t('Try again', 'Spróbuj ponownie')
+                : t('Resend the link', 'Wyślij link ponownie')}
+            </button>
+            <button type="button" onClick={refresh}
+              style={{ marginTop: 12, width: '100%', padding: '12px 18px', borderRadius: 12,
+                background: 'transparent', border: '1px solid rgba(255,255,255,0.22)',
+                color: DUSK.dim, fontSize: 14, cursor: 'pointer' }}>
+              {t("I've confirmed — let me in", 'Potwierdziłem — wpuść mnie')}
+            </button>
+          </>
+        )}
+
+        <button type="button" onClick={onClose}
+          style={{ marginTop: 16, background: 'transparent', border: 'none', color: DUSK.mute,
+            fontSize: 12, cursor: 'pointer', letterSpacing: '0.06em' }}>
+          {t('Back to the games', 'Wróć do gier')}
+        </button>
       </div>
     </div>
   )
@@ -793,6 +755,16 @@ export default function GameHome() {
   const night = mode !== 'day'
   const reduced = usePrefersReducedMotion()
   const [playing, setPlaying] = useState(null)
+  // Quick Practice sits behind the same door as the World (Mike, 2026-08-11):
+  // a free account with a confirmed address. `verified` is true for a signed-out
+  // visitor by design, so both flags are needed to tell "sign up" from "confirm
+  // your address" and show the right panel.
+  const { verified, signedIn, resend, resent, email, refresh } = useEmailVerified()
+  const canPlay = signedIn && verified === true
+  const [gate, setGate] = useState(null)   // the game they tried to open
+  // One door for every way into a game, so a new card cannot bypass the gate by
+  // calling setPlaying directly.
+  const requestPlay = (game) => { if (canPlay) setPlaying(game); else setGate(game) }
   const [menuOpen, setMenuOpen] = useState(false)
   const [openLines, setOpenLines] = useState(() => new Set([LINES[0].line]))
   const practiceRef = useRef(null)
@@ -1044,30 +1016,6 @@ export default function GameHome() {
           </Reveal>
         </section>
 
-        {/* ── Quick practice modules, in their own section ── */}
-        <section className="gh-section gh-arcade-section" style={{ paddingBottom: 64 }}>
-          <Reveal className="gh-section-heading">
-            <div className="gh-kicker" style={{ marginBottom: 10 }}>{W.arcadeKicker}</div>
-            <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
-              letterSpacing: '-0.03em', margin: '0 0 14px' }}>
-              {W.arcadeTitle}
-            </h2>
-            <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.35vw, 17px)', lineHeight: 1.7,
-              maxWidth: 560, margin: '0 0 26px' }}>{W.arcadeBody}</p>
-          </Reveal>
-          <Reveal delay={80}>
-            <HeroArcade badge={W.arcadeBadge} reduced={reduced} lang={lang}/>
-            <div style={{ marginTop: 12, textAlign: 'center' }}>
-              <a href={WORLD_URL} className="gh-text-link"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T.textDim,
-                  fontSize: 12.5, fontWeight: 600, letterSpacing: '0.04em', textDecoration: 'none' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 16, color: T.violet }}>public</span>
-                {W.worldLink}
-              </a>
-            </div>
-          </Reveal>
-        </section>
-
         {/* ── How lessons work ── */}
         <section className="gh-section gh-journey-section" style={{ paddingBottom: 64 }}>
           <Reveal className="gh-section-heading">
@@ -1241,7 +1189,7 @@ export default function GameHome() {
                 subtitle={`${W.lineTags[line.line] || line.tag} · ${line.games.slice(0, 3).map((g) => g.title).join(', ')}…`}>
                 {line.games.map((g, i) => (
                   <GameCard key={g.key} g={g} color={line.color} T={T} night={night} index={i}
-                    onPlay={(game) => setPlaying({ ...game, color: line.color })}/>
+                    onPlay={(game) => requestPlay({ ...game, color: line.color })}/>
                 ))}
               </LineSection>
             ))}
@@ -1255,7 +1203,7 @@ export default function GameHome() {
               subtitle={W.districts3dSubtitle}>
               {playable3d.map((e, i) => (
                 <GameCard key={`3d-${e.shellKey}`} g={{ ...e, venue: e.district }} color="#FFB347"
-                  T={T} night={night} index={i} onPlay={(game) => setPlaying(game)}/>
+                  T={T} night={night} index={i} onPlay={(game) => requestPlay(game)}/>
               ))}
               {arrivingSoon.map((a, i) => (
                 <GameCard key={`soon-${a.key}`} g={{ title: a.title, district: a.district }} color="#FFB347"
@@ -1270,7 +1218,7 @@ export default function GameHome() {
           borderRadius: 26, border: `1px solid ${T.borderHi}`, position: 'relative', overflow: 'hidden' }}>
           <span className="gh-cta-orb gh-cta-orb--one" aria-hidden/>
           <span className="gh-cta-orb gh-cta-orb--two" aria-hidden/>
-          <img className="gh-bajla" src="/bajla.png" alt="Bajla, the EnglishMetro owl" width="112" height="112"/>
+          <img className="gh-bajla" src="/brand/em-bajla-icon.webp" alt="Bajla" width="112" height="112"/>
           <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(28px, 4vw, 46px)',
             letterSpacing: '-0.03em', margin: '0 0 12px' }}>
             {W.ctaTitle}
@@ -1311,7 +1259,7 @@ export default function GameHome() {
           </p>
           <p style={{ margin: '6px 0 0', fontSize: 10.5, lineHeight: 1.6, color: T.textMute, maxWidth: 860 }}>
             {lang === 'pl' ? 'Kontakt' : 'Contact'}:{' '}
-            <a href="mailto:michael.poncana@englishmetro.com" style={{ color: T.textMute }}>michael.poncana@englishmetro.com</a>
+            <a href="mailto:support@englishmetro.com" style={{ color: T.textMute }}>support@englishmetro.com</a>
             {' · '}
             <a href="tel:+48662563507" style={{ color: T.textMute }}>+48 662 563 507</a>
             {lang === 'pl'
@@ -1322,6 +1270,13 @@ export default function GameHome() {
       </div>
 
       {playing && <PlayOverlay game={playing} onClose={() => setPlaying(null)}/>}
+      {gate && (
+        <PlayGate
+          game={gate} lang={lang} signedIn={signedIn} verified={verified}
+          email={email} resend={resend} resent={resent} refresh={refresh}
+          onClose={() => setGate(null)}
+        />
+      )}
       <CartUI lang={lang === 'pl' ? 'pl' : 'en'}/>
     </div>
   )

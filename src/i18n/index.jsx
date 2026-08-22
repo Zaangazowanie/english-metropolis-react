@@ -19,12 +19,33 @@ const STORAGE_KEY = 'em.lang.v2'
 const ENGLISH_LEVELS = ['full', 'simple']
 const ENGLISH_LEVEL_KEY = 'em.englishLevel'
 
-function detectInitial() {
-  // Polish is the default everywhere (Mike 2026-07-10) — our market is Poland.
-  // A saved preference always wins; the EN/PL toggle in every header flips it.
+// Exported because Checkout and PaymentReturn resolve their own language from
+// storage instead of the provider, and once a guessed language stopped being
+// written to storage those two would have shown Polish to a visitor the rest
+// of the site had already switched to English. One resolver, one answer.
+export function detectInitial() {
+  // Polish is the default (Mike 2026-07-10) because our market is Poland, and a
+  // saved preference always wins; the EN/PL toggle in every header flips it.
+  //
+  // From 2026-08-10 a visitor whose IP Cloudflare places OUTSIDE Poland starts
+  // on English instead (Mike). Deliberately NOT the browser language: that was
+  // the v1 bug this key was versioned to undo, because a Pole with an English
+  // phone was pinned to English forever. Country is a better proxy for "is this
+  // person in our Polish-speaking market" and it is never persisted, so it
+  // cannot pin anyone: the moment they touch the toggle, their choice is what
+  // sticks.
   if (typeof window === 'undefined') return 'pl'
   const stored = window.localStorage.getItem(STORAGE_KEY)
   if (stored && SUPPORTED.includes(stored)) return stored
+  // Must be exactly two capitals, and not one of Cloudflare's non-answers:
+  // XX is "unknown or anonymised" and T1 is Tor. Those are not places, they
+  // are the absence of one, and not knowing where somebody is resolves to
+  // Polish. The un-substituted placeholder and an empty header fail the same
+  // test, so every failure mode lands on our home market.
+  const country = window.__EM_GEO_COUNTRY
+  const known = typeof country === 'string' && /^[A-Z]{2}$/.test(country) &&
+    country !== 'XX' && country !== 'T1'
+  if (known && country !== 'PL') return 'en'
   return 'pl'
 }
 function detectInitialEnglishLevel() {
@@ -40,9 +61,14 @@ export function I18nProvider({ children }) {
   const [lang, setLangState] = useState(() => detectInitial())
   const [englishLevel, setEnglishLevelState] = useState(() => detectInitialEnglishLevel())
 
+  // Mirror onto <html lang> on every change, but do NOT write storage here.
+  // This effect used to persist on mount too, which quietly re-created the
+  // exact v1 bug described at the top of this file: whatever we guessed for a
+  // first-time visitor became a saved preference they never made, pinning them
+  // to it for good. Only an actual choice is written now, in setLang below, so
+  // a guess stays a guess and is re-evaluated on the next visit.
   useEffect(() => {
     if (typeof window === 'undefined') return
-    window.localStorage.setItem(STORAGE_KEY, lang)
     document.documentElement.setAttribute('lang', lang)
   }, [lang])
 
@@ -52,8 +78,12 @@ export function I18nProvider({ children }) {
     document.documentElement.setAttribute('data-english-level', englishLevel)
   }, [englishLevel])
 
+  // The one place a language becomes a saved preference, because this is the
+  // one place the user actually picks it.
   const setLang = useCallback((next) => {
-    if (SUPPORTED.includes(next)) setLangState(next)
+    if (!SUPPORTED.includes(next)) return
+    setLangState(next)
+    try { window.localStorage.setItem(STORAGE_KEY, next) } catch { /* private mode */ }
   }, [])
   const setEnglishLevel = useCallback((next) => {
     if (ENGLISH_LEVELS.includes(next)) setEnglishLevelState(next)

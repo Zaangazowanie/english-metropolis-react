@@ -29,6 +29,17 @@ export default function CartUI({ lang = 'pl' }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
 
+  // Tells the stylesheet to stand the Bajla launcher down while the drawer is
+  // open. The widget is a separate injected script at z-index 2147483000, so it
+  // would otherwise float over the basket and no z-index here could stop it.
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined
+    document.body.setAttribute('data-emc-cart-open', open ? 'true' : 'false')
+    // Cleared on unmount too, or a route change while open would strand the
+    // launcher hidden on a page that has no cart at all.
+    return () => document.body.removeAttribute('data-emc-cart-open')
+  }, [open])
+
   return (
     <>
       <button

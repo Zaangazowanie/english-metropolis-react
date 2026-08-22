@@ -100,7 +100,18 @@ export default defineSchema({
     organizationId: v.id("organizations"),
     courseId: v.optional(v.string()),     // "6571" from kurs/index
     level: v.optional(v.string()),       // "B2+/C1 Advanced"
-    schedule: v.optional(v.string()),    // "Tuesdays / Thursdays 19:30"
+    schedule: v.optional(v.string()),    // "Tuesdays / Thursdays 19:30" (display copy)
+    // Machine-readable timetable (2026-08-10). A group runs on FIXED times —
+    // students never self-book one — and once it fills, those times must come
+    // off the 1:1 grid so the teacher is not double-booked. Mon-Thu only, and
+    // the times must sit on the lesson grid (14:00/15:15/16:30/17:45/19:00).
+    sessions: v.optional(v.array(v.object({
+      dayOfWeek: v.number(),             // 1=Mon .. 4=Thu
+      startTime: v.string(),             // "19:00" Europe/Warsaw
+    }))),
+    // A group only blocks 1:1 availability once it is actually viable.
+    minStudents: v.optional(v.number()), // default 3
+    maxStudents: v.optional(v.number()), // default 4
     teachers: v.optional(v.array(v.string())),
     status: v.optional(v.string()),      // "active", "discontinued"
     createdAt: v.number(),
@@ -166,6 +177,22 @@ export default defineSchema({
     .index("by_tokenHash", ["tokenHash"])
     .index("by_userId", ["userId"]),
 
+  // Student e-mail confirmation and password reset (2026-08-10). Same shape and
+  // same rules as magicTokens: only the SHA-256 hash is stored, single-use via
+  // usedAt, and the raw token exists only in the e-mail we send. Separate table
+  // because magicTokens.userId points at `users` (teachers), not `students`.
+  studentTokens: defineTable({
+    kind: v.string(),                  // "verify" | "reset"
+    tokenHash: v.string(),
+    studentId: v.id("students"),
+    email: v.string(),                 // address the link was sent to
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_tokenHash", ["tokenHash"])
+    .index("by_student_kind", ["studentId", "kind"]),
+
   // ═══════════════════════════════════════════════════════════
   // STUDENTS
   // ═══════════════════════════════════════════════════════════
@@ -192,6 +219,48 @@ export default defineSchema({
     // Both fields optional; students without a password cannot log in via the
     // password flow (they can still use direct /app/<slug> link access).
     passwordHash: v.optional(v.string()),
+    // When the student proved they control `email` by clicking the confirmation
+    // link. Absent = unconfirmed. Students who signed in with Google are stamped
+    // at creation (Google has already verified the address), and the roster that
+    // predates this field is grandfathered — see students:backfillVerifiedAt.
+    emailVerifiedAt: v.optional(v.number()),
+    // What the student told us about themselves right after paying, so the first
+    // lesson does not start from zero. Kept separate from `level`, which stays the
+    // teacher's assessed value — see students:submitIntake.
+    intake: v.optional(v.object({
+      studyDuration: v.string(),   // none | lt1 | 1-2 | 3-5 | 5plus | rusty
+      selfLevel: v.string(),       // A1..C2, or "unknown"
+      lessonType: v.optional(v.string()),  // one-to-one | specialist | group
+      submittedAt: v.number(),
+    })),
+    // Bought as a child's account. Set at checkout by the buying adult and never
+    // by the learner. AI lesson analysis is unavailable for these accounts —
+    // permanently and server-side, not merely hidden. Mike, 2026-08-10.
+    isMinor: v.optional(v.boolean()),
+    // YYYY-MM-DD, declared at self-signup. Compulsory from 2026-08-10 because
+    // only adults may hold an account (a parent buys for a child instead, which
+    // is what isMinor above records). Absent on the roster that predates the
+    // rule and on students a teacher created — see convex/enrolmentRules.ts.
+    // Never re-derived from anything: it is what the account holder told us.
+    dateOfBirth: v.optional(v.string()),
+    // Bajla normally switches on with the paid AI add-on, which is also where
+    // her consent is captured. Students enrolled before 2026-08-10 keep her for
+    // free (Mike), so they have nowhere to give that consent at a till — this
+    // records the one-tap consent the popup asks them for instead.
+    bajlaConsent: v.optional(v.object({
+      grantedAt: v.number(),
+      noticeVersion: v.string(),
+      revokedAt: v.optional(v.number()),
+    })),
+    // Optional paid AI lesson analysis. Absent = never opted in; a value with
+    // revokedAt set = opted in and later withdrawn. Recording and analysis only
+    // ever run while this is granted and the account is not a minor's.
+    lessonAnalysis: v.optional(v.object({
+      grantedAt: v.number(),
+      noticeVersion: v.string(),   // which notice they were shown when consenting
+      revokedAt: v.optional(v.number()),
+      paidOrderId: v.optional(v.id("lessonOrders")),
+    })),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -931,6 +1000,16 @@ export default defineSchema({
     consentTerms: v.optional(v.boolean()),
     consentImmediate: v.optional(v.boolean()),
     consentMarketing: v.optional(v.boolean()),
+    // The optional paid AI lesson analysis. Recorded on the payment, not on the
+    // student, until the money actually clears — see p24:markPaid.
+    analysisAddon: v.optional(v.boolean()),
+    // Set when this payment redeems a server-priced quote instead of the
+    // CATALOG. The quote, not the browser, supplied the amount.
+    quoteRef: v.optional(v.string()),
+    // The separate, explicit consent to the AI lesson analysis, given when the
+    // analysis is what is being bought. Kept apart from consentTerms and
+    // consentMarketing on purpose — it must never be bundled into either.
+    consentAnalysis: v.optional(v.boolean()),
     consentCapturedAt: v.optional(v.number()),
     termsVersion: v.optional(v.string()),
     status: v.string(),                 // created | registered | registration_failed | paid | superseded
@@ -953,6 +1032,81 @@ export default defineSchema({
     .index("by_session_id", ["sessionId"])
     .index("by_student", ["studentId"])
     .index("by_status", ["status"]),
+
+  // ═══════════════════════════════════════════════════════════
+  // PRICE QUOTES (2026-08-17)
+  //
+  // The one way an amount other than the CATALOG list price can reach
+  // Przelewy24. Before this existed, a negotiated price had no home in the
+  // app at all: on 2026-08-17 a 2000 PLN package had to be registered against
+  // the P24 API from a throwaway script, which meant no p24Payments row, so
+  // the /p24/status webhook answered 404, verify was never called and nothing
+  // auto-credited. A quote is created and priced SERVER-SIDE, the browser only
+  // ever carries its reference, and it is redeemed through the same
+  // createPayment → preparePayment → webhook → finalizePaid chain as any other
+  // order. There is deliberately no client-supplied amount anywhere.
+  // ═══════════════════════════════════════════════════════════
+  priceQuotes: defineTable({
+    quoteRef: v.string(),                 // "Q-<uuid>" — the only thing the browser holds
+    organizationId: v.optional(v.id("organizations")),   // students.organizationId is optional
+    studentId: v.id("students"),
+    // "analysis_lesson"  — AI analysis for one named lesson
+    // "analysis_account" — AI analysis for the whole account, past and future
+    // "negotiated"       — a hand-agreed package price, created by a superadmin
+    kind: v.string(),
+    label: v.string(),                    // what the customer is buying, in their language
+    amount: v.number(),                   // grosze, computed here and nowhere else
+    currency: v.string(),
+    listAmount: v.optional(v.number()),   // grosze at list, for the saving line and the audit
+    pricingBasis: v.string(),             // how `amount` was derived, in words, for the audit
+    // What paying redeems. Package lines are allocated by the normal
+    // lessonOrders → lessonPackages loop in p24:finalizePaid.
+    grantAnalysisScope: v.optional(v.string()),   // "lesson" | "account"
+    grantLessonId: v.optional(v.id("lessons")),
+    packageLines: v.optional(v.array(v.object({
+      packageId: v.string(),
+      name: v.string(),
+      lessons: v.number(),
+      qty: v.number(),
+      amount: v.number(),                 // grosze for this line
+    }))),
+    createdBySource: v.string(),          // "self_serve" | "admin"
+    createdByUserId: v.optional(v.id("users")),
+    status: v.string(),                   // "open" | "consumed" | "cancelled"
+    paymentId: v.optional(v.id("p24Payments")),
+    consumedAt: v.optional(v.number()),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_quote_ref", ["quoteRef"])
+    .index("by_student", ["studentId"])
+    .index("by_status", ["status"]),
+
+  // Per-lesson AI analysis entitlement.
+  //
+  // The account-wide consent still lives on `students.lessonAnalysis` and is
+  // unchanged. This table exists so a student can buy the analysis for ONE
+  // lesson without being handed the whole account forever for 20 PLN — which
+  // is what would otherwise happen, because the only entitlement the system
+  // had was account-wide and permanent.
+  analysisEntitlements: defineTable({
+    organizationId: v.optional(v.id("organizations")),
+    studentId: v.id("students"),
+    lessonId: v.id("lessons"),
+    grantedAt: v.number(),
+    noticeVersion: v.string(),
+    paymentId: v.optional(v.id("p24Payments")),
+    quoteRef: v.optional(v.string()),
+    revokedAt: v.optional(v.number()),
+    // Set once the analysis for this lesson actually exists, so the backfill
+    // worker knows what it still owes and never re-generates a paid analysis.
+    fulfilledAt: v.optional(v.number()),
+  })
+    .index("by_student", ["studentId"])
+    .index("by_lesson", ["lessonId"])
+    .index("by_student_lesson", ["studentId", "lessonId"])
+    .index("by_fulfilled", ["fulfilledAt"]),
 
   certificates: defineTable({
     organizationId: v.id("organizations"),

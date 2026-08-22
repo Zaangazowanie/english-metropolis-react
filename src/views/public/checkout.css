@@ -1,13 +1,25 @@
 /* Checkout — extends the lp-* design system. Entry animations are one-shot
    keyframes (page load only); everything interactive uses transitions. */
 
-.co-page { padding-bottom: 40px; }
+.co-page {
+  padding-bottom: 40px;
+  /* One radius scale. The page previously mixed 10/11/13/14/16/18px, which is
+     what makes a layout read as assembled rather than designed. */
+  --co-r-card: 12px;
+  --co-r-control: 10px;
+  --co-r-field: 9px;
+}
 
+/* The nav is fixed and wraps to two or three rows on a narrow screen, so a
+   single hard-coded clearance buries the h1 underneath it. Reserve room per
+   breakpoint instead of guessing once. */
 .co-shell {
   max-width: 1080px;
   margin: 0 auto;
   padding: 118px 24px 30px;
 }
+@media (max-width: 700px) { .co-shell { padding-top: 156px; } }
+@media (max-width: 420px) { .co-shell { padding-top: 196px; } }
 
 .co-head { margin-bottom: 26px; animation: coRise 420ms cubic-bezier(0.23, 1, 0.32, 1) both; }
 .co-head h1 {
@@ -24,7 +36,7 @@
   padding: 0;
   list-style: none;
   font-size: 12.5px;
-  color: #736B99;
+  color: #5F5780;
 }
 .co-steps li {
   display: inline-flex;
@@ -41,7 +53,9 @@
   border-color: rgba(217, 70, 239, 0.5);
   background: rgba(139, 92, 246, 0.14);
 }
-.co-steps li + li::before { content: none; }
+/* (A `li + li::before` separator reset used to sit here. It was suppressing a
+   pseudo-element nothing draws any more, and it now suppresses the step fill,
+   which does live on ::before.) */
 
 .co-grid {
   display: grid;
@@ -50,7 +64,10 @@
   align-items: start;
 }
 @media (max-width: 900px) {
-  .co-grid { grid-template-columns: 1fr; }
+  /* `1fr` floors at min-content, so one unbreakable row (the account strip)
+     stretched the column past the viewport and .lp-page's overflow-x: hidden
+     silently clipped the right edge instead of scrolling. */
+  .co-grid { grid-template-columns: minmax(0, 1fr); }
   .co-summary { order: -1; }
 }
 
@@ -58,28 +75,40 @@
 .co-form { display: flex; flex-direction: column; gap: 18px; animation: coRise 460ms cubic-bezier(0.23, 1, 0.32, 1) 60ms both; }
 
 .co-block {
+  display: flow-root;
   border: 1px solid rgba(16, 10, 40, 0.09);
-  border-radius: 16px;
+  border-radius: var(--co-r-card);
   background: rgba(255, 255, 255, 0.85);
   padding: 18px;
   margin: 0;
 }
+/* A legend is laid out inside the border box, which cuts a notch out of the
+   card's top edge and leaves the heading floating half-outside it. Floating it
+   takes it out of that slot and back into the card as an ordinary heading —
+   the border closes and every panel reads as one object. */
 .co-block > legend {
-  padding: 0 8px;
-  font-size: 13px;
+  float: left;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 0;
+  font-size: 12.5px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: #443C68;
+  color: #4A4270;
 }
+/* Everything after it must clear the float. The panels are built from flex and
+   grid boxes, which establish their own formatting contexts and so shift
+   sideways to dodge a float they overlap rather than sitting below it. */
+.co-block > legend ~ * { clear: both; }
 
-.co-field { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
-.co-field span { font-size: 12.5px; color: #5F5780; }
+.co-field { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+.co-field span { font-size: 13px; font-weight: 600; color: #4A4270; }
 .co-field input,
 .co-field textarea {
   padding: 12px 14px;
-  border: 1px solid rgba(16, 10, 40, 0.12);
-  border-radius: 11px;
+  border: 1px solid rgba(16, 10, 40, 0.14);
+  border-radius: var(--co-r-field);
   background: rgba(255, 255, 255, 0.9);
   color: #17102E;
   font: 500 14.5px/1.4 "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
@@ -97,21 +126,37 @@
 
 .co-honey { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
+/* The disclosure spans the panel so the whole header row is the hit target,
+   not just the few words of the label. */
 .co-invoice-toggle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
   border: none;
   background: none;
-  color: #443C68;
-  font: 700 13px/1 "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
-  letter-spacing: 0.08em;
+  color: #4A4270;
+  font: 700 12.5px/1.2 "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
+  letter-spacing: 0.07em;
+  text-align: left;
   text-transform: uppercase;
   cursor: pointer;
   transition: color 150ms ease;
 }
 .co-invoice-toggle:hover { color: #17102E; }
-.co-invoice-toggle .material-symbols-outlined { font-size: 18px; transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1); }
+.co-invoice-toggle .material-symbols-outlined {
+  order: 2;
+  margin-left: auto;
+  font-size: 20px;
+  transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Closed, the panel kept 18px of padding under a zero-height collapse and sat
+   there as an empty 61px box that looks like content failed to load. */
+.co-invoice > legend { margin-bottom: 0; }
+.co-invoice[data-open="true"] > legend { margin-bottom: 12px; }
+.co-invoice-toggle:focus-visible { outline: 2px solid #7C3AED; outline-offset: 4px; border-radius: 4px; }
 
 .co-collapse {
   display: grid;
@@ -121,20 +166,113 @@
 .co-collapse[data-open="true"] { grid-template-rows: 1fr; }
 .co-collapse-inner { overflow: hidden; }
 
-/* ── Consents ──────────────────────────────────────────────── */
-.co-consents { display: flex; flex-direction: column; gap: 4px; }
+/* ── Consents ────────────────────────────────────────────────
+   Block, not flex: a floated legend is ignored inside a flex container, which
+   would put the notch back in this panel's top border. */
+.co-consents { display: flow-root; }
 .co-performance-choice {
-  margin: 6px 0;
-  padding: 10px 8px 8px;
+  display: flow-root;
+  margin: 6px 0 10px;
+  padding: 12px 10px 8px;
   border: 1px solid rgba(139, 92, 246, 0.22);
-  border-radius: 16px;
+  border-radius: var(--co-r-control);
   background: rgba(124, 58, 237, 0.035);
 }
 .co-performance-choice > legend {
-  padding: 0 6px;
+  float: left;
+  width: 100%;
+  margin: 0 0 4px;
+  padding: 0 0 0 8px;
   color: #3D3560;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 800;
+}
+.co-performance-choice > legend ~ * { clear: both; }
+
+/* ── Activation choice ──────────────────────────────────────────────────────
+   Two equal cards, neither preselected. Built on the same selectable-card
+   pattern as the payment picker so "pick exactly one" looks the same wherever
+   it appears on this page. Both options carry identical visual weight: the
+   early-start request is a right the buyer gives up something for, so it must
+   never be dressed as the obvious button. */
+.co-choices { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.co-choice-lede { margin: 0; }
+
+.co-choice {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22px;
+  align-items: start;
+  gap: 12px;
+  padding: 13px 15px;
+  border: 1px solid rgba(16, 10, 40, 0.14);
+  border-radius: var(--co-r-control);
+  background: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  isolation: isolate;
+  transition: border-color 200ms ease, background-color 200ms ease, box-shadow 260ms var(--co-ease-settle);
+}
+.co-choice::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(217, 70, 239, 0.09));
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .co-choice:hover { border-color: rgba(139, 92, 246, 0.42); }
+}
+/* focus-within rather than :has(), matching .co-method — the radio itself is
+   1px and transparent, so without this a keyboard user gets no indicator. */
+.co-choice:focus-within { outline: 2px solid #7C3AED; outline-offset: 2px; }
+.co-choice[data-selected="true"] {
+  border-color: rgba(217, 70, 239, 0.55);
+  box-shadow: var(--co-lift-hi);
+}
+.co-choice[data-selected="true"]::before { opacity: 1; }
+
+.co-choice input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.co-choice-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.co-choice-body strong { font-size: 14.5px; font-weight: 700; color: #17102E; letter-spacing: -0.01em; }
+.co-choice-what { font-size: 13px; line-height: 1.55; color: #3D3560; }
+/* The statutory declaration. Set quieter than the plain-language summary above
+   it, but never below the 12.5px floor the rest of the consents use. */
+.co-choice-legal {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(16, 10, 40, 0.09);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #5F5780;
+}
+
+.co-choice-mark {
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  border-radius: 50%;
+  border: 2px solid rgba(16, 10, 40, 0.22);
+  background: transparent;
+  transition: border-color 200ms ease, background 200ms ease, box-shadow 200ms ease;
+}
+.co-choice[data-selected="true"] .co-choice-mark {
+  border-color: #C026D3;
+  background: #C026D3;
+  box-shadow: inset 0 0 0 4px #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .co-choice, .co-choice::before, .co-choice-mark { transition: none; }
 }
 .co-check {
   display: flex;
@@ -156,14 +294,16 @@
   accent-color: #8b5cf6;
   cursor: pointer;
 }
-.co-check span { font-size: 13px; line-height: 1.55; color: #3D3560; }
-.co-check a { color: #a78bfa; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.co-check span { font-size: 13.5px; line-height: 1.6; color: #3D3560; }
+/* These links are the statutory ones. #a78bfa put them at 2.6:1 — the least
+   readable text on a page where they are the text that must be readable. */
+.co-check a { color: #6D28D9; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 
 .co-error {
   margin: 0;
   padding: 12px 14px;
   border: 1px solid rgba(251, 113, 133, 0.4);
-  border-radius: 11px;
+  border-radius: var(--co-r-control);
   background: rgba(251, 113, 133, 0.1);
   color: #BE123C;
   font-size: 13.5px;
@@ -183,8 +323,11 @@
   gap: 10px;
   padding: 16px 20px;
   border: none;
-  border-radius: 13px;
-  background: linear-gradient(135deg, #8b5cf6, #d946ef);
+  border-radius: var(--co-r-control);
+  /* One step down the same violet→fuchsia ramp already used for the total.
+     White on #8b5cf6→#d946ef measured 4.2:1 falling to 3.5:1 across the button;
+     this holds 5.7:1 to 4.7:1, so the label stays legible to its right edge. */
+  background: linear-gradient(135deg, #7C3AED, #C026D3);
   color: #fff;
   font: 700 15.5px/1 "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
   cursor: pointer;
@@ -201,9 +344,9 @@
 
 .co-admin-note {
   margin: 0;
-  font-size: 11px;
-  line-height: 1.55;
-  color: #8780AB;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #5F5780;
 }
 
 /* ── Summary ───────────────────────────────────────────────── */
@@ -211,7 +354,7 @@
   position: sticky;
   top: 96px;
   border: 1px solid rgba(16, 10, 40, 0.10);
-  border-radius: 18px;
+  border-radius: var(--co-r-card);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.92));
   padding: 20px;
   animation: coRise 460ms cubic-bezier(0.23, 1, 0.32, 1) 120ms both;
@@ -229,10 +372,12 @@
   animation-delay: calc(160ms + var(--co-i, 0) * 45ms);
 }
 .co-item-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.co-item-main strong { font-size: 14px; }
-.co-item-main span { font-size: 12px; color: #6A6290; }
+.co-item-main strong { font-size: 14.5px; }
+.co-item-main span { font-size: 12.5px; color: #5F5780; }
 .co-item-side { display: flex; align-items: center; gap: 10px; flex: none; }
-.co-item-side > strong { font-size: 13.5px; color: #f472b6; }
+/* The line price is a figure people check against what they expected to pay.
+   #f472b6 set it at 2.5:1, fainter than the copy around it. */
+.co-item-side > strong { font-size: 14px; font-weight: 700; color: #17102E; }
 
 .co-qty {
   display: inline-flex;
@@ -274,15 +419,16 @@
   gap: 4px;
   padding: 13px 14px;
   border: 1px solid rgba(96, 165, 250, 0.35);
-  border-radius: 12px;
+  border-radius: var(--co-r-control);
   background: rgba(96, 165, 250, 0.08);
 }
-.co-pay-brand { font-size: 15px; font-weight: 700; color: #93c5fd; }
+/* Was #93c5fd — pale blue on a pale blue panel, 1.7:1. */
+.co-pay-brand { font-size: 15px; font-weight: 700; color: #17102E; }
 .co-pay-kinds { font-size: 12.5px; color: #443C68; }
-.co-pay-status { font-size: 11.5px; color: #736B99; }
-.co-pay-note { margin: 10px 0 0; font-size: 11.5px; line-height: 1.55; color: #7E76A4; }
-.co-legal-links { margin: 14px 0 0; font-size: 12.5px; color: #736B99; }
-.co-legal-links a { color: #a78bfa; text-decoration: none; }
+.co-pay-status { font-size: 12px; color: #5F5780; }
+.co-pay-note { margin: 10px 0 0; font-size: 12px; line-height: 1.6; color: #5F5780; }
+.co-legal-links { margin: 14px 0 0; font-size: 12.5px; color: #5F5780; }
+.co-legal-links a { color: #6D28D9; font-weight: 600; text-decoration: none; }
 .co-legal-links a:hover { text-decoration: underline; }
 
 /* ── Empty + success ───────────────────────────────────────── */
@@ -293,9 +439,11 @@
   gap: 12px;
   animation: coRise 420ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
-.co-empty .material-symbols-outlined { font-size: 44px; color: rgba(238, 229, 255, 0.35); }
+/* Was rgba(238, 229, 255, 0.35) — a near-white icon on a near-white page, so
+   the empty-cart state showed a heading with an invisible mark above it. */
+.co-empty .material-symbols-outlined { font-size: 44px; color: #A78BFA; }
 .co-empty h1 { margin: 0; font-size: clamp(24px, 4vw, 34px); }
-.co-empty p { margin: 0 0 8px; color: #5F5780; }
+.co-empty p { margin: 0 0 8px; color: #4A4270; }
 
 .co-success { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .co-success-mark {
@@ -326,11 +474,11 @@
   margin: 26px auto 0;
   padding: 18px 24px 0;
   border-top: 1px solid rgba(16, 10, 40, 0.08);
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: #7E76A4;
+  font-size: 12px;
+  line-height: 1.65;
+  color: #5F5780;
 }
-.co-foot a { color: #524A78; }
+.co-foot a { color: #4A4270; }
 
 @keyframes coRise {
   from { opacity: 0; transform: translateY(10px); }
@@ -346,12 +494,15 @@
 }
 
 /* ── Account-integrated checkout (2026-07-23 consultation) ─────────────── */
-.co-head-sub { margin: 0 0 16px; font-size: 14.5px; line-height: 1.6; color: #5F5780; max-width: 560px; }
+.co-head-sub { margin: 0 0 18px; font-size: 15px; line-height: 1.6; color: #4A4270; max-width: 600px; }
+/* The shared eyebrow is mint on the dark landing hero; on this white page it
+   measured 1.8:1. Overridden here only — the landing page keeps its own. */
+.co-head .lp-section-label { color: #6D28D9; }
 
 .co-steps li[data-done="true"]::after {
   content: "✓";
-  margin-left: 6px;
-  color: #059669;
+  margin-left: 7px;
+  color: #047857;
   font-weight: 800;
 }
 
@@ -362,7 +513,9 @@
 .co-account-signin a { color: #7C3AED; font-weight: 700; text-decoration: none; }
 .co-account-signin a:hover { text-decoration: underline; }
 
-.co-google-slot { display: flex; justify-content: center; margin: 6px 0 4px; min-height: 44px; }
+/* No reserved height until GIS has actually painted something into it. */
+.co-google-slot { display: flex; justify-content: center; }
+.co-google-slot[data-rendered="true"] { margin: 6px 0 4px; min-height: 44px; }
 
 .co-divider {
   display: flex;
@@ -385,10 +538,15 @@
 .co-account-ready {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 6px 2px;
   animation: coRise 360ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
+/* The e-mail is the widest unbreakable run on the page. Left to set its own
+   min-content it pushed the whole grid column past a phone viewport. */
+.co-account-id span { overflow-wrap: anywhere; }
+@media (max-width: 560px) { .co-account-change { width: 100%; } }
 .co-account-check { font-size: 28px; color: #059669; animation: coPop 480ms cubic-bezier(0.23, 1, 0.32, 1) both; }
 .co-account-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .co-account-id strong { font-size: 14.5px; }
@@ -398,8 +556,9 @@
   background: #fff;
   border-radius: 999px;
   padding: 8px 14px;
-  font: 700 12px/1 inherit;
-  color: #443C68;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #3D3560;
   cursor: pointer;
   transition: background 150ms ease, transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -424,14 +583,16 @@
   place-items: center;
 }
 .co-pw-toggle .material-symbols-outlined { font-size: 19px; }
-.co-hint { font-size: 11.5px; color: #8F87AC; transition: color 200ms ease; }
-.co-hint[data-ok="true"] { color: #059669; }
+/* 11.5px at 3.2:1 was the setting for the withdrawal-rights and consent copy —
+   the legally load-bearing text. Raised to a readable size and contrast. */
+.co-hint { font-size: 12.5px; line-height: 1.55; color: #5F5780; transition: color 200ms ease; }
+.co-hint[data-ok="true"] { color: #047857; }
 
 .co-email-taken {
   margin: 2px 0 12px;
   padding: 14px 16px;
   border: 1px solid rgba(124, 58, 237, 0.3);
-  border-radius: 12px;
+  border-radius: var(--co-r-control);
   background: rgba(124, 58, 237, 0.06);
   animation: coRise 320ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
@@ -439,30 +600,34 @@
 .co-email-taken p { margin: 4px 0 10px; font-size: 12.5px; color: #5F5780; }
 .co-email-taken-cta { font-size: 13px !important; padding: 10px 16px !important; }
 
-/* later sections stay subdued until the account step is satisfied */
+/* Later sections stay subdued until the account step is satisfied. At 0.55 with
+   a saturation cut this read as disabled — including the submit button, which
+   is live and is the only way forward. Softened to a hint, and the button and
+   any error are held at full strength so the page never lies about what works. */
 .co-later {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  opacity: 0.55;
-  filter: saturate(0.8);
-  transition: opacity 420ms cubic-bezier(0.23, 1, 0.32, 1), filter 420ms ease;
+  opacity: 0.88;
+  transition: opacity 420ms cubic-bezier(0.23, 1, 0.32, 1);
   pointer-events: auto;
 }
-.co-later[data-ready="true"] { opacity: 1; filter: none; }
+.co-later[data-ready="true"] { opacity: 1; }
+.co-later:not([data-ready="true"]) .co-block { background-color: rgba(255, 255, 255, 0.6); }
+.co-later .co-submit, .co-later .co-error { opacity: 1; }
 
+/* Was a full-width tinted rounded box directly above a textarea, so it read as
+   a second, pre-filled input. A left rule marks it as a note, not a field. */
 .co-parent-hint {
-  margin: 2px 0 10px;
-  padding: 10px 13px;
-  border-radius: 10px;
-  background: rgba(96, 165, 250, 0.08);
-  border: 1px solid rgba(96, 165, 250, 0.25);
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: #3D3560;
+  margin: 0 0 14px;
+  padding: 2px 0 2px 13px;
+  border-left: 2px solid rgba(139, 92, 246, 0.5);
+  font-size: 13px;
+  line-height: 1.6;
+  color: #4A4270;
 }
 
-.co-consent-hint { display: block; margin-top: 4px; font-size: 11.5px; color: #8F87AC; }
+.co-consent-hint { display: block; margin-top: 5px; font-size: 12.5px; line-height: 1.55; color: #5F5780; }
 
 .co-next-line { margin: 0; font-size: 13px; line-height: 1.55; color: #443C68; font-weight: 600; }
 
@@ -480,9 +645,9 @@
   width: 26px;
   height: 26px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--co-r-field);
   background: transparent;
-  color: #8F87AC;
+  color: #5F5780;
   cursor: pointer;
   transition: color 140ms ease, background 140ms ease;
 }
@@ -549,7 +714,7 @@
   min-height: 60px;
   padding: 11px 14px;
   border: 1px solid rgba(16, 10, 40, 0.12);
-  border-radius: 14px;
+  border-radius: var(--co-r-control);
   background: rgba(255, 255, 255, 0.86);
   cursor: pointer;
   isolation: isolate;
@@ -604,7 +769,7 @@
   place-items: center;
   width: 38px;
   height: 38px;
-  border-radius: 11px;
+  border-radius: var(--co-r-field);
   background: rgba(139, 92, 246, 0.10);
   color: #6D28D9;
   font-size: 21px;
@@ -646,7 +811,7 @@
   margin: 4px 0 12px;
   padding: 12px 14px;
   border: 1px solid rgba(16, 10, 40, 0.12);
-  border-radius: 12px;
+  border-radius: var(--co-r-control);
   font-size: 13px;
   line-height: 1.55;
   color: #5F5780;
@@ -654,7 +819,7 @@
 
 .co-method-skeleton {
   height: 60px;
-  border-radius: 14px;
+  border-radius: var(--co-r-control);
   background:
     linear-gradient(90deg, rgba(16, 10, 40, 0.05) 0%, rgba(139, 92, 246, 0.13) 50%, rgba(16, 10, 40, 0.05) 100%)
     0 0 / 220% 100%;
@@ -687,9 +852,21 @@
   --co-lift-hi: 0 1px 2px rgba(16, 10, 40, 0.07), 0 26px 56px -26px rgba(139, 92, 246, 0.6);
 }
 
-/* Fine grain stops the large light panels reading as flat digital white. */
-.co-block, .co-summary {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+/* Fine grain stops the large light panels reading as flat digital white.
+   The grain must be declared together with the fill: `background-image` alone
+   REPLACES the gradient set by the `background` shorthand earlier in the file,
+   which is what left .co-summary with no fill at all — a transparent card
+   floating on the page next to opaque ones. */
+.co-block {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E") repeat,
+    rgba(255, 255, 255, 0.9);
+  box-shadow: var(--co-lift);
+}
+.co-summary {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E") repeat,
+    linear-gradient(180deg, #FFFFFF, #FCFAFF);
   box-shadow: var(--co-lift);
 }
 
@@ -719,35 +896,30 @@
   color: transparent;
 }
 
-/* ── Summary reads as a receipt, with a torn edge where the total begins ── */
-.co-summary { position: sticky; overflow: hidden; }
-.co-summary::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -7px;
-  height: 14px;
-  background:
-    radial-gradient(circle at 7px 7px, transparent 6px, rgba(255, 255, 255, 0.96) 6.5px) 0 0 / 14px 14px repeat-x;
-  pointer-events: none;
-}
+/* The "torn receipt" edge was white scallops sitting on the card's own bottom
+   edge — invisible once the card is actually white, and half-clipped by
+   overflow: hidden besides. Removed rather than kept as an unseen artefact. */
+.co-summary { position: sticky; overflow: hidden; border-radius: var(--co-r-card); }
 
-/* ── Step rail ── */
-.co-steps { position: relative; gap: 10px; }
+/* ── Step rail ──
+   The fill used to live on ::after, the same pseudo-element the "done" tick
+   writes its content into. One element cannot be both, so the tick was being
+   painted inside the absolutely-positioned fill layer at z-index -1 — showing
+   through the pill at its top-left corner instead of after the label. The fill
+   is now ::before, which leaves ::after free to be an ordinary inline tick. */
+.co-steps { position: relative; gap: 8px; flex-wrap: wrap; }
 .co-steps li {
   position: relative;
-  flex: 1;
-  justify-content: center;
-  padding: 9px 10px;
+  isolation: isolate;
+  justify-content: flex-start;
+  padding: 8px 15px;
+  font-size: 13px;
   font-weight: 600;
   background: rgba(255, 255, 255, 0.7);
   box-shadow: inset 0 0 0 1px rgba(16, 10, 40, 0.05);
   overflow: hidden;
 }
-/* The fill sweeps in from the left as each step completes, so the rail reads
-   as distance travelled rather than three independent pills. */
-.co-steps li::after {
+.co-steps li::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -757,25 +929,120 @@
   transform-origin: left center;
   transition: transform 420ms var(--co-ease-settle);
 }
-.co-steps li[data-active="true"] { background: rgba(255, 255, 255, 0.86); isolation: isolate; }
-.co-steps li[data-active="true"]::after { transform: scaleX(1); }
-@media (max-width: 560px) { .co-steps { font-size: 11.5px; } .co-steps li { padding: 8px 6px; } }
+.co-steps li[data-active="true"] { background: rgba(255, 255, 255, 0.86); }
+.co-steps li[data-active="true"]::before { transform: scaleX(1); }
+@media (max-width: 560px) { .co-steps li { padding: 8px 12px; font-size: 12.5px; } }
 
-/* ── Submit ── */
-.co-submit { position: relative; overflow: hidden; letter-spacing: -0.01em; }
-.co-submit::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 42%;
-  left: -60%;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.32), transparent);
-  animation: coSheen 4.2s ease-in-out 1.2s infinite;
+/* ── Submit ──
+   The glint that swept across this button every 4.2s forever is the one thing
+   on the page that moves on its own. On the control that takes someone's money
+   it reads as a template flourish, not as confidence. Depth on hover instead. */
+.co-submit { position: relative; letter-spacing: -0.01em; }
+@media (hover: hover) and (pointer: fine) {
+  .co-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--co-lift-hi); }
 }
-@keyframes coSheen { 0% { left: -60%; } 42%, 100% { left: 120%; } }
+.co-submit:focus-visible { outline: 2px solid #17102E; outline-offset: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .co-steps li::after { transition: none; }
-  .co-submit::after { animation: none; opacity: 0; }
+  .co-steps li::before { transition: none; }
+  .co-submit:hover:not(:disabled) { transform: none; }
 }
+
+/* ── Optional AI lesson analysis add-on ─────────────────────────────────────
+   Built on the same selectable-card as the activation choice, because it is the
+   same kind of decision: an optional thing the customer knowingly turns on. */
+.co-addon { grid-template-columns: minmax(0, 1fr) 22px; }
+.co-addon .co-choice-body strong {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.co-addon-price {
+  flex: none;
+  font-size: 14px;
+  font-weight: 800;
+  color: #6D28D9;
+  font-variant-numeric: tabular-nums;
+}
+/* Square mark: this one is a yes/no, not a one-of-two like the activation
+   choice, and the shape should say which it is before the label is read. */
+.co-choice-mark-square { border-radius: 7px; }
+.co-choice[data-selected="true"] .co-choice-mark-square {
+  box-shadow: inset 0 0 0 3px #fff;
+}
+
+.co-addon-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0 0;
+  font-size: 13px;
+  color: #524A78;
+}
+.co-addon-line strong { font-size: 13.5px; color: #17102E; font-variant-numeric: tabular-nums; }
+
+/* The child declaration decides whether the add-on exists at all, so it reads as
+   a statement about the order rather than another optional marketing tickbox. */
+.co-child-check { margin: 0 0 6px; padding-left: 0; }
+
+/* ── Post-payment intake ────────────────────────────────────────────────────
+   Two questions on the page a student reaches after paying. Never a gate: the
+   money is taken, so the way through to their account stays visible below. */
+.co-intake {
+  max-width: 560px;
+  margin: 26px 0 4px;
+  padding: 20px;
+  border: 1px solid rgba(16, 10, 40, 0.10);
+  border-radius: var(--co-r-card);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E") repeat,
+    rgba(255, 255, 255, 0.9);
+  box-shadow: var(--co-lift);
+  text-align: left;
+}
+.co-intake h2 { margin: 0 0 6px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.co-intake-lede { margin: 0 0 14px; font-size: 13.5px; line-height: 1.55; color: #4A4270; }
+
+/* Selects are not styled anywhere else on this page; match the text inputs so
+   the form reads as one set of controls. */
+.co-intake select {
+  padding: 12px 14px;
+  border: 1px solid rgba(16, 10, 40, 0.14);
+  border-radius: var(--co-r-field);
+  background: rgba(255, 255, 255, 0.9);
+  color: #17102E;
+  font: 500 14.5px/1.4 "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.co-intake select:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.75);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.22);
+}
+
+/* "I am not sure" is the most common honest answer, so it is reassured rather
+   than flagged: green, not amber, and never styled like a validation warning. */
+.co-intake-reassure {
+  margin: 2px 0 14px;
+  padding: 12px 14px;
+  border-radius: var(--co-r-control);
+  border: 1px solid rgba(5, 150, 105, 0.28);
+  background: rgba(5, 150, 105, 0.07);
+  font-size: 13px;
+  line-height: 1.6;
+  color: #065F46;
+}
+
+.co-intake-submit { width: 100%; margin-top: 4px; }
+
+.co-intake-done {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+}
+.co-intake-done p { margin: 0; font-size: 14px; line-height: 1.5; color: #17102E; }
+.co-intake-done .material-symbols-outlined { font-size: 26px; color: #047857; flex: none; }

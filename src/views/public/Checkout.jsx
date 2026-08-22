@@ -1,7 +1,9 @@
+import { detectInitial } from '../../i18n'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Skyline } from '../../design/v3/primitives.jsx'
 import { useCart, cart, cartTotalPLN, formatPLN } from './cart-store.js'
+import { PACKAGE_LESSONS } from './packages.js'
 import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN } from '../legal/foundation-legal-content.js'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 import PaymentMethods from './PaymentMethods.jsx'
@@ -54,9 +56,7 @@ export default function Checkout() {
   // Seeded from the app's stored language so a student sent here from the
   // English in-app UI is not consented in Polish. Visitors without the key
   // (public site, first visit) keep the Polish default.
-  const [lang, setLang] = useState(() => {
-    try { return window.localStorage.getItem('em.lang.v2') === 'en' ? 'en' : 'pl' } catch { return 'pl' }
-  })
+  const [lang, setLang] = useState(() => detectInitial())
   // Account section
   const [session, setSession] = useState(() => readSession())
   const [fullName, setFullName] = useState('')
@@ -64,9 +64,19 @@ export default function Checkout() {
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [phone, setPhone] = useState('')
+  // Compulsory from 2026-08-10: only adults may hold an account. Buying FOR a
+  // child is the `forChild` declaration further down, not a younger birthdate.
+  const [dateOfBirth, setDateOfBirth] = useState('')
+  // A brand-new Google identity arrives verified but with no birthdate, so the
+  // token waits here until the field below is answered.
+  const [pendingGoogleToken, setPendingGoogleToken] = useState(null)
   const [emailTaken, setEmailTaken] = useState(false)
   const googleBtnRef = useRef(null)
   const [googleReady, setGoogleReady] = useState(false)
+  // Whether GIS actually painted a button. Blocked, offline or ad-blocked, the
+  // slot stayed an empty 44px gap above a divider reading "or create an account
+  // with email" — an "or" with nothing on the other side of it.
+  const [googleRendered, setGoogleRendered] = useState(false)
   // Order section
   const [invoiceOpen, setInvoiceOpen] = useState(false)
   const [company, setCompany] = useState('')
@@ -76,11 +86,41 @@ export default function Checkout() {
   const [city, setCity] = useState('')
   const [country, setCountry] = useState('Polska')
   const [notes, setNotes] = useState('')
+  // Buying for a child. Declared by the adult at the till, and the only thing
+  // that decides it — the analysis add-on is then not offered at all, and the
+  // server refuses it even if the request is forged.
+  const [forChild, setForChild] = useState(false)
+  // Off by default. The one exception is arriving from Bajla's own CTA
+  // (?addon=1), where the customer has just tapped a button that says buying
+  // this is what switches her on — so starting it ticked reflects what they
+  // asked for rather than pre-selecting something nobody mentioned. It stays a
+  // plain checkbox they can untick, and the consent itself is still only
+  // written on a verified payment in p24:finalizePaid.
+  const [analysisAddon, setAnalysisAddon] = useState(
+    () => new URLSearchParams(window.location.search).get('addon') === '1')
   // Consents + submission
   const [consentTerms, setConsentTerms] = useState(false)
-  // Never pre-check this: the customer must actively request early performance.
-  const [consentImmediate, setConsentImmediate] = useState(false)
+  // Early performance is a CHOICE with no default: null until the customer picks.
+  // Regulamin § 193 requires a "odrębne, aktywne i domyślnie niezaznaczone
+  // oświadczenie" — separate, active, unticked by default — so neither option may
+  // start selected. Presenting both and requiring one is what stops a buyer
+  // skimming past the request and landing on the slow path by accident; it is
+  // the framing that changes, never the default.
+  const [performanceChoice, setPerformanceChoice] = useState(null) // null | 'now' | 'wait'
+  const consentImmediate = performanceChoice === 'now'
   const [consentMarketing, setConsentMarketing] = useState(false)
+  // ── Quote mode (2026-08-17) ──
+  // ?quote=<ref> checks out a price the SERVER worked out and stored, instead of
+  // the cart. It is how the AI-analysis upgrade is bought, and how a negotiated
+  // price gets paid through this page rather than a hand-registered P24 link.
+  // The reference is all the browser holds; the amount is re-read server-side at
+  // registration, so editing this URL cannot change what is charged.
+  const quoteRef = useMemo(
+    () => new URLSearchParams(window.location.search).get('quote') || null, [])
+  const [quote, setQuote] = useState(null)      // null while loading, false if unusable
+  // Buying the analysis IS the consent — but it has to be its own explicit,
+  // informed action, never folded into the Terms or marketing tickbox.
+  const [consentAnalysis, setConsentAnalysis] = useState(false)
   const [error, setError] = useState('')
   const [phase, setPhase] = useState('idle') // idle | account | order
   const [accountReady, setAccountReady] = useState(false)
@@ -90,13 +130,27 @@ export default function Checkout() {
   const [methodsFailed, setMethodsFailed] = useState(false)
   const [methodKey, setMethodKey] = useState(null)
 
-  const total = cartTotalPLN(state)
+  // Display only. convex/p24.ts re-derives this and is the price authority; if
+  // the two ever disagree the customer is charged what the server computed, so
+  // this constant and ANALYSIS_ADDON_PLN_PER_LESSON must be changed together.
+  const ANALYSIS_PLN_PER_LESSON = 20
+  const quoteMode = !!quoteRef
+  const quoteReady = quoteMode && quote && quote.status === 'open' && !quote.expired
+  const quoteNeedsAnalysisConsent = !!quoteReady && !!quote.grantAnalysisScope
+  const analysisLessons = state.items.reduce(
+    (n, item) => n + (PACKAGE_LESSONS[item.id] ?? 0) * item.qty, 0)
+  // The per-package add-on is a cart concept. A quote already carries its own
+  // price for the analysis, so offering it again here would double-charge.
+  const analysisOffered = !quoteMode && !forChild && analysisLessons > 0
+  const analysisPLN = analysisOffered && analysisAddon ? analysisLessons * ANALYSIS_PLN_PER_LESSON : 0
+  // Shown to the customer. The server charges `quote.amount` regardless.
+  const total = quoteReady ? quote.amount / 100 : cartTotalPLN(state) + analysisPLN
   const isPl = lang === 'pl'
   const t = (en, pl) => (isPl ? pl : en)
   // The reference identifies one cart, not one page visit. If it survived a cart
   // edit, a retry after a failed attempt would resume the earlier payment and
   // charge the earlier total, so it is re-minted whenever the cart changes.
-  const cartKey = state.items.map(item => `${item.id}x${item.qty}`).sort().join('|')
+  const cartKey = quoteRef || state.items.map(item => `${item.id}x${item.qty}`).sort().join('|')
   const orderRef = useMemo(() => {
     const d = new Date()
     const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
@@ -135,27 +189,61 @@ export default function Checkout() {
     return null
   }
 
+  useEffect(() => { if (forChild) setAnalysisAddon(false) }, [forChild])
+
   const accountDone = !!session
-  const emailFormValid = fullName.trim().length >= 2 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()) && password.length >= 8
+  const emailFormValid = fullName.trim().length >= 2 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()) && password.length >= 8 && !!dateOfBirth
   const kontoStepDone = accountDone || emailFormValid
   const sending = phase === 'account' || phase === 'order'
+  // Calendar arithmetic, not 18×365.25 days, or the boundary drifts by a day
+  // across leap years and turns away someone who is exactly 18 today.
+  const maxDob = useMemo(() => {
+    const d = new Date()
+    d.setFullYear(d.getFullYear() - 18)
+    return d.toISOString().slice(0, 10)
+  }, [])
+  const DOB_COPY = {
+    DOB_REQUIRED: t('Please enter your date of birth.', 'Podaj datę urodzenia.'),
+    DOB_INVALID: t('Please enter a valid date of birth.', 'Podaj poprawną datę urodzenia.'),
+    DOB_UNDERAGE: t(
+      'You must be 18 or over to create an account. A parent or guardian can create one and buy lessons for a child.',
+      'Konto może założyć wyłącznie osoba, która ukończyła 18 lat. Rodzic lub opiekun może założyć konto i kupić lekcje dla dziecka.',
+    ),
+  }
+  const dobMessage = (r) => (r?.code && DOB_COPY[r.code]) || r?.error || ''
 
   // ── Google Sign-In (same GIS client as /login and /signup) ──
-  async function handleGoogleCredential(response) {
+  async function submitGoogle(idToken, dob) {
     setError('')
     try {
-      const idToken = response?.credential
-      if (!idToken) return
-      const result = await callConvex('action', 'googleAuth:googleSignIn', { idToken })
-      if (!result?.success || result.kind !== 'student') {
-        setError(result?.error || t('Google sign-in did not work. Use e-mail and password below.', 'Logowanie Google nie powiodło się. Użyj adresu e-mail i hasła poniżej.'))
+      const result = await callConvex('action', 'googleAuth:googleSignIn',
+        { idToken, ...(dob ? { dateOfBirth: dob } : {}) })
+      // Verified identity, no account yet, no birthdate. Nothing is created
+      // until the field below is answered; the token waits.
+      if (result?.needsDateOfBirth) {
+        setPendingGoogleToken(idToken)
+        setError(result.code
+          ? dobMessage(result)
+          : t('Add your date of birth to finish creating the account.',
+               'Podaj datę urodzenia, aby dokończyć zakładanie konta.'))
         return
       }
+      if (!result?.success || result.kind !== 'student') {
+        setError(dobMessage(result) || t('Google sign-in did not work. Use e-mail and password below.', 'Logowanie Google nie powiodło się. Użyj adresu e-mail i hasła poniżej.'))
+        return
+      }
+      setPendingGoogleToken(null)
       persistSession(result.student, result.sessionToken)
       setSession(readSession() || { ...result.student, sessionToken: result.sessionToken })
     } catch (ex) {
       setError(ex.message || 'Google sign-in failed')
     }
+  }
+
+  async function handleGoogleCredential(response) {
+    const idToken = response?.credential
+    if (!idToken) return
+    await submitGoogle(idToken, dateOfBirth)
   }
 
   useEffect(() => {
@@ -186,6 +274,7 @@ export default function Checkout() {
         type: 'standard', theme: 'outline', size: 'large', text: 'continue_with',
         shape: 'pill', logo_alignment: 'left', width: Math.max(220, Math.min(400, Math.round(slotW))),
       })
+      setGoogleRendered(googleBtnRef.current.childElementCount > 0)
     } catch { /* password path still works */ }
   }, [googleReady, session])
 
@@ -208,6 +297,27 @@ export default function Checkout() {
       .catch(() => { if (!cancelled) { setMethodsFailed(true); setMethodGroups([]) } })
     return () => { cancelled = true }
   }, [])
+
+  // A quote is written for one student, so it can only be paid by that student
+  // while signed in. Someone arriving with a quote link and no session is sent
+  // to log in and back — never offered account creation, which would allocate
+  // the purchase to a brand-new, wrong account (the 2026-08-10 legacy-slug bug).
+  useEffect(() => {
+    if (!quoteRef) return
+    const active = readSession()
+    if (!active) {
+      const next = encodeURIComponent(`/checkout?quote=${quoteRef}`)
+      window.location.assign(`/login?next=${next}`)
+      return
+    }
+    let cancelled = false
+    callConvex('query', 'analysisOffers:getQuote', {
+      sessionToken: active.sessionToken, quoteRef,
+    })
+      .then(value => { if (!cancelled) setQuote(value || false) })
+      .catch(() => { if (!cancelled) setQuote(false) })
+    return () => { cancelled = true }
+  }, [quoteRef])
 
   function changeAccount() {
     try { window.localStorage.removeItem('em-student-session') } catch { /* no-op */ }
@@ -236,12 +346,16 @@ export default function Checkout() {
     const payment = await callConvex('action', 'p24:createPayment', {
       sessionToken: activeSession.sessionToken,
       checkoutRef: orderRef,
-      items: state.items.map(item => ({ packageId: item.id, qty: item.qty })),
+      // A quote replaces the cart outright — the server refuses the two together.
+      items: quoteMode ? [] : state.items.map(item => ({ packageId: item.id, qty: item.qty })),
       billing,
       lang,
       consentTerms,
       consentImmediate,
       consentMarketing,
+      analysisAddon: analysisOffered && analysisAddon,
+      forChild,
+      ...(quoteMode ? { quoteRef, consentAnalysis } : {}),
       ...(chosen?.methodId ? { method: chosen.methodId } : {}),
     })
     if (!payment?.redirectUrl || !/^https:\/\//.test(payment.redirectUrl)) {
@@ -256,22 +370,44 @@ export default function Checkout() {
     setError('')
     setEmailTaken(false)
     if (!consentTerms) return setError(t('Accepting the Terms (Regulamin) is required to place an order.', 'Do złożenia zamówienia wymagana jest akceptacja Regulaminu.'))
+    if (quoteMode && !quoteReady) {
+      return setError(t('This offer is no longer valid. Open the upgrade again from your lesson to get a fresh price.',
+        'Ta oferta wygasła. Otwórz ulepszenie ponownie ze swojej lekcji, aby otrzymać aktualną cenę.'))
+    }
+    // The analysis consent is its own gate, separate from the Terms above. The
+    // server refuses the payment without it too — this is only the earlier,
+    // clearer refusal.
+    if (quoteNeedsAnalysisConsent && !consentAnalysis) {
+      return setError(t('To buy the AI lesson analysis you must agree to your lessons being recorded, transcribed and analysed.',
+        'Aby kupić analizę lekcji AI, musisz wyrazić zgodę na nagrywanie, transkrypcję i analizę Twoich lekcji.'))
+    }
+    // Requiring a pick is not the same as defaulting to one. Both options are
+    // offered equally and neither is preselected, so the early-performance
+    // request stays an active declaration — a buyer simply cannot skim past it
+    // and be put on the 14-day wait without having chosen it.
+    if (performanceChoice === null) {
+      return setError(t(
+        'Choose when your package should activate — straight away, or after the 14-day withdrawal period.',
+        'Wybierz, kiedy pakiet ma zostać aktywowany — od razu czy po upływie 14-dniowego terminu na odstąpienie.',
+      ))
+    }
     const invoiceError = invoiceProblem()
     if (invoiceError) { setInvoiceOpen(true); return setError(invoiceError) }
     try {
       let activeSession = session
       if (!activeSession) {
         if (!emailFormValid) {
-          return setError(t('Enter your full name, a valid email address and a password of at least 8 characters.', 'Podaj imię i nazwisko, poprawny adres e-mail oraz hasło składające się z co najmniej 8 znaków.'))
+          return setError(t('Enter your full name, a valid email address, your date of birth and a password of at least 8 characters.', 'Podaj imię i nazwisko, poprawny adres e-mail, datę urodzenia oraz hasło składające się z co najmniej 8 znaków.'))
         }
         setPhase('account')
         const r = await callConvex('action', 'studentAuth:studentSignupAction', {
           name: fullName.trim(), email: email.trim(), password, phone: phone.trim() || undefined,
+          dateOfBirth,
         })
         if (!r?.success) {
           setPhase('idle')
           if (/already exists|istnieje/i.test(r?.error || '')) { setEmailTaken(true); return }
-          return setError(r?.error || t('Could not create the account.', 'Nie udało się utworzyć konta.'))
+          return setError(dobMessage(r) || t('Could not create the account.', 'Nie udało się utworzyć konta.'))
         }
         persistSession(r.student, r.sessionToken)
         activeSession = { ...r.student, sessionToken: r.sessionToken }
@@ -326,7 +462,21 @@ export default function Checkout() {
         </div>
       </header>
 
-      {state.items.length === 0 ? (
+      {quoteMode && quote === null ? (
+        <section className="co-shell co-empty">
+          <h1>{t('Loading your offer…', 'Wczytujemy Twoją ofertę…')}</h1>
+        </section>
+      ) : quoteMode && !quoteReady ? (
+        <section className="co-shell co-empty">
+          <span className="material-symbols-outlined" aria-hidden>error</span>
+          <h1>{t('This offer is no longer valid.', 'Ta oferta jest już nieaktualna.')}</h1>
+          <p>{t('Prices are worked out for your account when you ask for them, and they do not last for ever. Open the upgrade again from your lesson to get a current one.',
+            'Ceny wyliczamy dla Twojego konta w chwili zapytania i nie obowiązują bezterminowo. Otwórz ulepszenie ponownie ze swojej lekcji, aby zobaczyć aktualną cenę.')}</p>
+          <Link className="lp-button lp-button-primary" to="/">
+            {t('Back to your lessons', 'Wróć do swoich lekcji')}
+          </Link>
+        </section>
+      ) : !quoteMode && state.items.length === 0 ? (
         <section className="co-shell co-empty">
           <span className="material-symbols-outlined" aria-hidden>shopping_cart</span>
           <h1>{t('Your cart is empty.', 'Twój koszyk jest pusty.')}</h1>
@@ -376,12 +526,14 @@ export default function Checkout() {
                       {t('Already have an account?', 'Masz już konto?')}{' '}
                       <Link to="/login?next=/checkout">{t('Sign in', 'Zaloguj się')}</Link>
                     </p>
-                    <div className="co-google-slot">
+                    <div className="co-google-slot" data-rendered={googleRendered}>
                       <div ref={googleBtnRef} aria-label="Google Sign-In" />
                     </div>
-                    <div className="co-divider" aria-hidden>
-                      <span>{t('or create an account with email', 'lub załóż konto przez e-mail')}</span>
-                    </div>
+                    {googleRendered && (
+                      <div className="co-divider" aria-hidden>
+                        <span>{t('or create an account with email', 'lub załóż konto przez e-mail')}</span>
+                      </div>
+                    )}
                     <label className="co-field">
                       <span>{t('Full name', 'Imię i nazwisko')} *</span>
                       <input value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" placeholder="Marta Kowalska" required />
@@ -413,6 +565,24 @@ export default function Checkout() {
                       </small>
                     </label>
                     <label className="co-field">
+                      <span>{t('Date of birth', 'Data urodzenia')} *</span>
+                      <input value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)}
+                        type="date" max={maxDob} autoComplete="bday" required />
+                      <small className="co-hint" data-ok={!!dateOfBirth}>
+                        {t(
+                          'The account holder must be 18 or over. Buying for a child? Create the account in your own name and tick the box in the learner details below.',
+                          'Właściciel konta musi mieć ukończone 18 lat. Kupujesz dla dziecka? Załóż konto na swoje dane i zaznacz pole w danych ucznia poniżej.',
+                        )}
+                      </small>
+                    </label>
+                    {pendingGoogleToken && (
+                      <button type="button" className="lp-button lp-button-primary co-google-dob"
+                        disabled={!dateOfBirth}
+                        onClick={() => submitGoogle(pendingGoogleToken, dateOfBirth)}>
+                        {t('Finish creating my Google account', 'Dokończ zakładanie konta Google')}
+                      </button>
+                    )}
+                    <label className="co-field">
                       <span>{t('Phone number (optional)', 'Numer telefonu (opcjonalnie)')}</span>
                       <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" autoComplete="tel" placeholder="+48 600 000 000" />
                     </label>
@@ -422,7 +592,7 @@ export default function Checkout() {
 
               {/* ── 2. Zamówienie ── */}
               <div className="co-later" data-ready={kontoStepDone}>
-                <fieldset className="co-block">
+                <fieldset className="co-block co-invoice" data-open={invoiceOpen}>
                   <legend>
                     <button type="button" className="co-invoice-toggle" onClick={() => setInvoiceOpen((v) => !v)} aria-expanded={invoiceOpen}>
                       <span className="material-symbols-outlined" aria-hidden>{invoiceOpen ? 'expand_less' : 'expand_more'}</span>
@@ -484,6 +654,18 @@ export default function Checkout() {
                       'Kupujesz pakiet dla dziecka? Konto załóż na dane rodzica lub opiekuna, a poniżej wpisz imię dziecka i ważne informacje dla lektora.',
                     )}
                   </p>
+                  <label className="co-check co-child-check">
+                    <input type="checkbox" checked={forChild} onChange={(e) => setForChild(e.target.checked)} />
+                    <span>
+                      {t('This package is for a child under 16.', 'Ten pakiet jest dla dziecka poniżej 16 lat.')}
+                      <small className="co-consent-hint">
+                        {t(
+                          'Their lessons are never recorded or analysed, and the optional AI lesson analysis is not offered on a child\u2019s account.',
+                          'Lekcje dziecka nie są nagrywane ani analizowane, a opcjonalna analiza lekcji AI nie jest dostępna na koncie dziecka.',
+                        )}
+                      </small>
+                    </span>
+                  </label>
                   <label className="co-field">
                     <span className="sr-only">{t('Notes', 'Uwagi')}</span>
                     <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)}
@@ -510,6 +692,70 @@ export default function Checkout() {
                   </p>
                 </fieldset>
 
+                {analysisOffered && (
+                  <fieldset className="co-block">
+                    <legend>{t('Add AI lesson analysis (optional)', 'Dodaj analizę lekcji AI (opcjonalnie)')}</legend>
+                    <label className="co-choice co-addon" data-selected={analysisAddon}>
+                      <input type="checkbox" checked={analysisAddon}
+                        onChange={(e) => setAnalysisAddon(e.target.checked)} />
+                      <span className="co-choice-body">
+                        <strong>
+                          {t('Written analysis after every lesson, plus Bajla', 'Pisemna analiza po każdej lekcji i Bajla')}
+                          <span className="co-addon-price">
+                            +{formatPLN(analysisLessons * ANALYSIS_PLN_PER_LESSON)}
+                          </span>
+                        </strong>
+                        <small className="co-choice-what">
+                          {t(
+                            `A CEFR assessment, your strengths, the exact mistakes you made with corrections, and what to practise next \u2014 for each of your ${analysisLessons} lessons. ${ANALYSIS_PLN_PER_LESSON} PLN per lesson. It also switches on Bajla, your WhatsApp assistant, for good.`,
+                            `Ocena poziomu CEFR, mocne strony, konkretne błędy wraz z poprawkami i wskazówki do dalszej pracy \u2014 dla każdej z ${analysisLessons} lekcji. ${ANALYSIS_PLN_PER_LESSON} PLN za lekcję. Włącza też na stałe Bajlę, Twoją asystentkę na WhatsAppie.`,
+                          )}
+                        </small>
+                        <small className="co-choice-legal">
+                          {t(
+                            'To do this we record and transcribe your lessons and a language model writes the analysis. Lessons are not recorded unless you tick this. You can withdraw at any time in Settings, and we delete the recordings.',
+                            'W tym celu nagrywamy i transkrybujemy Twoje lekcje, a analizę przygotowuje model językowy. Bez zaznaczenia tego pola lekcje nie są nagrywane. Zgodę możesz wycofać w każdej chwili w Ustawieniach, a nagrania usuwamy.',
+                          )}{' '}
+                          <Link to="/lesson-analysis" target="_blank">
+                            {t('How we handle this data', 'Jak przetwarzamy te dane')}
+                          </Link>
+                        </small>
+                      </span>
+                      <span className="co-choice-mark co-choice-mark-square" aria-hidden />
+                    </label>
+                  </fieldset>
+                )}
+
+                {/* The analysis consent stands on its own, above the general
+                    consents and never inside them. Buying the analysis IS
+                    consenting to it, but the customer has to say so in a
+                    separate, informed act — it must never ride in on the Terms
+                    tickbox or on anything else they were going to tick anyway. */}
+                {quoteNeedsAnalysisConsent && (
+                  <fieldset className="co-block co-consents co-analysis-consent">
+                    <legend>{t('Consent to the AI lesson analysis', 'Zgoda na analizę lekcji AI')}</legend>
+                    <label className="co-check">
+                      <input type="checkbox" checked={consentAnalysis}
+                        onChange={(e) => setConsentAnalysis(e.target.checked)} required />
+                      <span>
+                        {isPl ? (
+                          <>Zgadzam się, aby moje lekcje były nagrywane i transkrybowane, a zapis rozmowy przekazywany do modelu językowego, który przygotuje dla mnie pisemną analizę. *
+                            <small className="co-consent-hint">
+                              Zgodę możesz wycofać w każdej chwili w Ustawieniach; nagrania usuwamy w ciągu 30 dni. Szczegóły: <Link to="/lesson-analysis" target="_blank">informacja o analizie lekcji</Link>.
+                            </small>
+                          </>
+                        ) : (
+                          <>I agree to my lessons being recorded and transcribed, and the transcript being sent to a language model that writes my analysis. *
+                            <small className="co-consent-hint">
+                              You can withdraw at any time in Settings, and we delete the recordings within 30 days. Details: <Link to="/lesson-analysis" target="_blank">lesson analysis notice</Link>.
+                            </small>
+                          </>
+                        )}
+                      </span>
+                    </label>
+                  </fieldset>
+                )}
+
                 <fieldset className="co-block co-consents">
                   <legend>{t('Consents', 'Zgody')}</legend>
                   <label className="co-check">
@@ -527,33 +773,59 @@ export default function Checkout() {
                     </span>
                   </label>
                   <fieldset className="co-performance-choice">
-                    <legend>{t('Immediate package activation', 'Natychmiastowa aktywacja pakietu')}</legend>
-                    <label className="co-check">
-                      <input
-                        type="checkbox"
-                        checked={consentImmediate}
-                        onChange={(e) => setConsentImmediate(e.target.checked)}
-                      />
-                      <span>
-                        {isPl
-                          ? 'Wyraźnie żądam rozpoczęcia świadczenia usług niezwłocznie po potwierdzeniu płatności, przed upływem 14 dni od zawarcia umowy, w tym aktywacji pakietu oraz udostępnienia rezerwacji i realizacji lekcji.'
-                          : 'I expressly request that the services begin immediately after payment is confirmed, before 14 days have passed from conclusion of the contract, including package activation and access to booking and taking lessons.'}
-                        <small className="co-consent-hint">
-                          {t(
-                            'If I withdraw during that period, I will pay proportionately for lessons supplied before withdrawal. I lose the withdrawal right only after the service has been fully performed.',
-                            'Jeżeli odstąpię w tym terminie, zapłacę proporcjonalnie za lekcje zrealizowane przed odstąpieniem. Prawo odstąpienia utracę dopiero po pełnym wykonaniu usługi.',
-                          )}
-                        </small>
-                      </span>
-                    </label>
-                    {!consentImmediate && (
-                      <p className="co-consent-hint">
-                        {t(
-                          'Optional. Leave it unticked and the package activates once the 14-day withdrawal period ends, so booking opens then.',
-                          'Pole jest dobrowolne. Jeżeli go nie zaznaczysz, pakiet zostanie aktywowany po upływie 14-dniowego terminu na odstąpienie i wtedy otworzy się rezerwacja lekcji.',
-                        )}
-                      </p>
-                    )}
+                    <legend>{t('When should your package activate?', 'Kiedy aktywować pakiet?')} *</legend>
+                    <p className="co-consent-hint co-choice-lede">
+                      {t(
+                        'Pick one. Your 14-day right to withdraw applies either way — this only sets when your lessons become bookable.',
+                        'Wybierz jedną opcję. 14-dniowe prawo odstąpienia przysługuje Ci w obu przypadkach — ta decyzja określa tylko, kiedy będzie można rezerwować lekcje.',
+                      )}
+                    </p>
+                    <div className="co-choices">
+                      {/* The operative declaration is counsel-approved wording and is
+                          reproduced verbatim; only its framing changed. */}
+                      <label className="co-choice" data-selected={performanceChoice === 'now'}>
+                        <input
+                          type="radio"
+                          name="co-performance"
+                          checked={performanceChoice === 'now'}
+                          onChange={() => setPerformanceChoice('now')}
+                        />
+                        <span className="co-choice-body">
+                          <strong>{t('Start straight away', 'Zacznij od razu')}</strong>
+                          <small className="co-choice-what">
+                            {t(
+                              'Your package activates as soon as payment is confirmed and you can book lessons immediately.',
+                              'Pakiet zostanie aktywowany zaraz po potwierdzeniu płatności i od razu zarezerwujesz lekcje.',
+                            )}
+                          </small>
+                          <small className="co-choice-legal">
+                            {isPl
+                              ? 'Wyraźnie żądam rozpoczęcia świadczenia usług niezwłocznie po potwierdzeniu płatności, przed upływem 14 dni od zawarcia umowy, w tym aktywacji pakietu oraz udostępnienia rezerwacji i realizacji lekcji. Jeżeli odstąpię w tym terminie, zapłacę proporcjonalnie za lekcje zrealizowane przed odstąpieniem. Prawo odstąpienia utracę dopiero po pełnym wykonaniu usługi.'
+                              : 'I expressly request that the services begin immediately after payment is confirmed, before 14 days have passed from conclusion of the contract, including package activation and access to booking and taking lessons. If I withdraw during that period, I will pay proportionately for lessons supplied before withdrawal. I lose the withdrawal right only after the service has been fully performed.'}
+                          </small>
+                        </span>
+                        <span className="co-choice-mark" aria-hidden />
+                      </label>
+
+                      <label className="co-choice" data-selected={performanceChoice === 'wait'}>
+                        <input
+                          type="radio"
+                          name="co-performance"
+                          checked={performanceChoice === 'wait'}
+                          onChange={() => setPerformanceChoice('wait')}
+                        />
+                        <span className="co-choice-body">
+                          <strong>{t('Wait until the 14 days are over', 'Poczekaj do końca 14 dni')}</strong>
+                          <small className="co-choice-what">
+                            {t(
+                              'Your package activates once the 14-day withdrawal period ends, and booking opens then.',
+                              'Pakiet zostanie aktywowany po upływie 14-dniowego terminu na odstąpienie i wtedy otworzy się rezerwacja lekcji.',
+                            )}
+                          </small>
+                        </span>
+                        <span className="co-choice-mark" aria-hidden />
+                      </label>
+                    </div>
                   </fieldset>
                   <label className="co-check">
                     <input type="checkbox" checked={consentMarketing} onChange={(e) => setConsentMarketing(e.target.checked)} />
@@ -588,7 +860,30 @@ export default function Checkout() {
             <aside className="co-summary" aria-label={t('Order summary', 'Podsumowanie zamówienia')}>
               <h2>{t('Order summary', 'Podsumowanie')}</h2>
               <ul className="co-items">
-                {state.items.map((item, idx) => (
+                {quoteReady && (
+                  <li key="quote" style={{ '--co-i': 0 }}>
+                    <div className="co-item-main">
+                      <strong>{quote.label}</strong>
+                      <span>
+                        {t('Price worked out for your account', 'Cena wyliczona dla Twojego konta')}
+                      </span>
+                    </div>
+                    <div className="co-item-side">
+                      <strong>{formatPLN(quote.amount / 100)}</strong>
+                    </div>
+                  </li>
+                )}
+                {quoteReady && quote.listAmount > quote.amount && (
+                  <li key="quote-saving" className="co-quote-saving" style={{ '--co-i': 1 }}>
+                    <div className="co-item-main">
+                      <span>{t('Normal price', 'Cena standardowa')} {formatPLN(quote.listAmount / 100)}</span>
+                    </div>
+                    <div className="co-item-side">
+                      <strong>−{formatPLN((quote.listAmount - quote.amount) / 100)}</strong>
+                    </div>
+                  </li>
+                )}
+                {!quoteMode && state.items.map((item, idx) => (
                   <li key={item.id} style={{ '--co-i': idx }}>
                     <div className="co-item-main">
                       <strong>{item.name}{item.qty > 1 ? ` ×${item.qty}` : ''}</strong>
@@ -604,6 +899,12 @@ export default function Checkout() {
                   </li>
                 ))}
               </ul>
+              {analysisPLN > 0 && (
+                <div className="co-addon-line">
+                  <span>{t('AI lesson analysis', 'Analiza lekcji AI')}</span>
+                  <strong>{formatPLN(analysisPLN)}</strong>
+                </div>
+              )}
               <div className="co-total">
                 <span>{t('Total (VAT included)', 'Razem (z VAT)')}</span>
                 <strong>{formatPLN(total)}</strong>

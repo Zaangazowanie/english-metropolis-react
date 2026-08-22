@@ -372,6 +372,14 @@ function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null }) {
             {t('dashboard.upcoming.lessonPreview')}
           </Btn>
         </Link>
+        {/* A student's first instinct when the booking is wrong is to look for
+            the fix HERE, on the card that shows it (learned from a real support
+            mail, 2026-08-13) — deep-link them to the booking block's cancel. */}
+        <Link to={slug ? `${basePath}/${slug}/calendar#lesson-booking` : '#'} style={{ textDecoration: 'none' }}>
+          <Btn variant="ghost" size="md" icon="edit_calendar">
+            {t('dashboard.upcoming.manage')}
+          </Btn>
+        </Link>
       </div>
     </Glass>
   )

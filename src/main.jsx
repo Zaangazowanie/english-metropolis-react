@@ -1,4 +1,4 @@
-import { StrictMode, Component, lazy, Suspense } from 'react'
+import { StrictMode, Component, lazy, Suspense, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import './index.css'
@@ -34,6 +34,7 @@ import ConsoleSchoolStudents from './views/admin/superadmin/ConsoleSchoolStudent
 import ConsoleStudentPreview from './views/admin/superadmin/ConsoleStudentPreview.jsx'
 import ConsoleTemplates from './views/admin/superadmin/ConsoleTemplates.jsx'
 import ConsoleSequences from './views/admin/superadmin/ConsoleSequences.jsx'
+import ConsoleWhatsApp from './views/admin/superadmin/ConsoleWhatsApp.jsx'
 import ConsoleRevenue from './views/admin/superadmin/ConsoleRevenue.jsx'
 import ConsoleInvoices from './views/admin/superadmin/ConsoleInvoices.jsx'
 import ConsolePayroll from './views/admin/superadmin/ConsolePayroll.jsx'
@@ -72,6 +73,8 @@ import CookiePolicy from './views/legal/CookiePolicy.jsx'
 import Terms from './views/legal/Terms.jsx'
 import Login from './views/Login.jsx'
 import LoginV3 from './views/v3/Login.jsx'
+import { ResetPassword, VerifyEmail } from './views/v3/AccountLink.jsx'
+import LessonAnalysisNotice from './views/legal/LessonAnalysisNotice.jsx'
 import GameHome from './views/v3/GameHome.jsx'
 import EnglishMetroWorld from './world/EnglishMetroWorld'
 import LessonPricingSignup from './views/public/LessonPricingSignup.jsx'
@@ -182,20 +185,42 @@ function TeacherGuard({ children }) {
   return children
 }
 
+// Keeps the injected tutor widget off the marketing and login pages after a
+// client-side navigation. index.html decides whether to load the script at all
+// on a cold start; this re-applies the same rule on every route change, because
+// once the widget has mounted it stays in the DOM for the life of the tab.
+// A class on <body> rather than touching the widget: it is a separate script we
+// do not own, and this way nothing has to be coordinated with it.
+function TutorRouteVisibility() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const hidden = typeof window.__EM_TUTOR_HIDDEN_ON === 'function'
+      ? window.__EM_TUTOR_HIDDEN_ON(pathname)
+      : false
+    document.body.setAttribute('data-em-hide-tutor', hidden ? 'true' : 'false')
+  }, [pathname])
+  return null
+}
+
 function RootRouter() {
   return (
     <>
+      <TutorRouteVisibility />
       <Routes>
         {/* Legal pages — public, no auth, top-level */}
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/cookies" element={<CookiePolicy />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/lesson-analysis" element={<LessonAnalysisNotice />} />
         <Route path="/withdraw" element={<WithdrawalPage />} />
 
         {/* englishmetro.com landing - arcade home first.
             Keep the 3D world available explicitly, but do not make it the homepage. */}
         <Route path="/login" element={<LoginComponent />} />
         <Route path="/logout" element={<Logout />} />
+        <Route path="/reset" element={<ResetPassword />} />
+        <Route path="/verify" element={<VerifyEmail />} />
         {IS_ENGLISHMETRO && <Route path="/" element={<GameHome />} />}
         {IS_ENGLISHMETRO && <Route path="/arcade" element={<GameHome />} />}
         {IS_ENGLISHMETRO && <Route path="/city" element={<EnglishMetroWorld fullscreen />} />}
@@ -246,6 +271,12 @@ function RootRouter() {
           <Route path="comms/inbox" element={<ConsoleInbox />} />
           <Route path="comms/templates" element={<ConsoleTemplates />} />
           <Route path="comms/sequences" element={<ConsoleSequences />} />
+          {/* SuperadminLayout has linked to comms/whatsapp since 2026-08-18, but the
+              route was never added, so the nav item fell through to the catch-all and
+              rendered "No such console screen". Nothing imported the component either,
+              so the bundler tree-shook it out entirely. Backend has been live the whole
+              time: /api/console/wa/{threads,thread/:key,send} on 127.0.0.1:8811. */}
+          <Route path="comms/whatsapp" element={<ConsoleWhatsApp />} />
 
           {/* --- CRM --- */}
           <Route path="crm/contacts" element={<ConsoleContacts />} />

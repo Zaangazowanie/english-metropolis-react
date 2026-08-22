@@ -20,7 +20,7 @@ export const FOUNDATION = {
   bdo: '000460502',
   unit: 'EnglishMetro',
   rep: 'Moemedi Michael Poncana',
-  email: 'michael.poncana@englishmetro.com',
+  email: 'support@englishmetro.com',
   phone: '+48 662 563 507',
   serviceAddress: 'ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki',
   rodoEmail: 'rodo@twojstartup.pl',
@@ -400,7 +400,7 @@ export const TERMS_HTML_PL = `
 <p>Klient ze StartUp może kontaktować się:</p>
 <ol class="fl-ol">
 <li>telefonicznie, pod numerem: +48 662 563 507;</li>
-<li>za pośrednictwem poczty elektronicznej, na adres e-mail: michael.poncana@englishmetro.com.</li>
+<li>za pośrednictwem poczty elektronicznej, na adres e-mail: support@englishmetro.com.</li>
 </ol>
 </section>
 
@@ -473,7 +473,7 @@ export const PRIVACY_HTML_PL = `
 <section class="fl-sec">
 <h2>Kto jest administratorem Państwa danych?</h2>
 <p>Administratorem Pani/Pana danych osobowych jest FUNDACJA ROZWOJU PRZEDSIĘBIORCZOŚCI „TWÓJ STARTUP" z siedzibą w Warszawie (adres siedziby: ul. Żurawia 6/12, lok. 766, 00-503 Warszawa).</p>
-<p>Powyższa polityka prywatności dotyczy usług Fundacji świadczonych przez zorganizowaną część przedsiębiorstwa EnglishMetro, dane kontaktowe: numer telefonu +48 662 563 507, adres e-mail: michael.poncana@englishmetro.com, realizowanych przez Moemedi Michael Poncana.</p>
+<p>Powyższa polityka prywatności dotyczy usług Fundacji świadczonych przez zorganizowaną część przedsiębiorstwa EnglishMetro, dane kontaktowe: numer telefonu +48 662 563 507, adres e-mail: support@englishmetro.com, realizowanych przez Moemedi Michael Poncana.</p>
 </section>
 
 <section class="fl-sec">
@@ -517,7 +517,7 @@ export const PRIVACY_HTML_PL = `
 
 <section class="fl-sec">
 <h2>Czy dane są profilowane?</h2>
-<p>Informujemy, iż Państwa dane nie będą podlegać profilowaniu, czyli zautomatyzowanej analizy Pana/Pani danych i opracowania przewidywań na temat preferencji lub przyszłych zachowań (profilowanie oznacza, np. w przypadku profilowania marketingowego określanie, którą ofertą może być Pan/Pani najbardziej zainteresowany/a w oparciu o wcześniejsze Pana/Pani wybory).</p>
+<p>Z wyjątkiem opcjonalnej, płatnej usługi analizy lekcji, opisanej w odrębnej <a href="/lesson-analysis">Informacji o przetwarzaniu danych — analiza lekcji AI</a>, informujemy, iż Państwa dane nie będą podlegać profilowaniu, czyli zautomatyzowanej analizy Pana/Pani danych i opracowania przewidywań na temat preferencji lub przyszłych zachowań (profilowanie oznacza, np. w przypadku profilowania marketingowego określanie, którą ofertą może być Pan/Pani najbardziej zainteresowany/a w oparciu o wcześniejsze Pana/Pani wybory).</p>
 </section>
 
 <section class="fl-sec">
@@ -528,7 +528,7 @@ export const PRIVACY_HTML_PL = `
 <li>Prawo do usunięcia danych osobowych z naszych systemów tzw. „prawo do bycia zapomnianym" - jeżeli Państwa zdaniem nie ma podstaw do tego, abyśmy przetwarzali Państwa dane, mogą Państwo zażądać, abyśmy je usunęli (art. 17 Rozporządzenia);</li>
 <li>Prawo do ograniczenia przetwarzania danych osobowych - mogą Państwo zażądać, abyśmy ograniczyli przetwarzanie danych osobowych wyłącznie do ich przechowywania lub wykonywania uzgodnionych z Państwem działań, jeżeli posiadamy nieprawidłowe dane na Państwa temat lub przetwarzamy je bezpodstawnie; lub nie chcą Państwo, żebyśmy je usunęli, bo są Państwu potrzebne do ustalenia, dochodzenia lub obrony roszczeń; lub na czas wniesionego przez sprzeciwu względem przetwarzania danych (art. 18 Rozporządzenia);</li>
 <li>Prawo do przenoszenia danych – mają Państwo prawo otrzymać od nas w ustrukturyzowanym, powszechnie używanym formacie nadającym się do odczytu maszynowego (np. format „.csv") dane osobowe dotyczące Państwa, w których posiadaniu jesteśmy na podstawie umowy lub wyrażonej zgody. Uprawnienie to będzie przysługiwało, gdy będziemy posiadać dane w formacie elektronicznym – w przypadku posiadania danych jedynie w formie papierowej nie będą Państwo mieli możliwości skorzystania z tego uprawnienia. Mogą Państwo zlecić nam przesłanie tych danych bezpośrednio innemu podmiotowi (art. 20 Rozporządzenia);</li>
-<li>Prawo do cofnięcia zgody na przetwarzanie danych osobowych - w każdej chwili mają Państwo prawo cofnąć zgodę na przetwarzanie danych osobowych, które przetwarzamy na podstawie zgody – art. 7 ust. 3 Rozporządzenia. Cofnięcie zgody nie będzie wpływać na zgodność z prawem przetwarzania, którego dokonano na podstawie zgody przed jej wycofaniem. Cofnięcie zgody występuje poprzez wysłanie wiadomości mailowej na adres: michael.poncana@englishmetro.com;</li>
+<li>Prawo do cofnięcia zgody na przetwarzanie danych osobowych - w każdej chwili mają Państwo prawo cofnąć zgodę na przetwarzanie danych osobowych, które przetwarzamy na podstawie zgody – art. 7 ust. 3 Rozporządzenia. Cofnięcie zgody nie będzie wpływać na zgodność z prawem przetwarzania, którego dokonano na podstawie zgody przed jej wycofaniem. Cofnięcie zgody występuje poprzez wysłanie wiadomości mailowej na adres: support@englishmetro.com;</li>
 <li>Prawo do sprzeciwu - może Pan/Pani wnieść sprzeciw wobec przetwarzania Pana/Pani danych, jeśli podstawą wykorzystania danych jest nasz prawnie uzasadniony interes - art. 21 Rozporządzenia. W takiej sytuacji, po rozpatrzeniu Państwa wniosku, nie będziemy już mogli przetwarzać danych osobowych objętych sprzeciwem na tej podstawie, chyba, że wykażemy, istnienie prawnie uzasadnionych podstaw do przetwarzania danych, które uznaje się za nadrzędne wobec Państwa interesów, praw i wolności;</li>
 <li>Jeżeli w Państwa opinii przetwarzanie danych osobowych narusza przepisy Rozporządzenia, przysługuje Państwu prawo do wniesienia skargi do organu nadzorczego tj. Prezesa Urzędu Ochrony Danych Osobowych.</li>
 </ol>
@@ -549,7 +549,7 @@ export const COOKIES_HTML_PL = `
 
 <section class="fl-sec">
 <h2>Administrator danych</h2>
-<p>Administratorem danych osobowych jest FUNDACJA ROZWOJU PRZEDSIĘBIORCZOŚCI „TWÓJ STARTUP" z siedzibą w Warszawie (adres siedziby: ul. Żurawia 6/12, lok. 766, 00-503 Warszawa), wpisana do Rejestru Przedsiębiorców Krajowego Rejestru Sądowego przez Sąd Rejonowy dla m.st. Warszawy w Warszawie, XII Wydział Gospodarczy KRS pod numerem 0000442857; NIP: 5213641211; REGON: 146433467, dane kontaktowe: numer telefonu +48 662 563 507, adres e-mail: michael.poncana@englishmetro.com, w związku z realizowaną przez Moemedi Michael Poncana zorganizowaną częścią przedsiębiorstwa o nazwie EnglishMetro.</p>
+<p>Administratorem danych osobowych jest FUNDACJA ROZWOJU PRZEDSIĘBIORCZOŚCI „TWÓJ STARTUP" z siedzibą w Warszawie (adres siedziby: ul. Żurawia 6/12, lok. 766, 00-503 Warszawa), wpisana do Rejestru Przedsiębiorców Krajowego Rejestru Sądowego przez Sąd Rejonowy dla m.st. Warszawy w Warszawie, XII Wydział Gospodarczy KRS pod numerem 0000442857; NIP: 5213641211; REGON: 146433467, dane kontaktowe: numer telefonu +48 662 563 507, adres e-mail: support@englishmetro.com, w związku z realizowaną przez Moemedi Michael Poncana zorganizowaną częścią przedsiębiorstwa o nazwie EnglishMetro.</p>
 </section>
 
 <section class="fl-sec">
@@ -989,7 +989,7 @@ export const TERMS_HTML_EN = `
 <p>The Customer may contact StartUp:</p>
 <ol class="fl-ol">
 <li>by telephone, at: +48 662 563 507;</li>
-<li>by e-mail, at: michael.poncana@englishmetro.com.</li>
+<li>by e-mail, at: support@englishmetro.com.</li>
 </ol>
 </section>
 
@@ -1062,7 +1062,7 @@ export const PRIVACY_HTML_EN = `
 <section class="fl-sec">
 <h2>Who is the controller of your data?</h2>
 <p>The controller of your personal data is FUNDACJA ROZWOJU PRZEDSIĘBIORCZOŚCI „TWÓJ STARTUP" with its registered office in Warsaw (registered address: ul. Żurawia 6/12, lok. 766, 00-503 Warszawa).</p>
-<p>This privacy policy concerns the Foundation's services provided through the organised business unit EnglishMetro, contact details: telephone +48 662 563 507, e-mail: michael.poncana@englishmetro.com, carried out by Moemedi Michael Poncana.</p>
+<p>This privacy policy concerns the Foundation's services provided through the organised business unit EnglishMetro, contact details: telephone +48 662 563 507, e-mail: support@englishmetro.com, carried out by Moemedi Michael Poncana.</p>
 </section>
 
 <section class="fl-sec">
@@ -1106,7 +1106,7 @@ export const PRIVACY_HTML_EN = `
 
 <section class="fl-sec">
 <h2>Is the data profiled?</h2>
-<p>We advise that your data will not be subject to profiling, i.e. automated analysis of your data and the development of predictions about your preferences or future behaviour (profiling means, for example, in the case of marketing profiling, determining which offer you may be most interested in based on your previous choices).</p>
+<p>Except for the optional, paid AI lesson analysis, described in a separate <a href="/lesson-analysis">AI lesson analysis notice</a>, we advise that your data will not be subject to profiling, i.e. automated analysis of your data and the development of predictions about your preferences or future behaviour (profiling means, for example, in the case of marketing profiling, determining which offer you may be most interested in based on your previous choices).</p>
 </section>
 
 <section class="fl-sec">
@@ -1117,7 +1117,7 @@ export const PRIVACY_HTML_EN = `
 <li>The right to erasure of personal data from our systems, the so-called "right to be forgotten" - if in your view there are no grounds for us to process your data, you may request that we erase it (Article 17 of the Regulation);</li>
 <li>The right to restriction of processing - you may request that we restrict the processing of your personal data solely to storing it or performing actions agreed with you, if we hold incorrect data about you or process it without a basis; or if you do not want us to erase it because you need it to establish, pursue or defend claims; or for the duration of an objection you have raised to the processing (Article 18 of the Regulation);</li>
 <li>The right to data portability – you have the right to receive from us, in a structured, commonly used, machine-readable format (e.g. ".csv"), the personal data concerning you that we hold on the basis of a contract or your consent. This right applies where we hold the data in electronic format – where we hold data only in paper form, you will not be able to exercise this right. You may instruct us to send this data directly to another entity (Article 20 of the Regulation);</li>
-<li>The right to withdraw consent to the processing of personal data - you may at any time withdraw consent to the processing of the personal data we process on the basis of consent – Article 7(3) of the Regulation. Withdrawal of consent does not affect the lawfulness of processing carried out on the basis of consent before its withdrawal. Consent is withdrawn by sending an e-mail to: michael.poncana@englishmetro.com;</li>
+<li>The right to withdraw consent to the processing of personal data - you may at any time withdraw consent to the processing of the personal data we process on the basis of consent – Article 7(3) of the Regulation. Withdrawal of consent does not affect the lawfulness of processing carried out on the basis of consent before its withdrawal. Consent is withdrawn by sending an e-mail to: support@englishmetro.com;</li>
 <li>The right to object - you may object to the processing of your data where the basis for using the data is our legitimate interest - Article 21 of the Regulation. In such a situation, after considering your request, we will no longer be able to process the personal data covered by the objection on that basis, unless we demonstrate the existence of legitimate grounds for processing the data that are considered overriding in relation to your interests, rights and freedoms;</li>
 <li>If in your opinion the processing of personal data violates the provisions of the Regulation, you have the right to lodge a complaint with the supervisory authority, i.e. the President of the Personal Data Protection Office (UODO).</li>
 </ol>
@@ -1138,7 +1138,7 @@ export const COOKIES_HTML_EN = `
 
 <section class="fl-sec">
 <h2>Data controller</h2>
-<p>The controller of personal data is FUNDACJA ROZWOJU PRZEDSIĘBIORCZOŚCI „TWÓJ STARTUP" with its registered office in Warsaw (registered address: ul. Żurawia 6/12, lok. 766, 00-503 Warszawa), entered in the Register of Entrepreneurs of the National Court Register by the District Court for the Capital City of Warsaw in Warsaw, 12th Commercial Division of the National Court Register, under number 0000442857; NIP: 5213641211; REGON: 146433467, contact details: telephone +48 662 563 507, e-mail: michael.poncana@englishmetro.com, in connection with the organised business unit named EnglishMetro operated by Moemedi Michael Poncana.</p>
+<p>The controller of personal data is FUNDACJA ROZWOJU PRZEDSIĘBIORCZOŚCI „TWÓJ STARTUP" with its registered office in Warsaw (registered address: ul. Żurawia 6/12, lok. 766, 00-503 Warszawa), entered in the Register of Entrepreneurs of the National Court Register by the District Court for the Capital City of Warsaw in Warsaw, 12th Commercial Division of the National Court Register, under number 0000442857; NIP: 5213641211; REGON: 146433467, contact details: telephone +48 662 563 507, e-mail: support@englishmetro.com, in connection with the organised business unit named EnglishMetro operated by Moemedi Michael Poncana.</p>
 </section>
 
 <section class="fl-sec">
@@ -1222,7 +1222,7 @@ export const CONTACT_HTML_PL = `
 <section class="fl-sec" id="kontakt">
 <h2>Kontakt</h2>
 <ul class="fl-ul">
-<li><strong>E-mail:</strong> <a href="mailto:michael.poncana@englishmetro.com">michael.poncana@englishmetro.com</a></li>
+<li><strong>E-mail:</strong> <a href="mailto:support@englishmetro.com">support@englishmetro.com</a></li>
 <li><strong>Telefon:</strong> <a href="tel:+48662563507">+48 662 563 507</a></li>
 <li><strong>Strona:</strong> <a href="https://englishmetro.com">https://englishmetro.com</a></li>
 </ul>
@@ -1279,7 +1279,7 @@ export const CONTACT_HTML_EN = `
 <section class="fl-sec" id="contact">
 <h2>Contact</h2>
 <ul class="fl-ul">
-<li><strong>Email:</strong> <a href="mailto:michael.poncana@englishmetro.com">michael.poncana@englishmetro.com</a></li>
+<li><strong>Email:</strong> <a href="mailto:support@englishmetro.com">support@englishmetro.com</a></li>
 <li><strong>Phone:</strong> <a href="tel:+48662563507">+48 662 563 507</a></li>
 <li><strong>Website:</strong> <a href="https://englishmetro.com">https://englishmetro.com</a></li>
 </ul>
@@ -1304,5 +1304,137 @@ export const CONTACT_HTML_EN = `
 <li><a href="/cookies/">Cookies Policy</a></li>
 <li><a href="/withdraw">Contract withdrawal — online form</a></li>
 </ul>
+</section>
+`
+
+// ── Lesson-analysis notice (EM-LEGAL-04, 2026-08-10) ────────────────────────
+// A LAYERED notice: the Foundation's general privacy policy stays the umbrella
+// document and this one covers only the optional paid AI lesson analysis, shown
+// at the point of opt-in. Written against what the pipeline actually does, so it
+// must be revised whenever the pipeline changes. ⛔ DRAFT — counsel (Weronika)
+// approves the wording; the facts in it were taken from the code, not assumed.
+export const ANALYSIS_TITLE_PL = 'Analiza lekcji AI — informacja o przetwarzaniu danych'
+export const ANALYSIS_TITLE_EN = 'AI lesson analysis — how we handle your data'
+
+export const ANALYSIS_HTML_PL = `
+<section>
+<p class="fl-lead">Ta informacja dotyczy wyłącznie <strong>opcjonalnej, płatnej usługi analizy lekcji</strong>.
+Jeśli jej nie wykupisz, Twoje lekcje nie są nagrywane ani transkrybowane, a niniejsza informacja Cię nie dotyczy.
+W pozostałym zakresie obowiązuje <a href="/privacy">Polityka prywatności serwisu englishmetro.com</a>.</p>
+
+<h2>Czym jest ta usługa?</h2>
+<p>Po każdej lekcji objętej usługą przygotowujemy pisemną analizę: ocenę poziomu CEFR, mocne strony,
+obszary do poprawy, listę konkretnych błędów wraz z poprawkami oraz wskazówki do dalszej pracy.
+Analiza powstaje automatycznie na podstawie zapisu rozmowy z lekcji i jest widoczna na Twojej karcie lekcji.</p>
+
+<h2>Jakie dane przetwarzamy?</h2>
+<ul>
+<li><strong>Zapis przebiegu lekcji</strong> — transkrypcja wypowiedzi z lekcji, z oznaczeniem, kto co powiedział.</li>
+<li><strong>Treść analizy</strong> — oceny liczbowe, poziom CEFR, wypisane błędy i cytaty z lekcji.</li>
+<li><strong>Informacje, które sam(a) podasz w rozmowie.</strong> Lekcja konwersacyjna z natury dotyczy
+Twojego życia. Prosimy, byś nie poruszał(a) na lekcji objętej analizą spraw, których nie chcesz utrwalać —
+w szczególności danych o zdrowiu, poglądach, wyznaniu czy życiu prywatnym osób trzecich.</li>
+</ul>
+
+<h2>Bajla — asystentka na WhatsAppie</h2>
+<p>Wykupienie tej usługi włącza również <strong>Bajlę</strong>, asystentkę dostępną na WhatsAppie,
+która pomaga rezerwować, odwoływać i przekładać lekcje oraz sprawdzać postępy. Przetwarzamy wtedy
+Twój numer telefonu i treść wiadomości, które do niej wysyłasz — w tym samym celu i na tej samej
+zgodzie. Bajla jest włączana jednorazowo przy zakupie i nie jest rozliczana za rozmowę.</p>
+
+<h2>Kto ma do nich dostęp?</h2>
+<ul>
+<li>Twój lektor i EnglishMetro (zorganizowana część przedsiębiorstwa Fundacji).</li>
+<li><strong>Dostawca usługi transkrypcji</strong> oraz <strong>dostawca modelu językowego</strong>, który
+generuje analizę — jako podmioty przetwarzające, na podstawie umów powierzenia. Aktualną listę dostawców
+podajemy w tej informacji i aktualizujemy przy każdej zmianie.</li>
+</ul>
+<p>Dane nie są sprzedawane ani wykorzystywane do reklamy.</p>
+
+<h2>Przekazywanie poza EOG</h2>
+<p>Jeżeli dostawca przetwarza dane poza Europejskim Obszarem Gospodarczym, odbywa się to wyłącznie na
+podstawie mechanizmu przewidzianego w rozdziale V RODO (decyzja o odpowiednim stopniu ochrony albo
+standardowe klauzule umowne). Szczegóły podamy na żądanie.</p>
+
+<h2>Podstawa prawna i dobrowolność</h2>
+<p>Podstawą jest <strong>Twoja zgoda</strong> (art. 6 ust. 1 lit. a RODO), wyrażona przy zakupie usługi.
+Zgoda jest dobrowolna, a jej brak nie wpływa na możliwość korzystania z lekcji — bez niej lekcja odbywa się
+normalnie, po prostu bez analizy. <strong>Zgodę możesz wycofać w każdej chwili</strong> w Ustawieniach konta.
+Wycofanie działa na przyszłość i nie wpływa na zgodność z prawem przetwarzania sprzed wycofania.</p>
+
+<h2>Konta dzieci</h2>
+<p>Usługa jest <strong>niedostępna dla kont zakładanych dla osób poniżej 16 lat</strong>. Nie nagrywamy
+i nie analizujemy lekcji dzieci — nie da się tego włączyć, także za zgodą rodzica.</p>
+
+<h2>Jak długo przechowujemy dane?</h2>
+<p>Transkrypcję i analizę przechowujemy przez czas trwania nauki i <strong>usuwamy w ciągu 30 dni</strong>
+od wycofania zgody albo od zakończenia współpracy — w zależności od tego, co nastąpi wcześniej.</p>
+
+<h2>Twoje prawa</h2>
+<p>Przysługuje Ci dostęp do danych, ich sprostowanie, usunięcie, ograniczenie przetwarzania, przenoszenie
+oraz sprzeciw, a także skarga do Prezesa Urzędu Ochrony Danych Osobowych. Pełny opis praw i dane
+administratora znajdziesz w <a href="/privacy">Polityce prywatności</a>.
+Kontakt w sprawie tej usługi: <a href="mailto:support@englishmetro.com">support@englishmetro.com</a>.</p>
+</section>
+`
+
+export const ANALYSIS_HTML_EN = `
+<section>
+<p class="fl-lead">This notice covers only the <strong>optional, paid AI lesson analysis</strong>.
+If you do not buy it, your lessons are not recorded or transcribed and none of this applies to you.
+Everything else is covered by the <a href="/privacy">englishmetro.com Privacy Policy</a>.</p>
+
+<h2>What the service is</h2>
+<p>After each lesson covered by the service we produce a written analysis: a CEFR assessment, strengths,
+areas to improve, a list of specific errors with corrections, and practice advice. It is generated
+automatically from a record of the lesson conversation and appears on your lesson card.</p>
+
+<h2>What we process</h2>
+<ul>
+<li><strong>A record of the lesson</strong> — a transcript of what was said, attributed to each speaker.</li>
+<li><strong>The analysis itself</strong> — scores, a CEFR band, listed errors and quotations from the lesson.</li>
+<li><strong>Whatever you choose to say.</strong> A conversation lesson is about your life by design. Please
+do not raise anything in an analysed lesson that you would not want recorded, in particular health,
+beliefs, or private details about other people.</li>
+</ul>
+
+<h2>Bajla, your WhatsApp assistant</h2>
+<p>Buying this service also switches on <strong>Bajla</strong>, an assistant on WhatsApp who helps you
+book, cancel and reschedule lessons and check your progress. We then process your phone number and the
+messages you send her, for the same purpose and under the same consent. Bajla is switched on once at
+purchase and is never billed per conversation.</p>
+
+<h2>Who can see it</h2>
+<ul>
+<li>Your teacher and EnglishMetro (an organised business unit of the Foundation).</li>
+<li>The <strong>transcription provider</strong> and the <strong>language-model provider</strong> that
+generates the analysis, as processors under data processing agreements. The current providers are named
+in this notice and it is updated whenever they change.</li>
+</ul>
+<p>The data is never sold and never used for advertising.</p>
+
+<h2>Transfers outside the EEA</h2>
+<p>Where a provider processes data outside the European Economic Area, that happens only under a
+Chapter V GDPR mechanism (an adequacy decision or standard contractual clauses). Details on request.</p>
+
+<h2>Legal basis, and it is your choice</h2>
+<p>The basis is <strong>your consent</strong> (Art. 6(1)(a) GDPR), given when you buy the service. It is
+voluntary and refusing it does not affect your lessons: without it the lesson runs exactly as normal, just
+without the analysis. <strong>You can withdraw at any time</strong> in account Settings. Withdrawal takes
+effect going forward and does not affect processing carried out beforehand.</p>
+
+<h2>Children's accounts</h2>
+<p>The service is <strong>not available on accounts created for anyone under 16</strong>. We do not record
+or analyse children's lessons, and it cannot be switched on, including by a parent.</p>
+
+<h2>How long we keep it</h2>
+<p>Transcripts and analyses are kept for the duration of your studies and <strong>deleted within 30 days</strong>
+of you withdrawing consent or of our work together ending, whichever comes first.</p>
+
+<h2>Your rights</h2>
+<p>You have the right of access, rectification, erasure, restriction, portability and objection, and the
+right to complain to the President of the Personal Data Protection Office (UODO). The full description of
+your rights and the controller's details are in the <a href="/privacy">Privacy Policy</a>.
+For this service specifically: <a href="mailto:support@englishmetro.com">support@englishmetro.com</a>.</p>
 </section>
 `

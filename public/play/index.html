@@ -155,6 +155,40 @@
   </style>
 </head>
 <body>
+  <!-- Shown only when the gate below turns someone away. Same deep-violet
+       glass as the loading screen, so it reads as part of the world. -->
+  <div id="gate">
+    <h1 id="gate-title"></h1>
+    <p id="gate-msg"></p>
+    <div id="gate-actions"></div>
+    <a class="gate-home" href="/">English<span>Metro</span>.com</a>
+  </div>
+  <style>
+    #gate { display: none; position: fixed; inset: 0; z-index: 60; flex-direction: column;
+      align-items: center; justify-content: center; gap: 18px; padding: 32px; text-align: center;
+      background:
+        radial-gradient(ellipse 100% 80% at 50% -10%, rgba(139,92,246,0.28), transparent 60%),
+        radial-gradient(ellipse 80% 60% at 80% 30%, rgba(217,70,239,0.16), transparent 60%),
+        linear-gradient(180deg, #060410 0%, #0A0718 45%, #1a0f36 100%); }
+    #gate h1 { font-family: 'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif;
+      font-size: clamp(26px, 5vw, 42px); letter-spacing: -0.03em; color: var(--cream); font-weight: 700; }
+    #gate p { max-width: 460px; color: rgba(206,200,232,0.78); font-size: clamp(13px, 2.2vw, 16px);
+      line-height: 1.6; }
+    #gate-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 4px; }
+    .gate-btn { border: 1px solid #4333C6; cursor: pointer; padding: 13px 26px; border-radius: 10px;
+      font-family: 'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif; font-size: 14.5px;
+      font-weight: 600; color: #fff; background: #4333C6; min-height: 44px;
+      transition: background 0.18s ease, border-color 0.18s ease; }
+    .gate-btn:hover:not(:disabled) { background: #3A2BAC; border-color: #3A2BAC; }
+    .gate-btn:disabled { opacity: 0.65; cursor: default; }
+    .gate-btn-ghost { background: transparent; border-color: rgba(244,240,255,0.28);
+      color: rgba(244,240,255,0.85); }
+    .gate-btn-ghost:hover { background: rgba(244,240,255,0.08); border-color: rgba(244,240,255,0.28); }
+    .gate-home { position: absolute; bottom: 26px; text-decoration: none; font-weight: 700;
+      font-size: 14px; color: rgba(244,240,255,0.7);
+      font-family: 'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif; }
+    .gate-home span { color: #D946EF; }
+  </style>
   <div id="app"></div>
   <!-- Cinematic grade: vignette and cool dusk lift, zero GPU cost. -->
   <div id="grade"></div>
@@ -409,6 +443,97 @@
     }
   }
   </script>
-  <script type="module" src="./src/main.js"></script>
+  <!-- ── Access gate (2026-08-10) ────────────────────────────────────────
+       The World beta stays free, but it needs an account with a confirmed
+       e-mail address (Mike). This runs BEFORE the world module so a visitor
+       who is going to be turned away never downloads several megabytes of
+       city first — main.js is injected below, only once the check passes.
+
+       This is a front-door gate, not a security boundary: /play/ is static
+       files served by nginx and the session lives in localStorage, so nginx
+       cannot see it. Anyone determined can still fetch the assets directly.
+       Nothing behind this gate is private — it is a signup wall.
+
+       Students who enrolled before today are unaffected: their addresses were
+       backfilled as confirmed, so they pass without doing anything. -->
+  <script>
+  (function () {
+    var overlay = document.getElementById('gate');
+    var msg = document.getElementById('gate-msg');
+    var actions = document.getElementById('gate-actions');
+    var isPl = (navigator.language || '').toLowerCase().indexOf('pl') === 0;
+    var t = function (en, pl) { return isPl ? pl : en; };
+
+    function start() {
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = './src/main.js';
+      document.body.appendChild(s);
+    }
+
+    function show(title, body, buttons) {
+      document.getElementById('gate-title').textContent = title;
+      msg.textContent = body;
+      actions.innerHTML = '';
+      buttons.forEach(function (b) {
+        var el = document.createElement('button');
+        el.className = 'gate-btn' + (b.ghost ? ' gate-btn-ghost' : '');
+        el.textContent = b.label;
+        el.onclick = b.onClick;
+        actions.appendChild(el);
+      });
+      overlay.style.display = 'flex';
+    }
+
+    var session = null;
+    try { session = JSON.parse(localStorage.getItem('em-student-session') || 'null'); } catch (e) { session = null; }
+
+    if (!session || !session.sessionToken) {
+      location.replace('/signup?next=' + encodeURIComponent('/play/'));
+      return;
+    }
+
+    fetch('/api/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: 'studentAuth:myVerification', args: { sessionToken: session.sessionToken } })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (payload) {
+        if (payload && payload.status === 'success' && payload.value && payload.value.verified) {
+          start();
+          return;
+        }
+        // A signed-in student who has not confirmed yet. Offer the resend and a
+        // re-check rather than bouncing them somewhere else with no explanation.
+        show(
+          t('Confirm your email to play', 'Potwierdź e-mail, aby zagrać'),
+          t('English Metropolis World is free — we just need to know your email address is real. Check your inbox for the confirmation link.',
+            'English Metropolis World jest darmowy — musimy tylko wiedzieć, że Twój adres e-mail jest prawdziwy. Sprawdź skrzynkę i kliknij link potwierdzający.'),
+          [
+            { label: t('Resend the link', 'Wyślij link ponownie'), onClick: function (e) {
+                var btn = e.target;
+                btn.disabled = true;
+                btn.textContent = t('Sending…', 'Wysyłanie…');
+                fetch('/api/action', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ path: 'studentAuth:resendVerification', args: { sessionToken: session.sessionToken } })
+                })
+                  .then(function () { btn.textContent = t('Sent — check your inbox', 'Wysłano — sprawdź skrzynkę'); })
+                  .catch(function () { btn.disabled = false; btn.textContent = t('Try again', 'Spróbuj ponownie'); });
+              } },
+            { label: t("I've confirmed — let me in", 'Potwierdziłem — wpuść mnie'), ghost: true,
+              onClick: function () { location.reload(); } }
+          ]
+        );
+      })
+      .catch(function () {
+        // The lookup failed, not the student. Locking someone out of a free
+        // game because a query timed out is the worse of the two mistakes.
+        start();
+      });
+  })();
+  </script>
 </body>
 </html>

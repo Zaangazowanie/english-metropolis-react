@@ -18,6 +18,7 @@ import { FONT, G, EASE, CEFR_COLOR } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Glass, Pill } from '../../design/v3/primitives.jsx'
 import { generateLessonPdf } from './lessons-pdf.js'
+import AnalysisUpgradeCTA from './AnalysisUpgradeCTA.jsx'
 
 // Dark-mode surface constant (used inside YouGlishModal overlay)
 const NIGHT_SURFACE = '#0A0718'
@@ -130,6 +131,10 @@ function youglishQueryVariants(rawKey) {
   push(key)
   const words = key.split(' ').filter(Boolean)
   if (words.length === 1) return out
+  // The live YouGlish index sometimes stores compound phrases with hyphens
+  // even when the lesson keyword uses spaces (for example "rabbit hole").
+  // Try that spelling before relaxing the phrase to unrelated single words.
+  push(words.join('-'))
   let lo = 0, hi = words.length - 1
   while (lo < hi && STOPWORDS.has(words[lo])) lo++
   while (hi > lo && STOPWORDS.has(words[hi])) hi--
@@ -1285,6 +1290,11 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
         </button>
       )}
 
+      {/* The same prompt in full, in the place the analysis would have opened. */}
+      {!analysis && lesson.id && (lesson.status || '') !== 'planned' && (
+        <AnalysisUpgradeCTA lessonId={lesson.id} />
+      )}
+
       {analysisOpen && (<>
       {/* Topics chips */}
       {lesson.topics?.length > 0 && (
@@ -1870,6 +1880,13 @@ function LessonCard({ lesson, analysis, pdfUrl, onOpen, onTopicClick, topicFilte
             </button>
           )}
         </div>
+        {/* The upgrade prompt goes where the analysis would have been, and only
+            on a lesson that was actually taught — an upcoming lesson has no
+            analysis yet for reasons that have nothing to do with paying. Who
+            sees it is decided server-side; this renders nothing otherwise. */}
+        {!analysis && !isUpcoming && lesson.id && (
+          <AnalysisUpgradeCTA lessonId={lesson.id} compact />
+        )}
       </div>
     </article>
   )

@@ -14,8 +14,9 @@ import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Glass, Pill } from '../../design/v3/primitives.jsx'
 import { useI18n } from '../../i18n'
 import { useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
+import { useEmailVerified } from '../../hooks/useEmailVerified'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
-import { PRIVATE_PACKAGES, PACKAGE_LESSONS } from '../public/packages.js'
+import { PRIVATE_PACKAGES, SPECIALIST_PACKAGES, GROUP_COURSES, PACKAGE_LESSONS } from '../public/packages.js'
 import { PL_CITIES } from '../public/pl-cities.js'
 import { cart, parsePricePLN } from '../public/cart-store.js'
 
@@ -42,14 +43,20 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
   const { t, lang } = useI18n()
   const pl = lang === 'pl'
   const { studentUser } = useStudentAuth()
+  const { verified, email: verifiedEmail, resend, resent, refresh } = useEmailVerified()
   const studentId = studentUser?._id
 
   // ?package=<id> (from the pricing page / signup) preselects and jumps to billing
   const preselect = useMemo(() => {
     if (typeof window === 'undefined') return null
     const id = new URLSearchParams(window.location.search).get('package')
-    return PRIVATE_PACKAGES.find(p => p.id === id) || null
+    return [...PRIVATE_PACKAGES, ...SPECIALIST_PACKAGES, ...GROUP_COURSES].find(p => p.id === id) || null
   }, [])
+  // ?addon=1 (from Bajla's "book lessons to switch me on" CTA) rides through to
+  // /checkout so the AI add-on starts ticked there. Read once at mount: the
+  // preselect effect below strips the query string before it hands over.
+  const wantsAddon = useMemo(
+    () => new URLSearchParams(window.location.search).get('addon') === '1', [])
   const [step, setStep] = useState(preselect && !HAS_ONLINE_CHECKOUT ? 2 : 1) // 1 pick · 2 billing · 3 review · 4 done
   const [pkg, setPkg] = useState(preselect)
   const [billing, setBilling] = useState(emptyBilling)
@@ -77,7 +84,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
     cart.clear()
     cart.add({ id: p.id, name: p.name, pace: p.pace,
       pacePl: p.pacePl || p.pace, pricePLN: parsePricePLN(p.price) })
-    navigate('/checkout')
+    navigate(wantsAddon ? '/checkout?addon=1' : '/checkout')
   }
 
   const preselectDone = useRef(false)
@@ -120,6 +127,28 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
     } catch (e) {
       setErr(String(e.message || e))
     } finally { setBusy(false) }
+  }
+
+  const V = pl ? {
+    title: 'Najpierw potwierdź swój adres e-mail',
+    body: 'Zanim kupisz pakiet, potwierdź swój adres e-mail. Na ten adres wyślemy potwierdzenie zamówienia i fakturę.',
+    bodyFor: (e) => `Zanim kupisz pakiet, potwierdź adres ${e}. Na ten adres wyślemy potwierdzenie zamówienia i fakturę.`,
+    hint: 'Link wysłaliśmy przy zakładaniu konta. Jeśli go nie widzisz, sprawdź folder ze spamem albo poproś o nowy poniżej.',
+    resend: 'Wyślij link ponownie',
+    sending: 'Wysyłamy…',
+    sent: 'Wysłane. Kliknij link w wiadomości, a potem odśwież tę stronę.',
+    sendFailed: 'Nie udało się wysłać. Spróbuj ponownie za chwilę.',
+    recheck: 'Już potwierdziłem — sprawdź ponownie',
+  } : {
+    title: 'Confirm your email address first',
+    body: 'Confirm your email address before buying a package. We send your order confirmation and invoice to it.',
+    bodyFor: (e) => `Confirm ${e} before buying a package. We send your order confirmation and invoice to it.`,
+    hint: 'We sent the link when your account was created. If you cannot see it, check your spam folder or ask for a new one below.',
+    resend: 'Send the link again',
+    sending: 'Sending…',
+    sent: 'Sent. Click the link in the email, then refresh this page.',
+    sendFailed: 'That did not send. Try again in a moment.',
+    recheck: 'I have confirmed — check again',
   }
 
   const L = pl ? {
@@ -172,6 +201,43 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
   })()
   const canNext2 = Object.keys(fieldErrs).length === 0
 
+  // Packages are not shown until the address is confirmed (Mike, 2026-08-10).
+  // `verified === null` means the answer is still in flight — render nothing
+  // rather than flash the packages and snatch them away, or vice versa.
+  if (verified === null) {
+    return <div style={{ maxWidth: 1840, margin: '0 auto', padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }} />
+  }
+  if (verified === false) {
+    return (
+      <div style={{ maxWidth: 1840, margin: '0 auto', padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }}>
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.28em', textTransform: 'uppercase',
+            color: T.brandInk || T.brand, marginBottom: 10 }}>{L.kicker}</div>
+          <h1 style={{ fontFamily: FONT.display, fontWeight: 600, fontSize: isMobile ? 34 : 48,
+            lineHeight: 1.05, letterSpacing: '-0.03em', margin: 0, color: T.text }}>{V.title}</h1>
+        </div>
+        <Glass padding={26} style={{ maxWidth: 640 }}>
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: T.textSoft }}>
+            {verifiedEmail ? V.bodyFor(verifiedEmail) : V.body}
+          </p>
+          <p style={{ margin: '12px 0 0', fontSize: 13.5, lineHeight: 1.6, color: T.textDim }}>{V.hint}</p>
+          <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <Btn variant="primary" size="md" onClick={resend} disabled={resent === 'sending'}>
+              {resent === 'sending' ? V.sending : V.resend}
+            </Btn>
+            <Btn variant="secondary" size="md" onClick={refresh}>{V.recheck}</Btn>
+          </div>
+          {resent === 'sent' && (
+            <p style={{ margin: '14px 0 0', fontSize: 13.5, color: T.emerald }}>{V.sent}</p>
+          )}
+          {resent === 'error' && (
+            <p style={{ margin: '14px 0 0', fontSize: 13.5, color: T.rose }}>{V.sendFailed}</p>
+          )}
+        </Glass>
+      </div>
+    )
+  }
+
   return (
     <div style={{ maxWidth: 1840, margin: '0 auto', padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }}>
       <div style={{ marginBottom: 28 }}>
@@ -205,7 +271,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
 
       {step === 1 && (
         <div style={{ display: 'grid', gap: 16, gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-          {PRIVATE_PACKAGES.map(p => (
+          {[...PRIVATE_PACKAGES, ...SPECIALIST_PACKAGES].map(p => (
             <Glass key={p.id} padding={22} hover style={{ display: 'flex', flexDirection: 'column',
               borderColor: pkg?.id === p.id ? 'rgba(217,70,239,0.5)' : undefined }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -224,6 +290,42 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
               </div>
             </Glass>
           ))}
+        </div>
+      )}
+
+      {step === 1 && (
+        <div style={{ marginTop: 34 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.28em', textTransform: 'uppercase',
+            color: T.brandInk || T.brand, marginBottom: 8 }}>{pl ? 'Lekcje grupowe' : 'Group lessons'}</div>
+          <p style={{ margin: '0 0 16px', fontSize: 14, color: T.textDim, maxWidth: 640, lineHeight: 1.55 }}>
+            {pl
+              ? 'Grupy do 4 osób na Twoim poziomie, dwie lekcje w tygodniu, o stałych porach od poniedziałku do czwartku. Terminy przydzielamy po zapisaniu się.'
+              : 'Groups of up to 4 students at your level, twice a week, at fixed times Monday to Thursday. We assign your times once you have joined.'}
+          </p>
+          <div style={{ display: 'grid', gap: 16, gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+            {GROUP_COURSES.map(p => (
+              <Glass key={p.id} padding={22} hover style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontFamily: FONT.display, fontSize: 19, fontWeight: 600, color: T.text }}>
+                    {pl ? p.namePl : p.name}
+                  </span>
+                  <Pill tone="sky" size="sm">{pl ? p.badgePl : p.badge}</Pill>
+                </div>
+                <div style={{ marginTop: 8, fontFamily: FONT.display, fontSize: 30, fontWeight: 600,
+                  background: G.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{p.price}</div>
+                <div style={{ fontSize: 12, color: T.textDim }}>{(pl ? p.pacePl : p.pace)} · {p.perLesson}</div>
+                <p style={{ marginTop: 10, fontSize: 13, color: T.textSoft, lineHeight: 1.5, flex: 1 }}>
+                  {pl ? p.bestForPl : p.bestFor}
+                </p>
+                <div style={{ marginTop: 14 }}>
+                  <Btn variant="secondary" size="md"
+                    onClick={() => { if (HAS_ONLINE_CHECKOUT) return startCheckout(p); setPkg(p); setStep(2) }}>
+                    {L.choose} →
+                  </Btn>
+                </div>
+              </Glass>
+            ))}
+          </div>
         </div>
       )}
 

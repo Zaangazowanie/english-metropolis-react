@@ -26,6 +26,14 @@ import { action, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
 import { createStudentSession, createAdminSession } from "./authHelpers";
+import { signupDobProblem } from "./enrolmentRules";
+
+// Mirrors the copy in studentAuth; the pages localise off `code`.
+const DOB_MESSAGES: Record<string, string> = {
+  DOB_REQUIRED: "Please enter your date of birth",
+  DOB_INVALID: "Please enter a valid date of birth",
+  DOB_UNDERAGE: "You must be 18 or over to create an account. A parent or guardian can create one and buy lessons for you.",
+};
 
 // ─── Allowlists ──────────────────────────────────────────────
 const SUPERADMIN_EMAILS = new Set<string>([
@@ -63,6 +71,13 @@ export const findStudentByEmail = internalQuery({
 export const createSessionForStudent = internalMutation({
   args: { studentId: v.id("students") },
   handler: async (ctx, args) => {
+    // Only reached behind a verified Google ID token, so signing in this way
+    // confirms the address for an account that signed up with a password and
+    // never clicked our confirmation link.
+    const student = await ctx.db.get(args.studentId);
+    if (student && !student.emailVerifiedAt) {
+      await ctx.db.patch(args.studentId, { emailVerifiedAt: Date.now() });
+    }
     return await createStudentSession(ctx, args.studentId);
   },
 });
@@ -102,10 +117,13 @@ type GoogleSignInResult =
     }
   | { success: true; kind: "superadmin"; email: string; sessionToken: string | undefined }
   | { success: true; kind: "conversa_admin"; email: string; sessionToken: string | undefined }
-  | { success: false; error: string };
+  | { success: false; error: string }
+  // Verified Google identity, but no account yet and no date of birth to make
+  // one with. The page collects it and calls again with the same ID token.
+  | { success: false; needsDateOfBirth: true; error?: string; code?: string };
 
 export const googleSignIn = action({
-  args: { idToken: v.string() },
+  args: { idToken: v.string(), dateOfBirth: v.optional(v.string()) },
   handler: async (ctx, args): Promise<GoogleSignInResult> => {
     const expectedAud = process.env.GOOGLE_CLIENT_ID;
     if (!expectedAud) {
@@ -197,9 +215,29 @@ export const googleSignIn = action({
     }
 
     // 4) Brand-new student → self-service signup by Google (2026-07-10).
+    // Google asserts the address but never a birthdate, and from 2026-08-10 an
+    // account cannot be created without one. Rather than invent a value, the
+    // action reports back that it needs one; the page collects it and calls
+    // again with the same ID token. Existing students never reach this branch,
+    // so signing in is unaffected.
+    const dobProblem = signupDobProblem(args.dateOfBirth);
+    if (dobProblem) {
+      return {
+        success: false,
+        needsDateOfBirth: true,
+        // Only "please enter one" the first time round; a real complaint once
+        // they have actually typed something.
+        error: args.dateOfBirth ? DOB_MESSAGES[dobProblem] : undefined,
+        code: args.dateOfBirth ? dobProblem : undefined,
+      };
+    }
     const created: any = await ctx.runMutation(
       internal.googleAuth.createStudentFromGoogle,
-      { email, name: (info.name || email.split("@")[0]).trim() },
+      {
+        email,
+        name: (info.name || email.split("@")[0]).trim(),
+        dateOfBirth: args.dateOfBirth?.trim() || undefined,
+      },
     );
     return {
       success: true, kind: "student", sessionToken: created.sessionToken,
@@ -210,8 +248,12 @@ export const googleSignIn = action({
 
 // Create a student account from a verified Google identity (signup path).
 export const createStudentFromGoogle = internalMutation({
-  args: { email: v.string(), name: v.string() },
+  args: { email: v.string(), name: v.string(), dateOfBirth: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    // Re-checked at the insert for the same reason as the password path: the
+    // age rule must not rest on one caller having remembered to apply it.
+    const dobProblem = signupDobProblem(args.dateOfBirth);
+    if (dobProblem) throw new Error(dobProblem);
     const SIGNUP_ORG = "js779cs2vjwb2c9yjc3a7t619n84zcp8" as any;
     const SIGNUP_TEACHER = "kd72y2mt9t78nkyes15rh7dhc5881pbv" as any;
     const slugBase = args.name.toLowerCase()
@@ -229,8 +271,12 @@ export const createStudentFromGoogle = internalMutation({
       organizationId: SIGNUP_ORG,
       name: args.name, slug, email: args.email,
       googleEmail: args.email,
+      dateOfBirth: args.dateOfBirth?.trim() || undefined,
       level: "", type: "individual", status: "active",
       primaryTeacherId: SIGNUP_TEACHER,
+      // Google asserted this address (the ID token is checked above), so there
+      // is nothing left for our own confirmation mail to prove.
+      emailVerifiedAt: now,
       enrolledAt: now, createdAt: now, updatedAt: now,
     } as any);
     const sessionToken = await createStudentSession(ctx, studentId);

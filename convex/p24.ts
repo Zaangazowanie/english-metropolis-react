@@ -2,6 +2,8 @@ import { action, internalAction, internalMutation, internalQuery, query } from "
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { requireStudent, requireAdmin, isSuperadmin } from "./authHelpers";
+import { ANALYSIS_NOTICE_VERSION } from "./students";
+import { ANALYSIS_ADDON_PLN_PER_LESSON } from "./analysisPricing";
 
 const CURRENCY = "PLN";
 const TERMS_VERSION = "EM-LEGAL-03 (2026-07-29, revision 4)";
@@ -12,6 +14,11 @@ const OPEN_PAYMENT_TTL_MS = 30 * 60 * 1000;
 
 // This is the server-side price authority for payment registration. Never use
 // names, lesson counts, or amounts sent by the browser to charge a customer.
+// Optional AI lesson analysis, charged per lesson on top of the package. Priced
+// server-side because the browser is never trusted with an amount. The number,
+// and the volume discount for the self-serve upgrade, now live in
+// ./analysisPricing so there is one file to edit.
+
 const CATALOG: Record<string, { name: string; lessons: number; pricePLN: number }> = {
   single: { name: "One-off 1:1", lessons: 1, pricePLN: 135 },
   "private-core": { name: "Private Core", lessons: 4, pricePLN: 480 },
@@ -21,9 +28,11 @@ const CATALOG: Record<string, { name: string; lessons: number; pricePLN: number 
   specialist: { name: "Specialist Sprint", lessons: 6, pricePLN: 900 },
   "specialist-12": { name: "Specialist Track", lessons: 12, pricePLN: 1560 },
   "specialist-24": { name: "Specialist Mastery", lessons: 24, pricePLN: 2640 },
-  august: { name: "August Summer Course", lessons: 4, pricePLN: 200 },
-  september: { name: "September Summer Course", lessons: 4, pricePLN: 200 },
-  "two-month-bundle": { name: "August + September Bundle", lessons: 8, pricePLN: 400 },
+  // Group courses. August and the two-month bundle were withdrawn on 2026-08-10
+  // (Mike) — removed from the catalog so they cannot be bought, not merely hidden
+  // in the UI. Orders already paid keep their own stored name and lesson count.
+  // September now runs TWICE weekly over the month (8 lessons) at the same price.
+  september: { name: "September Group Course", lessons: 8, pricePLN: 200 },
 };
 
 const ITEM_SHAPE = v.object({
@@ -154,7 +163,13 @@ export const preparePayment = internalMutation({
     consentTerms: v.boolean(),
     consentImmediate: v.boolean(),
     consentMarketing: v.boolean(),
+    analysisAddon: v.optional(v.boolean()),
+    forChild: v.optional(v.boolean()),
     requestedMethod: v.optional(v.number()),
+    // A server-priced quote. When present it REPLACES the catalog: the amount
+    // is read from the stored quote row, never computed from `items`.
+    quoteRef: v.optional(v.string()),
+    consentAnalysis: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { student } = await requireStudent(ctx, args.sessionToken);
@@ -164,22 +179,109 @@ export const preparePayment = internalMutation({
     // provides for delivery after the 14-day period when it is not made, so making it
     // a condition of buying would both breach art. 15 ust. 3 u.p.k. and contradict our
     // own terms. Without it the package simply activates when the period expires.
-    if (!args.items.length || args.items.length > 20) throw new Error("Cart is empty or too large");
     if (!args.billing.fullName.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(args.billing.email)) {
       throw new Error("Billing name and a valid e-mail are required");
     }
 
-    const normalized = args.items.map(item => {
-      const product = CATALOG[item.packageId];
-      const qty = Math.trunc(item.qty);
-      if (!product || qty < 1 || qty > 20) throw new Error("Invalid cart item");
-      return { ...product, packageId: item.packageId, qty };
-    });
-    const amount = normalized.reduce((sum, item) => sum + item.pricePLN * item.qty * 100, 0);
+    // A quote and a cart are alternatives, never a mixture: allowing both would
+    // put a client-chosen cart total next to a server-priced one and reopen the
+    // exact hole the quote exists to close.
+    const quote = args.quoteRef
+      ? await ctx.db
+          .query("priceQuotes")
+          .withIndex("by_quote_ref", q => q.eq("quoteRef", args.quoteRef!))
+          .unique()
+      : null;
+    if (args.quoteRef) {
+      if (!quote) throw new Error("QUOTE_NOT_FOUND");
+      if (quote.studentId !== student._id) throw new Error("QUOTE_NOT_FOUND");
+      if (quote.status !== "open") throw new Error("QUOTE_ALREADY_USED");
+      if (Date.now() > quote.expiresAt) throw new Error("QUOTE_EXPIRED");
+      if (args.items.length) throw new Error("A quote cannot be combined with a cart");
+      // Buying the analysis IS the consent, but it has to be given explicitly
+      // and on its own — never carried in on the terms or marketing tickbox.
+      if (quote.grantAnalysisScope && !args.consentAnalysis) {
+        throw new Error("ANALYSIS_CONSENT_REQUIRED");
+      }
+    } else if (!args.items.length || args.items.length > 20) {
+      throw new Error("Cart is empty or too large");
+    }
+
+    // Both paths end up here: one order line per row, priced in grosze by the
+    // server. `lessons` is 0 for a line that grants no lesson package (the
+    // analysis upgrade buys a service, not lessons).
+    const lines: Array<{ packageId: string; packageName: string; lessons: number; lineAmount: number }> =
+      quote
+        ? (quote.packageLines?.length
+            ? quote.packageLines.map(line => ({
+                packageId: line.packageId,
+                packageName: line.qty > 1 ? `${line.name} ×${line.qty}` : line.name,
+                lessons: line.lessons * line.qty,
+                lineAmount: line.amount,
+              }))
+            : [{
+                packageId: `quote:${quote.kind}`,
+                packageName: quote.label,
+                lessons: 0,
+                lineAmount: quote.amount,
+              }])
+        : args.items.map(item => {
+            const product = CATALOG[item.packageId];
+            const qty = Math.trunc(item.qty);
+            if (!product || qty < 1 || qty > 20) throw new Error("Invalid cart item");
+            return {
+              packageId: item.packageId,
+              packageName: qty > 1 ? `${product.name} ×${qty}` : product.name,
+              lessons: product.lessons * qty,
+              lineAmount: product.pricePLN * qty * 100,
+            };
+          });
+    const buyerIsMinor = student.isMinor || !!args.forChild;
+
+    // A child's account can never be analysed, so it can never be sold the
+    // analysis either — restated on the quote path so a quote cannot become the
+    // route around the checkout's own refusal below.
+    if (quote?.grantAnalysisScope && buyerIsMinor) {
+      throw new Error("ANALYSIS_NOT_AVAILABLE_FOR_MINORS");
+    }
+
+    // A child's account cannot buy this, at any price. Refused rather than
+    // silently dropped: if the browser asked for it, something is wrong and the
+    // buyer should see that rather than be charged an amount they did not expect.
+    // Checked BEFORE the patch below: a mutation that throws is rolled back whole,
+    // so writing the flag first would silently undo it on this path.
+    if (args.analysisAddon && buyerIsMinor) {
+      throw new Error("ANALYSIS_NOT_AVAILABLE_FOR_MINORS");
+    }
+
+    // Mark the account as a child's the moment the buying adult says so, not on
+    // payment: the flag is protective and should bind even if they abandon the
+    // payment. Deliberately one-way — a later order that leaves the box unticked
+    // must never quietly turn a child's account back into an adult's.
+    if (args.forChild && !student.isMinor) {
+      await ctx.db.patch(student._id, { isMinor: true, updatedAt: Date.now() });
+    }
+    // The per-lesson add-on bought alongside a package. Not applicable to a
+    // quote, which already carries its own analysis price.
+    const analysisLessons = !quote && args.analysisAddon
+      ? lines.reduce((n, line) => n + line.lessons, 0)
+      : 0;
+    const analysisAmount = analysisLessons * ANALYSIS_ADDON_PLN_PER_LESSON * 100;
+    const linesTotal = lines.reduce((sum, line) => sum + line.lineAmount, 0);
+    const amount = quote ? quote.amount : linesTotal + analysisAmount;
+    // The line amounts must add up to what is charged, or an order row would
+    // claim a price the customer never paid.
+    if (quote && linesTotal !== quote.amount) throw new Error("Quote lines do not sum to the quote");
     if (!Number.isSafeInteger(amount) || amount < 100 || amount > 5_000_000) {
       throw new Error("Invalid payment amount");
     }
-    const itemsKey = normalized.map(item => `${item.packageId}x${item.qty}`).sort().join("|");
+    // ⛔ The cart form is unchanged on purpose. A payment registered before this
+    // deploy carries the old key, and rewriting the format would make every
+    // in-flight retry look like an edited cart (CART_CHANGED) or fail to resume.
+    const itemsKey = quote
+      ? `quote:${quote.quoteRef}`
+      : args.items.map(item => `${item.packageId}x${Math.trunc(item.qty)}`).sort().join("|")
+        + (args.analysisAddon ? "|analysis" : "");
     const now = Date.now();
 
     const existing = await ctx.db
@@ -239,6 +341,9 @@ export const preparePayment = internalMutation({
       consentTerms: args.consentTerms,
       consentImmediate: args.consentImmediate,
       consentMarketing: args.consentMarketing,
+      analysisAddon: args.analysisAddon ?? false,
+      quoteRef: quote?.quoteRef,
+      consentAnalysis: args.consentAnalysis ?? undefined,
       consentCapturedAt: now,
       termsVersion: TERMS_VERSION,
       requestedMethod: args.requestedMethod,
@@ -257,14 +362,14 @@ export const preparePayment = internalMutation({
       notes: [args.billing.notes?.trim(), consentNote].filter(Boolean).join("\n") || undefined,
     };
     const orderIds = [];
-    for (const item of normalized) {
-      const lineAmount = item.pricePLN * item.qty * 100;
+    for (const line of lines) {
+      const lineAmount = line.lineAmount;
       const orderId = await ctx.db.insert("lessonOrders", {
         organizationId: student.organizationId,
         studentId: student._id,
-        packageId: item.packageId,
-        packageName: item.qty > 1 ? `${item.name} ×${item.qty}` : item.name,
-        lessons: item.lessons * item.qty,
+        packageId: line.packageId,
+        packageName: line.packageName,
+        lessons: line.lessons,
         priceLabel: `${lineAmount / 100} PLN`,
         billing,
         status: "payment_pending",
@@ -356,6 +461,19 @@ export const finalizePaid = internalMutation({
         allocationErrors.push(`order ${String(orderId)} was ${order.status}, not payment_pending`);
         continue;
       }
+      // A line that grants no lessons buys a service, not a package — the
+      // analysis upgrade is the case. Inserting a 0-lesson package would put a
+      // meaningless empty entitlement on the student's account.
+      if (order.lessons < 1) {
+        await ctx.db.patch(orderId, {
+          status: "confirmed",
+          confirmedBy: "Przelewy24",
+          confirmedAt: now,
+          p24OrderId: args.p24OrderId,
+          updatedAt: now,
+        });
+        continue;
+      }
       const packageRef = await ctx.db.insert("lessonPackages", {
         organizationId: order.organizationId,
         studentId: order.studentId,
@@ -380,6 +498,84 @@ export const finalizePaid = internalMutation({
         updatedAt: now,
       });
     }
+    // The analysis consent is written only now, on verified payment. Granting it
+    // at checkout would leave a live consent behind on an abandoned or failed
+    // order. A minor's account is refused here too, not just at checkout, so a
+    // later change to the flag can never retro-enable a paid add-on.
+    if (payment.analysisAddon) {
+      const student = await ctx.db.get(payment.studentId);
+      if (student && !student.isMinor) {
+        await ctx.db.patch(student._id, {
+          lessonAnalysis: {
+            grantedAt: now,
+            noticeVersion: ANALYSIS_NOTICE_VERSION,
+            paidOrderId: payment.orderIds[0],
+          },
+          updatedAt: now,
+        });
+      } else if (student?.isMinor) {
+        allocationErrors.push("analysis add-on paid for a minor's account — consent NOT granted, refund the add-on");
+      }
+    }
+
+    // ── Redeeming a server-priced quote ──────────────────────────────────────
+    // Same rule as the add-on above: the entitlement is written only now, on
+    // verified payment, so an abandoned quote leaves nothing behind. Errors are
+    // recorded rather than thrown — the money is already captured, and throwing
+    // would roll the whole mutation back and make P24 retry forever.
+    if (payment.quoteRef) {
+      const quote = await ctx.db
+        .query("priceQuotes")
+        .withIndex("by_quote_ref", q => q.eq("quoteRef", payment.quoteRef!))
+        .unique();
+      if (!quote) {
+        allocationErrors.push(`quote ${payment.quoteRef} not found — entitlement NOT granted`);
+      } else if (quote.status === "consumed") {
+        // Already redeemed by an earlier delivery of this notification.
+      } else {
+        const student = await ctx.db.get(payment.studentId);
+        if (quote.grantAnalysisScope && student?.isMinor) {
+          allocationErrors.push("analysis quote paid on a minor's account — consent NOT granted, refund it");
+        } else if (quote.grantAnalysisScope === "account" && student) {
+          // The whole account, past and future. Never overwrite an existing
+          // record: a consent already on file keeps its original date.
+          if (!student.lessonAnalysis || student.lessonAnalysis.revokedAt) {
+            await ctx.db.patch(student._id, {
+              lessonAnalysis: {
+                grantedAt: now,
+                noticeVersion: ANALYSIS_NOTICE_VERSION,
+                paidOrderId: payment.orderIds[0],
+              },
+              updatedAt: now,
+            });
+          }
+        } else if (quote.grantAnalysisScope === "lesson" && quote.grantLessonId && student) {
+          const already = await ctx.db
+            .query("analysisEntitlements")
+            .withIndex("by_student_lesson", q =>
+              q.eq("studentId", payment.studentId).eq("lessonId", quote.grantLessonId!))
+            .unique();
+          if (!already) {
+            await ctx.db.insert("analysisEntitlements", {
+              organizationId: payment.organizationId,
+              studentId: payment.studentId,
+              lessonId: quote.grantLessonId,
+              grantedAt: now,
+              noticeVersion: ANALYSIS_NOTICE_VERSION,
+              paymentId: payment._id,
+              quoteRef: quote.quoteRef,
+            });
+          }
+        }
+        await ctx.db.patch(quote._id, {
+          status: "consumed",
+          paymentId: payment._id,
+          consumedAt: now,
+          updatedAt: now,
+        });
+      }
+    }
+
     await ctx.db.patch(payment._id, {
       status: "paid",
       p24OrderId: args.p24OrderId,
@@ -528,6 +724,14 @@ export const createPayment = action({
     consentTerms: v.boolean(),
     consentImmediate: v.boolean(),
     consentMarketing: v.boolean(),
+    analysisAddon: v.optional(v.boolean()),
+    forChild: v.optional(v.boolean()),
+    // ⛔ Both of these must be listed here as well as on preparePayment: this
+    // action is what the browser calls, and Convex rejects unknown arguments,
+    // so adding them to the internal mutation alone gets an
+    // ArgumentValidationError from the client (the 2026-08-10 trap).
+    quoteRef: v.optional(v.string()),
+    consentAnalysis: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<{ sessionId: string; redirectUrl: string }> => {
     const cfg = p24Config();

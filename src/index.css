@@ -3239,3 +3239,11 @@ html.org-conversa ::selection { background: rgba(24, 99, 220, 0.22); }
   html.org-conversa .ca-login-hero,
   html.org-conversa .ca-login-card { animation: none; }
 }
+
+/* The conversa tutor widget is injected by a separate script and stays in the
+   DOM once mounted, so index.html's load-time path check cannot keep it off the
+   marketing and login pages after a client-side navigation. main.jsx re-applies
+   that same rule to <body> on every route change; this is what acts on it.
+   `display` rather than `visibility` because the intent is that she is not on
+   these pages at all, not that she is merely invisible on them. */
+body[data-em-hide-tutor="true"] .bjl-root { display: none; }

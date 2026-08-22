@@ -14,6 +14,7 @@
 // portals from a single place.
 
 import { useEffect, useMemo, useState } from 'react'
+import { useEmailVerified } from '../hooks/useEmailVerified'
 import { useLocation } from 'react-router-dom'
 import { useI18n } from '../i18n'
 import { useStudentAuth, getStudentSessionToken } from '../contexts/StudentAuthContext.jsx'
@@ -48,6 +49,17 @@ const COPY = {
     setupChat: 'Napisz do mnie na WhatsAppie — odpowiadam od razu.',
     footer: 'Bezpiecznie. Prywatnie. Wygodnie.',
     closeAria: 'Zamknij',
+    lockedTitle: 'Zarezerwuj lekcje, a mnie włączysz',
+    lockedBody: 'Działam razem z analizą lekcji AI. Wybierz pakiet i zostaw zaznaczoną analizę (+20 zł za lekcję) — od razu przy zakupie włączam się na stałe.',
+    lockedCta: 'Zarezerwuj lekcje i włącz Bajlę →',
+    lockedNote: 'Analiza będzie już zaznaczona w koszyku. Możesz ją odznaczyć, ale wtedy nie będę dostępna.',
+    consentTitle: 'Jesteś ze mną od początku — zapraszam',
+    consentBody: 'Uczysz się z nami, zanim wprowadziliśmy opłatę, więc masz mnie za darmo. Zanim zaczniemy: będę przetwarzać Twój numer telefonu i treść naszych rozmów, żeby Ci pomagać.',
+    consentCta: 'Zgadzam się — porozmawiajmy',
+    consentBusy: 'Włączam…',
+    consentError: 'Nie udało się włączyć. Spróbuj ponownie.',
+    consentNote: 'Zgodę możesz wycofać w każdej chwili.',
+    consentLink: 'Jak przetwarzamy te dane',
     phoneTitle: 'Najpierw podaj swój numer WhatsApp',
     phoneIntro: 'Zapiszemy go w Twoim profilu, żeby Bajla Cię rozpoznała na WhatsAppie.',
     phonePlaceholder: '+48 600 000 000',
@@ -78,6 +90,17 @@ const COPY = {
     setupChat: 'Message me on WhatsApp — I reply right away.',
     footer: 'Safe. Secure. Private.',
     closeAria: 'Close',
+    lockedTitle: 'Book lessons and you switch me on',
+    lockedBody: 'I come with the AI lesson analysis. Pick a package and leave the analysis ticked (+20 PLN per lesson) — buying it switches me on for good.',
+    lockedCta: 'Book lessons and switch me on →',
+    lockedNote: "The analysis will already be ticked in your cart. You can untick it, but then I won't be available.",
+    consentTitle: "You've been with us from the start — come in",
+    consentBody: 'You were learning with us before this became a paid extra, so you have me for free. One thing first: I process your phone number and what you say to me in order to help.',
+    consentCta: "I agree — let's talk",
+    consentBusy: 'Switching on…',
+    consentError: 'That did not switch on. Please try again.',
+    consentNote: 'You can withdraw this at any time.',
+    consentLink: 'How we handle this data',
     phoneTitle: 'First, add your WhatsApp number',
     phoneIntro: "We'll save it to your profile so Bajla recognises you on WhatsApp.",
     phonePlaceholder: '+48 600 000 000',
@@ -138,6 +161,7 @@ export default function BajlaConnectModal() {
     return null
   }, [isStudentAuthenticated, isTeacherAuthenticated, isAdminAuthenticated])
 
+  const { verified, bajlaAllowed, bajlaReason, refresh } = useEmailVerified()
   const [open, setOpen] = useState(false)
   const [hasPhone, setHasPhone] = useState(null)   // null = unknown, then bool
   const [step, setStep] = useState('intro')        // 'intro' | 'phone' | 'ready'
@@ -147,15 +171,47 @@ export default function BajlaConnectModal() {
   const [error, setError] = useState('')
   const [readyLink, setReadyLink] = useState('')
   const [remaining, setRemaining] = useState(null)   // student lesson allocation (null = unknown)
+  const [consenting, setConsenting] = useState(false)
+  const [consentError, setConsentError] = useState('')
 
   const C = COPY[lang === 'pl' ? 'pl' : 'en']
   const M = MESSAGES[lang === 'pl' ? 'pl' : 'en']
   const accountKey = studentUser?._id || adminUser?._id || (isTeacherAuthenticated ? 'teacher' : null)
+  // Bajla is part of the paid AI service (Mike, 2026-08-10): the pitch is still
+  // shown to every confirmed student — that is the point of the popup — but she
+  // only switches on once the AI add-on has been paid for, which is also what
+  // captures the consent to process what they say to her. One purchase covers it
+  // for good; it is not re-charged per conversation.
+  //
+  // Students enrolled before the rule keep her free, so there are two closed
+  // states, not one: buy the add-on, or simply agree. `=== false` (not falsy)
+  // in both, so the still-loading null never flashes a gate at someone who has
+  // her. The reason comes from the server; the client must not guess which.
+  const closed = isStudentAuthenticated && bajlaAllowed === false
+  const needsConsent = closed && bajlaReason === 'needs_consent'
+  const needsPurchase = closed && !needsConsent
+
+  async function grantConsent() {
+    setConsenting(true); setConsentError('')
+    try {
+      const result = await callConvex('mutation', 'students:grantBajlaConsent', { sessionToken })
+      if (!result?.ok) throw new Error(result?.reason || 'refused')
+      await refresh()
+    } catch {
+      setConsentError(C.consentError)
+    } finally {
+      setConsenting(false)
+    }
+  }
   // /admin is a work tool, not a marketing surface. The popup mounts as
   // aria-modal="true" and its scrim swallows pointer events, so auto-opening it
   // over the console both blocks the first click and tells a screen reader the
   // console behind it is inert. Suppressed wholesale on /admin.
-  const hideForRoute = /^\/(login|logout|admin)/i.test(location.pathname)
+  // /checkout for the same reason and one worse: a returning student who has
+  // not dismissed it lands on the payment form behind a full-screen scrim whose
+  // checklist tells them to "buy a lesson package" — which is the page they are
+  // already on. Nothing may cover the form between the cart and Przelewy24.
+  const hideForRoute = /^\/(login|logout|admin|checkout)/i.test(location.pathname)
   // EM-branded popup must not auto-open on a school-branded subdomain
   // (e.g. conversa.englishmetro.com) — it would stomp the school's branding.
   // The minimized launcher stays available; only the auto-show is suppressed.
@@ -163,8 +219,15 @@ export default function BajlaConnectModal() {
 
   // Look up whether the user already has a number on file. We only ever auto-show
   // when they don't — and never twice in one session.
+  //
+  // Nothing is shown to a student who has not confirmed their e-mail (Mike,
+  // 2026-08-10): this popup asks them to save a phone number and buy a package,
+  // and neither should be asked of an account we cannot yet reach by mail.
+  // `verified` starts null (unknown) so the popup never flashes before the
+  // answer arrives.
   useEffect(() => {
     if (!sessionToken || hideForRoute || onSchoolSubdomain) return
+    if (verified !== true) return
     let cancelled = false
     callConvex('query', 'bajla:getMyPhone', { sessionToken })
       .then((v) => {
@@ -177,7 +240,7 @@ export default function BajlaConnectModal() {
       })
       .catch(() => { if (!cancelled) setHasPhone(false) })
     return () => { cancelled = true }
-  }, [sessionToken, hideForRoute])
+  }, [sessionToken, hideForRoute, verified])
 
   // Students: how many lessons they have left, for the setup checklist.
   useEffect(() => {
@@ -247,7 +310,11 @@ export default function BajlaConnectModal() {
                 <h2 className="bjp-h2">{greeting}</h2>
                 <h3 className="bjp-h3">{C.tagline}</h3>
                 <p className="bjp-intro">{C.intro}</p>
-                {isStudentAuthenticated && (
+                {/* The checklist is for a student who already has Bajla. While
+                    she is closed the panel below is the whole message, and a
+                    second "Buy lessons →" link beside it just competes with the
+                    one CTA Mike asked for. */}
+                {isStudentAuthenticated && !closed && (
                   <div className="bjp-setup">
                     <div className="bjp-setup-title">{C.setupTitle}</div>
                     <div className={`bjp-step ${hasPhone ? 'done' : ''}`}>
@@ -269,6 +336,35 @@ export default function BajlaConnectModal() {
                     </div>
                   </div>
                 )}
+                {needsPurchase ? (
+                  <div className="bjp-locked">
+                    <div className="bjp-locked-title">{C.lockedTitle}</div>
+                    <p className="bjp-locked-body">{C.lockedBody}</p>
+                    {studentUser?.slug && (
+                      /* ?addon=1 rides through the buy wizard to /checkout, where
+                         it starts the AI add-on ticked — this CTA is what says so. */
+                      <a className="bjp-wa-btn bjp-locked-cta" href={`/app/${studentUser.slug}/buy?addon=1`} onClick={dismiss}>
+                        <span className="bjp-wa-ico">📅</span> {C.lockedCta}
+                      </a>
+                    )}
+                    <p className="bjp-footer">{C.lockedNote}</p>
+                  </div>
+                ) : needsConsent ? (
+                  <div className="bjp-locked">
+                    <div className="bjp-locked-title">{C.consentTitle}</div>
+                    <p className="bjp-locked-body">{C.consentBody}</p>
+                    <button className="bjp-wa-btn" type="button" onClick={grantConsent} disabled={consenting}>
+                      <span className="bjp-wa-ico">💬</span> {consenting ? C.consentBusy : C.consentCta}
+                    </button>
+                    {consentError && <p className="bjp-error" style={{ marginTop: 12 }}>{consentError}</p>}
+                    <p className="bjp-footer">
+                      {C.consentNote}{' '}
+                      <a href="/lesson-analysis" target="_blank" rel="noopener noreferrer"
+                        style={{ color: '#cdb4ff' }}>{C.consentLink}</a>
+                    </p>
+                  </div>
+                ) : (
+                <>
                 <div className="bjp-cards">
                   <button className="bjp-action" onClick={() => onAction('book')}>
                     <span className="bjp-ico">📅</span>
@@ -290,6 +386,8 @@ export default function BajlaConnectModal() {
                   <span className="bjp-wa-ico">💬</span> {C.mainCta}
                 </button>
                 <p className="bjp-footer">{C.footer}</p>
+                </>
+                )}
               </>
             )}
 
@@ -364,6 +462,11 @@ const BJP_CSS = `
   border-radius:50%;font-size:11px;font-weight:800;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2)}
 .bjp-step.done .bjp-step-mark{background:rgba(37,211,102,.3);border-color:rgba(37,211,102,.6)}
 .bjp-step-link{color:#7CF2A6;font-weight:700;text-decoration:none}
+.bjp-locked{border:1px solid rgba(217,70,239,.30);border-radius:16px;padding:16px 18px;
+  background:linear-gradient(180deg,rgba(217,70,239,.10),rgba(139,92,246,.06));margin-bottom:18px}
+.bjp-locked-title{font-weight:800;font-size:15px;margin-bottom:6px;color:#f3e8ff}
+.bjp-locked-body{font-size:13.5px;line-height:1.6;color:#e9ddff;margin:0 0 14px}
+.bjp-locked-cta{background:linear-gradient(135deg,#8B5CF6,#D946EF)!important}
 .bjp-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
 .bjp-action{display:flex;flex-direction:column;gap:6px;text-align:left;padding:16px;border-radius:18px;
   background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;cursor:pointer;transition:.18s}
