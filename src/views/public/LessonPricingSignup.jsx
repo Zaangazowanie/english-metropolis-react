@@ -6,6 +6,8 @@ import { PRIVATE_PACKAGES } from './packages.js'
 import CartUI from './CartUI.jsx'
 import { cart, parsePricePLN } from './cart-store.js'
 import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN } from '../legal/foundation-legal-content.js'
+import MetroSignalField from '../../components/public/MetroSignalField.jsx'
+import { clearPointerPolish, setPointerPolish } from '../../components/public/motionPolish.js'
 
 
 const SPECIALIST_PACKAGES = [
@@ -188,7 +190,7 @@ const COURSE_PL = {
 const FORMAT_PL = {
   'one-to-one': { label: '1:1', detail: 'Lekcje indywidualne' },
   specialist: { label: 'Specjalistyczne', detail: 'Egzamin / biznes' },
-  team: { label: 'Grupa', detail: 'Sierpien / wrzesien, maks. 4' },
+  team: { label: 'Grupa', detail: 'Sierpień / wrzesień, maks. 4' },
 }
 
 const POLICY_PL = {
@@ -229,19 +231,20 @@ function buildSummary({ selectedPackage, format, learnerName, email, level, goal
     '',
     `${lang === 'pl' ? 'Pakiet' : 'Package'}: ${selectedPackage.name} (${packageCopy?.pace || selectedPackage.pace}, ${selectedPackage.price})`,
     `${lang === 'pl' ? 'Format' : 'Format'}: ${formatCopy?.label || format.label} - ${formatCopy?.detail || format.detail}`,
-    `${lang === 'pl' ? 'Uczen' : 'Learner'}: ${learnerName || (lang === 'pl' ? 'Nie podano' : 'Not provided')}`,
+    `${lang === 'pl' ? 'Uczeń' : 'Learner'}: ${learnerName || (lang === 'pl' ? 'Nie podano' : 'Not provided')}`,
     `Email: ${email || (lang === 'pl' ? 'Nie podano' : 'Not provided')}`,
     `${lang === 'pl' ? 'Obecny poziom' : 'Current level'}: ${level || (lang === 'pl' ? 'Nie wiem jeszcze' : 'Not sure yet')}`,
     `${lang === 'pl' ? 'Cele' : 'Goals'}: ${goals || (lang === 'pl' ? 'Nie podano' : 'Not provided')}`,
     '',
     lang === 'pl'
-      ? 'Prosze potwierdzic dostepne terminy, dopasowanie pakietu i kolejny krok platnosci lub faktury.'
+      ? 'Proszę potwierdzić dostępne terminy, dopasowanie pakietu i kolejny krok płatności lub faktury.'
       : 'Please confirm availability, package fit, and the payment link or invoice next step.',
   ].join('\n')
 }
 
 export default function LessonPricingSignup() {
   const location = useLocation()
+  const pageRef = useRef(null)
   const pricingRef = useRef(null)
   const signupRef = useRef(null)
   const [lang, setLang] = useState('pl')
@@ -297,8 +300,43 @@ export default function LessonPricingSignup() {
         ? pricingRef.current
         : null
     if (!target) return
-    window.setTimeout(() => target.scrollIntoView({ behavior: 'auto', block: 'start' }), 80)
+    const timer = window.setTimeout(() => target.scrollIntoView({ behavior: 'auto', block: 'start' }), 80)
+    return () => window.clearTimeout(timer)
   }, [location.pathname])
+
+  useEffect(() => {
+    const root = pageRef.current
+    if (!root || typeof IntersectionObserver === 'undefined') return undefined
+
+    const targets = [...root.querySelectorAll([
+      '.lp-intro',
+      '.lp-section-head',
+      '.lp-package-grid',
+      '.lp-specialist-block',
+      '.lp-readiness',
+      '.lp-policy-grid',
+      '.lp-signup-copy',
+      '.lp-form',
+    ].join(','))]
+
+    targets.forEach((target, index) => {
+      target.classList.add('lp-reveal-pending')
+      target.style.setProperty('--lp-reveal-delay', `${(index % 4) * 45}ms`)
+    })
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+        entry.target.classList.add('is-visible')
+        observer.unobserve(entry.target)
+      })
+    }, { threshold: 0.1, rootMargin: '0px 0px -7% 0px' })
+
+    targets.forEach((target) => observer.observe(target))
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => () => window.clearTimeout(addedTimer.current), [])
 
   function submitSignup(event) {
     event.preventDefault()
@@ -357,9 +395,9 @@ export default function LessonPricingSignup() {
   }
 
   return (
-    <main className="lp-page">
+    <main ref={pageRef} className="lp-page">
       {polishKey > 0 && <span key={polishKey} className="lp-click-bloom" aria-hidden />}
-      <header className="lp-nav">
+      <header className="lp-nav" onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
         <Link to="/" className="lp-brand" aria-label="EnglishMetro home">
           <Skyline size={30} />
           <span>English<span>Metro</span>.</span>
@@ -377,6 +415,7 @@ export default function LessonPricingSignup() {
       </header>
 
       <section className="lp-hero" aria-labelledby="lp-title">
+        <MetroSignalField className="lp-hero-signal" mode="light" density={66}/>
         <div className="lp-hero-copy">
           <p className="lp-kicker">
             <span className="material-symbols-outlined" aria-hidden>verified</span>
@@ -400,7 +439,8 @@ export default function LessonPricingSignup() {
             </a>
           </div>
         </div>
-        <div className="lp-hero-panel" aria-label="Next available lesson flow">
+        <div className="lp-hero-panel" aria-label="Next available lesson flow"
+          onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
           <div>
             <span>01</span>
             <strong>{t('Choose package', 'Wybierz pakiet')}</strong>
@@ -443,7 +483,8 @@ export default function LessonPricingSignup() {
 
         <div className="lp-package-grid">
           {PRIVATE_PACKAGES.map((pkg) => (
-            <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}>
+            <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <div className="lp-package-top">
                 <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
                 <button type="button" onClick={() => choosePackage(pkg.id)} aria-pressed={pkg.id === packageId}>
@@ -491,7 +532,8 @@ export default function LessonPricingSignup() {
           </div>
           <div className="lp-package-grid lp-specialist-grid">
             {SPECIALIST_PACKAGES.map((pkg) => (
-              <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}>
+              <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}
+                onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
                 <div className="lp-package-top">
                   <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
                   <button type="button" onClick={() => choosePackage(pkg.id)} aria-pressed={pkg.id === packageId}>
@@ -543,7 +585,8 @@ export default function LessonPricingSignup() {
         </div>
         <div className="lp-course-grid lp-course-grid-four">
           {SUMMER_COURSES.map((course) => (
-            <article key={course.id} className="lp-course-card lp-course-card-summer">
+            <article key={course.id} className="lp-course-card lp-course-card-summer"
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <span className="material-symbols-outlined" aria-hidden>sunny</span>
               <h3>{isPl ? (COURSE_PL[course.id]?.name || course.name) : course.name}</h3>
               <strong>{course.price}</strong>
@@ -599,18 +642,19 @@ export default function LessonPricingSignup() {
         <div className="lp-section-head">
           <div>
             <p className="lp-section-label">{t('Policy', 'Zasady')}</p>
-            <h2 id="policy-title">{t('Simple terms before payment.', 'Proste zasady przed platnoscia.')}</h2>
+            <h2 id="policy-title">{t('Simple terms before payment.', 'Proste zasady przed płatnością.')}</h2>
           </div>
           <p>
             {t(
               'Expiry, extensions, scheduling, billing, and refunds are shown before payment and stay more generous than the minimum where we can be.',
-              'Waznosc, przedluzenia, terminy, platnosci i zwroty sa pokazane przed platnoscia i sa mozliwie bardziej przyjazne niz minimum.',
+              'Ważność, przedłużenia, terminy, płatności i zwroty są pokazane przed płatnością i są możliwie bardziej przyjazne niż minimum.',
             )}
           </p>
         </div>
         <div className="lp-policy-grid">
           {POLICIES.map((policy) => (
-            <article key={policy.title} className="lp-policy-item">
+            <article key={policy.title} className="lp-policy-item"
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <span className="material-symbols-outlined" aria-hidden>{policy.icon}</span>
               <h3>{isPl ? (POLICY_PL[policy.title]?.title || policy.title) : policy.title}</h3>
               <p>{isPl ? (POLICY_PL[policy.title]?.copy || policy.copy) : policy.copy}</p>
@@ -626,7 +670,7 @@ export default function LessonPricingSignup() {
           <p>
             {t(
               'We will reply with teacher availability and the right payment next step. No card data is collected here.',
-              'Odpowiemy z dostepnoscia nauczyciela i kolejnym krokiem platnosci. Ta strona nie zbiera danych karty.',
+              'Odpowiemy z dostępnością nauczyciela i kolejnym krokiem płatności. Ta strona nie zbiera danych karty.',
             )}
           </p>
           <div className="lp-selected">
@@ -694,7 +738,7 @@ export default function LessonPricingSignup() {
             <span>
               {t(
                 'I understand this is a signup request, not a card payment. I have reviewed the lesson validity, extension, cancellation, refund, and payment summary.',
-                'Rozumiem, ze to prosba o zapis, a nie platnosc karta. Znam podsumowanie waznosci lekcji, przedluzen, odwolania, zwrotow i platnosci.',
+                'Rozumiem, że to prośba o zapis, a nie płatność kartą. Znam podsumowanie ważności lekcji, przedłużeń, odwołania, zwrotów i płatności.',
               )}
             </span>
           </label>
@@ -703,7 +747,7 @@ export default function LessonPricingSignup() {
 
           <a className="lp-button lp-button-primary lp-submit" href={`/signup?package=${encodeURIComponent(packageId)}`}>
             <span className="material-symbols-outlined" aria-hidden>rocket_launch</span>
-            {t('Create your account & book', 'Zaloz konto i zarezerwuj')}
+            {t('Create your account & book', 'Załóż konto i zarezerwuj')}
           </a>
 
           <button className="lp-button lp-button-ghost lp-submit" type="submit">
