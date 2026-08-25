@@ -14,12 +14,15 @@ const CATALOG: Record<string, { name: string; lessons: number; pricePLN: number 
   momentum: { name: "Fluency Momentum", lessons: 8, pricePLN: 880 },
   "fluency-16": { name: "Fluency Builder", lessons: 16, pricePLN: 1600 },
   "fluency-24": { name: "Fluency Mastery", lessons: 24, pricePLN: 2160 },
+  "fluency-48": { name: "Fluency Complete", lessons: 48, pricePLN: 3840 },
   specialist: { name: "Specialist Sprint", lessons: 6, pricePLN: 900 },
   "specialist-12": { name: "Specialist Track", lessons: 12, pricePLN: 1560 },
   "specialist-24": { name: "Specialist Mastery", lessons: 24, pricePLN: 2640 },
+  "company-24": { name: "Company Team 24", lessons: 24, pricePLN: 4800 },
+  "company-48": { name: "Company Team 48", lessons: 48, pricePLN: 6080 },
   august: { name: "August Summer Course", lessons: 4, pricePLN: 200 },
-  september: { name: "September Summer Course", lessons: 4, pricePLN: 200 },
-  "two-month-bundle": { name: "August + September Bundle", lessons: 8, pricePLN: 400 },
+  september: { name: "September Summer Course", lessons: 4, pricePLN: 400 },
+  "two-month-bundle": { name: "August + September Bundle", lessons: 8, pricePLN: 600 },
 };
 
 const ITEM_SHAPE = v.object({
