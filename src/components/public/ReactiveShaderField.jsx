@@ -32,6 +32,9 @@ const fragmentShader = `
     float ribbonA = sin(vUv.x * 12.0 + vUv.y * 8.0 - uTime * 0.72);
     float ribbonB = sin(vUv.x * -7.0 + vUv.y * 15.0 + uTime * 0.54);
     float interference = smoothstep(0.66, 1.0, (ribbonA + ribbonB) * 0.25 + 0.5);
+    float auroraShape = sin(vUv.x * 5.2 + sin(vUv.y * 4.0 - uTime * 0.32) * 1.5 - uTime * 0.25);
+    float aurora = smoothstep(0.42, 0.98, auroraShape * 0.5 + 0.5);
+    aurora *= smoothstep(0.0, 0.18, vUv.y) * smoothstep(0.0, 0.16, 1.0 - vUv.y);
 
     float rail = abs(fract((vUv.x + vUv.y * 0.22) * 7.0 - uTime * 0.055) - 0.5);
     rail = smoothstep(0.49, 0.455, rail) * 0.18;
@@ -40,12 +43,13 @@ const fragmentShader = `
     vec3 fuchsia = vec3(0.851, 0.275, 0.937);
     vec3 cyan = vec3(0.235, 0.831, 0.945);
     vec3 spectrum = mix(violet, fuchsia, smoothstep(0.12, 0.88, vUv.x));
-    spectrum = mix(spectrum, cyan, ripple * 0.42 + interference * 0.1);
+    spectrum = mix(spectrum, cyan, ripple * 0.56 + interference * 0.14);
+    spectrum = mix(spectrum, fuchsia, aurora * 0.18);
 
-    float baseAlpha = mix(0.007, 0.004, uTheme);
-    float energyAlpha = uEnergy * (lens * 0.038 + ripple * 0.018);
-    float ambientAlpha = interference * baseAlpha + rail * baseAlpha;
-    float alpha = min(0.12, ambientAlpha + energyAlpha);
+    float baseAlpha = mix(0.018, 0.011, uTheme);
+    float energyAlpha = uEnergy * (lens * 0.072 + ripple * 0.034);
+    float ambientAlpha = interference * baseAlpha + aurora * baseAlpha * 0.8 + rail * baseAlpha;
+    float alpha = min(0.2, ambientAlpha + energyAlpha);
 
     gl_FragColor = vec4(spectrum, alpha);
   }
@@ -80,8 +84,8 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
     let lastTime = performance.now()
 
     const pointer = { x: 0.54, y: 0.46, tx: 0.54, ty: 0.46 }
-    let energy = 0.045
-    let targetEnergy = 0.045
+    let energy = 0.065
+    let targetEnergy = 0.065
 
     function canAnimate() {
       return !disposed && visible && !reduced && !document.hidden && renderer
@@ -112,7 +116,7 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
       pointer.x += (pointer.tx - pointer.x) * pointerEase
       pointer.y += (pointer.ty - pointer.y) * pointerEase
       energy += (targetEnergy - energy) * (still ? 1 : 0.085)
-      targetEnergy = Math.max(0.04, targetEnergy * (still ? 1 : 0.96))
+      targetEnergy = Math.max(0.06, targetEnergy * (still ? 1 : 0.96))
 
       material.uniforms.uTime.value = time / 1000
       material.uniforms.uEnergy.value = energy
@@ -135,13 +139,13 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
       if (Number.isFinite(detail.clientX) && Number.isFinite(detail.clientY)) {
         mapPointer(detail.clientX, detail.clientY)
       }
-      targetEnergy = Math.max(targetEnergy, Math.min(0.5, detail.intensity || 0.24))
+      targetEnergy = Math.max(targetEnergy, Math.min(0.76, detail.intensity || 0.42))
       start()
     }
 
     function handleHostPointer(event) {
       mapPointer(event.clientX, event.clientY)
-      targetEnergy = Math.max(targetEnergy, 0.1)
+      targetEnergy = Math.max(targetEnergy, 0.16)
       start()
     }
 

@@ -1592,10 +1592,11 @@
 /* Home hero refinement: a single low-energy shader connects the copy and
    media columns. The action rail uses the same compact geometry as the nav. */
 .gh-reactive-shader {
-  opacity: 0.48;
+  opacity: 0.64;
+  filter: saturate(1.12) contrast(1.02);
   mask-image: linear-gradient(90deg, transparent 0%, #000 12%, #000 90%, transparent 100%);
 }
-.gh-day .gh-reactive-shader { opacity: 0.28; }
+.gh-day .gh-reactive-shader { opacity: 0.42; }
 
 .gh-hero-copy { padding: 16px 0 20px 4px; }
 .gh-hero-copy .gh-eyebrow {
@@ -1704,7 +1705,7 @@
   .gh-hero-actions { width: 100%; flex-wrap: wrap !important; }
 }
 @media (max-width: 760px) {
-  .gh-reactive-shader { opacity: 0.30; }
+  .gh-reactive-shader { opacity: 0.46; }
   .gh-hero-copy { padding: 8px 0 6px; }
   .gh-hero-copy h1 { font-size: clamp(42px,11.8vw,58px) !important; }
   .gh-hero-actions { padding: 6px !important; }
@@ -1715,5 +1716,5 @@
   .gh-hero-actions .gh-action { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .gh-reactive-shader { opacity: 0.12; }
+  .gh-reactive-shader { opacity: 0.18; }
 }
