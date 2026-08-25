@@ -25,14 +25,15 @@ const CATALOG: Record<string, { name: string; lessons: number; pricePLN: number 
   momentum: { name: "Fluency Momentum", lessons: 8, pricePLN: 880 },
   "fluency-16": { name: "Fluency Builder", lessons: 16, pricePLN: 1600 },
   "fluency-24": { name: "Fluency Mastery", lessons: 24, pricePLN: 2160 },
+  "fluency-48": { name: "Fluency Complete", lessons: 48, pricePLN: 3840 },
   specialist: { name: "Specialist Sprint", lessons: 6, pricePLN: 900 },
   "specialist-12": { name: "Specialist Track", lessons: 12, pricePLN: 1560 },
   "specialist-24": { name: "Specialist Mastery", lessons: 24, pricePLN: 2640 },
   // Group courses. August and the two-month bundle were withdrawn on 2026-08-10
-  // (Mike) — removed from the catalog so they cannot be bought, not merely hidden
+  // (Mike). They were removed from the catalog so they cannot be bought, not merely hidden
   // in the UI. Orders already paid keep their own stored name and lesson count.
-  // September now runs TWICE weekly over the month (8 lessons) at the same price.
-  september: { name: "September Group Course", lessons: 8, pricePLN: 200 },
+  // September runs twice weekly over the month (8 lessons) at 400 PLN.
+  september: { name: "September Group Course", lessons: 8, pricePLN: 400 },
 };
 
 const ITEM_SHAPE = v.object({
