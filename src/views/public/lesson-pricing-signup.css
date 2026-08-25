@@ -652,6 +652,10 @@
   animation-delay: 240ms;
 }
 
+.lp-package-grid .lp-package:nth-child(6) {
+  animation-delay: 300ms;
+}
+
 .lp-package.is-selected {
   border-color: rgba(244, 114, 182, 0.7);
   box-shadow:
@@ -769,6 +773,36 @@
   font-size: 13px;
 }
 
+.lp-price-calculation {
+  display: grid;
+  gap: 3px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-left: 2px solid rgba(139, 92, 246, 0.42);
+  color: var(--lp-faint);
+  background: rgba(139, 92, 246, 0.06);
+  font-size: 12px;
+}
+
+.lp-price-calculation strong {
+  color: var(--lp-ink);
+  font-size: 13px;
+}
+
+.lp-per-student-package {
+  margin: 5px 0 0;
+  color: var(--lp-muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.lp-per-student {
+  margin: 5px 0 0;
+  color: var(--lp-emerald);
+  font-size: 13px;
+  font-weight: 720;
+}
+
 .lp-best {
   min-height: 50px;
   margin: 24px 0 18px;
@@ -828,6 +862,44 @@
   min-height: 480px;
   background:
     linear-gradient(180deg, rgba(253, 246, 255, 0.95), rgba(248, 243, 255, 0.95)),
+    var(--lp-panel);
+}
+
+.lp-company-block {
+  margin-top: 28px;
+  padding: 22px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(217, 70, 239, 0.07)),
+    rgba(255, 255, 255, 0.84);
+}
+
+.lp-company-head {
+  max-width: 820px;
+  margin-bottom: 18px;
+}
+
+.lp-company-head h3 {
+  margin: 8px 0 10px;
+  font-size: 28px;
+  line-height: 1.12;
+}
+
+.lp-company-head p {
+  margin: 0;
+  color: var(--lp-muted);
+  line-height: 1.6;
+}
+
+.lp-company-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lp-company-grid .lp-package {
+  min-height: 540px;
+  background:
+    linear-gradient(180deg, rgba(252, 248, 255, 0.97), rgba(247, 243, 255, 0.96)),
     var(--lp-panel);
 }
 
@@ -1086,7 +1158,7 @@
 
 .lp-segment {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   padding: 5px;
   border: 1px solid var(--lp-line);
