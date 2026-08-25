@@ -25,7 +25,8 @@ import { cart, parsePricePLN } from '../public/cart-store.js'
 import CartUI from '../public/CartUI.jsx'
 import HeroPracticePreview from './HeroPracticePreview.jsx'
 import MetroSignalField from '../../components/public/MetroSignalField.jsx'
-import { clearPointerPolish, setPointerPolish } from '../../components/public/motionPolish.js'
+import ReactiveShaderField from '../../components/public/ReactiveShaderField.jsx'
+import { clearPointerPolish, pulsePointerPolish, setPointerPolish } from '../../components/public/motionPolish.js'
 const ArcadeCityBackdrop = lazy(() => import('./ArcadeCityBackdrop.jsx'))
 import './game-home.css'
 
@@ -72,10 +73,12 @@ function ActionLink({ to, href, children, variant = 'ghost', size = 'md', icon,
 
   if (to) {
     return <Link to={to} className={classes} style={style} onClick={onClick}
-      onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>{content}</Link>
+      onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+      onPointerDown={pulsePointerPolish}>{content}</Link>
   }
   return <a href={href} className={classes} style={style} onClick={onClick}
-    onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>{content}</a>
+    onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+    onPointerDown={pulsePointerPolish}>{content}</a>
 }
 
 function DeferredMetroCity({ reduced, night, label }) {
@@ -325,7 +328,7 @@ function HeroArcade({ badge, reduced, lang }) {
     }
   }, [])
   return (
-    <div className="gh-hero-frame">
+    <div className="gh-hero-frame" onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
       <div className="gh-postcard" style={{ background: '#FCFAFF' }}>
         <div className="gh-arcade-toolbar">
           <div className="gh-arcade-live">
@@ -341,7 +344,9 @@ function HeroArcade({ badge, reduced, lang }) {
                 <button key={g.key} type="button" onClick={() => switchTo(i)}
                   id={`gh-arcade-tab-${g.key}`} role="tab" tabIndex={i === active ? 0 : -1}
                   aria-selected={i === active} aria-controls="gh-arcade-stage"
-                  className={`gh-arcade-tab${i === active ? ' on' : ''}`}>
+                  className={`gh-arcade-tab gh-shader-surface${i === active ? ' on' : ''}`}
+                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+                  onPointerDown={pulsePointerPolish}>
                   <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{g.icon}</span>
                   {g.title}
                 </button>
@@ -349,7 +354,8 @@ function HeroArcade({ badge, reduced, lang }) {
             </div>
           </div>
         </div>
-        <div ref={arcadeRef} className="gh-arcade-viewport">
+        <div ref={arcadeRef} className="gh-arcade-viewport"
+          onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
           <div id="gh-arcade-stage" role="tabpanel" aria-labelledby={`gh-arcade-tab-${activeGame.key}`}
             data-game={HERO_GAMES[shown].key} className="gh-arcade-stage"
             style={{ minHeight: 520, overflow: 'hidden' }}>
@@ -364,11 +370,13 @@ function HeroArcade({ badge, reduced, lang }) {
             </div>
           </div>
           <button type="button" className="gh-slider-arrow gh-slider-prev" aria-label="Previous exercise"
-            onClick={() => go(-1)}>
+            onClick={() => go(-1)} onPointerMove={setPointerPolish}
+            onPointerLeave={clearPointerPolish} onPointerDown={pulsePointerPolish}>
             <span className="material-symbols-outlined" style={{ fontSize: 26 }}>chevron_left</span>
           </button>
           <button type="button" className="gh-slider-arrow gh-slider-next" aria-label="Next exercise"
-            onClick={() => go(1)}>
+            onClick={() => go(1)} onPointerMove={setPointerPolish}
+            onPointerLeave={clearPointerPolish} onPointerDown={pulsePointerPolish}>
             <span className="material-symbols-outlined" style={{ fontSize: 26 }}>chevron_right</span>
           </button>
           <div className="gh-slider-label" aria-live="polite">
@@ -691,6 +699,8 @@ function ThemeToggle({ mode, setMode, T }) {
     <button type="button" className="gh-theme-btn"
       aria-label={isDay ? 'Switch to night mode' : 'Switch to day mode'}
       onClick={() => setMode(isDay ? 'night' : 'day')}
+      onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+      onPointerDown={pulsePointerPolish}
       style={{ border: `1px solid ${T.border}`, background: T.surface, color: isDay ? T.amber : T.brandInk }}>
       <span className="material-symbols-outlined" style={{ fontSize: 19 }}>
         {isDay ? 'dark_mode' : 'light_mode'}
@@ -703,6 +713,8 @@ function GameCard({ g, color, T, onPlay, index, soon }) {
   return (
     <button type="button" className="gh-card gh-glass" disabled={soon}
       onClick={soon ? undefined : () => onPlay(g)}
+      onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+      onPointerDown={pulsePointerPolish}
       aria-label={soon ? `${g.title} - arriving soon` : `Play ${g.title}`}
       style={{ textAlign: 'left', cursor: soon ? 'default' : 'pointer', borderRadius: 16,
         border: `1px solid ${T.border}`, padding: '18px 18px 16px',
@@ -853,7 +865,9 @@ export default function GameHome() {
             </div>
           </Link>
           <button type="button" className="gh-menu-toggle" aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen} aria-controls="gh-primary-nav" onClick={() => setMenuOpen((open) => !open)}>
+            aria-expanded={menuOpen} aria-controls="gh-primary-nav" onClick={() => setMenuOpen((open) => !open)}
+            onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+            onPointerDown={pulsePointerPolish}>
             <span className="material-symbols-outlined" aria-hidden>{menuOpen ? 'close' : 'menu'}</span>
           </button>
           <nav id="gh-primary-nav" className={`gh-nav${menuOpen ? ' is-open' : ''}`} aria-label="Primary navigation">
@@ -871,6 +885,8 @@ export default function GameHome() {
               {['pl', 'en'].map(l => (
                 <button key={l} type="button" onClick={() => setLang(l)}
                   aria-pressed={lang === l}
+                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+                  onPointerDown={pulsePointerPolish}
                   className={`gh-lang-btn${lang === l ? ' on' : ''}`}>{l.toUpperCase()}</button>
               ))}
             </div>
@@ -885,6 +901,7 @@ export default function GameHome() {
           gridTemplateColumns: 'minmax(0, 1.02fr) minmax(0, 0.98fr)',
           gap: 52, alignItems: 'center', padding: '30px 0 44px' }}>
           <MetroSignalField className="gh-hero-signal" mode={night ? 'dark' : 'light'} density={64}/>
+          <ReactiveShaderField className="gh-reactive-shader" mode={night ? 'dark' : 'light'}/>
           <div className="gh-hero-copy" style={{ minWidth: 0 }}>
             <div className="gh-rise gh-rise-1 gh-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 10,
               marginBottom: 20 }}>
@@ -931,7 +948,8 @@ export default function GameHome() {
           </div>
 
           <div className="gh-rise gh-rise-3 gh-hero-stage-wrap" style={{ minWidth: 0 }}
-            onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
+            onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+            onPointerDown={pulsePointerPolish}>
             <div className="gh-photo-frame gh-photo-frame--wide gh-spatial-frame">
               <img src="/home/photo-office-2607.webp" alt={W.officeAlt} width="1600" height="900"/>
               <span className="gh-float-chip gh-float-chip--a">
@@ -945,7 +963,9 @@ export default function GameHome() {
         {/* ── Credible proof points, then the teacher-to-city learning loop ── */}
         <section className="gh-proof-rail gh-glass" aria-label={W.proofLabel}>
           {W.proof(ALL_GAMES.length).map((item, index) => (
-            <div className="gh-proof-item" key={item.label} style={{ '--gh-proof-delay': `${index * 80}ms` }}>
+            <div className="gh-proof-item gh-shader-surface" key={item.label}
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+              style={{ '--gh-proof-delay': `${index * 80}ms` }}>
               <strong>{item.value}</strong>
               <span>{item.label}</span>
             </div>
@@ -955,7 +975,8 @@ export default function GameHome() {
         {/* ── Real lessons, real people — photography band ── */}
         <section className="gh-section gh-lessons-band">
           <Reveal className="gh-lessons-media">
-            <div className="gh-photo-frame gh-photo-frame--main">
+            <div className="gh-photo-frame gh-photo-frame--main"
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <img src="/home/photo-student.webp" alt={W.lessonsAltMain} loading="lazy" width="1600" height="1067"/>
               <span className="gh-float-chip gh-float-chip--a">
                 <span className="material-symbols-outlined" aria-hidden>videocam</span>
@@ -966,7 +987,8 @@ export default function GameHome() {
                 {W.lessonsChipB}
               </span>
             </div>
-            <div className="gh-photo-frame gh-photo-frame--side">
+            <div className="gh-photo-frame gh-photo-frame--side"
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <img src="/home/photo-practice-2607.webp" alt={W.lessonsAltSide} loading="lazy" width="800" height="533"/>
             </div>
           </Reveal>
@@ -1006,7 +1028,8 @@ export default function GameHome() {
               maxWidth: 560, margin: '0 0 24px' }}>{W.cityBody}</p>
             <div className="gh-city-features">
               {W.cityFeatures.map((feature, index) => (
-                <div className="gh-city-feature gh-glass" key={feature}>
+                <div className="gh-city-feature gh-glass gh-shader-surface" key={feature}
+                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
                   <span className="material-symbols-outlined gh-city-feature-icon" aria-hidden>
                     {['forum', 'style', 'view_in_ar'][index]}
                   </span>
@@ -1075,7 +1098,8 @@ export default function GameHome() {
             </h2>
           </Reveal>
           <Reveal className="gh-steps-photo">
-            <div className="gh-photo-frame gh-photo-frame--wide">
+            <div className="gh-photo-frame gh-photo-frame--wide"
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <img src="/home/photo-group-2607.webp" alt={W.stepsAlt} loading="lazy" width="1600" height="900"/>
               <span className="gh-float-chip gh-float-chip--a">
                 <span className="material-symbols-outlined" aria-hidden>co_present</span>
@@ -1086,7 +1110,8 @@ export default function GameHome() {
           <div className="gh-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
             {W.steps.map((s, i) => (
               <Reveal key={s.title} delay={i * 90} className="gh-step-slot">
-                <div className="gh-step gh-glass" style={{ height: '100%' }}>
+                <div className="gh-step gh-glass gh-shader-surface" style={{ height: '100%' }}
+                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                     <span className="gh-step-num" style={{ fontFamily: FONT.mono }}>{i + 1}</span>
                     <span className="material-symbols-outlined" aria-hidden
@@ -1128,6 +1153,7 @@ export default function GameHome() {
                   className={`gh-pack-slot gh-pack-slot--${i + 1}${hot ? ' is-featured' : ''}`}>
                   <div className={`gh-pack gh-glass gh-spatial-card${hot ? ' is-featured' : ''}`}
                     onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+                    onPointerDown={pulsePointerPolish}
                     style={{ height: '100%', display: 'flex', flexDirection: 'column',
                     border: hot ? '1px solid transparent' : `1px solid ${T.border}`,
                     background: hot
@@ -1145,6 +1171,8 @@ export default function GameHome() {
                       className={`gh-action gh-action--${hot ? 'primary' : 'secondary'} gh-action--md gh-action--full gh-pack-add`}
                       data-added={packAdded === p.id}
                       onClick={() => addPackToCart(p)}
+                      onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+                      onPointerDown={pulsePointerPolish}
                       aria-label={`${W.packsStart}: ${p.name}, ${p.price}`}>
                       {packAdded === p.id
                         ? (lang === 'pl' ? 'Dodano do koszyka' : 'Added to cart')
@@ -1173,6 +1201,7 @@ export default function GameHome() {
           <div className="gh-doors" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
             <a href={WORLD_URL} className="gh-door gh-door--world gh-glass gh-spatial-card"
               onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+              onPointerDown={pulsePointerPolish}
               style={{ textDecoration: 'none',
               border: `1px solid ${T.border}`, color: T.text }}>
               <div className="gh-door-ribbon">BETA</div>
@@ -1191,6 +1220,7 @@ export default function GameHome() {
             </a>
             <button type="button" className="gh-door gh-door--practice gh-glass gh-spatial-card" onClick={scrollToPractice}
               onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+              onPointerDown={pulsePointerPolish}
               style={{ textAlign: 'left', cursor: 'pointer', border: `1px solid ${T.border}`, color: T.text,
                 fontFamily: FONT.body }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>

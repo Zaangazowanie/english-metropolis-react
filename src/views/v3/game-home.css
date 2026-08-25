@@ -1358,3 +1358,233 @@
   opacity: 0.10; filter: saturate(0.65); }
 .gh-arcade-backdrop canvas { display: block; width: 100% !important; height: 100% !important; }
 .gh-arcade-body { position: relative; z-index: 1; }
+
+/* ThreeUI-inspired shared material system. One Three.js plane receives input
+   from every polished surface while CSS handles the local, low-cost response. */
+.gh-reactive-shader {
+  position: absolute;
+  inset: -80px -9vw -120px;
+  z-index: 0;
+  width: calc(100% + 18vw);
+  height: calc(100% + 200px);
+  pointer-events: none;
+  opacity: 0.9;
+  mix-blend-mode: screen;
+  mask-image: radial-gradient(ellipse 86% 82% at 52% 46%, #000 18%, rgba(0,0,0,0.74) 60%, transparent 100%);
+}
+.gh-day .gh-reactive-shader {
+  opacity: 0.54;
+  mix-blend-mode: multiply;
+}
+
+.gh-action,
+.gh-shader-surface,
+.gh-slider-arrow,
+.gh-lang-btn,
+.gh-theme-btn,
+.gh-menu-toggle,
+.gh-arcade-viewport {
+  --motion-x: 50%;
+  --motion-y: 50%;
+  --motion-shift-x: 0px;
+  --motion-shift-y: 0px;
+  --motion-angle: 0deg;
+}
+
+.gh-action::after {
+  background:
+    radial-gradient(88px circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.34), transparent 62%),
+    conic-gradient(from var(--motion-angle) at var(--motion-x) var(--motion-y), transparent, rgba(96,165,250,0.15), rgba(217,70,239,0.18), transparent 24%);
+  mix-blend-mode: soft-light;
+}
+.gh-action:not(.gh-action--primary)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(from var(--motion-angle) at var(--motion-x) var(--motion-y),
+    transparent 0 34%, rgba(96,165,250,0.18) 42%, rgba(217,70,239,0.22) 50%, transparent 61%);
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+.gh-action:not(.gh-action--primary):hover::before,
+.gh-action:not(.gh-action--primary):focus-visible::before { opacity: 1; }
+.gh-action:hover {
+  transform: translate3d(var(--motion-shift-x), calc(var(--motion-shift-y) - 2px), 0);
+}
+.gh-action:active {
+  transform: translate3d(0, 1px, 0) scale(0.985);
+}
+
+.gh-shader-surface {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.gh-shader-surface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(130px circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.18), transparent 58%),
+    conic-gradient(from var(--motion-angle) at var(--motion-x) var(--motion-y), transparent, rgba(139,92,246,0.14), rgba(52,211,153,0.10), transparent 26%);
+  opacity: 0;
+  mix-blend-mode: soft-light;
+  transition: opacity 240ms ease;
+}
+.gh-shader-surface:hover::after,
+.gh-shader-surface:focus-visible::after,
+.gh-shader-surface:focus-within::after { opacity: 1; }
+.gh-shader-surface > * { position: relative; z-index: 1; }
+
+.gh-arcade-viewport {
+  isolation: isolate;
+  overflow: hidden;
+}
+.gh-arcade-viewport::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(210px circle at var(--motion-x) var(--motion-y), rgba(139,92,246,0.11), transparent 64%),
+    linear-gradient(calc(var(--motion-angle) + 90deg), transparent 38%, rgba(65,229,224,0.045) 50%, transparent 62%);
+  opacity: 0.72;
+  mix-blend-mode: multiply;
+}
+
+.gh-arcade-tab {
+  --motion-x: 50%;
+  --motion-y: 50%;
+  --motion-shift-x: 0px;
+  --motion-shift-y: 0px;
+}
+.gh-arcade-tab:hover {
+  transform: translate3d(var(--motion-shift-x), calc(var(--motion-shift-y) - 1px), 0);
+}
+.gh-arcade-tab.on::after { opacity: 0.72; }
+
+.gh-slider-arrow {
+  overflow: hidden;
+  isolation: isolate;
+}
+.gh-slider-arrow::before {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.9), rgba(196,176,255,0.24) 24%, transparent 58%),
+    conic-gradient(from var(--motion-angle), transparent, rgba(65,229,224,0.24), rgba(255,90,138,0.2), transparent 36%);
+  opacity: 0;
+  transform: scale(0.56);
+  transition: opacity 220ms ease, transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gh-slider-arrow:hover::before { opacity: 1; transform: scale(1); }
+.gh-slider-arrow > * { position: relative; z-index: 1; }
+.gh-slider-arrow:hover {
+  transform: translate3d(var(--motion-shift-x), calc(var(--motion-shift-y) - 2px), 0);
+}
+
+.gh-lang-btn,
+.gh-theme-btn,
+.gh-menu-toggle {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.gh-lang-btn::before,
+.gh-theme-btn::before,
+.gh-menu-toggle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.34), transparent 62%);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.gh-lang-btn:hover::before,
+.gh-theme-btn:hover::before,
+.gh-menu-toggle:hover::before { opacity: 1; }
+.gh-lang-btn > *, .gh-theme-btn > *, .gh-menu-toggle > * { position: relative; z-index: 1; }
+
+.gh-proof-item {
+  position: relative;
+  overflow: hidden;
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), background-color 220ms ease;
+}
+.gh-proof-item:hover {
+  transform: translate3d(var(--motion-shift-x), calc(var(--motion-shift-y) - 2px), 0);
+  background: rgba(139,92,246,0.055);
+}
+.gh-proof-item::before {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 0;
+  height: 1px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, transparent, #8b5cf6, #d946ef, #34d399, transparent);
+  opacity: 0;
+  transform: scaleX(0.18);
+  transition: opacity 220ms ease, transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gh-proof-item:hover::before { opacity: 0.76; transform: scaleX(1); }
+
+.gh-photo-frame:not(.gh-spatial-frame)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(190px circle at var(--motion-x, 50%) var(--motion-y, 50%), rgba(255,255,255,0.22), transparent 62%),
+    linear-gradient(120deg, transparent 34%, rgba(139,92,246,0.08) 48%, transparent 62%);
+  opacity: 0;
+  mix-blend-mode: soft-light;
+  transition: opacity 320ms ease;
+}
+.gh-photo-frame:not(.gh-spatial-frame):hover::before { opacity: 1; }
+
+@media (max-width: 900px) {
+  .gh-reactive-shader {
+    inset: -40px -20vw -80px;
+    width: 140%;
+    opacity: 0.58;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gh-reactive-shader { opacity: 0.34; }
+  .gh-action,
+  .gh-shader-surface,
+  .gh-slider-arrow,
+  .gh-proof-item,
+  .gh-photo-frame::before,
+  .gh-lang-btn::before,
+  .gh-theme-btn::before,
+  .gh-menu-toggle::before {
+    transition: none !important;
+  }
+  .gh-action:hover,
+  .gh-arcade-tab:hover,
+  .gh-slider-arrow:hover,
+  .gh-proof-item:hover { transform: none !important; }
+}
+
+.gh-still .gh-reactive-shader { opacity: 0.34; }
+.gh-still .gh-action:hover,
+.gh-still .gh-arcade-tab:hover,
+.gh-still .gh-slider-arrow:hover,
+.gh-still .gh-proof-item:hover { transform: none !important; }
