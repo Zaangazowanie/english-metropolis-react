@@ -1719,45 +1719,26 @@
   .gh-reactive-shader { opacity: 0.22; }
 }
 
-/* Alternating brand procession: the city skyline and Bajla cross the complete
-   hero in separate passes while a cool silver tracer reveals each silhouette. */
+/* Continuous skyline procession: a faint complete contour crosses the hero
+   while a brighter masked stroke is progressively drawn over it. */
 @keyframes em-procession-skyline-pass {
   0% { opacity: 0; transform: translate3d(-105vw, -50%, 0); }
-  2% { opacity: .5; }
-  45% { opacity: .5; transform: translate3d(125vw, -50%, 0); }
-  48% { opacity: 0; transform: translate3d(125vw, -50%, 0); }
-  49%, 100% { opacity: 0; transform: translate3d(-105vw, -50%, 0); }
-}
-@keyframes em-procession-bajla-pass {
-  0%, 50% { opacity: 0; transform: translate3d(-62vw, -50%, 0); }
-  52% { opacity: .46; }
-  95% { opacity: .46; transform: translate3d(125vw, -50%, 0); }
-  98% { opacity: 0; transform: translate3d(125vw, -50%, 0); }
-  99%, 100% { opacity: 0; transform: translate3d(-62vw, -50%, 0); }
-}
-@keyframes em-procession-skyline-draw {
-  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
-  2% { opacity: .18; }
-  45% { opacity: .14; clip-path: inset(0 0 0 0); }
-  48%, 100% { opacity: 0; clip-path: inset(0 0 0 0); }
-}
-@keyframes em-procession-bajla-draw {
-  0%, 50% { opacity: 0; clip-path: inset(0 100% 0 0); }
-  52% { opacity: .17; }
-  95% { opacity: .13; clip-path: inset(0 0 0 0); }
-  98%, 100% { opacity: 0; clip-path: inset(0 0 0 0); }
+  .4% { opacity: .5; }
+  97.9% { opacity: .5; transform: translate3d(125vw, -50%, 0); }
+  98.75%, 100% { opacity: 0; transform: translate3d(125vw, -50%, 0); }
 }
 @keyframes em-procession-skyline-beam {
-  0% { opacity: 0; background-position: -18% 50%; }
-  2% { opacity: .2; }
-  45% { opacity: .14; background-position: 118% 50%; }
-  48%, 100% { opacity: 0; background-position: 118% 50%; }
+  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+  .4% { opacity: .34; }
+  97.9% { opacity: .28; clip-path: inset(0 0 0 0); }
+  98.75% { opacity: 0; clip-path: inset(0 0 0 0); }
+  100% { opacity: 0; clip-path: inset(0 100% 0 0); }
 }
-@keyframes em-procession-bajla-beam {
-  0%, 50% { opacity: 0; background-position: -18% 50%; }
-  52% { opacity: .19; }
-  95% { opacity: .13; background-position: 118% 50%; }
-  98%, 100% { opacity: 0; background-position: 118% 50%; }
+@keyframes em-procession-skyline-head {
+  0% { opacity: 0; background-position: -14% 50%; }
+  .4% { opacity: .92; }
+  97.9% { opacity: .78; background-position: 114% 50%; }
+  98.75%, 100% { opacity: 0; background-position: 114% 50%; }
 }
 
 .gh-hero-grid > .em-hero-procession,
@@ -1791,38 +1772,13 @@
   top: 50%;
   width: clamp(1100px, 92vw, 1800px);
   aspect-ratio: 1145 / 585;
-  animation: em-procession-skyline-pass 360s linear infinite;
+  animation: em-procession-skyline-pass 162s linear infinite;
 }
 
-.em-hero-procession__pass--bajla {
-  top: 50%;
-  width: clamp(440px, 38vw, 720px);
-  aspect-ratio: 1;
-  animation: em-procession-bajla-pass 360s linear infinite;
-}
-
-.em-hero-procession__body,
 .em-hero-procession__trace {
   position: absolute;
   inset: 0;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-}
-
-.em-hero-procession__pass--skyline .em-hero-procession__body {
-  background-image: url('/em-skyline.png');
-  opacity: 0;
-  filter: grayscale(1) brightness(1.42);
-}
-
-.em-hero-procession__pass--bajla .em-hero-procession__body {
-  background-image: url('/bajla.png');
-  opacity: 0;
-  filter: grayscale(.82) saturate(.3) brightness(1.18);
-}
-
-.em-hero-procession__trace {
+  opacity: .11;
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
@@ -1833,56 +1789,48 @@
 
 .em-hero-procession__pass--skyline .em-hero-procession__trace {
   background-image: url('/em-skyline-outline.png');
-  animation: em-procession-skyline-draw 360s linear infinite;
-}
-
-.em-hero-procession__pass--bajla .em-hero-procession__trace {
-  background-image: url('/bajla-outline.png');
-  animation: em-procession-bajla-draw 360s linear infinite;
 }
 
 .em-hero-procession__beam {
   position: absolute;
   inset: 0;
   opacity: 0;
-  background: linear-gradient(90deg,
-    transparent,
-    rgba(220, 226, 243, .16) 43%,
-    rgba(252, 253, 255, .7) 50%,
-    rgba(184, 194, 221, .12) 57%,
-    transparent);
-  background-position: -18% 50%;
-  background-repeat: no-repeat;
-  background-size: 16% 100%;
-  filter: drop-shadow(0 0 5px rgba(235, 239, 252, .22));
-  will-change: opacity, background-position;
+  background: rgba(246, 248, 255, .24);
+  filter:
+    drop-shadow(0 0 2px rgba(255, 255, 255, .48))
+    drop-shadow(0 0 8px rgba(227, 233, 250, .2));
+  will-change: opacity, clip-path;
 }
 
 .em-hero-procession__pass--skyline .em-hero-procession__beam {
   -webkit-mask: url('/em-skyline-outline.png') center / contain no-repeat;
   mask: url('/em-skyline-outline.png') center / contain no-repeat;
-  animation: em-procession-skyline-beam 360s linear infinite;
+  animation: em-procession-skyline-beam 162s linear infinite;
 }
 
-.em-hero-procession__pass--bajla .em-hero-procession__beam {
-  -webkit-mask: url('/bajla-outline.png') center / contain no-repeat;
-  mask: url('/bajla-outline.png') center / contain no-repeat;
-  animation: em-procession-bajla-beam 360s linear infinite;
+.em-hero-procession__beam::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(232, 237, 251, .08) 36%,
+    rgba(255, 255, 255, .98) 50%,
+    rgba(236, 241, 253, .12) 64%,
+    transparent 100%);
+  background-position: -14% 50%;
+  background-repeat: no-repeat;
+  background-size: 12% 100%;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, .44));
+  animation: em-procession-skyline-head 162s linear infinite;
 }
 
 .gh-day .em-hero-procession__pass {
   mix-blend-mode: multiply;
 }
-.gh-day .em-hero-procession__pass--skyline .em-hero-procession__body { opacity: 0; }
-.gh-day .em-hero-procession__pass--bajla .em-hero-procession__body { opacity: 0; }
 .gh-day .em-hero-procession__trace { filter: drop-shadow(0 0 3px rgba(72, 79, 103, .12)); }
 .gh-day .em-hero-procession__beam {
-  background: linear-gradient(90deg,
-    transparent,
-    rgba(104, 111, 137, .08) 43%,
-    rgba(249, 250, 255, .38) 50%,
-    rgba(91, 98, 126, .07) 57%,
-    transparent);
+  background: rgba(76, 84, 112, .12);
 }
 
 @media (max-width: 760px) {
@@ -1894,10 +1842,6 @@
   .em-hero-procession__pass--skyline {
     top: 52%;
     width: clamp(760px, 156vw, 1080px);
-  }
-  .em-hero-procession__pass--bajla {
-    top: 52%;
-    width: clamp(360px, 72vw, 520px);
   }
 }
 
@@ -1913,11 +1857,10 @@
     opacity: .22;
     transform: translate3d(-50%, -50%, 0);
   }
-  .em-hero-procession__pass--bajla,
-  .em-hero-procession__trace,
   .em-hero-procession__beam {
     display: none;
   }
+  .em-hero-procession__trace { opacity: .1; }
 }
 
 .gh-still .em-hero-procession__pass,
