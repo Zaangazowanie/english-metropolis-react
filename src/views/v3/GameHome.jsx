@@ -542,12 +542,18 @@ function DayClouds() {
 
 function HeroProcession() {
   return (
-    <div className="em-hero-procession" aria-hidden="true">
-      <div className="em-hero-procession__pass em-hero-procession__pass--skyline">
-        <span className="em-hero-procession__trace"/>
-        <span className="em-hero-procession__beam"/>
+    <>
+      <div className="em-hero-procession" aria-hidden="true">
+        <div className="em-hero-procession__pass em-hero-procession__pass--skyline">
+          <span className="em-hero-procession__trace"/>
+        </div>
       </div>
-    </div>
+      <div className="em-hero-procession em-hero-procession--foreground" aria-hidden="true">
+        <div className="em-hero-procession__pass em-hero-procession__pass--skyline">
+          <span className="em-hero-procession__beam"/>
+        </div>
+      </div>
+    </>
   )
 }
 

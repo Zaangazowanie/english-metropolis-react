@@ -1738,6 +1738,11 @@
   contain: paint;
 }
 
+.gh-hero-grid > .em-hero-procession--foreground,
+.gh-hero-grid.em-hero-three-field > .em-hero-procession--foreground {
+  z-index: 3;
+}
+
 .gh-hero-grid > .gh-hero-copy,
 .gh-hero-grid > .gh-hero-stage-wrap,
 .gh-hero-grid.em-hero-three-field > .gh-hero-copy,
@@ -1793,29 +1798,6 @@
     drop-shadow(0 0 24px rgba(210, 221, 255, .38));
 }
 
-.em-hero-procession__pass--skyline::after {
-  content: '';
-  position: absolute;
-  z-index: 1;
-  top: 5%;
-  bottom: 5%;
-  left: -24%;
-  width: 24%;
-  pointer-events: none;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    rgba(222, 230, 255, .06) 30%,
-    rgba(241, 245, 255, .44) 44%,
-    rgba(255, 255, 255, .86) 49%,
-    rgba(255, 255, 255, .86) 51%,
-    rgba(241, 245, 255, .44) 56%,
-    rgba(222, 230, 255, .06) 70%,
-    transparent 100%);
-  filter: blur(8px);
-  will-change: transform, opacity;
-  animation: em-procession-skyline-scan 12s linear infinite;
-}
-
 .em-hero-procession__beam::before {
   content: '';
   position: absolute;
@@ -1862,17 +1844,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .em-hero-procession__pass--skyline::after,
   .em-hero-procession__beam::before {
     animation: none !important;
   }
-  .em-hero-procession__pass--skyline::after,
   .em-hero-procession__beam {
     display: none;
   }
 }
 
-.gh-still .em-hero-procession__pass--skyline::after,
 .gh-still .em-hero-procession__beam::before {
   animation-play-state: paused !important;
 }
