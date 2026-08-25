@@ -24,7 +24,6 @@ import { PRIVATE_PACKAGES } from '../public/packages.js'
 import { cart, parsePricePLN } from '../public/cart-store.js'
 import CartUI from '../public/CartUI.jsx'
 import HeroPracticePreview from './HeroPracticePreview.jsx'
-import MetroSignalField from '../../components/public/MetroSignalField.jsx'
 import ReactiveShaderField from '../../components/public/ReactiveShaderField.jsx'
 import { clearPointerPolish, pulsePointerPolish, setPointerPolish } from '../../components/public/motionPolish.js'
 const ArcadeCityBackdrop = lazy(() => import('./ArcadeCityBackdrop.jsx'))
@@ -900,7 +899,6 @@ export default function GameHome() {
         <section className="gh-hero-grid" style={{ display: 'grid',
           gridTemplateColumns: 'minmax(0, 1.02fr) minmax(0, 0.98fr)',
           gap: 52, alignItems: 'center', padding: '30px 0 44px' }}>
-          <MetroSignalField className="gh-hero-signal" mode={night ? 'dark' : 'light'} density={64}/>
           <ReactiveShaderField className="gh-reactive-shader" mode={night ? 'dark' : 'light'}/>
           <div className="gh-hero-copy" style={{ minWidth: 0 }}>
             <div className="gh-rise gh-rise-1 gh-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 10,
@@ -911,12 +909,11 @@ export default function GameHome() {
                 {W.eyebrow}
               </span>
             </div>
-            <h1 className="gh-rise gh-rise-2" style={{ fontFamily: FONT.display, fontWeight: 700,
-              fontSize: 'clamp(40px, 5.45vw, 70px)', lineHeight: 0.98, letterSpacing: '-0.04em', margin: 0 }}>
+            <h1 className="gh-rise gh-rise-2" style={{ fontFamily: FONT.display, fontWeight: 650,
+              fontSize: 'clamp(46px, 5.35vw, 76px)', lineHeight: 1.01, letterSpacing: '-0.048em', margin: 0 }}>
               {W.h1a}
               <br/>
-              <span className="gh-gradient-word" style={{ background: G.brand, WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{W.h1b}</span>
+              <span className="gh-gradient-word">{W.h1b}</span>
               <span style={{ color: T.ember }}>.</span>
             </h1>
             <ul className="gh-rise gh-rise-3" style={{ marginTop: 18, display: 'grid', gap: 8,
@@ -930,7 +927,7 @@ export default function GameHome() {
                 </li>
               ))}
             </ul>
-            <div className="gh-rise gh-rise-4" style={{ marginTop: 22, display: 'flex', gap: 14,
+            <div className="gh-rise gh-rise-4 gh-hero-actions" style={{ marginTop: 22, display: 'flex', gap: 14,
               flexWrap: 'wrap', alignItems: 'center' }}>
               <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward"
                 style={{ fontSize: 15, padding: '18px 32px' }}>{W.ctaBook}</ActionLink>
