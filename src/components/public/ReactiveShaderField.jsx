@@ -46,10 +46,10 @@ const fragmentShader = `
     spectrum = mix(spectrum, cyan, ripple * 0.56 + interference * 0.14);
     spectrum = mix(spectrum, fuchsia, aurora * 0.18);
 
-    float baseAlpha = mix(0.018, 0.011, uTheme);
-    float energyAlpha = uEnergy * (lens * 0.072 + ripple * 0.034);
+    float baseAlpha = mix(0.065, 0.040, uTheme);
+    float energyAlpha = uEnergy * (lens * 0.200 + ripple * 0.110);
     float ambientAlpha = interference * baseAlpha + aurora * baseAlpha * 0.8 + rail * baseAlpha;
-    float alpha = min(0.2, ambientAlpha + energyAlpha);
+    float alpha = min(0.48, ambientAlpha + energyAlpha);
 
     gl_FragColor = vec4(spectrum, alpha);
   }
@@ -84,8 +84,8 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
     let lastTime = performance.now()
 
     const pointer = { x: 0.54, y: 0.46, tx: 0.54, ty: 0.46 }
-    let energy = 0.065
-    let targetEnergy = 0.065
+    let energy = 0.08
+    let targetEnergy = 0.08
 
     function canAnimate() {
       return !disposed && visible && !reduced && !document.hidden && renderer
@@ -116,7 +116,7 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
       pointer.x += (pointer.tx - pointer.x) * pointerEase
       pointer.y += (pointer.ty - pointer.y) * pointerEase
       energy += (targetEnergy - energy) * (still ? 1 : 0.085)
-      targetEnergy = Math.max(0.06, targetEnergy * (still ? 1 : 0.96))
+      targetEnergy = Math.max(0.075, targetEnergy * (still ? 1 : 0.96))
 
       material.uniforms.uTime.value = time / 1000
       material.uniforms.uEnergy.value = energy
@@ -139,13 +139,13 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
       if (Number.isFinite(detail.clientX) && Number.isFinite(detail.clientY)) {
         mapPointer(detail.clientX, detail.clientY)
       }
-      targetEnergy = Math.max(targetEnergy, Math.min(0.76, detail.intensity || 0.42))
+      targetEnergy = Math.max(targetEnergy, Math.min(0.86, detail.intensity || 0.48))
       start()
     }
 
     function handleHostPointer(event) {
       mapPointer(event.clientX, event.clientY)
-      targetEnergy = Math.max(targetEnergy, 0.16)
+      targetEnergy = Math.max(targetEnergy, 0.22)
       start()
     }
 
