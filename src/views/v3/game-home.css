@@ -886,6 +886,7 @@
 .gh-pack-slot--3 { grid-column: span 6; }
 .gh-pack-slot--4,
 .gh-pack-slot--5 { grid-column: span 6; }
+.gh-pack-slot--6 { grid-column: 4 / span 6; }
 .gh-pack {
   position: relative;
   isolation: isolate;
@@ -1003,8 +1004,7 @@
 @media (max-width: 1180px) {
   .gh-nav { gap: 2px; }
   .gh-nav .gh-action { padding-inline: 14px; }
-  .gh-pack-slot--1, .gh-pack-slot--2, .gh-pack-slot--3, .gh-pack-slot--4 { grid-column: span 6; }
-  .gh-pack-slot--5 { grid-column: 4 / span 6; }
+  .gh-packs > .gh-pack-slot { grid-column: span 6; }
 }
 
 @media (max-width: 1080px) {
