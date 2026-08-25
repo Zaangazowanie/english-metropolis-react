@@ -345,6 +345,44 @@
   opacity: 0.9;
   mix-blend-mode: screen;
 }
+.em-login-motion-skyline {
+  transform-origin: 50% 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .em-login-motion-skyline {
+    animation: emLoginSkylinePan 17s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  }
+  .em-login-motion-skyline g:first-of-type rect {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: emLoginTowerBreathe 8.6s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  }
+  .em-login-motion-skyline g:first-of-type rect:nth-child(3n) { animation-duration: 11.4s; animation-delay: -4.2s; }
+  .em-login-motion-skyline g:first-of-type rect:nth-child(3n + 1) { animation-duration: 7.2s; animation-delay: -2.6s; }
+  .em-login-motion-skyline g:last-of-type rect {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: emLoginStarTravel 5.8s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  }
+  .em-login-motion-skyline g:last-of-type rect:nth-child(4n) { animation-duration: 8.4s; animation-delay: -6.1s; }
+  .em-login-motion-skyline g:last-of-type rect:nth-child(4n + 1) { animation-duration: 6.9s; animation-delay: -3.7s; }
+  .em-login-motion-skyline g:last-of-type rect:nth-child(4n + 2) { animation-duration: 10.2s; animation-delay: -8.4s; }
+}
+@keyframes emLoginSkylinePan {
+  from { transform: translate3d(-0.65%, 2px, 0) scale(1.006); }
+  to { transform: translate3d(0.65%, -3px, 0) scale(1.016); }
+}
+@keyframes emLoginTowerBreathe {
+  0% { transform: translate3d(0, 5px, 0) scaleY(0.975); opacity: 0.72; }
+  50% { opacity: 0.94; }
+  100% { transform: translate3d(0, -4px, 0) scaleY(1.02); opacity: 0.82; }
+}
+@keyframes emLoginStarTravel {
+  0% { transform: translate3d(-5px, 8px, 0) scale(0.58); opacity: 0.18; }
+  38% { opacity: 0.9; }
+  70% { transform: translate3d(4px, -5px, 0) scale(1.18); opacity: 0.58; }
+  100% { transform: translate3d(8px, -13px, 0) scale(0.72); opacity: 0.08; }
+}
 .em-login-spatial-layout,
 .em-login-spatial-card,
 .em-login-spatial-photo,
@@ -395,4 +433,6 @@
     transform: none !important;
   }
   .em-login-spatial-canvas { opacity: 0.58; }
+  .em-login-motion-skyline,
+  .em-login-motion-skyline rect { animation: none !important; }
 }

@@ -54,9 +54,9 @@ const fragmentShader = `
     vec2 pointer = vec2((uPointer.x - 0.5) * uAspect, uPointer.y - 0.5);
     vec2 delta = p - pointer;
     float distanceToPointer = length(delta);
-    float pointerWell = exp(-distanceToPointer * (5.4 - uFocus * 1.4));
+    float pointerWell = exp(-distanceToPointer * (16.0 - uFocus * 2.0));
 
-    float flow = fbm(uv * vec2(3.8, 2.6) + vec2(uTime * 0.045, -uTime * 0.032));
+    float flow = fbm(uv * vec2(3.8, 2.6) + vec2(uTime * 0.11, -uTime * 0.075));
     vec2 warped = uv;
     warped.x += (flow - 0.5) * (0.026 + uEnergy * 0.018);
     warped.y += sin(uv.x * 8.0 - uTime * 0.16) * 0.006;
@@ -65,12 +65,12 @@ const fragmentShader = `
     float ribbonB = sin(warped.x * -8.0 + warped.y * 21.0 + uTime * 0.24);
     float liquidRibbon = smoothstep(0.82, 1.0, ribbonA * 0.55 + ribbonB * 0.22 + 0.38);
 
-    float orbitRadius = 0.11 + uEnergy * 0.035 + sin(uTime * 0.7) * 0.006;
+    float orbitRadius = 0.038 + uEnergy * 0.014 + sin(uTime * 0.9) * 0.003;
     float orbit = exp(-abs(distanceToPointer - orbitRadius) * 72.0);
-    float secondOrbit = exp(-abs(distanceToPointer - orbitRadius * 1.72) * 54.0);
-    float ripple = (sin(distanceToPointer * 78.0 - uTime * 4.2) * 0.5 + 0.5) * pointerWell;
+    float secondOrbit = exp(-abs(distanceToPointer - orbitRadius * 1.85) * 66.0);
+    float ripple = (sin(distanceToPointer * 138.0 - uTime * 5.2) * 0.5 + 0.5) * pointerWell;
 
-    vec2 gridUv = warped * vec2(20.0, 12.0);
+    vec2 gridUv = warped * vec2(20.0, 12.0) + vec2(uTime * 0.32, uTime * 0.075);
     vec2 gridCell = abs(fract(gridUv) - 0.5);
     float gridLine = 1.0 - smoothstep(0.475, 0.5, max(gridCell.x, gridCell.y));
     gridLine *= smoothstep(0.2, 1.0, uv.y) * (0.25 + flow * 0.45);
