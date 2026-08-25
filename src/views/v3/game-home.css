@@ -1722,44 +1722,42 @@
 /* Alternating brand procession: the city skyline and Bajla cross the complete
    hero in separate passes while a cool silver tracer reveals each silhouette. */
 @keyframes em-procession-skyline-pass {
-  0% { opacity: 0; transform: translate3d(-48vw, 0, 0); }
-  3% { opacity: .9; }
-  43% { opacity: .9; transform: translate3d(118vw, 0, 0); }
-  47% { opacity: 0; transform: translate3d(118vw, 0, 0); }
-  48%, 100% { opacity: 0; transform: translate3d(-48vw, 0, 0); }
+  0% { opacity: 0; transform: translate3d(-105vw, -50%, 0); }
+  2% { opacity: .5; }
+  45% { opacity: .5; transform: translate3d(125vw, -50%, 0); }
+  48% { opacity: 0; transform: translate3d(125vw, -50%, 0); }
+  49%, 100% { opacity: 0; transform: translate3d(-105vw, -50%, 0); }
 }
 @keyframes em-procession-bajla-pass {
-  0%, 50% { opacity: 0; transform: translate3d(-18vw, 0, 0); }
-  53% { opacity: .96; }
-  94% { opacity: .96; transform: translate3d(118vw, 0, 0); }
-  98% { opacity: 0; transform: translate3d(118vw, 0, 0); }
-  99%, 100% { opacity: 0; transform: translate3d(-18vw, 0, 0); }
+  0%, 50% { opacity: 0; transform: translate3d(-62vw, -50%, 0); }
+  52% { opacity: .46; }
+  95% { opacity: .46; transform: translate3d(125vw, -50%, 0); }
+  98% { opacity: 0; transform: translate3d(125vw, -50%, 0); }
+  99%, 100% { opacity: 0; transform: translate3d(-62vw, -50%, 0); }
 }
 @keyframes em-procession-skyline-draw {
-  0% { opacity: 0; transform: scaleX(.025); }
-  5% { opacity: .72; }
-  36% { opacity: .62; transform: scaleX(1); }
-  43% { opacity: .18; transform: scaleX(1); }
-  47%, 100% { opacity: 0; transform: scaleX(1); }
+  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+  2% { opacity: .18; }
+  45% { opacity: .14; clip-path: inset(0 0 0 0); }
+  48%, 100% { opacity: 0; clip-path: inset(0 0 0 0); }
 }
 @keyframes em-procession-bajla-draw {
-  0%, 50% { opacity: 0; transform: scaleX(.04); }
-  54% { opacity: .78; }
-  87% { opacity: .66; transform: scaleX(1); }
-  94% { opacity: .18; transform: scaleX(1); }
-  98%, 100% { opacity: 0; transform: scaleX(1); }
+  0%, 50% { opacity: 0; clip-path: inset(0 100% 0 0); }
+  52% { opacity: .17; }
+  95% { opacity: .13; clip-path: inset(0 0 0 0); }
+  98%, 100% { opacity: 0; clip-path: inset(0 0 0 0); }
 }
 @keyframes em-procession-skyline-beam {
-  0% { opacity: 0; transform: translate3d(-140%, 0, 0) scaleY(.78); }
-  4% { opacity: .9; }
-  36% { opacity: .72; transform: translate3d(4200%, 0, 0) scaleY(1); }
-  42%, 100% { opacity: 0; transform: translate3d(4200%, 0, 0) scaleY(.82); }
+  0% { opacity: 0; background-position: -18% 50%; }
+  2% { opacity: .2; }
+  45% { opacity: .14; background-position: 118% 50%; }
+  48%, 100% { opacity: 0; background-position: 118% 50%; }
 }
 @keyframes em-procession-bajla-beam {
-  0%, 50% { opacity: 0; transform: translate3d(-140%, 0, 0) scaleY(.74); }
-  53% { opacity: .94; }
-  87% { opacity: .78; transform: translate3d(1180%, 0, 0) scaleY(1); }
-  94%, 100% { opacity: 0; transform: translate3d(1180%, 0, 0) scaleY(.8); }
+  0%, 50% { opacity: 0; background-position: -18% 50%; }
+  52% { opacity: .19; }
+  95% { opacity: .13; background-position: 118% 50%; }
+  98%, 100% { opacity: 0; background-position: 118% 50%; }
 }
 
 .gh-hero-grid > .em-hero-procession,
@@ -1790,17 +1788,17 @@
 }
 
 .em-hero-procession__pass--skyline {
-  bottom: -12%;
-  width: clamp(540px, 44vw, 840px);
+  top: 50%;
+  width: clamp(1100px, 92vw, 1800px);
   aspect-ratio: 1145 / 585;
-  animation: em-procession-skyline-pass 30s linear infinite;
+  animation: em-procession-skyline-pass 240s linear infinite;
 }
 
 .em-hero-procession__pass--bajla {
-  bottom: 4%;
-  width: clamp(112px, 10vw, 168px);
+  top: 50%;
+  width: clamp(440px, 38vw, 720px);
   aspect-ratio: 1;
-  animation: em-procession-bajla-pass 30s linear infinite;
+  animation: em-procession-bajla-pass 240s linear infinite;
 }
 
 .em-hero-procession__body,
@@ -1814,86 +1812,76 @@
 
 .em-hero-procession__pass--skyline .em-hero-procession__body {
   background-image: url('/em-skyline.png');
-  opacity: .15;
-  filter: grayscale(.72) saturate(.62) brightness(1.55)
-    drop-shadow(0 0 20px rgba(205, 211, 235, .18));
+  opacity: 0;
+  filter: grayscale(1) brightness(1.42);
 }
 
 .em-hero-procession__pass--bajla .em-hero-procession__body {
   background-image: url('/bajla.png');
-  opacity: .28;
-  filter: saturate(.78) brightness(1.08)
-    drop-shadow(0 0 24px rgba(202, 196, 255, .24));
+  opacity: 0;
+  filter: grayscale(.82) saturate(.3) brightness(1.18);
 }
 
 .em-hero-procession__trace {
-  transform-origin: 0 50%;
-  background:
-    linear-gradient(90deg,
-      rgba(181, 188, 208, .08),
-      rgba(248, 250, 255, .9) 52%,
-      rgba(192, 201, 224, .24));
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
   filter:
-    drop-shadow(1px 0 0 rgba(250, 252, 255, .7))
-    drop-shadow(-1px 0 0 rgba(176, 185, 210, .55))
-    drop-shadow(0 0 8px rgba(223, 228, 245, .42));
+    drop-shadow(0 0 2px rgba(250, 252, 255, .34))
+    drop-shadow(0 0 7px rgba(187, 197, 224, .14));
 }
 
 .em-hero-procession__pass--skyline .em-hero-procession__trace {
-  -webkit-mask: url('/em-skyline.png') center / contain no-repeat;
-  mask: url('/em-skyline.png') center / contain no-repeat;
-  animation: em-procession-skyline-draw 30s linear infinite;
+  background-image: url('/em-skyline-outline.png');
+  animation: em-procession-skyline-draw 240s linear infinite;
 }
 
 .em-hero-procession__pass--bajla .em-hero-procession__trace {
-  -webkit-mask: url('/bajla.png') center / contain no-repeat;
-  mask: url('/bajla.png') center / contain no-repeat;
-  animation: em-procession-bajla-draw 30s linear infinite;
+  background-image: url('/bajla-outline.png');
+  animation: em-procession-bajla-draw 240s linear infinite;
 }
 
 .em-hero-procession__beam {
   position: absolute;
-  top: -8%;
-  bottom: -8%;
-  left: 0;
-  width: clamp(12px, 2.4vw, 24px);
-  border-radius: 999px;
+  inset: 0;
   opacity: 0;
   background: linear-gradient(90deg,
     transparent,
-    rgba(236, 240, 252, .88) 43%,
-    #fff 50%,
-    rgba(183, 193, 220, .72) 57%,
+    rgba(220, 226, 243, .16) 43%,
+    rgba(252, 253, 255, .7) 50%,
+    rgba(184, 194, 221, .12) 57%,
     transparent);
-  box-shadow:
-    0 0 8px rgba(239, 242, 255, .8),
-    0 0 26px rgba(183, 193, 224, .4);
-  filter: blur(.35px);
-  transform-origin: 50% 50%;
-  will-change: transform, opacity;
+  background-position: -18% 50%;
+  background-repeat: no-repeat;
+  background-size: 16% 100%;
+  filter: drop-shadow(0 0 5px rgba(235, 239, 252, .22));
+  will-change: opacity, background-position;
 }
 
 .em-hero-procession__pass--skyline .em-hero-procession__beam {
-  animation: em-procession-skyline-beam 30s linear infinite;
+  -webkit-mask: url('/em-skyline-outline.png') center / contain no-repeat;
+  mask: url('/em-skyline-outline.png') center / contain no-repeat;
+  animation: em-procession-skyline-beam 240s linear infinite;
 }
 
 .em-hero-procession__pass--bajla .em-hero-procession__beam {
-  width: clamp(10px, 1.4vw, 16px);
-  animation: em-procession-bajla-beam 30s linear infinite;
+  -webkit-mask: url('/bajla-outline.png') center / contain no-repeat;
+  mask: url('/bajla-outline.png') center / contain no-repeat;
+  animation: em-procession-bajla-beam 240s linear infinite;
 }
 
 .gh-day .em-hero-procession__pass {
   mix-blend-mode: multiply;
 }
-.gh-day .em-hero-procession__pass--skyline .em-hero-procession__body { opacity: .08; }
-.gh-day .em-hero-procession__pass--bajla .em-hero-procession__body { opacity: .16; }
-.gh-day .em-hero-procession__trace { filter: drop-shadow(0 0 5px rgba(92, 99, 124, .3)); }
+.gh-day .em-hero-procession__pass--skyline .em-hero-procession__body { opacity: 0; }
+.gh-day .em-hero-procession__pass--bajla .em-hero-procession__body { opacity: 0; }
+.gh-day .em-hero-procession__trace { filter: drop-shadow(0 0 3px rgba(72, 79, 103, .12)); }
 .gh-day .em-hero-procession__beam {
   background: linear-gradient(90deg,
     transparent,
-    rgba(104, 111, 137, .5) 43%,
-    rgba(249, 250, 255, .9) 50%,
-    rgba(91, 98, 126, .46) 57%,
+    rgba(104, 111, 137, .08) 43%,
+    rgba(249, 250, 255, .38) 50%,
+    rgba(91, 98, 126, .07) 57%,
     transparent);
 }
 
@@ -1904,12 +1892,12 @@
     border-radius: 22px;
   }
   .em-hero-procession__pass--skyline {
-    bottom: 2%;
-    width: clamp(440px, 88vw, 650px);
+    top: 52%;
+    width: clamp(760px, 156vw, 1080px);
   }
   .em-hero-procession__pass--bajla {
-    bottom: 20%;
-    width: clamp(96px, 22vw, 132px);
+    top: 52%;
+    width: clamp(360px, 72vw, 520px);
   }
 }
 
@@ -1921,9 +1909,9 @@
   }
   .em-hero-procession__pass--skyline {
     left: 50%;
-    bottom: -10%;
-    opacity: .32;
-    transform: translate3d(-50%, 0, 0);
+    top: 50%;
+    opacity: .22;
+    transform: translate3d(-50%, -50%, 0);
   }
   .em-hero-procession__pass--bajla,
   .em-hero-procession__trace,
