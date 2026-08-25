@@ -1804,13 +1804,14 @@
   pointer-events: none;
   background: linear-gradient(90deg,
     transparent 0%,
-    rgba(222, 230, 255, .03) 32%,
-    rgba(241, 245, 255, .22) 46%,
-    rgba(255, 255, 255, .42) 50%,
-    rgba(241, 245, 255, .22) 54%,
-    rgba(222, 230, 255, .03) 68%,
+    rgba(222, 230, 255, .06) 30%,
+    rgba(241, 245, 255, .44) 44%,
+    rgba(255, 255, 255, .86) 49%,
+    rgba(255, 255, 255, .86) 51%,
+    rgba(241, 245, 255, .44) 56%,
+    rgba(222, 230, 255, .06) 70%,
     transparent 100%);
-  filter: blur(13px);
+  filter: blur(8px);
   will-change: transform, opacity;
   animation: em-procession-skyline-scan 12s linear infinite;
 }
