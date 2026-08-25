@@ -24,6 +24,8 @@ import { PRIVATE_PACKAGES } from '../public/packages.js'
 import { cart, parsePricePLN } from '../public/cart-store.js'
 import CartUI from '../public/CartUI.jsx'
 import HeroPracticePreview from './HeroPracticePreview.jsx'
+import MetroSignalField from '../../components/public/MetroSignalField.jsx'
+import { clearPointerPolish, setPointerPolish } from '../../components/public/motionPolish.js'
 const ArcadeCityBackdrop = lazy(() => import('./ArcadeCityBackdrop.jsx'))
 import './game-home.css'
 
@@ -69,9 +71,11 @@ function ActionLink({ to, href, children, variant = 'ghost', size = 'md', icon,
   </>
 
   if (to) {
-    return <Link to={to} className={classes} style={style} onClick={onClick}>{content}</Link>
+    return <Link to={to} className={classes} style={style} onClick={onClick}
+      onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>{content}</Link>
   }
-  return <a href={href} className={classes} style={style} onClick={onClick}>{content}</a>
+  return <a href={href} className={classes} style={style} onClick={onClick}
+    onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>{content}</a>
 }
 
 function DeferredMetroCity({ reduced, night, label }) {
@@ -261,14 +265,14 @@ function HeroArcade({ badge, reduced, lang }) {
   const [shown, setShown] = useState(0)
   const [exiting, setExiting] = useState(false)
   const [backdropReady, setBackdropReady] = useState(false)
-  const dirRef = useRef(1)
+  const [direction, setDirection] = useState(1)
   const swapTimer = useRef(null)
   const activeGame = HERO_GAMES[active]
   const tabsRef = useRef(null)
   const arcadeRef = useRef(null)
   const switchTo = (next) => {
     if (next === active) return
-    dirRef.current = next > active ? 1 : -1
+    setDirection(next > active ? 1 : -1)
     setActive(next)
     clearTimeout(swapTimer.current)
     if (reduced) { setShown(next); setExiting(false); return }
@@ -354,7 +358,7 @@ function HeroArcade({ badge, reduced, lang }) {
                 <ArcadeCityBackdrop reduced={reduced}/>
               </Suspense>
             )}
-            <div key={HERO_GAMES[shown].key} data-dir={dirRef.current}
+            <div key={HERO_GAMES[shown].key} data-dir={direction}
               className={`gh-arcade-body${exiting ? ' is-exiting' : ''}`}>
               <HeroPracticePreview game={HERO_GAMES[shown].key} lang={lang}/>
             </div>
@@ -537,7 +541,7 @@ class ShellBoundary extends Component {
       return (
         <div style={{ padding: 48, textAlign: 'center', color: DUSK.dim, fontFamily: FONT.body }}>
           <div style={{ fontSize: 34, marginBottom: 12 }}>🛠️</div>
-          This station is under maintenance — pick another game.
+          This station is under maintenance - pick another game.
         </div>
       )
     }
@@ -699,7 +703,7 @@ function GameCard({ g, color, T, onPlay, index, soon }) {
   return (
     <button type="button" className="gh-card gh-glass" disabled={soon}
       onClick={soon ? undefined : () => onPlay(g)}
-      aria-label={soon ? `${g.title} — arriving soon` : `Play ${g.title}`}
+      aria-label={soon ? `${g.title} - arriving soon` : `Play ${g.title}`}
       style={{ textAlign: 'left', cursor: soon ? 'default' : 'pointer', borderRadius: 16,
         border: `1px solid ${T.border}`, padding: '18px 18px 16px',
         color: T.text, fontFamily: FONT.body, opacity: soon ? 0.55 : 1,
@@ -838,7 +842,8 @@ export default function GameHome() {
 
       <div className="gh-shell" style={{ position: 'relative', zIndex: 2, maxWidth: 1840, margin: '0 auto', padding: '0 24px' }}>
         {/* ── Header ── */}
-        <header className="gh-header gh-glass gh-rise">
+        <header className="gh-header gh-glass gh-rise" onPointerMove={setPointerPolish}
+          onPointerLeave={clearPointerPolish}>
           <Link to="/" className="gh-brand" aria-label="English Metro home">
             <Skyline size={30}/>
             <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 19, letterSpacing: '-0.02em' }}>
@@ -878,7 +883,8 @@ export default function GameHome() {
         {/* ── Hero: live lessons first, the city as your practice ground ── */}
         <section className="gh-hero-grid" style={{ display: 'grid',
           gridTemplateColumns: 'minmax(0, 1.02fr) minmax(0, 0.98fr)',
-          gap: 52, alignItems: 'center', padding: '46px 0 64px' }}>
+          gap: 52, alignItems: 'center', padding: '30px 0 44px' }}>
+          <MetroSignalField className="gh-hero-signal" mode={night ? 'dark' : 'light'} density={64}/>
           <div className="gh-hero-copy" style={{ minWidth: 0 }}>
             <div className="gh-rise gh-rise-1 gh-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 10,
               marginBottom: 20 }}>
@@ -889,25 +895,25 @@ export default function GameHome() {
               </span>
             </div>
             <h1 className="gh-rise gh-rise-2" style={{ fontFamily: FONT.display, fontWeight: 700,
-              fontSize: 'clamp(42px, 6.4vw, 82px)', lineHeight: 0.98, letterSpacing: '-0.04em', margin: 0 }}>
+              fontSize: 'clamp(40px, 5.45vw, 70px)', lineHeight: 0.98, letterSpacing: '-0.04em', margin: 0 }}>
               {W.h1a}
               <br/>
               <span className="gh-gradient-word" style={{ background: G.brand, WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{W.h1b}</span>
               <span style={{ color: T.ember }}>.</span>
             </h1>
-            <ul className="gh-rise gh-rise-3" style={{ marginTop: 24, display: 'grid', gap: 12,
-              padding: 0, margin: '24px 0 0', listStyle: 'none', maxWidth: 540 }}>
+            <ul className="gh-rise gh-rise-3" style={{ marginTop: 18, display: 'grid', gap: 8,
+              padding: 0, margin: '18px 0 0', listStyle: 'none', maxWidth: 540 }}>
               {W.heroPoints.map((point, i) => (
                 <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10,
-                  fontSize: 'clamp(15px, 1.6vw, 17px)', color: T.textDim, lineHeight: 1.5 }}>
+                  fontSize: 'clamp(14px, 1.3vw, 16px)', color: T.textDim, lineHeight: 1.42 }}>
                   <span className="material-symbols-outlined" aria-hidden
                     style={{ fontSize: 19, color: T.emerald, marginTop: 2 }}>check_circle</span>
                   <span>{point}</span>
                 </li>
               ))}
             </ul>
-            <div className="gh-rise gh-rise-4" style={{ marginTop: 30, display: 'flex', gap: 14,
+            <div className="gh-rise gh-rise-4" style={{ marginTop: 22, display: 'flex', gap: 14,
               flexWrap: 'wrap', alignItems: 'center' }}>
               <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward"
                 style={{ fontSize: 15, padding: '18px 32px' }}>{W.ctaBook}</ActionLink>
@@ -924,8 +930,9 @@ export default function GameHome() {
 
           </div>
 
-          <div className="gh-rise gh-rise-3 gh-hero-stage-wrap" style={{ minWidth: 0 }}>
-            <div className="gh-photo-frame gh-photo-frame--wide">
+          <div className="gh-rise gh-rise-3 gh-hero-stage-wrap" style={{ minWidth: 0 }}
+            onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
+            <div className="gh-photo-frame gh-photo-frame--wide gh-spatial-frame">
               <img src="/home/photo-office-2607.webp" alt={W.officeAlt} width="1600" height="900"/>
               <span className="gh-float-chip gh-float-chip--a">
                 <span className="material-symbols-outlined" aria-hidden>diversity_3</span>
@@ -1119,7 +1126,9 @@ export default function GameHome() {
               return (
                 <Reveal key={p.id} delay={i * 80} style={{ height: '100%' }}
                   className={`gh-pack-slot gh-pack-slot--${i + 1}${hot ? ' is-featured' : ''}`}>
-                  <div className={`gh-pack gh-glass${hot ? ' is-featured' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column',
+                  <div className={`gh-pack gh-glass gh-spatial-card${hot ? ' is-featured' : ''}`}
+                    onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+                    style={{ height: '100%', display: 'flex', flexDirection: 'column',
                     border: hot ? '1px solid transparent' : `1px solid ${T.border}`,
                     background: hot
                       ? `linear-gradient(${night ? 'rgba(22,10,44,0.92)' : 'rgba(255,255,255,0.96)'}, ${night ? 'rgba(22,10,44,0.92)' : 'rgba(255,255,255,0.96)'}) padding-box, ${G.brand} border-box`
@@ -1162,7 +1171,9 @@ export default function GameHome() {
             </h2>
           </Reveal>
           <div className="gh-doors" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-            <a href={WORLD_URL} className="gh-door gh-door--world gh-glass" style={{ textDecoration: 'none',
+            <a href={WORLD_URL} className="gh-door gh-door--world gh-glass gh-spatial-card"
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+              style={{ textDecoration: 'none',
               border: `1px solid ${T.border}`, color: T.text }}>
               <div className="gh-door-ribbon">BETA</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
@@ -1178,7 +1189,8 @@ export default function GameHome() {
                 Start exploring <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_forward</span>
               </span>
             </a>
-            <button type="button" className="gh-door gh-door--practice gh-glass" onClick={scrollToPractice}
+            <button type="button" className="gh-door gh-door--practice gh-glass gh-spatial-card" onClick={scrollToPractice}
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
               style={{ textAlign: 'left', cursor: 'pointer', border: `1px solid ${T.border}`, color: T.text,
                 fontFamily: FONT.body }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>

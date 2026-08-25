@@ -46,6 +46,8 @@
 }
 
 .gh-action {
+  --motion-x: 50%;
+  --motion-y: 50%;
   position: relative;
   min-height: 44px;
   display: inline-flex;
@@ -62,8 +64,18 @@
   transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms ease,
     border-color 220ms ease, background 220ms ease;
 }
+.gh-action::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.28), transparent 34%);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
 .gh-action > * { position: relative; z-index: 1; }
-.gh-action .material-symbols-outlined { font-size: 17px; }
+.gh-action .material-symbols-outlined { font-size: 17px; transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1); }
 .gh-action--sm { min-height: 38px; padding: 8px 14px; font-size: 12px; }
 .gh-action--md { padding: 11px 20px; }
 .gh-action--lg { min-height: 52px; padding: 16px 28px; font-size: 14px; gap: 10px; }
@@ -80,7 +92,7 @@
 .gh-action--primary {
   color: #fff;
   letter-spacing: 0.055em;
-  background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 54%, #f472b6 100%);
+  background: linear-gradient(135deg, #5b21b6 0%, #86198f 54%, #9f1239 100%);
   border-color: rgba(255, 255, 255, 0.24);
   box-shadow: 0 14px 34px -15px rgba(217, 70, 239, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.32);
 }
@@ -93,6 +105,9 @@
   transition: transform 650ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .gh-action:hover { transform: translateY(-2px); }
+.gh-action:hover::after { opacity: 1; }
+.gh-action:hover .material-symbols-outlined:last-child { transform: translateX(3px) scale(1.04); }
+.gh-action:active { transform: translateY(1px) scale(0.985); }
 .gh-action--ghost:hover { background: var(--gh-glass-bg); }
 .gh-action--primary:hover { box-shadow: 0 18px 46px -14px rgba(217, 70, 239, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
 .gh-action--primary:hover::before { transform: translateX(125%); }
@@ -470,6 +485,8 @@
 .gh-motion-line--two { top: 58%; animation-delay: -13s; animation-duration: 25s; }
 
 .gh-header {
+  --motion-x: 50%;
+  --motion-y: 50%;
   position: sticky;
   top: max(12px, env(safe-area-inset-top));
   z-index: 40;
@@ -482,6 +499,18 @@
   border: 1px solid var(--gh-glass-border);
   border-radius: 20px;
 }
+.gh-root .gh-action--primary { color: #fff; }
+.gh-root .gh-action--secondary { color: var(--gh-text); }
+.gh-header::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(280px circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.17), transparent 68%);
+  opacity: 0.78;
+}
+.gh-header > * { position: relative; z-index: 1; }
 .gh-brand {
   min-width: max-content;
   min-height: 44px;
@@ -523,7 +552,20 @@
   0%, 100% { transform: scaleX(0.72); opacity: 0.55; }
   50% { transform: scaleX(1); opacity: 1; }
 }
-.gh-hero-grid { perspective: 1400px; }
+.gh-hero-grid { position: relative; isolation: isolate; perspective: 1400px; }
+.gh-hero-copy,
+.gh-hero-stage-wrap { position: relative; z-index: 1; }
+.gh-hero-signal {
+  position: absolute;
+  inset: -80px -9vw -120px;
+  z-index: 0;
+  width: calc(100% + 18vw);
+  height: calc(100% + 200px);
+  pointer-events: none;
+  opacity: 0.78;
+  mask-image: linear-gradient(90deg, rgba(0,0,0,0.25), #000 34%, #000 88%, transparent);
+}
+.gh-day .gh-hero-signal { opacity: 0.58; }
 .gh-gradient-word {
   background-size: 180% 180% !important;
   animation: gh-gradient-drift 5.5s ease-in-out infinite alternate;
@@ -545,7 +587,29 @@
   opacity: 0;
   animation: gh-chip-in 700ms cubic-bezier(0.16, 1, 0.3, 1) var(--gh-chip-delay) both;
 }
-.gh-hero-stage-wrap { transform-style: preserve-3d; }
+.gh-hero-stage-wrap {
+  --motion-x: 50%;
+  --motion-y: 50%;
+  --motion-tilt-x: 0deg;
+  --motion-tilt-y: 0deg;
+  transform-style: preserve-3d;
+}
+.gh-photo-frame.gh-spatial-frame {
+  transform: perspective(1200px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateZ(0);
+  transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 500ms ease;
+}
+.gh-spatial-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.24), transparent 34%);
+  mix-blend-mode: soft-light;
+}
+.gh-hero-stage-wrap:hover .gh-spatial-frame {
+  box-shadow: 0 46px 120px -42px rgba(139,92,246,0.45), 0 22px 60px -36px rgba(217,70,239,0.52);
+}
 .gh-arcade-stage { animation: gh-stage-swap 480ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 .gh-text-link { transition: color 180ms ease, transform 220ms cubic-bezier(0.16, 1, 0.3, 1); }
 .gh-text-link:hover { transform: translateY(-1px); }
@@ -835,14 +899,40 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(circle at 100% 0%, rgba(139,92,246,0.18), transparent 42%);
+  background: radial-gradient(circle at var(--motion-x, 100%) var(--motion-y, 0%), rgba(139,92,246,0.22), transparent 42%);
 }
 .gh-pack.is-featured::after {
-  background: radial-gradient(circle at 100% 0%, rgba(217,70,239,0.3), transparent 45%),
+  background: radial-gradient(circle at var(--motion-x, 100%) var(--motion-y, 0%), rgba(217,70,239,0.34), transparent 45%),
     linear-gradient(145deg, rgba(255,255,255,0.08), transparent 36%);
 }
-.gh-pack.is-featured { transform: translateY(-4px); }
-.gh-pack.is-featured:hover { transform: translateY(-9px); }
+.gh-spatial-card {
+  --motion-x: 50%;
+  --motion-y: 50%;
+  --motion-tilt-x: 0deg;
+  --motion-tilt-y: 0deg;
+  transform: perspective(1100px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y));
+  transform-style: preserve-3d;
+}
+.gh-spatial-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.14), transparent 34%);
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+.gh-spatial-card:hover::before,
+.gh-spatial-card:focus-within::before { opacity: 1; }
+.gh-pack.gh-spatial-card:hover {
+  transform: perspective(1100px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateY(-5px);
+}
+.gh-door.gh-spatial-card:hover {
+  transform: perspective(1100px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateY(-4px);
+}
+.gh-pack.is-featured { transform: perspective(1100px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateY(-4px); }
+.gh-pack.is-featured:hover { transform: perspective(1100px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateY(-9px); }
 
 .gh-door--world { background-color: var(--gh-glass-bg); background-image: linear-gradient(135deg, rgba(139,92,246,0.18), transparent 72%); }
 .gh-door--practice { background-color: var(--gh-glass-bg); background-image: linear-gradient(135deg, rgba(52,211,153,0.14), transparent 72%); }
@@ -1083,6 +1173,18 @@
 }
 
 .gh-lessons-media { position: relative; min-width: 0; }
+.gh-lessons-media.gh-sr { transform: translate3d(-42px, 0, 0) scale(0.985); clip-path: inset(0 10% 0 0 round 24px); }
+.gh-lessons-copy.gh-sr { transform: translate3d(42px, 0, 0); }
+.gh-city-copy.gh-sr { transform: translate3d(-36px, 0, 0); }
+.gh-three-reveal.gh-sr { transform: translate3d(0, 34px, 0) scale(0.97); }
+.gh-lessons-media.gh-sr.on,
+.gh-lessons-copy.gh-sr.on,
+.gh-city-copy.gh-sr.on,
+.gh-three-reveal.gh-sr.on,
+.gh-still .gh-lessons-media.gh-sr,
+.gh-still .gh-lessons-copy.gh-sr,
+.gh-still .gh-city-copy.gh-sr,
+.gh-still .gh-three-reveal.gh-sr { transform: none; clip-path: inset(0 0 0 0 round 24px); }
 .gh-photo-frame {
   position: relative;
   border-radius: 24px;
@@ -1175,6 +1277,15 @@
 @media (prefers-reduced-motion: reduce) {
   .gh-photo-frame--side, .gh-float-chip { animation: none; }
   .gh-photo-frame img { transition: none; }
+  .gh-spatial-frame,
+  .gh-spatial-card { transform: none !important; transition: none !important; }
+  .gh-hero-signal { opacity: 0.32; }
+}
+
+@media (max-width: 900px) {
+  .gh-hero-signal { inset: -40px -20vw -80px; width: 140%; opacity: 0.48; }
+  .gh-spatial-frame,
+  .gh-spatial-card { transform: none; }
 }
 
 /* wide photo banner: cap height so it never dominates the viewport, and give
