@@ -540,6 +540,23 @@ function DayClouds() {
   )
 }
 
+function HeroProcession() {
+  return (
+    <div className="em-hero-procession" aria-hidden="true">
+      <div className="em-hero-procession__pass em-hero-procession__pass--skyline">
+        <span className="em-hero-procession__body"/>
+        <span className="em-hero-procession__trace"/>
+        <span className="em-hero-procession__beam"/>
+      </div>
+      <div className="em-hero-procession__pass em-hero-procession__pass--bajla">
+        <span className="em-hero-procession__body"/>
+        <span className="em-hero-procession__trace"/>
+        <span className="em-hero-procession__beam"/>
+      </div>
+    </div>
+  )
+}
+
 
 // ── Error boundary around lazy-loaded shells ───────────────────────────────
 class ShellBoundary extends Component {
@@ -903,6 +920,7 @@ export default function GameHome() {
           gridTemplateColumns: 'minmax(0, 1.02fr) minmax(0, 0.98fr)',
           gap: 52, alignItems: 'center', padding: '30px 0 44px' }}>
           <ReactiveShaderField className="gh-reactive-shader" mode={night ? 'dark' : 'light'}/>
+          <HeroProcession/>
           <div className="gh-hero-copy" style={{ minWidth: 0 }}>
             <div className="gh-rise gh-rise-1 gh-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 10,
               marginBottom: 20 }}>
