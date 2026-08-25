@@ -50,24 +50,11 @@ const PACKAGES = [...PRIVATE_PACKAGES, ...SPECIALIST_PACKAGES, ...COMPANY_PACKAG
 
 const SUMMER_COURSES = [
   {
-    id: 'august',
-    name: 'August Summer Course',
-    price: '200 PLN / student',
-    detail: 'August only - 4 weekly lessons - max 4 students',
-  },
-  {
     id: 'september',
-    name: 'September Summer Course',
+    name: 'September Group Course',
     price: '400 PLN / student / month',
     pricePl: '400 PLN / osoba / miesiąc',
-    detail: 'September only - 4 weekly lessons - max 4 students',
-  },
-  {
-    id: 'two-month-bundle',
-    name: 'August + September Bundle',
-    price: '600 PLN / student',
-    pricePl: '600 PLN / osoba',
-    detail: 'August and September - 8 weekly lessons - max 4 students',
+    detail: 'September only - 2 lessons per week - 8 lessons - max 4 students',
   },
 ]
 
@@ -75,7 +62,7 @@ const FORMATS = [
   { id: 'one-to-one', label: '1:1', detail: 'Private lessons' },
   { id: 'specialist', label: 'Specialist', detail: 'Exam / business' },
   { id: 'company', label: 'Company', detail: 'Team of up to 5' },
-  { id: 'team', label: 'Group', detail: 'August / September, max 4' },
+  { id: 'team', label: 'Group', detail: 'September, max 4' },
 ]
 
 const POLICIES = [
@@ -203,17 +190,9 @@ const PACKAGE_PL = {
 }
 
 const COURSE_PL = {
-  august: {
-    name: 'Kurs sierpniowy',
-    detail: 'Tylko sierpień - 4 lekcje raz w tygodniu - maks. 4 osoby',
-  },
   september: {
     name: 'Kurs wrześniowy',
-    detail: 'Tylko wrzesień - 4 lekcje raz w tygodniu - maks. 4 osoby',
-  },
-  'two-month-bundle': {
-    name: 'Pakiet sierpień + wrzesień',
-    detail: 'Sierpień i wrzesień - 8 lekcji raz w tygodniu - maks. 4 osoby',
+    detail: 'Tylko wrzesień - 2 lekcje w tygodniu - 8 lekcji - maks. 4 osoby',
   },
 }
 
@@ -221,7 +200,7 @@ const FORMAT_PL = {
   'one-to-one': { label: '1:1', detail: 'Lekcje indywidualne' },
   specialist: { label: 'Specjalistyczne', detail: 'Egzamin / biznes' },
   company: { label: 'Dla firm', detail: 'Grupa do 5 osób' },
-  team: { label: 'Grupa', detail: 'Sierpień / wrzesień, maks. 4' },
+  team: { label: 'Grupa', detail: 'Wrzesień, maks. 4' },
 }
 
 const POLICY_PL = {
@@ -646,13 +625,13 @@ export default function LessonPricingSignup() {
                 <button
                   type="button"
                   className="lp-add-cart"
-                  data-added={justAdded === pkg.id}
-                  onClick={() => addToCart(pkg, { pacePl: PACKAGE_PL[pkg.id]?.pace || pkg.pace })}
+                  onClick={() => {
+                    choosePackage(pkg.id, 'company')
+                    signupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }}
                 >
-                  <span className="material-symbols-outlined" aria-hidden>
-                    {justAdded === pkg.id ? 'check' : 'add_shopping_cart'}
-                  </span>
-                  {justAdded === pkg.id ? t('Added', 'Dodano') : t('Add to cart', 'Do koszyka')}
+                  <span className="material-symbols-outlined" aria-hidden>business_center</span>
+                  {t('Prepare company enquiry', 'Przygotuj zapytanie firmowe')}
                 </button>
               </article>
             ))}
@@ -664,16 +643,16 @@ export default function LessonPricingSignup() {
         <div className="lp-section-head">
           <div>
             <p className="lp-section-label">{t('Group lessons', 'Lekcje grupowe')}</p>
-            <h2 id="summer-title">{t('August and September group courses.', 'Kursy grupowe w sierpniu i wrześniu.')}</h2>
+            <h2 id="summer-title">{t('September group courses.', 'Kursy grupowe we wrześniu.')}</h2>
           </div>
           <p>
             {t(
-              'Summer lessons are group courses only: B1 pre, B1 inter, B2, and B2/C1. Choose August, September, or both. Each group is capped at 4 students and each lesson is 60 minutes.',
-              'Lekcje wakacyjne są kursami grupowymi: B1 pre, B1 inter, B2 i B2/C1. Wybierz sierpień, wrzesień albo oba miesiące. Każda grupa ma maksymalnie 4 osoby, a lekcja trwa 60 minut.',
+              'Group courses run in four levels: B1 pre, B1 inter, B2, and B2/C1. September runs twice a week for the month. Each group is capped at 4 students and each lesson is 60 minutes.',
+              'Kursy grupowe prowadzimy na czterech poziomach: B1 pre, B1 inter, B2 i B2/C1. Wrzesień to dwie lekcje w tygodniu przez cały miesiąc. Każda grupa liczy maksymalnie 4 osoby, a lekcja trwa 60 minut.',
             )}
           </p>
         </div>
-        <div className="lp-course-grid lp-course-grid-four">
+        <div className="lp-course-grid">
           {SUMMER_COURSES.map((course) => (
             <article key={course.id} className="lp-course-card lp-course-card-summer"
               onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>

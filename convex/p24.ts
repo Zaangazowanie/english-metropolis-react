@@ -18,11 +18,9 @@ const CATALOG: Record<string, { name: string; lessons: number; pricePLN: number 
   specialist: { name: "Specialist Sprint", lessons: 6, pricePLN: 900 },
   "specialist-12": { name: "Specialist Track", lessons: 12, pricePLN: 1560 },
   "specialist-24": { name: "Specialist Mastery", lessons: 24, pricePLN: 2640 },
-  "company-24": { name: "Company Team 24", lessons: 24, pricePLN: 4800 },
-  "company-48": { name: "Company Team 48", lessons: 48, pricePLN: 6080 },
-  august: { name: "August Summer Course", lessons: 4, pricePLN: 200 },
-  september: { name: "September Summer Course", lessons: 4, pricePLN: 400 },
-  "two-month-bundle": { name: "August + September Bundle", lessons: 8, pricePLN: 600 },
+  // Company courses are prepared as enquiries and invoiced after schedule confirmation.
+  // August and the two-month bundle were withdrawn on 2026-08-10.
+  september: { name: "September Group Course", lessons: 8, pricePLN: 400 },
 };
 
 const ITEM_SHAPE = v.object({
