@@ -8,6 +8,7 @@ import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Field, Glass, Skyline } from '../../design/v3/primitives.jsx'
 import { useI18n } from '../../i18n'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
+import LoginSpatialField from './LoginSpatialField.jsx'
 import '../login-v2.css'
 
 // Google OAuth client ID — same client as Mission Control. Authorized JS
@@ -279,7 +280,8 @@ export default function LoginV3() {
   }
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden',
+    <div className={branded ? 'em-login-page' : 'em-login-page em-login-spatial-root'}
+      style={{ position: 'relative', minHeight: '100dvh', overflow: 'hidden',
       background: branded ? '#081226' : (isDay ? '#FBF7F2' : '#050309'),
       color: T.text, fontFamily: FONT.body }}>
       <div aria-hidden style={{ position: 'absolute', inset: 0,
@@ -296,9 +298,10 @@ export default function LoginV3() {
           : `radial-gradient(ellipse 140% 80% at 50% 120%, rgba(139,92,246,0.28), transparent 60%),
              radial-gradient(ellipse 80% 60% at 80% 20%, rgba(217,70,239,0.18), transparent 60%),
              linear-gradient(180deg, #030208 0%, #0A0618 45%, #120929 100%)` }}/>
+      {!branded && <LoginSpatialField dark={!isDay}/>}
       {!branded && <SkylineHero isDay={isDay}/>}
 
-      <div style={{ position: 'relative', zIndex: 2, minHeight: '100vh',
+      <div className="em-login-spatial-layout" style={{ position: 'relative', zIndex: 2, minHeight: '100dvh',
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : '1fr 460px',
         alignItems: 'center',
@@ -307,7 +310,7 @@ export default function LoginV3() {
 
         {/* minWidth:0 — without it the grid track defaults to min-width:auto and
             expands to fit the widest content (slogan / hero), overflowing mobile. */}
-        <div style={{ minWidth: 0 }}>
+        <div className="em-login-spatial-copy" style={{ minWidth: 0 }}>
           {branded ? (
             <div className="ca-login-hero">
               <div style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 700,
@@ -345,7 +348,7 @@ export default function LoginV3() {
             {t('login.slogan')}
           </p>
           {!isMobile && (
-            <div className="emlv3-photo">
+            <div className="emlv3-photo em-login-spatial-photo">
               <img className="eml-photo-img" src="/home/photo-login.webp" alt="" loading="eager"/>
               <div className="eml-photo-chips">
                 <span className="eml-photo-chip">
@@ -367,7 +370,7 @@ export default function LoginV3() {
           )}
         </div>
 
-        <Glass padding={32} className={branded ? 'ca-login-card' : undefined} style={{ maxWidth: 460, minWidth: 0,
+        <Glass padding={32} className={`${branded ? 'ca-login-card ' : ''}em-login-spatial-card`} style={{ maxWidth: 460, minWidth: 0,
           background: branded
             ? (isDay
               ? 'linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(244,248,255,0.90) 100%)'
