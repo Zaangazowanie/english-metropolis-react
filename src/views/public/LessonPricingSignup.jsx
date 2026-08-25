@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Skyline } from '../../design/v3/primitives.jsx'
 import './lesson-pricing-signup.css'
-import { PRIVATE_PACKAGES } from './packages.js'
+import { COMPANY_PACKAGES, PRIVATE_PACKAGES } from './packages.js'
 import CartUI from './CartUI.jsx'
 import { cart, parsePricePLN } from './cart-store.js'
 import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN } from '../legal/foundation-legal-content.js'
@@ -46,7 +46,7 @@ const SPECIALIST_PACKAGES = [
   },
 ]
 
-const PACKAGES = [...PRIVATE_PACKAGES, ...SPECIALIST_PACKAGES]
+const PACKAGES = [...PRIVATE_PACKAGES, ...SPECIALIST_PACKAGES, ...COMPANY_PACKAGES]
 
 const SUMMER_COURSES = [
   {
@@ -58,13 +58,15 @@ const SUMMER_COURSES = [
   {
     id: 'september',
     name: 'September Summer Course',
-    price: '200 PLN / student',
+    price: '400 PLN / student / month',
+    pricePl: '400 PLN / osoba / miesiąc',
     detail: 'September only - 4 weekly lessons - max 4 students',
   },
   {
     id: 'two-month-bundle',
     name: 'August + September Bundle',
-    price: '400 PLN / student',
+    price: '600 PLN / student',
+    pricePl: '600 PLN / osoba',
     detail: 'August and September - 8 weekly lessons - max 4 students',
   },
 ]
@@ -72,6 +74,7 @@ const SUMMER_COURSES = [
 const FORMATS = [
   { id: 'one-to-one', label: '1:1', detail: 'Private lessons' },
   { id: 'specialist', label: 'Specialist', detail: 'Exam / business' },
+  { id: 'company', label: 'Company', detail: 'Team of up to 5' },
   { id: 'team', label: 'Group', detail: 'August / September, max 4' },
 ]
 
@@ -79,12 +82,12 @@ const POLICIES = [
   {
     icon: 'hourglass_top',
     title: 'Lesson validity',
-    copy: 'One-off lessons are valid for 90 days. Private packages are valid for 6 months (4-8 lessons) or 12 months (16-24 lessons). Specialist packages are valid for 6, 9 or 12 months, as shown for each package.',
+    copy: 'One-off lessons are valid for 90 days. Private packages are valid for 6 months (4-8 lessons), 12 months (16-24 lessons) or 18 months (48 lessons). Company packages are valid for 12 months (24 lessons) or 18 months (48 lessons). Specialist package validity is shown with each package.',
   },
   {
     icon: 'more_time',
     title: 'Extensions',
-    copy: 'Contact us before expiry. We normally extend unused lessons once at no extra charge: by 3 months for smaller packages and 6 months for packages of 16-24 lessons.',
+    copy: 'Contact us before expiry. We normally extend unused lessons once at no extra charge: by 3 months for smaller packages and 6 months for packages of 16-48 lessons.',
   },
   {
     icon: 'verified_user',
@@ -149,6 +152,13 @@ const PACKAGE_PL = {
     features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '24 x 60 min lekcje 1:1', 'Notatki i miesięczne przeglądy'],
     badge: 'Najlepsza cena',
   },
+  'fluency-48': {
+    pace: '48 lekcji online',
+    perLesson: '80 PLN / lekcja',
+    bestFor: 'Najniższa cena lekcji przy pełnym roku regularnej nauki',
+    features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '48 x 60 min lekcje 1:1', 'Notatki i miesięczne przeglądy'],
+    badge: 'Najniższa cena lekcji',
+  },
   specialist: {
     pace: '6 lekcji specjalistycznych',
     perLesson: '150 PLN / lekcja',
@@ -170,6 +180,26 @@ const PACKAGE_PL = {
     features: ['Diagnostyczna rozmowa poziomująca', 'Specjalistyczny plan CEFR', '24 x 60 min lekcje specjalistyczne', 'Miesieczne przeglady i notatki'],
     badge: 'Najlepsza cena specjalistyczna',
   },
+  'company-24': {
+    pace: '24 firmowe lekcje grupowe',
+    calculation: '24 x 200 PLN = 4,800 PLN',
+    perLesson: '200 PLN / lekcja grupowa',
+    perStudentPackage: '960 PLN / pracownik / pakiet',
+    perStudent: '40 PLN / pracownik / lekcja',
+    bestFor: '24-lekcyjny program dla stałej grupy do 5 pracowników',
+    features: ['Diagnoza poziomu i celów dla maks. 5 osób', 'Plan CEFR dopasowany do celów firmy', '24 x 60 min lekcje grupowe online', 'Miesięczne podsumowanie postępów dla firmy'],
+    badge: 'Do 5 pracowników',
+  },
+  'company-48': {
+    pace: '48 firmowych lekcji grupowych',
+    calculation: '7,600 PLN - 20% = 6,080 PLN',
+    perLesson: '126,67 PLN / lekcja grupowa',
+    perStudentPackage: '1,216 PLN / pracownik / pakiet',
+    perStudent: '25,33 PLN / pracownik / lekcja',
+    bestFor: '20% rabatu od wyliczenia 7,600 PLN za program 48 lekcji',
+    features: ['Diagnoza poziomu i celów dla maks. 5 osób', 'Plan CEFR dopasowany do celów firmy', '48 x 60 min lekcje grupowe online', 'Miesięczne podsumowanie postępów dla firmy'],
+    badge: '20% rabatu',
+  },
 }
 
 const COURSE_PL = {
@@ -190,17 +220,18 @@ const COURSE_PL = {
 const FORMAT_PL = {
   'one-to-one': { label: '1:1', detail: 'Lekcje indywidualne' },
   specialist: { label: 'Specjalistyczne', detail: 'Egzamin / biznes' },
+  company: { label: 'Dla firm', detail: 'Grupa do 5 osób' },
   team: { label: 'Grupa', detail: 'Sierpień / wrzesień, maks. 4' },
 }
 
 const POLICY_PL = {
   'Lesson validity': {
     title: 'Ważność lekcji',
-    copy: 'Lekcja jednorazowa jest ważna 90 dni. Pakiety prywatne są ważne 6 miesięcy (4-8 lekcji) lub 12 miesięcy (16-24 lekcji). Ważność pakietów specjalistycznych jest podana przy każdym pakiecie.',
+    copy: 'Lekcja jednorazowa jest ważna 90 dni. Pakiety prywatne są ważne 6 miesięcy (4-8 lekcji), 12 miesięcy (16-24 lekcje) lub 18 miesięcy (48 lekcji). Pakiety firmowe są ważne 12 miesięcy (24 lekcje) lub 18 miesięcy (48 lekcji). Ważność pakietów specjalistycznych jest podana przy każdym pakiecie.',
   },
   Extensions: {
     title: 'Przedłużenia',
-    copy: 'Napisz do nas przed końcem ważności. Zwykle przedłużamy niewykorzystane lekcje raz bez opłaty: o 3 miesiące dla mniejszych pakietów i o 6 miesięcy dla pakietów 16-24 lekcji.',
+    copy: 'Napisz do nas przed końcem ważności. Zwykle przedłużamy niewykorzystane lekcje raz bez opłaty: o 3 miesiące dla mniejszych pakietów i o 6 miesięcy dla pakietów 16-48 lekcji.',
   },
   'Student protection': {
     title: 'Ochrona ucznia',
@@ -287,6 +318,7 @@ export default function LessonPricingSignup() {
   const isPl = lang === 'pl'
   const t = (en, pl) => (isPl ? pl : en)
   const packageCopy = PACKAGE_PL[selectedPackage.id] || {}
+  const isCompanyPackage = selectedPackage.id.startsWith('company-')
   const summary = useMemo(
     () => buildSummary({ selectedPackage, format: selectedFormat, learnerName, email, level, goals, lang }),
     [selectedPackage, selectedFormat, learnerName, email, level, goals, lang],
@@ -313,6 +345,7 @@ export default function LessonPricingSignup() {
       '.lp-section-head',
       '.lp-package-grid',
       '.lp-specialist-block',
+      '.lp-company-block',
       '.lp-readiness',
       '.lp-policy-grid',
       '.lp-signup-copy',
@@ -384,8 +417,9 @@ export default function LessonPricingSignup() {
     triggerPolish()
   }
 
-  function choosePackage(nextPackageId) {
+  function choosePackage(nextPackageId, nextFormatId) {
     setPackageId(nextPackageId)
+    if (nextFormatId) setFormatId(nextFormatId)
     triggerPolish()
   }
 
@@ -487,7 +521,7 @@ export default function LessonPricingSignup() {
               onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <div className="lp-package-top">
                 <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
-                <button type="button" onClick={() => choosePackage(pkg.id)} aria-pressed={pkg.id === packageId}>
+                <button type="button" onClick={() => choosePackage(pkg.id, 'one-to-one')} aria-pressed={pkg.id === packageId}>
                   {pkg.id === packageId ? t('Selected', 'Wybrany') : t('Choose', 'Wybierz')}
                 </button>
               </div>
@@ -536,7 +570,7 @@ export default function LessonPricingSignup() {
                 onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
                 <div className="lp-package-top">
                   <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
-                  <button type="button" onClick={() => choosePackage(pkg.id)} aria-pressed={pkg.id === packageId}>
+                  <button type="button" onClick={() => choosePackage(pkg.id, 'specialist')} aria-pressed={pkg.id === packageId}>
                     {pkg.id === packageId ? t('Selected', 'Wybrany') : t('Choose', 'Wybierz')}
                   </button>
                 </div>
@@ -568,6 +602,62 @@ export default function LessonPricingSignup() {
             ))}
           </div>
         </div>
+
+        <div className="lp-company-block" aria-labelledby="company-title">
+          <div className="lp-company-head">
+            <p className="lp-section-label">{t('Company groups', 'Kursy dla firm')}</p>
+            <h3 id="company-title">{t('One English course for a team of up to 5 employees.', 'Jeden kurs angielskiego dla zespołu do 5 pracowników.')}</h3>
+            <p>
+              {t(
+                'The 24-lesson package is 4,800 PLN. The 48-lesson calculation starts at 7,600 PLN and receives a 20% discount.',
+                'Pakiet 24 lekcji kosztuje 4,800 PLN. Wyliczenie dla 48 lekcji zaczyna się od 7,600 PLN i obejmuje 20% rabatu.',
+              )}
+            </p>
+          </div>
+          <div className="lp-package-grid lp-company-grid">
+            {COMPANY_PACKAGES.map((pkg) => (
+              <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}
+                onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
+                <div className="lp-package-top">
+                  <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
+                  <button type="button" onClick={() => choosePackage(pkg.id, 'company')} aria-pressed={pkg.id === packageId}>
+                    {pkg.id === packageId ? t('Selected', 'Wybrany') : t('Choose', 'Wybierz')}
+                  </button>
+                </div>
+                <h3>{pkg.name}</h3>
+                <p className="lp-package-pace">{isPl ? (PACKAGE_PL[pkg.id]?.pace || pkg.pace) : pkg.pace}</p>
+                <div className="lp-price">{pkg.price}</div>
+                <p className="lp-price-calculation">
+                  <span>{t('Package calculation', 'Wyliczenie pakietu')}</span>
+                  <strong>{isPl ? (PACKAGE_PL[pkg.id]?.calculation || pkg.calculation) : pkg.calculation}</strong>
+                </p>
+                <p className="lp-per-lesson">{isPl ? (PACKAGE_PL[pkg.id]?.perLesson || pkg.perLesson) : pkg.perLesson}</p>
+                <p className="lp-per-student-package">{isPl ? (PACKAGE_PL[pkg.id]?.perStudentPackage || pkg.perStudentPackage) : pkg.perStudentPackage}</p>
+                <p className="lp-per-student">{isPl ? (PACKAGE_PL[pkg.id]?.perStudent || pkg.perStudent) : pkg.perStudent}</p>
+                <p className="lp-best">{isPl ? (PACKAGE_PL[pkg.id]?.bestFor || pkg.bestFor) : pkg.bestFor}</p>
+                <ul>
+                  {(isPl ? (PACKAGE_PL[pkg.id]?.features || pkg.features) : pkg.features).map((feature) => (
+                    <li key={feature}>
+                      <span className="material-symbols-outlined" aria-hidden>check_circle</span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  className="lp-add-cart"
+                  data-added={justAdded === pkg.id}
+                  onClick={() => addToCart(pkg, { pacePl: PACKAGE_PL[pkg.id]?.pace || pkg.pace })}
+                >
+                  <span className="material-symbols-outlined" aria-hidden>
+                    {justAdded === pkg.id ? 'check' : 'add_shopping_cart'}
+                  </span>
+                  {justAdded === pkg.id ? t('Added', 'Dodano') : t('Add to cart', 'Do koszyka')}
+                </button>
+              </article>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="lp-section" aria-labelledby="summer-title">
@@ -589,7 +679,7 @@ export default function LessonPricingSignup() {
               onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <span className="material-symbols-outlined" aria-hidden>sunny</span>
               <h3>{isPl ? (COURSE_PL[course.id]?.name || course.name) : course.name}</h3>
-              <strong>{course.price}</strong>
+              <strong>{isPl ? (course.pricePl || course.price) : course.price}</strong>
               <small>{isPl ? (COURSE_PL[course.id]?.detail || course.detail) : course.detail}</small>
               <button
                 type="button"
@@ -745,15 +835,24 @@ export default function LessonPricingSignup() {
 
           {error && <p className="lp-error" role="alert">{error}</p>}
 
-          <a className="lp-button lp-button-primary lp-submit" href={`/signup?package=${encodeURIComponent(packageId)}`}>
-            <span className="material-symbols-outlined" aria-hidden>rocket_launch</span>
-            {t('Create your account & book', 'Załóż konto i zarezerwuj')}
-          </a>
+          {isCompanyPackage ? (
+            <button className="lp-button lp-button-primary lp-submit" type="submit">
+              <span className="material-symbols-outlined" aria-hidden>business_center</span>
+              {t('Prepare company enquiry', 'Przygotuj zapytanie firmowe')}
+            </button>
+          ) : (
+            <>
+              <a className="lp-button lp-button-primary lp-submit" href={`/signup?package=${encodeURIComponent(packageId)}`}>
+                <span className="material-symbols-outlined" aria-hidden>rocket_launch</span>
+                {t('Create your account & book', 'Załóż konto i zarezerwuj')}
+              </a>
 
-          <button className="lp-button lp-button-ghost lp-submit" type="submit">
-            <span className="material-symbols-outlined" aria-hidden>send</span>
-            {t('Prefer email? Prepare a request', 'Wolisz email? Przygotuj prosbe')}
-          </button>
+              <button className="lp-button lp-button-ghost lp-submit" type="submit">
+                <span className="material-symbols-outlined" aria-hidden>send</span>
+                {t('Prefer email? Prepare a request', 'Wolisz email? Przygotuj prośbę')}
+              </button>
+            </>
+          )}
 
           {submitted && (
             <div className="lp-confirmation" role="status">
