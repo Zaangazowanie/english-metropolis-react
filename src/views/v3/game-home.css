@@ -1791,14 +1791,14 @@
   top: 50%;
   width: clamp(1100px, 92vw, 1800px);
   aspect-ratio: 1145 / 585;
-  animation: em-procession-skyline-pass 240s linear infinite;
+  animation: em-procession-skyline-pass 360s linear infinite;
 }
 
 .em-hero-procession__pass--bajla {
   top: 50%;
   width: clamp(440px, 38vw, 720px);
   aspect-ratio: 1;
-  animation: em-procession-bajla-pass 240s linear infinite;
+  animation: em-procession-bajla-pass 360s linear infinite;
 }
 
 .em-hero-procession__body,
@@ -1833,12 +1833,12 @@
 
 .em-hero-procession__pass--skyline .em-hero-procession__trace {
   background-image: url('/em-skyline-outline.png');
-  animation: em-procession-skyline-draw 240s linear infinite;
+  animation: em-procession-skyline-draw 360s linear infinite;
 }
 
 .em-hero-procession__pass--bajla .em-hero-procession__trace {
   background-image: url('/bajla-outline.png');
-  animation: em-procession-bajla-draw 240s linear infinite;
+  animation: em-procession-bajla-draw 360s linear infinite;
 }
 
 .em-hero-procession__beam {
@@ -1861,13 +1861,13 @@
 .em-hero-procession__pass--skyline .em-hero-procession__beam {
   -webkit-mask: url('/em-skyline-outline.png') center / contain no-repeat;
   mask: url('/em-skyline-outline.png') center / contain no-repeat;
-  animation: em-procession-skyline-beam 240s linear infinite;
+  animation: em-procession-skyline-beam 360s linear infinite;
 }
 
 .em-hero-procession__pass--bajla .em-hero-procession__beam {
   -webkit-mask: url('/bajla-outline.png') center / contain no-repeat;
   mask: url('/bajla-outline.png') center / contain no-repeat;
-  animation: em-procession-bajla-beam 240s linear infinite;
+  animation: em-procession-bajla-beam 360s linear infinite;
 }
 
 .gh-day .em-hero-procession__pass {
