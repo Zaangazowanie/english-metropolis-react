@@ -274,6 +274,9 @@ function HeroArcade({ badge, reduced, lang }) {
   const arcadeRef = useRef(null)
   const switchTo = (next) => {
     if (next === active) return
+    window.dispatchEvent(new CustomEvent('englishmetro:carousel-transition', {
+      detail: { intensity: reduced ? 0 : 0.72 },
+    }))
     setDirection(next > active ? 1 : -1)
     setActive(next)
     clearTimeout(swapTimer.current)

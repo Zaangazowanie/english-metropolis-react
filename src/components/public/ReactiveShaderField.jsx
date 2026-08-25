@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 const SIGNAL_EVENT = 'englishmetro:surface-signal'
+const TRANSITION_EVENT = 'englishmetro:carousel-transition'
 
 const vertexShader = `
   varying vec2 vUv;
@@ -17,6 +18,7 @@ const fragmentShader = `
   varying vec2 vUv;
   uniform float uTime;
   uniform float uEnergy;
+  uniform float uTransition;
   uniform float uAspect;
   uniform float uTheme;
   uniform vec2 uPointer;
@@ -36,6 +38,11 @@ const fragmentShader = `
     float aurora = smoothstep(0.42, 0.98, auroraShape * 0.5 + 0.5);
     aurora *= smoothstep(0.0, 0.18, vUv.y) * smoothstep(0.0, 0.16, 1.0 - vUv.y);
 
+    float transitionFeather = smoothstep(0.0, 0.18, vUv.x) * smoothstep(0.0, 0.18, 1.0 - vUv.x);
+    transitionFeather *= smoothstep(0.0, 0.22, vUv.y) * smoothstep(0.0, 0.22, 1.0 - vUv.y);
+    float transitionDrift = sin(vUv.x * 3.4 + vUv.y * 2.2 - uTime * 0.52) * 0.5 + 0.5;
+    float transitionWash = uTransition * transitionFeather * (0.72 + transitionDrift * 0.28);
+
     float rail = abs(fract((vUv.x + vUv.y * 0.22) * 7.0 - uTime * 0.055) - 0.5);
     rail = smoothstep(0.49, 0.455, rail) * 0.18;
 
@@ -45,11 +52,12 @@ const fragmentShader = `
     vec3 spectrum = mix(violet, fuchsia, smoothstep(0.12, 0.88, vUv.x));
     spectrum = mix(spectrum, cyan, ripple * 0.56 + interference * 0.14);
     spectrum = mix(spectrum, fuchsia, aurora * 0.18);
+    spectrum = mix(spectrum, mix(violet, fuchsia, vUv.x), transitionWash * 0.20);
 
     float baseAlpha = mix(0.065, 0.040, uTheme);
     float energyAlpha = uEnergy * (lens * 0.200 + ripple * 0.110);
     float ambientAlpha = interference * baseAlpha + aurora * baseAlpha * 0.8 + rail * baseAlpha;
-    float alpha = min(0.48, ambientAlpha + energyAlpha);
+    float alpha = min(0.48, ambientAlpha + energyAlpha + transitionWash * 0.105);
 
     gl_FragColor = vec4(spectrum, alpha);
   }
@@ -86,6 +94,8 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
     const pointer = { x: 0.54, y: 0.46, tx: 0.54, ty: 0.46 }
     let energy = 0.08
     let targetEnergy = 0.08
+    let transition = 0
+    let targetTransition = 0
 
     function canAnimate() {
       return !disposed && visible && !reduced && !document.hidden && renderer
@@ -117,9 +127,12 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
       pointer.y += (pointer.ty - pointer.y) * pointerEase
       energy += (targetEnergy - energy) * (still ? 1 : 0.085)
       targetEnergy = Math.max(0.075, targetEnergy * (still ? 1 : 0.96))
+      transition += (targetTransition - transition) * (still ? 1 : 0.12)
+      targetTransition = Math.max(0, targetTransition - (still ? 0 : 0.018))
 
       material.uniforms.uTime.value = time / 1000
       material.uniforms.uEnergy.value = energy
+      material.uniforms.uTransition.value = transition
       material.uniforms.uPointer.value.set(pointer.x, pointer.y)
       renderer.render(scene, camera)
     }
@@ -146,6 +159,14 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
     function handleHostPointer(event) {
       mapPointer(event.clientX, event.clientY)
       targetEnergy = Math.max(targetEnergy, 0.22)
+      start()
+    }
+
+    function handleCarouselTransition(event) {
+      const detail = event.detail || {}
+      targetEnergy = Math.max(targetEnergy, 0.28)
+      transition = 0.02
+      targetTransition = Math.min(0.78, detail.intensity || 0.78)
       start()
     }
 
@@ -201,6 +222,7 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
           uniforms: {
             uTime: { value: 0 },
             uEnergy: { value: energy },
+            uTransition: { value: transition },
             uAspect: { value: width / height },
             uTheme: { value: mode === 'light' ? 1 : 0 },
             uPointer: { value: new THREE.Vector2(pointer.x, pointer.y) },
@@ -219,6 +241,7 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
     visibilityObserver.observe(canvas)
     host.addEventListener('pointermove', handleHostPointer, { passive: true })
     window.addEventListener(SIGNAL_EVENT, handleSurfaceSignal)
+    window.addEventListener(TRANSITION_EVENT, handleCarouselTransition)
     document.addEventListener('visibilitychange', handleVisibility)
     reducedQuery.addEventListener?.('change', handleMotionChange)
     resize()
@@ -238,6 +261,7 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
       visibilityObserver.disconnect()
       host.removeEventListener('pointermove', handleHostPointer)
       window.removeEventListener(SIGNAL_EVENT, handleSurfaceSignal)
+      window.removeEventListener(TRANSITION_EVENT, handleCarouselTransition)
       document.removeEventListener('visibilitychange', handleVisibility)
       reducedQuery.removeEventListener?.('change', handleMotionChange)
       geometry?.dispose()
