@@ -1954,7 +1954,8 @@
   grid-row: 1;
 }
 
-.gh-hero-grid > .em-hero-procession {
+.gh-hero-grid > .em-hero-procession,
+.gh-hero-grid.em-hero-three-field > .em-hero-procession {
   position: relative;
   inset: auto;
   grid-column: 1 / -1;
@@ -1990,7 +1991,8 @@
     grid-row: 2;
   }
 
-  .gh-hero-grid > .em-hero-procession {
+  .gh-hero-grid > .em-hero-procession,
+  .gh-hero-grid.em-hero-three-field > .em-hero-procession {
     grid-column: 1;
     grid-row: 3;
   }
