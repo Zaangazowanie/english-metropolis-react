@@ -1738,11 +1738,6 @@
   contain: paint;
 }
 
-.gh-hero-grid > .em-hero-procession--foreground,
-.gh-hero-grid.em-hero-three-field > .em-hero-procession--foreground {
-  z-index: 3;
-}
-
 .gh-hero-grid > .gh-hero-copy,
 .gh-hero-grid > .gh-hero-stage-wrap,
 .gh-hero-grid.em-hero-three-field > .gh-hero-copy,
