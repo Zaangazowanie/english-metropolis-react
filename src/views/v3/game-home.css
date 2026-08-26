@@ -1935,13 +1935,13 @@
   backdrop-filter: none !important;
 }
 
-/* Reserve a real stage for the complete skyline. The copy and carousel share
-   the first row; the unbroken skyline and its travelling beam own row two. */
+/* Keep the complete skyline inside the hero's existing footprint. It becomes
+   the visual bridge between the copy and carousel instead of adding a row. */
 .gh-hero-grid {
-  grid-template-rows: auto clamp(300px, 30vw, 440px);
-  column-gap: 52px !important;
-  row-gap: clamp(10px, 1.4vw, 20px) !important;
-  padding-bottom: 24px !important;
+  grid-template-rows: auto;
+  column-gap: clamp(18px, 1.8vw, 28px) !important;
+  row-gap: 0 !important;
+  padding-bottom: 44px !important;
 }
 
 .gh-hero-grid > .gh-hero-copy {
@@ -1956,29 +1956,71 @@
 
 .gh-hero-grid > .em-hero-procession,
 .gh-hero-grid.em-hero-three-field > .em-hero-procession {
-  position: relative;
-  inset: auto;
-  grid-column: 1 / -1;
-  grid-row: 2;
-  width: 100%;
-  height: 100%;
-  border-radius: 22px;
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  border-radius: 26px;
 }
 
 .em-hero-procession__pass--skyline {
-  top: 50%;
-  width: auto;
-  max-width: calc(100% - 32px);
-  height: calc(100% - 20px);
-  max-height: 100%;
-  aspect-ratio: 1145 / 585;
+  left: 43%;
+  top: 78%;
+  width: clamp(240px, 24vw, 340px);
+  max-width: none;
+  height: auto;
+  max-height: none;
+}
+
+@media (min-width: 1260px) {
+  .gh-hero-grid {
+    grid-template-columns:
+      minmax(480px, .90fr)
+      minmax(180px, .34fr)
+      minmax(510px, 1.05fr) !important;
+    column-gap: 12px !important;
+  }
+
+  .gh-hero-grid > .gh-hero-copy {
+    grid-column: 1;
+  }
+
+  .gh-hero-copy h1 {
+    font-size: clamp(46px, 4.3vw, 64px) !important;
+  }
+
+  .gh-hero-grid > .gh-hero-stage-wrap {
+    grid-column: 3;
+  }
+
+  .gh-hero-grid > .em-hero-procession,
+  .gh-hero-grid.em-hero-three-field > .em-hero-procession {
+    position: relative;
+    inset: auto;
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    width: 100%;
+    height: clamp(160px, 14vw, 250px);
+    overflow: visible;
+    border-radius: 0;
+  }
+
+  .em-hero-procession__pass--skyline {
+    left: 50%;
+    top: 50%;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: none;
+  }
 }
 
 @media (max-width: 920px) {
   .gh-hero-grid {
-    grid-template-rows: auto auto clamp(240px, 58vw, 360px);
-    row-gap: 28px !important;
-    padding-bottom: 22px !important;
+    grid-template-rows: auto auto;
+    row-gap: 34px !important;
+    padding-bottom: 48px !important;
   }
 
   .gh-hero-grid > .gh-hero-copy {
@@ -1993,7 +2035,15 @@
 
   .gh-hero-grid > .em-hero-procession,
   .gh-hero-grid.em-hero-three-field > .em-hero-procession {
-    grid-column: 1;
-    grid-row: 3;
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+  }
+
+  .em-hero-procession__pass--skyline {
+    left: 50%;
+    top: 63%;
+    width: min(68vw, 420px);
   }
 }
