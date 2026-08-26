@@ -1882,15 +1882,15 @@
 }
 
 .gh-root.gh-day .gh-hero-copy .gh-action--secondary {
-  color: #291d40;
-  border-color: rgba(75, 54, 117, 0.12);
-  background: rgba(83, 63, 130, 0.055);
+  color: #291d40 !important;
+  border-color: rgba(75, 54, 117, 0.12) !important;
+  background: rgba(83, 63, 130, 0.055) !important;
 }
 
 .gh-root.gh-day .gh-hero-copy .gh-action--secondary:hover {
-  color: #201532;
-  border-color: rgba(75, 54, 117, 0.2);
-  background: rgba(83, 63, 130, 0.1);
+  color: #201532 !important;
+  border-color: rgba(75, 54, 117, 0.2) !important;
+  background: rgba(83, 63, 130, 0.1) !important;
 }
 
 .gh-root.gh-day .gh-hero-copy .gh-text-link {
@@ -1900,4 +1900,25 @@
 
 .gh-root.gh-day .gh-hero-copy .gh-text-link:hover {
   color: #291d40 !important;
+}
+
+.gh-root.gh-day .gh-brand,
+.gh-root.gh-day .gh-header .gh-action--ghost {
+  color: #291d40 !important;
+}
+
+.gh-root.gh-day .gh-header .gh-action--secondary {
+  color: #291d40 !important;
+  border-color: rgba(75, 54, 117, 0.16) !important;
+  background: rgba(255, 255, 255, 0.66) !important;
+}
+
+.gh-root.gh-day .gh-header .gh-action--ghost:hover,
+.gh-root.gh-day .gh-header .gh-action--secondary:hover {
+  background: rgba(83, 63, 130, 0.08) !important;
+}
+
+.gh-root.gh-day .gh-hero-grid.em-hero-three-field.em-carousel-three-ready > .em-carousel-three {
+  opacity: 0.34;
+  filter: saturate(0.86) contrast(0.98);
 }
