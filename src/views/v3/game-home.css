@@ -1922,3 +1922,15 @@
   opacity: 0.34;
   filter: saturate(0.86) contrast(0.98);
 }
+
+/* The hero actions are a control group, not a card. Keep the controls and
+   their internal divider while allowing the skyline field to remain visible. */
+.gh-root .gh-hero-copy > .gh-rise-4 {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
