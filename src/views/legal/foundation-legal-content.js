@@ -24,7 +24,7 @@ export const FOUNDATION = {
   phone: '+48 662 563 507',
   serviceAddress: 'ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki',
   rodoEmail: 'rodo@twojstartup.pl',
-  effectiveDate: '29 lipca 2026 r.',
+  effectiveDate: '3 września 2026 r.',
 }
 
 export const TERMS_TITLE_PL = 'Regulamin serwisu englishmetro.com'
@@ -176,8 +176,8 @@ export const TERMS_HTML_PL = `
 <h2>§ 5 Świadczenie Usług</h2>
 <ol class="fl-ol">
 <li>StartUp świadczy na rzecz Klientów Usługi, których rodzaj, zakres i szczegółowy opis, są wskazane w Serwisie. Usługi polegają w szczególności na: prowadzeniu indywidualnych lekcji języka angielskiego online (lekcje 1:1, 60 minut, na żywo za pośrednictwem wideokonferencji), sprzedaży pakietów lekcji, przygotowaniu programu nauczania dopasowanego do poziomu CEFR Klienta oraz udostępnianiu Klientowi cyfrowych materiałów edukacyjnych (materiały PDF z lekcji, fiszki słownictwa, interaktywne ćwiczenia i gry edukacyjne).</li>
-<li>Pakiety lekcji mają następujące okresy ważności, liczone od dnia potwierdzenia płatności: (a) lekcja jednorazowa — 90 dni; (b) pakiety 4 i 8 lekcji — 6 miesięcy; (c) pakiety 16 i 24 lekcji — 12 miesięcy. Okres ważności pakietu jest każdorazowo wskazany w Serwisie przy opisie pakietu oraz w potwierdzeniu zamówienia.</li>
-<li>Przed upływem okresu ważności Klient może jednorazowo i bezpłatnie wnioskować o przedłużenie ważności pakietu: o maksymalnie 3 miesiące (lekcja jednorazowa oraz pakiety 4 i 8 lekcji) lub o maksymalnie 6 miesięcy (pakiety 16 i 24 lekcji). Wnioski o przedłużenie rozpatrywane są przychylnie; w uzasadnionych przypadkach (np. choroba, dłuższy wyjazd, sytuacja rodzinna) StartUp może przyznać dalsze lub dłuższe przedłużenie ważności pakietu.</li>
+<li>Pakiety lekcji mają następujące okresy ważności, liczone od dnia potwierdzenia płatności: (a) lekcja jednorazowa — 90 dni; (b) pakiety od 2 do 8 lekcji — 6 miesięcy; (c) pakiety od 9 do 24 lekcji — 12 miesięcy; (d) pakiety od 25 lekcji wzwyż (w tym pakiet 48 lekcji) — 24 miesiące. Okres ważności pakietu jest każdorazowo wskazany w Serwisie przy opisie pakietu oraz w potwierdzeniu zamówienia.</li>
+<li>Przed upływem okresu ważności Klient może jednorazowo i bezpłatnie wnioskować o przedłużenie ważności pakietu: o maksymalnie 3 miesiące (lekcja jednorazowa oraz pakiety do 8 lekcji), o maksymalnie 6 miesięcy (pakiety od 9 do 24 lekcji) lub o maksymalnie 12 miesięcy (pakiety od 25 lekcji wzwyż). Wnioski o przedłużenie rozpatrywane są przychylnie; w uzasadnionych przypadkach (np. choroba, dłuższy wyjazd, sytuacja rodzinna) StartUp może przyznać dalsze lub dłuższe przedłużenie ważności pakietu.</li>
 <li>Jeżeli lekcja nie odbyła się z przyczyn leżących po stronie StartUp lub lektora, okres ważności pakietu ulega odpowiedniemu przedłużeniu, a niewykorzystana lekcja podlega — według wyboru Klienta — realizacji w nowym terminie, zaliczeniu jako kredyt na poczet przyszłych lekcji albo zwrotowi.</li>
 <li>W okresie ważności pakietu (w tym przedłużonym zgodnie z ust. powyżej) Klient może zrezygnować z niewykorzystanych lekcji. Zwrot następuje proporcjonalnie (pro rata) do liczby niewykorzystanych lekcji, według ceny za lekcję wynikającej z danego pakietu, albo — według wyboru Klienta — niewykorzystane środki pozostają jako kredyt na poczet przyszłych lekcji. Lekcje zrealizowane rozliczane są proporcjonalnie. Zwroty realizowane są niezwłocznie, nie później niż w terminie 14 dni od dnia otrzymania żądania Klienta.</li>
 <li>Klient może bezpłatnie odwołać lub przełożyć umówioną lekcję najpóźniej na 24 godziny przed jej terminem. W przypadku odwołania lub przełożenia lekcji później niż 24 godziny przed jej terminem lekcja zostaje uznana za wykorzystaną i rozliczona według ceny jednej lekcji wynikającej z zakupionego pakietu, ponieważ lektor zarezerwował ten termin i pozostawał gotowy do świadczenia Usługi, a tak późne zawiadomienie co do zasady uniemożliwia zaoferowanie terminu innemu Klientowi.</li>
@@ -427,7 +427,7 @@ export const TERMS_HTML_PL = `
 </ol></li>
 <li>Spory związane z Umowami zawartymi na podstawie Regulaminu będą rozstrzygane przez sąd właściwy miejscowo dla StartUp. Zapis niniejszy nie dotyczy Umów zawieranych z Konsumentem.</li>
 <li>Zastosowanie określonego sposobu pozasądowego rozstrzygnięcia sporu możliwe jest tylko za obopólną zgodą Klienta i StartUp. Szczegółowe procedury pozasądowego rozstrzygania sporów, dostępne są na stronie internetowej Urzędu Ochrony Konkurencji i Konsumentów: www.uokik.gov.pl, na stronach internetowych Wojewódzkich Inspektoratów Inspekcji Handlowej, a także u powiatowych (miejskich) rzeczników konsumentów.</li>
-<li>Regulamin obowiązuje od dnia: 29 lipca 2026 r.</li>
+<li>Regulamin obowiązuje od dnia: 3 września 2026 r.</li>
 </ol>
 </section>
 
@@ -765,8 +765,8 @@ export const TERMS_HTML_EN = `
 <h2>§ 5 Provision of Services</h2>
 <ol class="fl-ol">
 <li>StartUp provides Services to Customers whose type, scope and detailed description are indicated in the Service. The Services consist in particular of: conducting individual English lessons online (1:1 lessons, 60 minutes, live via video conference), selling lesson packages, preparing a curriculum matched to the Customer's CEFR level, and providing the Customer with digital educational materials (lesson PDF materials, vocabulary flashcards, interactive exercises and educational games).</li>
-<li>Lesson packages have the following validity periods, counted from the day payment is confirmed: (a) a single lesson — 90 days; (b) packages of 4 and 8 lessons — 6 months; (c) packages of 16 and 24 lessons — 12 months. The validity period of a package is indicated each time in the Service next to the package description and in the order confirmation.</li>
-<li>Before the validity period expires, the Customer may once, free of charge, request an extension of the package validity: by up to 3 months (single lesson and packages of 4 and 8 lessons) or by up to 6 months (packages of 16 and 24 lessons). Extension requests are considered favourably; in justified cases (e.g. illness, a longer trip, a family situation) StartUp may grant a further or longer extension of the package validity.</li>
+<li>Lesson packages have the following validity periods, counted from the day payment is confirmed: (a) a single lesson — 90 days; (b) packages of 2 to 8 lessons — 6 months; (c) packages of 9 to 24 lessons — 12 months; (d) packages of 25 lessons or more (including the 48-lesson package) — 24 months. The validity period of a package is indicated each time in the Service next to the package description and in the order confirmation.</li>
+<li>Before the validity period expires, the Customer may once, free of charge, request an extension of the package validity: by up to 3 months (single lesson and packages of up to 8 lessons), by up to 6 months (packages of 9 to 24 lessons) or by up to 12 months (packages of 25 lessons or more). Extension requests are considered favourably; in justified cases (e.g. illness, a longer trip, a family situation) StartUp may grant a further or longer extension of the package validity.</li>
 <li>If a lesson did not take place for reasons attributable to StartUp or the teacher, the validity period of the package is extended accordingly, and the unused lesson is — at the Customer's choice — rescheduled, credited towards future lessons, or refunded.</li>
 <li>During the package validity period (including any extension granted in accordance with the paragraph above), the Customer may cancel unused lessons. The refund is made proportionally (pro rata) to the number of unused lessons, at the per-lesson price under the given package, or — at the Customer's choice — the unused funds remain as credit towards future lessons. Completed lessons are settled proportionally. Refunds are made without delay, no later than within 14 days of receiving the Customer's request.</li>
 <li>The Customer may cancel or reschedule a scheduled lesson free of charge no later than 24 hours before its start time. If a lesson is cancelled or rescheduled less than 24 hours before its start time, it is treated as used and charged at the per-lesson price under the purchased package because the teacher reserved the slot and remained ready to provide the Service, and such late notice will generally prevent the slot from being offered to another Customer.</li>
@@ -1016,7 +1016,7 @@ export const TERMS_HTML_EN = `
 </ol></li>
 <li>Disputes related to Contracts concluded under these Terms will be resolved by the court with territorial jurisdiction over StartUp. This provision does not apply to Contracts concluded with a Consumer.</li>
 <li>The use of a specific method of out-of-court dispute resolution is possible only with the mutual consent of the Customer and StartUp. Detailed procedures for out-of-court dispute resolution are available on the website of the Office of Competition and Consumer Protection (UOKiK): www.uokik.gov.pl, on the websites of the Provincial Inspectorates of Trade Inspection, and from district (municipal) consumer ombudsmen.</li>
-<li>These Terms are effective from: 29 July 2026.</li>
+<li>These Terms are effective from: 3 September 2026.</li>
 </ol>
 </section>
 
@@ -1362,9 +1362,9 @@ Zgoda jest dobrowolna, a jej brak nie wpływa na możliwość korzystania z lekc
 normalnie, po prostu bez analizy. <strong>Zgodę możesz wycofać w każdej chwili</strong> w Ustawieniach konta.
 Wycofanie działa na przyszłość i nie wpływa na zgodność z prawem przetwarzania sprzed wycofania.</p>
 
-<h2>Konta dzieci</h2>
-<p>Usługa jest <strong>niedostępna dla kont zakładanych dla osób poniżej 16 lat</strong>. Nie nagrywamy
-i nie analizujemy lekcji dzieci — nie da się tego włączyć, także za zgodą rodzica.</p>
+<h2>Konta osób niepełnoletnich</h2>
+<p>Usługa jest <strong>niedostępna dla kont zakładanych dla osób poniżej 18 lat</strong>. Nie nagrywamy
+i nie analizujemy lekcji osób niepełnoletnich — nie da się tego włączyć, także za zgodą rodzica lub opiekuna.</p>
 
 <h2>Jak długo przechowujemy dane?</h2>
 <p>Transkrypcję i analizę przechowujemy przez czas trwania nauki i <strong>usuwamy w ciągu 30 dni</strong>
@@ -1423,9 +1423,9 @@ voluntary and refusing it does not affect your lessons: without it the lesson ru
 without the analysis. <strong>You can withdraw at any time</strong> in account Settings. Withdrawal takes
 effect going forward and does not affect processing carried out beforehand.</p>
 
-<h2>Children's accounts</h2>
-<p>The service is <strong>not available on accounts created for anyone under 16</strong>. We do not record
-or analyse children's lessons, and it cannot be switched on, including by a parent.</p>
+<h2>Accounts for under-18s</h2>
+<p>The service is <strong>not available on accounts created for anyone under 18</strong>. We do not record
+or analyse an under-18 learner's lessons, and it cannot be switched on, including by a parent or guardian.</p>
 
 <h2>How long we keep it</h2>
 <p>Transcripts and analyses are kept for the duration of your studies and <strong>deleted within 30 days</strong>
@@ -1438,3 +1438,5 @@ your rights and the controller's details are in the <a href="/privacy">Privacy P
 For this service specifically: <a href="mailto:support@englishmetro.com">support@englishmetro.com</a>.</p>
 </section>
 `
+
+

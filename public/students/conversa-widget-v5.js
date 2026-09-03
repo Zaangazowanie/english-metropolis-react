@@ -310,7 +310,10 @@
 
   // ── Data ─────────────────────────────────────────────────────────────────
   function loadProfile(slug) {
-    return fetch(API + '/suggestions/' + encodeURIComponent(slug))
+    // /suggestions returns this student's CEFR, lesson history and
+    // fossilised error patterns, so it is no longer public. Same token.
+    return fetch(API + '/suggestions/' + encodeURIComponent(slug)
+                 + '?token=' + encodeURIComponent(studentToken()))
       .then(function (r) { return r.ok ? r.json() : null; })
       .catch(function () { return null; });
   }
@@ -792,6 +795,20 @@
 
   // canned = the student tapped a chip or a fossil row rather than typing, so
   // the server may serve its prebaked answer even mid-conversation.
+
+  // The student's own Convex session, as StudentAuthContext stores it. The
+  // widget never read this before, so every /chat turn was authenticated by
+  // nothing but a slug in the body — which meant naming someone loaded their
+  // profile, and would have meant booking on their account. Sending the real
+  // token lets the server verify who is actually asking.
+  function studentToken() {
+    try {
+      var raw = window.localStorage.getItem('em-student-session');
+      if (!raw) return '';
+      return (JSON.parse(raw) || {}).sessionToken || '';
+    } catch (e) { return ''; }
+  }
+
   function send(text, canned) {
     if (busy || !text) return;
     var slug = currentSlug();
@@ -811,7 +828,8 @@
         history: history.slice(-MAX_HISTORY, -1),
         voice: voiceId(),
         admin_mode: isAdmin(),
-        canned: !!canned
+        canned: !!canned,
+        student_session_token: studentToken()
       })
     })
       .then(function (r) { return r.json(); })
@@ -1077,6 +1095,21 @@
             addMsg('system', 'I could not load your lessons yet.');
           }
         });
+
+        // Anything left for this student while they were away. The panel is
+        // request/response with no push, and it wipes its history on open, so
+        // before this there was NO route for an answer to reach a student —
+        // an escalation to Mike was a dead end in both directions.
+        // Delivered once; the server consumes it as it hands it over.
+        fetch(API + '/pending/' + encodeURIComponent(slug)
+              + '?token=' + encodeURIComponent(studentToken()))
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            if (!d || !d.message) return;
+            addMsg('assistant', d.message);
+            history.push({ role: 'assistant', content: d.message });
+          })
+          .catch(function () { /* never block the panel on this */ });
       }
       setTimeout(function () { els.input.focus(); }, 120);
     } else if (currentAudio) {

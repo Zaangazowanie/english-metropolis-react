@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Skyline } from '../../design/v3/primitives.jsx'
 import { useCart, cart, cartTotalPLN, formatPLN } from './cart-store.js'
-import { PACKAGE_LESSONS } from './packages.js'
+import { PACKAGE_LESSONS, packageValidity } from './packages.js'
 import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN } from '../legal/foundation-legal-content.js'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 import PaymentMethods from './PaymentMethods.jsx'
@@ -86,6 +86,12 @@ export default function Checkout() {
   const [city, setCity] = useState('')
   const [country, setCountry] = useState('Polska')
   const [notes, setNotes] = useState('')
+  // PayPo requires a Polish residential address for its eligibility check.
+  // It stays separate from the optional invoice details above: using deferred
+  // payment must not silently ask us to issue an invoice.
+  const [payPoAddress, setPayPoAddress] = useState('')
+  const [payPoPostalCode, setPayPoPostalCode] = useState('')
+  const [payPoCity, setPayPoCity] = useState('')
   // Buying for a child. Declared by the adult at the till, and the only thing
   // that decides it — the analysis add-on is then not offered at all, and the
   // server refuses it even if the request is forged.
@@ -185,6 +191,21 @@ export default function Checkout() {
     }
     if (city.trim().length < 2) {
       return t('Enter the city or town for the invoice.', 'Podaj miejscowość do faktury.')
+    }
+    return null
+  }
+
+  function payPoProblem() {
+    if (methodKey !== 'paypo') return null
+    const addr = payPoAddress.trim()
+    if (addr.length < 4 || !/\d/.test(addr)) {
+      return t('PayPo needs your street and house or flat number.', 'PayPo wymaga ulicy oraz numeru domu lub lokalu.')
+    }
+    if (!/^\d{2}-\d{3}$/.test(payPoPostalCode.trim())) {
+      return t('Enter your postal code in the 00-000 format for PayPo.', 'Podaj kod pocztowy dla PayPo w formacie 00-000.')
+    }
+    if (payPoCity.trim().length < 2) {
+      return t('Enter your city or town for PayPo.', 'Podaj miejscowość dla PayPo.')
     }
     return null
   }
@@ -357,6 +378,13 @@ export default function Checkout() {
       forChild,
       ...(quoteMode ? { quoteRef, consentAnalysis } : {}),
       ...(chosen?.methodId ? { method: chosen.methodId } : {}),
+      ...(methodKey === 'paypo' ? {
+        payPoDetails: {
+          addressLine: payPoAddress.trim(),
+          postalCode: payPoPostalCode.trim(),
+          city: payPoCity.trim(),
+        },
+      } : {}),
     })
     if (!payment?.redirectUrl || !/^https:\/\//.test(payment.redirectUrl)) {
       throw new Error(t('The secure payment link was not returned.', 'Nie otrzymaliśmy bezpiecznego linku do płatności.'))
@@ -391,6 +419,8 @@ export default function Checkout() {
         'Wybierz, kiedy pakiet ma zostać aktywowany — od razu czy po upływie 14-dniowego terminu na odstąpienie.',
       ))
     }
+    const payPoError = payPoProblem()
+    if (payPoError) return setError(payPoError)
     const invoiceError = invoiceProblem()
     if (invoiceError) { setInvoiceOpen(true); return setError(invoiceError) }
     try {
@@ -423,6 +453,12 @@ export default function Checkout() {
           'Koszyk zmienił się po rozpoczęciu tej płatności. Odśwież stronę i złóż zamówienie ponownie, aby pobrana kwota odpowiadała wyświetlanej sumie.',
         ))
       }
+      if (/PAYPO_ADDRESS_REQUIRED/.test(ex.message || '')) {
+        return setError(t(
+          'Check the address, postal code and city required for PayPo.',
+          'Sprawdź adres, kod pocztowy i miejscowość wymagane przez PayPo.',
+        ))
+      }
       setError((accountReady
         ? t('Your account was created, but we could not save the order. Try again to complete it.', 'Konto zostało utworzone, ale nie udało się zapisać zamówienia. Spróbuj ponownie, aby je dokończyć.')
         : (ex.message || t('We could not complete this step. Please try again.', 'Nie udało się wykonać tej operacji. Spróbuj ponownie.'))))
@@ -430,11 +466,12 @@ export default function Checkout() {
   }
 
   // Named from the live method list, so the summary can never advertise a
-  // method the account cannot take. Cards appear here the day P24 enable them.
+  // method the account cannot take. New methods appear here when P24 enable them.
   const payKinds = (methodGroups || [])
     .map(group => ({
       blik: 'BLIK',
       card: t('cards', 'karty'),
+      paypo: 'PayPo',
       transfer: t('online transfer', 'przelew online'),
     })[group.key])
     .filter(Boolean)
@@ -657,11 +694,11 @@ export default function Checkout() {
                   <label className="co-check co-child-check">
                     <input type="checkbox" checked={forChild} onChange={(e) => setForChild(e.target.checked)} />
                     <span>
-                      {t('This package is for a child under 16.', 'Ten pakiet jest dla dziecka poniżej 16 lat.')}
+                      {t('This package is for a learner under 18.', 'Ten pakiet jest dla osoby poniżej 18 lat.')}
                       <small className="co-consent-hint">
                         {t(
-                          'Their lessons are never recorded or analysed, and the optional AI lesson analysis is not offered on a child\u2019s account.',
-                          'Lekcje dziecka nie są nagrywane ani analizowane, a opcjonalna analiza lekcji AI nie jest dostępna na koncie dziecka.',
+                          'Their lessons are never recorded or analysed, and the optional AI lesson analysis is not offered on that account.',
+                          'Lekcje nie są nagrywane ani analizowane, a opcjonalna analiza lekcji AI nie jest dostępna na tym koncie.',
                         )}
                       </small>
                     </span>
@@ -684,6 +721,37 @@ export default function Checkout() {
                     value={methodKey}
                     onChange={setMethodKey}
                   />
+                  {methodKey === 'paypo' && (
+                    <div className="co-paypo-details">
+                      <p>
+                        {t(
+                          'PayPo needs your residential address to assess and process the deferred payment. We send these details securely to Przelewy24 for PayPo.',
+                          'PayPo potrzebuje Twojego adresu zamieszkania, aby ocenić i obsłużyć płatność odroczoną. Dane przekazujemy bezpiecznie do Przelewy24 na potrzeby PayPo.',
+                        )}
+                      </p>
+                      <label className="co-field">
+                        <span>{t('Street and house/flat number', 'Ulica i numer domu/lokalu')}</span>
+                        <input value={payPoAddress} autoComplete="street-address" required
+                          onChange={(e) => setPayPoAddress(e.target.value)} />
+                      </label>
+                      <div className="co-paypo-row">
+                        <label className="co-field">
+                          <span>{t('Postal code', 'Kod pocztowy')}</span>
+                          <input value={payPoPostalCode} inputMode="numeric" autoComplete="postal-code"
+                            placeholder="00-000" maxLength={6} required
+                            onChange={(e) => {
+                              const digits = e.target.value.replace(/\D/g, '').slice(0, 5)
+                              setPayPoPostalCode(digits.length > 2 ? `${digits.slice(0, 2)}-${digits.slice(2)}` : digits)
+                            }} />
+                        </label>
+                        <label className="co-field">
+                          <span>{t('City or town', 'Miejscowość')}</span>
+                          <input value={payPoCity} autoComplete="address-level2" required
+                            onChange={(e) => setPayPoCity(e.target.value)} />
+                        </label>
+                      </div>
+                    </div>
+                  )}
                   <p className="co-consent-hint">
                     {t(
                       'You finish the payment on the secure Przelewy24 page. This page never sees your card or banking details.',
@@ -887,7 +955,7 @@ export default function Checkout() {
                   <li key={item.id} style={{ '--co-i': idx }}>
                     <div className="co-item-main">
                       <strong>{item.name}{item.qty > 1 ? ` ×${item.qty}` : ''}</strong>
-                      <span>{isPl ? item.pacePl || item.pace : item.pace}</span>
+                      <span>{isPl ? item.pacePl || item.pace : item.pace} · {packageValidity(PACKAGE_LESSONS[item.id])[isPl ? 'pl' : 'en']}</span>
                     </div>
                     <div className="co-item-side">
                       <strong>{formatPLN(item.pricePLN * item.qty)}</strong>

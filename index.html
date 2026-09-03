@@ -8,6 +8,12 @@
          the retired "M." mark from cache. -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico?v=4" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <!-- Facebook domain verification. This lived only in the DEPLOYED
+         index.html, which is a build artifact — so the 2026-08-26 09:14 deploy
+         regenerated the file and silently dropped it. It belongs in the SOURCE
+         template, which is the only copy a build cannot overwrite. -->
+    <meta name="facebook-domain-verification" content="tp4v6h9zvvjclsyok8xcewez508lov" />
     <title>English Metro.</title>
     <!-- PWA / Add-to-home-screen — Mike's new logo + brand name 2026-04-25 -->
     <meta name="theme-color" content="#A21CAF" media="(prefers-color-scheme: light)"/>
@@ -112,6 +118,7 @@
     <!-- Outlined + Rounded both defined here (Rounded used by .conversa-admin). -->
     <link href="/fonts/material-symbols.css" rel="stylesheet">
 
+
     <!-- jsPDF for lesson-analysis PDFs. The app also lazy-loads this via
          ensureJsPdf() on demand, but eagerly including it here shaves ~400ms
          off the "Analysis PDF" click latency and avoids a loading hiccup.
@@ -127,13 +134,32 @@
   <body class="font-body text-on-surface min-h-screen selection:bg-primary-fixed-dim">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <!-- Home-page hero motion overlay: the small skyline sketch, the cloud/star
+         field and the light beam. Hand-written vanilla files in /public/assets,
+         not React, and they used to be injected by hand straight into the
+         DEPLOYED index.html. That file is a BUILD ARTIFACT, so the 2026-08-26
+         09:14 deploy regenerated it and the whole overlay vanished from the home
+         page — while all four assets carried on being served 200. Declaring them
+         in the SOURCE template is the fix: a build can no longer drop what the
+         template asks for.
+
+         ⛔ THE STYLESHEET MUST STAY HERE, AT THE END OF <body>, NOT IN <head>.
+         Vite appends the app's own index-*.css to <head> at build time, so any
+         <head> link of ours would load BEFORE it and lose every specificity tie.
+         The last-good deployed file had this link at line 190, immediately after
+         the app sheet, for exactly that reason. Document order is the only
+         mechanism available here, since we cannot place a tag after one vite
+         has not written yet. -->
+    <link rel="stylesheet" href="/assets/em-motion-20260825-v3.css?v=28">
+    <script defer src="/assets/em-motion-20260825-v3.js?v=16"></script>
     <!-- Conversa AI Tutor — loaded on student/admin app pages only.
          ?v=2 busts Cloudflare's cached 404 from when the widget wasn't
          on the prod webroot (pre-2026-04-21). -->
     <script>
       if (!window.__EM_HIDE_TUTOR) {
         var s = document.createElement('script');
-        s.src = '/students/conversa-widget-v5.js?v=bajla-icon-20260810';
+        s.src = '/students/conversa-widget-v5.js?v=booking-20260827b';
         s.defer = true;
         document.body.appendChild(s);
       }

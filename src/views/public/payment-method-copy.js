@@ -21,6 +21,11 @@ export const GROUP_COPY = {
     en: { title: 'Card', sub: () => 'Visa and Mastercard' },
     pl: { title: 'Karta', sub: () => 'Visa i Mastercard' },
   },
+  paypo: {
+    mark: 'deferred',
+    en: { title: 'PayPo', sub: () => 'Pay in 30 days; instalments for eligible customers' },
+    pl: { title: 'PayPo', sub: () => 'Zapłać za 30 dni; raty dla uprawnionych klientów' },
+  },
   transfer: {
     mark: 'bank',
     en: { title: 'Online transfer', sub: (n) => (n === 1 ? 'Choose your bank' : `Choose from ${n} banks`) },

@@ -258,7 +258,7 @@ def body_story() -> list:
         Paragraph("REGULAMIN SERWISU ENGLISHMETRO.COM", H1),
         Paragraph(
             "DOC <b>EM-LEGAL-03</b> &nbsp;&nbsp; | &nbsp;&nbsp; "
-            "Obowiązuje od <b>29 lipca 2026 r.</b> &nbsp;&nbsp; | &nbsp;&nbsp; "
+            "Obowiązuje od <b>3 września 2026 r.</b> &nbsp;&nbsp; | &nbsp;&nbsp; "
             "Dotyczy <b>englishmetro.com</b>",
             META,
         ),
@@ -326,7 +326,7 @@ def page_chrome(canvas, doc) -> None:
     canvas.setFillColor(MUTED)
     canvas.drawRightString(width - 20 * mm, height - 11.5 * mm, "Regulamin | EM-LEGAL-03")
     canvas.line(20 * mm, 15 * mm, width - 20 * mm, 15 * mm)
-    canvas.drawString(20 * mm, 10.5 * mm, "Obowiązuje od 29 lipca 2026 r.")
+    canvas.drawString(20 * mm, 10.5 * mm, "Obowiązuje od 3 września 2026 r.")
     canvas.drawRightString(width - 20 * mm, 10.5 * mm, f"Strona {doc.page}")
     canvas.restoreState()
 

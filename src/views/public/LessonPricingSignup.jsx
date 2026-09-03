@@ -2,26 +2,66 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Skyline } from '../../design/v3/primitives.jsx'
 import './lesson-pricing-signup.css'
-import { PRIVATE_PACKAGES, SPECIALIST_PACKAGES } from './packages.js'
+import { COMPANY_PACKAGES, PRIVATE_PACKAGES, PACKAGE_LESSONS, packageValidity } from './packages.js'
 import CartUI from './CartUI.jsx'
 import { cart, parsePricePLN } from './cart-store.js'
 import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN } from '../legal/foundation-legal-content.js'
+import MetroSignalField from '../../components/public/MetroSignalField.jsx'
+import { clearPointerPolish, setPointerPolish } from '../../components/public/motionPolish.js'
 
 
-const PACKAGES = [...PRIVATE_PACKAGES, ...SPECIALIST_PACKAGES]
+const SPECIALIST_PACKAGES = [
+  {
+    id: 'specialist',
+    name: 'Specialist Sprint',
+    pace: '6 specialist lessons',
+    price: '900 PLN',
+    perLesson: '150 PLN / lesson',
+    bestFor: 'Interview, exam, relocation, and business pressure',
+    features: ['Diagnostic placement call', 'Specialist CEFR outcome plan', '6 x 60 min specialist lessons', 'Review notes after each session'],
+    badge: 'Focused',
+    accent: 'ember',
+  },
+  {
+    id: 'specialist-12',
+    name: 'Specialist Track',
+    pace: '12 specialist lessons',
+    price: '1,560 PLN',
+    perLesson: '130 PLN / lesson',
+    bestFor: 'A focused plan for exam, interview, or business outcomes',
+    features: ['Diagnostic placement call', 'Specialist CEFR outcome plan', '12 x 60 min specialist lessons', 'Two writing or speaking reviews'],
+    badge: 'Deeper focus',
+    accent: 'ember',
+  },
+  {
+    id: 'specialist-24',
+    name: 'Specialist Mastery',
+    pace: '24 specialist lessons',
+    price: '2,640 PLN',
+    perLesson: '110 PLN / lesson',
+    bestFor: 'The best value for long-term specialist coaching',
+    features: ['Diagnostic placement call', 'Specialist CEFR outcome plan', '24 x 60 min specialist lessons', 'Monthly review and lesson notes'],
+    badge: 'Best specialist value',
+    accent: 'ember',
+  },
+]
+
+const PACKAGES = [...PRIVATE_PACKAGES, ...SPECIALIST_PACKAGES, ...COMPANY_PACKAGES]
 
 const SUMMER_COURSES = [
   {
     id: 'september',
     name: 'September Group Course',
-    price: '200 PLN / student',
-    detail: 'September only - 2 lessons per week - max 4 students',
+    price: '400 PLN / student / month',
+    pricePl: '400 PLN / osoba / miesiąc',
+    detail: 'September only - 2 lessons per week - 8 lessons - max 4 students',
   },
 ]
 
 const FORMATS = [
   { id: 'one-to-one', label: '1:1', detail: 'Private lessons' },
   { id: 'specialist', label: 'Specialist', detail: 'Exam / business' },
+  { id: 'company', label: 'Company', detail: 'Team of up to 5' },
   { id: 'team', label: 'Group', detail: 'September, max 4' },
 ]
 
@@ -29,12 +69,12 @@ const POLICIES = [
   {
     icon: 'hourglass_top',
     title: 'Lesson validity',
-    copy: 'One-off lessons are valid for 90 days. Private packages are valid for 6 months (4-8 lessons) or 12 months (16-24 lessons). Specialist packages are valid for 6, 9 or 12 months, as shown for each package.',
+    copy: 'One-off lessons are valid for 90 days. Private packages are valid for 6 months (4-8 lessons), 12 months (16-24 lessons) or 24 months (48 lessons). Company packages are valid for 12 months (24 lessons) or 24 months (48 lessons). Specialist package validity is shown with each package.',
   },
   {
     icon: 'more_time',
     title: 'Extensions',
-    copy: 'Contact us before expiry. We normally extend unused lessons once at no extra charge: by 3 months for smaller packages and 6 months for packages of 16-24 lessons.',
+    copy: 'Contact us before expiry. We normally extend unused lessons once at no extra charge: by 3 months for smaller packages and 6 months for packages of 16-48 lessons.',
   },
   {
     icon: 'verified_user',
@@ -49,7 +89,7 @@ const POLICIES = [
   {
     icon: 'event_repeat',
     title: 'Schedule changes',
-    copy: 'Move a lesson with at least 24 hours notice. If you do not join within 20 minutes and do not tell us you are late, the reserved lesson is treated as used. Illness and emergencies are reviewed individually.',
+    copy: 'Move a lesson with at least 24 hours notice. In cases of illness or emergency, contact us as soon as possible. We review exceptional cases individually.',
   },
   {
     icon: 'receipt_long',
@@ -99,6 +139,13 @@ const PACKAGE_PL = {
     features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '24 x 60 min lekcje 1:1', 'Notatki i miesięczne przeglądy'],
     badge: 'Najlepsza cena',
   },
+  'fluency-48': {
+    pace: '48 lekcji online',
+    perLesson: '80 PLN / lekcja',
+    bestFor: 'Najniższa cena lekcji przy pełnym roku regularnej nauki',
+    features: ['Sprawdzenie poziomu i celu', 'Osobisty plan CEFR', '48 x 60 min lekcje 1:1', 'Notatki i miesięczne przeglądy'],
+    badge: 'Najniższa cena lekcji',
+  },
   specialist: {
     pace: '6 lekcji specjalistycznych',
     perLesson: '150 PLN / lekcja',
@@ -120,29 +167,50 @@ const PACKAGE_PL = {
     features: ['Diagnostyczna rozmowa poziomująca', 'Specjalistyczny plan CEFR', '24 x 60 min lekcje specjalistyczne', 'Miesieczne przeglady i notatki'],
     badge: 'Najlepsza cena specjalistyczna',
   },
+  'company-24': {
+    pace: '24 firmowe lekcje grupowe',
+    calculation: '24 x 200 PLN = 4,800 PLN',
+    perLesson: '200 PLN / lekcja grupowa',
+    perStudentPackage: '960 PLN / pracownik / pakiet',
+    perStudent: '40 PLN / pracownik / lekcja',
+    bestFor: '24-lekcyjny program dla stałej grupy do 5 pracowników',
+    features: ['Diagnoza poziomu i celów dla maks. 5 osób', 'Plan CEFR dopasowany do celów firmy', '24 x 60 min lekcje grupowe online', 'Miesięczne podsumowanie postępów dla firmy'],
+    badge: 'Do 5 pracowników',
+  },
+  'company-48': {
+    pace: '48 firmowych lekcji grupowych',
+    calculation: '7,600 PLN - 20% = 6,080 PLN',
+    perLesson: '126,67 PLN / lekcja grupowa',
+    perStudentPackage: '1,216 PLN / pracownik / pakiet',
+    perStudent: '25,33 PLN / pracownik / lekcja',
+    bestFor: '20% rabatu od wyliczenia 7,600 PLN za program 48 lekcji',
+    features: ['Diagnoza poziomu i celów dla maks. 5 osób', 'Plan CEFR dopasowany do celów firmy', '48 x 60 min lekcje grupowe online', 'Miesięczne podsumowanie postępów dla firmy'],
+    badge: '20% rabatu',
+  },
 }
 
 const COURSE_PL = {
   september: {
     name: 'Kurs wrześniowy',
-    detail: 'Tylko wrzesień - 2 lekcje w tygodniu - maks. 4 osoby',
+    detail: 'Tylko wrzesień - 2 lekcje w tygodniu - 8 lekcji - maks. 4 osoby',
   },
 }
 
 const FORMAT_PL = {
   'one-to-one': { label: '1:1', detail: 'Lekcje indywidualne' },
   specialist: { label: 'Specjalistyczne', detail: 'Egzamin / biznes' },
-  team: { label: 'Grupa', detail: 'Sierpien / wrzesien, maks. 4' },
+  company: { label: 'Dla firm', detail: 'Grupa do 5 osób' },
+  team: { label: 'Grupa', detail: 'Wrzesień, maks. 4' },
 }
 
 const POLICY_PL = {
   'Lesson validity': {
     title: 'Ważność lekcji',
-    copy: 'Lekcja jednorazowa jest ważna 90 dni. Pakiety prywatne są ważne 6 miesięcy (4-8 lekcji) lub 12 miesięcy (16-24 lekcji). Ważność pakietów specjalistycznych jest podana przy każdym pakiecie.',
+    copy: 'Lekcja jednorazowa jest ważna 90 dni. Pakiety prywatne są ważne 6 miesięcy (4-8 lekcji), 12 miesięcy (16-24 lekcje) lub 24 miesiące (48 lekcji). Pakiety firmowe są ważne 12 miesięcy (24 lekcje) lub 24 miesiące (48 lekcji). Ważność pakietów specjalistycznych jest podana przy każdym pakiecie.',
   },
   Extensions: {
     title: 'Przedłużenia',
-    copy: 'Napisz do nas przed końcem ważności. Zwykle przedłużamy niewykorzystane lekcje raz bez opłaty: o 3 miesiące dla mniejszych pakietów i o 6 miesięcy dla pakietów 16-24 lekcji.',
+    copy: 'Napisz do nas przed końcem ważności. Zwykle przedłużamy niewykorzystane lekcje raz bez opłaty: o 3 miesiące dla mniejszych pakietów i o 6 miesięcy dla pakietów 16-48 lekcji.',
   },
   'Student protection': {
     title: 'Ochrona ucznia',
@@ -162,7 +230,7 @@ const POLICY_PL = {
   },
   'Online payments': {
     title: 'Płatności online',
-    copy: 'Dodaj pakiety do koszyka i złóż zamówienie. Bezpieczna płatność online otwiera się w Przelewy24, z metodami dostępnymi dla Twojej transakcji.',
+    copy: 'Dodaj pakiety do koszyka i złóż zamówienie. Bezpieczna płatność online otwiera się w Przelewy24, z metodami dostępnymi dla danej transakcji.',
   },
 }
 function buildSummary({ selectedPackage, format, learnerName, email, level, goals, lang }) {
@@ -173,19 +241,20 @@ function buildSummary({ selectedPackage, format, learnerName, email, level, goal
     '',
     `${lang === 'pl' ? 'Pakiet' : 'Package'}: ${selectedPackage.name} (${packageCopy?.pace || selectedPackage.pace}, ${selectedPackage.price})`,
     `${lang === 'pl' ? 'Format' : 'Format'}: ${formatCopy?.label || format.label} - ${formatCopy?.detail || format.detail}`,
-    `${lang === 'pl' ? 'Uczen' : 'Learner'}: ${learnerName || (lang === 'pl' ? 'Nie podano' : 'Not provided')}`,
+    `${lang === 'pl' ? 'Uczeń' : 'Learner'}: ${learnerName || (lang === 'pl' ? 'Nie podano' : 'Not provided')}`,
     `Email: ${email || (lang === 'pl' ? 'Nie podano' : 'Not provided')}`,
     `${lang === 'pl' ? 'Obecny poziom' : 'Current level'}: ${level || (lang === 'pl' ? 'Nie wiem jeszcze' : 'Not sure yet')}`,
     `${lang === 'pl' ? 'Cele' : 'Goals'}: ${goals || (lang === 'pl' ? 'Nie podano' : 'Not provided')}`,
     '',
     lang === 'pl'
-      ? 'Prosze potwierdzic dostepne terminy, dopasowanie pakietu i kolejny krok platnosci lub faktury.'
+      ? 'Proszę potwierdzić dostępne terminy, dopasowanie pakietu i kolejny krok płatności lub faktury.'
       : 'Please confirm availability, package fit, and the payment link or invoice next step.',
   ].join('\n')
 }
 
 export default function LessonPricingSignup() {
   const location = useLocation()
+  const pageRef = useRef(null)
   const pricingRef = useRef(null)
   const signupRef = useRef(null)
   const [lang, setLang] = useState('pl')
@@ -228,6 +297,7 @@ export default function LessonPricingSignup() {
   const isPl = lang === 'pl'
   const t = (en, pl) => (isPl ? pl : en)
   const packageCopy = PACKAGE_PL[selectedPackage.id] || {}
+  const isCompanyPackage = selectedPackage.id.startsWith('company-')
   const summary = useMemo(
     () => buildSummary({ selectedPackage, format: selectedFormat, learnerName, email, level, goals, lang }),
     [selectedPackage, selectedFormat, learnerName, email, level, goals, lang],
@@ -241,8 +311,44 @@ export default function LessonPricingSignup() {
         ? pricingRef.current
         : null
     if (!target) return
-    window.setTimeout(() => target.scrollIntoView({ behavior: 'auto', block: 'start' }), 80)
+    const timer = window.setTimeout(() => target.scrollIntoView({ behavior: 'auto', block: 'start' }), 80)
+    return () => window.clearTimeout(timer)
   }, [location.pathname])
+
+  useEffect(() => {
+    const root = pageRef.current
+    if (!root || typeof IntersectionObserver === 'undefined') return undefined
+
+    const targets = [...root.querySelectorAll([
+      '.lp-intro',
+      '.lp-section-head',
+      '.lp-package-grid',
+      '.lp-specialist-block',
+      '.lp-company-block',
+      '.lp-readiness',
+      '.lp-policy-grid',
+      '.lp-signup-copy',
+      '.lp-form',
+    ].join(','))]
+
+    targets.forEach((target, index) => {
+      target.classList.add('lp-reveal-pending')
+      target.style.setProperty('--lp-reveal-delay', `${(index % 4) * 45}ms`)
+    })
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+        entry.target.classList.add('is-visible')
+        observer.unobserve(entry.target)
+      })
+    }, { threshold: 0.1, rootMargin: '0px 0px -7% 0px' })
+
+    targets.forEach((target) => observer.observe(target))
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => () => window.clearTimeout(addedTimer.current), [])
 
   function submitSignup(event) {
     event.preventDefault()
@@ -290,8 +396,9 @@ export default function LessonPricingSignup() {
     triggerPolish()
   }
 
-  function choosePackage(nextPackageId) {
+  function choosePackage(nextPackageId, nextFormatId) {
     setPackageId(nextPackageId)
+    if (nextFormatId) setFormatId(nextFormatId)
     triggerPolish()
   }
 
@@ -301,9 +408,9 @@ export default function LessonPricingSignup() {
   }
 
   return (
-    <main className="lp-page">
+    <main ref={pageRef} className="lp-page">
       {polishKey > 0 && <span key={polishKey} className="lp-click-bloom" aria-hidden />}
-      <header className="lp-nav">
+      <header className="lp-nav" onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
         <Link to="/" className="lp-brand" aria-label="EnglishMetro home">
           <Skyline size={30} />
           <span>English<span>Metro</span>.</span>
@@ -321,6 +428,7 @@ export default function LessonPricingSignup() {
       </header>
 
       <section className="lp-hero" aria-labelledby="lp-title">
+        <MetroSignalField className="lp-hero-signal" mode="light" density={66}/>
         <div className="lp-hero-copy">
           <p className="lp-kicker">
             <span className="material-symbols-outlined" aria-hidden>verified</span>
@@ -344,7 +452,8 @@ export default function LessonPricingSignup() {
             </a>
           </div>
         </div>
-        <div className="lp-hero-panel" aria-label="Next available lesson flow">
+        <div className="lp-hero-panel" aria-label="Next available lesson flow"
+          onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
           <div>
             <span>01</span>
             <strong>{t('Choose package', 'Wybierz pakiet')}</strong>
@@ -358,7 +467,7 @@ export default function LessonPricingSignup() {
           <div>
             <span>03</span>
             <strong>{t('Pay securely', 'Zapłać bezpiecznie')}</strong>
-            <p>{t('You pay online through Przelewy24 and the package activates.', 'Płacisz online przez Przelewy24, a pakiet aktywuje się na koncie.')}</p>
+            <p>{t('Pay online in Przelewy24 when you place the order, or ask us for an invoice.', 'Płacisz online w Przelewy24 przy składaniu zamówienia albo prosisz nas o fakturę.')}</p>
           </div>
         </div>
       </section>
@@ -387,10 +496,11 @@ export default function LessonPricingSignup() {
 
         <div className="lp-package-grid">
           {PRIVATE_PACKAGES.map((pkg) => (
-            <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}>
+            <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <div className="lp-package-top">
                 <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
-                <button type="button" onClick={() => choosePackage(pkg.id)} aria-pressed={pkg.id === packageId}>
+                <button type="button" onClick={() => choosePackage(pkg.id, 'one-to-one')} aria-pressed={pkg.id === packageId}>
                   {pkg.id === packageId ? t('Selected', 'Wybrany') : t('Choose', 'Wybierz')}
                 </button>
               </div>
@@ -398,6 +508,7 @@ export default function LessonPricingSignup() {
               <p className="lp-package-pace">{isPl ? (PACKAGE_PL[pkg.id]?.pace || pkg.pace) : pkg.pace}</p>
               <div className="lp-price">{pkg.price}</div>
               <p className="lp-per-lesson">{isPl ? (PACKAGE_PL[pkg.id]?.perLesson || pkg.perLesson) : pkg.perLesson}</p>
+              <p className="lp-package-validity">{packageValidity(PACKAGE_LESSONS[pkg.id])[isPl ? 'pl' : 'en']}</p>
               <p className="lp-best">{isPl ? (PACKAGE_PL[pkg.id]?.bestFor || pkg.bestFor) : pkg.bestFor}</p>
               <ul>
                 {(isPl ? (PACKAGE_PL[pkg.id]?.features || pkg.features) : pkg.features).map((feature) => (
@@ -435,10 +546,11 @@ export default function LessonPricingSignup() {
           </div>
           <div className="lp-package-grid lp-specialist-grid">
             {SPECIALIST_PACKAGES.map((pkg) => (
-              <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}>
+              <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}
+                onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
                 <div className="lp-package-top">
                   <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
-                  <button type="button" onClick={() => choosePackage(pkg.id)} aria-pressed={pkg.id === packageId}>
+                  <button type="button" onClick={() => choosePackage(pkg.id, 'specialist')} aria-pressed={pkg.id === packageId}>
                     {pkg.id === packageId ? t('Selected', 'Wybrany') : t('Choose', 'Wybierz')}
                   </button>
                 </div>
@@ -446,6 +558,7 @@ export default function LessonPricingSignup() {
                 <p className="lp-package-pace">{isPl ? (PACKAGE_PL[pkg.id]?.pace || pkg.pace) : pkg.pace}</p>
                 <div className="lp-price">{pkg.price}</div>
                 <p className="lp-per-lesson">{isPl ? (PACKAGE_PL[pkg.id]?.perLesson || pkg.perLesson) : pkg.perLesson}</p>
+                <p className="lp-package-validity">{packageValidity(PACKAGE_LESSONS[pkg.id])[isPl ? 'pl' : 'en']}</p>
                 <p className="lp-best">{isPl ? (PACKAGE_PL[pkg.id]?.bestFor || pkg.bestFor) : pkg.bestFor}</p>
                 <ul>
                   {(isPl ? (PACKAGE_PL[pkg.id]?.features || pkg.features) : pkg.features).map((feature) => (
@@ -470,6 +583,62 @@ export default function LessonPricingSignup() {
             ))}
           </div>
         </div>
+
+        <div className="lp-company-block" aria-labelledby="company-title">
+          <div className="lp-company-head">
+            <p className="lp-section-label">{t('Company groups', 'Kursy dla firm')}</p>
+            <h3 id="company-title">{t('One English course for a team of up to 5 employees.', 'Jeden kurs angielskiego dla zespołu do 5 pracowników.')}</h3>
+            <p>
+              {t(
+                'The 24-lesson package is 4,800 PLN. The 48-lesson calculation starts at 7,600 PLN and receives a 20% discount.',
+                'Pakiet 24 lekcji kosztuje 4,800 PLN. Wyliczenie dla 48 lekcji zaczyna się od 7,600 PLN i obejmuje 20% rabatu.',
+              )}
+            </p>
+          </div>
+          <div className="lp-package-grid lp-company-grid">
+            {COMPANY_PACKAGES.map((pkg) => (
+              <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}
+                onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
+                <div className="lp-package-top">
+                  <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
+                  <button type="button" onClick={() => choosePackage(pkg.id, 'company')} aria-pressed={pkg.id === packageId}>
+                    {pkg.id === packageId ? t('Selected', 'Wybrany') : t('Choose', 'Wybierz')}
+                  </button>
+                </div>
+                <h3>{pkg.name}</h3>
+                <p className="lp-package-pace">{isPl ? (PACKAGE_PL[pkg.id]?.pace || pkg.pace) : pkg.pace}</p>
+                <div className="lp-price">{pkg.price}</div>
+                <p className="lp-price-calculation">
+                  <span>{t('Package calculation', 'Wyliczenie pakietu')}</span>
+                  <strong>{isPl ? (PACKAGE_PL[pkg.id]?.calculation || pkg.calculation) : pkg.calculation}</strong>
+                </p>
+                <p className="lp-per-lesson">{isPl ? (PACKAGE_PL[pkg.id]?.perLesson || pkg.perLesson) : pkg.perLesson}</p>
+                <p className="lp-per-student-package">{isPl ? (PACKAGE_PL[pkg.id]?.perStudentPackage || pkg.perStudentPackage) : pkg.perStudentPackage}</p>
+                <p className="lp-per-student">{isPl ? (PACKAGE_PL[pkg.id]?.perStudent || pkg.perStudent) : pkg.perStudent}</p>
+                <p className="lp-best">{isPl ? (PACKAGE_PL[pkg.id]?.bestFor || pkg.bestFor) : pkg.bestFor}</p>
+                <ul>
+                  {(isPl ? (PACKAGE_PL[pkg.id]?.features || pkg.features) : pkg.features).map((feature) => (
+                    <li key={feature}>
+                      <span className="material-symbols-outlined" aria-hidden>check_circle</span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  className="lp-add-cart"
+                  onClick={() => {
+                    choosePackage(pkg.id, 'company')
+                    signupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }}
+                >
+                  <span className="material-symbols-outlined" aria-hidden>business_center</span>
+                  {t('Prepare company enquiry', 'Przygotuj zapytanie firmowe')}
+                </button>
+              </article>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="lp-section" aria-labelledby="summer-title">
@@ -487,10 +656,11 @@ export default function LessonPricingSignup() {
         </div>
         <div className="lp-course-grid">
           {SUMMER_COURSES.map((course) => (
-            <article key={course.id} className="lp-course-card lp-course-card-summer">
+            <article key={course.id} className="lp-course-card lp-course-card-summer"
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <span className="material-symbols-outlined" aria-hidden>sunny</span>
               <h3>{isPl ? (COURSE_PL[course.id]?.name || course.name) : course.name}</h3>
-              <strong>{course.price}</strong>
+              <strong>{isPl ? (course.pricePl || course.price) : course.price}</strong>
               <small>{isPl ? (COURSE_PL[course.id]?.detail || course.detail) : course.detail}</small>
               <button
                 type="button"
@@ -543,18 +713,19 @@ export default function LessonPricingSignup() {
         <div className="lp-section-head">
           <div>
             <p className="lp-section-label">{t('Policy', 'Zasady')}</p>
-            <h2 id="policy-title">{t('Simple terms before payment.', 'Proste zasady przed platnoscia.')}</h2>
+            <h2 id="policy-title">{t('Simple terms before payment.', 'Proste zasady przed płatnością.')}</h2>
           </div>
           <p>
             {t(
               'Expiry, extensions, scheduling, billing, and refunds are shown before payment and stay more generous than the minimum where we can be.',
-              'Waznosc, przedluzenia, terminy, platnosci i zwroty sa pokazane przed platnoscia i sa mozliwie bardziej przyjazne niz minimum.',
+              'Ważność, przedłużenia, terminy, płatności i zwroty są pokazane przed płatnością i są możliwie bardziej przyjazne niż minimum.',
             )}
           </p>
         </div>
         <div className="lp-policy-grid">
           {POLICIES.map((policy) => (
-            <article key={policy.title} className="lp-policy-item">
+            <article key={policy.title} className="lp-policy-item"
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <span className="material-symbols-outlined" aria-hidden>{policy.icon}</span>
               <h3>{isPl ? (POLICY_PL[policy.title]?.title || policy.title) : policy.title}</h3>
               <p>{isPl ? (POLICY_PL[policy.title]?.copy || policy.copy) : policy.copy}</p>
@@ -570,7 +741,7 @@ export default function LessonPricingSignup() {
           <p>
             {t(
               'We will reply with teacher availability and the right payment next step. No card data is collected here.',
-              'Odpowiemy z dostepnoscia nauczyciela i kolejnym krokiem platnosci. Ta strona nie zbiera danych karty.',
+              'Odpowiemy z dostępnością nauczyciela i kolejnym krokiem płatności. Ta strona nie zbiera danych karty.',
             )}
           </p>
           <div className="lp-selected">
@@ -638,22 +809,31 @@ export default function LessonPricingSignup() {
             <span>
               {t(
                 'I understand this is a signup request, not a card payment. I have reviewed the lesson validity, extension, cancellation, refund, and payment summary.',
-                'Rozumiem, ze to prosba o zapis, a nie platnosc karta. Znam podsumowanie waznosci lekcji, przedluzen, odwolania, zwrotow i platnosci.',
+                'Rozumiem, że to prośba o zapis, a nie płatność kartą. Znam podsumowanie ważności lekcji, przedłużeń, odwołania, zwrotów i płatności.',
               )}
             </span>
           </label>
 
           {error && <p className="lp-error" role="alert">{error}</p>}
 
-          <a className="lp-button lp-button-primary lp-submit" href={`/signup?package=${encodeURIComponent(packageId)}`}>
-            <span className="material-symbols-outlined" aria-hidden>rocket_launch</span>
-            {t('Create your account & book', 'Zaloz konto i zarezerwuj')}
-          </a>
+          {isCompanyPackage ? (
+            <button className="lp-button lp-button-primary lp-submit" type="submit">
+              <span className="material-symbols-outlined" aria-hidden>business_center</span>
+              {t('Prepare company enquiry', 'Przygotuj zapytanie firmowe')}
+            </button>
+          ) : (
+            <>
+              <a className="lp-button lp-button-primary lp-submit" href={`/signup?package=${encodeURIComponent(packageId)}`}>
+                <span className="material-symbols-outlined" aria-hidden>rocket_launch</span>
+                {t('Create your account & book', 'Załóż konto i zarezerwuj')}
+              </a>
 
-          <button className="lp-button lp-button-ghost lp-submit" type="submit">
-            <span className="material-symbols-outlined" aria-hidden>send</span>
-            {t('Prefer email? Prepare a request', 'Wolisz email? Przygotuj prosbe')}
-          </button>
+              <button className="lp-button lp-button-ghost lp-submit" type="submit">
+                <span className="material-symbols-outlined" aria-hidden>send</span>
+                {t('Prefer email? Prepare a request', 'Wolisz email? Przygotuj prośbę')}
+              </button>
+            </>
+          )}
 
           {submitted && (
             <div className="lp-confirmation" role="status">
@@ -689,9 +869,7 @@ export default function LessonPricingSignup() {
           <Link to="/terms">{t('Terms', 'Regulamin')}</Link>
           <Link to="/privacy">{t('Privacy Policy', 'Polityka prywatności')}</Link>
           <Link to="/cookies">{t('Cookies Policy', 'Polityka cookies')}</Link>
-          <a href="/kontakt/">{t('Contact & company details', 'Kontakt i dane firmy')}</a>
           <a href={`mailto:${FOUNDATION.email}`}>{FOUNDATION.email}</a>
-          <a href="tel:+48662563507">{FOUNDATION.phone}</a>
         </nav>
       </footer>
 

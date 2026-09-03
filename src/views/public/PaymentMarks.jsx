@@ -18,6 +18,13 @@ const MARKS = {
       <circle cx="18.6" cy="15" r="2.4" />
     </>
   ),
+  deferred: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.2v5.1l3.3 2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7.3 3.8L5.4 5.7M16.7 3.8l1.9 1.9" strokeLinecap="round" />
+    </>
+  ),
   bank: (
     <>
       <path d="M12 3l9 4.6H3L12 3z" strokeLinejoin="round" />

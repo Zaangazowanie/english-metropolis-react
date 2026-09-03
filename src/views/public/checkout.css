@@ -427,6 +427,19 @@
 .co-pay-kinds { font-size: 12.5px; color: #443C68; }
 .co-pay-status { font-size: 12px; color: #5F5780; }
 .co-pay-note { margin: 10px 0 0; font-size: 12px; line-height: 1.6; color: #5F5780; }
+.co-paypo-details {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: var(--co-r-control);
+  background: rgba(139, 92, 246, 0.05);
+}
+.co-paypo-details > p { margin: 0 0 4px; font-size: 12.5px; line-height: 1.55; color: #514876; }
+.co-paypo-details .co-field { margin: 10px 0 0; }
+.co-paypo-row { display: grid; grid-template-columns: minmax(120px, 0.75fr) minmax(180px, 1.25fr); gap: 12px; }
+@media (max-width: 520px) {
+  .co-paypo-row { grid-template-columns: 1fr; gap: 0; }
+}
 .co-legal-links { margin: 14px 0 0; font-size: 12.5px; color: #5F5780; }
 .co-legal-links a { color: #6D28D9; font-weight: 600; text-decoration: none; }
 .co-legal-links a:hover { text-decoration: underline; }

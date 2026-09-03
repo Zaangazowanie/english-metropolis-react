@@ -83,6 +83,8 @@ const page = (p) => `<!DOCTYPE html>
   <header class="legal-topbar">
     <a class="legal-wordmark" href="/">English <em>Metro.</em></a>
     <nav class="legal-topnav">
+      <a href="/about/"><span class="lang-en">About</span><span class="lang-pl">O nas</span></a>
+      <a href="/faq/"><span class="lang-en">FAQ</span><span class="lang-pl">Pytania</span></a>
       <a href="/privacy/"${p.dir === 'privacy' ? ' aria-current="page"' : ''}><span class="lang-en">Privacy</span><span class="lang-pl">Prywatność</span></a>
       <a href="/cookies/"${p.dir === 'cookies' ? ' aria-current="page"' : ''}><span class="lang-en">Cookies</span><span class="lang-pl">Cookies</span></a>
       <a href="/terms/"${p.dir === 'terms' ? ' aria-current="page"' : ''}><span class="lang-en">Terms</span><span class="lang-pl">Regulamin</span></a>
@@ -142,6 +144,9 @@ ${p.body}
       </div>
       <nav>
         <a href="/"><span class="lang-en">Home</span><span class="lang-pl">Strona główna</span></a>
+        <a href="/about/"><span class="lang-en">About us</span><span class="lang-pl">O nas</span></a>
+        <a href="/faq/"><span class="lang-en">FAQ</span><span class="lang-pl">Najczęstsze pytania</span></a>
+        <a href="/ochrona-dzieci/"><span class="lang-en">Child protection</span><span class="lang-pl">Ochrona dzieci</span></a>
         <a href="/privacy/"><span class="lang-en">Privacy Policy</span><span class="lang-pl">Polityka prywatności</span></a>
         <a href="/cookies/"><span class="lang-en">Cookies Policy</span><span class="lang-pl">Polityka cookies</span></a>
         <a href="/terms/"><span class="lang-en">Terms of Service</span><span class="lang-pl">Regulamin</span></a>

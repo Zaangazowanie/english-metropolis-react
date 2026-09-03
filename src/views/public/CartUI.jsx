@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart, cart, cartCount, cartTotalPLN, formatPLN } from './cart-store.js'
+import { PACKAGE_LESSONS, packageValidity } from './packages.js'
 import './cart-ui.css'
 
 // Floating cart pill + slide-in drawer for the public lessons page.
@@ -79,7 +80,7 @@ export default function CartUI({ lang = 'pl' }) {
                 <li key={item.id} className="emc-item" style={{ '--emc-i': idx }}>
                   <div className="emc-item-info">
                     <strong>{item.name}</strong>
-                    <span>{isPl ? item.pacePl || item.pace : item.pace}</span>
+                    <span>{isPl ? item.pacePl || item.pace : item.pace} · {packageValidity(PACKAGE_LESSONS[item.id])[isPl ? 'pl' : 'en']}</span>
                   </div>
                   <div className="emc-item-controls">
                     <div className="emc-qty" role="group" aria-label={t('Quantity', 'Ilość')}>
