@@ -296,18 +296,68 @@ export const listStudents = query({
   },
 });
 
+// The student app resolves its own slug -> id here BEFORE it has a session, so
+// this query has to stay callable with no credential. It must therefore never
+// return a secret: slugs are "firstname-lastname" and enumerable, and until
+// 2026-08-27 an unauthenticated POST to englishmetro.com/api/query with a
+// guessed slug returned the full row — passwordHash, email, phone and
+// dateOfBirth included, for all 190 students.
+//
+// So: an anonymous caller gets a PROJECTION with exactly the fields the public
+// app actually reads (useStudentData.js uses name, slug, level, targetLevel and
+// _id; bajla-router reads level; conversa-ai's build_profile reads _id, name,
+// level). A caller who proves it is an admin, the pipeline, or that same
+// student gets the whole row, which is what the console screens need.
+const PUBLIC_STUDENT_FIELDS = [
+  "_id", "_creationTime", "slug", "name", "level", "targetLevel",
+  "type", "status", "organizationId", "primaryTeacherId", "groupId", "isMinor",
+] as const;
+
+function publicStudentView(row: any) {
+  if (!row) return null;
+  const out: Record<string, any> = {};
+  for (const f of PUBLIC_STUDENT_FIELDS) if (row[f] !== undefined) out[f] = row[f];
+  // A boolean, never the timestamp: the app only ever asks "is this address
+  // confirmed", and the timestamp is a behavioural fingerprint we need not leak.
+  out.emailVerified = !!row.emailVerifiedAt;
+  return out;
+}
+
+// True when the caller proved it is staff, the pipeline, or this same student.
+// Never throws: an absent or stale credential simply means "anonymous", because
+// the anonymous path is a legitimate, supported caller here.
+async function maySeeFullStudent(ctx: any, sessionToken: any, apiKey: any, studentId: any) {
+  if (apiKey && process.env.PIPELINE_API_KEY && apiKey === process.env.PIPELINE_API_KEY) return true;
+  if (!sessionToken) return false;
+  try {
+    const { student } = await requireStudent(ctx, sessionToken);
+    if (String(student._id) === String(studentId)) return true;
+  } catch { /* not a student session — fall through to the admin test */ }
+  try {
+    await requireAdmin(ctx, sessionToken);
+    return true;
+  } catch { return false; }
+}
+
 export const getStudentBySlug = query({
-  // sessionToken accepted-and-ignored (admin frontend auto-injects it)
-  args: { slug: v.string(), sessionToken: v.optional(v.string()) },
+  args: { slug: v.string(), sessionToken: v.optional(v.string()), apiKey: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    return await ctx.db.query("students").withIndex("by_slug", q => q.eq("slug", args.slug)).unique();
+    const row = await ctx.db.query("students").withIndex("by_slug", q => q.eq("slug", args.slug)).unique();
+    if (!row) return null;
+    return (await maySeeFullStudent(ctx, args.sessionToken, args.apiKey, row._id))
+      ? row
+      : publicStudentView(row);
   },
 });
 
 export const getStudent = query({
-  args: { studentId: v.id("students") },
+  args: { studentId: v.id("students"), sessionToken: v.optional(v.string()), apiKey: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.studentId);
+    const row = await ctx.db.get(args.studentId);
+    if (!row) return null;
+    return (await maySeeFullStudent(ctx, args.sessionToken, args.apiKey, args.studentId))
+      ? row
+      : publicStudentView(row);
   },
 });
 
@@ -2003,7 +2053,7 @@ export const findAccountByPhone = query({
 // ═════════════════════════════════════════════════════════════
 
 // Bump when the notice changes materially; consents record the version they saw.
-export const ANALYSIS_NOTICE_VERSION = "2026-08-10";
+export const ANALYSIS_NOTICE_VERSION = "2026-09-03";
 
 function analysisState(student: any): { allowed: boolean; reason: string } {
   // A child's account can never be analysed. Not "hidden", not "off by default":

@@ -136,7 +136,7 @@ export const setMyPhone = mutation({
 // re-export from it. Two ladders is a fabrication engine waiting to happen.
 // ─────────────────────────────────────────────────────────────
 
-const CATALOGUE_VERSION = "2026-08-18";
+const CATALOGUE_VERSION = "2026-09-03";
 
 const WA_PRIVATE_PACKAGES = [
   { id: "single", name: "One-off 1:1", lessons: 1, price: "135 PLN", perLesson: "135 PLN / lesson",
@@ -164,6 +164,11 @@ const WA_PRIVATE_PACKAGES = [
     bestFor: "The best value for sustained private coaching",
     bestForPl: "Najlepsza cena przy długofalowym indywidualnym coachingu",
     badge: "Best value", badgePl: "Najlepsza cena" },
+  { id: "fluency-48", name: "Fluency Complete", lessons: 48, price: "3,840 PLN", perLesson: "80 PLN / lesson",
+    pace: "48 live lessons", pacePl: "48 lekcji na żywo",
+    bestFor: "The lowest private lesson rate for a complete year of steady progress",
+    bestForPl: "Najniższa cena lekcji przy pełnym roku regularnej nauki",
+    badge: "Lowest lesson rate", badgePl: "Najniższa cena lekcji" },
 ];
 
 const WA_SPECIALIST_PACKAGES = [
@@ -188,11 +193,33 @@ const WA_SPECIALIST_PACKAGES = [
 // joins it. Bajla must not offer to book one.
 const WA_GROUP_COURSES = [
   { id: "september", name: "September Group Course", namePl: "Kurs wrześniowy", lessons: 8,
-    price: "200 PLN", perLesson: "25 PLN / lesson",
+    price: "400 PLN", perLesson: "50 PLN / lesson",
     pace: "8 group lessons", pacePl: "8 lekcji grupowych",
     bestFor: "Two lessons a week for the month, in a group of up to 4 at your level",
     bestForPl: "Dwie lekcje w tygodniu przez miesiąc, w grupie do 4 osób na Twoim poziomie",
     badge: "September", badgePl: "Wrzesień" },
+];
+
+// Company tiers. ENQUIRY-ONLY, and that is not a UI preference: convex/p24.ts
+// CATALOG has no company-24 / company-48, so p24.ts throws "Invalid cart item" for
+// either id, and the buy page resolves ?package= against private+specialist+groups
+// only. `enquiryOnly` is the machine-readable form of that: packs.py must never
+// build a pay link from one, and router.py sends a contact card instead.
+const WA_COMPANY_PACKAGES = [
+  { id: "company-24", name: "Company Team 24", lessons: 24, price: "4,800 PLN",
+    perLesson: "200 PLN / group lesson", enquiryOnly: true,
+    perStudent: "40 PLN / employee / lesson", perStudentPl: "40 PLN / pracownik / lekcja",
+    pace: "24 live company group lessons", pacePl: "24 firmowe lekcje grupowe",
+    bestFor: "A focused 24-lesson programme for one team of up to 5 employees",
+    bestForPl: "24-lekcyjny program dla stałej grupy do 5 pracowników",
+    badge: "Up to 5 employees", badgePl: "Do 5 pracowników" },
+  { id: "company-48", name: "Company Team 48", lessons: 48, price: "6,080 PLN",
+    perLesson: "126.67 PLN / group lesson", enquiryOnly: true,
+    perStudent: "25.33 PLN / employee / lesson", perStudentPl: "25,33 PLN / pracownik / lekcja",
+    pace: "48 live company group lessons", pacePl: "48 firmowych lekcji grupowych",
+    bestFor: "A 20% saving on the 7,600 PLN calculation for a 48-lesson programme",
+    bestForPl: "20% taniej względem wyliczenia 7 600 PLN za program 48 lekcji",
+    badge: "Save 20%", badgePl: "Taniej o 20%" },
 ];
 
 export const listPackages = query({
@@ -205,6 +232,7 @@ export const listPackages = query({
       packages: WA_PRIVATE_PACKAGES,
       specialist: WA_SPECIALIST_PACKAGES,
       groups: WA_GROUP_COURSES,
+      company: WA_COMPANY_PACKAGES,
     };
   },
 });

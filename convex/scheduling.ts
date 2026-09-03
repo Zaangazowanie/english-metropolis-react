@@ -9,10 +9,28 @@
 // the authoritative taught record written by the post-lesson pipeline)
 // + billable late cancellations and student no-shows (from `lessonBookings`).
 
-import { query, mutation, internalQuery, internalAction } from "./_generated/server";
+import { query, mutation, internalQuery, internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { requireAdmin, requireAdminOrStudent, isSuperadmin } from "./authHelpers";
+
+// Phase A2, closed 2026-08-27. bookLesson, cancelBooking and the studentId path
+// of listBookings all wrapped their ENTIRE authorization in `if
+// (args.sessionToken)`, so omitting the token skipped the check rather than
+// failing it. Combined with two public reads that hand out a studentId from a
+// guessable "firstname-lastname" slug, that was a complete unauthenticated
+// chain from a name to spending someone's prepaid lessons — or late-cancelling
+// one, which sets billable:true and destroys it outright.
+//
+// A token is now mandatory on all three. The caller must be the student
+// themselves or an admin; there is no anonymous branch left.
+async function requireStudentSelfOrAdmin(ctx: any, sessionToken: any, studentId: any) {
+  const auth = await requireAdminOrStudent(ctx, sessionToken);
+  if (auth.kind === "student" && String(auth.student!._id) !== String(studentId)) {
+    throw new Error("Unauthorized");
+  }
+  return auth;
+}
 import { billableUnitsForStudent, allocateBalances } from "./billing";
 
 export const CANCELLATION_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -327,10 +345,119 @@ export const setOneOffAvailability = mutation({
 });
 
 // ─── Open slots ─────────────────────────────────────────────────────────────
+// ONE slot engine for every reader and writer (2026-09-01). getOpenSlots (the
+// student grid), previewWeeklySeries (the "repeat weekly" plan) and
+// bookLessons (the write) derive slots from the same windows and classify them
+// with the same rule. Before this, bookLesson re-implemented the window match
+// on its own and skipped the filled-group rule, so the list a student saw and
+// the write that followed could disagree.
+
+type SlotCandidate = { dateWarsaw: string; timeWarsaw: string; startUtc: number; endUtc: number; dayOfWeek: number };
+type SlotState = "open" | "past" | "too_soon" | "taken" | "closed";
+// previewWeeklySeries adds "yours": the requesting student already holds that time.
+type PreviewState = SlotState | "yours";
+type SlotEngine = { active: any[]; blockingBookings: any[]; groupBlocked: Set<string> };
+
+async function loadSlotEngine(ctx: any, organizationId: any, teacherId: any): Promise<SlotEngine> {
+  const availability = await ctx.db
+    .query("teacherAvailability")
+    .withIndex("by_organization", (q: any) => q.eq("organizationId", organizationId))
+    .collect();
+  // Scope availability to the teacher, retaining legacy organization-wide
+  // availability as a fallback for teachers who do not have their own rows.
+  const { rows: active } = scopeByTeacher(
+    availability.filter((a: any) => a.active), teacherId, (a: any) => a.teacherId);
+
+  // Global overlap rule: one human teacher, so a lesson in ANY org blocks the
+  // time in every org. Legacy availability can still produce teacher-stamped
+  // bookings, so filtering by the availability fallback would advertise times
+  // that are already occupied. The bookings table is small.
+  const blockingBookings = (await ctx.db.query("lessonBookings").collect())
+    .filter((b: any) => b.status === "scheduled" || b.status === "completed");
+
+  // Weekly times owned by groups that have actually filled. A group short of
+  // its minimum is still recruiting and must NOT hold slots hostage — the
+  // teacher should keep selling those hours as 1:1 until the group is viable.
+  const groupBlocked = new Set<string>();
+  const orgGroups = await ctx.db
+    .query("groups")
+    .withIndex("by_organization", (q: any) => q.eq("organizationId", organizationId))
+    .collect();
+  for (const group of orgGroups) {
+    if (!group.sessions?.length) continue;
+    if (group.status && group.status !== "active") continue;
+    const members = await ctx.db
+      .query("groupMemberships")
+      .withIndex("by_group", (q: any) => q.eq("groupId", group._id))
+      .collect();
+    const activeMembers = members.filter((m: any) => !m.leftAt).length;
+    if (activeMembers < (group.minStudents ?? 3)) continue;
+    for (const session of group.sessions) {
+      groupBlocked.add(`${session.dayOfWeek}|${session.startTime}`);
+    }
+  }
+  return { active, blockingBookings, groupBlocked };
+}
+
+// Warsaw weekday of a Warsaw date (noon avoids DST edges).
+function warsawDayOfWeek(dateStr: string): number {
+  return warsawParts(warsawToUtc(dateStr, "12:00")).dayOfWeek;
+}
+
+function addDays(dateStr: string, days: number): string {
+  return new Date(new Date(`${dateStr}T00:00:00Z`).getTime() + days * 24 * 60 * 60 * 1000)
+    .toISOString().slice(0, 10);
+}
+
+// Every grid time the windows generate on one Warsaw date, UNFILTERED.
+// Weekly windows match by weekday, one-off windows by exact date; a time that
+// both produce is offered once.
+function slotsOnDate(active: any[], dateStr: string): SlotCandidate[] {
+  const dow = warsawDayOfWeek(dateStr);
+  const seen = new Set<number>();
+  const out: SlotCandidate[] = [];
+  for (const window of active) {
+    if (window.dateWarsaw) {
+      if (window.dateWarsaw !== dateStr) continue;
+    } else if (window.dayOfWeek !== dow) {
+      continue;
+    }
+    const startMin = timeToMinutes(window.startTime);
+    const endMin = timeToMinutes(window.endTime);
+    const stride = window.slotMinutes + window.gapMinutes;
+    for (let m = startMin; m + window.slotMinutes <= endMin; m += stride) {
+      const timeStr = minutesToTime(m);
+      const startUtc = warsawToUtc(dateStr, timeStr);
+      if (seen.has(startUtc)) continue;
+      seen.add(startUtc);
+      out.push({
+        dateWarsaw: dateStr, timeWarsaw: timeStr, startUtc,
+        endUtc: startUtc + window.slotMinutes * 60 * 1000, dayOfWeek: dow,
+      });
+    }
+  }
+  return out.sort((a, b) => a.startUtc - b.startUtc);
+}
+
+// Why a grid slot cannot be booked right now, or "open". Order matters and is
+// the order getOpenSlots always applied: past, lead time, occupied, group.
+function blockingBookingFor(slot: SlotCandidate, engine: SlotEngine) {
+  return engine.blockingBookings.find((b: any) => b.startUtc < slot.endUtc && b.endUtc > slot.startUtc) ?? null;
+}
+
+function classifySlot(slot: SlotCandidate, engine: SlotEngine, now: number, forStudent: boolean): SlotState {
+  if (slot.startUtc <= now) return "past";
+  if (forStudent && slot.startUtc - now < STUDENT_MIN_LEAD_MS) return "too_soon";
+  if (blockingBookingFor(slot, engine)) return "taken";
+  // A filled group owns its weekly times. One teacher cannot be in a group and
+  // a 1:1 at once, so those slots leave the grid entirely.
+  if (engine.groupBlocked.has(`${slot.dayOfWeek}|${slot.timeWarsaw}`)) return "closed";
+  return "open";
+}
+
 // Computes bookable slots between fromDate/toDate (Warsaw ISO dates,
 // inclusive): availability windows minus existing scheduled bookings,
 // minus anything in the past.
-
 export const getOpenSlots = query({
   args: {
     organizationId: v.id("organizations"),
@@ -345,83 +472,74 @@ export const getOpenSlots = query({
     sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const availability = await ctx.db
-      .query("teacherAvailability")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
-      .collect();
-    const activeAll = availability.filter(a => a.active);
-    // Scope availability to the teacher, retaining legacy organization-wide
-    // availability as a fallback for teachers who do not have their own rows.
-    const { rows: active } = scopeByTeacher(activeAll, args.teacherId, a => a.teacherId);
-    if (!active.length) return [];
-
-    // Use the same global overlap rule as bookLesson. Legacy availability can
-    // still produce teacher-stamped bookings, so filtering bookings by the
-    // availability fallback would advertise times that are already occupied.
-    const blockingBookings = (await ctx.db.query("lessonBookings").collect())
-      .filter(b => b.status === "scheduled" || b.status === "completed");
-    const offered = new Set<number>();
-
+    const engine = await loadSlotEngine(ctx, args.organizationId, args.teacherId);
+    if (!engine.active.length) return [];
     const now = Date.now();
-    const slots: Array<{ dateWarsaw: string; timeWarsaw: string; startUtc: number; endUtc: number; dayOfWeek: number }> = [];
-
-    // iterate days from fromDate to toDate
-    // Weekly times owned by groups that have actually filled. A group short of
-    // its minimum is still recruiting and must NOT hold slots hostage — the
-    // teacher should keep selling those hours as 1:1 until the group is viable.
-    const groupBlocked = new Set<string>();
-    const orgGroups = await ctx.db
-      .query("groups")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
-      .collect();
-    for (const group of orgGroups) {
-      if (!group.sessions?.length) continue;
-      if (group.status && group.status !== "active") continue;
-      const members = await ctx.db
-        .query("groupMemberships")
-        .withIndex("by_group", q => q.eq("groupId", group._id))
-        .collect();
-      const active = members.filter(m => !m.leftAt).length;
-      if (active < (group.minStudents ?? 3)) continue;
-      for (const session of group.sessions) {
-        groupBlocked.add(`${session.dayOfWeek}|${session.startTime}`);
-      }
-    }
-
-    const start = new Date(`${args.fromDate}T00:00:00Z`);
-    const end = new Date(`${args.toDate}T00:00:00Z`);
-    for (let cursor = start.getTime(); cursor <= end.getTime(); cursor += 24 * 60 * 60 * 1000) {
+    const slots: SlotCandidate[] = [];
+    const start = new Date(`${args.fromDate}T00:00:00Z`).getTime();
+    const end = new Date(`${args.toDate}T00:00:00Z`).getTime();
+    for (let cursor = start; cursor <= end; cursor += 24 * 60 * 60 * 1000) {
       const dateStr = new Date(cursor).toISOString().slice(0, 10);
-      // Determine the Warsaw weekday for this date (midday avoids DST edges)
-      const noonUtc = warsawToUtc(dateStr, "12:00");
-      const dow = warsawParts(noonUtc).dayOfWeek;
-
-      for (const window of active) {
-        if (window.dateWarsaw) {
-          if (window.dateWarsaw !== dateStr) continue;
-        } else if (window.dayOfWeek !== dow) {
-          continue;
-        }
-        const startMin = timeToMinutes(window.startTime);
-        const endMin = timeToMinutes(window.endTime);
-        const stride = window.slotMinutes + window.gapMinutes;
-        for (let m = startMin; m + window.slotMinutes <= endMin; m += stride) {
-          const timeStr = minutesToTime(m);
-          const startUtc = warsawToUtc(dateStr, timeStr);
-          const endUtc = startUtc + window.slotMinutes * 60 * 1000;
-          if (startUtc <= now) continue;            // past slots not bookable
-          if (args.forStudent && startUtc - now < STUDENT_MIN_LEAD_MS) continue;
-          if (blockingBookings.some(b => b.startUtc < endUtc && b.endUtc > startUtc)) continue;
-          // A filled group owns its weekly times. One teacher cannot be in a
-          // group and a 1:1 at once, so those slots leave the grid entirely.
-          if (groupBlocked.has(`${dow}|${timeStr}`)) continue;
-          if (offered.has(startUtc)) continue;      // overlapping weekly + one-off window
-          offered.add(startUtc);
-          slots.push({ dateWarsaw: dateStr, timeWarsaw: timeStr, startUtc, endUtc, dayOfWeek: dow });
-        }
+      for (const slot of slotsOnDate(engine.active, dateStr)) {
+        if (classifySlot(slot, engine, now, !!args.forStudent) === "open") slots.push(slot);
       }
     }
     return slots.sort((a, b) => a.startUtc - b.startUtc);
+  },
+});
+
+// The "repeat weekly" plan: the same weekday and Warsaw wall-clock time for
+// `count` consecutive weeks starting on fromDate, each week classified so the
+// student sees BEFORE confirming which weeks are open, taken (another lesson),
+// closed (no window that day, or a filled group) or too soon (inside the
+// 24-hour lead). Public like getOpenSlots: it reveals only what the open-slot
+// grid already reveals. Wall-clock times survive the October DST change
+// because every week is converted through warsawToUtc on its own date.
+export const previewWeeklySeries = query({
+  args: {
+    organizationId: v.id("organizations"),
+    teacherId: v.optional(v.id("users")),
+    dayOfWeek: v.number(),      // 0=Sunday .. 6=Saturday, Warsaw
+    timeWarsaw: v.string(),     // "15:00"
+    fromDate: v.string(),       // first occurrence, a Warsaw date on that weekday
+    count: v.number(),          // weeks, 1..52
+    forStudent: v.optional(v.boolean()),
+    // When given, a week the student already holds at that time reads "yours"
+    // rather than "taken", so extending an existing pattern is not mistaken
+    // for losing the slot to someone else.
+    studentId: v.optional(v.id("students")),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const count = Math.max(1, Math.min(52, Math.floor(args.count)));
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(args.fromDate) || !/^\d{2}:\d{2}$/.test(args.timeWarsaw)) {
+      throw new ConvexError({ code: "BAD_ARGS", message: "fromDate must be YYYY-MM-DD and timeWarsaw HH:MM" });
+    }
+    if (warsawDayOfWeek(args.fromDate) !== args.dayOfWeek) {
+      throw new ConvexError({ code: "BAD_START_DATE", message: `${args.fromDate} is not weekday ${args.dayOfWeek} in Warsaw` });
+    }
+    const engine = await loadSlotEngine(ctx, args.organizationId, args.teacherId);
+    const now = Date.now();
+    const weeks: Array<SlotCandidate & { status: PreviewState }> = [];
+    for (let i = 0; i < count; i++) {
+      const dateStr = addDays(args.fromDate, 7 * i);
+      const slot = slotsOnDate(engine.active, dateStr).find(s => s.timeWarsaw === args.timeWarsaw);
+      if (!slot) {
+        const startUtc = warsawToUtc(dateStr, args.timeWarsaw);
+        weeks.push({
+          dateWarsaw: dateStr, timeWarsaw: args.timeWarsaw, startUtc,
+          endUtc: startUtc + 60 * 60 * 1000, dayOfWeek: args.dayOfWeek, status: "closed",
+        });
+        continue;
+      }
+      let status: PreviewState = classifySlot(slot, engine, now, !!args.forStudent);
+      if (status === "taken" && args.studentId) {
+        const b = blockingBookingFor(slot, engine);
+        if (b && String(b.studentId) === String(args.studentId)) status = "yours";
+      }
+      weeks.push({ ...slot, status });
+    }
+    return { weeks };
   },
 });
 
@@ -437,7 +555,13 @@ export const listBookings = query({
   handler: async (ctx, args) => {
     let bookings;
     if (args.studentId) {
-      // Student calendar path — kept public for backwards compat.
+      // Student calendar path. This was "kept public for backwards compat" and
+      // that was a live hole: a guessable firstname-lastname slug resolved to a
+      // studentId, and this query then handed back that student's lessons —
+      // including the private Google Meet URL and the bookingId that
+      // cancelBooking consumes. Now it requires the student's own session, or
+      // an admin session, exactly like the org-wide branch below.
+      await requireStudentSelfOrAdmin(ctx, args.sessionToken, args.studentId);
       // (teacherId filter does not apply here.)
       bookings = await ctx.db
         .query("lessonBookings")
@@ -449,14 +573,26 @@ export const listBookings = query({
       const organizationId = isSuperadmin(user.role)
         ? (args.organizationId ?? user.organizationId)
         : user.organizationId;
-      if (!organizationId) throw new Error("No organization in scope");
-      bookings = await ctx.db
-        .query("lessonBookings")
-        .withIndex("by_organization", q => q.eq("organizationId", organizationId))
-        .collect();
-      // Optional per-teacher filter for the teacher portal (admin path only).
-      if (args.teacherId) {
-        bookings = bookings.filter(b => String(b.teacherId ?? "") === String(args.teacherId));
+      // A teacher's own schedule is ONE calendar across every client school:
+      // Mike's teacher user lives in the Conversa org while most of his
+      // students book in English Metropolis PVT, so an org-scoped read hid
+      // those lessons from /teacher entirely (found 2026-09-01). The teacher
+      // themself, or a superadmin, gets every org's rows for that teacherId.
+      const ownSchedule = !!args.teacherId &&
+        (String(user._id) === String(args.teacherId) || isSuperadmin(user.role));
+      if (ownSchedule) {
+        bookings = (await ctx.db.query("lessonBookings").collect())
+          .filter(b => String(b.teacherId ?? "") === String(args.teacherId));
+      } else {
+        if (!organizationId) throw new Error("No organization in scope");
+        bookings = await ctx.db
+          .query("lessonBookings")
+          .withIndex("by_organization", q => q.eq("organizationId", organizationId))
+          .collect();
+        // Optional per-teacher filter for the teacher portal (admin path only).
+        if (args.teacherId) {
+          bookings = bookings.filter(b => String(b.teacherId ?? "") === String(args.teacherId));
+        }
       }
     }
     // attach student names for display
@@ -515,11 +651,239 @@ export const updateBookingNotes = mutation({
   },
 });
 
+
 // Where e-mail confirmation is enforced. "book" gates self-service booking only;
-// "off" disables the gate entirely. Payment is never gated — see bookLesson.
+// "off" disables the gate entirely. Payment is never gated — see bookLessons.
 // Typed as string, not a literal union: TS narrows a const literal and then
 // reports the comparison below as unreachable whichever value is set here.
 const REQUIRE_VERIFIED_TO: string = "book";   // "book" | "off"
+
+// Never book more than this in one call: the largest package is 24 lessons and
+// a weekly plan longer than a year is not a booking, it is a timetable.
+const MAX_SLOTS_PER_CALL = 52;
+
+// Refusals a student can act on are ConvexErrors: prod redacts a plain Error to
+// "Server Error" over the HTTP API, so until 2026-09-01 NONE of the codes below
+// (TOO_LATE_TO_BOOK, EMAIL_NOT_VERIFIED, "No lessons remaining") ever reached
+// the browser — every refusal rendered as "Something went wrong". The `message`
+// keeps the historical text because Bajla's classifiers match substrings of it.
+function refuse(code: string, message: string, extra: Record<string, any> = {}): never {
+  throw new ConvexError({ code, message, ...extra });
+}
+
+type SlotProblem = { startUtc: number; dateWarsaw: string; timeWarsaw: string; reason: string };
+
+// The one write path. bookLesson (single) and bookLessons (batch / weekly
+// series) both land here, so the guards cannot drift apart. Runs inside ONE
+// Convex transaction: either every requested slot is booked or none is —
+// a half-booked series is a support ticket, never a result.
+async function bookLessonsCore(ctx: any, args: {
+  sessionToken?: string; organizationId: any; studentId: any; teacherId?: any;
+  startUtcs: number[]; bookedBy: string; bookedByName?: string; notes?: string;
+  force?: boolean; seriesKind?: string; mode?: string;
+}) {
+  // Authorization: a valid admin (any student in their org) or the student
+  // themselves (their own bookings). The token is REQUIRED; there is no
+  // anonymous path. Booking spends a prepaid lesson, so this must fail closed.
+  const auth = await requireStudentSelfOrAdmin(ctx, args.sessionToken, args.studentId);
+  if (args.force) {
+    const { user } = await requireAdmin(ctx, args.sessionToken ?? "");
+    if (!isSuperadmin(user.role)) {
+      throw new Error("Only a superadmin can book outside teacher availability");
+    }
+  }
+  const student = await ctx.db.get(args.studentId);
+  if (!student) throw new Error("Student not found");
+  if (student.organizationId !== args.organizationId) {
+    throw new Error("Student does not belong to this organization");
+  }
+  const bookingOrg: any = await ctx.db.get(args.organizationId);
+
+  const startUtcs = Array.from(new Set(args.startUtcs.map(n => Math.floor(n)))).sort((a, b) => a - b);
+  if (!startUtcs.length) refuse("NO_SLOTS", "Pick at least one time");
+  if (startUtcs.length > MAX_SLOTS_PER_CALL) {
+    refuse("TOO_MANY_SLOTS", `At most ${MAX_SLOTS_PER_CALL} lessons per booking`, { max: MAX_SLOTS_PER_CALL });
+  }
+  const now = Date.now();
+  const single = startUtcs.length === 1 && !args.seriesKind;
+  // "strict" (default): every requested time must be bookable or nothing is.
+  // "skipRefused": book the times that pass and report the rest — the weekly
+  // plan's mode, because a plan previewed minutes ago can lose one week to
+  // another student, and losing one week must not lose the other eleven.
+  const skipRefused = args.mode === "skipRefused" && !single;
+
+  // The student gates apply to anyone acting AS a student: the caller's own
+  // student session, or an admin/Bajla booking on the student's behalf with
+  // bookedBy "student". Until 2026-09-01 only the caller-supplied string was
+  // consulted, so a student session sending bookedBy:"superadmin" skipped the
+  // verification, lead-time and credit gates.
+  const studentActor = auth.kind === "student" || args.bookedBy === "student";
+
+  if (studentActor) {
+    // E-mail confirmation gate (2026-08-10, Mike): a student books only from
+    // an address they have proved they control. Deliberately placed HERE and
+    // not at checkout — taking the money must never depend on someone
+    // leaving the payment page to find an e-mail. Move REQUIRE_VERIFIED_TO
+    // if that decision changes; nothing else reads the flag.
+    if (REQUIRE_VERIFIED_TO === "book" && !student.emailVerifiedAt) {
+      refuse("EMAIL_NOT_VERIFIED", "EMAIL_NOT_VERIFIED");
+    }
+  }
+
+  // Resolve effective teacher: explicit arg → student's primary teacher →
+  // undefined (legacy org-wide). undefined means the booking is validated
+  // against, and recorded against, the legacy org-wide availability/scope.
+  const effectiveTeacherId: string | undefined =
+    (args.teacherId ? String(args.teacherId) : undefined) ??
+    (student.primaryTeacherId ? String(student.primaryTeacherId) : undefined);
+
+  const engine = await loadSlotEngine(ctx, args.organizationId, effectiveTeacherId);
+
+  // Classify every requested time against the grid, existing bookings and the
+  // other times in this same request. Collect every problem, then refuse once
+  // with all of them: the student fixes the whole plan in one go.
+  const problems: SlotProblem[] = [];
+  const accepted: Array<SlotCandidate & { minutes: number }> = [];
+  for (const startUtc of startUtcs) {
+    const w = warsawParts(startUtc);
+    const gridSlot = slotsOnDate(engine.active, w.date).find(s => s.startUtc === startUtc);
+    const minutes = gridSlot ? Math.round((gridSlot.endUtc - gridSlot.startUtc) / 60000) : 60;
+    const slot: SlotCandidate = gridSlot ?? {
+      dateWarsaw: w.date, timeWarsaw: w.time, startUtc,
+      endUtc: startUtc + minutes * 60 * 1000, dayOfWeek: w.dayOfWeek,
+    };
+    let reason: string | null = null;
+    if (startUtc <= now) reason = "past";
+    else if (studentActor && startUtc - now < STUDENT_MIN_LEAD_MS) reason = "too_soon";
+    else if (!gridSlot && !args.force) reason = "closed";
+    else {
+      const state = classifySlot(slot, engine, now, false);
+      if (state === "taken") reason = "taken";
+      else if (state === "closed" && !args.force) reason = "closed";
+      else if (accepted.some(a => a.startUtc < slot.endUtc && a.endUtc > slot.startUtc)) reason = "overlap";
+    }
+    if (reason) problems.push({ startUtc, dateWarsaw: slot.dateWarsaw, timeWarsaw: slot.timeWarsaw, reason });
+    else accepted.push({ ...slot, minutes });
+  }
+  if (problems.length && !skipRefused) {
+    const p = problems[0];
+    if (single) {
+      // Historical single-slot messages, now readable by the browser.
+      if (p.reason === "past") refuse("PAST", "Cannot book a lesson in the past", { slots: problems });
+      if (p.reason === "too_soon") refuse("TOO_LATE_TO_BOOK", "TOO_LATE_TO_BOOK", { slots: problems });
+      if (p.reason === "closed") refuse("OUTSIDE_AVAILABILITY", "Requested time is outside teacher availability", { slots: problems });
+      refuse("SLOT_TAKEN", `Time clash: another lesson is booked ${p.dateWarsaw} ${p.timeWarsaw}`, { slots: problems });
+    }
+    refuse("SLOT_UNAVAILABLE",
+      `${problems.length} of ${startUtcs.length} requested times cannot be booked (${problems.map(x => `${x.dateWarsaw} ${x.timeWarsaw}: ${x.reason}`).join(", ")})`,
+      { slots: problems });
+  }
+  if (!accepted.length) {
+    refuse("SLOT_UNAVAILABLE", "None of the requested times can be booked", { slots: problems });
+  }
+
+  // Credit gate. Students since 2026-07-10; EVERY actor since 2026-09-03 (Mike:
+  // "nothing should bypass the scheduling", after Szymon's 2000 PLN sat unbooked
+  // because a payment was handled outside the app). A scheduled booking consumes
+  // a lesson immediately (billing.ts), so N slots need N unexpired lessons
+  // whoever clicks. Schools (organizations.type "school": Conversa, English Line)
+  // are invoiced per lesson and hold no packages, so they are exempt. There is
+  // no override flag on purpose: to honour an extension, extend the package
+  // (billing:updatePackageMetadata) and then book.
+  // Counted AFTER slot classification so a skipped week is not charged for.
+  const packageBilled = bookingOrg?.type !== "school";
+  if (packageBilled) {
+    const packages = (await ctx.db
+      .query("lessonPackages")
+      .withIndex("by_student", (q: any) => q.eq("studentId", args.studentId))
+      .collect()).filter((p: any) =>
+        p.status !== "cancelled" && (!p.availableFrom || p.availableFrom <= now)
+      );
+    const units = await billableUnitsForStudent(ctx, args.studentId);
+    // Expired packages (Regulamin § 5 ust. 2) still absorb the lessons they
+    // already paid for, but their unused remainder is not bookable. The refusal
+    // names the expiry so the student can ask for the extension § 5 ust. 3 allows.
+    const balances = allocateBalances(packages, units);
+    const isExpired = (p: any) => typeof p.expiresAt === "number" && p.expiresAt <= now;
+    const remaining = balances
+      .filter((p: any) => !isExpired(p))
+      .reduce((n: number, p: any) => n + (p.remainingLessons ?? 0), 0);
+    if (remaining < accepted.length) {
+      const expired = balances.filter((p: any) => isExpired(p) && (p.remainingLessons ?? 0) > 0);
+      if (remaining <= 0 && expired.length) {
+        const expiredAt = expired.reduce((m: number, p: any) => Math.max(m, p.expiresAt), 0);
+        const trapped = expired.reduce((n: number, p: any) => n + (p.remainingLessons ?? 0), 0);
+        refuse("PACKAGE_EXPIRED",
+          studentActor
+            ? `Your lesson package expired on ${new Date(expiredAt).toISOString().slice(0, 10)} with ${trapped} lesson${trapped === 1 ? "" : "s"} unused, ask us to extend it`
+            : `This student's package expired on ${new Date(expiredAt).toISOString().slice(0, 10)} with ${trapped} lesson${trapped === 1 ? "" : "s"} unused. Extend it in Billing, then book`,
+          { expiredAt, trapped, remaining, requested: accepted.length });
+      }
+      refuse("NO_LESSONS_REMAINING",
+        remaining <= 0
+          ? (studentActor
+              ? "No lessons remaining — purchase a lesson package first"
+              : "No lessons remaining on this student's packages. Allocate or extend a package in Billing, then book")
+          : `Only ${remaining} lesson${remaining === 1 ? "" : "s"} remaining, ${accepted.length} requested`,
+        { remaining, requested: accepted.length });
+    }
+  }
+
+  const seriesKind = single ? undefined : (args.seriesKind || "batch");
+  const bookings: Array<{ bookingId: any; dateWarsaw: string; timeWarsaw: string; startUtc: number; endUtc: number; meetLink: string }> = [];
+  let seriesId: string | undefined;
+  for (const slot of accepted) {
+    const bookingId = await ctx.db.insert("lessonBookings", {
+      organizationId: args.organizationId,
+      ...(effectiveTeacherId === undefined ? {} : { teacherId: effectiveTeacherId as any }),
+      studentId: args.studentId,
+      startUtc: slot.startUtc,
+      endUtc: slot.endUtc,
+      dateWarsaw: slot.dateWarsaw,
+      timeWarsaw: slot.timeWarsaw,
+      status: "scheduled",
+      bookedBy: args.bookedBy,
+      bookedByName: args.bookedByName,
+      notes: args.notes,
+      notificationStatus: "pending",
+      notificationAttempts: 0,
+      notificationUpdatedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+    // Every booking in one request shares the first booking's id as seriesId:
+    // that is what "cancel the rest of the series" and the console badge key on.
+    if (seriesKind && !seriesId) seriesId = String(bookingId);
+    // Generate this lesson's video room and store it on the booking. em-report
+    // upgrades it to a Google Meet when it sends the confirmation.
+    const meetLink = generateMeetLink(String(bookingId));
+    await ctx.db.patch(bookingId, {
+      meetLink, updatedAt: now,
+      ...(seriesKind ? { seriesId, seriesKind } : {}),
+    });
+    bookings.push({ bookingId, dateWarsaw: slot.dateWarsaw, timeWarsaw: slot.timeWarsaw, startUtc: slot.startUtc, endUtc: slot.endUtc, meetLink });
+  }
+
+  // Confirmation email asynchronously (an action — mutations can't do network
+  // I/O). A single lesson keeps the per-booking path every existing caller
+  // (Bajla's Meet handoff included) relies on; a series sends ONE email per
+  // party listing every date, never one email per lesson.
+  if (single) {
+    await ctx.scheduler.runAfter(0, internal.scheduling.sendBookingConfirmation, { bookingId: bookings[0].bookingId, attempt: 1 });
+  } else {
+    await ctx.scheduler.runAfter(0, internal.scheduling.sendSeriesConfirmation, {
+      bookingIds: bookings.map(b => b.bookingId), attempt: 1,
+      skipped: problems.map(p => ({ dateWarsaw: p.dateWarsaw, timeWarsaw: p.timeWarsaw, reason: p.reason })),
+    });
+  }
+
+  return {
+    seriesId: seriesId ?? null, seriesKind: seriesKind ?? null, teacherId: effectiveTeacherId ?? null,
+    bookings,
+    // Only ever non-empty in "skipRefused" mode; the email names these too.
+    skipped: problems,
+  };
+}
 
 export const bookLesson = mutation({
   args: {
@@ -537,210 +901,449 @@ export const bookLesson = mutation({
     force: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    // Authorization: if a token is supplied it must be a valid admin (any
-    // student in their org) or the student themselves (their own bookings).
-    // TODO Phase A2: require token — drop the no-token student-style path.
-    if (args.sessionToken) {
-      const auth = await requireAdminOrStudent(ctx, args.sessionToken);
-      if (auth.kind === "student" && String(auth.student!._id) !== String(args.studentId)) {
-        throw new Error("Unauthorized");
-      }
-    }
-    if (args.force) {
-      const { user } = await requireAdmin(ctx, args.sessionToken ?? "");
-      if (!isSuperadmin(user.role)) {
-        throw new Error("Only a superadmin can book outside teacher availability");
-      }
-    }
-    const student = await ctx.db.get(args.studentId);
-    if (!student) throw new Error("Student not found");
-    if (student.organizationId !== args.organizationId) {
-      throw new Error("Student does not belong to this organization");
-    }
-
-    const now = Date.now();
-    if (args.startUtc <= now) throw new Error("Cannot book a lesson in the past");
-
-    // STUDENT bookings are allocation-gated globally (2026-07-10): a student
-    // can only book while they have purchased lessons remaining. Superadmin/
-    // school bookings pass — the console shows and enforces its own budget.
-    if (args.bookedBy === "student") {
-      // E-mail confirmation gate (2026-08-10, Mike): a student books only from
-      // an address they have proved they control. Deliberately placed HERE and
-      // not at checkout — taking the money must never depend on someone
-      // leaving the payment page to find an e-mail. Move REQUIRE_VERIFIED_TO
-      // if that decision changes; nothing else reads the flag.
-      //
-      // Only self-service bookings are gated. A teacher or the console booking
-      // on a student's behalf passes, so nobody is ever stranded: the roster
-      // predating this field is grandfathered by studentAuth:backfillVerifiedAt,
-      // and Google sign-ins are stamped at creation.
-      if (REQUIRE_VERIFIED_TO === "book" && !student.emailVerifiedAt) {
-        throw new Error("EMAIL_NOT_VERIFIED");
-      }
-      // 24-hour lead time. Checked here and not only in the slot list, because the
-      // list is a query a browser can skip.
-      if (args.startUtc - now < STUDENT_MIN_LEAD_MS) {
-        throw new Error("TOO_LATE_TO_BOOK");
-      }
-      const packages = (await ctx.db
-        .query("lessonPackages")
-        .withIndex("by_student", q => q.eq("studentId", args.studentId))
-        .collect()).filter(p =>
-          p.status !== "cancelled" && (!p.availableFrom || p.availableFrom <= now)
-        );
-      const units = await billableUnitsForStudent(ctx, args.studentId);
-      const remaining = allocateBalances(packages, units)
-        .reduce((n: number, p: any) => n + (p.remainingLessons ?? 0), 0);
-      if (remaining <= 0) {
-        throw new Error("No lessons remaining — purchase a lesson package first");
-      }
-    }
-
-    // Resolve effective teacher: explicit arg → student's primary teacher →
-    // undefined (legacy org-wide). undefined means the booking is validated
-    // against, and recorded against, the legacy org-wide availability/scope.
-    const effectiveTeacherId: string | undefined =
-      (args.teacherId ? String(args.teacherId) : undefined) ??
-      (student.primaryTeacherId ? String(student.primaryTeacherId) : undefined);
-
-    // Validate against availability: the requested start must be exactly one
-    // of the generated slots for its Warsaw date — within THAT teacher's
-    // scope (per-teacher rows, falling back to legacy org-wide rows when the
-    // teacher has none of their own yet; same rule as getOpenSlots).
-    const availability = await ctx.db
-      .query("teacherAvailability")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
-      .collect();
-    const { rows: scopedAvailability } =
-      scopeByTeacher(availability.filter(a => a.active), effectiveTeacherId, a => a.teacherId);
-    const w = warsawParts(args.startUtc);
-    const matching = scopedAvailability.filter(a =>
-      a.dateWarsaw ? a.dateWarsaw === w.date : a.dayOfWeek === w.dayOfWeek
-    );
-    let slotWindow = null;
-    for (const window of matching) {
-      const startMin = timeToMinutes(window.startTime);
-      const endMin = timeToMinutes(window.endTime);
-      const reqMin = timeToMinutes(w.time);
-      const stride = window.slotMinutes + window.gapMinutes;
-      if (reqMin >= startMin && reqMin + window.slotMinutes <= endMin && (reqMin - startMin) % stride === 0) {
-        slotWindow = window;
-        break;
-      }
-    }
-    if (!slotWindow && !args.force) {
-      throw new Error("Requested time is outside teacher availability");
-    }
-    // Forced bookings outside any window use the global 60-minute lesson.
-    const lessonMinutes = slotWindow ? slotWindow.slotMinutes : 60;
-    const newEndUtc = args.startUtc + lessonMinutes * 60 * 1000;
-
-    // Conflict check (same org, exact start — the legacy fast path)
-    const existing = await ctx.db
-      .query("lessonBookings")
-      .withIndex("by_org_start", q => q.eq("organizationId", args.organizationId).eq("startUtc", args.startUtc))
-      .collect();
-    if (existing.some(b => b.status === "scheduled" || b.status === "completed")) {
-      throw new Error("This slot is already booked");
-    }
-    // Overlap check across ALL orgs — one human teacher, so a 17:30 lesson in
-    // one org must block 17:05-18:05 in another. The bookings table is small.
-    const allBookings = await ctx.db.query("lessonBookings").collect();
-    const clash = allBookings.find(b =>
-      (b.status === "scheduled" || b.status === "completed") &&
-      b.startUtc < newEndUtc && b.endUtc > args.startUtc);
-    if (clash) {
-      throw new Error(`Time clash: another lesson is booked ${clash.dateWarsaw} ${clash.timeWarsaw}`);
-    }
-
-    const bookingId = await ctx.db.insert("lessonBookings", {
-      organizationId: args.organizationId,
-      ...(effectiveTeacherId === undefined ? {} : { teacherId: effectiveTeacherId as any }),
-      studentId: args.studentId,
-      startUtc: args.startUtc,
-      endUtc: newEndUtc,
-      dateWarsaw: w.date,
-      timeWarsaw: w.time,
-      status: "scheduled",
-      bookedBy: args.bookedBy,
-      bookedByName: args.bookedByName,
-      notes: args.notes,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // Generate this lesson's video room and store it on the booking, then fire
-    // the confirmation email asynchronously (an action — mutations can't do
-    // network I/O). Fires for EVERY booking path (student, admin, superadmin).
-    const meetLink = generateMeetLink(bookingId);
-    await ctx.db.patch(bookingId, { meetLink, updatedAt: now });
-    await ctx.scheduler.runAfter(0, internal.scheduling.sendBookingConfirmation, { bookingId });
-
-    return { bookingId, dateWarsaw: w.date, timeWarsaw: w.time, teacherId: effectiveTeacherId ?? null, meetLink };
+    const res = await bookLessonsCore(ctx, { ...args, startUtcs: [args.startUtc] });
+    const b = res.bookings[0];
+    return { bookingId: b.bookingId, dateWarsaw: b.dateWarsaw, timeWarsaw: b.timeWarsaw, teacherId: res.teacherId, meetLink: b.meetLink };
   },
+});
+
+// Several lessons in one confirmed action: a hand-picked set ("batch") or the
+// open weeks of a "repeat weekly" plan. All or nothing.
+export const bookLessons = mutation({
+  args: {
+    sessionToken: v.optional(v.string()),
+    organizationId: v.id("organizations"),
+    studentId: v.id("students"),
+    teacherId: v.optional(v.id("users")),
+    startUtcs: v.array(v.number()),
+    bookedBy: v.string(),
+    bookedByName: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    force: v.optional(v.boolean()),
+    seriesKind: v.optional(v.string()),      // "batch" | "weekly"
+    mode: v.optional(v.string()),            // "strict" (default) | "skipRefused"
+  },
+  handler: async (ctx, args) => bookLessonsCore(ctx, args),
 });
 
 // ─── Booking confirmation email (Meet link) ──────────────────────────────────
 // Internal read used by the confirmation action (resolves display names).
+function cancelledByRole(cancelledBy: string | undefined): string {
+  // em-report's cancellation template speaks about "your teacher" for
+  // teacher-initiated cancels and "the school" for admin ones. Mike is both
+  // the teacher and the superadmin, so a console cancel reads as the teacher.
+  if (cancelledBy === "student") return "student";
+  if (cancelledBy === "superadmin" || cancelledBy === "teacher") return "teacher";
+  return "admin";
+}
+
+async function bookingInfo(ctx: any, b: any) {
+  const student = await ctx.db.get(b.studentId);
+  let teacherName: string | null = null;
+  let teacherEmail: string | null = null;
+  if (b.teacherId) {
+    const teacher = await ctx.db.get(b.teacherId);
+    teacherName = teacher?.name ?? null;
+    teacherEmail = teacher?.email ?? null;
+  }
+  const durationMin = Math.round((b.endUtc - b.startUtc) / 60000);
+  return {
+    bookingId: String(b._id),
+    dateWarsaw: b.dateWarsaw,
+    timeWarsaw: b.timeWarsaw,
+    startUtc: b.startUtc,
+    endUtc: b.endUtc,
+    durationMin,
+    meetLink: b.meetLink ?? null,
+    status: b.status,
+    seriesId: b.seriesId ?? null,
+    seriesKind: b.seriesKind ?? null,
+    cancelledByRole: cancelledByRole(b.cancelledBy),
+    billableLate: b.status === "cancelled_late",
+    studentName: student?.name ?? "Student",
+    // Students log in with their record email but their REAL personal
+    // address lives in googleEmail — confirmations go there when present.
+    studentEmail: (student as any)?.googleEmail ?? student?.email ?? null,
+    studentSlug: student?.slug ?? null,
+    teacherName,
+    teacherEmail,
+  };
+}
+
 export const getBookingInternal = internalQuery({
   args: { bookingId: v.id("lessonBookings") },
   handler: async (ctx, args) => {
     const b = await ctx.db.get(args.bookingId);
     if (!b) return null;
-    const student = await ctx.db.get(b.studentId);
-    let teacherName: string | null = null;
-    let teacherEmail: string | null = null;
-    if (b.teacherId) {
-      const teacher = await ctx.db.get(b.teacherId);
-      teacherName = teacher?.name ?? null;
-      teacherEmail = teacher?.email ?? null;
-    }
-    const durationMin = Math.round((b.endUtc - b.startUtc) / 60000);
-    return {
-      bookingId: String(b._id),
-      dateWarsaw: b.dateWarsaw,
-      timeWarsaw: b.timeWarsaw,
-      durationMin,
-      meetLink: b.meetLink ?? null,
-      studentName: student?.name ?? "Student",
-      // Students log in with their record email but their REAL personal
-      // address lives in googleEmail — confirmations go there when present.
-      studentEmail: (student as any)?.googleEmail ?? student?.email ?? null,
-      teacherName,
-      teacherEmail,
-    };
+    return bookingInfo(ctx, b);
   },
 });
+
+export const getSeriesInternal = internalQuery({
+  args: { bookingIds: v.array(v.id("lessonBookings")) },
+  handler: async (ctx, args) => {
+    const rows = [];
+    for (const id of args.bookingIds) {
+      const b = await ctx.db.get(id);
+      if (b) rows.push(await bookingInfo(ctx, b));
+    }
+    rows.sort((a, b) => a.startUtc - b.startUtc);
+    return rows;
+  },
+});
+
+// Delivery retries: 1, 5, 15, 60, 240 minutes. Three one-minute retries (the
+// 08-26 design) gave up inside any real relay outage; this reaches ~5.4 h.
+const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000, 240 * 60_000];
+const MAX_ATTEMPTS = RETRY_DELAYS_MS.length;
+
+// em-report answers 200 with { ok, sent:[roles], failed:[{role,error}] }. Every
+// party reached → "sent"; some reached → "partial" (recorded, NOT retried, or
+// the parties that worked would get the email twice — the console shows it
+// and offers a manual retry); none reached → a failure that retries.
+async function readDeliveryOutcome(resp: Response): Promise<{ failure: string | null; partial: string | null }> {
+  const text = (await resp.text()).slice(0, 400);
+  if (!resp.ok) return { failure: `HTTP ${resp.status}: ${text}`, partial: null };
+  try {
+    const j = JSON.parse(text);
+    if (Array.isArray(j?.failed) && j.failed.length) {
+      const failedRoles = j.failed.map((f: any) => `${f.role}: ${f.error}`).join("; ");
+      if (!j.sent?.length) return { failure: `no party reached (${failedRoles})`, partial: null };
+      return { failure: null, partial: failedRoles };
+    }
+  } catch { /* legacy body: a 200 was a delivery receipt */ }
+  return { failure: null, partial: null };
+}
 
 // Posts the booking to the em-report service (VPS), which emails the Meet link.
 // In TEST mode em-report sends only to the configured test recipient. Never
 // throws — a delivery failure must not affect the booking that already happened.
 export const sendBookingConfirmation = internalAction({
-  args: { bookingId: v.id("lessonBookings") },
+  args: { bookingId: v.id("lessonBookings"), attempt: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    const attempt = Math.max(1, args.attempt || 1);
     const url = process.env.BOOKING_NOTIFY_URL;
     const key = process.env.BOOKING_NOTIFY_KEY;
     if (!url || !key) {
-      console.warn("[scheduling] BOOKING_NOTIFY_URL/KEY unset — skipping confirmation email");
+      await ctx.runMutation(internal.scheduling.recordBookingNotification, {
+        bookingId: args.bookingId, kind: "confirmation", status: "failed", attempt,
+        error: "BOOKING_NOTIFY_URL/KEY is not configured",
+      });
       return;
     }
     const info = await ctx.runQuery(internal.scheduling.getBookingInternal, { bookingId: args.bookingId });
     if (!info) return;
+    let failure: string | null = null;
+    let partial: string | null = null;
     try {
       const resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-booking-key": key },
         body: JSON.stringify(info),
       });
-      if (!resp.ok) {
-        console.error("[scheduling] booking-confirm POST failed", resp.status, (await resp.text()).slice(0, 200));
-      }
+      ({ failure, partial } = await readDeliveryOutcome(resp));
     } catch (e: any) {
-      console.error("[scheduling] booking-confirm fetch error", e?.message);
+      failure = e?.message || "Network error";
+    }
+    if (!failure) {
+      await ctx.runMutation(internal.scheduling.recordBookingNotification, {
+        bookingId: args.bookingId, kind: "confirmation", status: partial ? "partial" : "sent", attempt,
+        error: partial ?? undefined,
+      });
+      return;
+    }
+    const finalAttempt = attempt >= MAX_ATTEMPTS;
+    await ctx.runMutation(internal.scheduling.recordBookingNotification, {
+      bookingId: args.bookingId, kind: "confirmation",
+      status: finalAttempt ? "failed" : "pending", attempt, error: failure,
+    });
+    if (!finalAttempt) {
+      await ctx.scheduler.runAfter(RETRY_DELAYS_MS[attempt - 1], internal.scheduling.sendBookingConfirmation, {
+        bookingId: args.bookingId, attempt: attempt + 1,
+      });
     }
   },
 });
+
+export const recordBookingNotification = internalMutation({
+  args: {
+    bookingId: v.id("lessonBookings"),
+    kind: v.union(v.literal("confirmation"), v.literal("cancellation")),
+    status: v.string(), attempt: v.number(), error: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const booking = await ctx.db.get(args.bookingId);
+    if (!booking) return;
+    const now = Date.now();
+    if (args.kind === "confirmation") {
+      await ctx.db.patch(args.bookingId, {
+        notificationStatus: args.status, notificationAttempts: args.attempt,
+        notificationLastError: args.error, notificationUpdatedAt: now, updatedAt: now,
+      });
+    } else {
+      await ctx.db.patch(args.bookingId, {
+        cancellationNotificationStatus: args.status, cancellationNotificationAttempts: args.attempt,
+        cancellationNotificationLastError: args.error, cancellationNotificationUpdatedAt: now, updatedAt: now,
+      });
+    }
+  },
+});
+
+export const sendBookingCancellation = internalAction({
+  args: { bookingId: v.id("lessonBookings"), attempt: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const attempt = Math.max(1, args.attempt || 1);
+    const base = process.env.BOOKING_NOTIFY_URL;
+    const key = process.env.BOOKING_NOTIFY_KEY;
+    const info = await ctx.runQuery(internal.scheduling.getBookingInternal, { bookingId: args.bookingId });
+    if (!info) return;
+    let failure: string | null = null;
+    let partial: string | null = null;
+    if (!base || !key) failure = "BOOKING_NOTIFY_URL/KEY is not configured";
+    else {
+      try {
+        const resp = await fetch(base.replace("booking-confirm", "booking-cancel"), {
+          method: "POST", headers: { "Content-Type": "application/json", "x-booking-key": key },
+          body: JSON.stringify(info),
+        });
+        ({ failure, partial } = await readDeliveryOutcome(resp));
+      } catch (e: any) { failure = e?.message || "Network error"; }
+    }
+    if (!failure) {
+      await ctx.runMutation(internal.scheduling.recordBookingNotification, {
+        bookingId: args.bookingId, kind: "cancellation", status: partial ? "partial" : "sent", attempt,
+        error: partial ?? undefined,
+      });
+      return;
+    }
+    const finalAttempt = attempt >= MAX_ATTEMPTS;
+    await ctx.runMutation(internal.scheduling.recordBookingNotification, {
+      bookingId: args.bookingId, kind: "cancellation",
+      status: finalAttempt ? "failed" : "pending", attempt, error: failure,
+    });
+    if (!finalAttempt) {
+      await ctx.scheduler.runAfter(RETRY_DELAYS_MS[attempt - 1], internal.scheduling.sendBookingCancellation, {
+        bookingId: args.bookingId, attempt: attempt + 1,
+      });
+    }
+  },
+});
+
+export const retryBookingNotification = mutation({
+  args: { sessionToken: v.string(), bookingId: v.id("lessonBookings"), kind: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    if (!isSuperadmin(user.role)) throw new Error("Superadmin only");
+    const booking = await ctx.db.get(args.bookingId);
+    if (!booking) throw new Error("Booking not found");
+    const now = Date.now();
+    // A booking that was confirmed as part of a series is re-sent AS the
+    // series: one email listing every lesson, never twelve single ones.
+    if (booking.seriesId) {
+      const siblings = (await ctx.db
+        .query("lessonBookings")
+        .withIndex("by_student", (q: any) => q.eq("studentId", booking.studentId))
+        .collect())
+        .filter((b: any) => b.seriesId === booking.seriesId &&
+          (args.kind === "cancellation" ? b.status !== "scheduled" : b.status === "scheduled"))
+        .sort((a: any, b: any) => a.startUtc - b.startUtc);
+      const ids = siblings.map((b: any) => b._id);
+      if (args.kind === "cancellation") {
+        await ctx.runMutation(internal.scheduling.recordSeriesNotification, { bookingIds: ids, kind: "cancellation", status: "pending", attempt: 0 });
+        await ctx.scheduler.runAfter(0, internal.scheduling.sendSeriesCancellation, { bookingIds: ids, attempt: 1 });
+      } else {
+        await ctx.runMutation(internal.scheduling.recordSeriesNotification, { bookingIds: ids, kind: "confirmation", status: "pending", attempt: 0 });
+        await ctx.scheduler.runAfter(0, internal.scheduling.sendSeriesConfirmation, { bookingIds: ids, attempt: 1 });
+      }
+      return { queued: true, series: true, count: ids.length };
+    }
+    if (args.kind === "cancellation") {
+      await ctx.db.patch(args.bookingId, {
+        cancellationNotificationStatus: "pending", cancellationNotificationAttempts: 0,
+        cancellationNotificationLastError: undefined, cancellationNotificationUpdatedAt: now, updatedAt: now,
+      });
+      await ctx.scheduler.runAfter(0, internal.scheduling.sendBookingCancellation, { bookingId: args.bookingId, attempt: 1 });
+    } else {
+      await ctx.db.patch(args.bookingId, {
+        notificationStatus: "pending", notificationAttempts: 0,
+        notificationLastError: undefined, notificationUpdatedAt: now, updatedAt: now,
+      });
+      await ctx.scheduler.runAfter(0, internal.scheduling.sendBookingConfirmation, { bookingId: args.bookingId, attempt: 1 });
+    }
+    return { queued: true };
+  },
+});
+
+
+// One email per party for a whole series (batch or weekly). Retries like the
+// single confirmation; the per-booking notification status is recorded on
+// every row so the console sees the truth for each lesson.
+const SKIPPED_SHAPE = v.array(v.object({ dateWarsaw: v.string(), timeWarsaw: v.string(), reason: v.string() }));
+
+export const sendSeriesConfirmation = internalAction({
+  args: { bookingIds: v.array(v.id("lessonBookings")), attempt: v.optional(v.number()), skipped: v.optional(SKIPPED_SHAPE) },
+  handler: async (ctx, args) => {
+    const attempt = Math.max(1, args.attempt || 1);
+    const base = process.env.BOOKING_NOTIFY_URL;
+    const key = process.env.BOOKING_NOTIFY_KEY;
+    const rows = await ctx.runQuery(internal.scheduling.getSeriesInternal, { bookingIds: args.bookingIds });
+    if (!rows.length) return;
+    let failure: string | null = null;
+    let partial: string | null = null;
+    if (!base || !key) failure = "BOOKING_NOTIFY_URL/KEY is not configured";
+    else {
+      const first = rows[0];
+      const payload = {
+        series: { seriesId: first.seriesId, seriesKind: first.seriesKind, count: rows.length },
+        bookings: rows,
+        skipped: args.skipped ?? [],
+        studentName: first.studentName, studentEmail: first.studentEmail, studentSlug: first.studentSlug,
+        teacherName: first.teacherName, teacherEmail: first.teacherEmail,
+      };
+      try {
+        const resp = await fetch(base.replace("booking-confirm", "booking-series-confirm"), {
+          method: "POST", headers: { "Content-Type": "application/json", "x-booking-key": key },
+          body: JSON.stringify(payload),
+        });
+        ({ failure, partial } = await readDeliveryOutcome(resp));
+      } catch (e: any) { failure = e?.message || "Network error"; }
+    }
+    if (!failure) {
+      await ctx.runMutation(internal.scheduling.recordSeriesNotification, {
+        bookingIds: args.bookingIds, kind: "confirmation", status: partial ? "partial" : "sent", attempt,
+        error: partial ?? undefined,
+      });
+      return;
+    }
+    const finalAttempt = attempt >= MAX_ATTEMPTS;
+    await ctx.runMutation(internal.scheduling.recordSeriesNotification, {
+      bookingIds: args.bookingIds, kind: "confirmation",
+      status: finalAttempt ? "failed" : "pending", attempt, error: failure,
+    });
+    if (!finalAttempt) {
+      await ctx.scheduler.runAfter(RETRY_DELAYS_MS[attempt - 1], internal.scheduling.sendSeriesConfirmation, {
+        bookingIds: args.bookingIds, attempt: attempt + 1, skipped: args.skipped,
+      });
+    }
+  },
+});
+
+export const sendSeriesCancellation = internalAction({
+  args: { bookingIds: v.array(v.id("lessonBookings")), attempt: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const attempt = Math.max(1, args.attempt || 1);
+    const base = process.env.BOOKING_NOTIFY_URL;
+    const key = process.env.BOOKING_NOTIFY_KEY;
+    const rows = await ctx.runQuery(internal.scheduling.getSeriesInternal, { bookingIds: args.bookingIds });
+    if (!rows.length) return;
+    let failure: string | null = null;
+    let partial: string | null = null;
+    if (!base || !key) failure = "BOOKING_NOTIFY_URL/KEY is not configured";
+    else {
+      const first = rows[0];
+      const payload = {
+        series: { seriesId: first.seriesId, seriesKind: first.seriesKind, count: rows.length },
+        bookings: rows,
+        cancelledByRole: first.cancelledByRole,
+        billableCount: rows.filter((r: any) => r.billableLate).length,
+        studentName: first.studentName, studentEmail: first.studentEmail, studentSlug: first.studentSlug,
+        teacherName: first.teacherName, teacherEmail: first.teacherEmail,
+      };
+      try {
+        const resp = await fetch(base.replace("booking-confirm", "booking-series-cancel"), {
+          method: "POST", headers: { "Content-Type": "application/json", "x-booking-key": key },
+          body: JSON.stringify(payload),
+        });
+        ({ failure, partial } = await readDeliveryOutcome(resp));
+      } catch (e: any) { failure = e?.message || "Network error"; }
+    }
+    if (!failure) {
+      await ctx.runMutation(internal.scheduling.recordSeriesNotification, {
+        bookingIds: args.bookingIds, kind: "cancellation", status: partial ? "partial" : "sent", attempt,
+        error: partial ?? undefined,
+      });
+      return;
+    }
+    const finalAttempt = attempt >= MAX_ATTEMPTS;
+    await ctx.runMutation(internal.scheduling.recordSeriesNotification, {
+      bookingIds: args.bookingIds, kind: "cancellation",
+      status: finalAttempt ? "failed" : "pending", attempt, error: failure,
+    });
+    if (!finalAttempt) {
+      await ctx.scheduler.runAfter(RETRY_DELAYS_MS[attempt - 1], internal.scheduling.sendSeriesCancellation, {
+        bookingIds: args.bookingIds, attempt: attempt + 1,
+      });
+    }
+  },
+});
+
+export const recordSeriesNotification = internalMutation({
+  args: {
+    bookingIds: v.array(v.id("lessonBookings")),
+    kind: v.union(v.literal("confirmation"), v.literal("cancellation")),
+    status: v.string(), attempt: v.number(), error: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    for (const bookingId of args.bookingIds) {
+      const booking = await ctx.db.get(bookingId);
+      if (!booking) continue;
+      if (args.kind === "confirmation") {
+        await ctx.db.patch(bookingId, {
+          notificationStatus: args.status, notificationAttempts: args.attempt,
+          notificationLastError: args.error, notificationUpdatedAt: now, updatedAt: now,
+        });
+      } else {
+        await ctx.db.patch(bookingId, {
+          cancellationNotificationStatus: args.status, cancellationNotificationAttempts: args.attempt,
+          cancellationNotificationLastError: args.error, cancellationNotificationUpdatedAt: now, updatedAt: now,
+        });
+      }
+    }
+  },
+});
+
+// The 24-hour rule, applied to one booking. Shared by cancelBooking and
+// cancelSeries so a series cancel can never be cheaper or dearer than
+// cancelling the same lessons one by one.
+//
+// Who cancelled is derived from the SESSION, never trusted from the caller's
+// string alone: a student session is always "student"; an admin session (the
+// console, or Bajla's cached superadmin token acting for a student on
+// WhatsApp) is what it says it is. A late cancel bills the student ONLY when
+// the student cancelled — until 2026-09-01 `billable` was time-only, so a
+// teacher cancelling inside 24 hours consumed one of the student's prepaid
+// lessons, and the cancel email then told the student there was no charge.
+function cancellationPatch(
+  booking: any,
+  auth: { kind: string; user: any },
+  args: { cancelledBy: string; cancelledByName?: string },
+  now: number,
+) {
+  const cancelledBy =
+    auth.kind === "student" ? "student"
+    : args.cancelledBy === "student" ? "student"
+    : (isSuperadmin(auth.user?.role) || auth.user?.role === "teacher") ? "superadmin"
+    : "school_admin";
+  const isLate = booking.startUtc - now < CANCELLATION_WINDOW_MS;
+  const billable = isLate && cancelledBy === "student";
+  return {
+    isLate,
+    billable,
+    cancelledBy,
+    patch: {
+      status: billable ? "cancelled_late" : "cancelled",
+      billable,
+      cancelledBy,
+      cancelledByName: args.cancelledByName,
+      cancelledAt: now,
+      cancellationNotificationStatus: "pending",
+      cancellationNotificationAttempts: 0,
+      cancellationNotificationUpdatedAt: now,
+      updatedAt: now,
+    },
+  };
+}
 
 export const cancelBooking = mutation({
   args: {
@@ -753,31 +1356,70 @@ export const cancelBooking = mutation({
     const booking = await ctx.db.get(args.bookingId);
     if (!booking) throw new Error("Booking not found");
     // Authorization: admin (any booking in their org) or the owning student.
-    // TODO Phase A2: require token — drop the no-token student-style path.
-    if (args.sessionToken) {
-      const auth = await requireAdminOrStudent(ctx, args.sessionToken);
-      if (auth.kind === "student" && String(auth.student!._id) !== String(booking.studentId)) {
-        throw new Error("Unauthorized");
-      }
-    }
+    // Phase A2 — REQUIRED. A late cancel sets billable:true and destroys a paid
+    // lesson, so an anonymous caller must never reach this.
+    const auth = await requireStudentSelfOrAdmin(ctx, args.sessionToken, booking.studentId);
     if (booking.status !== "scheduled") throw new Error("Only scheduled lessons can be cancelled");
 
     const now = Date.now();
-    const isLate = booking.startUtc - now < CANCELLATION_WINDOW_MS;
-
-    await ctx.db.patch(args.bookingId, {
-      status: isLate ? "cancelled_late" : "cancelled",
-      billable: isLate,
-      cancelledBy: args.cancelledBy,
-      cancelledByName: args.cancelledByName,
-      cancelledAt: now,
-      updatedAt: now,
+    const { isLate, billable, cancelledBy, patch } = cancellationPatch(booking, auth, args, now);
+    await ctx.db.patch(args.bookingId, patch);
+    await ctx.scheduler.runAfter(0, internal.scheduling.sendBookingCancellation, {
+      bookingId: args.bookingId, attempt: 1,
     });
     return {
-      status: isLate ? "cancelled_late" : "cancelled",
-      billable: isLate,
+      status: patch.status,
+      billable,
+      // Inside 24h but not the student's doing: cancelled, not charged. The
+      // console must not show the "treated as used and billed" copy for this.
+      lateButFree: isLate && !billable,
+      cancelledBy,
       hoursBeforeStart: Math.max(0, Math.round((booking.startUtc - now) / 36e5 * 10) / 10),
     };
+  },
+});
+
+// Cancel every still-scheduled lesson of a series from `fromStartUtc` (default:
+// now) onwards. Each lesson is judged by the same 24-hour rule as a single
+// cancel, so at most the very next lesson can be billable; the result says
+// which. ONE cancellation email per party listing every date.
+export const cancelSeries = mutation({
+  args: {
+    sessionToken: v.optional(v.string()),
+    seriesId: v.string(),
+    fromStartUtc: v.optional(v.number()),
+    cancelledBy: v.string(),
+    cancelledByName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const first = await ctx.db.get(args.seriesId as any);
+    if (!first || (first as any).seriesId !== args.seriesId) throw new Error("Series not found");
+    const studentId = (first as any).studentId;
+    const auth = await requireStudentSelfOrAdmin(ctx, args.sessionToken, studentId);
+
+    const now = Date.now();
+    const from = args.fromStartUtc ?? now;
+    const rows = (await ctx.db
+      .query("lessonBookings")
+      .withIndex("by_student", (q: any) => q.eq("studentId", studentId))
+      .collect())
+      .filter((b: any) => b.seriesId === args.seriesId && b.status === "scheduled" && b.startUtc >= from)
+      .sort((a: any, b: any) => a.startUtc - b.startUtc);
+    if (!rows.length) refuse("NOTHING_TO_CANCEL", "No scheduled lessons left in this series");
+
+    const cancelled: any[] = [];
+    let late = 0, lateButFree = 0;
+    for (const b of rows) {
+      const { isLate, billable, patch } = cancellationPatch(b, auth, args, now);
+      await ctx.db.patch(b._id, patch);
+      if (billable) late++;
+      else if (isLate) lateButFree++;
+      cancelled.push({ bookingId: b._id, dateWarsaw: b.dateWarsaw, timeWarsaw: b.timeWarsaw, startUtc: b.startUtc, billable });
+    }
+    await ctx.scheduler.runAfter(0, internal.scheduling.sendSeriesCancellation, {
+      bookingIds: rows.map((b: any) => b._id), attempt: 1,
+    });
+    return { cancelled: cancelled.length, cancelledLate: late, lateButFree, bookings: cancelled };
   },
 });
 
@@ -875,6 +1517,22 @@ export const reconcilePastBookings = mutation({
     for (const b of bookings) {
       if (b.status === "scheduled" && b.endUtc < now) {
         await ctx.db.patch(b._id, { status: "completed", billable: true, updatedAt: now });
+        updated++;
+      }
+    }
+    return { updated };
+  },
+});
+
+export const reconcileAllPastBookings = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const bookings = await ctx.db.query("lessonBookings").collect();
+    let updated = 0;
+    for (const booking of bookings) {
+      if (booking.status === "scheduled" && booking.endUtc < now) {
+        await ctx.db.patch(booking._id, { status: "completed", billable: true, updatedAt: now });
         updated++;
       }
     }

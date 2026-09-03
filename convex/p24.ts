@@ -4,9 +4,10 @@ import { v } from "convex/values";
 import { requireStudent, requireAdmin, isSuperadmin } from "./authHelpers";
 import { ANALYSIS_NOTICE_VERSION } from "./students";
 import { ANALYSIS_ADDON_PLN_PER_LESSON } from "./analysisPricing";
+import { packageExpiresAt } from "./billing";
 
 const CURRENCY = "PLN";
-const TERMS_VERSION = "EM-LEGAL-03 (2026-07-29, revision 4)";
+const TERMS_VERSION = "EM-LEGAL-03 (2026-09-03, revision 5)";
 const WITHDRAWAL_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
 // How long an unpaid transaction stays resumable, so a returning customer is
 // sent back to the payment they already started instead of opening a second one.
@@ -25,14 +26,15 @@ const CATALOG: Record<string, { name: string; lessons: number; pricePLN: number 
   momentum: { name: "Fluency Momentum", lessons: 8, pricePLN: 880 },
   "fluency-16": { name: "Fluency Builder", lessons: 16, pricePLN: 1600 },
   "fluency-24": { name: "Fluency Mastery", lessons: 24, pricePLN: 2160 },
+  "fluency-48": { name: "Fluency Complete", lessons: 48, pricePLN: 3840 },
   specialist: { name: "Specialist Sprint", lessons: 6, pricePLN: 900 },
   "specialist-12": { name: "Specialist Track", lessons: 12, pricePLN: 1560 },
   "specialist-24": { name: "Specialist Mastery", lessons: 24, pricePLN: 2640 },
   // Group courses. August and the two-month bundle were withdrawn on 2026-08-10
-  // (Mike) — removed from the catalog so they cannot be bought, not merely hidden
+  // (Mike). They were removed from the catalog so they cannot be bought, not merely hidden
   // in the UI. Orders already paid keep their own stored name and lesson count.
-  // September now runs TWICE weekly over the month (8 lessons) at the same price.
-  september: { name: "September Group Course", lessons: 8, pricePLN: 200 },
+  // September runs twice weekly over the month (8 lessons) at 400 PLN.
+  september: { name: "September Group Course", lessons: 8, pricePLN: 400 },
 };
 
 const ITEM_SHAPE = v.object({
@@ -52,6 +54,18 @@ const BILLING_SHAPE = v.object({
   nip: v.optional(v.string()),
   notes: v.optional(v.string()),
 });
+
+// PayPo requires these otherwise-optional P24 transaction fields whenever its
+// method is pinned. Keep them separate from invoice details: a customer should
+// not accidentally request an invoice merely because PayPo needs an address
+// for its own identity and eligibility checks.
+const PAYPO_DETAILS_SHAPE = v.object({
+  addressLine: v.string(),
+  postalCode: v.string(),
+  city: v.string(),
+});
+
+const PAYPO_METHOD_ID = 317;
 
 function envInt(name: string): number {
   const value = Number(process.env[name]);
@@ -480,6 +494,8 @@ export const finalizePaid = internalMutation({
         name: `${order.packageName} (P24)`,
         totalLessons: order.lessons,
         purchasedAt: now,
+        // Regulamin § 5 ust. 2: validity runs from payment confirmation, which is now.
+        expiresAt: packageExpiresAt(order.lessons, now),
         availableFrom: order.earlyPerformanceRequested ? now : now + WITHDRAWAL_PERIOD_MS,
         earlyPerformanceRequested: order.earlyPerformanceRequested ?? false,
         earlyPerformanceRequestedAt: order.earlyPerformanceRequestedAt,
@@ -614,6 +630,7 @@ export const getPaidOrderForEmail = internalQuery({
       earlyPerformanceRequested: order.earlyPerformanceRequested ?? false,
       earlyPerformanceRequestedAt: order.earlyPerformanceRequestedAt,
       availableFrom: lessonPackage?.availableFrom ?? order.confirmedAt,
+      expiresAt: lessonPackage?.expiresAt ?? null,
       termsVersion: order.termsVersion ?? TERMS_VERSION,
     };
   },
@@ -651,11 +668,14 @@ export const notifyPaidOrder = internalAction({
 // is a group the customer must never be offered. That is the whole mechanism
 // keeping a card button off the checkout until Przelewy24 enable cards: we do
 // not maintain a local list that can disagree with their account state.
-type MethodGroupKey = "blik" | "card" | "transfer";
+type MethodGroupKey = "blik" | "card" | "paypo" | "transfer";
 
 function methodGroupOf(method: any): MethodGroupKey {
   const group = String(method?.group || "");
   if (group === "Blik") return "blik";
+  // PayPo currently arrives as method 317 in the "Installments" group. Match
+  // both stable signals so a translated group label cannot make it disappear.
+  if (method?.id === PAYPO_METHOD_ID || /paypo/i.test(String(method?.name || ""))) return "paypo";
   // 145 is Karta płatnicza. The group string is matched too so the wallets and
   // card variants P24 may add later land here without another deploy.
   if (method?.id === 145 || /card|karta/i.test(group)) return "card";
@@ -689,7 +709,9 @@ export const listMethods = action({
       const key = methodGroupOf(method);
       byGroup.set(key, [...(byGroup.get(key) || []), method.id]);
     }
-    const order: MethodGroupKey[] = ["blik", "card", "transfer"];
+    // Keep a non-credit method first: the checkout preselects the first option,
+    // so deferred payment must always remain an active customer choice.
+    const order: MethodGroupKey[] = ["blik", "paypo", "card", "transfer"];
     return {
       groups: order.flatMap((key) => {
         const ids = byGroup.get(key);
@@ -715,6 +737,7 @@ export const createPayment = action({
     checkoutRef: v.string(),
     items: v.array(ITEM_SHAPE),
     billing: BILLING_SHAPE,
+    payPoDetails: v.optional(PAYPO_DETAILS_SHAPE),
     lang: v.union(v.literal("pl"), v.literal("en")),
     // The method the customer picked on our page. Verified against the live
     // list below and dropped if it is not currently enabled, because sending a
@@ -751,9 +774,29 @@ export const createPayment = action({
       }
     }
 
-    // method is ours alone: preparePayment takes requestedMethod instead, and
-    // Convex validators reject unknown fields, so it must not reach the spread.
-    const { method: _clientMethod, ...prepareArgs } = args;
+    let payPoDetails: { addressLine: string; postalCode: string; city: string } | undefined;
+    if (method === PAYPO_METHOD_ID) {
+      const raw = args.payPoDetails;
+      payPoDetails = raw && {
+        addressLine: raw.addressLine.trim(),
+        postalCode: raw.postalCode.trim(),
+        city: raw.city.trim(),
+      };
+      if (
+        !payPoDetails ||
+        payPoDetails.addressLine.length < 4 ||
+        !/\d/.test(payPoDetails.addressLine) ||
+        !/^\d{2}-\d{3}$/.test(payPoDetails.postalCode) ||
+        payPoDetails.city.length < 2
+      ) {
+        throw new Error("PAYPO_ADDRESS_REQUIRED");
+      }
+    }
+
+    // method and PayPo details are gateway-only: preparePayment takes
+    // requestedMethod instead, and Convex validators reject unknown fields, so
+    // neither value may reach the internal mutation spread.
+    const { method: _clientMethod, payPoDetails: _clientPayPoDetails, ...prepareArgs } = args;
     const payment: any = await ctx.runMutation(internal.p24.preparePayment, {
       ...prepareArgs,
       sessionId,
@@ -794,6 +837,12 @@ export const createPayment = action({
       waitForResult: true,
       regulationAccept: false,
       ...(method === undefined ? {} : { method }),
+      ...(method === PAYPO_METHOD_ID && payPoDetails ? {
+        client: args.billing.fullName.trim(),
+        address: payPoDetails.addressLine,
+        zip: payPoDetails.postalCode,
+        city: payPoDetails.city,
+      } : {}),
       sign,
     };
 

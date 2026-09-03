@@ -626,3 +626,43 @@ export const myVerification = query({
     }
   },
 });
+
+// ─────────────────────────────────────────────────────────────
+// resolveStudentSession — the ONE query a trusted server-side surface (Bajla's
+// web backend on :8800) uses to turn a student's own session token into a
+// verified identity.
+//
+// It exists because the Bajla widget had NO authentication whatsoever: a slug
+// string in the POST body was the entire identity claim, so naming someone
+// loaded their full learner profile. Before that surface can BOOK a lesson —
+// which spends money the student paid — it has to know who is actually asking.
+//
+// Deliberately NOT myVerification: that query answers "is my email confirmed"
+// for the caller's own session and returns { verified: true } for a non-student
+// session, so it cannot distinguish a real student from an admin or an expired
+// token. This one returns null for anything that is not a live student session,
+// which is the only answer a caller can safely act on.
+//
+// Returns only what a booking flow needs. No passwordHash, no dateOfBirth.
+// ─────────────────────────────────────────────────────────────
+export const resolveStudentSession = query({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    let student;
+    try {
+      ({ student } = await requireStudent(ctx, args.sessionToken));
+    } catch {
+      return null;                       // expired, admin, or forged — all "no"
+    }
+    return {
+      _id: student._id,
+      slug: student.slug,
+      name: student.name,
+      level: student.level ?? null,
+      organizationId: student.organizationId ?? null,
+      primaryTeacherId: student.primaryTeacherId ?? null,
+      emailVerified: !!student.emailVerifiedAt,
+      status: student.status,
+    };
+  },
+});

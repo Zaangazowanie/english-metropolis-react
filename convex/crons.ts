@@ -27,4 +27,18 @@ crons.cron(
   internal.exposure.pruneOldExposures,
 );
 
+// Keep operational exceptions and booking state visible even when no admin has
+// opened the calendar. Both jobs are idempotent and intentionally frequent.
+crons.interval(
+  "reconcile superadmin operations alerts",
+  { minutes: 15 },
+  internal.operations.reconcileAlerts,
+);
+
+crons.interval(
+  "reconcile past lesson bookings",
+  { minutes: 10 },
+  internal.scheduling.reconcileAllPastBookings,
+);
+
 export default crons;

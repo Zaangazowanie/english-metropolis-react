@@ -8,11 +8,58 @@
 //      purchasedAt are allocated to that student's active packages oldest-first.
 //   3. CEFR certificates with public verification by verificationId.
 
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { requireAdmin, isSuperadmin } from "./authHelpers";
 
 const LOW_BALANCE_THRESHOLD = 2;
+
+// Package validity — Regulamin § 5 ust. 2 (EM-LEGAL-03 revision 5, 2026-09-03).
+// Counted from the day payment is confirmed: (a) one lesson 90 days; (b) 2 to 8
+// lessons 6 months; (c) 9 to 24 lessons 12 months; (d) 25 lessons and more
+// 24 months. Ranges rather than the named sizes so every catalogue item (6, 12,
+// 48) is covered and a new size cannot be sold outside the clause. Calendar
+// months, so "12 miesięcy" from 15 Jan is 15 Jan next year, not 360 days.
+// The pricing page mirrors this table in src/views/public/packages.js.
+export function packageValidity(totalLessons: number): { months?: number; days?: number } {
+  if (totalLessons <= 1) return { days: 90 };
+  if (totalLessons <= 8) return { months: 6 };
+  if (totalLessons <= 24) return { months: 12 };
+  return { months: 24 };
+}
+
+export function packageExpiresAt(totalLessons: number, confirmedAt: number): number {
+  const rule = packageValidity(totalLessons);
+  if (rule.days) return confirmedAt + rule.days * 86400e3;
+  const d = new Date(confirmedAt);
+  d.setUTCMonth(d.getUTCMonth() + (rule.months ?? 0));
+  return d.getTime();
+}
+
+// One-off repair for packages granted before expiresAt was written at purchase
+// (every P24 and manual-order package up to 2026-09-03). Dry run by default:
+//   npx convex run --prod billing:backfillPackageExpiry '{"dryRun":true}'
+// Idempotent: only rows with no expiresAt are touched, cancelled rows are skipped.
+export const backfillPackageExpiry = internalMutation({
+  args: { dryRun: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const dryRun = args.dryRun ?? true;
+    const rows = (await ctx.db.query("lessonPackages").collect())
+      .filter((p: any) => p.status !== "cancelled" && typeof p.expiresAt !== "number");
+    const day = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+    const plan = rows.map((p: any) => ({
+      id: String(p._id), name: p.name, totalLessons: p.totalLessons,
+      purchasedAt: day(p.purchasedAt), expiresAt: day(packageExpiresAt(p.totalLessons, p.purchasedAt)),
+    }));
+    if (!dryRun) {
+      const now = Date.now();
+      for (const p of rows) {
+        await ctx.db.patch(p._id, { expiresAt: packageExpiresAt(p.totalLessons, p.purchasedAt), updatedAt: now });
+      }
+    }
+    return { dryRun, count: plan.length, plan };
+  },
+});
 
 // Resolve the org the acting admin may operate on (same pattern as scheduling.ts).
 async function resolveOrg(ctx: any, sessionToken: string, organizationId: any) {
@@ -209,7 +256,9 @@ export const createPackage = mutation({
       name: args.name.trim(),
       totalLessons: Math.floor(args.totalLessons),
       purchasedAt: now,
-      expiresAt: args.expiresAt,
+      // Regulamin § 5 ust. 2 applies to hand-allocated packages too; an admin
+      // may still pass an explicit expiresAt (an agreed extension, a legacy row).
+      expiresAt: args.expiresAt ?? packageExpiresAt(Math.floor(args.totalLessons), now),
       notes: args.notes,
       status: "active",
       createdAt: now,

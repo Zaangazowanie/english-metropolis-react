@@ -214,6 +214,34 @@ export async function requireAdminOrStudent(ctx: any, sessionToken: string | und
   throw new Error("Unauthorized: invalid or expired session");
 }
 
+// Student-self guard for the money-adjacent student reads (lesson balance,
+// order history). Accepts EITHER the student's own session token OR the
+// pipeline key, because Bajla's WhatsApp router does the same pre-flight
+// allocation check server-side and has no student session to present.
+//
+// It exists because these three functions were public-with-a-studentId, and a
+// slug is guessable: students:getStudentBySlug turns "firstname-lastname" into
+// the id, and the id then read anyone's balance and order history unauthenticated.
+// Callers must now prove who they are. The optional args keep the deployed
+// signature a superset of the old one, so a caller that already passes a
+// sessionToken (the live SPA) works unchanged.
+export async function requireStudentSelfOrPipelineKey(
+  ctx: any,
+  sessionToken: string | undefined | null,
+  apiKey: string | undefined | null,
+  studentId: any,
+) {
+  const expected = process.env.PIPELINE_API_KEY;
+  if (apiKey && expected && apiKey === expected) {
+    return { kind: "pipeline" as const, student: null };
+  }
+  const { student } = await requireStudent(ctx, sessionToken);
+  if (String(student._id) !== String(studentId)) {
+    throw new Error("Unauthorized: invalid or expired session");
+  }
+  return { kind: "student" as const, student };
+}
+
 // Pipeline guard: trusted server-side scripts (em-enrichment, post-lesson
 // publish) authenticate with a shared key held in the Convex env var
 // PIPELINE_API_KEY. Accepts EITHER a valid admin session token OR the key.

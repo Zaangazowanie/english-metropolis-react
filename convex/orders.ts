@@ -5,11 +5,11 @@
 // integration pending), and once paid he confirms in the superadmin console —
 // which creates the lessonPackage that actually allocates the lessons.
 
-import { query, mutation, internalAction } from "./_generated/server";
+import { query, mutation, internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { requireAdmin, isSuperadmin } from "./authHelpers";
-import { billableUnitsForStudent, allocateBalances } from "./billing";
+import { requireAdmin, isSuperadmin, requireStudentSelfOrPipelineKey } from "./authHelpers";
+import { billableUnitsForStudent, allocateBalances, packageExpiresAt } from "./billing";
 
 const BILLING_SHAPE = v.object({
   fullName: v.string(),
@@ -34,8 +34,11 @@ export const createOrder = mutation({
     lessons: v.number(),
     priceLabel: v.string(),
     billing: BILLING_SHAPE,
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireStudentSelfOrPipelineKey(ctx, args.sessionToken, args.apiKey, args.studentId);
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
     if (!student.organizationId) throw new Error("Student has no organization");
@@ -53,6 +56,9 @@ export const createOrder = mutation({
       priceLabel: args.priceLabel,
       billing: args.billing,
       status: "pending_invoice",
+      notificationStatus: "pending",
+      notificationAttempts: 0,
+      notificationUpdatedAt: now,
       createdAt: now,
       updatedAt: now,
     });
@@ -66,6 +72,7 @@ export const createOrder = mutation({
       studentName: student.name,
       studentSlug: student.slug,
       studentEmail: student.googleEmail || student.email || "",
+      attempt: 1,
     });
     return { orderId, status: "pending_invoice" };
   },
@@ -84,32 +91,92 @@ export const notifyOrderPlaced = internalAction({
     studentName: v.string(),
     studentSlug: v.string(),
     studentEmail: v.string(),
+    attempt: v.optional(v.number()),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    const attempt = Math.max(1, args.attempt || 1);
     const base = process.env.BOOKING_NOTIFY_URL;
     const key = process.env.BOOKING_NOTIFY_KEY;
-    if (!base || !key) {
-      console.warn("orders:notifyOrderPlaced skipped — BOOKING_NOTIFY_URL/KEY unset");
+    let failure: string | null = null;
+    if (!base || !key) failure = "BOOKING_NOTIFY_URL/KEY is not configured";
+    else {
+      const url = base.replace("booking-confirm", "order-confirm");
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-booking-key": key },
+          body: JSON.stringify(args),
+        });
+        if (!res.ok) failure = `HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`;
+      } catch (e: any) { failure = e?.message || "Network error"; }
+    }
+    if (!failure) {
+      await ctx.runMutation(internal.orders.recordOrderNotification, {
+        orderId: args.orderId, status: "sent", attempt,
+      });
       return;
     }
-    const url = base.replace("booking-confirm", "order-confirm");
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-booking-key": key },
-        body: JSON.stringify(args),
+    const finalAttempt = attempt >= 3;
+    await ctx.runMutation(internal.orders.recordOrderNotification, {
+      orderId: args.orderId, status: finalAttempt ? "failed" : "pending", attempt, error: failure,
+    });
+    if (!finalAttempt) {
+      await ctx.scheduler.runAfter(attempt * 60 * 1000, internal.orders.notifyOrderPlaced, {
+        ...args, attempt: attempt + 1,
       });
-      if (!res.ok) console.error("order-confirm notify failed:", res.status);
-    } catch (e: any) {
-      console.error("order-confirm notify error:", e?.message);
     }
   },
 });
 
-// Student-facing: my orders (public-with-studentId, same pattern).
-export const listMyOrders = query({
-  args: { studentId: v.id("students") },
+export const recordOrderNotification = internalMutation({
+  args: { orderId: v.id("lessonOrders"), status: v.string(), attempt: v.number(), error: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const order = await ctx.db.get(args.orderId);
+    if (!order) return;
+    const now = Date.now();
+    await ctx.db.patch(args.orderId, {
+      notificationStatus: args.status,
+      notificationAttempts: args.attempt,
+      notificationLastError: args.error,
+      notificationUpdatedAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+export const retryOrderNotification = mutation({
+  args: { sessionToken: v.string(), orderId: v.id("lessonOrders") },
+  handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    if (!isSuperadmin(user.role)) throw new Error("Superadmin only");
+    const order = await ctx.db.get(args.orderId);
+    if (!order) throw new Error("Order not found");
+    const student = await ctx.db.get(order.studentId);
+    if (!student) throw new Error("Student not found");
+    const now = Date.now();
+    await ctx.db.patch(args.orderId, {
+      notificationStatus: "pending", notificationAttempts: 0,
+      notificationLastError: undefined, notificationUpdatedAt: now, updatedAt: now,
+    });
+    await ctx.scheduler.runAfter(0, internal.orders.notifyOrderPlaced, {
+      orderId: order._id, packageName: order.packageName, lessons: order.lessons,
+      priceLabel: order.priceLabel, billing: order.billing, studentName: student.name,
+      studentSlug: student.slug, studentEmail: student.googleEmail || student.email || "", attempt: 1,
+    });
+    return { queued: true };
+  },
+});
+
+// Student-facing: my orders. Authenticated by the student's own session, or by
+// the pipeline key for Bajla's server-side checks.
+export const listMyOrders = query({
+  args: {
+    studentId: v.id("students"),
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireStudentSelfOrPipelineKey(ctx, args.sessionToken, args.apiKey, args.studentId);
     const rows = await ctx.db
       .query("lessonOrders")
       .withIndex("by_student", q => q.eq("studentId", args.studentId))
@@ -125,10 +192,16 @@ export const listMyOrders = query({
 });
 
 // Student-facing allocation summary — powers "N lessons remaining" in the
-// panel and the booking gate UI. Public-with-studentId.
+// panel and the booking gate UI. Authenticated by the student's own session,
+// or by the pipeline key for Bajla's server-side pre-flight.
 export const getStudentAllocation = query({
-  args: { studentId: v.id("students") },
+  args: {
+    studentId: v.id("students"),
+    sessionToken: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
+    await requireStudentSelfOrPipelineKey(ctx, args.sessionToken, args.apiKey, args.studentId);
     const now = Date.now();
     const allPackages = (await ctx.db
       .query("lessonPackages")
@@ -137,13 +210,27 @@ export const getStudentAllocation = query({
     const packages = allPackages.filter(p => !p.availableFrom || p.availableFrom <= now);
     const units = await billableUnitsForStudent(ctx, args.studentId);
     const withBalances = allocateBalances(packages, units);
+    // Expired packages (Regulamin § 5 ust. 2) keep the lessons they already
+    // absorbed, so allocation runs over all of them; only the unused remainder
+    // of a LIVE package is bookable.
+    const isExpired = (p: any) => typeof p.expiresAt === "number" && p.expiresAt <= now;
+    const live = withBalances.filter((p: any) => !isExpired(p));
     const allocated = packages.reduce((n: number, p: any) => n + (p.totalLessons || 0), 0);
-    const remaining = withBalances.reduce((n: number, p: any) => n + (p.remainingLessons ?? 0), 0);
+    const used = withBalances.reduce((n: number, p: any) => n + (p.usedLessons ?? 0), 0);
+    const remaining = live.reduce((n: number, p: any) => n + (p.remainingLessons ?? 0), 0);
     const pendingUntil = allPackages
       .filter(p => p.availableFrom && p.availableFrom > now)
       .reduce((earliest: number | null, p: any) =>
         earliest === null || p.availableFrom < earliest ? p.availableFrom : earliest, null);
-    return { allocated, remaining, used: allocated - remaining, pendingUntil };
+    // The EARLIEST expiry among live packages that still hold lessons, so the
+    // student is warned before the first block lapses rather than the last.
+    const validUntil = live
+      .filter((p: any) => (p.remainingLessons ?? 0) > 0 && typeof p.expiresAt === "number")
+      .reduce((e: number | null, p: any) => e === null || p.expiresAt < e ? p.expiresAt : e, null);
+    const expiredHolding = withBalances.filter((p: any) => isExpired(p) && (p.remainingLessons ?? 0) > 0);
+    const expiredUnused = expiredHolding.reduce((n: number, p: any) => n + (p.remainingLessons ?? 0), 0);
+    const expiredAt = expiredHolding.reduce((l: number | null, p: any) => l === null || p.expiresAt > l ? p.expiresAt : l, null);
+    return { allocated, remaining, used, pendingUntil, validUntil, expiredUnused, expiredAt };
   },
 });
 
@@ -193,6 +280,7 @@ export const confirmOrder = mutation({
       name: `${order.packageName} (order)`,
       totalLessons: order.lessons,
       purchasedAt: now,
+      expiresAt: packageExpiresAt(order.lessons, now),
       notes: `Order ${String(args.orderId)} · ${order.priceLabel} · confirmed by ${user.email}`,
       status: "active",
       createdAt: now,

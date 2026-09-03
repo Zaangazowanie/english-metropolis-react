@@ -975,6 +975,10 @@ export default defineSchema({
     confirmedBy: v.optional(v.string()),
     confirmedAt: v.optional(v.number()),
     packageRef: v.optional(v.id("lessonPackages")),   // created on confirm
+    notificationStatus: v.optional(v.string()),      // "pending" | "sent" | "failed"
+    notificationAttempts: v.optional(v.number()),
+    notificationLastError: v.optional(v.string()),
+    notificationUpdatedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -1143,6 +1147,19 @@ export default defineSchema({
     noShowMarkedBy: v.optional(v.string()),
     billable: v.optional(v.boolean()),       // true: completed, no-show, or cancelled within 24h
     notes: v.optional(v.string()),
+    // A booking made together with others (a hand-picked batch or a "repeat
+    // weekly" plan, 2026-09-01). seriesId = the first booking's id in that
+    // request; "cancel the rest of the series" and the console badge key on it.
+    seriesId: v.optional(v.string()),
+    seriesKind: v.optional(v.string()),      // "batch" | "weekly"
+    notificationStatus: v.optional(v.string()),
+    notificationAttempts: v.optional(v.number()),
+    notificationLastError: v.optional(v.string()),
+    notificationUpdatedAt: v.optional(v.number()),
+    cancellationNotificationStatus: v.optional(v.string()),
+    cancellationNotificationAttempts: v.optional(v.number()),
+    cancellationNotificationLastError: v.optional(v.string()),
+    cancellationNotificationUpdatedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -1150,6 +1167,30 @@ export default defineSchema({
     .index("by_student", ["studentId"])
     .index("by_org_start", ["organizationId", "startUtc"])
     .index("by_org_teacher", ["organizationId", "teacherId"]),
+
+  operationsAlerts: defineTable({
+    fingerprint: v.string(),
+    kind: v.string(),
+    severity: v.string(),
+    title: v.string(),
+    message: v.string(),
+    status: v.string(),
+    studentId: v.optional(v.id("students")),
+    orderId: v.optional(v.id("lessonOrders")),
+    packageId: v.optional(v.id("lessonPackages")),
+    bookingId: v.optional(v.id("lessonBookings")),
+    details: v.optional(v.string()),
+    firstSeenAt: v.number(),
+    lastSeenAt: v.number(),
+    acknowledgedAt: v.optional(v.number()),
+    acknowledgedBy: v.optional(v.string()),
+    resolvedAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index("by_fingerprint", ["fingerprint"])
+    .index("by_status", ["status"])
+    .index("by_student", ["studentId"])
+    .index("by_kind", ["kind"]),
 
   // ═══════════════════════════════════════════════════════════
   // CURRICULUM — ordered per-student lesson plan (the "30-lesson
@@ -1230,3 +1271,4 @@ export default defineSchema({
     .index("by_cefr", ["cefrLevel"])
     .index("by_strength", ["interferenceStrength"]),
 });
+
