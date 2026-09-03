@@ -15,3 +15,9 @@ dist
 *.bak-*
 .env.local-backup-*
 .env.*.bak-*
+
+# 2026-09-03 consolidation: dev build output and every timestamped/suffixed
+# editor backup this estate writes beside a file (foo.jsx.pre-sa4, foo.py.pre-…)
+dist-dev/
+*.pre-*
+*.applied
