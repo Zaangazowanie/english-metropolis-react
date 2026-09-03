@@ -85,3 +85,5 @@ export function useEmailVerified() {
 
   return { verified, signedIn, analysisAllowed, bajlaAllowed, bajlaReason, email, resend, resent, refresh: load }
 }
+
+

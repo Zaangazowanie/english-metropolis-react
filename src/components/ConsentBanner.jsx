@@ -68,6 +68,10 @@ export default function ConsentBanner() {
     return () => { delete window.__EM_OPEN_CONSENT }
   }, [])
 
+  // 2026-09-03: never inside the operator consoles. A person signed in to
+  // /admin or /teacher is staff on a work screen, not a visitor; the cookie
+  // notice there was covering the Bajla reply box and the publishing buttons.
+  if (typeof window !== 'undefined' && /^\/(admin|teacher)(\/|$)/.test(window.location.pathname)) return null
   if (!state.loaded || !state.visible) return null
 
   function acceptAll() {

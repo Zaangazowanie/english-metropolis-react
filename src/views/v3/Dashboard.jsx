@@ -6,7 +6,7 @@ import { Btn, Glass, MetricBar, Pill, Skeleton, useNumberFlow } from '../../desi
 import { useI18n } from '../../i18n'
 import { applyGreeting, useStudentDesign } from '../../design/v3/studentDesign.js'
 import { fetchJSONCached } from '../../practice/lib/practice-cache'
-import { useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
+import { getStudentSessionToken, useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
 
 // Build a friendly "Tuesday, 28 April · 17:00 CEST" string for an upcoming
 // lesson. Weekday + month names come from the i18n dictionary so the line
@@ -564,7 +564,9 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
     if (!sid) return
     let cancelled = false
     fetch('/api/query', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: 'orders:getStudentAllocation', args: { studentId: sid } }) })
+      body: JSON.stringify({ path: 'orders:getStudentAllocation', args: {
+        sessionToken: getStudentSessionToken(), studentId: sid,
+      } }) })
       .then(r => r.json())
       .then(d => { if (!cancelled && d?.status === 'success') setAlloc(d.value) })
       .catch(() => {})
@@ -792,3 +794,4 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
     </div>
   )
 }
+

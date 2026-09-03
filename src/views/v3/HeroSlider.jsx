@@ -3,102 +3,95 @@ import { Link } from 'react-router-dom'
 
 const AUTOPLAY_MS = 6500
 
-// One slide = one product pillar with a fixed call to action. The photograph is
-// chosen by the parent, one per pillar per page load, so the CTA a visitor sees
-// is always the same four while the imagery rotates between visits.
-function Slide({ slide, image, active }) {
+function Slide({ slide, image, active, minimal }) {
   const Wrap = slide.href ? 'a' : Link
   const wrapProps = slide.href ? { href: slide.href } : { to: slide.to }
+
   return (
     <li className="gh-hs-slide" data-active={active} aria-hidden={!active}>
       <img src={image} alt={slide.alt} loading={active ? 'eager' : 'lazy'}
         width="1600" height="900" draggable="false"/>
-      <div className="gh-hs-caption">
-        <span className="gh-hs-eyebrow">{slide.eyebrow}</span>
-        <strong className="gh-hs-title">{slide.title}</strong>
-        <div className="gh-hs-actions">
-          <Wrap {...wrapProps} className="gh-hs-btn gh-hs-btn--primary" tabIndex={active ? 0 : -1}>
-            {slide.cta}
-          </Wrap>
-          {slide.cta2 && (
-            <Link to={slide.to2} className="gh-hs-btn gh-hs-btn--secondary" tabIndex={active ? 0 : -1}>
-              {slide.cta2}
-            </Link>
-          )}
+      {minimal ? (
+        <span className="gh-hs-chip">
+          <span className="material-symbols-outlined" aria-hidden>
+            {slide.key === 'lessons' ? 'diversity_3' : slide.key === 'course' ? 'track_changes' : 'style'}
+          </span>
+          {slide.eyebrow}
+        </span>
+      ) : (
+        <div className="gh-hs-caption">
+          <span className="gh-hs-eyebrow">{slide.eyebrow}</span>
+          <strong className="gh-hs-title">{slide.title}</strong>
+          <div className="gh-hs-actions">
+            <Wrap {...wrapProps} className="gh-hs-btn gh-hs-btn--primary" tabIndex={active ? 0 : -1}>
+              {slide.cta}
+            </Wrap>
+            {slide.cta2 && (
+              <Link to={slide.to2} className="gh-hs-btn gh-hs-btn--secondary" tabIndex={active ? 0 : -1}>
+                {slide.cta2}
+              </Link>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </li>
   )
 }
 
-export default function HeroSlider({ slides, label, prevLabel, nextLabel }) {
+export default function HeroSlider({ slides, label, prevLabel, nextLabel, minimal = false }) {
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
-  const rootRef = useRef(null)
   const touchX = useRef(null)
   const count = slides.length
 
-  // Pick every slide's photograph in one pass, refusing any file another slide
-  // has already taken. Pools are meant to be disjoint, but a shared file once
-  // put the same man on two slides at the same time, so the guard stays.
   const [images] = useState(() => {
     const used = new Set()
     return slides.map((slide) => {
-      const free = slide.images.filter((src) => !used.has(src))
-      const pool = free.length ? free : slide.images
-      const pick = pool[Math.floor(Math.random() * pool.length)]
-      used.add(pick)
-      return pick
+      const available = slide.images.filter((src) => !used.has(src))
+      const pool = available.length ? available : slide.images
+      const image = pool[Math.floor(Math.random() * pool.length)]
+      used.add(image)
+      return image
     })
   })
 
-  const go = useCallback((next) => setIndex(((next % count) + count) % count), [count])
+  const go = useCallback((next) => {
+    setIndex(((next % count) + count) % count)
+  }, [count])
 
-  // Autoplay stops for reduced-motion users, on hover/focus, and whenever the
-  // tab is hidden — an unattended carousel advancing in a background tab just
-  // burns the visitor's place in the sequence.
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduced || paused) return undefined
-    const id = window.setInterval(() => setIndex((i) => (i + 1) % count), AUTOPLAY_MS)
+    const id = window.setInterval(() => setIndex((current) => (current + 1) % count), AUTOPLAY_MS)
     return () => window.clearInterval(id)
   }, [paused, count])
 
   useEffect(() => {
-    const onVis = () => setPaused(document.hidden)
-    document.addEventListener('visibilitychange', onVis)
-    return () => document.removeEventListener('visibilitychange', onVis)
+    const onVisibilityChange = () => setPaused(document.hidden)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [])
 
-  const onKeyDown = (e) => {
-    if (e.key === 'ArrowRight') { e.preventDefault(); go(index + 1) }
-    if (e.key === 'ArrowLeft') { e.preventDefault(); go(index - 1) }
-  }
-
   return (
-    <div
-      ref={rootRef}
-      className="gh-hs"
-      role="group"
-      aria-roledescription="carousel"
-      aria-label={label}
+    <div className="gh-hs" role="group" aria-roledescription="carousel" aria-label={label}
       tabIndex={0}
-      onKeyDown={onKeyDown}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={() => setPaused(false)}
-      onTouchStart={(e) => { touchX.current = e.touches[0].clientX }}
-      onTouchEnd={(e) => {
-        if (touchX.current == null) return
-        const dx = e.changedTouches[0].clientX - touchX.current
-        if (Math.abs(dx) > 44) go(index + (dx < 0 ? 1 : -1))
-        touchX.current = null
+      onKeyDown={(event) => {
+        if (event.key === 'ArrowRight') { event.preventDefault(); go(index + 1) }
+        if (event.key === 'ArrowLeft') { event.preventDefault(); go(index - 1) }
       }}
-    >
+      onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}
+      onTouchStart={(event) => { touchX.current = event.touches[0].clientX }}
+      onTouchEnd={(event) => {
+        if (touchX.current == null) return
+        const distance = event.changedTouches[0].clientX - touchX.current
+        if (Math.abs(distance) > 44) go(index + (distance < 0 ? 1 : -1))
+        touchX.current = null
+      }}>
       <ul className="gh-hs-track">
-        {slides.map((slide, i) => (
-          <Slide key={slide.key} slide={slide} image={images[i]} active={i === index}/>
+        {slides.map((slide, slideIndex) => (
+          <Slide key={slide.key} slide={slide} image={images[slideIndex]}
+            active={slideIndex === index} minimal={minimal}/>
         ))}
       </ul>
 
@@ -112,17 +105,10 @@ export default function HeroSlider({ slides, label, prevLabel, nextLabel }) {
       </button>
 
       <div className="gh-hs-dots" role="tablist" aria-label={label}>
-        {slides.map((slide, i) => (
-          <button
-            key={slide.key}
-            type="button"
-            role="tab"
-            className="gh-hs-dot"
-            data-active={i === index}
-            aria-selected={i === index}
-            aria-label={slide.title}
-            onClick={() => go(i)}
-          />
+        {slides.map((slide, slideIndex) => (
+          <button key={slide.key} type="button" role="tab" className="gh-hs-dot"
+            data-active={slideIndex === index} aria-selected={slideIndex === index}
+            aria-label={slide.title} onClick={() => go(slideIndex)}/>
         ))}
       </div>
     </div>

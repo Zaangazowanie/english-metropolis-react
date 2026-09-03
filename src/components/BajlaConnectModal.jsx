@@ -246,11 +246,11 @@ export default function BajlaConnectModal() {
   useEffect(() => {
     if (!open || !studentUser?._id) return
     let cancelled = false
-    callConvex('query', 'orders:getStudentAllocation', { studentId: studentUser._id })
+    callConvex('query', 'orders:getStudentAllocation', { sessionToken, studentId: studentUser._id })
       .then((a) => { if (!cancelled) setRemaining(a?.remaining ?? null) })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [open, studentUser?._id])
+  }, [open, studentUser?._id, sessionToken])
 
   function dismiss() {
     setOpen(false)
@@ -496,3 +496,4 @@ const BJP_CSS = `
   .bjp-cards{grid-template-columns:1fr}
 }
 `
+

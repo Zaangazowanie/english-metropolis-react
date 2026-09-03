@@ -23,9 +23,11 @@ import { useI18n } from '../../i18n'
 import { PRIVATE_PACKAGES } from '../public/packages.js'
 import { cart, parsePricePLN } from '../public/cart-store.js'
 import CartUI from '../public/CartUI.jsx'
-import { useEmailVerified } from '../../hooks/useEmailVerified'
-import HeroSlider from './HeroSlider.jsx'
 import HeroPracticePreview from './HeroPracticePreview.jsx'
+import HeroSlider from './HeroSlider.jsx'
+import MetroSignalField from '../../components/public/MetroSignalField.jsx'
+import ReactiveShaderField from '../../components/public/ReactiveShaderField.jsx'
+import { clearPointerPolish, pulsePointerPolish, setPointerPolish } from '../../components/public/motionPolish.js'
 const ArcadeCityBackdrop = lazy(() => import('./ArcadeCityBackdrop.jsx'))
 import './game-home.css'
 
@@ -71,9 +73,13 @@ function ActionLink({ to, href, children, variant = 'ghost', size = 'md', icon,
   </>
 
   if (to) {
-    return <Link to={to} className={classes} style={style} onClick={onClick}>{content}</Link>
+    return <Link to={to} className={classes} style={style} onClick={onClick}
+      onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+      onPointerDown={pulsePointerPolish}>{content}</Link>
   }
-  return <a href={href} className={classes} style={style} onClick={onClick}>{content}</a>
+  return <a href={href} className={classes} style={style} onClick={onClick}
+    onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+    onPointerDown={pulsePointerPolish}>{content}</a>
 }
 
 function DeferredMetroCity({ reduced, night, label }) {
@@ -109,38 +115,49 @@ const GH = {
   en: {
     navPricing: 'Pricing', navSignin: 'Sign in', navSignup: 'Sign up', navDash: 'My dashboard',
     navPlay: 'Play the World',
-    eyebrow: 'Online English school · live 1:1 lessons',
-    h1a: 'Learn live.', h1b: 'Talk from lesson one',
+    eyebrow: 'online English school · live 1:1 lessons',
+    h1a: 'Learn live.', h1b: 'Speak every day',
+    heroPoints: [
+      <>Live <b>1:1 lessons</b>, 60 minutes, with your own teacher</>,
+      <>A course matched to your <b>CEFR level</b></>,
+      <>Lesson vocabulary becomes your <b>flashcards</b></>,
+      <>Practice between lessons in <b>EnglishMetro World</b>, our 3D city</>,
+    ],
     ctaBook: 'Book your first lesson', ctaPricing: 'See pricing', ctaWorld: 'Play the World for free',
     heroSliderLabel: 'What a course with us includes',
     heroSliderPrev: 'Previous slide', heroSliderNext: 'Next slide',
     heroSlides: [
-      { eyebrow: 'live 1:1 lessons', title: '60 minutes, with your own teacher', cta: 'Start learning', cta2: 'Find your course', to2: '/pricing' },
-      { eyebrow: 'your CEFR course', title: 'A course matched to your level', cta: 'See pricing', cta2: 'Book a lesson', to2: '/signup' },
-      { eyebrow: 'practice between lessons', title: 'Practise out loud, on your own time', cta: 'Try it now', cta2: 'See pricing', to2: '/pricing' },
+      { eyebrow: 'our students · one school', title: 'Live 1:1 lessons with your own teacher', cta: 'Book your first lesson', cta2: 'See pricing', to2: '/pricing' },
+      { eyebrow: 'your CEFR course', title: 'A course matched to your level and goals', cta: 'See pricing', cta2: 'Book a lesson', to2: '/signup' },
+      { eyebrow: 'practice after every lesson', title: 'Your vocabulary becomes flashcards and real-world clips', cta: 'Play the World', cta2: 'See pricing', to2: '/pricing' },
     ],
-    chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'flashcards + YouTube clips per word', 'book online in minutes'],
+    chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'lesson vocabulary becomes flashcards', 'book online in minutes'],
+    arcadeBadge: 'quick practice · try it now',
     officeAlt: 'Students laughing together at the English Metro school',
     officeChip: 'Our students · one school',
+    arcadeKicker: 'quick practice · no sign-up',
+    arcadeTitle: 'Seven ways to practise. Try them now.',
+    arcadeBody: 'These are the same games your flashcards feed after every lesson. Flip a card, catch a train, build a sentence. No account needed.',
     catalogTitle: 'Quick Practice across four lines',
     catalogHint: 'Choose a line to see its games · each game starts immediately',
-    catalogBrowse: 'Browse the full catalogue by line and station. Every game is free with a free account.',
+    catalogBrowse: 'Browse the full catalogue by line and station. You can play your first game without an account.',
     catalogGames: (n) => `${n} games`,
     catalogLive: (a, b) => `${a} live · ${b} arriving`,
     districts3dSubtitle: 'The Fluent City in 3D. New districts land here automatically with every update.',
     doorsBody: (n) => `${n} short games across four metro lines: vocabulary, grammar, listening and speaking. Practise for two minutes or twenty.`,
     doorsGo: 'Recommended game:',
     ctaTitle: 'Save your progress with a free account.',
-    ctaBody: 'English Metropolis World is free, and a free account with a confirmed email address is what opens it. The same account saves your streaks and vocabulary progress across Quick Practice.',
+    ctaBody: 'A free account saves your streaks and vocabulary progress and enables full-screen play in EnglishMetro World and Quick Practice.',
     ctaPlay: 'Play for free',
-    ctaBeta: 'Try the English Metropolis World beta',
+    ctaBeta: 'Try the EnglishMetro World beta',
     lineTags: { 'Arcade Line': 'Fast hands, faster words', 'Word Line': 'Letters into language', 'Quiz Line': 'Think quick, answer quicker', 'City Line': 'Real skills, street level' },
+    worldLink: 'Explore the full 3D city for free',
     stepsKicker: 'from sign-up to speaking', stepsTitle: 'Your first lesson is four steps away',
     steps: [
       { icon: 'person_add', title: 'Create your account', body: 'It takes about two minutes: use your email and password or continue with Google.' },
-      { icon: 'shopping_bag', title: 'Pick a package', body: 'Choose one trial lesson or a package of up to 24 lessons. Pay securely online through Przelewy24.' },
+      { icon: 'shopping_bag', title: 'Pick a package', body: 'Choose one trial lesson or a package of up to 24 lessons. Pay online or by invoice.' },
       { icon: 'event_available', title: 'Book your times', body: 'Choose an available time in your teacher’s calendar. We will email you the Google Meet link and calendar invitation.' },
-      { icon: 'school', title: 'Learn, then replay', body: 'After each lesson, a PDF is added to your library and the lesson vocabulary becomes flashcards — every word linked to real YouTube clips, so you hear how it is pronounced and used in context.' },
+      { icon: 'school', title: 'Learn, then replay', body: 'After each lesson, a PDF is added to your library and the lesson vocabulary is turned into flashcards for further practice.' },
     ],
     packsKicker: '1:1 lesson packages', packsTitle: 'Pick your pace', packsLink: 'Full pricing & details',
     packsStart: 'Start', packsEach: '60 min each',
@@ -154,7 +171,7 @@ const GH = {
     ],
     cityKicker: 'live lessons · practice between sessions',
     cityTitle: 'One learning plan. Connected practice.',
-    cityBody: 'Your teacher sets the focus. Vocabulary from each lesson becomes flashcards and games in English Metropolis World, so you practise the same material between lessons.',
+    cityBody: 'Your teacher sets the focus. Vocabulary from each lesson becomes flashcards and games in EnglishMetro World, so you practise the same material between lessons.',
     cityFeatures: ['Live feedback from your teacher', 'Vocabulary from your own lessons', 'A 3D world for practice between lessons'],
     cityCta: 'Start my learning plan',
     cityLabel: 'Interactive 3D map of EnglishMetro',
@@ -162,7 +179,7 @@ const GH = {
     lessonsKicker: 'live 1:1 lessons',
     lessonsTitle: 'A teacher who knows your goals.',
     lessonsBody: 'Every lesson is live, individual and matched to your CEFR level. You speak, your teacher gives feedback, and your lesson vocabulary becomes practice material.',
-    lessonsPoints: ['Real conversation from minute one', 'Notes and a PDF after every lesson', 'Flashcards from your vocabulary, with YouTube clips of every word in real use'],
+    lessonsPoints: ['Real conversation from minute one', 'Notes and a PDF after every lesson', 'Flashcards from your lesson vocabulary'],
     lessonsCta: 'Meet your teacher',
     lessonsAltMain: 'A student smiling during a live online English lesson',
     lessonsAltSide: 'A student laughing while practising English on a phone',
@@ -174,38 +191,49 @@ const GH = {
   pl: {
     navPricing: 'Cennik', navSignin: 'Zaloguj się', navSignup: 'Załóż konto', navDash: 'Mój panel',
     navPlay: 'Zagraj w World',
-    eyebrow: 'Szkoła angielskiego online · lekcje 1:1 na żywo',
-    h1a: 'Ucz się na żywo.', h1b: 'Mów na co dzień',
+    eyebrow: 'szkoła angielskiego online · lekcje 1:1 na żywo',
+    h1a: 'Ucz się na żywo.', h1b: 'Mów po angielsku na co dzień',
+    heroPoints: [
+      <>Lekcje <b>1:1 na żywo</b>, 60 minut, z własnym lektorem</>,
+      <>Kurs dopasowany do Twojego <b>poziomu CEFR</b></>,
+      <>Słownictwo z lekcji trafia do Twoich <b>fiszek</b></>,
+      <>Między lekcjami ćwiczysz w <b>EnglishMetro World</b>, naszym mieście 3D</>,
+    ],
     ctaBook: 'Zarezerwuj pierwszą lekcję', ctaPricing: 'Zobacz cennik', ctaWorld: 'Zagraj w World za darmo',
     heroSliderLabel: 'Co obejmuje kurs u nas',
     heroSliderPrev: 'Poprzedni slajd', heroSliderNext: 'Następny slajd',
     heroSlides: [
-      { eyebrow: 'lekcje 1:1 na żywo', title: '60 minut, z własnym lektorem', cta: 'Zacznij naukę', cta2: 'Znajdź swój kurs', to2: '/pricing' },
-      { eyebrow: 'Twój kurs CEFR', title: 'Kurs dopasowany do Twojego poziomu', cta: 'Zobacz cennik', cta2: 'Zarezerwuj lekcję', to2: '/signup' },
-      { eyebrow: 'ćwiczenia między lekcjami', title: 'Ćwicz na głos, we własnym tempie', cta: 'Wypróbuj teraz', cta2: 'Zobacz cennik', to2: '/pricing' },
+      { eyebrow: 'nasi uczniowie · jedna szkoła', title: 'Lekcje 1:1 na żywo z własnym lektorem', cta: 'Zarezerwuj pierwszą lekcję', cta2: 'Zobacz cennik', to2: '/pricing' },
+      { eyebrow: 'Twój kurs CEFR', title: 'Kurs dopasowany do Twojego poziomu i celów', cta: 'Zobacz cennik', cta2: 'Zarezerwuj lekcję', to2: '/signup' },
+      { eyebrow: 'ćwiczenia po każdej lekcji', title: 'Twoje słownictwo trafia do fiszek i klipów z życia', cta: 'Zagraj w World', cta2: 'Zobacz cennik', to2: '/pricing' },
     ],
-    chips: ['lekcje 1:1 na żywo, 60 min', 'kursy dopasowane do poziomu CEFR', 'fiszki i klipy z YouTube do każdego słowa', 'rezerwacja online w kilka minut'],
+    chips: ['lekcje 1:1 na żywo, 60 min', 'kursy dopasowane do poziomu CEFR', 'słownictwo z lekcji trafia do fiszek', 'rezerwacja online w kilka minut'],
+    arcadeBadge: 'krótkie ćwiczenia · wypróbuj teraz',
     officeAlt: 'Uczniowie śmiejący się razem w szkole English Metro',
     officeChip: 'Nasi uczniowie · jedna szkoła',
+    arcadeKicker: 'krótkie ćwiczenia · bez logowania',
+    arcadeTitle: 'Siedem sposobów na ćwiczenie. Wypróbuj je teraz.',
+    arcadeBody: 'To te same gry, do których po każdej lekcji trafiają Twoje fiszki. Odkryj kartę, złap pociąg, ułóż zdanie. Bez zakładania konta.',
     catalogTitle: 'Szybkie ćwiczenia na czterech liniach',
     catalogHint: 'Wybierz linię, aby zobaczyć jej gry · każda gra startuje od razu',
-    catalogBrowse: 'Przeglądaj pełny katalog według linii i stacji. Każda gra jest darmowa po założeniu darmowego konta.',
+    catalogBrowse: 'Przeglądaj pełny katalog według linii i stacji. W pierwszą grę zagrasz bez konta.',
     catalogGames: (n) => `${n} ${n === 1 ? 'gra' : n < 5 ? 'gry' : 'gier'}`,
     catalogLive: (a, b) => `${a} dostępne · ${b} w budowie`,
     districts3dSubtitle: 'Fluent City w 3D. Nowe dzielnice pojawiają się tu automatycznie z każdą aktualizacją.',
     doorsBody: (n) => `${n} krótkich gier na czterech liniach metra: słownictwo, gramatyka, słuchanie i mówienie. Ćwicz dwie minuty albo dwadzieścia.`,
     doorsGo: 'Polecana gra:',
     ctaTitle: 'Zapisuj postępy z darmowym kontem.',
-    ctaBody: 'English Metropolis World jest darmowy, a otwiera go darmowe konto z potwierdzonym adresem e-mail. To samo konto zapisuje Twoje serie i postępy w słownictwie w Szybkich ćwiczeniach.',
+    ctaBody: 'Darmowe konto zapisuje Twoje serie i postępy w słownictwie oraz włącza grę na pełnym ekranie w EnglishMetro World i Szybkich ćwiczeniach.',
     ctaPlay: 'Graj za darmo',
-    ctaBeta: 'Wypróbuj betę English Metropolis World',
+    ctaBeta: 'Wypróbuj betę EnglishMetro World',
     lineTags: { 'Arcade Line': 'Szybkie ręce, szybsze słowa', 'Word Line': 'Z liter w język', 'Quiz Line': 'Myśl szybko, odpowiadaj szybciej', 'City Line': 'Prawdziwe sytuacje, poziom ulicy' },
+    worldLink: 'Poznaj całe miasto 3D za darmo',
     stepsKicker: 'od rejestracji do mówienia', stepsTitle: 'Twoja pierwsza lekcja w czterech krokach',
     steps: [
       { icon: 'person_add', title: 'Załóż konto', body: 'To około dwóch minut: podaj e-mail i hasło lub kontynuuj z Google.' },
-      { icon: 'shopping_bag', title: 'Wybierz pakiet', body: 'Wybierz pojedynczą lekcję próbną lub pakiet do 24 lekcji. Zapłać bezpiecznie online przez Przelewy24.' },
+      { icon: 'shopping_bag', title: 'Wybierz pakiet', body: 'Wybierz pojedynczą lekcję próbną lub pakiet do 24 lekcji. Zapłać online lub na podstawie faktury.' },
       { icon: 'event_available', title: 'Zarezerwuj terminy', body: 'Wybierz wolny termin w kalendarzu lektora. Link do Google Meet i zaproszenie do kalendarza otrzymasz e-mailem.' },
-      { icon: 'school', title: 'Ucz się i powtarzaj', body: 'Po każdej lekcji w bibliotece pojawia się plik PDF, a słownictwo z lekcji trafia do fiszek — każde słowo z prawdziwymi klipami z YouTube, żeby usłyszeć jego wymowę i użycie w kontekście.' },
+      { icon: 'school', title: 'Ucz się i powtarzaj', body: 'Po każdej lekcji w bibliotece pojawia się plik PDF, a słownictwo z lekcji trafia do fiszek do dalszych ćwiczeń.' },
     ],
     packsKicker: 'pakiety lekcji 1:1', packsTitle: 'Wybierz swoje tempo', packsLink: 'Pełny cennik i szczegóły',
     packsStart: 'Zaczynam', packsEach: 'po 60 min',
@@ -219,7 +247,7 @@ const GH = {
     ],
     cityKicker: 'lekcje na żywo · ćwiczenia między zajęciami',
     cityTitle: 'Jeden plan nauki. Spójne ćwiczenia.',
-    cityBody: 'Lektor wyznacza zakres materiału. Słownictwo z każdej lekcji trafia do fiszek i gier w English Metropolis World, dzięki czemu między zajęciami ćwiczysz ten sam materiał.',
+    cityBody: 'Lektor wyznacza zakres materiału. Słownictwo z każdej lekcji trafia do fiszek i gier w EnglishMetro World, dzięki czemu między zajęciami ćwiczysz ten sam materiał.',
     cityFeatures: ['Informacja zwrotna od lektora na żywo', 'Słownictwo z Twoich lekcji', 'Świat 3D do ćwiczeń między lekcjami'],
     cityCta: 'Rozpocznij plan nauki',
     cityLabel: 'Interaktywna mapa 3D EnglishMetro',
@@ -227,7 +255,7 @@ const GH = {
     lessonsKicker: 'lekcje 1:1 na żywo',
     lessonsTitle: 'Lektor, który zna Twoje cele.',
     lessonsBody: 'Każda lekcja jest na żywo, indywidualna i dopasowana do poziomu CEFR. Ty mówisz, lektor daje informację zwrotną, a słownictwo z lekcji trafia do ćwiczeń.',
-    lessonsPoints: ['Prawdziwa rozmowa od pierwszej minuty', 'Notatki i PDF po każdej lekcji', 'Fiszki z Twojego słownictwa, z klipami z YouTube z każdym słowem w użyciu'],
+    lessonsPoints: ['Prawdziwa rozmowa od pierwszej minuty', 'Notatki i PDF po każdej lekcji', 'Fiszki ze słownictwa z Twoich lekcji'],
     lessonsCta: 'Poznaj swojego lektora',
     lessonsAltMain: 'Uśmiechnięta uczennica podczas lekcji angielskiego online na żywo',
     lessonsAltSide: 'Uczeń śmiejący się podczas ćwiczenia angielskiego na telefonie',
@@ -249,6 +277,131 @@ const HERO_GAMES = [
   { key: 'matching', title: 'Matching', icon: 'join_inner' },
   { key: 'concentration', title: 'Memory', icon: 'grid_view' },
 ]
+
+function HeroArcade({ badge, reduced, lang }) {
+  const [active, setActive] = useState(0)
+  const [shown, setShown] = useState(0)
+  const [exiting, setExiting] = useState(false)
+  const [backdropReady, setBackdropReady] = useState(false)
+  const [direction, setDirection] = useState(1)
+  const swapTimer = useRef(null)
+  const activeGame = HERO_GAMES[active]
+  const tabsRef = useRef(null)
+  const arcadeRef = useRef(null)
+  const switchTo = (next) => {
+    if (next === active) return
+    setDirection(next > active ? 1 : -1)
+    setActive(next)
+    clearTimeout(swapTimer.current)
+    if (reduced) { setShown(next); setExiting(false); return }
+    setExiting(true)
+    swapTimer.current = setTimeout(() => { setShown(next); setExiting(false) }, 120)
+  }
+  useEffect(() => () => clearTimeout(swapTimer.current), [])
+  const go = (dir) => switchTo((active + dir + HERO_GAMES.length) % HERO_GAMES.length)
+  const selectFromKeyboard = (next) => {
+    switchTo(next)
+    requestAnimationFrame(() => tabsRef.current?.querySelectorAll('[role="tab"]')[next]?.focus())
+  }
+  const onTabsKeyDown = (event) => {
+    let next = active
+    if (event.key === 'ArrowRight') next = (active + 1) % HERO_GAMES.length
+    else if (event.key === 'ArrowLeft') next = (active - 1 + HERO_GAMES.length) % HERO_GAMES.length
+    else if (event.key === 'Home') next = 0
+    else if (event.key === 'End') next = HERO_GAMES.length - 1
+    else return
+    event.preventDefault()
+    selectFromKeyboard(next)
+  }
+  useEffect(() => {
+    const tabs = tabsRef.current
+    const activeTab = tabs?.querySelector('.gh-arcade-tab.on')
+    if (!tabs || !activeTab) return
+    const tabsBox = tabs.getBoundingClientRect()
+    const activeBox = activeTab.getBoundingClientRect()
+    const activeLeft = activeBox.left - tabsBox.left + tabs.scrollLeft
+    const left = activeLeft - (tabs.clientWidth - activeBox.width) / 2
+    tabs.scrollTo({ left, behavior: reduced ? 'auto' : 'smooth' })
+  }, [active, reduced])
+  useEffect(() => {
+    const arcade = arcadeRef.current
+    if (!arcade) return undefined
+    let inView = true
+    const syncPlayback = () => {
+      arcade.classList.toggle('is-paused', !inView || document.hidden)
+    }
+    const observer = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(([entry]) => {
+      inView = entry.isIntersecting
+      if (inView) setBackdropReady(true)
+      syncPlayback()
+    }, { threshold: 0.08 })
+    observer?.observe(arcade)
+    document.addEventListener('visibilitychange', syncPlayback)
+    return () => {
+      observer?.disconnect()
+      document.removeEventListener('visibilitychange', syncPlayback)
+    }
+  }, [])
+  return (
+    <div className="gh-hero-frame" onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
+      <div className="gh-postcard" style={{ background: '#FCFAFF' }}>
+        <div className="gh-arcade-toolbar">
+          <div className="gh-arcade-live">
+            <span className="gh-live-dot" aria-hidden/>
+            <span className="gh-arcade-badge">
+              {badge}
+            </span>
+          </div>
+          <div className="gh-arcade-tabs-wrap">
+            <div ref={tabsRef} className="gh-arcade-tabs" role="tablist" aria-label="Choose a live practice game"
+              onKeyDown={onTabsKeyDown}>
+              {HERO_GAMES.map((g, i) => (
+                <button key={g.key} type="button" onClick={() => switchTo(i)}
+                  id={`gh-arcade-tab-${g.key}`} role="tab" tabIndex={i === active ? 0 : -1}
+                  aria-selected={i === active} aria-controls="gh-arcade-stage"
+                  className={`gh-arcade-tab gh-shader-surface${i === active ? ' on' : ''}`}
+                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+                  onPointerDown={pulsePointerPolish}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{g.icon}</span>
+                  {g.title}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div ref={arcadeRef} className="gh-arcade-viewport"
+          onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
+          <div id="gh-arcade-stage" role="tabpanel" aria-labelledby={`gh-arcade-tab-${activeGame.key}`}
+            data-game={HERO_GAMES[shown].key} className="gh-arcade-stage"
+            style={{ minHeight: 520, overflow: 'hidden' }}>
+            {backdropReady && (
+              <Suspense fallback={null}>
+                <ArcadeCityBackdrop reduced={reduced}/>
+              </Suspense>
+            )}
+            <div key={HERO_GAMES[shown].key} data-dir={direction}
+              className={`gh-arcade-body${exiting ? ' is-exiting' : ''}`}>
+              <HeroPracticePreview game={HERO_GAMES[shown].key} lang={lang}/>
+            </div>
+          </div>
+          <button type="button" className="gh-slider-arrow gh-slider-prev" aria-label="Previous exercise"
+            onClick={() => go(-1)} onPointerMove={setPointerPolish}
+            onPointerLeave={clearPointerPolish} onPointerDown={pulsePointerPolish}>
+            <span className="material-symbols-outlined" style={{ fontSize: 26 }}>chevron_left</span>
+          </button>
+          <button type="button" className="gh-slider-arrow gh-slider-next" aria-label="Next exercise"
+            onClick={() => go(1)} onPointerMove={setPointerPolish}
+            onPointerLeave={clearPointerPolish} onPointerDown={pulsePointerPolish}>
+            <span className="material-symbols-outlined" style={{ fontSize: 26 }}>chevron_right</span>
+          </button>
+          <div className="gh-slider-label" aria-live="polite">
+            {active + 1} {lang === 'pl' ? 'z' : 'of'} {HERO_GAMES.length} · {activeGame.title}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ── The catalog — every playable 2D shell, as a metro "line" map ───────────
 // Venue names follow src/practice/lib/shell-selector.ts. `load` mirrors the
@@ -352,24 +505,13 @@ const CURRENT_YEAR = new Date().getFullYear()
 // three.js build) — a plain anchor, not a router Link.
 const WORLD_URL = '/play/'
 
-// The four hero pillars. Copy comes from the language dictionary; each pillar
-// keeps a fixed destination and draws its photograph from a pool, one picked
-// per page load, so returning visitors don't meet the same image every time.
-// The two product pillars use real captures of the running app — we don't
-// generate imagery of our own software.
+// The original homepage carousel: live learning first, then course fit and
+// connected practice. The first frame deliberately uses the approved school
+// photograph from the reference design instead of choosing a random image.
 const HERO_MEDIA = [
-  { key: 'lessons',  to: '/signup',            images: [
-    '/home/hero/lessons-1.webp', '/home/hero/lessons-18.webp', '/home/hero/lessons-3.webp',
-    '/home/hero/lessons-6.webp',
-    '/home/hero/lessons-8.webp', '/home/hero/lessons-9.webp', '/home/hero/lessons-10.webp',
-    '/home/hero/lessons-19.webp', '/home/hero/lessons-20.webp',
-  ] },
-  { key: 'course',   to: '/pricing',           images: [
-    '/home/hero/course-1.webp', '/home/hero/course-3.webp',
-  ] },
-  // The practice section this used to scroll to was removed on 2026-08-10, so the
-  // pillar now points at the free no-signup 3D world instead of a dead anchor.
-  { key: 'practice', href: WORLD_URL,          images: ['/home/hero/practice-4.webp'] },
+  { key: 'lessons', to: '/signup', images: ['/home/photo-office-2607.webp'] },
+  { key: 'course', to: '/pricing', images: ['/home/hero/course-1.webp', '/home/hero/course-3.webp'] },
+  { key: 'practice', href: WORLD_URL, images: ['/home/hero/practice-4.webp'] },
 ]
 
 // Games are art-directed for dusk; the play overlay keeps the night palette
@@ -431,7 +573,7 @@ class ShellBoundary extends Component {
       return (
         <div style={{ padding: 48, textAlign: 'center', color: DUSK.dim, fontFamily: FONT.body }}>
           <div style={{ fontSize: 34, marginBottom: 12 }}>🛠️</div>
-          This station is under maintenance — pick another game.
+          This station is under maintenance - pick another game.
         </div>
       )
     }
@@ -549,7 +691,7 @@ function PlayOverlay({ game, onClose }) {
               background: 'linear-gradient(180deg, rgba(30,20,60,0.92) 0%, rgba(15,10,35,0.92) 100%)',
               border: '1px solid rgba(217,70,239,0.35)', borderRadius: 20, padding: '36px 32px',
               boxShadow: '0 30px 80px -20px rgba(0,0,0,0.7), 0 0 60px -20px rgba(217,70,239,0.3)' }}>
-              <img src="/brand/em-bajla-icon.webp" alt="" width="72" height="72" style={{ objectFit: 'contain', borderRadius: 16, marginBottom: 10 }}/>
+              <img src="/bajla.png" alt="" width="72" height="72" style={{ objectFit: 'contain', marginBottom: 10 }}/>
               <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 24, color: DUSK.text, marginBottom: 10 }}>
                 {doneOnce ? 'Round complete.' : 'Go full screen?'}
               </div>
@@ -574,95 +716,6 @@ function PlayOverlay({ game, onClose }) {
   )
 }
 
-// ── The Quick Practice door ────────────────────────────────────────────────
-// Free, but not anonymous (Mike, 2026-08-11): the games need a free account
-// with a confirmed address, the same rule as English Metropolis World. Two
-// panels, because "you have no account" and "your address is unconfirmed" are
-// different problems with different fixes, and offering the wrong one is how a
-// student ends up creating a second account.
-function PlayGate({ game, lang, signedIn, verified, email, resend, resent, refresh, onClose }) {
-  const isPl = lang === 'pl'
-  const t = (en, pl) => (isPl ? pl : en)
-  // Signed in but the answer is still in flight. Never guess: claiming their
-  // address is unconfirmed while we are still asking is the one wrong thing
-  // this panel can say.
-  const checking = signedIn && verified === null
-  const needsAccount = !signedIn
-
-  return (
-    <div role="dialog" aria-modal="true" aria-label={t('Account needed', 'Wymagane konto')}
-      className="gh-play-overlay"
-      style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', padding: 24, background: 'rgba(5,3,9,0.86)',
-        backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
-      <div className="gh-rise gh-overlay-card" style={{ maxWidth: 460, width: '100%', textAlign: 'center',
-        background: 'linear-gradient(180deg, rgba(30,20,60,0.94) 0%, rgba(15,10,35,0.94) 100%)',
-        border: '1px solid rgba(217,70,239,0.35)', borderRadius: 20, padding: '34px 30px',
-        boxShadow: '0 30px 80px -20px rgba(0,0,0,0.7), 0 0 60px -20px rgba(217,70,239,0.3)' }}>
-        <img src="/brand/em-bajla-icon.webp" alt="" width="66" height="66"
-          style={{ objectFit: 'contain', borderRadius: 16, marginBottom: 12 }}/>
-        <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 23, color: DUSK.text, marginBottom: 10 }}>
-          {checking
-            ? t('One moment…', 'Chwileczkę…')
-            : needsAccount
-              ? t('Create a free account to play', 'Załóż darmowe konto, aby zagrać')
-              : t('Confirm your email to play', 'Potwierdź e-mail, aby zagrać')}
-        </div>
-        <p style={{ color: DUSK.dim, fontSize: 14, lineHeight: 1.6, margin: '0 0 22px' }}>
-          {checking
-            ? t('Checking your account.', 'Sprawdzamy Twoje konto.')
-            : needsAccount
-              ? t(`Quick Practice is free, including ${game.title}. A free account is what saves your progress and streaks, and it takes about two minutes.`,
-                  `Szybkie ćwiczenia są darmowe, także ${game.title}. Darmowe konto zapisuje Twoje postępy i serie, a założenie zajmuje około dwóch minut.`)
-              : t('The games are free, we just need to know your email address is real. Check your inbox for the confirmation link.',
-                  'Gry są darmowe, musimy tylko wiedzieć, że Twój adres e-mail jest prawdziwy. Sprawdź skrzynkę i kliknij link potwierdzający.')}
-          {!checking && !needsAccount && email ? ` (${email})` : ''}
-        </p>
-
-        {!checking && needsAccount && (
-          <>
-            <ActionLink to="/signup" variant="primary" size="lg" full trailingIcon="arrow_forward">
-              {t('Create free account', 'Załóż darmowe konto')}
-            </ActionLink>
-            <div style={{ marginTop: 12 }}>
-              <ActionLink to="/login" variant="secondary" size="md" full>
-                {t('I already have an account', 'Mam już konto')}
-              </ActionLink>
-            </div>
-          </>
-        )}
-
-        {!checking && !needsAccount && (
-          <>
-            <button type="button" onClick={resend} disabled={resent === 'sending' || resent === 'sent'}
-              className="gh-gate-btn"
-              style={{ width: '100%', padding: '14px 20px', borderRadius: 12, border: 'none',
-                background: resent === 'sent' ? 'rgba(255,255,255,0.12)' : '#4333C6', color: '#fff',
-                fontWeight: 700, fontSize: 15, cursor: resent === 'sent' ? 'default' : 'pointer' }}>
-              {resent === 'sending' ? t('Sending…', 'Wysyłanie…')
-                : resent === 'sent' ? t('Sent — check your inbox', 'Wysłano — sprawdź skrzynkę')
-                : resent === 'error' ? t('Try again', 'Spróbuj ponownie')
-                : t('Resend the link', 'Wyślij link ponownie')}
-            </button>
-            <button type="button" onClick={refresh}
-              style={{ marginTop: 12, width: '100%', padding: '12px 18px', borderRadius: 12,
-                background: 'transparent', border: '1px solid rgba(255,255,255,0.22)',
-                color: DUSK.dim, fontSize: 14, cursor: 'pointer' }}>
-              {t("I've confirmed — let me in", 'Potwierdziłem — wpuść mnie')}
-            </button>
-          </>
-        )}
-
-        <button type="button" onClick={onClose}
-          style={{ marginTop: 16, background: 'transparent', border: 'none', color: DUSK.mute,
-            fontSize: 12, cursor: 'pointer', letterSpacing: '0.06em' }}>
-          {t('Back to the games', 'Wróć do gier')}
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // ── Small parts ────────────────────────────────────────────────────────────
 function ThemeToggle({ mode, setMode, T }) {
   const isDay = mode === 'day'
@@ -670,6 +723,8 @@ function ThemeToggle({ mode, setMode, T }) {
     <button type="button" className="gh-theme-btn"
       aria-label={isDay ? 'Switch to night mode' : 'Switch to day mode'}
       onClick={() => setMode(isDay ? 'night' : 'day')}
+      onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+      onPointerDown={pulsePointerPolish}
       style={{ border: `1px solid ${T.border}`, background: T.surface, color: isDay ? T.amber : T.brandInk }}>
       <span className="material-symbols-outlined" style={{ fontSize: 19 }}>
         {isDay ? 'dark_mode' : 'light_mode'}
@@ -682,7 +737,9 @@ function GameCard({ g, color, T, onPlay, index, soon }) {
   return (
     <button type="button" className="gh-card gh-glass" disabled={soon}
       onClick={soon ? undefined : () => onPlay(g)}
-      aria-label={soon ? `${g.title} — arriving soon` : `Play ${g.title}`}
+      onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+      onPointerDown={pulsePointerPolish}
+      aria-label={soon ? `${g.title} - arriving soon` : `Play ${g.title}`}
       style={{ textAlign: 'left', cursor: soon ? 'default' : 'pointer', borderRadius: 16,
         border: `1px solid ${T.border}`, padding: '18px 18px 16px',
         color: T.text, fontFamily: FONT.body, opacity: soon ? 0.55 : 1,
@@ -725,7 +782,7 @@ function LineSection({ line, T, open, onToggle, count, subtitle, children }) {
             <span style={{ marginLeft: 10, fontSize: 11, fontWeight: 600, letterSpacing: '0.14em',
               color: T.textMute }}>{count}</span>
           </span>
-          <span className="gh-acc-sub" style={{ display: 'block', fontSize: 12.5, color: T.textDim, marginTop: 2,
+          <span style={{ display: 'block', fontSize: 12.5, color: T.textDim, marginTop: 2,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {subtitle}
           </span>
@@ -755,16 +812,6 @@ export default function GameHome() {
   const night = mode !== 'day'
   const reduced = usePrefersReducedMotion()
   const [playing, setPlaying] = useState(null)
-  // Quick Practice sits behind the same door as the World (Mike, 2026-08-11):
-  // a free account with a confirmed address. `verified` is true for a signed-out
-  // visitor by design, so both flags are needed to tell "sign up" from "confirm
-  // your address" and show the right panel.
-  const { verified, signedIn, resend, resent, email, refresh } = useEmailVerified()
-  const canPlay = signedIn && verified === true
-  const [gate, setGate] = useState(null)   // the game they tried to open
-  // One door for every way into a game, so a new card cannot bypass the gate by
-  // calling setPlaying directly.
-  const requestPlay = (game) => { if (canPlay) setPlaying(game); else setGate(game) }
   const [menuOpen, setMenuOpen] = useState(false)
   const [openLines, setOpenLines] = useState(() => new Set([LINES[0].line]))
   const practiceRef = useRef(null)
@@ -790,7 +837,7 @@ export default function GameHome() {
   }, [])
 
   const tickerNames = useMemo(() => {
-    const names = ['English Metropolis World · OPEN BETA', ...playable3d.map((e) => `${e.title} · 3D`),
+    const names = ['EnglishMetro World · OPEN BETA', ...playable3d.map((e) => `${e.title} · 3D`),
       ...ALL_GAMES.map((g) => g.title)]
     return [...names, ...names] // doubled for a seamless -50% loop
   }, [playable3d])
@@ -831,7 +878,8 @@ export default function GameHome() {
 
       <div className="gh-shell" style={{ position: 'relative', zIndex: 2, maxWidth: 1840, margin: '0 auto', padding: '0 24px' }}>
         {/* ── Header ── */}
-        <header className="gh-header gh-glass gh-rise">
+        <header className="gh-header gh-glass gh-rise" onPointerMove={setPointerPolish}
+          onPointerLeave={clearPointerPolish}>
           <Link to="/" className="gh-brand" aria-label="English Metro home">
             <Skyline size={30}/>
             <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 19, letterSpacing: '-0.02em' }}>
@@ -841,7 +889,9 @@ export default function GameHome() {
             </div>
           </Link>
           <button type="button" className="gh-menu-toggle" aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen} aria-controls="gh-primary-nav" onClick={() => setMenuOpen((open) => !open)}>
+            aria-expanded={menuOpen} aria-controls="gh-primary-nav" onClick={() => setMenuOpen((open) => !open)}
+            onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+            onPointerDown={pulsePointerPolish}>
             <span className="material-symbols-outlined" aria-hidden>{menuOpen ? 'close' : 'menu'}</span>
           </button>
           <nav id="gh-primary-nav" className={`gh-nav${menuOpen ? ' is-open' : ''}`} aria-label="Primary navigation">
@@ -859,6 +909,8 @@ export default function GameHome() {
               {['pl', 'en'].map(l => (
                 <button key={l} type="button" onClick={() => setLang(l)}
                   aria-pressed={lang === l}
+                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+                  onPointerDown={pulsePointerPolish}
                   className={`gh-lang-btn${lang === l ? ' on' : ''}`}>{l.toUpperCase()}</button>
               ))}
             </div>
@@ -871,7 +923,9 @@ export default function GameHome() {
         {/* ── Hero: live lessons first, the city as your practice ground ── */}
         <section className="gh-hero-grid" style={{ display: 'grid',
           gridTemplateColumns: 'minmax(0, 1.02fr) minmax(0, 0.98fr)',
-          gap: 52, alignItems: 'center', padding: '46px 0 64px' }}>
+          gap: 52, alignItems: 'center', padding: '30px 0 44px' }}>
+          <MetroSignalField className="gh-hero-signal" mode={night ? 'dark' : 'light'} density={64}/>
+          <ReactiveShaderField className="gh-reactive-shader" mode={night ? 'dark' : 'light'}/>
           <div className="gh-hero-copy" style={{ minWidth: 0 }}>
             <div className="gh-rise gh-rise-1 gh-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 10,
               marginBottom: 20 }}>
@@ -882,17 +936,25 @@ export default function GameHome() {
               </span>
             </div>
             <h1 className="gh-rise gh-rise-2" style={{ fontFamily: FONT.display, fontWeight: 700,
-              fontSize: 'clamp(42px, 6.4vw, 82px)', lineHeight: 1.06, letterSpacing: '-0.04em', margin: 0 }}>
+              fontSize: 'clamp(40px, 5.45vw, 70px)', lineHeight: 0.98, letterSpacing: '-0.04em', margin: 0 }}>
               {W.h1a}
               <br/>
               <span className="gh-gradient-word" style={{ background: G.brand, WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{W.h1b}</span>
               <span style={{ color: T.ember }}>.</span>
             </h1>
-            {/* The four pillars that used to sit here as a checklist are now the
-                four slides beside it, each with its own destination. Repeating
-                them in text made the hero say everything twice. */}
-            <div className="gh-rise gh-rise-4" style={{ marginTop: 30, display: 'flex', gap: 14,
+            <ul className="gh-rise gh-rise-3" style={{ marginTop: 18, display: 'grid', gap: 8,
+              padding: 0, margin: '18px 0 0', listStyle: 'none', maxWidth: 540 }}>
+              {W.heroPoints.map((point, i) => (
+                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10,
+                  fontSize: 'clamp(14px, 1.3vw, 16px)', color: T.textDim, lineHeight: 1.42 }}>
+                  <span className="material-symbols-outlined" aria-hidden
+                    style={{ fontSize: 19, color: T.emerald, marginTop: 2 }}>check_circle</span>
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="gh-rise gh-rise-4" style={{ marginTop: 22, display: 'flex', gap: 14,
               flexWrap: 'wrap', alignItems: 'center' }}>
               <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward"
                 style={{ fontSize: 15, padding: '18px 32px' }}>{W.ctaBook}</ActionLink>
@@ -909,8 +971,11 @@ export default function GameHome() {
 
           </div>
 
-          <div className="gh-rise gh-rise-3 gh-hero-stage-wrap" style={{ minWidth: 0 }}>
+          <div className="gh-rise gh-rise-3 gh-hero-stage-wrap" style={{ minWidth: 0 }}
+            onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+            onPointerDown={pulsePointerPolish}>
             <HeroSlider
+              minimal
               label={W.heroSliderLabel}
               prevLabel={W.heroSliderPrev}
               nextLabel={W.heroSliderNext}
@@ -924,7 +989,9 @@ export default function GameHome() {
         {/* ── Credible proof points, then the teacher-to-city learning loop ── */}
         <section className="gh-proof-rail gh-glass" aria-label={W.proofLabel}>
           {W.proof(ALL_GAMES.length).map((item, index) => (
-            <div className="gh-proof-item" key={item.label} style={{ '--gh-proof-delay': `${index * 80}ms` }}>
+            <div className="gh-proof-item gh-shader-surface" key={item.label}
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+              style={{ '--gh-proof-delay': `${index * 80}ms` }}>
               <strong>{item.value}</strong>
               <span>{item.label}</span>
             </div>
@@ -934,7 +1001,8 @@ export default function GameHome() {
         {/* ── Real lessons, real people — photography band ── */}
         <section className="gh-section gh-lessons-band">
           <Reveal className="gh-lessons-media">
-            <div className="gh-photo-frame gh-photo-frame--main">
+            <div className="gh-photo-frame gh-photo-frame--main"
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <img src="/home/photo-student.webp" alt={W.lessonsAltMain} loading="lazy" width="1600" height="1067"/>
               <span className="gh-float-chip gh-float-chip--a">
                 <span className="material-symbols-outlined" aria-hidden>videocam</span>
@@ -945,12 +1013,14 @@ export default function GameHome() {
                 {W.lessonsChipB}
               </span>
             </div>
-            <div className="gh-photo-frame gh-photo-frame--side">
+            <div className="gh-photo-frame gh-photo-frame--side"
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <img src="/home/photo-practice-2607.webp" alt={W.lessonsAltSide} loading="lazy" width="800" height="533"/>
             </div>
           </Reveal>
           <Reveal className="gh-lessons-copy" delay={90}>
-            <div className="gh-kicker" style={{ marginBottom: 12 }}>{W.lessonsKicker}</div>
+            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+              textTransform: 'uppercase', color: T.fuchsia, marginBottom: 12 }}>{W.lessonsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(30px, 4.2vw, 52px)',
               lineHeight: 1.04, letterSpacing: '-0.035em', margin: '0 0 18px' }}>{W.lessonsTitle}</h2>
             <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.35vw, 17px)', lineHeight: 1.7,
@@ -976,14 +1046,16 @@ export default function GameHome() {
 
         <section className="gh-city-loop gh-section">
           <Reveal className="gh-city-copy">
-            <div className="gh-kicker" style={{ marginBottom: 12 }}>{W.cityKicker}</div>
+            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+              textTransform: 'uppercase', color: T.emerald, marginBottom: 12 }}>{W.cityKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(32px, 4.7vw, 58px)',
               lineHeight: 1.02, letterSpacing: '-0.04em', margin: '0 0 20px' }}>{W.cityTitle}</h2>
             <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.35vw, 17px)', lineHeight: 1.7,
               maxWidth: 560, margin: '0 0 24px' }}>{W.cityBody}</p>
             <div className="gh-city-features">
               {W.cityFeatures.map((feature, index) => (
-                <div className="gh-city-feature gh-glass" key={feature}>
+                <div className="gh-city-feature gh-glass gh-shader-surface" key={feature}
+                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
                   <span className="material-symbols-outlined gh-city-feature-icon" aria-hidden>
                     {['forum', 'style', 'view_in_ar'][index]}
                   </span>
@@ -1019,14 +1091,16 @@ export default function GameHome() {
         {/* ── How lessons work ── */}
         <section className="gh-section gh-journey-section" style={{ paddingBottom: 64 }}>
           <Reveal className="gh-section-heading">
-            <div className="gh-kicker" style={{ marginBottom: 10 }}>{W.stepsKicker}</div>
+            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+              textTransform: 'uppercase', color: T.fuchsia, marginBottom: 10 }}>{W.stepsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: '0 0 26px' }}>
               {W.stepsTitle}
             </h2>
           </Reveal>
           <Reveal className="gh-steps-photo">
-            <div className="gh-photo-frame gh-photo-frame--wide">
+            <div className="gh-photo-frame gh-photo-frame--wide"
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <img src="/home/photo-group-2607.webp" alt={W.stepsAlt} loading="lazy" width="1600" height="900"/>
               <span className="gh-float-chip gh-float-chip--a">
                 <span className="material-symbols-outlined" aria-hidden>co_present</span>
@@ -1037,7 +1111,8 @@ export default function GameHome() {
           <div className="gh-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
             {W.steps.map((s, i) => (
               <Reveal key={s.title} delay={i * 90} className="gh-step-slot">
-                <div className="gh-step gh-glass" style={{ height: '100%' }}>
+                <div className="gh-step gh-glass gh-shader-surface" style={{ height: '100%' }}
+                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                     <span className="gh-step-num" style={{ fontFamily: FONT.mono }}>{i + 1}</span>
                     <span className="material-symbols-outlined" aria-hidden
@@ -1057,7 +1132,8 @@ export default function GameHome() {
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
               flexWrap: 'wrap', gap: 12, marginBottom: 26 }}>
               <div>
-                <div className="gh-kicker" style={{ marginBottom: 10 }}>{W.packsKicker}</div>
+                <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+                  textTransform: 'uppercase', color: T.emerald, marginBottom: 10 }}>{W.packsKicker}</div>
                 <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
                   letterSpacing: '-0.03em', margin: 0 }}>
                   {W.packsTitle}
@@ -1076,7 +1152,10 @@ export default function GameHome() {
               return (
                 <Reveal key={p.id} delay={i * 80} style={{ height: '100%' }}
                   className={`gh-pack-slot gh-pack-slot--${i + 1}${hot ? ' is-featured' : ''}`}>
-                  <div className={`gh-pack gh-glass${hot ? ' is-featured' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column',
+                  <div className={`gh-pack gh-glass gh-spatial-card${hot ? ' is-featured' : ''}`}
+                    onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+                    onPointerDown={pulsePointerPolish}
+                    style={{ height: '100%', display: 'flex', flexDirection: 'column',
                     border: hot ? '1px solid transparent' : `1px solid ${T.border}`,
                     background: hot
                       ? `linear-gradient(${night ? 'rgba(22,10,44,0.92)' : 'rgba(255,255,255,0.96)'}, ${night ? 'rgba(22,10,44,0.92)' : 'rgba(255,255,255,0.96)'}) padding-box, ${G.brand} border-box`
@@ -1093,6 +1172,8 @@ export default function GameHome() {
                       className={`gh-action gh-action--${hot ? 'primary' : 'secondary'} gh-action--md gh-action--full gh-pack-add`}
                       data-added={packAdded === p.id}
                       onClick={() => addPackToCart(p)}
+                      onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+                      onPointerDown={pulsePointerPolish}
                       aria-label={`${W.packsStart}: ${p.name}, ${p.price}`}>
                       {packAdded === p.id
                         ? (lang === 'pl' ? 'Dodano do koszyka' : 'Added to cart')
@@ -1111,14 +1192,18 @@ export default function GameHome() {
         {/* ── Two ways in — the practice layer between lessons ── */}
         <section className="gh-section gh-doors-section" style={{ paddingBottom: 58 }}>
           <Reveal className="gh-section-heading">
-            <div className="gh-kicker" style={{ marginBottom: 10 }}>{W.doorsKicker}</div>
+            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+              textTransform: 'uppercase', color: T.violet, marginBottom: 10 }}>{W.doorsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: '0 0 26px' }}>
               {W.doorsTitle}
             </h2>
           </Reveal>
           <div className="gh-doors" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-            <a href={WORLD_URL} className="gh-door gh-door--world gh-glass" style={{ textDecoration: 'none',
+            <a href={WORLD_URL} className="gh-door gh-door--world gh-glass gh-spatial-card"
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+              onPointerDown={pulsePointerPolish}
+              style={{ textDecoration: 'none',
               border: `1px solid ${T.border}`, color: T.text }}>
               <div className="gh-door-ribbon">BETA</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
@@ -1134,7 +1219,9 @@ export default function GameHome() {
                 Start exploring <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_forward</span>
               </span>
             </a>
-            <button type="button" className="gh-door gh-door--practice gh-glass" onClick={scrollToPractice}
+            <button type="button" className="gh-door gh-door--practice gh-glass gh-spatial-card" onClick={scrollToPractice}
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+              onPointerDown={pulsePointerPolish}
               style={{ textAlign: 'left', cursor: 'pointer', border: `1px solid ${T.border}`, color: T.text,
                 fontFamily: FONT.body }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
@@ -1189,7 +1276,7 @@ export default function GameHome() {
                 subtitle={`${W.lineTags[line.line] || line.tag} · ${line.games.slice(0, 3).map((g) => g.title).join(', ')}…`}>
                 {line.games.map((g, i) => (
                   <GameCard key={g.key} g={g} color={line.color} T={T} night={night} index={i}
-                    onPlay={(game) => requestPlay({ ...game, color: line.color })}/>
+                    onPlay={(game) => setPlaying({ ...game, color: line.color })}/>
                 ))}
               </LineSection>
             ))}
@@ -1203,7 +1290,7 @@ export default function GameHome() {
               subtitle={W.districts3dSubtitle}>
               {playable3d.map((e, i) => (
                 <GameCard key={`3d-${e.shellKey}`} g={{ ...e, venue: e.district }} color="#FFB347"
-                  T={T} night={night} index={i} onPlay={(game) => requestPlay(game)}/>
+                  T={T} night={night} index={i} onPlay={(game) => setPlaying(game)}/>
               ))}
               {arrivingSoon.map((a, i) => (
                 <GameCard key={`soon-${a.key}`} g={{ title: a.title, district: a.district }} color="#FFB347"
@@ -1218,7 +1305,7 @@ export default function GameHome() {
           borderRadius: 26, border: `1px solid ${T.borderHi}`, position: 'relative', overflow: 'hidden' }}>
           <span className="gh-cta-orb gh-cta-orb--one" aria-hidden/>
           <span className="gh-cta-orb gh-cta-orb--two" aria-hidden/>
-          <img className="gh-bajla" src="/brand/em-bajla-icon.webp" alt="Bajla" width="112" height="112"/>
+          <img className="gh-bajla" src="/bajla.png" alt="Bajla, the EnglishMetro owl" width="112" height="112"/>
           <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(28px, 4vw, 46px)',
             letterSpacing: '-0.03em', margin: '0 0 12px' }}>
             {W.ctaTitle}
@@ -1249,34 +1336,18 @@ export default function GameHome() {
               <Link to="/privacy" style={{ color: T.textMute, textDecoration: 'none' }}>Privacy</Link>
               <Link to="/cookies" style={{ color: T.textMute, textDecoration: 'none' }}>Cookies</Link>
               <Link to="/terms" style={{ color: T.textMute, textDecoration: 'none' }}>Terms</Link>
-              <a href="/kontakt/" style={{ color: T.textMute, textDecoration: 'none' }}>{lang === 'pl' ? 'Kontakt' : 'Contact'}</a>
+              <a href="mailto:hello@englishmetro.com" style={{ color: T.textMute, textDecoration: 'none' }}>Contact</a>
             </div>
           </div>
           <p style={{ margin: 0, fontSize: 10.5, lineHeight: 1.6, color: T.textMute, maxWidth: 860 }}>
             {lang === 'pl'
               ? 'EnglishMetro, zorganizowana część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP 5213641211 · REGON 146433467'
-              : 'EnglishMetro, an organised business unit of Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467'}
-          </p>
-          <p style={{ margin: '6px 0 0', fontSize: 10.5, lineHeight: 1.6, color: T.textMute, maxWidth: 860 }}>
-            {lang === 'pl' ? 'Kontakt' : 'Contact'}:{' '}
-            <a href="mailto:support@englishmetro.com" style={{ color: T.textMute }}>support@englishmetro.com</a>
-            {' · '}
-            <a href="tel:+48662563507" style={{ color: T.textMute }}>+48 662 563 507</a>
-            {lang === 'pl'
-              ? ' · Adres do doręczeń: ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki'
-              : ' · Service address: ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki, Poland'}
+              : 'EnglishMetro, an organised business unit of Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467'}
           </p>
         </footer>
       </div>
 
       {playing && <PlayOverlay game={playing} onClose={() => setPlaying(null)}/>}
-      {gate && (
-        <PlayGate
-          game={gate} lang={lang} signedIn={signedIn} verified={verified}
-          email={email} resend={resend} resent={resent} refresh={refresh}
-          onClose={() => setGate(null)}
-        />
-      )}
       <CartUI lang={lang === 'pl' ? 'pl' : 'en'}/>
     </div>
   )

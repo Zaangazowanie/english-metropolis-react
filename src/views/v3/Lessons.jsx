@@ -2023,7 +2023,17 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
   const upcomingLessons = useMemo(() => {
     const today = new Date(); today.setHours(0,0,0,0)
     return filteredLessons.filter(l => {
-      if ((l.status || '') === 'planned') return true
+      const status = l.status || ''
+      if (status === 'planned') return true
+      // ⛔2026-09-02: the backend already knows whether the lesson happened, and
+      // this used to ignore it and guess from the date instead. A lesson taught
+      // this morning is `completed` as soon as the booking reconciles, but
+      // `d >= today` was still true, so it was filed as Upcoming — and an
+      // Upcoming lesson renders no card and no Raw-notes button. Ines's notes
+      // were uploaded and loading and she could not see them for a whole day.
+      // A status from the server beats a date heuristic; the heuristic stays
+      // only for rows with neither a usable status nor an analysis.
+      if (status === 'completed') return false
       if (l.analysis) return false
       if (!l.date) return false
       const d = new Date(l.date); if (isNaN(d.getTime())) return false

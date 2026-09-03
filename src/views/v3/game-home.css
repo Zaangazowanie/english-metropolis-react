@@ -46,6 +46,8 @@
 }
 
 .gh-action {
+  --motion-x: 50%;
+  --motion-y: 50%;
   position: relative;
   min-height: 44px;
   display: inline-flex;
@@ -62,8 +64,18 @@
   transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms ease,
     border-color 220ms ease, background 220ms ease;
 }
+.gh-action::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.28), transparent 34%);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
 .gh-action > * { position: relative; z-index: 1; }
-.gh-action .material-symbols-outlined { font-size: 17px; }
+.gh-action .material-symbols-outlined { font-size: 17px; transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1); }
 .gh-action--sm { min-height: 38px; padding: 8px 14px; font-size: 12px; }
 .gh-action--md { padding: 11px 20px; }
 .gh-action--lg { min-height: 52px; padding: 16px 28px; font-size: 14px; gap: 10px; }
@@ -80,7 +92,7 @@
 .gh-action--primary {
   color: #fff;
   letter-spacing: 0.055em;
-  background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 54%, #f472b6 100%);
+  background: linear-gradient(135deg, #5b21b6 0%, #86198f 54%, #9f1239 100%);
   border-color: rgba(255, 255, 255, 0.24);
   box-shadow: 0 14px 34px -15px rgba(217, 70, 239, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.32);
 }
@@ -93,6 +105,9 @@
   transition: transform 650ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .gh-action:hover { transform: translateY(-2px); }
+.gh-action:hover::after { opacity: 1; }
+.gh-action:hover .material-symbols-outlined:last-child { transform: translateX(3px) scale(1.04); }
+.gh-action:active { transform: translateY(1px) scale(0.985); }
 .gh-action--ghost:hover { background: var(--gh-glass-bg); }
 .gh-action--primary:hover { box-shadow: 0 18px 46px -14px rgba(217, 70, 239, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
 .gh-action--primary:hover::before { transform: translateX(125%); }
@@ -470,6 +485,8 @@
 .gh-motion-line--two { top: 58%; animation-delay: -13s; animation-duration: 25s; }
 
 .gh-header {
+  --motion-x: 50%;
+  --motion-y: 50%;
   position: sticky;
   top: max(12px, env(safe-area-inset-top));
   z-index: 40;
@@ -482,6 +499,18 @@
   border: 1px solid var(--gh-glass-border);
   border-radius: 20px;
 }
+.gh-root .gh-action--primary { color: #fff; }
+.gh-root .gh-action--secondary { color: var(--gh-text); }
+.gh-header::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(280px circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.17), transparent 68%);
+  opacity: 0.78;
+}
+.gh-header > * { position: relative; z-index: 1; }
 .gh-brand {
   min-width: max-content;
   min-height: 44px;
@@ -523,7 +552,20 @@
   0%, 100% { transform: scaleX(0.72); opacity: 0.55; }
   50% { transform: scaleX(1); opacity: 1; }
 }
-.gh-hero-grid { perspective: 1400px; }
+.gh-hero-grid { position: relative; isolation: isolate; perspective: 1400px; }
+.gh-hero-copy,
+.gh-hero-stage-wrap { position: relative; z-index: 1; }
+.gh-hero-signal {
+  position: absolute;
+  inset: -80px -9vw -120px;
+  z-index: 0;
+  width: calc(100% + 18vw);
+  height: calc(100% + 200px);
+  pointer-events: none;
+  opacity: 0.78;
+  mask-image: linear-gradient(90deg, rgba(0,0,0,0.25), #000 34%, #000 88%, transparent);
+}
+.gh-day .gh-hero-signal { opacity: 0.58; }
 .gh-gradient-word {
   background-size: 180% 180% !important;
   animation: gh-gradient-drift 5.5s ease-in-out infinite alternate;
@@ -545,7 +587,29 @@
   opacity: 0;
   animation: gh-chip-in 700ms cubic-bezier(0.16, 1, 0.3, 1) var(--gh-chip-delay) both;
 }
-.gh-hero-stage-wrap { transform-style: preserve-3d; }
+.gh-hero-stage-wrap {
+  --motion-x: 50%;
+  --motion-y: 50%;
+  --motion-tilt-x: 0deg;
+  --motion-tilt-y: 0deg;
+  transform-style: preserve-3d;
+}
+.gh-photo-frame.gh-spatial-frame {
+  transform: perspective(1200px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateZ(0);
+  transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 500ms ease;
+}
+.gh-spatial-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.24), transparent 34%);
+  mix-blend-mode: soft-light;
+}
+.gh-hero-stage-wrap:hover .gh-spatial-frame {
+  box-shadow: 0 46px 120px -42px rgba(139,92,246,0.45), 0 22px 60px -36px rgba(217,70,239,0.52);
+}
 .gh-arcade-stage { animation: gh-stage-swap 480ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 .gh-text-link { transition: color 180ms ease, transform 220ms cubic-bezier(0.16, 1, 0.3, 1); }
 .gh-text-link:hover { transform: translateY(-1px); }
@@ -822,6 +886,7 @@
 .gh-pack-slot--3 { grid-column: span 6; }
 .gh-pack-slot--4,
 .gh-pack-slot--5 { grid-column: span 6; }
+.gh-pack-slot--6 { grid-column: 4 / span 6; }
 .gh-pack {
   position: relative;
   isolation: isolate;
@@ -835,14 +900,40 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(circle at 100% 0%, rgba(139,92,246,0.18), transparent 42%);
+  background: radial-gradient(circle at var(--motion-x, 100%) var(--motion-y, 0%), rgba(139,92,246,0.22), transparent 42%);
 }
 .gh-pack.is-featured::after {
-  background: radial-gradient(circle at 100% 0%, rgba(217,70,239,0.3), transparent 45%),
+  background: radial-gradient(circle at var(--motion-x, 100%) var(--motion-y, 0%), rgba(217,70,239,0.34), transparent 45%),
     linear-gradient(145deg, rgba(255,255,255,0.08), transparent 36%);
 }
-.gh-pack.is-featured { transform: translateY(-4px); }
-.gh-pack.is-featured:hover { transform: translateY(-9px); }
+.gh-spatial-card {
+  --motion-x: 50%;
+  --motion-y: 50%;
+  --motion-tilt-x: 0deg;
+  --motion-tilt-y: 0deg;
+  transform: perspective(1100px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y));
+  transform-style: preserve-3d;
+}
+.gh-spatial-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.14), transparent 34%);
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+.gh-spatial-card:hover::before,
+.gh-spatial-card:focus-within::before { opacity: 1; }
+.gh-pack.gh-spatial-card:hover {
+  transform: perspective(1100px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateY(-5px);
+}
+.gh-door.gh-spatial-card:hover {
+  transform: perspective(1100px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateY(-4px);
+}
+.gh-pack.is-featured { transform: perspective(1100px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateY(-4px); }
+.gh-pack.is-featured:hover { transform: perspective(1100px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateY(-9px); }
 
 .gh-door--world { background-color: var(--gh-glass-bg); background-image: linear-gradient(135deg, rgba(139,92,246,0.18), transparent 72%); }
 .gh-door--practice { background-color: var(--gh-glass-bg); background-image: linear-gradient(135deg, rgba(52,211,153,0.14), transparent 72%); }
@@ -874,9 +965,6 @@
   height: 112px;
   object-fit: contain;
   margin: -24px auto 8px;
-  /* The new brand mark is an opaque plate, not a cut-out mascot, so it needs the
-     same rounding the connect popup gives it or it lands as a hard square. */
-  border-radius: 24px;
   filter: drop-shadow(0 18px 24px rgba(139,92,246,0.28));
   animation: gh-bajla-bob 5.2s ease-in-out infinite;
 }
@@ -916,8 +1004,7 @@
 @media (max-width: 1180px) {
   .gh-nav { gap: 2px; }
   .gh-nav .gh-action { padding-inline: 14px; }
-  .gh-pack-slot--1, .gh-pack-slot--2, .gh-pack-slot--3, .gh-pack-slot--4 { grid-column: span 6; }
-  .gh-pack-slot--5 { grid-column: 4 / span 6; }
+  .gh-packs > .gh-pack-slot { grid-column: span 6; }
 }
 
 @media (max-width: 1080px) {
@@ -1086,6 +1173,18 @@
 }
 
 .gh-lessons-media { position: relative; min-width: 0; }
+.gh-lessons-media.gh-sr { transform: translate3d(-42px, 0, 0) scale(0.985); clip-path: inset(0 10% 0 0 round 24px); }
+.gh-lessons-copy.gh-sr { transform: translate3d(42px, 0, 0); }
+.gh-city-copy.gh-sr { transform: translate3d(-36px, 0, 0); }
+.gh-three-reveal.gh-sr { transform: translate3d(0, 34px, 0) scale(0.97); }
+.gh-lessons-media.gh-sr.on,
+.gh-lessons-copy.gh-sr.on,
+.gh-city-copy.gh-sr.on,
+.gh-three-reveal.gh-sr.on,
+.gh-still .gh-lessons-media.gh-sr,
+.gh-still .gh-lessons-copy.gh-sr,
+.gh-still .gh-city-copy.gh-sr,
+.gh-still .gh-three-reveal.gh-sr { transform: none; clip-path: inset(0 0 0 0 round 24px); }
 .gh-photo-frame {
   position: relative;
   border-radius: 24px;
@@ -1178,6 +1277,15 @@
 @media (prefers-reduced-motion: reduce) {
   .gh-photo-frame--side, .gh-float-chip { animation: none; }
   .gh-photo-frame img { transition: none; }
+  .gh-spatial-frame,
+  .gh-spatial-card { transform: none !important; transition: none !important; }
+  .gh-hero-signal { opacity: 0.32; }
+}
+
+@media (max-width: 900px) {
+  .gh-hero-signal { inset: -40px -20vw -80px; width: 140%; opacity: 0.48; }
+  .gh-spatial-frame,
+  .gh-spatial-card { transform: none; }
 }
 
 /* wide photo banner: cap height so it never dominates the viewport, and give
@@ -1251,437 +1359,393 @@
 .gh-arcade-backdrop canvas { display: block; width: 100% !important; height: 100% !important; }
 .gh-arcade-body { position: relative; z-index: 1; }
 
-/* ── Hero slider ──────────────────────────────────────────────────────────
-   Four fixed pillars, each with its own image pool (see useVariant). Slides
-   crossfade rather than slide, so the caption never travels across the frame
-   and nothing reflows while the visitor is reading it. */
+/* ThreeUI-inspired shared material system. One Three.js plane receives input
+   from every polished surface while CSS handles the local, low-cost response. */
+.gh-reactive-shader {
+  position: absolute;
+  inset: -80px -9vw -120px;
+  z-index: 0;
+  width: calc(100% + 18vw);
+  height: calc(100% + 200px);
+  pointer-events: none;
+  opacity: 0.9;
+  mix-blend-mode: screen;
+  mask-image: radial-gradient(ellipse 86% 82% at 52% 46%, #000 18%, rgba(0,0,0,0.74) 60%, transparent 100%);
+}
+.gh-day .gh-reactive-shader {
+  opacity: 0.54;
+  mix-blend-mode: multiply;
+}
+
+.gh-action,
+.gh-shader-surface,
+.gh-slider-arrow,
+.gh-lang-btn,
+.gh-theme-btn,
+.gh-menu-toggle,
+.gh-arcade-viewport {
+  --motion-x: 50%;
+  --motion-y: 50%;
+  --motion-shift-x: 0px;
+  --motion-shift-y: 0px;
+  --motion-angle: 0deg;
+}
+
+.gh-action::after {
+  background:
+    radial-gradient(88px circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.34), transparent 62%),
+    conic-gradient(from var(--motion-angle) at var(--motion-x) var(--motion-y), transparent, rgba(96,165,250,0.15), rgba(217,70,239,0.18), transparent 24%);
+  mix-blend-mode: soft-light;
+}
+.gh-action:not(.gh-action--primary)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(from var(--motion-angle) at var(--motion-x) var(--motion-y),
+    transparent 0 34%, rgba(96,165,250,0.18) 42%, rgba(217,70,239,0.22) 50%, transparent 61%);
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+.gh-action:not(.gh-action--primary):hover::before,
+.gh-action:not(.gh-action--primary):focus-visible::before { opacity: 1; }
+.gh-action:hover {
+  transform: translate3d(var(--motion-shift-x), calc(var(--motion-shift-y) - 2px), 0);
+}
+.gh-action:active {
+  transform: translate3d(0, 1px, 0) scale(0.985);
+}
+
+.gh-shader-surface {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.gh-shader-surface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(130px circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.18), transparent 58%),
+    conic-gradient(from var(--motion-angle) at var(--motion-x) var(--motion-y), transparent, rgba(139,92,246,0.14), rgba(52,211,153,0.10), transparent 26%);
+  opacity: 0;
+  mix-blend-mode: soft-light;
+  transition: opacity 240ms ease;
+}
+.gh-shader-surface:hover::after,
+.gh-shader-surface:focus-visible::after,
+.gh-shader-surface:focus-within::after { opacity: 1; }
+.gh-shader-surface > * { position: relative; z-index: 1; }
+
+.gh-arcade-viewport {
+  isolation: isolate;
+  overflow: hidden;
+}
+.gh-arcade-viewport::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(210px circle at var(--motion-x) var(--motion-y), rgba(139,92,246,0.11), transparent 64%),
+    linear-gradient(calc(var(--motion-angle) + 90deg), transparent 38%, rgba(65,229,224,0.045) 50%, transparent 62%);
+  opacity: 0.72;
+  mix-blend-mode: multiply;
+}
+
+.gh-arcade-tab {
+  --motion-x: 50%;
+  --motion-y: 50%;
+  --motion-shift-x: 0px;
+  --motion-shift-y: 0px;
+}
+.gh-arcade-tab:hover {
+  transform: translate3d(var(--motion-shift-x), calc(var(--motion-shift-y) - 1px), 0);
+}
+.gh-arcade-tab.on::after { opacity: 0.72; }
+
+.gh-slider-arrow {
+  overflow: hidden;
+  isolation: isolate;
+}
+.gh-slider-arrow::before {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.9), rgba(196,176,255,0.24) 24%, transparent 58%),
+    conic-gradient(from var(--motion-angle), transparent, rgba(65,229,224,0.24), rgba(255,90,138,0.2), transparent 36%);
+  opacity: 0;
+  transform: scale(0.56);
+  transition: opacity 220ms ease, transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gh-slider-arrow:hover::before { opacity: 1; transform: scale(1); }
+.gh-slider-arrow > * { position: relative; z-index: 1; }
+.gh-slider-arrow:hover {
+  transform: translate3d(var(--motion-shift-x), calc(var(--motion-shift-y) - 2px), 0);
+}
+
+.gh-lang-btn,
+.gh-theme-btn,
+.gh-menu-toggle {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.gh-lang-btn::before,
+.gh-theme-btn::before,
+.gh-menu-toggle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--motion-x) var(--motion-y), rgba(255,255,255,0.34), transparent 62%);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.gh-lang-btn:hover::before,
+.gh-theme-btn:hover::before,
+.gh-menu-toggle:hover::before { opacity: 1; }
+.gh-lang-btn > *, .gh-theme-btn > *, .gh-menu-toggle > * { position: relative; z-index: 1; }
+
+.gh-proof-item {
+  position: relative;
+  overflow: hidden;
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), background-color 220ms ease;
+}
+.gh-proof-item:hover {
+  transform: translate3d(var(--motion-shift-x), calc(var(--motion-shift-y) - 2px), 0);
+  background: rgba(139,92,246,0.055);
+}
+.gh-proof-item::before {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 0;
+  height: 1px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, transparent, #8b5cf6, #d946ef, #34d399, transparent);
+  opacity: 0;
+  transform: scaleX(0.18);
+  transition: opacity 220ms ease, transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gh-proof-item:hover::before { opacity: 0.76; transform: scaleX(1); }
+
+.gh-photo-frame:not(.gh-spatial-frame)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(190px circle at var(--motion-x, 50%) var(--motion-y, 50%), rgba(255,255,255,0.22), transparent 62%),
+    linear-gradient(120deg, transparent 34%, rgba(139,92,246,0.08) 48%, transparent 62%);
+  opacity: 0;
+  mix-blend-mode: soft-light;
+  transition: opacity 320ms ease;
+}
+.gh-photo-frame:not(.gh-spatial-frame):hover::before { opacity: 1; }
+
+@media (max-width: 900px) {
+  .gh-reactive-shader {
+    inset: -40px -20vw -80px;
+    width: 140%;
+    opacity: 0.58;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gh-reactive-shader { opacity: 0.34; }
+  .gh-action,
+  .gh-shader-surface,
+  .gh-slider-arrow,
+  .gh-proof-item,
+  .gh-photo-frame::before,
+  .gh-lang-btn::before,
+  .gh-theme-btn::before,
+  .gh-menu-toggle::before {
+    transition: none !important;
+  }
+  .gh-action:hover,
+  .gh-arcade-tab:hover,
+  .gh-slider-arrow:hover,
+  .gh-proof-item:hover { transform: none !important; }
+}
+
+.gh-still .gh-reactive-shader { opacity: 0.34; }
+.gh-still .gh-action:hover,
+.gh-still .gh-arcade-tab:hover,
+.gh-still .gh-slider-arrow:hover,
+.gh-still .gh-proof-item:hover { transform: none !important; }
+
+/* Restore the established homepage hero carousel without changing the
+   reference hero's layout, copy rhythm, or dark English Metro character. */
+.gh-hero-copy h1,
+.gh-hero-copy h1 span {
+  font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif !important;
+}
+
 .gh-hs {
   position: relative;
-  border-radius: 24px;
+  aspect-ratio: 16 / 7;
   overflow: hidden;
-  aspect-ratio: 2.05 / 1;
-  box-shadow: 0 34px 90px -40px rgba(23, 16, 46, 0.35);
-  transform: translateZ(0);
+  border: 1px solid var(--gh-border-hi);
+  border-radius: 24px;
+  box-shadow: 0 34px 90px -40px rgba(23, 16, 46, 0.5);
   outline: none;
+  transform: translateZ(0);
 }
-.gh-hs:focus-visible { box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.55); }
+.gh-hs:focus-visible { box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.58); }
 .gh-hs-track { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; }
 .gh-hs-slide {
   position: absolute;
   inset: 0;
-  opacity: 0;
   visibility: hidden;
+  opacity: 0;
   transition: opacity 620ms cubic-bezier(0.23, 1, 0.32, 1), visibility 0s linear 620ms;
 }
 .gh-hs-slide[data-active="true"] {
-  opacity: 1;
   visibility: visible;
+  opacity: 1;
   transition: opacity 620ms cubic-bezier(0.23, 1, 0.32, 1), visibility 0s;
 }
 .gh-hs-slide img { display: block; width: 100%; height: 100%; object-fit: cover; }
-/* A slow drift on the active slide only — it reads as depth, not as animation. */
 .gh-hs-slide[data-active="true"] img { animation: gh-hs-drift 9s ease-out both; }
-@keyframes gh-hs-drift { from { transform: scale(1.06); } to { transform: scale(1); } }
+@keyframes gh-hs-drift { from { transform: scale(1.045); } to { transform: scale(1); } }
+
+.gh-hs-chip {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(24,15,49,0.84);
+  -webkit-backdrop-filter: blur(12px) saturate(135%);
+  backdrop-filter: blur(12px) saturate(135%);
+  font: 650 12px/1 'Space Grotesk', system-ui, sans-serif;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+.gh-hs-chip .material-symbols-outlined { color: #a855f7; font-size: 17px; }
 
 .gh-hs-caption {
   position: absolute;
-  left: 0; right: 0; bottom: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
-  padding: 84px 28px 24px;
-  background: linear-gradient(to top, rgba(14, 10, 27, 0.86) 8%, rgba(14, 10, 27, 0.42) 46%, transparent 100%);
+  gap: 7px;
+  padding: 78px 28px 24px;
   color: #fff;
+  background: linear-gradient(to top, rgba(14, 10, 27, 0.88) 6%, rgba(14, 10, 27, 0.38) 48%, transparent 100%);
 }
 .gh-hs-eyebrow {
-  font-family: 'Space Grotesk', system-ui, sans-serif;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.26em; text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.76);
+  color: rgba(255,255,255,0.76);
+  font: 700 10px/1 'Space Grotesk', system-ui, sans-serif;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
 }
 .gh-hs-title {
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-  font-size: clamp(19px, 2.1vw, 26px); font-weight: 600; letter-spacing: -0.02em;
-  line-height: 1.2;
-  /* Descenders in this face sit close to the box; give them room so the
-     caption never looks cropped against the gradient. */
-  padding-bottom: 0.12em;
+  max-width: 620px;
+  color: #fff;
+  font: 650 clamp(18px, 1.8vw, 25px)/1.2 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif;
+  letter-spacing: -0.025em;
 }
-.gh-hs-cta {
-  display: inline-flex; align-items: center; gap: 7px;
-  margin-top: 4px;
-  font: 600 13.5px/1 'Space Grotesk', system-ui, sans-serif;
-  color: #fff; text-decoration: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.42);
-  padding-bottom: 3px;
-  transition: border-color 200ms ease, gap 200ms ease;
+.gh-hs-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 9px; }
+.gh-hs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font: 650 13px/1 'Space Grotesk', system-ui, sans-serif;
+  text-decoration: none;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
 }
-.gh-hs-cta .material-symbols-outlined { font-size: 17px; }
-.gh-hs-cta:hover { border-color: #fff; gap: 11px; }
+.gh-hs-btn--primary { border-color: #4b39d0; color: #fff; background: #4b39d0; }
+.gh-hs-btn--primary:hover { border-color: #3c2bb6; background: #3c2bb6; }
+.gh-hs-btn--secondary { border-color: #fff; color: #17102e; background: #fff; }
+.gh-hs-btn--secondary:hover { color: #fff; background: transparent; }
+.gh-hs-btn:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
-.gh-hs-dots {
-  position: absolute; top: 16px; right: 18px;
-  display: flex; gap: 7px;
-}
+.gh-hs-dots { position: absolute; top: 16px; right: 18px; display: flex; gap: 7px; }
 .gh-hs-dot {
-  width: 7px; height: 7px; padding: 0;
-  border: none; border-radius: 999px; cursor: pointer;
-  background: rgba(255, 255, 255, 0.44);
-  box-shadow: 0 1px 3px rgba(14, 10, 27, 0.4);
-  transition: width 260ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms ease;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.52);
+  box-shadow: 0 1px 3px rgba(14,10,27,0.4);
+  transition: width 240ms cubic-bezier(0.23, 1, 0.32, 1), background-color 180ms ease;
 }
-.gh-hs-dot[data-active="true"] { width: 20px; background: #fff; }
+.gh-hs-dot[data-active="true"] { width: 22px; background: #fff; }
 .gh-hs-dot:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
-
-@media (max-width: 620px) {
-  .gh-hs-caption { padding: 64px 18px 18px; }
-  .gh-hs-dots { top: 12px; right: 12px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .gh-hs-slide, .gh-hs-slide[data-active="true"] { transition: none; }
-  .gh-hs-slide[data-active="true"] img { animation: none; }
-  .gh-hs-dot { transition: none; }
-}
-
-/* Arrows sit inside the frame and stay visible on touch, where there is no
-   hover to reveal them. They dim rather than disappear so the control never
-   moves the moment a pointer arrives. */
 .gh-hs-arrow {
   position: absolute;
   top: 50%;
-  transform: translateY(-50%);
-  width: 40px; height: 40px;
-  display: grid; place-items: center;
-  padding: 0; cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.34);
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,0.36);
   border-radius: 999px;
   color: #fff;
-  background: rgba(14, 10, 27, 0.42);
+  background: rgba(14,10,27,0.46);
   -webkit-backdrop-filter: blur(10px) saturate(140%);
   backdrop-filter: blur(10px) saturate(140%);
-  opacity: 0.62;
-  transition: opacity 200ms ease, background 200ms ease, transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  opacity: 0.72;
+  transform: translateY(-50%);
+  transition: opacity 180ms ease, background-color 180ms ease, transform 180ms ease;
 }
-.gh-hs-arrow .material-symbols-outlined { font-size: 22px; }
 .gh-hs-arrow--prev { left: 14px; }
 .gh-hs-arrow--next { right: 14px; }
-.gh-hs:hover .gh-hs-arrow { opacity: 1; }
-.gh-hs-arrow:hover { background: rgba(14, 10, 27, 0.72); }
+.gh-hs:hover .gh-hs-arrow,
+.gh-hs-arrow:focus-visible { opacity: 1; background: rgba(14,10,27,0.76); }
 .gh-hs-arrow--prev:hover { transform: translateY(-50%) translateX(-2px); }
 .gh-hs-arrow--next:hover { transform: translateY(-50%) translateX(2px); }
-.gh-hs-arrow:focus-visible { opacity: 1; outline: 2px solid #fff; outline-offset: 3px; }
+.gh-hs-arrow:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+@media (max-width: 900px) {
+  .gh-hs { aspect-ratio: 3 / 2; }
+}
 @media (max-width: 620px) {
-  .gh-hs-arrow { width: 34px; height: 34px; opacity: 0.85; }
+  .gh-hs-caption { padding: 62px 18px 18px; }
+  .gh-hs-actions { display: none; }
+  .gh-hs-chip { top: 12px; left: 12px; min-height: 34px; padding: 7px 11px; font-size: 11px; }
+  .gh-hs-dots { top: 12px; right: 12px; }
+  .gh-hs-arrow { width: 36px; height: 36px; }
   .gh-hs-arrow--prev { left: 8px; }
   .gh-hs-arrow--next { right: 8px; }
 }
-@media (prefers-reduced-motion: reduce) { .gh-hs-arrow { transition: none; } }
-
-/* The hero's last word kept reading as a chopped descender. Measured, the glyph
-   is never clipped — Plus Jakarta Sans just draws a short flat-cut y, and the
-   drifting gradient could land its palest stop right on that tail. Three changes
-   so it cannot read as damage regardless of browser or animation frame:
-   deepen the end stop, stop the gradient drifting, and give the inline box
-   vertical padding so no paint area can ever crop a descender. */
-.gh-hero-copy .gh-gradient-word {
-  background-image: linear-gradient(135deg, #7C3AED 0%, #C026D3 52%, #DB2777 100%) !important;
-  background-size: 100% 100% !important;
-  animation: none !important;
-  padding-bottom: 0.16em;
-  /* When the headline wraps, this span becomes several line fragments. By
-     default padding lands on the last fragment only, so "day" kept its
-     descender room while the y ending "every" had none and background-clip
-     cropped it at the line box. `clone` gives every fragment its own box. */
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
-}
-
-/* ── Buttons ──────────────────────────────────────────────────────────────
-   The gradient-glow pill was the generated-SaaS signature: three colour stops,
-   a 34px coloured halo, an inset white highlight, a shimmer sweep and wide
-   tracking. Replaced with a solid primary and a hairline outline secondary —
-   flat colour, small radius, real edges, motion only on press. */
-.gh-action--primary {
-  letter-spacing: 0.01em !important;
-  background: #4333C6 !important;
-  border-color: #4333C6 !important;
-  border-radius: 10px !important;
-  box-shadow: 0 1px 2px rgba(20, 30, 80, 0.16) !important;
-}
-.gh-action--primary::before { display: none !important; }   /* kill the shimmer sweep */
-.gh-action--primary:hover {
-  background: #3A2BAC !important;
-  border-color: #3A2BAC !important;
-  box-shadow: 0 4px 14px -4px rgba(37, 73, 214, 0.5) !important;
-}
-.gh-action--primary:active { background: #31248F !important; }
-
-.gh-action--secondary {
-  background: #fff !important;
-  color: #17102E !important;
-  border-color: #C9D2E8 !important;
-  border-radius: 10px !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  box-shadow: none !important;
-}
-.gh-action--secondary:hover {
-  border-color: #4333C6 !important;
-  color: #4333C6 !important;
-  background: #fff !important;
-}
-.gh-action--ghost { border-radius: 10px; }
-
-/* Press, not float — the 2px lift on hover read as decoration. */
-.gh-action:hover { transform: none !important; }
-.gh-action:active { transform: translateY(1px) !important; }
-.gh-action:focus-visible { outline-color: #4333C6 !important; }
-
-@media (prefers-color-scheme: dark) {
-  [data-theme="dark"] .gh-action--secondary {
-    background: transparent !important;
-    color: #EDEAF6 !important;
-    border-color: rgba(237, 234, 246, 0.28) !important;
-  }
-}
-
-/* Slide buttons — the pair Mike picked out: a solid primary and a light
-   outline secondary, flat colour, 10px radius, no glow and no gradient. Same
-   shapes as .gh-action so the hero and the slides agree. */
-.gh-hs-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
-.gh-hs-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-height: 42px; padding: 11px 20px;
-  border-radius: 10px;
-  font: 600 13.5px/1 'Space Grotesk', system-ui, sans-serif;
-  letter-spacing: 0.01em;
-  text-decoration: none;
-  border: 1px solid transparent;
-  transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
-}
-.gh-hs-btn--primary { background: #4333C6; border-color: #4333C6; color: #fff; }
-.gh-hs-btn--primary:hover { background: #3A2BAC; border-color: #3A2BAC; }
-.gh-hs-btn--secondary { background: #fff; border-color: #fff; color: #17102E; }
-.gh-hs-btn--secondary:hover { background: transparent; color: #fff; }
-.gh-hs-btn:active { transform: translateY(1px); }
-.gh-hs-btn:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
-@media (max-width: 620px) { .gh-hs-btn { padding: 10px 16px; font-size: 13px; } }
-@media (prefers-reduced-motion: reduce) { .gh-hs-btn { transition: none; } }
-
-/* ── Display face on the marketing page ───────────────────────────────────
-   Plus Jakarta Sans draws y, p and g with short, flat-cut descenders. Measured
-   against the font's own outline the hero was never clipping — the glyph just
-   ends bluntly, and at 82px next to the ember stop it reads as damage. Sora
-   carries a longer tapered tail, so the same word stops looking cut.
-   Scoped to this page on purpose: FONT.display drives 96 call sites across the
-   app, and re-typesetting the product is a separate decision. Headings set the
-   family inline, so these need !important to win. */
-.gh-hero-copy h1,
-.gh-hero-copy h1 span,
-.gh-section h2,
-.gh-section-heading,
-.gh-hs-title {
-  font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif !important;
-}
-
-/* Give the slider more of the hero grid than the copy column — it was reading
-   as a square-ish panel squeezed beside the headline. */
-@media (min-width: 1100px) {
-  .gh-hero-grid { grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr) !important; }
-}
-@media (max-width: 620px) { .gh-hs { aspect-ratio: 3 / 2; } }
-
-/* ── Hero eyebrow ─────────────────────────────────────────────────────────
-   Was mono, uppercase, 0.3em tracking, emerald, beside a pulsing gradient bar:
-   the stock kicker, in a colour that appears nowhere else in the palette.
-   Now the brand sans at a readable size, restrained tracking, brand violet,
-   with a static metro-style rule instead of the pulse. */
-.gh-eyebrow-mark {
-  width: 26px !important;
-  height: 3px !important;
-  border-radius: 2px !important;
-  background: #7C3AED !important;
-  animation: none !important;
-}
-.gh-eyebrow > span:last-child {
-  font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif !important;
-  font-size: 13.5px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.01em !important;
-  text-transform: none !important;
-  color: #6D28D9 !important;
-}
-
-/* ── Photo watermark ──────────────────────────────────────────────────────
-   A small white lockup, bottom right, on every slide and every photograph.
-   Drawn as a pseudo-element on the frame rather than baked into the files, so
-   it stays crisp, costs one shared request, and can be changed in one place.
-   A faint drop-shadow keeps it legible over a pale photograph. */
-.gh-hs-slide::after,
-.gh-photo-frame::after {
-  content: '';
-  position: absolute;
-  right: 14px;
-  bottom: 12px;
-  width: 112px;
-  height: 12px;
-  background: url('/brand/watermark-skyline-v2.png') no-repeat right bottom / contain;
-  opacity: 0.72;
-  filter: drop-shadow(0 1px 2px rgba(14, 10, 27, 0.45));
-  pointer-events: none;
-  z-index: 3;
-}
-/* The slide caption already sits bottom-left; lift the mark clear of it. */
-.gh-hs-slide::after { bottom: 14px; right: 16px; }
-@media (max-width: 620px) {
-  .gh-hs-slide::after,
-  .gh-photo-frame::after { width: 86px; height: 9px; right: 10px; bottom: 9px; }
-}
-
-/* ── AI disclosure ────────────────────────────────────────────────────────
-   Every photograph in these two frames was generated by an image model — the
-   hero pools under /home/hero and the /home/photo-* section shots. None of
-   them is a photograph of a real person, so each says so.
-
-   Deliberately scoped to these frames and nowhere else: the logo, the Bajla
-   mark, the flags and the real student photography are not model output, and
-   labelling them would be its own false statement.
-
-   ::before, not ::after — the watermark holds ::after, and .gh-photo-frame--wide
-   already has a second ::after of its own that collides with it. */
-.gh-hs-slide::before,
-.gh-photo-frame::before {
-  content: 'AI generated';
-  position: absolute;
-  right: 14px;
-  bottom: 26px;          /* clears the watermark lockup sitting under it */
-  z-index: 3;
-  font-family: Inter, system-ui, sans-serif;
-  font-size: 8px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  color: #fff;
-  opacity: 0.42;
-  text-shadow: 0 1px 2px rgba(14, 10, 27, 0.5);
-  pointer-events: none;
-}
-html[lang='pl'] .gh-hs-slide::before,
-html[lang='pl'] .gh-photo-frame::before { content: 'Wygenerowane przez AI'; }
-.gh-hs-slide::before { bottom: 28px; right: 16px; }
-@media (max-width: 620px) {
-  .gh-hs-slide::before,
-  .gh-photo-frame::before { right: 10px; bottom: 20px; font-size: 7px; }
-}
-
-/* ── Section kickers ──────────────────────────────────────────────────────
-   Same treatment as the hero eyebrow, defined once instead of the mono /
-   uppercase / 0.3em inline style repeated down the page in four accent
-   colours. Modest tracking, brand violet, readable at mobile sizes. */
-.gh-kicker {
-  font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #6D28D9;
-}
-.gh-night .gh-kicker { color: #C4B5FD; }
-
-/* ── Mobile ───────────────────────────────────────────────────────────────
-   Phone is where most first visits land, so this is the primary layout, not
-   a fallback. */
-@media (max-width: 620px) {
-  /* Hero CTAs were 55px slabs with 18px/32px padding at ragged widths. Equal
-     full-width stack, slimmer, is the native phone pattern. Inline styles set
-     the padding, so these have to win. */
-  .gh-hero-copy .gh-action--lg {
-    width: 100% !important;
-    min-height: 48px !important;
-    padding: 13px 20px !important;
-    font-size: 15px !important;
-    justify-content: center !important;
-  }
-  .gh-rise-4 { gap: 10px !important; }
-
-  /* The inset second photo is 46% wide at bottom-right and was sitting on top
-     of the bottom-left chip, eating the end of "Dopasowane do CEFR". The inset
-     is decorative; the chip carries information. Drop the inset on phones. */
-  .gh-photo-frame--side { display: none !important; }
-  .gh-float-chip { padding: 7px 12px; font-size: 12.5px; }
-  .gh-float-chip--a { top: 12px; left: 12px; }
-  .gh-float-chip--b { bottom: 12px; left: 12px; right: 12px; width: max-content; max-width: calc(100% - 24px); }
-
-  .gh-kicker { font-size: 11.5px; letter-spacing: 0.05em; }
-}
-
-/* Slides on phones: the caption was taking 194px of a 239px slide and the
-   action row ran 31px under the watermark. Smaller controls, tighter caption,
-   and the watermark moves to the free top-left corner (the dots hold the
-   top-right) so nothing can overlap it. Photo frames keep it bottom-right. */
-@media (max-width: 620px) {
-  .gh-hs-btn { min-height: 36px; padding: 8px 13px; font-size: 12.5px; }
-  .gh-hs-actions { gap: 8px; margin-top: 10px; }
-  .gh-hs-caption { padding: 52px 14px 14px; gap: 5px; }
-  .gh-hs-title { font-size: 17px; line-height: 1.25; }
-  .gh-hs-eyebrow { font-size: 10px; letter-spacing: 0.18em; }
-  .gh-hs-slide::after { top: 12px; left: 12px; right: auto; bottom: auto; }
-}
-
-/* ── Mobile: readability and tap targets ──────────────────────────────────
-   Audited at 390px in both themes and languages. */
-@media (max-width: 620px) {
-  /* Line subtitles were nowrap+ellipsis: fine at desktop width, but at 224px
-     they hid 40% of the text ("Think quick, answer quicker · Multiple Cho…"
-     needed 413px). Polish runs longer still. Let them wrap. */
-  .gh-acc-sub {
-    white-space: normal !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
-    line-height: 1.4;
-  }
-
-  /* Tap targets to 44px, Apple's minimum. The visual size of the dots and
-     arrows stays as designed — the hit area grows behind them. */
-  .gh-hs-arrow { width: 44px; height: 44px; }
-  .gh-hs-arrow .material-symbols-outlined { font-size: 22px; }
-  .gh-hs-btn { min-height: 44px; padding: 11px 15px; }
-  .gh-hs-dots { gap: 0; top: 6px; right: 6px; }
-  .gh-hs-dot {
-    height: 44px;
-    width: 24px;
-    background: none;
-    box-shadow: none;
-    position: relative;
-  }
-  .gh-hs-dot::after {
-    content: '';
-    position: absolute;
-    left: 50%; top: 50%;
-    transform: translate(-50%, -50%);
-    width: 7px; height: 7px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 1px 3px rgba(14, 10, 27, 0.4);
-    transition: width 240ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms ease;
-  }
-  .gh-hs-dot[data-active="true"] { width: 34px; }
-  .gh-hs-dot[data-active="true"]::after { width: 20px; background: #fff; }
-  /* The World link was a 20px-tall text row. */
-  .gh-hero-copy .gh-text-link { min-height: 44px; display: inline-flex; align-items: center; }
-}
-
-@media (max-width: 620px) {
-  /* Dots to a 32px-wide hit area; the visible dot stays 7px. */
-  .gh-hs-dot { width: 32px; }
-  .gh-hs-dot[data-active="true"] { width: 40px; }
-
-  /* Footer legal links were 13-17px tall rows. Thumbs need more than that,
-     and these are the links people reach for on a phone. */
-  .gh-page > footer a,
-  footer a {
-    min-height: 40px;
-    display: inline-flex;
-    align-items: center;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .gh-hs-slide,
+  .gh-hs-slide[data-active="true"],
+  .gh-hs-dot,
+  .gh-hs-arrow { transition: none; }
+  .gh-hs-slide[data-active="true"] img { animation: none; }
 }

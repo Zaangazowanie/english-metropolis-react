@@ -78,6 +78,12 @@ function AgendaRow({ item, name, date, time, status, icon = 'event' }) {
             {time}
           </span>
           <span className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">{d.dow}</span>
+          {item?.seriesId && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-violet-700">
+              <span className="material-symbols-outlined text-[13px]">{item.seriesKind === 'weekly' ? 'repeat' : 'stacks'}</span>
+              {item.seriesKind === 'weekly' ? 'weekly' : 'series'}
+            </span>
+          )}
         </div>
         <div className="mt-2 truncate text-base font-black tracking-[-0.01em] text-slate-950">{name || 'Lesson'}</div>
         <div className="mt-1 text-sm text-slate-500">{prettyDate(date)}</div>

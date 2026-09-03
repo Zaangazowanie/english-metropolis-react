@@ -10,6 +10,7 @@ import {
   STUDENT_NAME,
 } from '../data/studentConfig.js'
 import { fetchWithTimeout } from '../practice/lib/practice-cache'
+import { getStudentSessionToken } from '../contexts/StudentAuthContext.jsx'
 
 function normalizeDateKey(value) {
   return String(value || '').trim().slice(0, 10)
@@ -358,7 +359,7 @@ export default function useStudentData() {
         queryConvex('students:listLessons', { studentId }),
         queryConvex('analytics:getStudentAnalyses', { studentId, limit: ANALYSES_LIMIT }),
         queryConvex('students:listKeywords', { studentId, limit: 2000 }),
-        queryConvex('scheduling:listBookings', { studentId }),
+        queryConvex('scheduling:listBookings', { sessionToken: getStudentSessionToken(), studentId }),
       ]
       const [convexLessonsResult, analysesResult, keywordsResult, bookingsResult] =
         await Promise.allSettled(fetches)

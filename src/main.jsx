@@ -35,6 +35,8 @@ import ConsoleStudentPreview from './views/admin/superadmin/ConsoleStudentPrevie
 import ConsoleTemplates from './views/admin/superadmin/ConsoleTemplates.jsx'
 import ConsoleSequences from './views/admin/superadmin/ConsoleSequences.jsx'
 import ConsoleWhatsApp from './views/admin/superadmin/ConsoleWhatsApp.jsx'
+import ConsoleBajla from './views/admin/superadmin/ConsoleBajla.jsx'
+import ConsoleTickets from './views/admin/superadmin/ConsoleTickets.jsx'
 import ConsoleRevenue from './views/admin/superadmin/ConsoleRevenue.jsx'
 import ConsoleInvoices from './views/admin/superadmin/ConsoleInvoices.jsx'
 import ConsolePayroll from './views/admin/superadmin/ConsolePayroll.jsx'
@@ -46,6 +48,9 @@ import ConsoleDeploys from './views/admin/superadmin/ConsoleDeploys.jsx'
 import ConsoleTeam from './views/admin/superadmin/ConsoleTeam.jsx'
 import ConsoleRecruiting from './views/admin/superadmin/ConsoleRecruiting.jsx'
 import ConsoleIntegrations from './views/admin/superadmin/ConsoleIntegrations.jsx'
+import ConsoleBookingOperations from './views/admin/superadmin/ConsoleBookingOperations.jsx'
+import ConsolePublishing from './views/admin/superadmin/ConsolePublishing.jsx'
+import ConsoleBookingReadiness from './views/admin/superadmin/ConsoleBookingReadiness.jsx'
 import ConsoleCampaigns from './views/admin/superadmin/growth/ConsoleCampaigns.jsx'
 import ConsoleAdverts from './views/admin/superadmin/growth/ConsoleAdverts.jsx'
 import ConsoleSeo from './views/admin/superadmin/growth/ConsoleSeo.jsx'
@@ -243,6 +248,11 @@ function RootRouter() {
         }>
           <Route index element={<SuperadminDashboard />} />
 
+          {/* --- DAILY OPERATIONS --- */}
+          <Route path="operations/bookings" element={<ConsoleBookingOperations />} />
+          <Route path="operations/publishing" element={<ConsolePublishing />} />
+          <Route path="operations/readiness" element={<ConsoleBookingReadiness />} />
+
           {/* --- ACADEMIC --- */}
           <Route path="academic/students" element={<SuperadminCourses />} />
           <Route path="academic/roster" element={<SuperadminStudents />} />
@@ -276,7 +286,10 @@ function RootRouter() {
               rendered "No such console screen". Nothing imported the component either,
               so the bundler tree-shook it out entirely. Backend has been live the whole
               time: /api/console/wa/{threads,thread/:key,send} on 127.0.0.1:8811. */}
-          <Route path="comms/whatsapp" element={<ConsoleWhatsApp />} />
+          <Route path="comms/whatsapp" element={<Navigate to="/admin/superadmin/bajla" replace />} />
+          {/* 2026-09-03: Bajla gets her own area — conversations with takeover, and tickets. */}
+          <Route path="bajla" element={<ConsoleBajla />} />
+          <Route path="bajla/tickets" element={<ConsoleTickets />} />
 
           {/* --- CRM --- */}
           <Route path="crm/contacts" element={<ConsoleContacts />} />
@@ -427,3 +440,4 @@ createRoot(document.getElementById('root')).render(
     </RootErrorBoundary>
   </StrictMode>,
 )
+

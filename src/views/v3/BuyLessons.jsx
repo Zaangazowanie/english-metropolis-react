@@ -13,10 +13,10 @@ import { FONT, G } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Glass, Pill } from '../../design/v3/primitives.jsx'
 import { useI18n } from '../../i18n'
-import { useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
+import { getStudentSessionToken, useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
 import { useEmailVerified } from '../../hooks/useEmailVerified'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
-import { PRIVATE_PACKAGES, SPECIALIST_PACKAGES, GROUP_COURSES, PACKAGE_LESSONS } from '../public/packages.js'
+import { PRIVATE_PACKAGES, SPECIALIST_PACKAGES, GROUP_COURSES, PACKAGE_LESSONS, packageValidity } from '../public/packages.js'
 import { PL_CITIES } from '../public/pl-cities.js'
 import { cart, parsePricePLN } from '../public/cart-store.js'
 
@@ -100,8 +100,10 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
 
   const reload = () => {
     if (!studentId) return
-    convexCall('query', 'orders:listMyOrders', { studentId }).then(setOrders).catch(() => setOrders([]))
-    convexCall('query', 'orders:getStudentAllocation', { studentId }).then(setAlloc).catch(() => setAlloc(null))
+    const sessionToken = getStudentSessionToken()
+    if (!sessionToken) return
+    convexCall('query', 'orders:listMyOrders', { sessionToken, studentId }).then(setOrders).catch(() => setOrders([]))
+    convexCall('query', 'orders:getStudentAllocation', { sessionToken, studentId }).then(setAlloc).catch(() => setAlloc(null))
   }
   useEffect(reload, [studentId])
 
@@ -118,7 +120,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
     setBusy(true); setErr('')
     try {
       await convexCall('mutation', 'orders:createOrder', {
-        studentId, packageId: pkg.id, packageName: pkg.name,
+        sessionToken: getStudentSessionToken(), studentId, packageId: pkg.id, packageName: pkg.name,
         lessons: PACKAGE_LESSONS[pkg.id] || 1, priceLabel: pkg.price,
         billing: Object.fromEntries(Object.entries(billing).map(([k, v]) => [k, String(v || '').trim()])),
       })
@@ -280,7 +282,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
               </div>
               <div style={{ marginTop: 8, fontFamily: FONT.display, fontSize: 30, fontWeight: 600,
                 background: G.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{p.price}</div>
-              <div style={{ fontSize: 12, color: T.textDim }}>{p.pace} · {p.perLesson}</div>
+              <div style={{ fontSize: 12, color: T.textDim }}>{p.pace} · {p.perLesson} · {packageValidity(PACKAGE_LESSONS[p.id])[pl ? 'pl' : 'en']}</div>
               <p style={{ marginTop: 10, fontSize: 13, color: T.textSoft, lineHeight: 1.5, flex: 1 }}>{p.bestFor}</p>
               <div style={{ marginTop: 14 }}>
                 <Btn variant={pkg?.id === p.id ? 'primary' : 'secondary'} size="md"
@@ -313,7 +315,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
                 </div>
                 <div style={{ marginTop: 8, fontFamily: FONT.display, fontSize: 30, fontWeight: 600,
                   background: G.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{p.price}</div>
-                <div style={{ fontSize: 12, color: T.textDim }}>{(pl ? p.pacePl : p.pace)} · {p.perLesson}</div>
+                <div style={{ fontSize: 12, color: T.textDim }}>{(pl ? p.pacePl : p.pace)} · {p.perLesson} · {packageValidity(PACKAGE_LESSONS[p.id])[pl ? 'pl' : 'en']}</div>
                 <p style={{ marginTop: 10, fontSize: 13, color: T.textSoft, lineHeight: 1.5, flex: 1 }}>
                   {pl ? p.bestForPl : p.bestFor}
                 </p>
@@ -434,3 +436,4 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
     </div>
   )
 }
+
