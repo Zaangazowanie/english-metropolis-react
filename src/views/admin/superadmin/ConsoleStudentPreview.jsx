@@ -21,11 +21,13 @@ import { useSearchParams } from 'react-router-dom'
 import { ConsoleEmpty, ConsoleErrorPanel, ConsoleSkeleton, LevelBadge } from './ConsoleStates.jsx'
 import { Field } from './CommsShared.jsx'
 import { consoleGet, consolePost } from './consoleApi.js'
+import ConsoleLessonNotes from './ConsoleLessonNotes.jsx'
 import { ConfirmWrite, NeedSchool, useConvexList, useSchool } from './SchoolShared.jsx'
 import {
   CEFR_LEVELS, getStudentDashboard, listCourses, listStudents, listTeachers, updateStudent,
 } from './schoolApi.js'
 import { DEFAULT_STUDENT_DESIGN, STUDENT_CARDS } from '../../../design/v3/studentDesign.js'
+import { queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
 
 /* ── shared design ───────────────────────────────────────────────────────── */
 // The card ids and defaults come from design/v3/studentDesign.js, which is what
@@ -40,10 +42,11 @@ const DESIGN_KEYS = {
 }
 
 export default function ConsoleStudentPreview() {
-  const { schoolId, school } = useSchool()
+  const { schoolId, school, select: selectSchool } = useSchool()
   const [params, setParams] = useSearchParams()
   const slug = params.get('student') || ''
   const [tab, setTab] = useState('student')
+  const [previewTab, setPreviewTab] = useState('home')
 
   const students = useConvexList(() => listStudents(schoolId, true), [schoolId], !!schoolId)
   const teachers = useConvexList(() => listTeachers(schoolId, false), [schoolId], !!schoolId)
@@ -86,12 +89,29 @@ export default function ConsoleStudentPreview() {
   useEffect(loadDash, [loadDash])
 
   const student = dash.data?.student || null
+  // Links from the action queue carry only a student slug. Resolve the school
+  // from that student's live record so preview works in one click even when the
+  // operator was previously looking at "All schools".
+  useEffect(() => {
+    if (student?.organizationId && student.organizationId !== schoolId) {
+      selectSchool(student.organizationId)
+    }
+  }, [student?.organizationId, schoolId, selectSchool])
   useEffect(() => { setDraft(student ? toDraft(student) : null) }, [student?._id]) // eslint-disable-line
+  const [opsPreview, setOpsPreview] = useState(null)
+  useEffect(() => {
+    let alive = true
+    if (!student?._id) { setOpsPreview(null); return undefined }
+    queryAdminConvex('operations:getStudentPreview', { studentId: student._id })
+      .then(data => { if (alive) setOpsPreview(data) })
+      .catch(() => { if (alive) setOpsPreview(null) })
+    return () => { alive = false }
+  }, [student?._id])
 
   const teacherName = id => teachers.rows?.find(t => t._id === id)?.name || null
   const designDirty = JSON.stringify(design) !== JSON.stringify(savedDesign)
 
-  if (!schoolId) {
+  if (!schoolId && !slug) {
     return (
       <div className="sa-page">
         <div className="sa-page-header"><h1 className="sa-page-title">Student preview</h1></div>
@@ -158,7 +178,7 @@ export default function ConsoleStudentPreview() {
         <div>
           <h1 className="sa-page-title">Student preview</h1>
           <p className="sa-page-sub">
-            What a student sees in <strong>{school?.name}</strong>, and the two places you can change it.
+            What a student sees in <strong>{school?.name || 'their school'}</strong>, and the two places you can change it.
           </p>
         </div>
         <label className="sa-inline-field">
@@ -166,6 +186,9 @@ export default function ConsoleStudentPreview() {
           <select className="sa-select" value={slug}
                   onChange={e => setParams(e.target.value ? { student: e.target.value } : {})}>
             <option value="">Choose a student…</option>
+            {student && !(students.rows || []).some(s => s.slug === student.slug) && (
+              <option value={student.slug}>{student.name}</option>
+            )}
             {(students.rows || []).map(s => <option key={s._id} value={s.slug}>{s.name}</option>)}
           </select>
         </label>
@@ -187,7 +210,8 @@ export default function ConsoleStudentPreview() {
             </div>
             {dash.loading ? <ConsoleSkeleton rows={5} label="Loading dashboard…" />
               : dash.error ? <ConsoleErrorPanel error={dash.error} onRetry={loadDash} />
-                : dash.data ? <DashboardPreview data={dash.data} design={design} />
+                : dash.data ? <DashboardPreview data={dash.data} design={design} ops={opsPreview}
+                    tab={previewTab} onTab={setPreviewTab} />
                   : null}
           </section>
 
@@ -331,7 +355,7 @@ export default function ConsoleStudentPreview() {
 
 /* ──────────────────────────────────────────── the preview itself ───────── */
 
-function DashboardPreview({ data, design }) {
+function DashboardPreview({ data, design, ops, tab, onTab }) {
   const s = data.student || {}
   const first = String(s.name || '').trim().split(/\s+/)[0] || ''
   const custom = design.greeting ? design.greeting.replace(/\{name\}/g, first) : null
@@ -339,9 +363,25 @@ function DashboardPreview({ data, design }) {
   const last = lessons[0]
   const show = id => design.cards.includes(id)
   const accent = design.accent || 'var(--sa-violet-600)'
+  const now = ops?.generatedAt || 0
+  const nextBooking = (ops?.bookings || [])
+    .filter(booking => booking.status === 'scheduled' && booking.startUtc > now)
+    .sort((a, b) => a.startUtc - b.startUtc)[0]
+  const recentOpsLessons = ops?.lessons || lessons
 
   return (
     <div className="sa-preview-app" style={{ '--preview-accent': accent }}>
+      <nav className="student-preview-nav" aria-label="Student panel pages">
+        {[['home', 'Home', 'home'], ['lessons', 'Lessons', 'menu_book'], ['vocabulary', 'Vocabulary', 'spellcheck'], ['calendar', 'Calendar', 'calendar_month'], ['notes', 'Notes', 'picture_as_pdf']].map(([key, label, icon]) => (
+          <button key={key} type="button" className={tab === key ? 'is-active' : ''} onClick={() => onTab(key)}>
+            <span className="material-symbols-outlined" aria-hidden="true">{icon}</span>{label}
+          </button>
+        ))}
+        <span className="student-preview-readonly">
+          {tab === 'notes' ? 'Live check · can replace notes' : 'Read only'}
+        </span>
+      </nav>
+
       <header className="sa-preview-hero">
         {/* Matches the real dashboard: a published greeting replaces the whole
             translated welcome line, otherwise the translated one stands. */}
@@ -353,25 +393,26 @@ function DashboardPreview({ data, design }) {
         </p>
       </header>
 
+      {tab === 'home' && <>
       <div className="sa-preview-cards">
         {show('upcoming') && (
           <article className="sa-preview-card">
             <h3>Next lesson</h3>
-            <p className="sa-preview-big">—</p>
-            <p className="sa-muted">Scheduled lessons are not in this payload; the real card shows the next booking.</p>
+            <p className="sa-preview-big">{nextBooking ? `${nextBooking.dateWarsaw} ${nextBooking.timeWarsaw}` : 'None booked'}</p>
+            <p className="sa-muted">{nextBooking?.meetLink ? 'Video link ready' : nextBooking ? 'Video link pending' : 'Choose a time in Calendar'}</p>
           </article>
         )}
         {show('revise') && (
           <article className="sa-preview-card">
             <h3>Revise last lesson</h3>
-            <p className="sa-preview-big">{last?.keywordCount ?? '—'}</p>
+            <p className="sa-preview-big">{last?.keywordCount ?? 0}</p>
             <p className="sa-muted">keywords to revise</p>
           </article>
         )}
         {show('latest') && (
           <article className="sa-preview-card">
             <h3>Latest lesson</h3>
-            <p className="sa-preview-big">{last?.date || '—'}</p>
+            <p className="sa-preview-big">{last?.date || 'No lesson yet'}</p>
             {typeof data.latestAnalysis?.overallScore === 'number' && (
               <p className="sa-muted">analysis score {Math.round(data.latestAnalysis.overallScore)}</p>
             )}
@@ -390,15 +431,68 @@ function DashboardPreview({ data, design }) {
               return (
                 <li key={key}>
                   <span>{label}</span>
-                  <span className="sa-muted">{typeof v === 'number' ? Math.round(v) : '—'}</span>
+                  <span className="sa-muted">{typeof v === 'number' ? Math.round(v) : 'Not measured'}</span>
                 </li>
               )
             })}
             <li>
               <span>Keywords learned</span>
-              <span className="sa-muted">{data.totalKeywords ?? '—'}</span>
+              <span className="sa-muted">{ops?.keywordCount ?? data.totalKeywords ?? 0}</span>
             </li>
           </ul>
+        </section>
+      )}
+      </>}
+
+      {tab === 'lessons' && (
+        <section className="student-preview-page">
+          <div className="student-preview-page-head"><h3>My lessons</h3><span>{recentOpsLessons.length} total</span></div>
+          <div className="student-preview-lesson-list">
+            {recentOpsLessons.slice(0, 8).map(lesson => (
+              <article key={lesson._id || lesson.id}>
+                <span>{lesson.date}</span><strong>{lesson.title}</strong>
+                <small>{(lesson.topics || []).slice(0, 3).join(' · ') || 'Lesson notes'}</small>
+              </article>
+            ))}
+            {!recentOpsLessons.length && <p className="sa-muted">No published lessons yet.</p>}
+          </div>
+        </section>
+      )}
+
+      {tab === 'vocabulary' && (
+        <section className="student-preview-page">
+          <div className="student-preview-page-head"><h3>Vocabulary</h3><span>Live learner bank</span></div>
+          <div className="student-preview-vocab-stats">
+            <article><strong>{ops?.keywordCount ?? data.totalKeywords ?? 0}</strong><span>keywords</span></article>
+            <article><strong>{ops?.youglishCount ?? 0}</strong><span>YouTube examples</span></article>
+            <article><strong>{ops?.allocation?.remaining ?? 0}</strong><span>lessons remaining</span></article>
+          </div>
+          <p className="sa-muted">The full student panel shows searchable keyword cards with definitions, examples and pronunciation links.</p>
+        </section>
+      )}
+
+      {tab === 'calendar' && (
+        <section className="student-preview-page">
+          <div className="student-preview-page-head"><h3>Calendar</h3><span>{ops?.allocation?.remaining ?? 0} lessons remaining</span></div>
+          <div className="student-preview-lesson-list">
+            {(ops?.bookings || []).filter(booking => booking.startUtc > now && booking.status === 'scheduled').slice(0, 8).map(booking => (
+              <article key={booking._id}>
+                <span>{booking.dateWarsaw} · {booking.timeWarsaw}</span><strong>English lesson</strong>
+                <small>{booking.meetLink ? 'Video link ready' : 'Video link pending'}</small>
+              </article>
+            ))}
+            {!(ops?.bookings || []).some(booking => booking.startUtc > now && booking.status === 'scheduled') && (
+              <p className="sa-muted">No upcoming lesson is booked.</p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Not a rendering of her page — a live report on what the public
+          internet returns for her notes, plus the replace control. */}
+      {tab === 'notes' && (
+        <section className="student-preview-page">
+          <ConsoleLessonNotes slug={s.slug} />
         </section>
       )}
     </div>

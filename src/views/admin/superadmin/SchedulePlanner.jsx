@@ -192,20 +192,29 @@ export default function SchedulePlanner({ student, allocVersion = 0, onBooked = 
     setBooking({ done: 0, total: plan.length, log: [], finished: false })
     const fmt = ms => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Warsaw',
       weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(ms))
-    for (const p of plan) {
-      const startUtc = warsawToUtcMs(p.date, p.time)
-      try {
-        await mutateAdminConvex('scheduling:bookLesson', {
-          organizationId: student.organizationId, studentId: student._id,
-          startUtc, bookedBy: 'superadmin', bookedByName: 'Superadmin console', force: true,
-        })
-        setBooking(b => ({ ...b, done: b.done + 1, log: [...b.log, { ok: true, when: fmt(startUtc) }] }))
-      } catch (e) {
-        setBooking(b => ({ ...b, done: b.done + 1,
-          log: [...b.log, { ok: false, when: fmt(startUtc), err: String(e.message || e).replace(/^.*Error: /, '') }] }))
-      }
+    // ONE call for the whole plan (2026-09-01): all-or-nothing on the server,
+    // one confirmation email listing every lesson, rows linked as a series.
+    // Before this, N sequential bookLesson calls sent N emails and a failure
+    // on lesson 7 left 6 booked with no link between them.
+    const startUtcs = plan.map(p => warsawToUtcMs(p.date, p.time))
+    try {
+      const r = await mutateAdminConvex('scheduling:bookLessons', {
+        organizationId: student.organizationId, studentId: student._id,
+        startUtcs, bookedBy: 'superadmin', bookedByName: 'Superadmin console', force: true,
+        seriesKind: mode === 'weekly' ? 'weekly' : 'batch',
+      })
+      const booked = (r?.bookings || []).map(b => ({ ok: true, when: fmt(b.startUtc) }))
+      setBooking(b => ({ ...b, done: plan.length, log: booked, finished: true }))
+    } catch (e) {
+      // A refusal names the offending times; nothing was booked.
+      const data = e?.data && typeof e.data === 'object' ? e.data : null
+      const slots = Array.isArray(data?.slots) ? data.slots : []
+      const msg = (data?.message || String(e.message || e)).replace(/^.*Error: /, '')
+      const log = slots.length
+        ? slots.map(s => ({ ok: false, when: `${s.dateWarsaw} ${s.timeWarsaw}`, err: s.reason }))
+        : [{ ok: false, when: 'whole plan', err: msg }]
+      setBooking(b => ({ ...b, done: plan.length, log: [{ ok: false, when: 'Nothing booked', err: msg }, ...log], finished: true }))
     }
-    setBooking(b => ({ ...b, finished: true }))
     setFlex([]); setWeekly(w => ({ ...w, start: '' }))
     reloadBookings(); reloadPackages()
     if (onBooked) onBooked()

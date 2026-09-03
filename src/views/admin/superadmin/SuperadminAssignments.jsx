@@ -105,6 +105,12 @@ export default function SuperadminAssignments() {
 
   return (
     <div className="space-y-5">
+      <div className="sa-page-header">
+        <div>
+          <h1>Assignments</h1>
+          <p>Every lesson assigned to every student: library decks and published lessons, with the PDF each student can open.</p>
+        </div>
+      </div>
       <div className="sa-card">
         <div className="sa-card-header">
           <h2>Assignments{!loading && !error ? ` · ${rows.length}` : ''}</h2>

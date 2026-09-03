@@ -97,6 +97,28 @@ export async function consolePost(path, body) {
   return response.json()
 }
 
+// POST raw bytes (a PDF upload). Deliberately NOT base64-in-JSON: a 17 MB set of
+// lesson notes base64s to ~23 MB against nginx's 25 MB cap on this route, so the
+// encoding alone could fail the upload. Metadata rides in the query string.
+// No auto-retry, same reason as consolePost: a replayed upload is a second write.
+export async function consolePostBytes(path, params, blob, contentType = 'application/pdf') {
+  const headers = { 'Content-Type': contentType }
+  const token = getAdminSessionToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+  const response = await fetch(path + buildQuery(params), { method: 'POST', headers, body: blob })
+  let payload = null
+  try { payload = await response.json() } catch { /* non-JSON error body */ }
+  if (!response.ok) {
+    const err = consoleError(response.status, path)
+    // The upload route answers 400/502 with a readable reason; surface THAT,
+    // not the generic status text, or the admin cannot tell what to fix.
+    if (payload?.error) err.message = payload.error
+    if (payload) err.payload = payload
+    throw err
+  }
+  return payload
+}
+
 // Contract URL builders. Browse rows carry pdf_url/html_url and callers should
 // prefer those when present; the detail response does not repeat them, and the
 // patterns are literal in API-CONTRACT.md, so they are built here once.

@@ -21,7 +21,11 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ConsoleEmpty, ConsoleErrorPanel, ConsoleSkeleton, LevelBadge } from './ConsoleStates.jsx'
 import { Field } from './CommsShared.jsx'
-import { ConfirmWrite, NeedSchool, useConvexList, useSchool } from './SchoolShared.jsx'
+function initialsOf(name) {
+  return (name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase()
+}
+
+import { ConfirmWrite, useConvexList, useSchool } from './SchoolShared.jsx'
 import {
   CEFR_LEVELS, STUDENT_TYPES, addStudentToCourse, archiveStudent, createStudent,
   listCourses, listStudents, listTeachers, slugify, updateStudent,
@@ -33,11 +37,15 @@ const BLANK = {
 }
 
 export default function ConsoleSchoolStudents() {
-  const { schoolId, school, schools } = useSchool()
+  const { schoolId, school, schools, select } = useSchool()
+  // No school picked = every school, read-only except where the row itself
+  // names its school (edit selects that school first; move/archive carry the id).
+  const allMode = !schoolId
+  const schoolName = id => schools?.find(x => x._id === id)?.name || null
   const [activeOnly, setActiveOnly] = useState(true)
   const [q, setQ] = useState('')
 
-  const students = useConvexList(() => listStudents(schoolId, activeOnly), [schoolId, activeOnly], !!schoolId)
+  const students = useConvexList(() => listStudents(schoolId, activeOnly), [schoolId, activeOnly], true)
   const teachers = useConvexList(() => listTeachers(schoolId, false), [schoolId], !!schoolId)
   const courses = useConvexList(() => listCourses(schoolId), [schoolId], !!schoolId)
 
@@ -56,15 +64,6 @@ export default function ConsoleSchoolStudents() {
     return rows.filter(s => [s.name, s.email, s.slug, s.level]
       .some(v => String(v || '').toLowerCase().includes(needle)))
   }, [students.rows, q])
-
-  if (!schoolId) {
-    return (
-      <div className="sa-page">
-        <div className="sa-page-header"><h1 className="sa-page-title">Students</h1></div>
-        <NeedSchool what="Students" />
-      </div>
-    )
-  }
 
   const isEdit = !!draft?._id
   const slugValue = draft?.slug || slugify(draft?.name || '')
@@ -133,7 +132,7 @@ export default function ConsoleSchoolStudents() {
   const askMove = (s, organizationId) => setPending({
     title: 'Move student to another school', verb: 'Move student',
     rows: [{ label: 'Student', value: s.name },
-           { label: 'From', value: school?.name },
+           { label: 'From', value: schoolName(s.organizationId) || school?.name },
            { label: 'To', value: schools?.find(x => x._id === organizationId)?.name }],
     warning: 'Their teacher and course belong to the old school. Reassign both after moving, or this student will point at records the new school cannot see.',
     done: `${s.name} moved.`,
@@ -146,11 +145,13 @@ export default function ConsoleSchoolStudents() {
         <div>
           <h1 className="sa-page-title">Students</h1>
           <p className="sa-page-sub">
-            Students in <strong>{school?.name}</strong>. This is the screen that creates them and
-            assigns their teacher and course.
+            {allMode
+              ? <>Every student across <strong>all schools</strong>. Pick a school in the switcher to add one; editing a row switches to that student's school.</>
+              : <>Students in <strong>{school?.name}</strong>. This is the screen that creates them and assigns their teacher and course.</>}
           </p>
         </div>
-        <button type="button" className="sa-btn sa-btn-primary"
+        <button type="button" className="sa-btn sa-btn-primary" disabled={allMode}
+                title={allMode ? 'Pick a school first: a student is created inside one school' : undefined}
                 onClick={() => { setNote(null); setDraft(BLANK) }}>
           <span className="material-symbols-outlined" aria-hidden="true">person_add</span>
           Add student
@@ -182,42 +183,55 @@ export default function ConsoleSchoolStudents() {
       {students.error ? <ConsoleErrorPanel error={students.error} onRetry={students.reload} />
         : students.rows === null ? <ConsoleSkeleton rows={6} label="Loading students…" />
           : !filtered.length ? (
-            <ConsoleEmpty icon="groups" title={q ? 'No student matches that search' : 'No students in this school yet'}
+            <ConsoleEmpty icon="groups" title={q ? 'No student matches that search' : allMode ? 'No students yet' : 'No students in this school yet'}
                           hint={q ? 'Clear the search to see everyone.' : 'Add one and assign their teacher and course.'} />
           ) : (
-            <table className="sa-table">
-              <thead><tr>
-                <th>Name</th><th>Level</th><th>Teacher</th><th>Course</th><th>Email</th><th aria-label="Actions" />
-              </tr></thead>
-              <tbody>
-                {filtered.map(s => (
-                  <tr key={s._id}>
-                    <td>
-                      <Link to={`/admin/superadmin/school/preview?student=${encodeURIComponent(s.slug)}`}>{s.name}</Link>
-                      <div className="sa-cell-sub"><code>{s.slug}</code></div>
-                    </td>
-                    <td><LevelBadge level={s.level} /></td>
-                    <td>{teacherName(s.primaryTeacherId) || <span className="sa-muted">unassigned</span>}</td>
-                    <td>{courseName(s.groupId) || <span className="sa-muted">none</span>}</td>
-                    <td>{s.email ? <code>{s.email}</code> : <span className="sa-muted">—</span>}</td>
-                    <td className="sa-row-actions">
-                      <button type="button" className="sa-btn sa-btn-ghost sa-btn-sm"
-                              onClick={() => { setNote(null); setDraft(toDraft(s)) }}>Edit</button>
-                      <Link className="sa-btn sa-btn-ghost sa-btn-sm"
-                            to={`/admin/superadmin/school/preview?student=${encodeURIComponent(s.slug)}`}>Preview</Link>
-                      <select className="sa-select sa-select-sm" value="" aria-label={`Move ${s.name} to another school`}
-                              onChange={e => e.target.value && askMove(s, e.target.value)}>
-                        <option value="">Move to…</option>
-                        {(schools || []).filter(x => x._id !== schoolId)
-                          .map(x => <option key={x._id} value={x._id}>{x.name}</option>)}
-                      </select>
-                      <button type="button" className="sa-btn sa-btn-ghost sa-btn-sm"
-                              onClick={() => askArchive(s)}>Archive</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="sa3-list">
+              {filtered.map(s => (
+                <article className="sa3-row" key={s._id}>
+                  <div className="sa3-avatar" aria-hidden="true">{initialsOf(s.name)}</div>
+                  <div>
+                    <h3 className="sa3-name">
+                      <Link to={`/admin/superadmin/school/preview?student=${encodeURIComponent(s.slug)}`} style={{ color: 'inherit', textDecoration: 'none' }}>{s.name}</Link>
+                    </h3>
+                    <div className="sa3-sub">
+                      {s.level ? <LevelBadge level={s.level} /> : <span className="sa-badge">no level yet</span>}
+                      {s.email ? <code>{s.email}</code> : <span className="sa-muted">no email</span>}
+                      {allMode && <span className="em-badge em-badge-area">{schoolName(s.organizationId) || 'no school'}</span>}
+                    </div>
+                  </div>
+                  <div className="sa3-facts">
+                    {allMode ? (
+                      <>
+                        <div><span>School </span><strong>{schoolName(s.organizationId) || 'none'}</strong></div>
+                        <div><span>Status </span><strong>{s.status || 'active'}</strong></div>
+                      </>
+                    ) : (
+                      <>
+                        <div><span>Teacher </span><strong>{teacherName(s.primaryTeacherId) || 'unassigned'}</strong></div>
+                        <div><span>Course </span><strong>{courseName(s.groupId) || 'none'}</strong></div>
+                      </>
+                    )}
+                  </div>
+                  <div className="sa3-actions">
+                    <Link className="sa-btn sa-btn-primary sa-btn-sm" to={`/admin/superadmin/school/preview?student=${encodeURIComponent(s.slug)}`}>
+                      <span className="material-symbols-outlined" aria-hidden="true">visibility</span>View as student
+                    </Link>
+                    <button type="button" className="sa-btn sa-btn-ghost sa-btn-sm" onClick={() => { setNote(null); if (allMode && s.organizationId) select(s.organizationId); setDraft(toDraft(s)) }}>
+                      <span className="material-symbols-outlined" aria-hidden="true">edit</span>Edit
+                    </button>
+                    <select className="sa-select" style={{ width: 'auto', minWidth: 150 }} value="" aria-label={`Move ${s.name} to another school`}
+                            onChange={e => e.target.value && askMove(s, e.target.value)}>
+                      <option value="">Move to school…</option>
+                      {(schools || []).filter(x => x._id !== (schoolId || s.organizationId)).map(x => <option key={x._id} value={x._id}>{x.name}</option>)}
+                    </select>
+                    <button type="button" className="sa-btn sa-btn-ghost sa-btn-sm" onClick={() => askArchive(s)} title="Archive this student">
+                      <span className="material-symbols-outlined" aria-hidden="true">archive</span>
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
           )}
 
       {draft && (
@@ -312,7 +326,7 @@ export default function ConsoleSchoolStudents() {
         open={!!pending}
         title={pending?.title || ''}
         verb={pending?.verb || 'Save'}
-        school={school}
+        school={school || { name: 'all schools' }}
         rows={pending?.rows}
         warning={pending?.warning}
         busy={busy}

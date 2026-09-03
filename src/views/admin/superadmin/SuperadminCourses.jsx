@@ -3,11 +3,12 @@
 // course material, scheduling, and taught lessons. Keyword editing appears
 // ONLY inside a specific opened lesson — never as a standing panel.
 
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { mutateAdminConvex, queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
 import CoursePublisher from './CoursePublisher.jsx'
-import { ConsoleEmpty, ConsoleSkeleton } from './ConsoleStates.jsx'
+import { ConsoleEmpty, ConsoleSkeleton, LevelBadge } from './ConsoleStates.jsx'
+import { consoleGet } from './consoleApi.js'
 
 const emptyKeyword = {
   word: '', translation: '', definitionEn: '', definitionPl: '',
@@ -27,6 +28,21 @@ export default function SuperadminCourses() {
   const [orderBusy, setOrderBusy] = useState(null)
   const [allocN, setAllocN] = useState(10)
   const [allocVersion, setAllocVersion] = useState(0)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const wantSlug = searchParams.get('student') || ''
+
+  // Deep link: /academic/students?student=<slug> opens that course directly
+  // (Readiness, Today and the course cards link here).
+  useEffect(() => {
+    if (!wantSlug || !students.length) return
+    const hit = students.find(s => s.slug === wantSlug)
+    if (hit && hit._id !== studentId) setStudentId(hit._id)
+  }, [wantSlug, students])
+  const pickStudent = (id) => {
+    setStudentId(id)
+    const hit = students.find(s => s._id === id)
+    setSearchParams(hit ? { student: hit.slug } : {}, { replace: true })
+  }
 
   useEffect(() => {
     let alive = true
@@ -101,8 +117,24 @@ export default function SuperadminCourses() {
         </div>
       )}
 
-      {/* ── Student selector — search-first, scales to hundreds ── */}
-      <StudentSelect students={students} value={studentId} onPick={setStudentId} />
+      <div className="sa-page-header">
+        <div>
+          <h1>Courses</h1>
+          <p>Every active student's course at a glance: lessons left, next lesson, the material they are working through and what has been published. Open one to edit it.</p>
+        </div>
+        <div className="sa-page-header-actions">
+          {student && (
+            <button type="button" className="sa-btn sa-btn-ghost" onClick={() => pickStudent('')}>
+              <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>All courses
+            </button>
+          )}
+          <StudentSelect students={students} value={studentId} onPick={pickStudent} />
+        </div>
+      </div>
+
+      {!student && (
+        <CourseOverview students={students} version={stuVersion + allocVersion} onOpen={pickStudent} />
+      )}
 
       {student && (
         <>
@@ -261,6 +293,174 @@ export default function SuperadminCourses() {
       )}
     </div>
   )
+}
+
+// ── All courses at a glance ─────────────────────────────────────────────────
+// Three reads, settled independently so one dead seam cannot blank the grid:
+// booking-readiness (balance, next lesson, blockers — the booking gate's own
+// function), assignments (course material + published lessons per student),
+// and the course library (so "19 of 24" can be said per course).
+const courseOf = lessonId => String(lessonId || '').replace(/-\d+$/, '')
+
+function initialsOf(name) {
+  return (name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase()
+}
+
+function CourseOverview({ students, version, onOpen }) {
+  const [ready, setReady] = useState(null)
+  const [assign, setAssign] = useState(null)
+  const [library, setLibrary] = useState(null)
+  const [failed, setFailed] = useState([])
+  const [q, setQ] = useState('')
+  const [view, setView] = useState('all')
+
+  useEffect(() => {
+    let alive = true
+    Promise.allSettled([
+      consoleGet('/api/console/booking-readiness'),
+      consoleGet('/api/console/assignments'),
+      consoleGet('/api/console/courses'),
+    ]).then(([r, a, c]) => {
+      if (!alive) return
+      const bad = []
+      if (r.status === 'fulfilled' && r.value?.ok !== false) setReady(r.value); else { setReady({}); bad.push('balances') }
+      if (a.status === 'fulfilled') setAssign(a.value?.rows || []); else { setAssign([]); bad.push('course material') }
+      if (c.status === 'fulfilled') setLibrary(c.value?.courses || []); else { setLibrary([]); bad.push('library') }
+      setFailed(bad)
+    })
+    return () => { alive = false }
+  }, [version])
+
+  const cards = useMemo(() => {
+    if (!ready || !assign || !library) return null
+    const bySlug = new Map((ready.students || []).map(r => [r.slug, r]))
+    const size = new Map(library.map(c => [c.course_id, c.lesson_count]))
+    return students.map(s => {
+      const r = bySlug.get(s.slug) || null
+      const mine = assign.filter(a => a.student_slug === s.slug)
+      const lib = mine.filter(a => a.source === 'library' && a.lesson_id)
+      const published = mine.filter(a => a.source === 'published')
+      const counts = new Map()
+      for (const a of lib) { const k = courseOf(a.lesson_id); counts.set(k, (counts.get(k) || 0) + 1) }
+      const material = [...counts.entries()].map(([id, n]) => ({ id, n, of: size.get(id) || null }))
+        .sort((x, y) => y.n - x.n)
+      return { s, r, material, published: published.length, libCount: lib.length }
+    }).sort((x, y) => {
+      const px = x.r?.paidButNeverBooked ? 0 : 1, py = y.r?.paidButNeverBooked ? 0 : 1
+      if (px !== py) return px - py
+      const mx = x.material.length ? 0 : 1, my = y.material.length ? 0 : 1
+      if (mx !== my) return mx - my
+      return (x.s.name || '').localeCompare(y.s.name || '')
+    })
+  }, [students, ready, assign, library])
+
+  if (!cards) return <div className="sa-card"><div className="sa-card-body"><ConsoleSkeleton rows={6} label="Reading every course" /></div></div>
+
+  const needle = q.trim().toLowerCase()
+  const shown = cards.filter(({ s, r, material }) => {
+    if (needle && !`${s.name} ${s.slug} ${s.level || ''}`.toLowerCase().includes(needle)) return false
+    if (view === 'paid') return !!r?.paidButNeverBooked
+    if (view === 'can') return !!r?.canBook
+    if (view === 'blocked') return r ? !r.canBook : false
+    if (view === 'nomaterial') return material.length === 0
+    return true
+  })
+  const n = key => cards.filter(({ r, material }) => key === 'paid' ? r?.paidButNeverBooked : key === 'can' ? r?.canBook : key === 'blocked' ? (r && !r.canBook) : material.length === 0).length
+  const chip = (key, label) => (
+    <button type="button" key={key} className={`sa-chip ${view === key ? 'is-active' : ''}`} onClick={() => setView(key)}>
+      {label} · {key === 'all' ? cards.length : n(key)}
+    </button>
+  )
+
+  return (
+    <>
+      {failed.length > 0 && (
+        <div className="ops-alert is-warn">
+          Could not read {failed.join(' and ')} right now. The cards below show what could be read; nothing here is a zero by default.
+        </div>
+      )}
+      <div className="sa4-toolbar">
+        <input type="search" className="sa-input" placeholder="Search name, slug or level…" value={q} onChange={e => setQ(e.target.value)} />
+        {chip('all', 'All')}{chip('paid', 'Paid, never booked')}{chip('can', 'Can book')}{chip('blocked', 'Blocked')}{chip('nomaterial', 'No material yet')}
+      </div>
+      {shown.length === 0 ? (
+        <ConsoleEmpty icon="school" title="No courses match" hint="Change the filter or clear the search." />
+      ) : (
+        <div className="sa4-cards">
+          {shown.map(({ s, r, material, published }) => (
+            <article key={s._id} className={`sa4-card ${r?.paidButNeverBooked ? 'is-bad' : ''}`}>
+              <div className="sa4-card-head">
+                <div className="sa3-avatar" aria-hidden="true">{initialsOf(s.name)}</div>
+                <div style={{ minWidth: 0 }}>
+                  <h3>{s.name}</h3>
+                  <div className="sa3-sub">
+                    {s.level ? <LevelBadge level={s.level} /> : <span className="sa-badge">no level yet</span>}
+                    {s.targetLevel && <span className="sa-badge">aiming for {s.targetLevel}</span>}
+                    {r?.paidButNeverBooked ? <span className="ops-status is-bad">paid, never booked</span>
+                      : r?.canBook ? <span className="ops-status is-good">can book</span>
+                      : r ? (r.blockers || []).map(b => <span className="ops-status is-neutral" key={b}>{BLOCKER_LABEL[b] || b}</span>)
+                      : <span className="ops-status is-neutral">balance unknown</span>}
+                  </div>
+                </div>
+              </div>
+              <div className="sa4-facts">
+                <div className="sa4-fact">
+                  <span>Lessons left</span>
+                  <strong className={r && r.remaining === 0 ? 'is-bad' : ''}>
+                    {r ? (r.remaining ?? '—') : '—'}
+                    {r?.allocated ? <small> of {r.allocated}{r.used ? ` · ${r.used} used` : ''}</small> : null}
+                  </strong>
+                </div>
+                <div className="sa4-fact">
+                  <span>Next lesson</span>
+                  <strong className={r?.nextLesson ? 'is-good' : ''}>{r?.nextLesson || 'none booked'}</strong>
+                </div>
+                <div className="sa4-fact">
+                  <span>Published lessons</span>
+                  <strong>{published}<small> on the student's page</small></strong>
+                </div>
+                <div className="sa4-fact">
+                  <span>Email</span>
+                  <strong className={r ? (r.emailVerified ? 'is-good' : 'is-bad') : ''}>{r ? (r.emailVerified ? 'confirmed' : 'unconfirmed') : '—'}</strong>
+                </div>
+              </div>
+              <div className="sa4-material">
+                <span>Course material</span>
+                {material.length === 0 ? (
+                  <div className="sa4-material-row"><small>No library course assigned yet.</small></div>
+                ) : material.map(m => (
+                  <div className="sa4-material-row" key={m.id}>
+                    <code>{m.id}</code>
+                    <div className="sa4-bar"><i style={{ width: m.of ? `${Math.min(100, Math.round(100 * m.n / m.of))}%` : '100%' }} /></div>
+                    <small>{m.n}{m.of ? ` of ${m.of}` : ''} lessons</small>
+                  </div>
+                ))}
+              </div>
+              <div className="sa3-actions">
+                <button type="button" className="sa-btn sa-btn-primary sa-btn-sm" onClick={() => onOpen(s._id)}>
+                  <span className="material-symbols-outlined" aria-hidden="true">school</span>Open course
+                </button>
+                <Link className="sa-btn sa-btn-ghost sa-btn-sm" to={`/admin/superadmin/school/preview?student=${encodeURIComponent(s.slug)}`}>
+                  <span className="material-symbols-outlined" aria-hidden="true">visibility</span>Student view
+                </Link>
+                <Link className="sa-btn sa-btn-ghost sa-btn-sm" to={`/admin/superadmin/academic/roster/${s.slug}/heatmap`}>
+                  <span className="material-symbols-outlined" aria-hidden="true">grid_view</span>Heatmap
+                </Link>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+const BLOCKER_LABEL = {
+  EMAIL_NOT_VERIFIED: 'Email not confirmed',
+  NO_LESSONS_REMAINING: 'No lessons left',
+  NO_PACKAGE: 'Never bought a package',
+  NO_ORGANISATION: 'No organisation set',
+  UNKNOWN: 'Could not read balance',
 }
 
 // One taught (Convex) lesson row; expanding it reveals the keyword bank editor

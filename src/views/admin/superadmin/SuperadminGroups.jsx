@@ -33,6 +33,12 @@ export default function SuperadminGroups() {
 
   return (
     <div className="space-y-5">
+      <div className="sa-page-header">
+        <div>
+          <h1>Groups</h1>
+          <p>Every group, its level, schedule and how many members are active. Open one for the roster and its lessons.</p>
+        </div>
+      </div>
       <div className="sa-card">
         <div className="sa-card-header">
           <h2>All Groups &middot; {filtered.length}</h2>
@@ -84,11 +90,8 @@ export default function SuperadminGroups() {
                         </span>
                       </td>
                       <td className="sa-td-right">
-                        <Link
-                          to={`/admin/superadmin/academic/groups/${g._id}`}
-                          style={{ color: 'var(--sa-violet-600)', fontSize: 'var(--sa-fs-small)', fontWeight: 600 }}
-                        >
-                          Open &rarr;
+                        <Link className="sa-btn sa-btn-primary sa-btn-sm" to={`/admin/superadmin/academic/groups/${g._id}`}>
+                          <span className="material-symbols-outlined" aria-hidden="true">groups</span>Open group
                         </Link>
                       </td>
                     </tr>

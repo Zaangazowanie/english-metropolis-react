@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
 import { ConsoleSkeleton, LevelBadge } from './ConsoleStates.jsx'
+function initialsOf(name) {
+  return (name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase()
+}
+
 
 export default function SuperadminStudents() {
   const [students, setStudents] = useState([])
@@ -28,6 +32,12 @@ export default function SuperadminStudents() {
 
   return (
     <div className="space-y-5">
+      <div className="sa-page-header">
+        <div>
+          <h1>Learning records</h1>
+          <p>Every active learner with their level and target. Open a record for lessons, keywords and analysis; the heatmap shows what they have practised.</p>
+        </div>
+      </div>
       <div className="sa-card">
         <div className="sa-card-header">
           <h2>All students · {filtered.length}</h2>
@@ -44,48 +54,35 @@ export default function SuperadminStudents() {
           {loading && <ConsoleSkeleton rows={8} />}
           {error && <p className="p-6" style={{ color: 'var(--sa-bad)' }}>Error: {error}</p>}
           {!loading && (
-            <div className="sa-table-wrap">
-              <table className="sa-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Slug</th>
-                    <th>Level</th>
-                    <th>Target</th>
-                    <th>Status</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(s => (
-                    <tr key={s._id}>
-                      <td style={{ fontWeight: 600 }}>{s.name}</td>
-                      <td style={{ color: 'var(--sa-text-muted)' }}>{s.slug}</td>
-                      <td>{s.level ? <LevelBadge level={s.level} /> : null}</td>
-                      <td style={{ color: 'var(--sa-text-muted)' }}>{s.targetLevel ?? '—'}</td>
-                      <td>
-                        <span className={`sa-badge sa-badge-${s.status === 'active' ? 'committed' : 'queued'}`}>{s.status}</span>
-                      </td>
-                      <td className="sa-td-right">
-                        <div className="flex items-center justify-end gap-3">
-                          <Link
-                            to={`/admin/superadmin/academic/roster/${s.slug}/heatmap`}
-                            style={{ color: 'var(--sa-text-muted)', fontSize: 'var(--sa-fs-small)', fontWeight: 600 }}
-                          >
-                            Heatmap
-                          </Link>
-                          <Link
-                            to={`/admin/student/${s.slug}`}
-                            style={{ color: 'var(--sa-violet-600)', fontSize: 'var(--sa-fs-small)', fontWeight: 600 }}
-                          >
-                            Open →
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="sa3-list" style={{ padding: 14 }}>
+              {filtered.map(s => (
+                <article className="sa3-row" key={s._id}>
+                  <div className="sa3-avatar" aria-hidden="true">{initialsOf(s.name)}</div>
+                  <div>
+                    <h3 className="sa3-name">{s.name}</h3>
+                    <div className="sa3-sub">
+                      {s.level ? <LevelBadge level={s.level} /> : <span className="sa-badge">no level yet</span>}
+                      {s.targetLevel && <span className="sa-badge">aiming for {s.targetLevel}</span>}
+                      <span className={`sa-badge sa-badge-${s.status === 'active' ? 'committed' : 'queued'}`}>{s.status}</span>
+                      <code>{s.slug}</code>
+                    </div>
+                  </div>
+                  <div className="sa3-facts">
+                    <div><span>Level </span><strong>{s.level || '—'}</strong>{s.targetLevel ? <span> → target <strong>{s.targetLevel}</strong></span> : null}</div>
+                  </div>
+                  <div className="sa3-actions">
+                    <Link className="sa-btn sa-btn-primary sa-btn-sm" to={`/admin/student/${s.slug}`}>
+                      <span className="material-symbols-outlined" aria-hidden="true">open_in_new</span>Open record
+                    </Link>
+                    <Link className="sa-btn sa-btn-ghost sa-btn-sm" to={`/admin/superadmin/academic/roster/${s.slug}/heatmap`}>
+                      <span className="material-symbols-outlined" aria-hidden="true">grid_view</span>Heatmap
+                    </Link>
+                    <Link className="sa-btn sa-btn-ghost sa-btn-sm" to={`/admin/superadmin/school/preview?student=${encodeURIComponent(s.slug)}`}>
+                      <span className="material-symbols-outlined" aria-hidden="true">visibility</span>Student view
+                    </Link>
+                  </div>
+                </article>
+              ))}
             </div>
           )}
         </div>

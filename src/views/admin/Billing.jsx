@@ -144,6 +144,19 @@ export default function AdminBilling() {
     }
   }
 
+  // Regulamin § 5 ust. 3: extensions are granted by moving expiresAt, never by
+  // booking past it (the credit gate applies to admins too since 2026-09-03).
+  async function extendPackage(pkg, months = 6) {
+    try {
+      const base = new Date(Math.max(Number(pkg.expiresAt) || 0, Date.now()))
+      base.setUTCMonth(base.getUTCMonth() + months)
+      await mutateAdminConvex('billing:updatePackageMetadata', { packageId: pkg._id, expiresAt: base.getTime() })
+      await load()
+    } catch {
+      setState(s => ({ ...s, error: 'Failed to extend the package.' }))
+    }
+  }
+
   async function handlePackageCancel() {
     if (!cancelTarget) return
     try {
@@ -415,7 +428,7 @@ export default function AdminBilling() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="font-headline text-lg text-slate-900 truncate">{pkg.studentName}</p>
-                    <p className="text-xs text-slate-400">{pkg.name} · purchased {new Date(pkg.purchasedAt).toISOString().slice(0, 10)}</p>
+                    <p className="text-xs text-slate-400">{pkg.name} · purchased {new Date(pkg.purchasedAt).toISOString().slice(0, 10)}{pkg.expiresAt ? ` · valid until ${new Date(pkg.expiresAt).toISOString().slice(0, 10)}` : ' · no expiry set'}</p>
                   </div>
                   <div className="flex items-center gap-3 flex-wrap">
                     {cancelled ? (
@@ -434,6 +447,11 @@ export default function AdminBilling() {
                             />
                           </div>
                         </div>
+                        {pkg.expiresAt && pkg.expiresAt <= Date.now() && (
+                          <span data-testid="expired-flag" className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-label font-bold uppercase tracking-[0.14em] text-rose-700">
+                            <span className="block h-1.5 w-1.5 rounded-full bg-rose-500" />Expired
+                          </span>
+                        )}
                         {pkg.depleted && (
                           <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-label font-bold uppercase tracking-[0.14em] text-slate-600">
                             <span className="block h-1.5 w-1.5 rounded-full bg-slate-400" />Depleted
@@ -444,6 +462,15 @@ export default function AdminBilling() {
                             <span className="block h-1.5 w-1.5 rounded-full bg-amber-500" />Low Balance
                           </span>
                         )}
+                        <button
+                          type="button"
+                          title="Extend validity by 6 months"
+                          aria-label="Extend validity by 6 months"
+                          onClick={() => extendPackage(pkg)}
+                          className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/70 bg-white/80 text-slate-500 transition cursor-pointer hover:bg-sky-50 hover:text-sky-700"
+                        >
+                          <span className="material-symbols-outlined text-lg">more_time</span>
+                        </button>
                         <button
                           type="button"
                           title="Cancel package"

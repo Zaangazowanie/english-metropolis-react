@@ -233,13 +233,38 @@ export default function AdminCalendar() {
         cancelledBy: 'school_admin',
         cancelledByName: adminUser?.name || 'School Admin',
       })
+      // A cancel by the school/teacher is never billed to the student, even
+      // inside 24 hours (server rule since 2026-09-01); only a student's own
+      // late cancel is. Say what actually happened.
       setNotice(result.billable
         ? { kind: 'warn', text: `Lesson cancelled. Because this was within 24 hours of the start time, one lesson is treated as used and billed.` }
-        : { kind: 'ok', text: 'Lesson cancelled — no charge (at least 24 hours ahead).' })
+        : result.lateButFree
+          ? { kind: 'ok', text: 'Lesson cancelled inside 24 hours by the school — not charged to the student. The student has been emailed.' }
+          : { kind: 'ok', text: 'Lesson cancelled — no charge. The student has been emailed.' })
       setCancelTarget(null)
       await load()
     } catch (err) {
       setNotice({ kind: 'err', text: String(err?.message || 'Cancellation failed.').replace(/^.*Error: /, '') })
+    } finally { setBusy(false) }
+  }
+
+  // Cancel this lesson AND every later lesson of the same series in one go
+  // (one cancellation email listing all of them; none billed to the student).
+  const doCancelSeries = async () => {
+    if (!cancelTarget?.seriesId || busy) return
+    setBusy(true); setNotice(null)
+    try {
+      const result = await mutateAdminConvex('scheduling:cancelSeries', {
+        seriesId: cancelTarget.seriesId,
+        fromStartUtc: cancelTarget.startUtc,
+        cancelledBy: 'school_admin',
+        cancelledByName: adminUser?.name || 'School Admin',
+      })
+      setNotice({ kind: 'ok', text: `${result.cancelled} lesson${result.cancelled === 1 ? '' : 's'} of the series cancelled — not charged to the student. One cancellation email lists them all.` })
+      setCancelTarget(null)
+      await load()
+    } catch (err) {
+      setNotice({ kind: 'err', text: String(err?.message || 'Series cancellation failed.').replace(/^.*Error: /, '') })
     } finally { setBusy(false) }
   }
 
@@ -551,8 +576,9 @@ export default function AdminCalendar() {
           </h3>
           <p className={`mt-3 text-sm font-semibold leading-relaxed ${cancelIsLate ? 'text-rose-700' : 'text-emerald-700'}`}>
             {cancelIsLate
-              ? '⚠ This lesson starts in less than 24 hours. Cancelling now means one lesson will be treated as used and billed.'
+              ? '⚠ This lesson starts in less than 24 hours. A cancellation by the school is not billed to the student (only a student\'s own late cancel is).'
               : 'This cancellation is at least 24 hours before the start time — no charge.'}
+            {cancelTarget.seriesId && <span className="ml-2 inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-violet-700">{cancelTarget.seriesKind === 'weekly' ? 'weekly series' : 'booked together'}</span>}
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <button onClick={doCancel} disabled={busy}
@@ -560,8 +586,15 @@ export default function AdminCalendar() {
                 cancelIsLate ? 'bg-gradient-to-r from-rose-600 to-red-700' : 'bg-gradient-to-r from-slate-600 to-slate-700'
               }`}>
               <span className="material-symbols-outlined text-lg">event_busy</span>
-              {busy ? 'Cancelling…' : (cancelIsLate ? 'Cancel anyway (billed)' : 'Confirm cancellation')}
+              {busy ? 'Cancelling…' : (cancelIsLate ? 'Cancel anyway (inside 24h, not billed to the student)' : 'Confirm cancellation')}
             </button>
+            {cancelTarget.seriesId && (
+              <button onClick={doCancelSeries} disabled={busy}
+                className="inline-flex items-center gap-2 rounded-full border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-50 transition cursor-pointer disabled:opacity-40">
+                <span className="material-symbols-outlined text-lg">playlist_remove</span>
+                Cancel this and the rest of the series
+              </button>
+            )}
             <button onClick={() => setCancelTarget(null)} disabled={busy}
               className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 transition cursor-pointer">
               Keep the lesson
@@ -630,6 +663,7 @@ export default function AdminCalendar() {
               </span>
               <span className="text-sm font-semibold text-slate-900">{b.studentName}</span>
               <span className="text-sm text-slate-500">{prettyDate(b.dateWarsaw)}</span>
+              {b.seriesId && <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-violet-700"><span className="material-symbols-outlined text-[13px]">{b.seriesKind === 'weekly' ? 'repeat' : 'stacks'}</span>{b.seriesKind === 'weekly' ? 'weekly' : 'series'}</span>}
               <span className="text-xs text-slate-400">booked by {b.bookedByName || b.bookedBy}</span>
               <button onClick={() => { setCancelTarget(b); setBookingPanel(false); setNotice(null) }}
                 className="ml-auto rounded-full border border-rose-200 bg-white px-4 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer">

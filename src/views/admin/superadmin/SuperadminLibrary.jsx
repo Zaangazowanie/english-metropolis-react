@@ -52,6 +52,12 @@ export default function SuperadminLibrary() {
 
   return (
     <div className="space-y-5">
+      <div className="sa-page-header">
+        <div>
+          <h1>Course library</h1>
+          <p>Every course the fleet built, course by numbered lesson. Open a course to see its decks; open a deck to edit keywords and page order in place.</p>
+        </div>
+      </div>
       <div className="sa-card">
         <div className="sa-card-header" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
           <h2>Course Studio · {courses.length} courses · {totalDecks} decks</h2>
@@ -70,7 +76,7 @@ export default function SuperadminLibrary() {
                   <div key={c.course_id} className="rounded-2xl border"
                     style={{ borderColor: openCourse === c.course_id ? 'var(--sa-violet-300)' : 'var(--sa-border)',
                       background: 'var(--sa-surface)' }}>
-                    <button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                    <button type="button" className="sa4-course-btn flex w-full items-center gap-3 px-4 py-3 text-left"
                       style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                       onClick={() => { setOpenCourse(openCourse === c.course_id ? '' : c.course_id); setOpenLesson('') }}>
                       <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--sa-violet-600)' }}>
@@ -78,7 +84,7 @@ export default function SuperadminLibrary() {
                       </span>
                       <span className="font-mono text-sm font-bold" style={{ color: 'var(--sa-text)' }}>{c.course_id}</span>
                       {c.level ? <LevelBadge level={c.level} /> : <span className="sa-badge">—</span>}
-                      <span className="text-xs" style={{ color: 'var(--sa-text-muted)' }}>{c.lesson_count} lessons</span>
+                      <span className="text-xs" style={{ color: 'var(--sa-text-muted)' }}>{c.lesson_count} lesson{c.lesson_count === 1 ? '' : 's'}</span>
                       <span className="material-symbols-outlined ml-auto" style={{ fontSize: 18, color: 'var(--sa-text-muted)',
                         transform: openCourse === c.course_id ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}>
                         expand_more
@@ -108,7 +114,7 @@ function LessonStudioRow({ lesson, open, onToggle }) {
   return (
     <div className="rounded-xl border" style={{ borderColor: open ? 'var(--sa-violet-300)' : 'var(--sa-border)',
       background: 'var(--sa-surface-soft)' }}>
-      <button type="button" className="flex w-full items-center gap-3 px-3 py-2 text-left"
+      <button type="button" className="sa4-lesson-btn flex w-full items-center gap-3 px-3 py-2 text-left"
         style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={onToggle}>
         <span className="font-mono text-xs font-bold" style={{ color: 'var(--sa-text-muted)', width: 24 }}>
           {String(lesson.lesson_number ?? '?').padStart(2, '0')}
