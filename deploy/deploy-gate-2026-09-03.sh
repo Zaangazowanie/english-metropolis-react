@@ -24,6 +24,7 @@ WEB=/var/www/englishmetro
 SPEC_DIR=/root/backups/em-convex
 CONVEX="$CX/node_modules/.bin/convex"
 mkdir -p "$SPEC_DIR"
+. "$(dirname "$0")/_guard.sh"; echo "== guard: clean tree on prod"; guard_clean_prod "$CX"
 # convex resolves its deployment from the CWD (.env.local + convex.json).
 cd "$CX"
 
@@ -103,4 +104,5 @@ echo "  convex: redeploy the previous tree; BEFORE spec is $SPEC_DIR/function-sp
 echo
 echo "NEXT: backfill the 4 customer packages that predate expiresAt (dry run first, then --no-dry-run)"
 echo "  cd $CX && $CONVEX run --prod billing:backfillPackageExpiry '{\"dryRun\":true}'"
+push_prod "$CX"
 echo "done $TS"

@@ -21,6 +21,7 @@ WEB=/var/www/englishmetro
 SPEC_DIR=/root/backups/em-convex
 CONVEX="$CX/node_modules/.bin/convex"
 mkdir -p "$SPEC_DIR"
+. "$(dirname "$0")/_guard.sh"; echo "== guard: clean tree on prod"; guard_clean_prod "$CX"
 # The convex CLI resolves its deployment from the CWD (.env.local + convex.json),
 # so every convex call in this script must run from $CX, not from wherever the
 # script was invoked. Found the hard way: step 1 failed with "No CONVEX_DEPLOYMENT
@@ -106,4 +107,5 @@ echo
 echo "AFTER THE DEPLOY, CHECK (both were broken before this change):"
 echo "  1. operationsAlerts cron is alive:  $CONVEX data operationsAlerts --prod   # max lastSeenAt must advance within 15 min"
 echo "  2. first real booking email carries a calendar file: journalctl -u em-report -n 30"
+push_prod "$CX"
 echo "done $TS"
