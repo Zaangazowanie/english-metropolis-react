@@ -340,6 +340,12 @@ export const getQuote = query({
       expired: Date.now() > quote.expiresAt,
       expiresAt: quote.expiresAt,
       grantAnalysisScope: quote.grantAnalysisScope ?? null,
+      // Instalment plans: lets the checkout say "rata 2/3, due 3 Oct" instead
+      // of presenting a mid-plan payment as a fresh purchase.
+      planRef: quote.planRef ?? null,
+      instalmentNo: quote.instalmentNo ?? null,
+      instalmentCount: quote.instalmentCount ?? null,
+      dueAt: quote.dueAt ?? null,
     };
   },
 });

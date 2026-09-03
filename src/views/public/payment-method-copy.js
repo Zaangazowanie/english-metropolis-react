@@ -26,6 +26,14 @@ export const GROUP_COPY = {
     en: { title: 'PayPo', sub: () => 'Pay in 30 days; instalments for eligible customers' },
     pl: { title: 'PayPo', sub: () => 'Zapłać za 30 dni; raty dla uprawnionych klientów' },
   },
+  // Przelewy24 Raty (method 303). Deliberately neutral copy: the lender shows
+  // the plans, tenors and the representative example on its own page. We must
+  // not print our own instalment pricing here (pośrednik kredytowy exposure).
+  installments: {
+    mark: 'deferred',
+    en: { title: 'Instalments', sub: () => 'Przelewy24 Raty; plans and terms are shown by the lender on the next screen' },
+    pl: { title: 'Raty', sub: () => 'Raty Przelewy24; plany i warunki pokaże kredytodawca na następnym ekranie' },
+  },
   transfer: {
     mark: 'bank',
     en: { title: 'Online transfer', sub: (n) => (n === 1 ? 'Choose your bank' : `Choose from ${n} banks`) },

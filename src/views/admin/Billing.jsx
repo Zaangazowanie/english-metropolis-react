@@ -8,6 +8,12 @@ const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const EMPTY_CONTACT = { name: '', email: '', phone: '', address: '', taxId: '', notes: '' }
 const EMPTY_PACKAGE = { studentId: '', name: '', totalLessons: 10, notes: '' }
 const EMPTY_CERT = { studentId: '', cefrLevel: 'B1' }
+// Instalment plan: N durable quote links, each releasing its share of the
+// lessons. The total is the agreed price and nothing is added to it (see
+// convex/instalmentPlans.ts for why that rule is load-bearing).
+const EMPTY_PLAN = { studentId: '', label: '', totalPLN: '', totalLessons: '', instalments: 3, firstDueAt: '', intervalDays: 30, reason: '' }
+const plnFromGrosze = g => `${(Number(g) / 100).toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} PLN`
+const dayLabel = ms => new Intl.DateTimeFormat('pl-PL', { dateStyle: 'medium', timeZone: 'Europe/Warsaw' }).format(new Date(ms))
 
 function Label({ children }) {
   return <span className="font-label text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{children}</span>
@@ -39,6 +45,10 @@ export default function AdminBilling() {
   const [certForm, setCertForm] = useState(EMPTY_CERT)
   const [cancelTarget, setCancelTarget] = useState(null)   // package to cancel
   const [revokeTarget, setRevokeTarget] = useState(null)   // certificate to revoke
+  const [planOpen, setPlanOpen] = useState(false)
+  const [planForm, setPlanForm] = useState(EMPTY_PLAN)
+  const [plans, setPlans] = useState([])
+  const [planBusy, setPlanBusy] = useState('')            // planRef being mailed
   const [saving, setSaving] = useState(false)
   const [modalError, setModalError] = useState('')
   const [busy, setBusy] = useState('')                     // per-row async actions (pdf downloads)
@@ -58,6 +68,8 @@ export default function AdminBilling() {
         loading: false, error: '',
         org, stats, packages: packages || [], certificates: certificates || [], students: students || [],
       })
+      // Plans load separately: a failure here must not blank the whole page.
+      try { setPlans((await queryAdminConvex('instalmentPlans:listPlans', orgArg)) || []) } catch { setPlans([]) }
     } catch {
       setState(s => ({ ...s, loading: false, error: 'Failed to load billing data.' }))
     }
@@ -166,6 +178,67 @@ export default function AdminBilling() {
     } catch {
       setCancelTarget(null)
       setState(s => ({ ...s, error: 'Failed to cancel the package.' }))
+    }
+  }
+
+  async function handlePlanCreate(e) {
+    e.preventDefault()
+    setModalError('')
+    if (!planForm.studentId) { setModalError('Pick a student.'); return }
+    if (!planForm.label.trim()) { setModalError('Say what is being bought.'); return }
+    const totalPLN = Number(planForm.totalPLN), totalLessons = Number(planForm.totalLessons)
+    const instalments = Number(planForm.instalments), intervalDays = Number(planForm.intervalDays)
+    if (!Number.isInteger(totalPLN) || totalPLN <= 0) { setModalError('Total must be a whole number of złoty.'); return }
+    if (!Number.isInteger(totalLessons) || totalLessons < instalments) { setModalError('Each instalment must release at least one lesson.'); return }
+    if (!Number.isInteger(instalments) || instalments < 2 || instalments > 12) { setModalError('2 to 12 instalments.'); return }
+    if (!planForm.firstDueAt) { setModalError('Pick the first due date.'); return }
+    if (planForm.reason.trim().length < 10) { setModalError('A reason (10+ characters) is required for the audit log.'); return }
+    setSaving(true)
+    try {
+      const firstDueAt = new Date(`${planForm.firstDueAt}T12:00:00+02:00`).getTime()
+      const created = await mutateAdminConvex('instalmentPlans:createInstalmentPlan', {
+        studentId: planForm.studentId, totalPLN, totalLessons, instalments, firstDueAt, intervalDays,
+        label: planForm.label.trim(), reason: planForm.reason.trim(),
+      })
+      setPlanOpen(false)
+      await load()
+      // Send the links straight away: a plan that exists only in the database
+      // is the Szymon case again.
+      await sendPlanMail(created.planRef)
+    } catch (ex) {
+      setModalError(ex?.message || 'Could not create the plan.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function sendPlanMail(planRef) {
+    setPlanBusy(planRef)
+    try {
+      await mutateAdminConvex('instalmentPlans:requestPlanMail', { planRef, siteBase: window.location.origin })
+      // Delivery is asynchronous; poll briefly so the status on the card is real.
+      for (let i = 0; i < 6; i++) {
+        await new Promise(r => setTimeout(r, 1500))
+        const fresh = (await queryAdminConvex('instalmentPlans:listPlans', { organizationId: adminUser?.organizationId })) || []
+        setPlans(fresh)
+        const mine = fresh.find(p => p.planRef === planRef)
+        if (mine && mine.mailStatus !== 'pending') break
+      }
+    } catch {
+      setState(s => ({ ...s, error: 'Could not send the plan e-mail.' }))
+    } finally {
+      setPlanBusy('')
+    }
+  }
+
+  async function cancelInstalment(quoteRef) {
+    const reason = window.prompt('Why is this instalment being cancelled? (goes in the audit log)')
+    if (!reason || !reason.trim()) return
+    try {
+      await mutateAdminConvex('instalmentPlans:cancelInstalment', { quoteRef, reason: reason.trim() })
+      await load()
+    } catch (ex) {
+      setState(s => ({ ...s, error: ex?.message || 'Could not cancel the instalment.' }))
     }
   }
 
@@ -495,6 +568,77 @@ export default function AdminBilling() {
         </div>
       </section>
 
+      {/* ── Instalment plans ───────────────────────────────────── */}
+      <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-6 editorial-shadow sm:px-8" data-testid="billing-plans">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="font-label text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Agreed price, paid in parts</p>
+            <h2 className="mt-1 font-headline text-2xl text-slate-900">Payment Plans</h2>
+          </div>
+          <button
+            onClick={() => { setPlanForm(EMPTY_PLAN); setModalError(''); setPlanOpen(true) }}
+            data-testid="add-plan"
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] transition-all duration-300 hover:-translate-y-0.5"
+          >
+            <span className="material-symbols-outlined text-base">add</span>
+            Create Plan
+          </button>
+        </div>
+        <p className="mt-3 text-sm text-slate-500">Each instalment is its own payment link and releases its own lessons when paid. An unpaid instalment past its date shows up in the command centre as <span className="font-semibold text-slate-700">instalment_overdue</span>; the student is reminded 3 days before and every 3 days after. No fee is ever added to a plan.</p>
+
+        <div className="mt-6 space-y-3">
+          {plans.length ? plans.map(plan => (
+            <div key={plan.planRef} className="rounded-[1.5rem] border border-slate-200/70 bg-white/80 px-5 py-4" data-testid="plan-row">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="font-semibold text-slate-900">{plan.studentName} <span className="text-slate-400">·</span> {plan.label}</div>
+                  <div className="mt-0.5 text-sm text-slate-500">
+                    {plnFromGrosze(plan.paidAmount)} of {plnFromGrosze(plan.totalAmount)} paid · {plan.totalLessons} lessons · created {dayLabel(plan.createdAt)}
+                    {plan.overdue > 0 && <span className="ml-2 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">{plan.overdue} overdue</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className={'rounded-full px-3 py-1 text-xs font-semibold ' + (plan.mailStatus === 'sent' ? 'bg-emerald-50 text-emerald-700' : plan.mailStatus === 'failed' ? 'bg-rose-50 text-rose-700' : plan.mailStatus === 'pending' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500')} title={plan.mailError || ''}>
+                    {plan.mailStatus === 'sent' ? 'links e-mailed' : plan.mailStatus === 'failed' ? `e-mail failed: ${plan.mailError || ''}` : plan.mailStatus === 'pending' ? 'e-mailing…' : 'not e-mailed yet'}
+                  </span>
+                  <button onClick={() => sendPlanMail(plan.planRef)} disabled={planBusy === plan.planRef} className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer disabled:opacity-60">
+                    {planBusy === plan.planRef ? 'Sending…' : 'E-mail all links'}
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {plan.instalments.map(i => (
+                      <tr key={i.quoteRef} className="border-t border-slate-100">
+                        <td className="py-2 pr-3 whitespace-nowrap font-medium text-slate-700">Rata {i.instalmentNo}/{i.instalmentCount}</td>
+                        <td className="py-2 pr-3 whitespace-nowrap">{plnFromGrosze(i.amount)}</td>
+                        <td className="py-2 pr-3 whitespace-nowrap text-slate-500">{i.lessons} lessons</td>
+                        <td className="py-2 pr-3 whitespace-nowrap text-slate-500">due {dayLabel(i.dueAt)}</td>
+                        <td className="py-2 pr-3 whitespace-nowrap">
+                          {i.status === 'consumed' ? <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">paid {i.consumedAt ? dayLabel(i.consumedAt) : ''}</span>
+                            : i.status === 'cancelled' ? <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">cancelled</span>
+                            : i.overdue ? <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">overdue</span>
+                            : <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700">open</span>}
+                        </td>
+                        <td className="py-2 text-right whitespace-nowrap">
+                          {i.status === 'open' && (
+                            <>
+                              <button onClick={() => navigator.clipboard?.writeText(`${window.location.origin}${i.checkoutPath}`)} className="text-xs font-semibold text-sky-700 hover:underline cursor-pointer">copy link</button>
+                              <button onClick={() => cancelInstalment(i.quoteRef)} className="ml-3 text-xs font-semibold text-rose-600 hover:underline cursor-pointer">cancel</button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )) : <div className="rounded-[1.5rem] border border-dashed border-slate-200 px-5 py-6 text-sm text-slate-500">No payment plans yet.</div>}
+        </div>
+      </section>
+
       {/* ── Certificates ───────────────────────────────────────── */}
       <section className="glass-panel rounded-[2rem] border border-white/50 px-5 py-6 editorial-shadow sm:px-8" data-testid="billing-certificates">
         <div className="flex items-center justify-between gap-3">
@@ -639,6 +783,64 @@ export default function AdminBilling() {
             <button type="submit" disabled={saving} data-testid="package-save" className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60">
               <span className="material-symbols-outlined text-base">{saving ? 'progress_activity' : 'add'}</span>
               {saving ? 'Creating…' : 'Create Package'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── Create payment plan modal ──────────────────────────── */}
+      <Modal open={planOpen} onClose={() => setPlanOpen(false)} title="Create Payment Plan" widthClass="max-w-xl">
+        <form onSubmit={handlePlanCreate} className="space-y-4">
+          <label className="block">
+            <Label>Student *</Label>
+            <select className={inputCls + ' cursor-pointer'} data-testid="plan-student-select" value={planForm.studentId} onChange={e => setPlanForm(f => ({ ...f, studentId: e.target.value }))}>
+              <option value="">Pick a student…</option>
+              {activeStudents.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <Label>What is being bought *</Label>
+            <input className={inputCls} data-testid="plan-label-input" value={planForm.label} onChange={e => setPlanForm(f => ({ ...f, label: e.target.value }))} placeholder="Pakiet 24 lekcji" />
+          </label>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <label className="block">
+              <Label>Total PLN *</Label>
+              <input type="number" min="1" step="1" className={inputCls} data-testid="plan-total-input" value={planForm.totalPLN} onChange={e => setPlanForm(f => ({ ...f, totalPLN: e.target.value }))} placeholder="2160" />
+            </label>
+            <label className="block">
+              <Label>Lessons *</Label>
+              <input type="number" min="1" step="1" className={inputCls} data-testid="plan-lessons-input" value={planForm.totalLessons} onChange={e => setPlanForm(f => ({ ...f, totalLessons: e.target.value }))} placeholder="24" />
+            </label>
+            <label className="block">
+              <Label>Instalments *</Label>
+              <input type="number" min="2" max="12" step="1" className={inputCls} data-testid="plan-count-input" value={planForm.instalments} onChange={e => setPlanForm(f => ({ ...f, instalments: e.target.value }))} />
+            </label>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <Label>First due date *</Label>
+              <input type="date" className={inputCls} data-testid="plan-due-input" value={planForm.firstDueAt} onChange={e => setPlanForm(f => ({ ...f, firstDueAt: e.target.value }))} />
+            </label>
+            <label className="block">
+              <Label>Days between instalments</Label>
+              <input type="number" min="7" max="92" step="1" className={inputCls} value={planForm.intervalDays} onChange={e => setPlanForm(f => ({ ...f, intervalDays: e.target.value }))} />
+            </label>
+          </div>
+          <label className="block">
+            <Label>Reason (audit log) *</Label>
+            <textarea className={inputCls} rows={2} data-testid="plan-reason-input" value={planForm.reason} onChange={e => setPlanForm(f => ({ ...f, reason: e.target.value }))} placeholder="Agreed with the student on 3 Sep: 3 × 720 for the 24-lesson package" />
+          </label>
+          {planForm.totalPLN && planForm.instalments >= 2 && (
+            <p className="text-sm text-slate-500">
+              {planForm.instalments} × {Math.floor(Number(planForm.totalPLN) / Number(planForm.instalments))} PLN{Number(planForm.totalPLN) % Number(planForm.instalments) ? ' (remainder on the last)' : ''}, each releasing about {Math.floor(Number(planForm.totalLessons || 0) / Number(planForm.instalments))} lessons. The sum equals the one-off price; nothing is added.
+            </p>
+          )}
+          {modalError && <div className="rounded-[1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{modalError}</div>}
+          <div className="flex items-center justify-end gap-2 pt-1">
+            <button type="button" onClick={() => setPlanOpen(false)} className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer">Cancel</button>
+            <button type="submit" disabled={saving} data-testid="plan-save" className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_-18px_rgba(2,132,199,0.9)] transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60">
+              <span className="material-symbols-outlined text-base">{saving ? 'progress_activity' : 'add'}</span>
+              {saving ? 'Creating…' : 'Create and e-mail links'}
             </button>
           </div>
         </form>

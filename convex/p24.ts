@@ -668,14 +668,22 @@ export const notifyPaidOrder = internalAction({
 // is a group the customer must never be offered. That is the whole mechanism
 // keeping a card button off the checkout until Przelewy24 enable cards: we do
 // not maintain a local list that can disagree with their account state.
-type MethodGroupKey = "blik" | "card" | "paypo" | "transfer";
+type MethodGroupKey = "blik" | "card" | "paypo" | "installments" | "transfer";
+// Przelewy24 Raty (bank-financed instalments). `group` is a fixed English enum
+// in P24's spec, identical in the PL and EN method lists.
+const RATY_METHOD_ID = 303;
 
-function methodGroupOf(method: any): MethodGroupKey {
+export function methodGroupOf(method: any): MethodGroupKey {
   const group = String(method?.group || "");
   if (group === "Blik") return "blik";
   // PayPo currently arrives as method 317 in the "Installments" group. Match
   // both stable signals so a translated group label cannot make it disappear.
   if (method?.id === PAYPO_METHOD_ID || /paypo/i.test(String(method?.name || ""))) return "paypo";
+  // Raty. Without this branch 303 fell through to "transfer" and would have
+  // been counted, silently, as the 21st bank — a method we pay 2,5 to 7,99%
+  // for that no customer could find. Checked after PayPo because PayPo shares
+  // the group.
+  if (method?.id === RATY_METHOD_ID || group === "Installments") return "installments";
   // 145 is Karta płatnicza. The group string is matched too so the wallets and
   // card variants P24 may add later land here without another deploy.
   if (method?.id === 145 || /card|karta/i.test(group)) return "card";
@@ -711,7 +719,7 @@ export const listMethods = action({
     }
     // Keep a non-credit method first: the checkout preselects the first option,
     // so deferred payment must always remain an active customer choice.
-    const order: MethodGroupKey[] = ["blik", "paypo", "card", "transfer"];
+    const order: MethodGroupKey[] = ["blik", "paypo", "installments", "card", "transfer"];
     return {
       groups: order.flatMap((key) => {
         const ids = byGroup.get(key);

@@ -1080,12 +1080,28 @@ export default defineSchema({
     paymentId: v.optional(v.id("p24Payments")),
     consumedAt: v.optional(v.number()),
     expiresAt: v.number(),
+    // ── Instalment plans (2026-09-03) ──────────────────────────────────────
+    // A hand-agreed price paid in N parts is N negotiated quotes sharing one
+    // planRef. Each quote carries its own share of the lessons, so a missed
+    // instalment can only ever cost that instalment's lessons, never the whole
+    // package. dueAt is what reconcileAlerts watches: an open quote past its
+    // dueAt is an `instalment_overdue` alert in the command centre. Nothing
+    // else in the system had a due date, so a link emailed and never opened
+    // was invisible forever.
+    planRef: v.optional(v.string()),          // "PLAN-<uuid>", shared by the plan's quotes
+    instalmentNo: v.optional(v.number()),     // 1-based
+    instalmentCount: v.optional(v.number()),
+    dueAt: v.optional(v.number()),
+    remindersSentAt: v.optional(v.array(v.number())),
+    planMailStatus: v.optional(v.string()),   // "pending" | "sent" | "failed" — the one mail with every link
+    planMailError: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_quote_ref", ["quoteRef"])
     .index("by_student", ["studentId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_plan", ["planRef"]),
 
   // Per-lesson AI analysis entitlement.
   //
@@ -1179,6 +1195,7 @@ export default defineSchema({
     orderId: v.optional(v.id("lessonOrders")),
     packageId: v.optional(v.id("lessonPackages")),
     bookingId: v.optional(v.id("lessonBookings")),
+    quoteRef: v.optional(v.string()),        // instalment_overdue: the unpaid quote
     details: v.optional(v.string()),
     firstSeenAt: v.number(),
     lastSeenAt: v.number(),

@@ -30,6 +30,7 @@ function AlertRow({ alert, onStatus, busy }) {
       <div className="ops-alert-icon" aria-hidden="true">
         <span className="material-symbols-outlined">
           {alert.kind === 'paid_no_booking' ? 'person_alert'
+            : alert.kind === 'instalment_overdue' ? 'payments'
             : retryableDelivery ? 'mark_email_unread'
               : alert.kind === 'booking_missing_meet' ? 'videocam_off' : 'warning'}
         </span>

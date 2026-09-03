@@ -28,6 +28,7 @@ import type * as ingestion from "../ingestion.js";
 import type * as ingestionFewShots from "../ingestionFewShots.js";
 import type * as ingestionProcess from "../ingestionProcess.js";
 import type * as ingestionPrompts from "../ingestionPrompts.js";
+import type * as instalmentPlans from "../instalmentPlans.js";
 import type * as operations from "../operations.js";
 import type * as orders from "../orders.js";
 import type * as p24 from "../p24.js";
@@ -69,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   ingestionFewShots: typeof ingestionFewShots;
   ingestionProcess: typeof ingestionProcess;
   ingestionPrompts: typeof ingestionPrompts;
+  instalmentPlans: typeof instalmentPlans;
   operations: typeof operations;
   orders: typeof orders;
   p24: typeof p24;

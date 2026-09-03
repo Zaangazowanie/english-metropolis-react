@@ -13,6 +13,7 @@ const MANAGED_KINDS = new Set([
   "booking_notification_failed",
   "booking_cancellation_notification_failed",
   "booking_stale_scheduled",
+  "instalment_overdue",
 ]);
 
 type Candidate = {
@@ -25,8 +26,39 @@ type Candidate = {
   orderId?: any;
   packageId?: any;
   bookingId?: any;
+  quoteRef?: string;
   details?: string;
 };
+
+// An open instalment quote past its due date. Exported and pure so the
+// offline harness can pin the boundary: due-but-not-yet-overdue is silent,
+// one millisecond past dueAt is not. Only plan quotes (planRef) count — a
+// self-serve analysis quote has no due date and simply expires.
+export function instalmentOverdueCandidate(quote: any, student: any, now: number): Candidate | null {
+  if (!quote.planRef || quote.status !== "open" || typeof quote.dueAt !== "number" || quote.dueAt >= now) return null;
+  const daysLate = Math.floor((now - quote.dueAt) / DAY_MS);
+  const pln = (quote.amount / 100).toFixed(2).replace(".", ",");
+  return {
+    fingerprint: `instalment-overdue:${quote.quoteRef}`,
+    kind: "instalment_overdue",
+    severity: "high",
+    title: `${student?.name || "A student"} has not paid instalment ${quote.instalmentNo ?? "?"}/${quote.instalmentCount ?? "?"}`,
+    message: `${pln} PLN was due on ${isoDate(quote.dueAt)} (${daysLate} day${daysLate === 1 ? "" : "s"} late). The link is still payable; future lessons abate, nothing is accelerated.`,
+    studentId: quote.studentId,
+    quoteRef: quote.quoteRef,
+    details: JSON.stringify({
+      planRef: quote.planRef,
+      instalmentNo: quote.instalmentNo,
+      instalmentCount: quote.instalmentCount,
+      amount: quote.amount,
+      dueAt: quote.dueAt,
+      expiresAt: quote.expiresAt,
+      remindersSentAt: quote.remindersSentAt ?? [],
+      checkoutPath: `/checkout?quote=${quote.quoteRef}`,
+      email: contactEmail(student),
+    }),
+  };
+}
 
 function isoDate(ms: number) {
   return new Date(ms).toISOString().slice(0, 10);
@@ -42,12 +74,16 @@ export const reconcileAlerts = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
-    const [students, packages, orders, bookings, existingAlerts] = await Promise.all([
+    const [students, packages, orders, bookings, existingAlerts, openQuotes] = await Promise.all([
       ctx.db.query("students").collect(),
       ctx.db.query("lessonPackages").collect(),
       ctx.db.query("lessonOrders").collect(),
       ctx.db.query("lessonBookings").collect(),
       ctx.db.query("operationsAlerts").collect(),
+      // Money the system is owed: open instalment quotes. Until 2026-09-03 this
+      // mutation read no payment table at all, so a missed instalment was
+      // invisible to every surface Mike owns.
+      ctx.db.query("priceQuotes").withIndex("by_status", q => q.eq("status", "open")).collect(),
     ]);
     const studentsById = new Map(students.map((row: any) => [String(row._id), row]));
     const bookingsByStudent = new Map<string, any[]>();
@@ -173,6 +209,11 @@ export const reconcileAlerts = internalMutation({
           bookingId: booking._id,
         });
       }
+    }
+
+    for (const quote of openQuotes) {
+      const candidate = instalmentOverdueCandidate(quote, studentsById.get(String(quote.studentId)), now);
+      if (candidate) add(candidate);
     }
 
     const existingByFingerprint = new Map(existingAlerts.map((row: any) => [row.fingerprint, row]));

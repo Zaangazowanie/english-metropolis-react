@@ -41,4 +41,14 @@ crons.interval(
   internal.scheduling.reconcileAllPastBookings,
 );
 
+// Instalment-plan reminders: 3 days before an instalment is due, then every 3
+// days while it is unpaid. 07:00 UTC = 09:00 Warsaw, a time a student reads
+// mail. The overdue ALERT lives in reconcileAlerts above and does not depend
+// on this job succeeding.
+crons.cron(
+  "instalment plan reminders",
+  "0 7 * * *",
+  internal.instalmentPlans.sendReminders,
+);
+
 export default crons;
