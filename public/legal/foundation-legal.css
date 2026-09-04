@@ -1,10 +1,12 @@
-/* Approved Twój StartUp legal documents — shared styles for /terms, /privacy,
-   /cookies (React pages). Static pages get an equivalent block appended to
-   /legal/legal.css by scripts/build-legal-static.mjs. */
+/* Approved Twój StartUp legal documents: shared styles for /terms, /privacy,
+   /cookies, /lesson-analysis (React pages) AND the static pages, which load
+   the copy scripts/build-legal-static.mjs places at public/legal/. Type floor:
+   nothing under 13px, document body copy 16px. */
 
 .fl-page { --fl-ink: #0f172a; --fl-muted: #475569; --fl-line: #e2e8f0; }
 
-.fl-siblings { display: flex; gap: 14px; font-size: 13px; }
+.fl-siblings { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+.fl-siblings a { display: inline-flex; align-items: center; min-height: 32px; }
 .fl-siblings a { color: #0369a1; text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 150ms cubic-bezier(0.23, 1, 0.32, 1); }
 .fl-siblings a:hover { border-color: #0369a1; }
 .fl-siblings .fl-withdraw-link { color: #6d28d9; font-weight: 700; }
@@ -15,20 +17,19 @@
   background: #f0f9ff;
   border-radius: 0.9rem;
   padding: 0.9rem 1.1rem;
-  font-size: 0.85rem;
-  line-height: 1.55;
+  font-size: 0.9375rem;
+  line-height: 1.6;
   color: #0c4a6e;
-  animation: fl-fade-up 360ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 .fl-en-notice a { color: #0369a1; font-weight: 600; }
 
 .fl-doc { margin-top: 1.5rem; color: var(--fl-ink); }
 .fl-doc .fl-sec {
-  margin-top: 2rem;
-  animation: fl-fade-up 420ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  margin-top: 2.25rem;
+  scroll-margin-top: 5.5rem;
 }
 .fl-doc .fl-sec h2 {
-  font-size: 1.15rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--fl-ink);
   letter-spacing: -0.01em;
@@ -36,17 +37,22 @@
   border-bottom: 1px solid var(--fl-line);
   margin-bottom: 0.75rem;
 }
-.fl-doc p { font-size: 0.9rem; line-height: 1.65; color: var(--fl-muted); margin: 0.55rem 0; }
+.fl-doc p { font-size: 1rem; line-height: 1.7; color: var(--fl-muted); margin: 0.65rem 0; }
+.fl-doc p.fl-lead { font-size: 1.1rem; color: var(--fl-ink); }
+.fl-doc h2 { font-size: 1.3rem; font-weight: 700; color: var(--fl-ink); letter-spacing: -0.01em; margin: 2rem 0 0.6rem; }
+.fl-doc h3 { font-size: 1.05rem; font-weight: 700; color: var(--fl-ink); margin: 1.5rem 0 0.4rem; }
+.fl-doc ul:not([class]), .fl-doc ol:not([class]) { padding-left: 1.4rem; margin: 0.55rem 0; }
+.fl-doc ul:not([class]) > li, .fl-doc ol:not([class]) > li { font-size: 1rem; line-height: 1.7; color: var(--fl-muted); margin: 0.4rem 0; }
 .fl-doc a { color: #0369a1; word-break: break-word; }
 
 .fl-ol { list-style: decimal; padding-left: 1.5rem; margin: 0.55rem 0; }
-.fl-ol > li { font-size: 0.9rem; line-height: 1.65; color: var(--fl-muted); margin: 0.45rem 0; padding-left: 0.25rem; }
+.fl-ol > li { font-size: 1rem; line-height: 1.7; color: var(--fl-muted); margin: 0.45rem 0; padding-left: 0.25rem; }
 .fl-ol-alpha { list-style: lower-alpha; padding-left: 1.4rem; margin: 0.4rem 0; }
-.fl-ol-alpha > li { font-size: 0.9rem; line-height: 1.6; color: var(--fl-muted); margin: 0.3rem 0; }
+.fl-ol-alpha > li { font-size: 1rem; line-height: 1.65; color: var(--fl-muted); margin: 0.3rem 0; }
 .fl-ol-roman { list-style: lower-roman; padding-left: 1.4rem; margin: 0.35rem 0; }
-.fl-ol-roman > li { font-size: 0.9rem; line-height: 1.6; color: var(--fl-muted); margin: 0.3rem 0; }
+.fl-ol-roman > li { font-size: 1rem; line-height: 1.65; color: var(--fl-muted); margin: 0.3rem 0; }
 .fl-ul { list-style: disc; padding-left: 1.4rem; margin: 0.55rem 0; }
-.fl-ul > li { font-size: 0.9rem; line-height: 1.65; color: var(--fl-muted); margin: 0.4rem 0; }
+.fl-ul > li { font-size: 1rem; line-height: 1.7; color: var(--fl-muted); margin: 0.4rem 0; }
 .fl-doc strong { color: var(--fl-ink); font-weight: 600; }
 
 .fl-note {
@@ -55,7 +61,7 @@
   background: #f0f9ff;
   padding: 0.7rem 0.95rem;
   margin: 0.6rem 0 0.9rem;
-  font-size: 0.88rem;
+  font-size: 0.9375rem;
   line-height: 1.6;
   color: var(--fl-muted);
 }
@@ -68,16 +74,16 @@
   background: #f8fafc;
 }
 .fl-form-template .fl-form-title { font-weight: 700; color: var(--fl-ink); letter-spacing: 0.06em; margin-top: 1rem; }
-.fl-form-hint { font-size: 0.78rem; color: #94a3b8; }
+.fl-form-hint { font-size: 0.875rem; color: #64748b; }
 .fl-form-addr { border-left: 3px solid #e2e8f0; padding-left: 0.8rem; }
 
 .fl-foot {
   margin-top: 2.5rem;
   padding-top: 1rem;
   border-top: 1px solid var(--fl-line);
-  font-size: 0.78rem;
-  line-height: 1.55;
-  color: #94a3b8;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #64748b;
 }
 .fl-withdraw-cta {
   display: inline-flex;
@@ -103,12 +109,12 @@
   box-shadow: 0 12px 32px rgba(15,23,42,0.25);
   padding: 11px 16px;
   color: #fff;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1.25;
   text-decoration: none;
 }
-.fl-static-withdraw small { color: #cbd5e1; font-size: 10px; font-weight: 500; }
+.fl-static-withdraw small { color: #cbd5e1; font-size: 13px; font-weight: 500; }
 .fl-static-withdraw:focus-visible { outline: 3px solid #a78bfa; outline-offset: 3px; }
 
 @media (max-width: 640px) {
@@ -116,15 +122,24 @@
   .fl-static-withdraw small { display: none; }
 }
 
-@keyframes fl-fade-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Scroll reveal: legal.js (static) / FoundationLegalPage (SPA) set
+   html[data-reveal] and add .is-in as each block enters the viewport.
+   Without JS nothing is hidden; reduced motion disables the transform. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-reveal] .fl-doc .fl-sec, html[data-reveal] .fl-doc > section, html[data-reveal] .fl-en-notice {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.55s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.55s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  html[data-reveal] .fl-doc .fl-sec.is-in, html[data-reveal] .fl-doc > section.is-in, html[data-reveal] .fl-en-notice.is-in { opacity: 1; transform: none; }
+}
+@media print {
+  html[data-reveal] .fl-doc .fl-sec, html[data-reveal] .fl-doc > section, html[data-reveal] .fl-en-notice { opacity: 1; transform: none; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .fl-en-notice, .fl-doc .fl-sec { animation: fl-fade 200ms ease both; }
-  @keyframes fl-fade { from { opacity: 0; } to { opacity: 1; } }
-}
+.fl-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 1rem 0; }
+.fl-table-wrap > table { min-width: 32rem; border-collapse: collapse; width: 100%; font-size: 0.9375rem; }
+.fl-table-wrap th, .fl-table-wrap td { text-align: left; vertical-align: top; padding: 0.6rem 0.8rem 0.6rem 0; border-bottom: 1px solid var(--fl-line); }
 
 .fl-lang {
   display: inline-flex;
@@ -137,9 +152,30 @@
   border: none;
   background: transparent;
   color: #64748b;
-  font: 700 12px/1 inherit;
+  min-height: 32px;
+  font: 700 13px/1 inherit;
   cursor: pointer;
   transition: background 160ms cubic-bezier(0.23, 1, 0.32, 1), color 160ms ease;
 }
 .fl-lang button[data-active="true"] { background: #0f172a; color: #fff; }
 .fl-lang button:active { transform: scale(0.96); }
+
+/* SPA shell (FoundationLegalPage): sidebar TOC next to the document. The
+   static pages use .legal-toc from legal.css instead. */
+.fl-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2.5rem; align-items: start; }
+.fl-main { min-width: 0; }
+.fl-toc { font-size: 0.875rem; }
+.fl-toc-label { font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin: 1.25rem 0 0.6rem; }
+.fl-toc ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--fl-line); }
+.fl-toc li a {
+  display: block; padding: 0.45rem 0.5rem 0.45rem 0.9rem; margin-left: -1px;
+  border-left: 2px solid transparent; color: #475569; text-decoration: none; line-height: 1.4;
+  transition: color 0.2s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.25s cubic-bezier(0.2, 0.7, 0.2, 1), background 0.2s;
+}
+.fl-toc li a:hover { color: #0369a1; background: #f0f9ff; border-radius: 0 8px 8px 0; }
+.fl-toc li a.active { color: #0f172a; border-left-color: #0369a1; font-weight: 700; }
+.fl-doc h2[id], .fl-doc .fl-sec[id] { scroll-margin-top: 5.5rem; }
+@media (min-width: 900px) {
+  .fl-layout { grid-template-columns: 15rem minmax(0, 46rem); }
+  .fl-toc { position: sticky; top: 1.5rem; max-height: calc(100vh - 3rem); overflow-y: auto; scrollbar-width: thin; }
+}

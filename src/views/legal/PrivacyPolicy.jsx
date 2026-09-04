@@ -8,6 +8,8 @@ export default function PrivacyPolicy() {
       titleEn={PRIVACY_TITLE_EN}
       docId="EM-LEGAL-01"
       bodyHtml={PRIVACY_HTML_PL}
+      effectivePl={'23 lipca 2026 r.'}
+      effectiveEn={'23 July 2026'}
       bodyHtmlEn={PRIVACY_HTML_EN}
     />
   )

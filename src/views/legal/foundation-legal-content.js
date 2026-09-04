@@ -25,6 +25,7 @@ export const FOUNDATION = {
   serviceAddress: 'ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki',
   rodoEmail: 'rodo@twojstartup.pl',
   effectiveDate: '3 września 2026 r.',
+  effectiveDateEn: '3 September 2026',
 }
 
 export const TERMS_TITLE_PL = 'Regulamin serwisu englishmetro.com'
@@ -1193,17 +1194,17 @@ export const COOKIES_HTML_EN = `
 </section>
 `
 
-export const CONTACT_TITLE_PL = 'Kontakt i dane firmy — englishmetro.com'
+export const CONTACT_TITLE_PL = 'Kontakt i dane firmy'
 
 export const CONTACT_HTML_PL = `
 <section class="fl-sec" id="dane-firmy">
 <h2>Dane podmiotu prowadzącego serwis</h2>
-<p>Serwis internetowy <strong>englishmetro.com</strong> jest prowadzony przez <strong>EnglishMetro</strong> — zorganizowaną część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp", reprezentowaną przez Moemedi Michael Poncana.</p>
+<p>Serwis internetowy <strong>englishmetro.com</strong> jest prowadzony przez <strong>EnglishMetro</strong>, zorganizowaną część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp", reprezentowaną przez Moemedi Michael Poncana.</p>
 <ul class="fl-ul">
 <li><strong>Nazwa firmy:</strong> Fundacja Rozwoju Przedsiębiorczości „Twój StartUp"</li>
 <li><strong>Marka / jednostka:</strong> EnglishMetro (zorganizowana część przedsiębiorstwa)</li>
 <li><strong>Osoba reprezentująca:</strong> Moemedi Michael Poncana</li>
-<li><strong>Numer KRS:</strong> 0000442857 — Sąd Rejonowy dla m.st. Warszawy w Warszawie, XII Wydział Gospodarczy KRS</li>
+<li><strong>Numer KRS:</strong> 0000442857, Sąd Rejonowy dla m.st. Warszawy w Warszawie, XII Wydział Gospodarczy KRS</li>
 <li><strong>NIP:</strong> 5213641211</li>
 <li><strong>REGON:</strong> 146433467</li>
 <li><strong>BDO:</strong> 000460502</li>
@@ -1215,7 +1216,7 @@ export const CONTACT_HTML_PL = `
 <ul class="fl-ul">
 <li><strong>Siedziba:</strong> ul. Żurawia 6/12 lok. 766, 00-503 Warszawa, Polska</li>
 <li><strong>Adres do doręczeń Fundacji:</strong> Atlas Tower, Al. Jerozolimskie 123a, 18 piętro, 02-017 Warszawa, Polska</li>
-<li><strong>Adres do doręczeń EnglishMetro (reklamacje, odstąpienie od umowy):</strong> EnglishMetro — Moemedi Michael Poncana, ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki, Polska</li>
+<li><strong>Adres do doręczeń EnglishMetro (reklamacje, odstąpienie od umowy):</strong> EnglishMetro, Moemedi Michael Poncana, ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki, Polska</li>
 </ul>
 </section>
 
@@ -1245,22 +1246,22 @@ export const CONTACT_HTML_PL = `
 <li><a href="/terms/">Regulamin serwisu</a></li>
 <li><a href="/privacy/">Polityka prywatności</a></li>
 <li><a href="/cookies/">Polityka cookies</a></li>
-<li><a href="/withdraw">Odstąpienie od umowy — formularz online</a></li>
+<li><a href="/withdraw">Odstąpienie od umowy: formularz online</a></li>
 </ul>
 </section>
 `
 
-export const CONTACT_TITLE_EN = 'Contact and company details — englishmetro.com'
+export const CONTACT_TITLE_EN = 'Contact and company details'
 
 export const CONTACT_HTML_EN = `
 <section class="fl-sec" id="company-details">
 <h2>Company operating the Service</h2>
-<p>The <strong>englishmetro.com</strong> website is operated by <strong>EnglishMetro</strong> — an organised business unit of Fundacja Rozwoju Przedsiębiorczości „Twój StartUp", represented by Moemedi Michael Poncana.</p>
+<p>The <strong>englishmetro.com</strong> website is operated by <strong>EnglishMetro</strong>, an organised business unit of Fundacja Rozwoju Przedsiębiorczości „Twój StartUp", represented by Moemedi Michael Poncana.</p>
 <ul class="fl-ul">
 <li><strong>Company name:</strong> Fundacja Rozwoju Przedsiębiorczości „Twój StartUp"</li>
 <li><strong>Brand / business unit:</strong> EnglishMetro (organised business unit)</li>
 <li><strong>Representative:</strong> Moemedi Michael Poncana</li>
-<li><strong>Registration number (KRS):</strong> 0000442857 — District Court for the Capital City of Warsaw, 12th Commercial Division of the National Court Register</li>
+<li><strong>Registration number (KRS):</strong> 0000442857, District Court for the Capital City of Warsaw, 12th Commercial Division of the National Court Register</li>
 <li><strong>NIP (Tax ID):</strong> 5213641211</li>
 <li><strong>REGON:</strong> 146433467</li>
 <li><strong>BDO:</strong> 000460502</li>
@@ -1272,7 +1273,7 @@ export const CONTACT_HTML_EN = `
 <ul class="fl-ul">
 <li><strong>Registered office:</strong> ul. Żurawia 6/12 lok. 766, 00-503 Warszawa, Poland</li>
 <li><strong>Foundation correspondence address:</strong> Atlas Tower, Al. Jerozolimskie 123a, 18th floor, 02-017 Warszawa, Poland</li>
-<li><strong>EnglishMetro service address (complaints, contract withdrawal):</strong> EnglishMetro — Moemedi Michael Poncana, ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki, Poland</li>
+<li><strong>EnglishMetro service address (complaints, contract withdrawal):</strong> EnglishMetro, Moemedi Michael Poncana, ul. Ignacego Daszyńskiego 1/132, 05-300 Mińsk Mazowiecki, Poland</li>
 </ul>
 </section>
 
@@ -1302,7 +1303,7 @@ export const CONTACT_HTML_EN = `
 <li><a href="/terms/">Terms of Service</a></li>
 <li><a href="/privacy/">Privacy Policy</a></li>
 <li><a href="/cookies/">Cookies Policy</a></li>
-<li><a href="/withdraw">Contract withdrawal — online form</a></li>
+<li><a href="/withdraw">Contract withdrawal: online form</a></li>
 </ul>
 </section>
 `
@@ -1313,8 +1314,8 @@ export const CONTACT_HTML_EN = `
 // at the point of opt-in. Written against what the pipeline actually does, so it
 // must be revised whenever the pipeline changes. ⛔ DRAFT — counsel (Weronika)
 // approves the wording; the facts in it were taken from the code, not assumed.
-export const ANALYSIS_TITLE_PL = 'Analiza lekcji AI — informacja o przetwarzaniu danych'
-export const ANALYSIS_TITLE_EN = 'AI lesson analysis — how we handle your data'
+export const ANALYSIS_TITLE_PL = 'Analiza lekcji AI: informacja o przetwarzaniu danych'
+export const ANALYSIS_TITLE_EN = 'AI lesson analysis: how we handle your data'
 
 export const ANALYSIS_HTML_PL = `
 <section>
@@ -1329,24 +1330,24 @@ Analiza powstaje automatycznie na podstawie zapisu rozmowy z lekcji i jest widoc
 
 <h2>Jakie dane przetwarzamy?</h2>
 <ul>
-<li><strong>Zapis przebiegu lekcji</strong> — transkrypcja wypowiedzi z lekcji, z oznaczeniem, kto co powiedział.</li>
-<li><strong>Treść analizy</strong> — oceny liczbowe, poziom CEFR, wypisane błędy i cytaty z lekcji.</li>
+<li><strong>Zapis przebiegu lekcji</strong>: transkrypcja wypowiedzi z lekcji, z oznaczeniem, kto co powiedział.</li>
+<li><strong>Treść analizy</strong>: oceny liczbowe, poziom CEFR, wypisane błędy i cytaty z lekcji.</li>
 <li><strong>Informacje, które sam(a) podasz w rozmowie.</strong> Lekcja konwersacyjna z natury dotyczy
-Twojego życia. Prosimy, byś nie poruszał(a) na lekcji objętej analizą spraw, których nie chcesz utrwalać —
+Twojego życia. Prosimy, byś nie poruszał(a) na lekcji objętej analizą spraw, których nie chcesz utrwalać;
 w szczególności danych o zdrowiu, poglądach, wyznaniu czy życiu prywatnym osób trzecich.</li>
 </ul>
 
-<h2>Bajla — asystentka na WhatsAppie</h2>
+<h2>Bajla, asystentka na WhatsAppie</h2>
 <p>Wykupienie tej usługi włącza również <strong>Bajlę</strong>, asystentkę dostępną na WhatsAppie,
 która pomaga rezerwować, odwoływać i przekładać lekcje oraz sprawdzać postępy. Przetwarzamy wtedy
-Twój numer telefonu i treść wiadomości, które do niej wysyłasz — w tym samym celu i na tej samej
+Twój numer telefonu i treść wiadomości, które do niej wysyłasz, w tym samym celu i na tej samej
 zgodzie. Bajla jest włączana jednorazowo przy zakupie i nie jest rozliczana za rozmowę.</p>
 
 <h2>Kto ma do nich dostęp?</h2>
 <ul>
 <li>Twój lektor i EnglishMetro (zorganizowana część przedsiębiorstwa Fundacji).</li>
 <li><strong>Dostawca usługi transkrypcji</strong> oraz <strong>dostawca modelu językowego</strong>, który
-generuje analizę — jako podmioty przetwarzające, na podstawie umów powierzenia. Aktualną listę dostawców
+generuje analizę, jako podmioty przetwarzające, na podstawie umów powierzenia. Aktualną listę dostawców
 podajemy w tej informacji i aktualizujemy przy każdej zmianie.</li>
 </ul>
 <p>Dane nie są sprzedawane ani wykorzystywane do reklamy.</p>
@@ -1358,17 +1359,17 @@ standardowe klauzule umowne). Szczegóły podamy na żądanie.</p>
 
 <h2>Podstawa prawna i dobrowolność</h2>
 <p>Podstawą jest <strong>Twoja zgoda</strong> (art. 6 ust. 1 lit. a RODO), wyrażona przy zakupie usługi.
-Zgoda jest dobrowolna, a jej brak nie wpływa na możliwość korzystania z lekcji — bez niej lekcja odbywa się
+Zgoda jest dobrowolna, a jej brak nie wpływa na możliwość korzystania z lekcji: bez niej lekcja odbywa się
 normalnie, po prostu bez analizy. <strong>Zgodę możesz wycofać w każdej chwili</strong> w Ustawieniach konta.
 Wycofanie działa na przyszłość i nie wpływa na zgodność z prawem przetwarzania sprzed wycofania.</p>
 
 <h2>Konta osób niepełnoletnich</h2>
 <p>Usługa jest <strong>niedostępna dla kont zakładanych dla osób poniżej 18 lat</strong>. Nie nagrywamy
-i nie analizujemy lekcji osób niepełnoletnich — nie da się tego włączyć, także za zgodą rodzica lub opiekuna.</p>
+i nie analizujemy lekcji osób niepełnoletnich; nie da się tego włączyć, także za zgodą rodzica lub opiekuna.</p>
 
 <h2>Jak długo przechowujemy dane?</h2>
 <p>Transkrypcję i analizę przechowujemy przez czas trwania nauki i <strong>usuwamy w ciągu 30 dni</strong>
-od wycofania zgody albo od zakończenia współpracy — w zależności od tego, co nastąpi wcześniej.</p>
+od wycofania zgody albo od zakończenia współpracy, w zależności od tego, co nastąpi wcześniej.</p>
 
 <h2>Twoje prawa</h2>
 <p>Przysługuje Ci dostęp do danych, ich sprostowanie, usunięcie, ograniczenie przetwarzania, przenoszenie
@@ -1391,8 +1392,8 @@ automatically from a record of the lesson conversation and appears on your lesso
 
 <h2>What we process</h2>
 <ul>
-<li><strong>A record of the lesson</strong> — a transcript of what was said, attributed to each speaker.</li>
-<li><strong>The analysis itself</strong> — scores, a CEFR band, listed errors and quotations from the lesson.</li>
+<li><strong>A record of the lesson</strong>: a transcript of what was said, attributed to each speaker.</li>
+<li><strong>The analysis itself</strong>: scores, a CEFR band, listed errors and quotations from the lesson.</li>
 <li><strong>Whatever you choose to say.</strong> A conversation lesson is about your life by design. Please
 do not raise anything in an analysed lesson that you would not want recorded, in particular health,
 beliefs, or private details about other people.</li>

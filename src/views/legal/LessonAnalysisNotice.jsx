@@ -8,6 +8,8 @@ export default function LessonAnalysisNotice() {
       titleEn={ANALYSIS_TITLE_EN}
       docId="EM-LEGAL-04"
       bodyHtml={ANALYSIS_HTML_PL}
+      effectivePl={'10 sierpnia 2026 r.'}
+      effectiveEn={'10 August 2026'}
       bodyHtmlEn={ANALYSIS_HTML_EN}
     />
   )

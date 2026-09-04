@@ -3,17 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <title>Najczęstsze pytania — englishmetro.com — English Metro.</title>
-  <meta name="description" content="Najczęstsze pytania o EnglishMetro: dzieci i młodzież, przygotowanie do egzaminów, poziomy, płatności i faktury, odwoływanie lekcji, nagrania i dane, kursy grupowe." />
+  <title>Najczęstsze pytania | English Metro.</title>
+  <meta name="description" content="Najczęstsze pytania o English Metro: lekcje i poziomy, dzieci i młodzież, płatności i faktury, ważność pakietów, odwoływanie lekcji, zwroty, kursy grupowe, nagrania i dane, Bajla na WhatsAppie." />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://englishmetro.com/faq/" />
+  <meta name="theme-color" content="#A21CAF" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico?v=4" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=4" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png?v=4" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icon-apple-180.png?v=4" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="English Metro." />
+  <meta property="og:locale" content="pl_PL" />
+  <meta property="og:locale:alternate" content="en_GB" />
+  <meta property="og:title" content="Najczęstsze pytania | English Metro." />
+  <meta property="og:description" content="Najczęstsze pytania o English Metro: lekcje i poziomy, dzieci i młodzież, płatności i faktury, ważność pakietów, odwoływanie lekcji, zwroty, kursy grupowe, nagrania i dane, Bajla na WhatsAppie." />
+  <meta property="og:url" content="https://englishmetro.com/faq/" />
+  <meta property="og:image" content="https://englishmetro.com/brand/em-og-card.jpg?v=1" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Frequently asked questions | English Metro." />
+  <meta name="twitter:description" content="Frequently asked questions about English Metro: lessons and levels, children, paying and invoices, package validity, cancelling, refunds, group courses, recordings and data, Bajla on WhatsApp." />
+  <meta name="twitter:image" content="https://englishmetro.com/brand/em-og-card.jpg?v=1" />
+  <link rel="preload" href="/fonts/fonts.css" as="style" />
   <link href="/fonts/fonts.css" rel="stylesheet" />
-  <link href="/legal/legal.css?v=20260723" rel="stylesheet" />
-  <link href="/legal/foundation-legal.css?v=20260723" rel="stylesheet" />
-  <script src="/legal/legal.js" defer></script>
+  <link href="/legal/legal.css?v=20260903" rel="stylesheet" />
+  <link href="/legal/foundation-legal.css?v=20260903" rel="stylesheet" />
+  <script src="/legal/legal.js?v=20260903" defer></script>
   <!--
-    /faq/ — added 2026-09-03, alongside /about/.
+    /faq/, added 2026-09-03, alongside /about/. Header and footer are synced from
+    scripts/build-legal-static.mjs through the em-shell markers; edit them there.
 
     ⛔ SAME RULES AS /about/. Every answer is quoted from a live artefact: the Terms
     (EM-LEGAL-03), the Privacy Policy (EM-LEGAL-01), the live SPA bundle's own
@@ -43,25 +63,34 @@
     page if the GDPR requires, but do not repeat it across the site. A first draft
     of this page had a "How do I withdraw that consent?" entry; it was removed.
 
-    Wrapper is .legal-body > .legal-content, not the unstyled .legal-layout/.legal-main.
+    Wrapper is .legal-body > .legal-toc + .legal-content (legal.css). Package validity
+    and the extension rule quote Regulamin § 5 ust. 2 and 3 (revision 5, 2026-09-03), which
+    convex/billing.ts packageValidity() implements with the same ranges.
   -->
 </head>
 <body>
 
+  <!-- em-shell:header -->
   <header class="legal-topbar">
     <a class="legal-wordmark" href="/">English <em>Metro.</em></a>
-    <nav class="legal-topnav">
+    <nav class="legal-topnav" id="site-nav" aria-label="English Metro">
       <a href="/about/"><span class="lang-en">About</span><span class="lang-pl">O nas</span></a>
       <a href="/faq/" aria-current="page"><span class="lang-en">FAQ</span><span class="lang-pl">Pytania</span></a>
-      <a href="/terms/"><span class="lang-en">Terms</span><span class="lang-pl">Regulamin</span></a>
-      <a href="/privacy/"><span class="lang-en">Privacy</span><span class="lang-pl">Prywatność</span></a>
+      <a href="/pricing"><span class="lang-en">Pricing</span><span class="lang-pl">Cennik</span></a>
       <a href="/kontakt/"><span class="lang-en">Contact</span><span class="lang-pl">Kontakt</span></a>
-      <span class="lang-toggle" role="group" aria-label="Language">
-        <button type="button" data-lang="en">EN</button>
-        <button type="button" data-lang="pl">PL</button>
-      </span>
+      <span class="nav-sep" aria-hidden="true"></span>
+      <a href="/login"><span class="lang-en">Sign in</span><span class="lang-pl">Logowanie</span></a>
+      <a class="nav-cta" href="/signup"><span class="lang-en">Sign up</span><span class="lang-pl">Zapisz się</span></a>
     </nav>
+    <div class="legal-topbar-right">
+      <span class="lang-toggle" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        <button type="button" data-lang="pl" aria-pressed="true">PL</button>
+      </span>
+      <button type="button" class="legal-menu-btn" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><svg class="ico-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><svg class="ico-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
   </header>
+  <!-- /em-shell:header -->
 
   <div class="legal-hero">
     <div class="legal-hero-inner">
@@ -125,13 +154,19 @@
             <p>Your lesson happens in a <strong>Google Meet</strong> room. You get the link by email with a calendar invitation, and it also appears on your lesson card in the app.</p>
 
             <h3>How do I book, and how far ahead?</h3>
-            <p>You pick an open time in your teacher's calendar yourself, at least <strong>24 hours ahead</strong>. If you want the same slot every week, the planner repeats it for you and skips any week that is already taken or closed. You can also do all of this by messaging Bajla on WhatsApp.</p>
+            <p>You pick an open time in your teacher's calendar yourself, at least <strong>24 hours ahead</strong>. If you want the same slot every week, the planner repeats it for you and skips any week that is already taken or closed. If you have the AI lesson analysis add-on, you can also do all of this by messaging Bajla on WhatsApp.</p>
+
+            <h3>Who is Bajla?</h3>
+            <p>Bajla is our assistant on WhatsApp, an owl, and the same character you meet across the site. Anyone can message her with questions about the school, in Polish or English. If you buy the AI lesson analysis add-on she is also switched on for your account: she books, moves and cancels your lessons and sends you your lesson notes. Her number is <a href="https://wa.me/48787126561" target="_blank" rel="noopener">+48 787 126 561</a>.</p>
+
+            <h3>Do I need to install anything?</h3>
+            <p>No. Google Meet runs in a normal browser on a computer; on a phone the free Meet app is the easier route. You need a camera, a microphone and a stable connection, nothing else.</p>
 
             <h3>Can I get a free trial lesson?</h3>
             <p>There is no free lesson. There is a <strong>single one-off lesson</strong> you can buy on its own, which is the normal way to try the school before committing to a package. It is valid for 90 days.</p>
 
             <h3>What do I get after each lesson?</h3>
-            <p>A PDF of the lesson notes in your library, and the vocabulary from that lesson turned into flashcards with translations, definitions, examples, pronunciation and real video clips. That is included in every package. The AI lesson analysis is a separate optional paid add-on.</p>
+            <p>A PDF of the lesson notes in your library, and the vocabulary from that lesson turned into flashcards: each word with its translation, definition, example, pronunciation and a short YouTube clip of the word being used by real speakers. That is included in every package. The AI lesson analysis is a separate optional paid add-on.</p>
 
             <h3>My level is wrong, or something is not working</h3>
             <p>Your level is set at the start and adjusted as you go. If anything is not working for you, write to <!--email_off--><a href="mailto:support@englishmetro.com">support@englishmetro.com</a><!--/email_off--> and we will sort it out with you.</p>
@@ -165,7 +200,13 @@
             <p>Yes. The invoice is issued by the Foundation through the national KSeF e-invoicing system. It must carry your full address, and for a company purchase also the company NIP. For lessons for a team, write to <!--email_off--><a href="mailto:support@englishmetro.com">support@englishmetro.com</a><!--/email_off--> and we will put together what you need.</p>
 
             <h3>How long is a package valid?</h3>
-            <p>Counted from the day payment clears: a single lesson 90 days, packages of 4 and 8 lessons 6 months, packages of 16 and 24 lessons 12 months. For any other package the period is confirmed with your order.</p>
+            <p>Counted from the day payment is confirmed: a single lesson <strong>90 days</strong>; packages of 2 to 8 lessons <strong>6 months</strong>; 9 to 24 lessons <strong>12 months</strong>; 25 lessons or more, including the 48-lesson package, <strong>24 months</strong>. The period is shown next to each package and in your order confirmation (Terms, § 5).</p>
+
+            <h3>Can I extend a package, or pause it?</h3>
+            <p>Before it expires you can ask once, free of charge, for an extension: up to 3 months for a single lesson or a package of up to 8 lessons, up to 6 months for 9 to 24 lessons, up to 12 months for 25 lessons or more. Requests are looked at favourably, and where there is a good reason, illness, a long trip, a family situation, we can extend further or for longer. Write to <!--email_off--><a href="mailto:support@englishmetro.com">support@englishmetro.com</a><!--/email_off--> before the package runs out.</p>
+
+            <h3>What happens to unused lessons?</h3>
+            <p>Within the validity period you can give up the lessons you have not used. You choose: a pro rata refund at the per-lesson price of your package, or the money stays as credit for future lessons. Refunds are made without delay, no later than 14 days after we receive your request.</p>
           </section>
 
           <section class="fl-sec" id="changes">
@@ -184,7 +225,10 @@
             <p>If we or the teacher cancel a lesson, it does not consume your package. Depending on what suits you, we extend, reschedule, credit or refund.</p>
 
             <h3>Can I get my money back?</h3>
-            <p>You have <strong>14 days</strong> to withdraw from the contract without giving a reason and without costs, using the <a href="/withdraw">withdrawal form</a>, which needs no sign-in. If you asked for lessons to start inside that period and then withdraw, you pay proportionately for the lessons actually used. Separately, unused lessons in a package can be refunded pro rata on request, no later than 14 days after we receive it. The binding detail is in the <a href="/terms/">Terms</a>.</p>
+            <p>You have <strong>14 days</strong> to withdraw from the contract without giving a reason and without costs, using the <a href="/withdraw">withdrawal form</a>, which needs no sign-in. If you asked for lessons to start inside that period and then withdraw, you pay proportionately for the lessons actually used. Unused lessons are handled separately, see <a href="#money">Paying</a> above. The binding detail is in the <a href="/terms/">Terms</a>.</p>
+
+            <h3>How do I make a complaint?</h3>
+            <p>Write to <!--email_off--><a href="mailto:support@englishmetro.com">support@englishmetro.com</a><!--/email_off--> or by post to the service address on the <a href="/kontakt/">contact page</a>, saying what happened and what you expect. We answer every complaint within 14 days of receiving it. If you disagree with the answer, the <a href="/terms/">Terms</a> list the out-of-court routes open to consumers.</p>
           </section>
 
           <section class="fl-sec" id="groups">
@@ -209,11 +253,14 @@
 
             <h3>What languages can I write to you in?</h3>
             <p>Polish or English, whichever is easier, both here and with Bajla on WhatsApp.</p>
+
+            <h3>Is the English version of the Terms binding?</h3>
+            <p>No. The Polish text of the Terms, the Privacy Policy and the Cookies Policy is the binding version, approved by the Foundation's legal team. The English on those pages is a courtesy translation; if the two ever differ, the Polish text applies.</p>
           </section>
 
           <section class="fl-sec" id="more">
             <h2>Something else</h2>
-            <p>Email <!--email_off--><a href="mailto:support@englishmetro.com">support@englishmetro.com</a><!--/email_off--> or call <a href="tel:+48662563507">+48 662 563 507</a>. Phone and email contact is available on business days; we reply to emails within 14 days at the latest, and complaints are handled within 14 days of receipt.</p>
+            <p>Email <!--email_off--><a href="mailto:support@englishmetro.com">support@englishmetro.com</a><!--/email_off-->, message <a href="https://wa.me/48787126561" target="_blank" rel="noopener">Bajla on WhatsApp</a>, or call <a href="tel:+48662563507">+48 662 563 507</a>. Phone and email contact is available on business days; we reply to emails within 14 days at the latest, and complaints are handled within 14 days of receipt.</p>
             <p>For what the school is and how it works, see <a href="/about/">About us</a>. For the binding rules, see the <a href="/terms/">Terms</a>.</p>
           </section>
 
@@ -240,13 +287,19 @@
             <p>Lekcja odbywa się w pokoju <strong>Google Meet</strong>. Link dostajesz e-mailem razem z zaproszeniem do kalendarza, pojawia się też na karcie lekcji w aplikacji.</p>
 
             <h3>Jak rezerwuję lekcje i z jakim wyprzedzeniem?</h3>
-            <p>Sam(a) wybierasz wolny termin w kalendarzu lektora, co najmniej <strong>24 godziny wcześniej</strong>. Jeśli chcesz mieć ten sam termin co tydzień, planer powtórzy go za Ciebie i pominie tygodnie już zajęte albo zamknięte. Wszystko to możesz też załatwić, pisząc do Bajli na WhatsAppie.</p>
+            <p>Sam(a) wybierasz wolny termin w kalendarzu lektora, co najmniej <strong>24 godziny wcześniej</strong>. Jeśli chcesz mieć ten sam termin co tydzień, planer powtórzy go za Ciebie i pominie tygodnie już zajęte albo zamknięte. Jeśli masz dodatek analizy lekcji AI, wszystko to możesz też załatwić, pisząc do Bajli na WhatsAppie.</p>
+
+            <h3>Kim jest Bajla?</h3>
+            <p>Bajla to nasza asystentka na WhatsAppie, sowa, ta sama postać, którą spotykasz na całej stronie. Każdy może napisać do niej z pytaniami o szkołę, po polsku albo po angielsku. Jeśli wykupisz dodatek analizy lekcji AI, Bajla zostaje też włączona dla Twojego konta: rezerwuje, przekłada i odwołuje Twoje lekcje oraz wysyła Ci notatki z lekcji. Jej numer to <a href="https://wa.me/48787126561" target="_blank" rel="noopener">+48 787 126 561</a>.</p>
+
+            <h3>Czy muszę coś instalować?</h3>
+            <p>Nie. Google Meet działa w zwykłej przeglądarce na komputerze; na telefonie wygodniejsza jest bezpłatna aplikacja Meet. Potrzebujesz kamery, mikrofonu i stabilnego łącza, nic więcej.</p>
 
             <h3>Czy jest darmowa lekcja próbna?</h3>
             <p>Darmowej lekcji nie ma. Jest natomiast <strong>pojedyncza lekcja</strong>, którą można kupić osobno, i to jest zwykły sposób, żeby sprawdzić szkołę przed wykupieniem pakietu. Jest ważna 90 dni.</p>
 
             <h3>Co dostaję po każdej lekcji?</h3>
-            <p>PDF z notatkami w Twojej bibliotece oraz słownictwo z tej lekcji zamienione w fiszki z tłumaczeniami, definicjami, przykładami, wymową i prawdziwymi klipami wideo. To jest w każdym pakiecie. Analiza lekcji AI to osobny, opcjonalny, dodatkowo płatny dodatek.</p>
+            <p>PDF z notatkami w Twojej bibliotece oraz słownictwo z tej lekcji zamienione w fiszki: każde słowo z tłumaczeniem, definicją, przykładem, wymową i krótkim klipem z YouTube, w którym używają go prawdziwi mówcy. To jest w każdym pakiecie. Analiza lekcji AI to osobny, opcjonalny, dodatkowo płatny dodatek.</p>
 
             <h3>Mam zły poziom albo coś mi nie pasuje</h3>
             <p>Poziom ustalamy na starcie i korygujemy w trakcie. Jeśli coś Ci nie pasuje, napisz na <!--email_off--><a href="mailto:support@englishmetro.com">support@englishmetro.com</a><!--/email_off-->, a ustalimy to razem.</p>
@@ -280,7 +333,13 @@
             <p>Tak. Fakturę wystawia Fundacja przez Krajowy System e-Faktur (KSeF). Musi ona zawierać Twój pełny adres, a przy zakupie firmowym również NIP firmy. W sprawie lekcji dla zespołu napisz na <!--email_off--><a href="mailto:support@englishmetro.com">support@englishmetro.com</a><!--/email_off-->, a przygotujemy to, czego potrzebujesz.</p>
 
             <h3>Jak długo ważny jest pakiet?</h3>
-            <p>Licząc od dnia zaksięgowania płatności: pojedyncza lekcja 90 dni, pakiety 4 i 8 lekcji 6 miesięcy, pakiety 16 i 24 lekcji 12 miesięcy. Przy pozostałych pakietach okres ważności potwierdzamy przy zamówieniu.</p>
+            <p>Licząc od dnia potwierdzenia płatności: pojedyncza lekcja <strong>90 dni</strong>; pakiety od 2 do 8 lekcji <strong>6 miesięcy</strong>; od 9 do 24 lekcji <strong>12 miesięcy</strong>; od 25 lekcji wzwyż, w tym pakiet 48 lekcji, <strong>24 miesiące</strong>. Okres ważności jest podany przy każdym pakiecie i w potwierdzeniu zamówienia (Regulamin, § 5).</p>
+
+            <h3>Czy mogę przedłużyć pakiet albo zrobić przerwę?</h3>
+            <p>Przed upływem ważności możesz jednorazowo i bezpłatnie poprosić o przedłużenie: o maksymalnie 3 miesiące przy pojedynczej lekcji i pakietach do 8 lekcji, o 6 miesięcy przy pakietach od 9 do 24 lekcji, o 12 miesięcy przy pakietach od 25 lekcji. Wnioski rozpatrujemy przychylnie, a w uzasadnionych przypadkach, choroba, dłuższy wyjazd, sytuacja rodzinna, możemy przedłużyć ważność dalej albo na dłużej. Napisz na <!--email_off--><a href="mailto:support@englishmetro.com">support@englishmetro.com</a><!--/email_off-->, zanim pakiet wygaśnie.</p>
+
+            <h3>Co z niewykorzystanymi lekcjami?</h3>
+            <p>W okresie ważności możesz zrezygnować z lekcji, których nie wykorzystałeś(-aś). Wybierasz: zwrot proporcjonalny według ceny jednej lekcji z Twojego pakietu albo pozostawienie środków jako kredytu na przyszłe lekcje. Zwroty realizujemy niezwłocznie, nie później niż w ciągu 14 dni od otrzymania wniosku.</p>
           </section>
 
           <section class="fl-sec" id="zmiany">
@@ -299,7 +358,10 @@
             <p>Jeśli lekcję odwołamy my albo lektor, nie pomniejsza to Twojego pakietu. Zależnie od tego, co Ci odpowiada, przedłużamy ważność, przekładamy lekcję, zaliczamy ją na poczet kolejnej albo zwracamy pieniądze.</p>
 
             <h3>Czy mogę odzyskać pieniądze?</h3>
-            <p>Masz <strong>14 dni</strong> na odstąpienie od umowy bez podania przyczyny i bez kosztów, przez <a href="/withdraw">formularz odstąpienia</a>, który nie wymaga logowania. Jeśli poprosiłeś(-aś) o rozpoczęcie lekcji w tym okresie, a potem odstępujesz, płacisz proporcjonalnie za faktycznie wykorzystane lekcje. Niezależnie od tego niewykorzystane lekcje z pakietu można na wniosek rozliczyć proporcjonalnie, nie później niż w ciągu 14 dni od jego otrzymania. Wiążące szczegóły są w <a href="/terms/">Regulaminie</a>.</p>
+            <p>Masz <strong>14 dni</strong> na odstąpienie od umowy bez podania przyczyny i bez kosztów, przez <a href="/withdraw">formularz odstąpienia</a>, który nie wymaga logowania. Jeśli poprosiłeś(-aś) o rozpoczęcie lekcji w tym okresie, a potem odstępujesz, płacisz proporcjonalnie za faktycznie wykorzystane lekcje. Niewykorzystane lekcje rozliczamy osobno, zobacz <a href="#platnosci">Płatności</a> wyżej. Wiążące szczegóły są w <a href="/terms/">Regulaminie</a>.</p>
+
+            <h3>Jak złożyć reklamację?</h3>
+            <p>Napisz na <!--email_off--><a href="mailto:support@englishmetro.com">support@englishmetro.com</a><!--/email_off--> albo pocztą na adres do doręczeń podany na <a href="/kontakt/">stronie kontaktu</a>, opisując, co się stało i czego oczekujesz. Na każdą reklamację odpowiadamy w ciągu 14 dni od jej otrzymania. Jeśli nie zgadzasz się z odpowiedzią, <a href="/terms/">Regulamin</a> wskazuje pozasądowe drogi dostępne konsumentom.</p>
           </section>
 
           <section class="fl-sec" id="grupy">
@@ -324,11 +386,14 @@
 
             <h3>W jakim języku mogę do Was pisać?</h3>
             <p>Po polsku albo po angielsku, jak Ci wygodniej, zarówno tutaj, jak i do Bajli na WhatsAppie.</p>
+
+            <h3>Czy angielska wersja Regulaminu jest wiążąca?</h3>
+            <p>Nie. Wiążący jest polski tekst Regulaminu, Polityki prywatności i Polityki cookies, zatwierdzony przez dział prawny Fundacji. Angielski na tych stronach to tłumaczenie grzecznościowe; w razie różnic obowiązuje tekst polski.</p>
           </section>
 
           <section class="fl-sec" id="wiecej">
             <h2>Coś jeszcze</h2>
-            <p>Napisz na <!--email_off--><a href="mailto:support@englishmetro.com">support@englishmetro.com</a><!--/email_off--> albo zadzwoń pod <a href="tel:+48662563507">+48 662 563 507</a>. Kontakt telefoniczny i e-mailowy jest dostępny w dni robocze; na e-maile odpowiadamy najpóźniej w ciągu 14 dni, a reklamacje rozpatrujemy w terminie 14 dni od ich otrzymania.</p>
+            <p>Napisz na <!--email_off--><a href="mailto:support@englishmetro.com">support@englishmetro.com</a><!--/email_off-->, do <a href="https://wa.me/48787126561" target="_blank" rel="noopener">Bajli na WhatsAppie</a> albo zadzwoń pod <a href="tel:+48662563507">+48 662 563 507</a>. Kontakt telefoniczny i e-mailowy jest dostępny w dni robocze; na e-maile odpowiadamy najpóźniej w ciągu 14 dni, a reklamacje rozpatrujemy w terminie 14 dni od ich otrzymania.</p>
             <p>O tym, czym jest szkoła i jak działa, przeczytasz na stronie <a href="/about/">O nas</a>. Wiążące zasady znajdziesz w <a href="/terms/">Regulaminie</a>.</p>
           </section>
 
@@ -338,27 +403,50 @@
     </main>
   </div>
 
+  <!-- em-shell:footer -->
   <footer class="legal-footer">
     <div class="legal-footer-inner">
-      <div>
-        <span class="lang-en">EnglishMetro, an organised business unit of Fundacja Rozwoju Przedsiębiorczości „Twój StartUp”, Warsaw, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467</span>
-        <span class="lang-pl">EnglishMetro, zorganizowana część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp” z siedzibą w Warszawie, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP 5213641211 · REGON 146433467</span>
+      <div class="legal-footer-grid">
+        <div class="legal-footer-brand">
+          <a class="legal-wordmark" href="/">English <em>Metro.</em></a>
+          <p class="lang-en">Live one-to-one English lessons online with your own teacher, from A2 to C1.</p>
+          <p class="lang-pl">Lekcje angielskiego jeden na jeden, online i na żywo, z Twoim lektorem, od A2 do C1.</p>
+          <div class="legal-footer-contact">
+            <a class="is-wa" href="https://wa.me/48787126561" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2Zm0 1.8a8.2 8.2 0 1 1-4.2 15.3l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 0 1 12 3.8Zm-3 4.4c-.2 0-.5 0-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.2 5 4.4 2.5 1 3 .8 3.5.7.5 0 1.7-.7 1.9-1.4.3-.7.3-1.2.2-1.4l-1.9-.9c-.3-.1-.4-.1-.6.1l-.9 1.1c-.2.2-.3.2-.6.1a6.7 6.7 0 0 1-3.4-3c-.2-.4 0-.5.1-.7l.6-.8c.1-.2 0-.4 0-.5l-.9-2c-.2-.5-.4-.4-.5-.4Z"/></svg><span class="lang-en">Bajla on WhatsApp</span><span class="lang-pl">Bajla na WhatsAppie</span></a>
+            <!--email_off--><a href="mailto:support@englishmetro.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>support@englishmetro.com</a><!--/email_off-->
+            <a href="tel:+48662563507"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg>+48 662 563 507</a>
+          </div>
+        </div>
+        <div>
+          <h2><span class="lang-en">School</span><span class="lang-pl">Szkoła</span></h2>
+          <nav aria-label="School">
+            <a href="/"><span class="lang-en">Home</span><span class="lang-pl">Strona główna</span></a>
+            <a href="/about/"><span class="lang-en">About us</span><span class="lang-pl">O nas</span></a>
+            <a href="/faq/" aria-current="page"><span class="lang-en">FAQ</span><span class="lang-pl">Najczęstsze pytania</span></a>
+            <a href="/pricing"><span class="lang-en">Pricing</span><span class="lang-pl">Cennik</span></a>
+            <a href="/login"><span class="lang-en">Sign in</span><span class="lang-pl">Logowanie</span></a>
+            <a href="/signup"><span class="lang-en">Sign up</span><span class="lang-pl">Zapisz się</span></a>
+          </nav>
+        </div>
+        <div>
+          <h2><span class="lang-en">Documents</span><span class="lang-pl">Dokumenty</span></h2>
+          <nav aria-label="Legal">
+            <a href="/terms/"><span class="lang-en">Terms of Service</span><span class="lang-pl">Regulamin</span></a>
+            <a href="/privacy/"><span class="lang-en">Privacy Policy</span><span class="lang-pl">Polityka prywatności</span></a>
+            <a href="/cookies/"><span class="lang-en">Cookies Policy</span><span class="lang-pl">Polityka cookies</span></a>
+            <a href="/ochrona-dzieci/"><span class="lang-en">Child protection</span><span class="lang-pl">Ochrona dzieci</span></a>
+            <a href="/kontakt/"><span class="lang-en">Contact and company details</span><span class="lang-pl">Kontakt i dane firmy</span></a>
+            <a class="fl-withdraw-cta" href="/withdraw"><span class="lang-en">Withdraw from a contract</span><span class="lang-pl">Odstąp od umowy</span></a>
+          </nav>
+        </div>
       </div>
-      <nav>
-        <a href="/"><span class="lang-en">Home</span><span class="lang-pl">Strona główna</span></a>
-        <a href="/about/"><span class="lang-en">About us</span><span class="lang-pl">O nas</span></a>
-        <a href="/faq/"><span class="lang-en">FAQ</span><span class="lang-pl">Najczęstsze pytania</span></a>
-        <a href="/ochrona-dzieci/"><span class="lang-en">Child protection</span><span class="lang-pl">Ochrona dzieci</span></a>
-        <a href="/privacy/"><span class="lang-en">Privacy Policy</span><span class="lang-pl">Polityka prywatności</span></a>
-        <a href="/cookies/"><span class="lang-en">Cookies Policy</span><span class="lang-pl">Polityka cookies</span></a>
-        <a href="/terms/"><span class="lang-en">Terms of Service</span><span class="lang-pl">Regulamin</span></a>
-        <a href="/kontakt/"><span class="lang-en">Contact &amp; company details</span><span class="lang-pl">Kontakt i dane firmy</span></a>
-        <a class="fl-withdraw-cta" href="/withdraw"><span class="lang-en">Withdraw from a contract here</span><span class="lang-pl">Odstąp od umowy tutaj</span></a>
-        <!--email_off--><a href="mailto:support@englishmetro.com">support@englishmetro.com</a><!--/email_off-->
-        <a href="tel:+48662563507">+48 662 563 507</a>
-      </nav>
+      <div class="legal-footer-legal">
+        <p><span class="lang-en">EnglishMetro, an organised business unit of Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467</span><span class="lang-pl">EnglishMetro, zorganizowana część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP 5213641211 · REGON 146433467</span></p>
+        <p><span class="lang-en">Online payments are operated by PayPro S.A., ul. Pastelowa 8, 60-198 Poznań, KRS 0000347935, NIP 7792369887, REGON 301345068 (Przelewy24).</span><span class="lang-pl">Operatorem płatności online jest PayPro S.A., ul. Pastelowa 8, 60-198 Poznań, KRS 0000347935, NIP 7792369887, REGON 301345068 (Przelewy24).</span></p>
+      </div>
     </div>
   </footer>
+  <!-- /em-shell:footer -->
 
 </body>
 </html>

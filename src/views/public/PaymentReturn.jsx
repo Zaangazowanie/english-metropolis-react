@@ -23,8 +23,8 @@ const DURATIONS = [
 const TYPES = [
   ['one-to-one',
    'One-to-one', 'Lekcje indywidualne',
-   'General English built around you — your goals, your pace, your interests.',
-   'Ogólny angielski dopasowany do Ciebie — Twoje cele, tempo i zainteresowania.'],
+   'General English built around you: your goals, your pace, your interests.',
+   'Ogólny angielski dopasowany do Ciebie: Twoje cele, tempo i zainteresowania.'],
   ['specialist',
    'Specialist', 'Lekcje specjalistyczne',
    'Aimed at one outcome: an exam, a job interview, relocation, or business English.',
@@ -166,8 +166,8 @@ function IntakeSection({ session }) {
       {level === 'unknown' && (
         <p className="co-intake-reassure">
           {t(
-            'That is completely fine, and it is the most common answer. Your teacher will assess your level during the first lesson — there is nothing to prepare and nothing to worry about.',
-            'To zupełnie normalne i najczęstsza odpowiedź. Lektor oceni Twój poziom podczas pierwszej lekcji — nie musisz się do niczego przygotowywać ani niczym martwić.',
+            'That is completely fine, and it is the most common answer. Your teacher will assess your level during the first lesson. There is nothing to prepare and nothing to worry about.',
+            'To zupełnie normalne i najczęstsza odpowiedź. Lektor oceni Twój poziom podczas pierwszej lekcji. Nie musisz się do niczego przygotowywać ani niczym martwić.',
           )}
         </p>
       )}
@@ -199,6 +199,12 @@ function IntakeSection({ session }) {
 }
 
 export default function PaymentReturn() {
+  // Same language rule as the rest of the public surface (Polish unless the
+  // visitor is outside Poland or has chosen otherwise); the intake form below
+  // already followed it, the status copy did not.
+  const [lang] = useState(() => detectInitial())
+  const isPl = lang === 'pl'
+  const t = (en, pl) => (isPl ? pl : en)
   const session = useMemo(() => readSession(), [])
   const sessionId = useMemo(() => new URLSearchParams(window.location.search).get('sessionId') || '', [])
   const [payment, setPayment] = useState(null)
@@ -250,7 +256,7 @@ export default function PaymentReturn() {
   return (
     <main className="lp-page co-page">
       <header className="lp-nav">
-        <Link to="/" className="lp-brand" aria-label="EnglishMetro home">
+        <Link to="/" className="lp-brand" aria-label="English Metro home">
           <Skyline size={30} />
           <span>English<span>Metro</span>.</span>
         </Link>
@@ -265,57 +271,58 @@ export default function PaymentReturn() {
 
         {!session || !sessionId ? (
           <>
-            <h1>We could not identify this payment.</h1>
-            <p>Sign in to your EnglishMetro account or return to checkout.</p>
+            <h1>{t('We could not identify this payment.', 'Nie udało się zidentyfikować tej płatności.')}</h1>
+            <p>{t('Sign in to your English Metro account or return to checkout.', 'Zaloguj się na swoje konto English Metro albo wróć do zamówienia.')}</p>
             <div className="co-success-actions">
               <Link
                 className="lp-button lp-button-primary"
                 to={`/login?next=${encodeURIComponent(`/payment/return${window.location.search}`)}`}
-              >Sign in</Link>
-              <Link className="lp-button lp-button-ghost" to="/checkout">Return to checkout</Link>
+              >{t('Sign in', 'Zaloguj się')}</Link>
+              <Link className="lp-button lp-button-ghost" to="/checkout">{t('Return to checkout', 'Wróć do zamówienia')}</Link>
             </div>
           </>
         ) : paid ? (
           <>
-            <h1>Payment confirmed. Your lessons are ready.</h1>
-            <p className="co-success-ref">Order reference: <strong>{payment.checkoutRef}</strong>{amount ? ` · ${amount}` : ''}</p>
-            <p>Przelewy24 verified the payment and the lesson package has been added to your account.</p>
+            <h1>{t('Payment confirmed. Your lessons are ready.', 'Płatność potwierdzona. Twoje lekcje są gotowe.')}</h1>
+            <p className="co-success-ref">{t('Order reference', 'Numer zamówienia')}: <strong>{payment.checkoutRef}</strong>{amount ? ` · ${amount}` : ''}</p>
+            <p>{t('Przelewy24 verified the payment and the lesson package has been added to your account.', 'Przelewy24 potwierdziło płatność, a pakiet lekcji został dodany do Twojego konta.')}</p>
             <IntakeSection session={session} />
             <div className="co-success-actions">
-              {session.slug && <a className="lp-button lp-button-primary" href={`/app/${session.slug}/dashboard`}>Go to your account</a>}
-              <Link className="lp-button lp-button-ghost" to="/lessons">Back to lessons</Link>
+              {session.slug && <a className="lp-button lp-button-primary" href={`/app/${session.slug}/dashboard`}>{t('Go to your account', 'Przejdź do konta')}</a>}
+              <Link className="lp-button lp-button-ghost" to="/lessons">{t('Back to lessons', 'Wróć do lekcji')}</Link>
             </div>
           </>
         ) : failed ? (
           <>
-            <h1>The secure payment could not be started.</h1>
-            <p>No lessons were allocated and no payment was confirmed. You can safely try again.</p>
+            <h1>{t('The secure payment could not be started.', 'Nie udało się rozpocząć bezpiecznej płatności.')}</h1>
+            <p>{t('No lessons were allocated and no payment was confirmed. You can safely try again.', 'Nie przydzielono żadnych lekcji i nie potwierdzono żadnej płatności. Możesz bezpiecznie spróbować ponownie.')}</p>
             <div className="co-success-actions">
-              <Link className="lp-button lp-button-primary" to="/checkout">Try payment again</Link>
+              <Link className="lp-button lp-button-primary" to="/checkout">{t('Try payment again', 'Spróbuj zapłacić ponownie')}</Link>
             </div>
           </>
         ) : stillWaiting ? (
           <>
-            <h1>Your payment is still being confirmed.</h1>
+            <h1>{t('Your payment is still being confirmed.', 'Twoja płatność jest jeszcze potwierdzana.')}</h1>
             <p>
-              Przelewy24 has not reported a final status yet, which is normal for a bank transfer.
-              You do not need to pay again or keep this page open. As soon as the payment is
-              verified the lessons are added to your account and we email you the confirmation.
+              {t(
+                'Przelewy24 has not reported a final status yet, which is normal for a bank transfer. You do not need to pay again or keep this page open. As soon as the payment is verified the lessons are added to your account and we email you the confirmation.',
+                'Przelewy24 nie przekazało jeszcze ostatecznego statusu, co przy przelewie bankowym jest normalne. Nie musisz płacić ponownie ani trzymać tej strony otwartej. Gdy tylko płatność zostanie zweryfikowana, lekcje trafią na Twoje konto, a potwierdzenie wyślemy e-mailem.',
+              )}
             </p>
             <div className="co-success-actions">
-              {session.slug && <a className="lp-button lp-button-primary" href={`/app/${session.slug}/dashboard`}>Go to your account</a>}
-              <Link className="lp-button lp-button-ghost" to="/lessons">Back to lessons</Link>
+              {session.slug && <a className="lp-button lp-button-primary" href={`/app/${session.slug}/dashboard`}>{t('Go to your account', 'Przejdź do konta')}</a>}
+              <Link className="lp-button lp-button-ghost" to="/lessons">{t('Back to lessons', 'Wróć do lekcji')}</Link>
             </div>
           </>
         ) : (
           <>
-            <h1>We are confirming your payment…</h1>
-            <p>{amount ? `${amount} · ` : ''}Keep this page open for a moment. Przelewy24 confirmation can arrive asynchronously.</p>
+            <h1>{t('We are confirming your payment…', 'Potwierdzamy Twoją płatność…')}</h1>
+            <p>{amount ? `${amount} · ` : ''}{t('Keep this page open for a moment. Przelewy24 confirmation can arrive asynchronously.', 'Zostaw tę stronę otwartą na chwilę. Potwierdzenie z Przelewy24 może dotrzeć z opóźnieniem.')}</p>
             {error && <p className="co-error">{error}</p>}
             <ul className="co-status-list">
-              <li data-state="ok"><span className="material-symbols-outlined" aria-hidden>check_circle</span>Returned securely from Przelewy24</li>
-              <li data-state="wait"><span className="material-symbols-outlined" aria-hidden>schedule</span>Waiting for verified transaction status</li>
-              <li data-state="next"><span className="material-symbols-outlined" aria-hidden>school</span>Lessons are allocated only after verification</li>
+              <li data-state="ok"><span className="material-symbols-outlined" aria-hidden>check_circle</span>{t('Returned securely from Przelewy24', 'Bezpieczny powrót z Przelewy24')}</li>
+              <li data-state="wait"><span className="material-symbols-outlined" aria-hidden>schedule</span>{t('Waiting for verified transaction status', 'Czekamy na zweryfikowany status transakcji')}</li>
+              <li data-state="next"><span className="material-symbols-outlined" aria-hidden>school</span>{t('Lessons are allocated only after verification', 'Lekcje przydzielamy dopiero po weryfikacji')}</li>
             </ul>
           </>
         )}

@@ -8,6 +8,8 @@ export default function CookiePolicy() {
       titleEn={COOKIES_TITLE_EN}
       docId="EM-LEGAL-02"
       bodyHtml={COOKIES_HTML_PL}
+      effectivePl={'23 lipca 2026 r.'}
+      effectiveEn={'23 July 2026'}
       bodyHtmlEn={COOKIES_HTML_EN}
     />
   )

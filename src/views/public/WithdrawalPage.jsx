@@ -92,7 +92,7 @@ export default function WithdrawalPage() {
             'Keep the email and receipt reference. Acknowledgement does not predetermine the statutory effect of withdrawal, which depends on the contract type and performance stage.',
           )}</p>
           <div className="wd-actions">
-            <Link className="wd-button" to="/">{t('Wróć do EnglishMetro', 'Return to EnglishMetro')}</Link>
+            <Link className="wd-button" to="/">{t('Wróć do English Metro', 'Return to English Metro')}</Link>
             <Link className="wd-link" to="/terms">{t('Przeczytaj Regulamin', 'Read the Terms')}</Link>
           </div>
         </section>
@@ -114,7 +114,7 @@ export default function WithdrawalPage() {
         <p className="wd-eyebrow">{t('Prawo konsumenta', 'Consumer right')}</p>
         <h1>{t('Odstąp od umowy online', 'Withdraw from a contract online')}</h1>
         <p>{t(
-          'Za pomocą tego formularza możesz przesłać jednoznaczne oświadczenie o odstąpieniu od umowy zawartej przez englishmetro.com. Po wysłaniu natychmiast otrzymasz potwierdzenie na trwałym nośniku — e-mailem.',
+          'Za pomocą tego formularza możesz przesłać jednoznaczne oświadczenie o odstąpieniu od umowy zawartej przez englishmetro.com. Po wysłaniu natychmiast otrzymasz potwierdzenie na trwałym nośniku, czyli e-mailem.',
           'Use this form to submit an unequivocal statement withdrawing from a contract concluded through englishmetro.com. After submission, you will immediately receive durable-medium confirmation by email.',
         )}</p>
       </section>
@@ -200,6 +200,7 @@ export default function WithdrawalPage() {
           <Link to="/privacy">{t('Prywatność', 'Privacy')}</Link>
           <Link to="/cookies">Cookies</Link>
           <a href="/kontakt/">{t('Kontakt', 'Contact')}</a>
+          <a href="/faq/">{t('Pytania', 'FAQ')}</a>
         </nav>
       </footer>
     </main>
