@@ -163,8 +163,8 @@
 
 .em-practice-root .em-dash-eyebrow {
   font-family: var(--em-mono);
-  font-size: 11px;
-  letter-spacing: 0.32em;
+  font-size: 13px;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--em-amber, #FBBF24);
   margin-bottom: 14px;
@@ -214,8 +214,8 @@
   background: rgba(167, 139, 250, 0.08);
   border: 1px solid rgba(167, 139, 250, 0.28);
   font-family: var(--em-mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-size: 13px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--em-violet, #A78BFA);
   white-space: nowrap;
@@ -272,7 +272,7 @@
   background: #0A0717;
   padding: 0 16px;
   color: var(--em-amber, #FBBF24);
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.3em;
 }
 
@@ -378,8 +378,8 @@
 }
 .em-practice-root .em-rank {
   font-family: var(--em-mono);
-  font-size: 11px;
-  letter-spacing: 0.24em;
+  font-size: 13px;
+  letter-spacing: 0.18em;
   color: var(--accent, #A78BFA);
   display: inline-flex;
   align-items: center;
@@ -403,14 +403,14 @@
   border: 1px solid rgba(52, 211, 153, 0.4);
   color: var(--em-mint, #34D399);
   font-family: var(--em-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 13px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 .em-practice-root .em-done-badge::before {
   content: '✓';
   font-family: var(--em-display);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 /* Hero card middle — district emoji + names */
@@ -442,7 +442,7 @@
 }
 .em-practice-root .em-district-sub-pl {
   font-style: italic;
-  font-size: 12px;
+  font-size: 13px;
   color: rgba(237, 230, 255, 0.55);
   margin: 6px 0 0;
 }
@@ -458,15 +458,15 @@
   gap: 14px;
 }
 .em-practice-root .em-hero-reason {
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.4;
   color: rgba(237, 230, 255, 0.7);
   flex: 1;
 }
 .em-practice-root .em-hero-weight {
   font-family: var(--em-mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-size: 13px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--accent, #A78BFA);
   white-space: nowrap;
@@ -494,8 +494,8 @@
   align-items: center;
   justify-content: center;
   font-family: var(--em-mono);
-  font-size: 9px;
-  letter-spacing: 0.14em;
+  font-size: 13px;
+  letter-spacing: 0.08em;
   color: rgba(237, 230, 255, 0.5);
   pointer-events: none;
 }
@@ -588,10 +588,10 @@
   margin-bottom: 2px;
 }
 .em-practice-root .em-secondary-card .em-district-sub {
-  font-size: 12.5px;
+  font-size: 14px;
 }
 .em-practice-root .em-secondary-card .em-district-sub-pl {
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .em-practice-root .em-secondary-card .em-done-badge {
@@ -610,8 +610,8 @@
 }
 .em-practice-root .em-secondary-tag {
   font-family: var(--em-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
+  font-size: 13px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--accent, #A78BFA);
   opacity: 0.85;
@@ -651,7 +651,7 @@
   background: rgba(167, 139, 250, 0.06);
   color: var(--em-violet, #A78BFA);
   font-family: var(--em-mono);
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   cursor: pointer;
@@ -732,7 +732,7 @@
      letter-spacing. Tighten tracking and allow wrap so it falls onto two
      lines instead. */
   .em-practice-root .em-pitch-eyebrow {
-    letter-spacing: 0.16em;
+    letter-spacing: 0.08em;
     white-space: normal;
     line-height: 1.4;
   }
@@ -834,8 +834,8 @@
 }
 .em-practice-root .em-tip-eyebrow {
   font-family: var(--em-mono, 'JetBrains Mono', monospace);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 13px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #E879F9;
   opacity: 0.85;
@@ -878,8 +878,8 @@
 .em-practice-root .em-tip-pattern-tag {
   align-self: flex-start;
   font-family: var(--em-mono, 'JetBrains Mono', monospace);
-  font-size: 9px;
-  letter-spacing: 0.16em;
+  font-size: 13px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: rgba(232, 121, 249, 0.72);
   border: 1px solid rgba(232, 121, 249, 0.25);
@@ -958,8 +958,8 @@
 }
 
 .em-practice-root .em-pitch-eyebrow {
-  font-size: 11px;
-  letter-spacing: 0.32em;
+  font-size: 13px;
+  letter-spacing: 0.24em;
   color: rgba(245,239,255,0.7);
 }
 
@@ -993,7 +993,7 @@
 .em-practice-root .em-pitch-pill {
   padding: 6px 12px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 13px;
   font-family: var(--em-mono);
   background: rgba(0,0,0,0.32);
   border: 1px solid rgba(255,255,255,0.16);
@@ -1039,8 +1039,8 @@
   gap: 28px;
   align-items: center;
   font-family: var(--em-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 13px;
+  letter-spacing: 0.14em;
   color: rgba(245,239,255,0.6);
 }
 
@@ -1053,7 +1053,7 @@
 .em-practice-root .em-pitch-stat-num {
   font-weight: 600;
   margin-bottom: 2px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
 }
 
 .em-practice-root .em-pitch-stat-sub {
@@ -1141,12 +1141,12 @@
   }
   .em-practice-root .em-pitch-pill {
     padding: 5px 10px;
-    font-size: 10px;
+    font-size: 13px;
   }
   .em-practice-root .em-pitch-stats {
     gap: 18px;
     flex-wrap: wrap;
-    font-size: 9px;
+    font-size: 13px;
   }
 }
 
@@ -1194,8 +1194,8 @@
   }
   .em-practice-root .em-pitch-rail-eyebrow {
     color: rgba(245, 239, 255, 0.7);
-    font-size: 10px;
-    letter-spacing: 0.24em;
+    font-size: 13px;
+    letter-spacing: 0.18em;
     margin-bottom: 14px;
   }
   .em-practice-root .em-pitch-rail-list {
@@ -1259,15 +1259,15 @@
     line-height: 1.2;
   }
   .em-practice-root .em-pitch-rail-pl {
-    font-size: 11px;
+    font-size: 13px;
     color: rgba(245, 239, 255, 0.6);
     font-style: italic;
     margin-top: 1px;
   }
   .em-practice-root .em-pitch-rail-tag {
     font-family: var(--em-mono);
-    font-size: 9px;
-    letter-spacing: 0.18em;
+    font-size: 13px;
+    letter-spacing: 0.12em;
     margin-top: 4px;
     opacity: 0.85;
   }
@@ -1314,7 +1314,7 @@
     color: #FBBF24;
   }
   .em-practice-root .em-pitch-rail-foot-sub {
-    font-size: 10px;
+    font-size: 13px;
     letter-spacing: 0.06em;
     color: rgba(245, 239, 255, 0.6);
     line-height: 1.3;

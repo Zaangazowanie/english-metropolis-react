@@ -61,7 +61,7 @@ export default function Reorder({ question, onAnswer, answered, accent, sessionS
         <span style={{ flex: 1 }}>{builtSentence || <em style={{ color: T.textDim }}>Click words below to build the sentence…</em>}</span>
         {!answered && picked.length > 0 && (
           <button type="button" onClick={undo} style={{
-            padding: '6px 12px', borderRadius: 999, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+            padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
             background: 'transparent', color: T.textSoft, border: `1px solid ${T.border}`, cursor: 'pointer',
           }}>Undo</button>
         )}

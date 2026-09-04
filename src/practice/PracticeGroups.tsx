@@ -492,8 +492,8 @@ const PG_CSS = `
   background: rgba(167, 139, 250, 0.08);
   color: var(--em-violet, #A78BFA);
   font-family: var(--em-mono, 'IBM Plex Mono', monospace);
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-size: 13px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   cursor: pointer;
   transition: background 200ms var(--em-ease), border-color 200ms var(--em-ease), transform 200ms var(--em-ease);
@@ -555,8 +555,8 @@ const PG_CSS = `
   background: rgba(232, 121, 249, 0.06);
   color: var(--em-text, #EDE6FF);
   font-family: var(--em-mono);
-  font-size: 11px;
-  letter-spacing: 0.14em;
+  font-size: 13px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 @media (max-width: 640px) {
@@ -601,7 +601,7 @@ const PG_CSS = `
 .em-practice-root .em-pg-chip-emoji { font-size: 14px; line-height: 1; }
 .em-practice-root .em-pg-chip-en { font-weight: 600; }
 .em-practice-root .em-pg-chip-pl {
-  font-size: 11px;
+  font-size: 13px;
   opacity: 0.55;
   font-style: italic;
 }
@@ -761,8 +761,8 @@ const PG_CSS = `
 .em-practice-root .em-pg-card-stamp-emoji { font-size: 16px; line-height: 1; }
 .em-practice-root .em-pg-card-stamp-cat {
   font-family: var(--em-mono);
-  font-size: 9px;
-  letter-spacing: 0.16em;
+  font-size: 13px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--accent, #E879F9);
 }
@@ -775,8 +775,8 @@ const PG_CSS = `
   background: color-mix(in srgb, var(--accent, #E879F9) 16%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent, #E879F9) 40%, transparent);
   font-family: var(--em-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 13px;
+  letter-spacing: 0.12em;
   color: var(--accent, #E879F9);
 }
 
@@ -825,8 +825,8 @@ const PG_CSS = `
 }
 .em-practice-root .em-pg-card-stat span {
   font-family: var(--em-mono);
-  font-size: 9px;
-  letter-spacing: 0.14em;
+  font-size: 13px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--em-text-muted);
   opacity: 0.7;
@@ -839,8 +839,8 @@ const PG_CSS = `
   border-radius: 999px;
   background: color-mix(in srgb, var(--accent, #E879F9) 16%, transparent);
   font-family: var(--em-mono);
-  font-size: 10px;
-  letter-spacing: 0.2em;
+  font-size: 13px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--accent, #E879F9);
   transition: background 180ms var(--em-ease);
@@ -867,8 +867,8 @@ const PG_CSS = `
   background: rgba(167, 139, 250, 0.04);
   color: var(--em-text-muted);
   font-family: var(--em-mono);
-  font-size: 12px;
-  letter-spacing: 0.12em;
+  font-size: 13px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 .em-practice-root .em-pg-loading-spinner {

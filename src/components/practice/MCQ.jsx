@@ -52,7 +52,7 @@ export default function MCQ({ question, onAnswer, answered, userAnswer, accent, 
             }}>
             <span style={{
               width: 28, height: 28, borderRadius: 8, background: badgeBg, color: badgeColor,
-              fontFamily: FONT.mono, fontSize: 12, fontWeight: 700,
+              fontFamily: FONT.mono, fontSize: 13, fontWeight: 700,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>{String.fromCharCode(65 + i)}</span>
             <span style={{ flex: 1 }}>{opt}</span>

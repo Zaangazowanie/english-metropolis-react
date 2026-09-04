@@ -156,7 +156,7 @@
   flex-wrap: wrap;
   gap: 20px;
   color: var(--em-text-dim);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .em-practice-root .aas-launcher-stats strong {
@@ -362,7 +362,7 @@
 
 .em-practice-root .aas-choice-stage > header > div:first-child > span {
   color: var(--em-text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .em-practice-root .aas-choice-question {
@@ -473,14 +473,14 @@
 .em-practice-root .aas-choice-tally > div:last-child span {
   margin-top: 6px;
   color: var(--em-text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .em-practice-root .aas-launcher-controls small {
   display: block;
   margin-top: 10px;
   color: var(--em-text-dim);
-  font-size: 9px;
+  font-size: 13px;
   line-height: 1.45;
   text-align: center;
 }
@@ -830,7 +830,7 @@
 .em-practice-root .aas-transfer p {
   margin: 5px 0 0;
   color: var(--em-text-muted);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.55;
 }
 
@@ -915,7 +915,7 @@
 .em-practice-root .aas-coach-state p {
   margin: 12px 0 22px;
   color: var(--em-text-muted);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.65;
 }
 
@@ -1009,7 +1009,7 @@
   border-radius: 13px;
   background: color-mix(in srgb, var(--aas-accent) 6%, transparent);
   color: var(--em-text-muted);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
   text-align: left;
 }
@@ -1025,14 +1025,14 @@
 
 .em-practice-root .aas-feedback summary {
   color: var(--em-text);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .em-practice-root .aas-feedback details p {
   margin: 10px 0 0;
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.55;
 }
 
@@ -1078,13 +1078,13 @@
 }
 
 .em-practice-root .aas-error strong {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .em-practice-root .aas-error p {
   margin-top: 4px;
   color: var(--em-text-muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -1189,13 +1189,13 @@
 }
 
 .em-practice-root .aas-result-row strong {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .em-practice-root .aas-result-row div > span {
   margin-top: 3px;
   color: var(--em-text-dim);
-  font-size: 10px;
+  font-size: 13px;
 }
 
 .em-practice-root .aas-result-row > b {

@@ -90,7 +90,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             REOPEN DISTRICT
           </button>
           {this.state.error && (
-            <details style={{ marginTop: 20, fontSize: 11, color: 'var(--em-text-dim, #6B6184)', maxWidth: 500 }}>
+            <details style={{ marginTop: 20, fontSize: 13, color: 'var(--em-text-dim, #6B6184)', maxWidth: 500 }}>
               <summary style={{ cursor: 'pointer' }}>Error details</summary>
               <pre style={{ marginTop: 8, textAlign: 'left', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                 {this.state.error.message}
@@ -139,8 +139,8 @@ export const ShellSpinner: React.FC<{ shellName?: string }> = ({ shellName }) =>
       <span
         style={{
           fontFamily: 'var(--em-mono, monospace)',
-          fontSize: 11,
-          letterSpacing: '0.18em',
+          fontSize: 13,
+          letterSpacing: '0.14em',
           color: 'var(--em-text-dim, #6B6184)',
           textTransform: 'uppercase',
         }}

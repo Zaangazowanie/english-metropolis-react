@@ -358,7 +358,7 @@ export const Nameplate: React.FC<NameplateProps> = ({ district, subtitle, accent
           <h2> so screen-reader landmark navigation can jump to it. Styling
           preserved (margin/font reset via inline style). */}
       <h2 className="em-decor" style={{ fontSize: 22, color: 'var(--em-text)', lineHeight: 1, margin: 0, fontWeight: 'inherit' }}>{district}</h2>
-      {subtitle && <div style={{ fontSize: 12, color: 'var(--em-text-muted)', marginTop: 2 }}>{subtitle}</div>}
+      {subtitle && <div style={{ fontSize: 13, color: 'var(--em-text-muted)', marginTop: 2 }}>{subtitle}</div>}
     </div>
   </div>
 );
@@ -375,7 +375,7 @@ export const SkipButton: React.FC<SkipButtonProps> = ({ onClick }) => (
     className="em-btn em-btn-ghost"
     onClick={onClick}
     aria-label="Skip this question · Pomiń to pytanie"
-    style={{ fontSize: 12, padding: '8px 14px' }}
+    style={{ fontSize: 13, padding: '8px 14px' }}
   >
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 2 L8 6 L3 10 M9 2 L9 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>
     Skip · Następne
@@ -401,7 +401,7 @@ export const HintButton: React.FC<HintButtonProps> = ({ onClick, used = 0, total
       aria-disabled={exhausted}
       aria-label={exhausted ? 'Hint, no hints left · brak podpowiedzi' : `Hint, ${total - used} of ${total} remaining · podpowiedź`}
       style={{
-        fontSize: 12,
+        fontSize: 13,
         padding: '8px 14px',
         opacity: exhausted ? 0.5 : 1,
         cursor: exhausted ? 'not-allowed' : 'pointer',

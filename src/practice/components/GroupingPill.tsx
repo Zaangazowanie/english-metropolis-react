@@ -274,8 +274,8 @@ const GP_CSS = `
 }
 .em-practice-root .em-grouping-pill-eyebrow {
   font-family: var(--em-mono, 'IBM Plex Mono', monospace);
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-size: 13px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--pill-accent);
   opacity: 0.85;
@@ -291,7 +291,7 @@ const GP_CSS = `
   max-width: 360px;
 }
 .em-practice-root .em-grouping-pill-topic-pl {
-  font-size: 11px;
+  font-size: 13px;
   font-style: italic;
   color: var(--em-text-muted, #9A8FB8);
   opacity: 0.7;
@@ -309,8 +309,8 @@ const GP_CSS = `
   border: 1px solid color-mix(in srgb, var(--pill-accent) 40%, transparent);
   background: color-mix(in srgb, var(--pill-accent) 14%, transparent);
   font-family: var(--em-mono);
-  font-size: 9px;
-  letter-spacing: 0.16em;
+  font-size: 13px;
+  letter-spacing: 0.1em;
   color: var(--pill-accent);
 }
 .em-practice-root .em-grouping-pill-arrow {
@@ -321,7 +321,7 @@ const GP_CSS = `
   height: 22px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--pill-accent) 18%, transparent);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--pill-accent);
   flex-shrink: 0;
   margin-left: auto;
@@ -343,8 +343,8 @@ const GP_CSS = `
   background: rgba(245, 239, 255, 0.05);
   color: var(--em-text);
   font-family: var(--em-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
+  font-size: 13px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
   transition: background 180ms var(--em-ease), border-color 180ms var(--em-ease);
@@ -363,14 +363,14 @@ const GP_CSS = `
   border-radius: 9px;
   background: var(--pill-accent);
   color: #14102A;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0;
 }
 .em-practice-root .em-grouping-pill-switch-chev {
   display: inline-block;
   transition: transform 200ms var(--em-ease);
-  font-size: 10px;
+  font-size: 13px;
 }
 .em-practice-root .em-grouping-pill-switch-chev.is-open { transform: rotate(180deg); }
 
@@ -394,8 +394,8 @@ const GP_CSS = `
 .em-practice-root .em-grouping-pill-switch-eyebrow {
   padding: 6px 10px 8px;
   font-family: var(--em-mono);
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-size: 13px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--em-text-muted, #9A8FB8);
 }

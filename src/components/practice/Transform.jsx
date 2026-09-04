@@ -26,7 +26,7 @@ export default function Transform(props) {
           color: T.textSoft, marginBottom: 18,
         }}>
           <span style={{
-            fontFamily: FONT.body, fontStyle: 'normal', fontSize: 9, fontWeight: 700,
+            fontFamily: FONT.body, fontStyle: 'normal', fontSize: 13, fontWeight: 700,
             letterSpacing: '0.22em', textTransform: 'uppercase', color: T.textDim,
             marginRight: 10,
           }}>Original</span>

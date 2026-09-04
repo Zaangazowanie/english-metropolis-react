@@ -128,7 +128,7 @@ export const MultipleChoiceChrome: React.FC = () => {
         </div>
 
         {/* Caption inside the skeleton — not raw replacement text */}
-        <div className="em-eyebrow" style={{ color: '#FFE4B5', opacity: 0.85, marginTop: 6, letterSpacing: '0.18em' }}>
+        <div className="em-eyebrow" style={{ color: '#FFE4B5', opacity: 0.85, marginTop: 6, letterSpacing: '0.14em' }}>
           Loading questions… · Wczytywanie pytań…
         </div>
       </div>
@@ -199,14 +199,14 @@ export const BattleshipChrome: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: `28px repeat(${COLS}, 44px)`, gap: 2, marginBottom: 4 }}>
                 <div />
                 {Array.from({ length: COLS }).map((_, c) => (
-                  <div key={c} style={{ fontFamily: 'var(--em-mono)', fontSize: 11, color: ACCENT, opacity: 0.5, textAlign: 'center', letterSpacing: '0.1em' }}>
+                  <div key={c} style={{ fontFamily: 'var(--em-mono)', fontSize: 13, color: ACCENT, opacity: 0.5, textAlign: 'center', letterSpacing: '0.1em' }}>
                     {String.fromCharCode(65 + c)}
                   </div>
                 ))}
               </div>
               {Array.from({ length: ROWS }).map((_, r) => (
                 <div key={r} style={{ display: 'grid', gridTemplateColumns: `28px repeat(${COLS}, 44px)`, gap: 2, marginBottom: 2 }}>
-                  <div style={{ fontFamily: 'var(--em-mono)', fontSize: 11, color: ACCENT, opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ fontFamily: 'var(--em-mono)', fontSize: 13, color: ACCENT, opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {r + 1}
                   </div>
                   {Array.from({ length: COLS }).map((_, c) => (
@@ -224,7 +224,7 @@ export const BattleshipChrome: React.FC = () => {
                 </div>
               ))}
             </div>
-            <div className="em-eyebrow" style={{ color: ACCENT, opacity: 0.85, letterSpacing: '0.2em' }}>
+            <div className="em-eyebrow" style={{ color: ACCENT, opacity: 0.85, letterSpacing: '0.14em' }}>
               Charting the harbour… · Wytyczanie portu…
             </div>
           </div>

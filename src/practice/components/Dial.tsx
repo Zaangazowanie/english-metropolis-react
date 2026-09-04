@@ -111,7 +111,7 @@ export const Dial: React.FC<DialProps> = ({
         />
         <circle cx={cx} cy={cy} r="3" fill={accent} stroke="#1A1206" strokeWidth="1" />
       </svg>
-      <div className="em-eyebrow" style={{ color: accent, fontSize: 9, letterSpacing: '0.18em' }}>{label}</div>
+      <div className="em-eyebrow" style={{ color: accent, fontSize: 13, letterSpacing: '0.12em' }}>{label}</div>
       <div style={{ fontFamily: 'var(--em-decor)', fontSize: 14, color: 'var(--em-text)' }}>
         {value}{inferredUnit}
       </div>

@@ -163,7 +163,7 @@ const CHIP_STYLE: React.CSSProperties = {
   border: '1px solid rgba(232, 121, 249, 0.45)',
   color: '#F5EFFF',
   fontFamily: 'var(--em-mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
-  fontSize: 11,
+  fontSize: 13,
   letterSpacing: '0.06em',
   whiteSpace: 'nowrap',
   lineHeight: 1.2,
@@ -237,10 +237,10 @@ export const CoverageWidget: React.FC<CoverageWidgetProps> = ({
           <span
             aria-hidden
             style={{
-              fontSize: 9,
+              fontSize: 13,
               opacity: 0.6,
               textTransform: 'uppercase',
-              letterSpacing: '0.12em',
+              letterSpacing: '0.08em',
               marginLeft: 4,
             }}
           >
@@ -264,8 +264,8 @@ export const CoverageWidget: React.FC<CoverageWidgetProps> = ({
       <div
         style={{
           fontFamily: 'var(--em-mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
-          fontSize: 10,
-          letterSpacing: '0.22em',
+          fontSize: 13,
+          letterSpacing: '0.14em',
           color: 'rgba(245,239,255,0.7)',
           marginBottom: 8,
         }}
@@ -299,7 +299,7 @@ export const CoverageWidget: React.FC<CoverageWidgetProps> = ({
           style={{
             marginLeft: 'auto',
             fontFamily: 'var(--em-mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
-            fontSize: 11,
+            fontSize: 13,
             letterSpacing: '0.1em',
             color: 'rgba(245,239,255,0.7)',
           }}
@@ -309,7 +309,7 @@ export const CoverageWidget: React.FC<CoverageWidgetProps> = ({
       </div>
       <div
         style={{
-          fontSize: 11,
+          fontSize: 13,
           color: 'rgba(245,239,255,0.65)',
           marginBottom: 10,
           fontStyle: 'italic',
@@ -364,24 +364,24 @@ export const CoverageWidget: React.FC<CoverageWidgetProps> = ({
         }}
       >
         <strong style={{ color: '#E879F9', fontSize: 14 }}>{untouched}</strong>
-        <span style={{ fontSize: 11, color: 'rgba(245,239,255,0.78)' }}>
+        <span style={{ fontSize: 13, color: 'rgba(245,239,255,0.78)' }}>
           untouched
         </span>
-        <span style={{ fontSize: 11, color: 'rgba(245,239,255,0.5)' }}>·</span>
-        <span style={{ fontSize: 11, color: 'rgba(245,239,255,0.78)', fontStyle: 'italic' }}>
+        <span style={{ fontSize: 13, color: 'rgba(245,239,255,0.5)' }}>·</span>
+        <span style={{ fontSize: 13, color: 'rgba(245,239,255,0.78)', fontStyle: 'italic' }}>
           nieużywanych
         </span>
       </div>
 
       {/* Band-specific motivational copy — bilingual EN+PL. */}
-      <div style={{ fontSize: 12, lineHeight: 1.45 }}>
+      <div style={{ fontSize: 14, lineHeight: 1.45 }}>
         <div style={{ color: '#F5EFFF', fontWeight: 600, marginBottom: 2 }}>
           {band.en} <span style={{ opacity: 0.55, fontWeight: 400 }}>· {band.pl}</span>
         </div>
         <div style={{ color: 'rgba(245,239,255,0.7)' }}>
           {band.body}
         </div>
-        <div style={{ color: 'rgba(245,239,255,0.5)', fontStyle: 'italic', fontSize: 11, marginTop: 2 }}>
+        <div style={{ color: 'rgba(245,239,255,0.5)', fontStyle: 'italic', fontSize: 13, marginTop: 2 }}>
           {band.bodyPl}
         </div>
       </div>
@@ -390,8 +390,8 @@ export const CoverageWidget: React.FC<CoverageWidgetProps> = ({
         <div
           style={{
             marginTop: 8,
-            fontSize: 10,
-            letterSpacing: '0.12em',
+            fontSize: 13,
+            letterSpacing: '0.08em',
             textTransform: 'uppercase',
             color: 'rgba(245,239,255,0.45)',
           }}

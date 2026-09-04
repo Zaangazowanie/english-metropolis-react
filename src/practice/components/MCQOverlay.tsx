@@ -150,7 +150,7 @@ export const MCQOverlay: React.FC<MCQOverlayProps> = ({
               }}
             >
               <span style={{
-                fontFamily: 'var(--em-mono)', fontSize: 10,
+                fontFamily: 'var(--em-mono)', fontSize: 13,
                 color: accent, opacity: 0.7, minWidth: 14,
               }}>{String.fromCharCode(65 + oi)}</span>
               {opt}
@@ -174,7 +174,7 @@ export const MCQOverlay: React.FC<MCQOverlayProps> = ({
               padding: '6px 12px',
               borderRadius: 6,
               fontFamily: 'var(--em-mono)',
-              fontSize: 10,
+              fontSize: 13,
               letterSpacing: '0.1em',
               cursor: 'pointer',
             }}

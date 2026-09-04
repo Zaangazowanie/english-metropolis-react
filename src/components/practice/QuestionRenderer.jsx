@@ -51,7 +51,7 @@ export default function QuestionRenderer({ question, onAnswer, answered, userAns
   return (
     <Glass padding={26}>
       <div style={{
-        fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase',
+        fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
         display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 14, color: accent.solid,
       }}>
         <span className="material-symbols-outlined" style={{ fontSize: 14 }}>{meta.icon}</span>
@@ -89,7 +89,7 @@ export default function QuestionRenderer({ question, onAnswer, answered, userAns
         <button type="button" onClick={() => setHintOpen(o => !o)} style={{
           marginTop: 14, padding: '6px 12px', borderRadius: 999,
           background: 'transparent', color: T.textSoft, border: `1px dashed ${T.border}`,
-          fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase',
+          fontSize: 13, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase',
           cursor: 'pointer',
         }}>
           <span className="material-symbols-outlined" style={{ fontSize: 13, verticalAlign: 'middle', marginRight: 4 }}>lightbulb</span>

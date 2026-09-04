@@ -341,7 +341,7 @@ export const PracticeReview: React.FC<PracticeReviewProps> = ({
         }
         .em-pr-item-num {
           font-family: var(--em-mono, 'IBM Plex Mono', monospace);
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 600;
           letter-spacing: 0.12em;
           color: var(--em-text-muted, rgba(245,239,255,0.4));
@@ -372,7 +372,7 @@ export const PracticeReview: React.FC<PracticeReviewProps> = ({
         }
         .em-pr-item-accepted-label {
           font-family: var(--em-mono, monospace);
-          font-size: 10px;
+          font-size: 13px;
           letter-spacing: 0.12em;
           color: var(--em-correct, #34D399);
           margin-right: 8px;

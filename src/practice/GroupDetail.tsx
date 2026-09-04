@@ -559,8 +559,8 @@ const GD_CSS = `
 }
 .em-practice-root .em-gd-header-cat {
   font-family: var(--em-mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  font-size: 13px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--gd-accent, #E879F9);
 }
@@ -572,8 +572,8 @@ const GD_CSS = `
   border: 1px solid color-mix(in srgb, var(--gd-accent, #E879F9) 40%, transparent);
   background: color-mix(in srgb, var(--gd-accent, #E879F9) 16%, transparent);
   font-family: var(--em-mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-size: 13px;
+  letter-spacing: 0.12em;
   color: var(--gd-accent, #E879F9);
 }
 .em-practice-root .em-gd-header-title {
@@ -612,8 +612,8 @@ const GD_CSS = `
 }
 .em-practice-root .em-gd-header-stats span {
   font-family: var(--em-mono);
-  font-size: 9px;
-  letter-spacing: 0.14em;
+  font-size: 13px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--em-text-muted);
   opacity: 0.7;
@@ -638,8 +638,8 @@ const GD_CSS = `
 }
 .em-practice-root .em-gd-desc-eyebrow {
   font-family: var(--em-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 13px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--em-magenta, #E879F9);
   margin-bottom: 10px;
@@ -731,8 +731,8 @@ const GD_CSS = `
 }
 .em-practice-root .em-gd-tab-count {
   font-family: var(--em-mono);
-  font-size: 9px;
-  letter-spacing: 0.14em;
+  font-size: 13px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--em-text-muted);
   opacity: 0.78;
@@ -777,8 +777,8 @@ const GD_CSS = `
   background: transparent;
   color: var(--em-violet, #A78BFA);
   font-family: var(--em-mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  font-size: 13px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   text-align: left;
   cursor: pointer;
@@ -802,8 +802,8 @@ const GD_CSS = `
   background: transparent;
   color: var(--em-text-muted, rgba(245, 239, 255, 0.65));
   font-family: var(--em-mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  font-size: 13px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   text-align: left;
   cursor: pointer;
@@ -917,8 +917,8 @@ const GD_CSS = `
   align-items: center;
   justify-content: space-between;
   font-family: var(--em-mono);
-  font-size: 9px;
-  letter-spacing: 0.14em;
+  font-size: 13px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .em-practice-root .em-gd-related-cat { color: var(--accent); }
@@ -936,7 +936,7 @@ const GD_CSS = `
   color: var(--em-text);
 }
 .em-practice-root .em-gd-related-topic-pl {
-  font-size: 12px;
+  font-size: 13px;
   font-style: italic;
   color: var(--em-text-muted);
   opacity: 0.78;
@@ -949,13 +949,13 @@ const GD_CSS = `
   padding-top: 8px;
   border-top: 1px solid rgba(245, 239, 255, 0.06);
   font-family: var(--em-mono);
-  font-size: 9px;
-  letter-spacing: 0.14em;
+  font-size: 13px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--em-text-muted);
 }
 .em-practice-root .em-gd-related-arrow {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--accent);
 }
 

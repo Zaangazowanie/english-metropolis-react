@@ -111,8 +111,8 @@
 /* Eyebrow / station signage label */
 .em-eyebrow {
   font-family: var(--em-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 13px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--em-text-muted);
   font-weight: 500;
@@ -183,7 +183,7 @@
   font-family: var(--em-body);
   color: var(--em-text-dim);
   font-style: italic;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 /* District accent ring, used on focused cells */

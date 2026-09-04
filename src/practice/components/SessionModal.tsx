@@ -210,8 +210,8 @@ export const SessionModal: React.FC<SessionModalProps> = ({
   };
   const eyebrowStyle: React.CSSProperties = {
     fontFamily: 'var(--em-mono, "JetBrains Mono", monospace)',
-    fontSize: 11,
-    letterSpacing: '0.16em',
+    fontSize: 13,
+    letterSpacing: '0.12em',
     textTransform: 'uppercase',
     color: '#FFD559',
     marginBottom: 10,
@@ -310,7 +310,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
                   {' '}· {remaining} {remaining === 1 ? 'pytanie' : 'pytania'} do końca
                 </span>
               </div>
-              <div style={{ opacity: 0.6, fontSize: 12, marginTop: 4 }}>
+              <div style={{ opacity: 0.6, fontSize: 13, marginTop: 4 }}>
                 Last saved {ago.en} · ostatni zapis {ago.pl}
               </div>
             </div>

@@ -1273,7 +1273,7 @@ const ModeBanner: React.FC<{ mode: ExerciseDeliveryMode; reasonString: string }>
         background: `${tag.accent}0F`,
         color: 'var(--em-text, #EDE6FF)',
         fontFamily: 'var(--em-mono, monospace)',
-        fontSize: 11,
+        fontSize: 13,
         letterSpacing: '0.12em',
         lineHeight: 1.4,
         maxWidth: 'fit-content',
@@ -1296,7 +1296,7 @@ const ModeBanner: React.FC<{ mode: ExerciseDeliveryMode; reasonString: string }>
           color: 'var(--em-text-muted, #9A8FB8)',
           textTransform: 'none',
           letterSpacing: '0.01em',
-          fontSize: 12,
+          fontSize: 13,
         }}
       >
         {reasonString}
@@ -2189,7 +2189,7 @@ export function StudentPractice(): React.ReactElement {
                     const w = p.wrongAttempts.find((wa) => wa.questionId === q.id);
                     if (!w) {
                       return (
-                        <div style={{ fontFamily: 'var(--em-mono)', fontSize: 12, color: 'var(--em-correct, #34D399)', padding: '8px 12px' }}>
+                        <div style={{ fontFamily: 'var(--em-mono)', fontSize: 13, color: 'var(--em-correct, #34D399)', padding: '8px 12px' }}>
                           ✓ TAK · CORRECT
                         </div>
                       );

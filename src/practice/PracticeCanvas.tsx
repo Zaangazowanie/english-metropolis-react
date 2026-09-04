@@ -170,7 +170,7 @@ const MobilePreview: React.FC<MobilePreviewProps> = ({
               right: 0,
               textAlign: 'center',
               fontFamily: 'Inter, system-ui, sans-serif',
-              fontSize: 9,
+              fontSize: 13,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
               color: 'rgba(237,230,255,0.4)',
@@ -245,7 +245,7 @@ const CoverBoard: React.FC<CoverBoardProps> = ({ time }) => {
       <div style={{ position: 'relative', padding: '64px 72px', maxWidth: 800 }}>
         <div
           className="em-eyebrow"
-          style={{ fontSize: 12, letterSpacing: '0.32em', color: 'rgba(245,239,255,0.7)' }}
+          style={{ fontSize: 13, letterSpacing: '0.24em', color: 'rgba(245,239,255,0.7)' }}
         >
           ENGLISH&nbsp;·&nbsp;METROPOLIS&nbsp;·&nbsp;ANGIELSKI
         </div>
@@ -295,7 +295,7 @@ const CoverBoard: React.FC<CoverBoardProps> = ({ time }) => {
               style={{
                 padding: '6px 12px',
                 borderRadius: 999,
-                fontSize: 12,
+                fontSize: 13,
                 fontFamily: 'var(--em-mono)',
                 background: 'rgba(0,0,0,0.32)',
                 border: '1px solid rgba(255,255,255,0.16)',
@@ -313,8 +313,8 @@ const CoverBoard: React.FC<CoverBoardProps> = ({ time }) => {
             gap: 32,
             alignItems: 'center',
             fontFamily: 'var(--em-mono)',
-            fontSize: 11,
-            letterSpacing: '0.18em',
+            fontSize: 13,
+            letterSpacing: '0.14em',
             color: 'rgba(245,239,255,0.6)',
           }}
         >
@@ -339,8 +339,8 @@ const CoverBoard: React.FC<CoverBoardProps> = ({ time }) => {
           bottom: 32,
           right: 48,
           fontFamily: 'var(--em-mono)',
-          fontSize: 10,
-          letterSpacing: '0.24em',
+          fontSize: 13,
+          letterSpacing: '0.16em',
           color: 'rgba(245,239,255,0.4)',
           textAlign: 'right',
         }}
@@ -404,10 +404,10 @@ const LegendBoard: React.FC = () => {
               <Bajla size={64} mood={p.mood} />
             </div>
             <div style={{ fontFamily: 'var(--em-display)', fontWeight: 600, fontSize: 14 }}>{p.label}</div>
-            <div className="em-eyebrow" style={{ marginTop: 2, fontSize: 9 }}>
+            <div className="em-eyebrow" style={{ marginTop: 2 }}>
               {p.pl}
             </div>
-            <div style={{ fontSize: 12, color: '#9A8FB8', marginTop: 8, lineHeight: 1.4 }}>{p.desc}</div>
+            <div style={{ fontSize: 13, color: '#9A8FB8', marginTop: 8, lineHeight: 1.4 }}>{p.desc}</div>
           </div>
         ))}
       </div>
@@ -490,10 +490,10 @@ const TokensBoard: React.FC = () => {
           >
             <div style={{ width: '100%', height: 56, borderRadius: 8, background: hex, marginBottom: 10 }} />
             <div style={{ fontFamily: 'var(--em-display)', fontWeight: 600, fontSize: 13 }}>{name}</div>
-            <div style={{ fontFamily: 'var(--em-mono)', fontSize: 10, color: '#9A8FB8', marginTop: 1 }}>
+            <div style={{ fontFamily: 'var(--em-mono)', fontSize: 13, color: '#9A8FB8', marginTop: 1 }}>
               {hex}
             </div>
-            <div style={{ fontSize: 11, color: '#9A8FB8', marginTop: 6, lineHeight: 1.3 }}>{role}</div>
+            <div style={{ fontSize: 13, color: '#9A8FB8', marginTop: 6, lineHeight: 1.3 }}>{role}</div>
           </div>
         ))}
       </div>
@@ -515,7 +515,7 @@ const TokensBoard: React.FC = () => {
             <div style={{ fontFamily: t.fam, fontSize: 26, color: '#EDE6FF', lineHeight: 1.1 }}>
               {t.sample}
             </div>
-            <div style={{ fontSize: 11, color: '#9A8FB8', marginTop: 10 }}>{t.use}</div>
+            <div style={{ fontSize: 13, color: '#9A8FB8', marginTop: 10 }}>{t.use}</div>
           </div>
         ))}
       </div>

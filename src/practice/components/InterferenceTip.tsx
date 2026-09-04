@@ -234,7 +234,7 @@ export const InterferenceTip: React.FC<InterferenceTipProps> = ({
               <div
                 className="em-tip-v4-eyebrow"
                 style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   letterSpacing: 0.4,
                   textTransform: 'uppercase',
                   opacity: 0.72,
@@ -250,7 +250,7 @@ export const InterferenceTip: React.FC<InterferenceTipProps> = ({
                       padding: '1px 6px',
                       borderRadius: 4,
                       background: 'rgba(168, 85, 247, 0.18)',
-                      fontSize: 10,
+                      fontSize: 13,
                       letterSpacing: 0.3,
                     }}
                   >
@@ -276,7 +276,7 @@ export const InterferenceTip: React.FC<InterferenceTipProps> = ({
                 <div
                   className="em-tip-v4-howto"
                   style={{
-                    fontSize: 12,
+                    fontSize: 14,
                     marginTop: 8,
                     padding: '6px 10px',
                     background: 'rgba(34, 197, 94, 0.10)',
@@ -306,7 +306,7 @@ export const InterferenceTip: React.FC<InterferenceTipProps> = ({
                 alignItems: 'center',
                 gap: 8,
                 marginTop: 12,
-                fontSize: 12,
+                fontSize: 13,
                 opacity: 0.78,
                 cursor: 'pointer',
               }}

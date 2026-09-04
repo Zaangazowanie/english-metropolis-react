@@ -126,8 +126,8 @@ const Section: React.FC<SectionProps> = ({ titleEn, titlePl, bullets, body }) =>
         gap: 6,
         alignItems: 'baseline',
         fontFamily: 'var(--em-mono, monospace)',
-        fontSize: 10,
-        letterSpacing: '0.14em',
+        fontSize: 13,
+        letterSpacing: '0.1em',
         textTransform: 'uppercase',
       }}
     >
@@ -141,7 +141,7 @@ const Section: React.FC<SectionProps> = ({ titleEn, titlePl, bullets, body }) =>
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
-        fontSize: 12.5,
+        fontSize: 14,
         lineHeight: 1.45,
         color: 'var(--em-text, #EDE6FF)',
       }}
@@ -325,7 +325,7 @@ export const ExpandableInstructions: React.FC<ExpandableInstructionsProps> = ({
           margin: 0,
           cursor: 'pointer',
           fontFamily: 'var(--em-mono, monospace)',
-          fontSize: 11,
+          fontSize: 13,
           letterSpacing: '0.08em',
           color: 'var(--em-violet, #A78BFA)',
           textDecoration: 'underline',
@@ -353,8 +353,8 @@ export const ExpandableInstructions: React.FC<ExpandableInstructionsProps> = ({
             border: '1px solid rgba(251,191,36,0.45)',
             color: 'var(--em-amber, #FBBF24)',
             fontFamily: 'var(--em-mono, monospace)',
-            fontSize: 10,
-            letterSpacing: '0.14em',
+            fontSize: 13,
+            letterSpacing: '0.1em',
             textTransform: 'uppercase',
             cursor: 'pointer',
             opacity: badgeFadingOut ? 0 : 1,
@@ -467,8 +467,8 @@ export const ExpandableInstructions: React.FC<ExpandableInstructionsProps> = ({
             <strong
               style={{
                 fontFamily: 'var(--em-mono, monospace)',
-                fontSize: 11,
-                letterSpacing: '0.16em',
+                fontSize: 13,
+                letterSpacing: '0.12em',
                 textTransform: 'uppercase',
                 color: '#2A1B4F',
               }}
@@ -477,7 +477,7 @@ export const ExpandableInstructions: React.FC<ExpandableInstructionsProps> = ({
             </strong>
             <span
               style={{
-                fontSize: 11,
+                fontSize: 13,
                 color: '#6B5A8E',
                 letterSpacing: '0.04em',
               }}
@@ -541,7 +541,7 @@ export const ExpandableInstructions: React.FC<ExpandableInstructionsProps> = ({
               background: 'rgba(91,63,174,0.08)',
               border: '1px solid rgba(91,63,174,0.25)',
               borderRadius: 10,
-              fontSize: 12.5,
+              fontSize: 14,
               lineHeight: 1.45,
               color: '#2A1B4F',
               display: 'flex',
@@ -604,8 +604,8 @@ export const ExpandableInstructions: React.FC<ExpandableInstructionsProps> = ({
                   border: '1px solid rgba(180,122,0,0.5)',
                   color: '#7A4F00',
                   fontFamily: 'var(--em-mono, monospace)',
-                  fontSize: 10,
-                  letterSpacing: '0.16em',
+                  fontSize: 13,
+                  letterSpacing: '0.1em',
                   textTransform: 'uppercase',
                   cursor: 'pointer',
                 }}
@@ -623,7 +623,7 @@ export const ExpandableInstructions: React.FC<ExpandableInstructionsProps> = ({
                     background: 'rgba(180,122,0,0.10)',
                     border: '1px solid rgba(180,122,0,0.4)',
                     color: '#2A1B4F',
-                    fontSize: 12.5,
+                    fontSize: 14,
                     lineHeight: 1.45,
                     display: 'flex',
                     flexDirection: 'column',
@@ -666,8 +666,8 @@ export const ExpandableInstructions: React.FC<ExpandableInstructionsProps> = ({
                   color: '#FFF8E7',
                   border: 'none',
                   fontFamily: 'var(--em-mono, monospace)',
-                  fontSize: 11,
-                  letterSpacing: '0.12em',
+                  fontSize: 13,
+                  letterSpacing: '0.1em',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   cursor: 'pointer',
