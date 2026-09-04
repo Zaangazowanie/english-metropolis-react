@@ -11,7 +11,7 @@ import {
   hashPassword, verifyPassword, createStudentSession, requireAdmin, requireStudent,
   generateToken, sha256Hex,
 } from "./authHelpers";
-import { signupDobProblem } from "./enrolmentRules";
+import { signupDobProblem, signupNameProblem, normaliseSignupName } from "./enrolmentRules";
 import { bajlaState } from "./students";
 
 // ─────────────────────────────────────────────────────────────
@@ -87,6 +87,9 @@ const DOB_MESSAGES: Record<string, string> = {
   DOB_REQUIRED: "Please enter your date of birth",
   DOB_INVALID: "Please enter a valid date of birth",
   DOB_UNDERAGE: "You must be 18 or over to create an account. A parent or guardian can create one and buy lessons for you.",
+  // First AND last name are compulsory on every registration path (2026-09-03).
+  NAME_REQUIRED: "Please enter your first name and last name",
+  NAME_INCOMPLETE: "Please enter both your first name and your last name (letters only, at least 2 each)",
 };
 
 function slugify(name: string): string {
@@ -105,9 +108,10 @@ export const studentSignup = mutation({
     dateOfBirth: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const name = args.name.trim();
+    const name = normaliseSignupName(args.name);
     const email = args.email.trim().toLowerCase();
-    if (name.length < 2) return { success: false, error: "Please enter your name" };
+    const nameProblem = signupNameProblem(name);
+    if (nameProblem) return { success: false, code: nameProblem, error: DOB_MESSAGES[nameProblem] };
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { success: false, error: "Please enter a valid email" };
     if (args.password.length < 8) return { success: false, error: "Password must be at least 8 characters" };
     const dobProblem = signupDobProblem(args.dateOfBirth);
@@ -167,7 +171,10 @@ export const signupInsert = internalMutation({
     // the sort that must not depend on one caller having remembered it.
     const dobProblem = signupDobProblem(args.dateOfBirth);
     if (dobProblem) return { success: false, code: dobProblem, error: DOB_MESSAGES[dobProblem] };
-    const { name, email } = args;
+    const name = normaliseSignupName(args.name);
+    const nameProblem = signupNameProblem(name);
+    if (nameProblem) return { success: false, code: nameProblem, error: DOB_MESSAGES[nameProblem] };
+    const { email } = args;
     const clash = await ctx.db.query("students")
       .withIndex("by_email", q => q.eq("email", email)).first();
     if (clash) return { success: false, error: "An account with this email already exists — sign in instead" };
@@ -212,9 +219,10 @@ export const studentSignupAction = action({
     dateOfBirth: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<any> => {
-    const name = args.name.trim();
+    const name = normaliseSignupName(args.name);
     const email = args.email.trim().toLowerCase();
-    if (name.length < 2) return { success: false, error: "Please enter your name" };
+    const nameProblem = signupNameProblem(name);
+    if (nameProblem) return { success: false, code: nameProblem, error: DOB_MESSAGES[nameProblem] };
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { success: false, error: "Please enter a valid email" };
     if (args.password.length < 8) return { success: false, error: "Password must be at least 8 characters" };
     // Checked before the expensive hash, so an underage attempt costs nothing.

@@ -73,3 +73,34 @@ export function signupDobProblem(dateOfBirth: string | undefined): string | null
   if (age < MIN_SIGNUP_AGE) return "DOB_UNDERAGE";
   return null;
 }
+
+// Every self-signup path must produce a first name AND a last name (Mike,
+// 2026-09-03, after a Google signup landed a student called "Szymon" and
+// nothing else). Pure, so the pages and the tests can share the exact rule.
+//
+// Incomplete = fewer than two whitespace-separated parts, or any part with
+// fewer than two letters. Letters are Unicode letters, so Polish diacritics
+// pass; a part may carry hyphens or apostrophes between letters
+// ("Anna-Maria Kowalska-Nowak", "O'Neil"). Digits and symbols fail.
+export type SignupNameProblem = "NAME_REQUIRED" | "NAME_INCOMPLETE";
+const NAME_PART = /^\p{L}+(?:[-'\u2019]\p{L}+)*$/u;
+export const MAX_SIGNUP_NAME_LENGTH = 100;
+
+export function signupNameProblem(name: string | undefined | null): SignupNameProblem | null {
+  const trimmed = (name ?? "").trim();
+  if (!trimmed) return "NAME_REQUIRED";
+  if (trimmed.length > MAX_SIGNUP_NAME_LENGTH) return "NAME_INCOMPLETE";
+  const parts = trimmed.split(/\s+/);
+  if (parts.length < 2) return "NAME_INCOMPLETE";
+  for (const part of parts) {
+    if (!NAME_PART.test(part)) return "NAME_INCOMPLETE";
+    if (part.replace(/[^\p{L}]/gu, "").length < 2) return "NAME_INCOMPLETE";
+  }
+  return null;
+}
+
+// The canonical stored form: trimmed, internal whitespace collapsed to one
+// space. Apply before signupNameProblem and before the insert.
+export function normaliseSignupName(name: string | undefined | null): string {
+  return (name ?? "").trim().replace(/\s+/g, " ");
+}

@@ -26,13 +26,15 @@ import { action, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
 import { createStudentSession, createAdminSession } from "./authHelpers";
-import { signupDobProblem } from "./enrolmentRules";
+import { signupDobProblem, signupNameProblem, normaliseSignupName } from "./enrolmentRules";
 
 // Mirrors the copy in studentAuth; the pages localise off `code`.
 const DOB_MESSAGES: Record<string, string> = {
   DOB_REQUIRED: "Please enter your date of birth",
   DOB_INVALID: "Please enter a valid date of birth",
   DOB_UNDERAGE: "You must be 18 or over to create an account. A parent or guardian can create one and buy lessons for you.",
+  NAME_REQUIRED: "Please enter your first name and last name",
+  NAME_INCOMPLETE: "Please enter both your first name and your last name (letters only, at least 2 each)",
 };
 
 // ─── Allowlists ──────────────────────────────────────────────
@@ -118,12 +120,29 @@ type GoogleSignInResult =
   | { success: true; kind: "superadmin"; email: string; sessionToken: string | undefined }
   | { success: true; kind: "conversa_admin"; email: string; sessionToken: string | undefined }
   | { success: false; error: string }
-  // Verified Google identity, but no account yet and no date of birth to make
-  // one with. The page collects it and calls again with the same ID token.
-  | { success: false; needsDateOfBirth: true; error?: string; code?: string };
+  // Verified Google identity, but no account yet and something missing to make
+  // one with: a date of birth (Google never sends one) and/or a first AND last
+  // name (Google's `name` can be a single word, which is how a student ended
+  // up on the roster as just "Szymon"). The page collects what is flagged and
+  // calls again with the same ID token. Nothing is created until both pass.
+  | {
+      success: false;
+      needsName: boolean;
+      needsDateOfBirth: boolean;
+      suggestedFirstName: string;
+      suggestedLastName: string;
+      error?: string;
+      code?: string;
+    };
 
 export const googleSignIn = action({
-  args: { idToken: v.string(), dateOfBirth: v.optional(v.string()) },
+  args: {
+    idToken: v.string(),
+    dateOfBirth: v.optional(v.string()),
+    // Typed by the student on the follow-up step; override whatever Google sent.
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+  },
   handler: async (ctx, args): Promise<GoogleSignInResult> => {
     const expectedAud = process.env.GOOGLE_CLIENT_ID;
     if (!expectedAud) {
@@ -220,22 +239,42 @@ export const googleSignIn = action({
     // action reports back that it needs one; the page collects it and calls
     // again with the same ID token. Existing students never reach this branch,
     // so signing in is unaffected.
+    //
+    // The name is built from Google's given_name + family_name (never from the
+    // e-mail local part: that is how "szymon.k"-style names would appear), or
+    // from what the student typed on the follow-up step, which wins. If it is
+    // still not a first name plus a last name, the account is not created.
+    const typedName = args.firstName !== undefined || args.lastName !== undefined;
+    const suggestedFirstName = normaliseSignupName(
+      typedName ? args.firstName : (info.given_name || ""));
+    const suggestedLastName = normaliseSignupName(
+      typedName ? args.lastName : (info.family_name || ""));
+    let name = normaliseSignupName(`${suggestedFirstName} ${suggestedLastName}`);
+    if (!name && !typedName) name = normaliseSignupName(info.name || "");
+    const nameProblem = signupNameProblem(name);
     const dobProblem = signupDobProblem(args.dateOfBirth);
-    if (dobProblem) {
+    if (nameProblem || dobProblem) {
+      // Only "please fill this in" the first time round; a real complaint once
+      // they have actually typed something. A typed name is judged before a
+      // typed date so the message matches the field they just changed.
+      const complaint = (typedName && nameProblem) ? nameProblem
+        : (args.dateOfBirth && dobProblem) ? dobProblem
+        : undefined;
       return {
         success: false,
-        needsDateOfBirth: true,
-        // Only "please enter one" the first time round; a real complaint once
-        // they have actually typed something.
-        error: args.dateOfBirth ? DOB_MESSAGES[dobProblem] : undefined,
-        code: args.dateOfBirth ? dobProblem : undefined,
+        needsName: !!nameProblem,
+        needsDateOfBirth: !!dobProblem,
+        suggestedFirstName,
+        suggestedLastName,
+        error: complaint ? DOB_MESSAGES[complaint] : undefined,
+        code: complaint,
       };
     }
     const created: any = await ctx.runMutation(
       internal.googleAuth.createStudentFromGoogle,
       {
         email,
-        name: (info.name || email.split("@")[0]).trim(),
+        name,
         dateOfBirth: args.dateOfBirth?.trim() || undefined,
       },
     );
@@ -254,6 +293,8 @@ export const createStudentFromGoogle = internalMutation({
     // age rule must not rest on one caller having remembered to apply it.
     const dobProblem = signupDobProblem(args.dateOfBirth);
     if (dobProblem) throw new Error(dobProblem);
+    const nameProblem = signupNameProblem(args.name);
+    if (nameProblem) throw new Error(nameProblem);
     const SIGNUP_ORG = "js779cs2vjwb2c9yjc3a7t619n84zcp8" as any;
     const SIGNUP_TEACHER = "kd72y2mt9t78nkyes15rh7dhc5881pbv" as any;
     const slugBase = args.name.toLowerCase()
