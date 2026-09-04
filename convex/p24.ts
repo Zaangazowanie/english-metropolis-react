@@ -758,16 +758,18 @@ export const listMethods = action({
 // sign needs the CRC, which never leaves the server — hence an action. Returns
 // null while Raty is not offered or the basket is under the widget floor, and
 // the page renders nothing at all in that case (no script is even loaded).
+// Shop-level, not per amount: the sign covers only crc + posId + method, so ONE
+// call per page serves every card (2026-09-04: a per-card version fired 9 POSTs
+// in one second and nginx's 30 r/min zone rejected 6 of them). The browser adds
+// the amount and applies minAmount itself.
 export const installmentWidgetConfig = action({
-  args: { amount: v.number() },   // grosze
-  handler: async (_ctx, args): Promise<null | { sign: string; posid: string; method: string; amount: number; currency: "PLN"; lang: "pl" }> => {
+  args: {},
+  handler: async (): Promise<null | { sign: string; posid: string; method: string; currency: "PLN"; lang: "pl"; minAmount: number }> => {
     if (!RATY_OFFERED) return null;
-    const amount = Math.trunc(args.amount);
-    if (!Number.isSafeInteger(amount) || amount < RATY_WIDGET_MIN_PLN * 100 || amount > 5_000_000) return null;
     const cfg = p24Config();
     // Documented: SHA-384({"crc":"string","posId":int,"method":int}), key order as written.
     const sign = await sha384({ crc: cfg.crc, posId: cfg.posId, method: RATY_METHOD_ID });
-    return { sign, posid: String(cfg.posId), method: String(RATY_METHOD_ID), amount, currency: "PLN", lang: "pl" };
+    return { sign, posid: String(cfg.posId), method: String(RATY_METHOD_ID), currency: "PLN", lang: "pl", minAmount: RATY_WIDGET_MIN_PLN * 100 };
   },
 });
 

@@ -5,10 +5,27 @@ import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 // unaltered from their SDK. We add no copy of our own around it: PayPro S.A. is
 // the registered credit intermediary, we are not. The server decides whether
 // anything shows at all (p24:installmentWidgetConfig returns null while Raty is
-// not offered or the basket is under the floor), and in that case this
-// component renders nothing and loads no script.
+// not offered), and in that case this component renders nothing and loads no
+// script.
+//
+// ONE request per page, shared by every card: the config is shop-level (the sign
+// covers crc + posId + method only), so it is fetched once into a module-level
+// promise and each card adds its own amount. A per-card fetch fired 9 POSTs in
+// one second and nginx's 30 r/min zone dropped 6 of them (2026-09-04).
 const SDK_SRC = 'https://apm.przelewy24.pl/installments/installment-calculator-app.umd.sdk.js'
 const MODAL_ID = 'calculator-modal'   // the SDK forbids "installment-calculator-modal"
+
+let shopConfigPromise = null
+function shopConfig() {
+  if (!shopConfigPromise) {
+    shopConfigPromise = fetchWithTimeout('/api/action', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: 'p24:installmentWidgetConfig', args: {} }),
+    }).then(r => r.json()).then(p => (p?.status === 'success' && p.value) ? p.value : null)
+      .catch(() => null)   // no widget is the correct failure mode
+  }
+  return shopConfigPromise
+}
 let sdkPromise = null
 function loadSdk() {
   if (window.InstallmentCalculatorApp) return Promise.resolve()
@@ -38,11 +55,12 @@ export default function RatyWidget({ amountPLN }) {
   const [config, setConfig] = useState(null)
   useEffect(() => {
     let alive = true
-    fetchWithTimeout('/api/action', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: 'p24:installmentWidgetConfig', args: { amount: Math.round(Number(amountPLN) * 100) } }),
-    }).then(r => r.json()).then(p => { if (alive && p?.status === 'success' && p.value) setConfig(p.value) })
-      .catch(() => { /* no widget is the correct failure mode */ })
+    const amount = Math.round(Number(amountPLN) * 100)
+    shopConfig().then(shop => {
+      if (!alive || !shop || !(amount >= shop.minAmount)) return
+      const { minAmount, ...rest } = shop
+      setConfig({ ...rest, amount })
+    })
     return () => { alive = false }
   }, [amountPLN])
   useEffect(() => {
