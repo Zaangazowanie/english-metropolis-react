@@ -154,21 +154,21 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px;
+  padding: 2px;
   border: 1px solid var(--lp-line);
   border-radius: 8px;
   background: rgba(16, 10, 40, 0.05);
 }
 
 .lp-lang-toggle button {
-  min-width: 38px;
-  min-height: 32px;
+  min-width: 44px;
+  min-height: 44px;
   border: 0;
   border-radius: 6px;
   color: var(--lp-muted);
   background: transparent;
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   cursor: pointer;
   transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
@@ -184,7 +184,7 @@
 }
 
 .lp-nav-links a {
-  min-height: 40px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   padding: 0 13px;
@@ -262,7 +262,7 @@
 .lp-section-label {
   margin: 0 0 14px;
   color: var(--lp-emerald);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 760;
   text-transform: uppercase;
 }
@@ -347,7 +347,6 @@
   color: var(--lp-ink);
   background: linear-gradient(135deg, #c4b5fd, #f0abfc 54%, #f9a8d4);
   box-shadow: 0 18px 42px -22px rgba(217, 70, 239, 0.9);
-  animation: lpPrimaryGlow 3200ms ease-in-out infinite;
 }
 
 .lp-button-primary:hover,
@@ -417,7 +416,7 @@
   border-radius: 99px;
   background: linear-gradient(180deg, rgba(255,255,255,0), #60a5fa 45%, #d946ef 76%, rgba(255,255,255,0));
   box-shadow: 0 0 18px rgba(217, 70, 239, 0.58);
-  animation: lpRoutePulse 4.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  display: none;
 }
 
 .lp-hero-panel:hover {
@@ -462,7 +461,7 @@
 .lp-hero-panel span {
   color: var(--lp-ember);
   font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -552,7 +551,7 @@
   pointer-events: none;
   background: #d946ef;
   box-shadow: 0 0 18px rgba(217, 70, 239, 0.72);
-  animation: lpGridSignal 6.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  display: none;
 }
 
 .lp-package,
@@ -609,19 +608,27 @@
   flex-direction: column;
   padding: 22px;
   z-index: 1;
+  cursor: pointer;
   transform: perspective(1150px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y));
   transform-style: preserve-3d;
-  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease, background 220ms ease;
+  transition: transform 260ms cubic-bezier(0.23, 1, 0.32, 1), border-color 220ms ease, box-shadow 260ms cubic-bezier(0.23, 1, 0.32, 1), background 220ms ease;
   animation: lpCardIn 640ms cubic-bezier(0.2, 0.9, 0.2, 1) backwards;
 }
 
-.lp-package:hover,
-.lp-package:focus-within {
-  transform: perspective(1150px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateY(-6px);
-  border-color: rgba(16, 10, 40, 0.18);
-  box-shadow:
-    inset 0 1px 0 rgba(16, 10, 40, 0.10),
-    0 34px 96px -48px rgba(217, 70, 239, 0.92);
+.lp-package:focus-visible {
+  outline: 2px solid #6D28D9;
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lp-package:hover,
+  .lp-package:focus-within {
+    transform: perspective(1150px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateY(-6px);
+    border-color: rgba(16, 10, 40, 0.18);
+    box-shadow:
+      inset 0 1px 0 rgba(16, 10, 40, 0.10),
+      0 34px 96px -48px rgba(217, 70, 239, 0.92);
+  }
 }
 
 .lp-package:hover::after,
@@ -662,9 +669,6 @@
     0 0 0 1px rgba(244, 114, 182, 0.16),
     0 0 38px -20px rgba(244, 114, 182, 0.98),
     0 34px 90px -40px rgba(217, 70, 239, 0.95);
-  animation:
-    lpCardIn 640ms cubic-bezier(0.2, 0.9, 0.2, 1) backwards,
-    lpSelectedAura 2600ms ease-in-out infinite;
 }
 
 .lp-package.is-selected::before {
@@ -673,7 +677,6 @@
     linear-gradient(115deg, transparent 10%, rgba(96, 165, 250, 0.12) 34%, rgba(217, 70, 239, 0.18) 50%, transparent 72%),
     linear-gradient(145deg, rgba(16, 10, 40, 0.08), transparent 34%);
   background-size: auto, 180% 100%, auto;
-  animation: lpFoilShift 5.6s ease-in-out infinite alternate;
 }
 
 .lp-package-sky.is-selected {
@@ -695,7 +698,6 @@
 .lp-package.is-selected::after {
   height: 2px;
   opacity: 1;
-  animation: lpEdgeTravel 1800ms ease-in-out infinite;
 }
 
 .lp-package.is-selected .lp-price {
@@ -712,7 +714,7 @@
 
 .lp-package-top span {
   color: var(--lp-emerald);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 720;
 }
 
@@ -784,9 +786,9 @@
   margin: 12px 0 0;
   padding: 10px 12px;
   border-left: 2px solid rgba(139, 92, 246, 0.42);
-  color: var(--lp-faint);
+  color: var(--lp-muted);
   background: rgba(139, 92, 246, 0.06);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .lp-price-calculation strong {
@@ -928,8 +930,8 @@
 
 .lp-market-strip span,
 .lp-course-card small {
-  color: var(--lp-faint);
-  font-size: 12px;
+  color: var(--lp-muted);
+  font-size: 13px;
   font-weight: 720;
   text-transform: uppercase;
 }
@@ -1065,7 +1067,6 @@
   border-radius: 50%;
   background: var(--lp-ember);
   box-shadow: 0 0 18px rgba(251, 146, 60, 0.72);
-  animation: lpDotPulse 2200ms ease-in-out infinite;
 }
 
 .lp-dot-done {
@@ -1155,8 +1156,8 @@
 .lp-field > span {
   display: block;
   margin-bottom: 8px;
-  color: var(--lp-faint);
-  font-size: 12px;
+  color: var(--lp-muted);
+  font-size: 13px;
   font-weight: 720;
   text-transform: uppercase;
 }
@@ -1194,7 +1195,7 @@
 
 .lp-segment button span {
   margin-top: 5px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .lp-segment button.is-active {
@@ -1261,9 +1262,9 @@
 }
 
 .lp-check input {
-  width: 18px;
-  height: 18px;
-  margin: 2px 0 0;
+  width: 22px;
+  height: 22px;
+  margin: 0;
   accent-color: var(--lp-fuchsia);
 }
 
@@ -1304,8 +1305,8 @@
 
 .lp-form-foot {
   margin: 18px 0 0;
-  color: var(--lp-faint);
-  font-size: 12px;
+  color: var(--lp-muted);
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -1620,7 +1621,7 @@ html.dark .lp-page .lp-field textarea:focus {
   .lp-nav-links a {
     justify-content: center;
     padding: 0 6px;
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .lp-lang-toggle {
@@ -1727,11 +1728,13 @@ html.dark .lp-page .lp-field textarea:focus {
   border-radius: 11px;
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(217, 70, 239, 0.18));
   color: var(--lp-ink);
-  font: 700 13.5px/1 "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
+  min-height: 48px;
+  font: 700 14px/1 "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
   cursor: pointer;
   transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms ease,
               border-color 200ms ease, box-shadow 200ms ease;
 }
+.lp-add-cart:focus-visible { outline: 2px solid #6D28D9; outline-offset: 3px; }
 .lp-add-cart .material-symbols-outlined { font-size: 17px; }
 .lp-add-cart:active { transform: scale(0.97); }
 @media (hover: hover) and (pointer: fine) {
@@ -1754,16 +1757,281 @@ html.dark .lp-page .lp-field textarea:focus {
   margin: 40px auto 0;
   padding: 22px 24px calc(28px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid rgba(16, 10, 40, 0.09);
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.6;
-  color: var(--lp-faint);
+  color: var(--lp-muted);
 }
 .lp-footer p { margin: 0 0 10px; }
 .lp-footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
 .lp-footer nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--lp-muted);
   text-decoration: none;
   border-bottom: 1px solid transparent;
   transition: color 150ms ease, border-color 150ms ease;
 }
 .lp-footer nav a:hover { color: var(--lp-ink); border-color: rgba(238, 229, 255, 0.4); }
+
+/* ── Pricing pass (2026-09-03): comparison at a glance, selection, trust ─────
+   Everything below animates transform/opacity/stroke only, on transitions
+   (interruptible) rather than keyframes, and is gated for reduced motion. */
+.lp-page .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* "Every package includes": stated once, above the grid, so the cards can be
+   compared on what differs (count, price per lesson, validity). */
+.lp-includes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lp-includes li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px 14px 14px 12px;
+  border: 1px solid var(--lp-line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+}
+.lp-includes li > .material-symbols-outlined {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--lp-ink);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.28), rgba(217, 70, 239, 0.16));
+  font-size: 21px;
+}
+.lp-includes strong { display: block; font-size: 14px; line-height: 1.3; }
+.lp-includes p { margin: 3px 0 0; color: var(--lp-muted); font-size: 13px; line-height: 1.5; }
+.lp-includes li[data-optional="true"] {
+  border-style: dashed;
+  border-color: rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.05);
+}
+.lp-includes li[data-optional="true"] > .material-symbols-outlined {
+  background: rgba(139, 92, 246, 0.12);
+}
+.lp-optional-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(139, 92, 246, 0.42);
+  color: #5B21B6;
+  font-size: 13px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+.lp-intro > p { grid-column: 1 / -1; }
+.lp-intro .lp-includes { grid-column: 1 / -1; margin-top: 6px; }
+
+/* Trust strip: the four facts that decide whether someone pays. */
+.lp-trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+}
+.lp-trust li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px 0 10px;
+  border: 1px solid var(--lp-line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--lp-muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+.lp-trust li .material-symbols-outlined { font-size: 19px; color: var(--lp-emerald); }
+.lp-trust li strong { color: var(--lp-ink); font-weight: 750; }
+.lp-trust-marks { display: inline-flex; gap: 4px; }
+.lp-trust-marks .co-mark,
+.lp-trust-marks svg { width: 18px; height: 18px; color: #5B21B6; }
+
+/* Card head: badge left, dial right, selected chip fades in over the dial. */
+.lp-package-top { align-items: flex-start; min-height: 52px; margin-bottom: 18px; }
+.lp-package-top span { padding-top: 2px; }
+.lp-package-visual { position: relative; display: grid; place-items: center; width: 52px; height: 52px; flex: none; }
+.lp-package-selected {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7C3AED, #C026D3);
+  color: #fff;
+  box-shadow: 0 6px 16px -8px rgba(124, 58, 237, 0.9);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 180ms cubic-bezier(0.23, 1, 0.32, 1), transform 260ms cubic-bezier(0.18, 1.35, 0.32, 1);
+}
+.lp-package-selected .material-symbols-outlined { font-size: 15px; font-weight: 700; }
+.lp-package.is-selected .lp-package-selected { opacity: 1; transform: scale(1); }
+
+/* The dial. Ticks are lit in sequence when the card is selected; unselected
+   cards show the same information at rest so the grid stays comparable. */
+.lp-dial { display: block; overflow: visible; }
+.lp-dial line {
+  stroke: rgba(16, 10, 40, 0.14);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  transition: stroke 240ms ease;
+}
+.lp-dial line.is-lit { stroke: #7C3AED; }
+.lp-package-ember .lp-dial line.is-lit { stroke: #EA580C; }
+.lp-package-sky .lp-dial line.is-lit { stroke: #2563EB; }
+.lp-dial[data-selected="true"] line.is-lit {
+  stroke: #C026D3;
+  transition-delay: calc(var(--i) * 10ms);
+}
+.lp-package-ember .lp-dial[data-selected="true"] line.is-lit { stroke: #F97316; }
+.lp-package-sky .lp-dial[data-selected="true"] line.is-lit { stroke: #3B82F6; }
+.lp-dial-track { fill: none; stroke: rgba(16, 10, 40, 0.08); stroke-width: 3; }
+.lp-dial-arc {
+  fill: none;
+  stroke: #047857;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: var(--dial-arc-fill) var(--dial-arc);
+  transition: stroke-dasharray 520ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.lp-dial-n {
+  fill: var(--lp-ink);
+  font-family: "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* Price: large, PLN, and labelled gross. */
+.lp-price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  font-variant-numeric: tabular-nums;
+}
+.lp-price small {
+  color: var(--lp-muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.lp-package-validity {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(4, 120, 87, 0.28);
+  background: rgba(4, 120, 87, 0.07);
+  color: #065F46;
+  font-size: 13px;
+  font-weight: 650;
+}
+.lp-package-validity .material-symbols-outlined { font-size: 16px; }
+.lp-course-card .lp-package-validity { align-self: flex-start; margin: 10px 0 0; }
+
+/* The steps in the Payments section are facts, not a live status, so they no
+   longer pulse: numbered markers on the same rail. */
+.lp-step-n {
+  position: relative;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7C3AED, #C026D3);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+.lp-readiness-row { grid-template-columns: 22px 200px minmax(0, 1fr); }
+.lp-readiness::after { left: 27px; }
+
+/* Sticky mobile CTA: selected package, price and one action, always in reach. */
+.lp-sticky-cta {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  z-index: 39;
+  display: none;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 14px;
+  border: 1px solid rgba(16, 10, 40, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 18px 50px -20px rgba(23, 16, 46, 0.35);
+  opacity: 0;
+  transform: translateY(16px);
+  pointer-events: none;
+  transition: opacity 220ms cubic-bezier(0.23, 1, 0.32, 1), transform 260ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.lp-sticky-cta[data-visible="true"] { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.lp-sticky-cta-info { display: grid; gap: 1px; min-width: 0; }
+.lp-sticky-cta-info strong { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lp-sticky-cta-info span { color: var(--lp-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.lp-sticky-cta .lp-add-cart { width: auto; margin: 0; padding: 0 16px; min-height: 44px; white-space: nowrap; }
+@media (max-width: 720px) {
+  .lp-sticky-cta { display: grid; }
+  body[data-lp-sticky="true"] .emc-pill { bottom: calc(82px + env(safe-area-inset-bottom, 0px)); }
+  .lp-footer { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Live region announcing the selection to assistive tech only. */
+@media (max-width: 1040px) {
+  .lp-includes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .lp-includes { grid-template-columns: 1fr; }
+  .lp-readiness-row { grid-template-columns: 22px minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-package-selected, .lp-dial line, .lp-dial-arc, .lp-sticky-cta { transition: none; }
+}
+
+/* Course price unit sits next to the amount in the same weight scale as the
+   package cards' "incl. VAT", not in the uppercase detail style below it. */
+.lp-course-card strong small {
+  display: inline;
+  margin: 0 0 0 6px;
+  color: var(--lp-muted);
+  font-size: 13px;
+  font-weight: 650;
+  text-transform: none;
+}

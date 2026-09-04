@@ -35,7 +35,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 12.5px;
+  font-size: 13px;
   color: #5F5780;
 }
 .co-steps li {
@@ -91,7 +91,7 @@
   width: 100%;
   margin: 0 0 12px;
   padding: 0;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -133,11 +133,13 @@
   align-items: center;
   gap: 8px;
   width: 100%;
+  min-height: 44px;
+  margin: -12px 0;
   padding: 0;
   border: none;
   background: none;
   color: #4A4270;
-  font: 700 12.5px/1.2 "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
+  font: 700 13px/1.2 "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
   letter-spacing: 0.07em;
   text-align: left;
   text-transform: uppercase;
@@ -184,7 +186,7 @@
   margin: 0 0 4px;
   padding: 0 0 0 8px;
   color: #3D3560;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 800;
 }
 .co-performance-choice > legend ~ * { clear: both; }
@@ -251,7 +253,7 @@
   margin-top: 6px;
   padding-top: 8px;
   border-top: 1px solid rgba(16, 10, 40, 0.09);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.55;
   color: #5F5780;
 }
@@ -288,18 +290,24 @@
 }
 .co-check input {
   flex: none;
-  width: 18px;
-  height: 18px;
-  margin-top: 2px;
+  width: 22px;
+  height: 22px;
+  margin-top: 0;
   accent-color: #8b5cf6;
   cursor: pointer;
 }
 .co-check span { font-size: 13.5px; line-height: 1.6; color: #3D3560; }
 /* These links are the statutory ones. #a78bfa put them at 2.6:1 — the least
    readable text on a page where they are the text that must be readable. */
+.co-check input:focus-visible { outline: 2px solid #6D28D9; outline-offset: 2px; }
+.co-check input[aria-invalid="true"] { outline: 2px solid #BE123C; outline-offset: 2px; }
+.co-performance-choice[data-invalid="true"] { border-color: rgba(190, 18, 60, 0.55); }
 .co-check a { color: #6D28D9; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 
 .co-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   margin: 0;
   padding: 12px 14px;
   border: 1px solid rgba(251, 113, 133, 0.4);
@@ -307,8 +315,13 @@
   background: rgba(251, 113, 133, 0.1);
   color: #BE123C;
   font-size: 13.5px;
+  line-height: 1.5;
   animation: coShake 320ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
+.co-error:focus { outline: none; box-shadow: 0 0 0 3px rgba(190, 18, 60, 0.18); }
+.co-error .material-symbols-outlined { flex: none; font-size: 20px; margin-top: -1px; }
+.co-error-body { display: grid; gap: 4px; }
+.co-error-hint { color: #7F1D1D; font-size: 13px; font-weight: 500; }
 @keyframes coShake {
   10%, 90% { transform: translateX(-1px); }
   20%, 80% { transform: translateX(2px); }
@@ -344,7 +357,7 @@
 
 .co-admin-note {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.6;
   color: #5F5780;
 }
@@ -373,7 +386,7 @@
 }
 .co-item-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .co-item-main strong { font-size: 14.5px; }
-.co-item-main span { font-size: 12.5px; color: #5F5780; }
+.co-item-main span { font-size: 13px; color: #5F5780; }
 .co-item-side { display: flex; align-items: center; gap: 10px; flex: none; }
 /* The line price is a figure people check against what they expected to pay.
    #f472b6 set it at 2.5:1, fainter than the copy around it. */
@@ -412,7 +425,7 @@
 .co-total strong { font-size: 22px; color: #17102E; }
 
 .co-payment { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(16, 10, 40, 0.09); }
-.co-payment h3 { margin: 0 0 10px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5F5780; }
+.co-payment h3 { margin: 0 0 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5F5780; }
 .co-pay-method {
   display: flex;
   flex-direction: column;
@@ -424,9 +437,9 @@
 }
 /* Was #93c5fd — pale blue on a pale blue panel, 1.7:1. */
 .co-pay-brand { font-size: 15px; font-weight: 700; color: #17102E; }
-.co-pay-kinds { font-size: 12.5px; color: #443C68; }
-.co-pay-status { font-size: 12px; color: #5F5780; }
-.co-pay-note { margin: 10px 0 0; font-size: 12px; line-height: 1.6; color: #5F5780; }
+.co-pay-kinds { font-size: 13px; color: #443C68; }
+.co-pay-status { font-size: 13px; color: #5F5780; }
+.co-pay-note { margin: 10px 0 0; font-size: 13px; line-height: 1.6; color: #5F5780; }
 .co-paypo-details {
   margin-top: 14px;
   padding: 14px;
@@ -434,13 +447,13 @@
   border-radius: var(--co-r-control);
   background: rgba(139, 92, 246, 0.05);
 }
-.co-paypo-details > p { margin: 0 0 4px; font-size: 12.5px; line-height: 1.55; color: #514876; }
+.co-paypo-details > p { margin: 0 0 4px; font-size: 13px; line-height: 1.55; color: #514876; }
 .co-paypo-details .co-field { margin: 10px 0 0; }
 .co-paypo-row { display: grid; grid-template-columns: minmax(120px, 0.75fr) minmax(180px, 1.25fr); gap: 12px; }
 @media (max-width: 520px) {
   .co-paypo-row { grid-template-columns: 1fr; gap: 0; }
 }
-.co-legal-links { margin: 14px 0 0; font-size: 12.5px; color: #5F5780; }
+.co-legal-links { margin: 14px 0 0; font-size: 13px; color: #5F5780; }
 .co-legal-links a { color: #6D28D9; font-weight: 600; text-decoration: none; }
 .co-legal-links a:hover { text-decoration: underline; }
 
@@ -487,7 +500,7 @@
   margin: 26px auto 0;
   padding: 18px 24px 0;
   border-top: 1px solid rgba(16, 10, 40, 0.08);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.65;
   color: #5F5780;
 }
@@ -535,10 +548,10 @@
   align-items: center;
   gap: 12px;
   margin: 14px 0 6px;
-  color: #8F87AC;
-  font-size: 11px;
+  color: #5F5780;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 .co-divider::before, .co-divider::after {
@@ -563,13 +576,14 @@
 .co-account-check { font-size: 28px; color: #059669; animation: coPop 480ms cubic-bezier(0.23, 1, 0.32, 1) both; }
 .co-account-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .co-account-id strong { font-size: 14.5px; }
-.co-account-id span { font-size: 12.5px; color: #5F5780; overflow: hidden; text-overflow: ellipsis; }
+.co-account-id span { font-size: 13px; color: #5F5780; overflow: hidden; text-overflow: ellipsis; }
 .co-account-change {
   border: 1px solid rgba(16, 10, 40, 0.14);
   background: #fff;
   border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 12.5px;
+  min-height: 44px;
+  padding: 8px 16px;
+  font-size: 13px;
   font-weight: 700;
   color: #3D3560;
   cursor: pointer;
@@ -584,7 +598,9 @@
 .co-pw-wrap input { flex: 1; padding-right: 46px; }
 .co-pw-toggle {
   position: absolute;
-  right: 6px;
+  right: 2px;
+  min-width: 44px;
+  min-height: 44px;
   top: 50%;
   transform: translateY(-50%);
   border: none;
@@ -598,7 +614,7 @@
 .co-pw-toggle .material-symbols-outlined { font-size: 19px; }
 /* 11.5px at 3.2:1 was the setting for the withdrawal-rights and consent copy —
    the legally load-bearing text. Raised to a readable size and contrast. */
-.co-hint { font-size: 12.5px; line-height: 1.55; color: #5F5780; transition: color 200ms ease; }
+.co-hint { font-size: 13px; line-height: 1.55; color: #5F5780; transition: color 200ms ease; }
 .co-hint[data-ok="true"] { color: #047857; }
 
 .co-email-taken {
@@ -610,7 +626,7 @@
   animation: coRise 320ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 .co-email-taken strong { font-size: 13.5px; color: #17102E; }
-.co-email-taken p { margin: 4px 0 10px; font-size: 12.5px; color: #5F5780; }
+.co-email-taken p { margin: 4px 0 10px; font-size: 13px; color: #5F5780; }
 .co-email-taken-cta { font-size: 13px !important; padding: 10px 16px !important; }
 
 /* Later sections stay subdued until the account step is satisfied. At 0.55 with
@@ -640,14 +656,14 @@
   color: #4A4270;
 }
 
-.co-consent-hint { display: block; margin-top: 5px; font-size: 12.5px; line-height: 1.55; color: #5F5780; }
+.co-consent-hint { display: block; margin-top: 5px; font-size: 13px; line-height: 1.55; color: #5F5780; }
 
 .co-next-line { margin: 0; font-size: 13px; line-height: 1.55; color: #443C68; font-weight: 600; }
 
 .co-next-steps {
   margin: 12px 0 0;
   padding: 0 0 0 20px;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.7;
   color: #524A78;
 }
@@ -655,8 +671,8 @@
 .co-item-remove {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: var(--co-r-field);
   background: transparent;
@@ -796,7 +812,7 @@
 
 .co-method-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .co-method-text strong { font-size: 14.5px; font-weight: 700; color: #17102E; letter-spacing: -0.01em; }
-.co-method-text small { font-size: 12.5px; color: #5F5780; }
+.co-method-text small { font-size: 13px; color: #5F5780; }
 
 .co-method-check { width: 24px; height: 24px; fill: none; stroke-width: 2; }
 .co-method-check circle { stroke: rgba(16, 10, 40, 0.16); fill: transparent; transition: stroke 240ms ease, fill 240ms ease; }
@@ -944,7 +960,7 @@
 }
 .co-steps li[data-active="true"] { background: rgba(255, 255, 255, 0.86); }
 .co-steps li[data-active="true"]::before { transform: scaleX(1); }
-@media (max-width: 560px) { .co-steps li { padding: 8px 12px; font-size: 12.5px; } }
+@media (max-width: 560px) { .co-steps li { padding: 8px 12px; font-size: 13px; } }
 
 /* ── Submit ──
    The glint that swept across this button every 4.2s forever is the one thing
@@ -1059,3 +1075,149 @@
 }
 .co-intake-done p { margin: 0; font-size: 14px; line-height: 1.5; color: #17102E; }
 .co-intake-done .material-symbols-outlined { font-size: 26px; color: #047857; flex: none; }
+
+/* ── Checkout pass (2026-09-03) ────────────────────────────────────────────── */
+.lp-page .sr-only, .co-page .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Step rail: numbered, connected, the current step filled. */
+.co-steps { gap: 0; align-items: center; }
+.co-steps li { gap: 9px; padding: 8px 14px 8px 8px; }
+.co-steps li + li { margin-left: -1px; }
+.co-step-n {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(16, 10, 40, 0.18);
+  color: #5F5780;
+  font-size: 13px;
+  font-weight: 800;
+  transition: background 240ms ease, color 240ms ease, border-color 240ms ease, transform 300ms cubic-bezier(0.18, 1.35, 0.32, 1);
+}
+.co-steps li[data-active="true"] .co-step-n {
+  border-color: transparent;
+  background: linear-gradient(135deg, #7C3AED, #C026D3);
+  color: #fff;
+  transform: scale(1.06);
+}
+.co-steps li[data-done="true"] .co-step-n { background: #047857; color: #fff; border-color: transparent; }
+.co-steps li[data-done="true"]::after { content: none; }
+.co-step-link {
+  flex: none;
+  width: 22px;
+  height: 1px;
+  background: rgba(16, 10, 40, 0.14);
+}
+
+/* Order summary: sticky on desktop; on phones a compact bar with the total that
+   expands on tap, so the form is one thumb-move away instead of one screen. */
+.co-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.co-summary-head h2 { margin: 0; }
+.co-summary-head .co-summary-total-inline { display: none; }
+.co-summary-head .material-symbols-outlined { display: none; }
+.co-summary-body { display: block; }
+@media (max-width: 900px) {
+  .co-summary { position: static; padding: 12px 16px; }
+  .co-summary-head {
+    min-height: 48px;
+    margin: 0;
+    cursor: pointer;
+  }
+  .co-summary-head .co-summary-total-inline {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-left: auto;
+    color: #17102E;
+    font-size: 17px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .co-summary-head .co-summary-total-inline small { font-size: 13px; font-weight: 600; color: #5F5780; }
+  .co-summary-head .material-symbols-outlined {
+    display: inline-block;
+    color: #5F5780;
+    transition: transform 260ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .co-summary[data-open="true"] .co-summary-head .material-symbols-outlined { transform: rotate(180deg); }
+  .co-summary-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 320ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .co-summary[data-open="true"] .co-summary-body { grid-template-rows: 1fr; }
+  .co-summary-body > div { overflow: hidden; }
+  .co-summary[data-open="true"] .co-summary-body > div { padding-top: 6px; }
+}
+.co-summary-head:focus-visible { outline: 2px solid #6D28D9; outline-offset: 2px; border-radius: 6px; }
+
+/* Trust facts under the total. */
+.co-trust {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.co-trust li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  color: #3D3560;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.co-trust li .material-symbols-outlined { font-size: 19px; color: #047857; margin-top: 1px; }
+.co-trust strong { color: #17102E; font-weight: 700; }
+.co-pay-marks { display: inline-flex; gap: 6px; margin-top: 8px; }
+.co-pay-marks span {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.1);
+  color: #5B21B6;
+}
+.co-pay-marks .co-mark { width: 18px; height: 18px; }
+
+/* Cart line items: quantity edits animate the row, not the page. */
+.co-items li { transition: opacity 200ms ease, transform 240ms cubic-bezier(0.23, 1, 0.32, 1); }
+.co-item-remove:focus-visible { outline: 2px solid #6D28D9; outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .co-step-n, .co-summary-body, .co-summary-head .material-symbols-outlined { transition: none; }
+}
+
+/* The checkout nav has one link, but inherits the four-column grid the pricing
+   page uses for its four; on a phone that put "Back to packages" in a quarter
+   of the row and wrapped it under the logo. */
+@media (max-width: 720px) {
+  .co-page .lp-nav-links { grid-template-columns: 1fr; }
+  .co-page .lp-nav-links a { justify-content: flex-start; padding: 0 8px; }
+}

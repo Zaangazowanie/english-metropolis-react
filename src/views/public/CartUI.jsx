@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart, cart, cartCount, cartTotalPLN, formatPLN } from './cart-store.js'
 import { PACKAGE_LESSONS, packageValidity } from './packages.js'
+import AnimatedMoney from './AnimatedMoney.jsx'
 import './cart-ui.css'
+
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
 
 // Floating cart pill + slide-in drawer for the public lessons page.
 // The drawer is transition-based (not keyframes) so rapid open/close and
@@ -11,23 +14,39 @@ export default function CartUI({ lang = 'pl' }) {
   const navigate = useNavigate()
   const state = useCart()
   const [open, setOpen] = useState(false)
-  const [bump, setBump] = useState(0)
   const count = cartCount(state)
   const total = cartTotalPLN(state)
-  const prevCount = useRef(count)
+  const pillRef = useRef(null)
+  const drawerRef = useRef(null)
+  const closeRef = useRef(null)
   const isPl = lang === 'pl'
   const t = (en, pl) => (isPl ? pl : en)
 
-  useEffect(() => {
-    if (count > prevCount.current) setBump((b) => b + 1)
-    prevCount.current = count
-  }, [count])
-
+  // A dialog owns focus while it is open: focus lands on the close button when
+  // it opens, Tab cycles inside it, Escape closes it, and focus returns to the
+  // pill that opened it. Before this the pill kept focus behind the backdrop.
   useEffect(() => {
     if (!open) return undefined
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+    const drawer = drawerRef.current
+    const opener = pillRef.current
+    const focusTimer = window.setTimeout(() => closeRef.current?.focus({ preventScroll: true }), 60)
+    const onKey = (e) => {
+      if (e.key === 'Escape') { setOpen(false); return }
+      if (e.key !== 'Tab' || !drawer) return
+      const nodes = [...drawer.querySelectorAll(FOCUSABLE)].filter((n) => n.offsetParent !== null || n === document.activeElement)
+      if (!nodes.length) return
+      const first = nodes[0]
+      const last = nodes[nodes.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+      else if (!drawer.contains(document.activeElement)) { e.preventDefault(); first.focus() }
+    }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return () => {
+      window.clearTimeout(focusTimer)
+      window.removeEventListener('keydown', onKey)
+      opener?.focus({ preventScroll: true })
+    }
   }, [open])
 
   // Tells the stylesheet to stand the Bajla launcher down while the drawer is
@@ -44,26 +63,29 @@ export default function CartUI({ lang = 'pl' }) {
   return (
     <>
       <button
+        ref={pillRef}
         type="button"
         className="emc-pill"
         data-visible={count > 0}
         onClick={() => setOpen(true)}
-        aria-label={t(`Open cart, ${count} items`, `Otwórz koszyk, pozycji: ${count}`)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={t(`Open cart, ${count} ${count === 1 ? 'item' : 'items'}`, `Otwórz koszyk, pozycji: ${count}`)}
       >
         <span className="material-symbols-outlined" aria-hidden>shopping_cart</span>
         <span className="emc-pill-label">{t('Cart', 'Koszyk')}</span>
-        <span key={bump} className="emc-badge">{count}</span>
+        <span key={count} className="emc-badge">{count}</span>
       </button>
 
       <div className="emc-backdrop" data-open={open} onClick={() => setOpen(false)} aria-hidden />
 
-      <aside className="emc-drawer" data-open={open} role="dialog" aria-modal="true" aria-label={t('Shopping cart', 'Koszyk')}>
+      <aside ref={drawerRef} className="emc-drawer" data-open={open} role="dialog" aria-modal="true" aria-label={t('Shopping cart', 'Koszyk')} aria-hidden={!open}>
         <header className="emc-head">
           <h2>
             <span className="material-symbols-outlined" aria-hidden>shopping_cart</span>
             {t('Your cart', 'Twój koszyk')}
           </h2>
-          <button type="button" className="emc-close" onClick={() => setOpen(false)} aria-label={t('Close cart', 'Zamknij koszyk')}>
+          <button ref={closeRef} type="button" className="emc-close" onClick={() => setOpen(false)} aria-label={t('Close cart', 'Zamknij koszyk')}>
             <span className="material-symbols-outlined" aria-hidden>close</span>
           </button>
         </header>
@@ -79,7 +101,7 @@ export default function CartUI({ lang = 'pl' }) {
               {state.items.map((item, idx) => (
                 <li key={item.id} className="emc-item" style={{ '--emc-i': idx }}>
                   <div className="emc-item-info">
-                    <strong>{item.name}</strong>
+                    <strong>{isPl ? item.namePl || item.name : item.name}</strong>
                     <span>{isPl ? item.pacePl || item.pace : item.pace} · {packageValidity(PACKAGE_LESSONS[item.id])[isPl ? 'pl' : 'en']}</span>
                   </div>
                   <div className="emc-item-controls">
@@ -100,7 +122,7 @@ export default function CartUI({ lang = 'pl' }) {
             <footer className="emc-foot">
               <div className="emc-total">
                 <span>{t('Total (VAT included)', 'Razem (z VAT)')}</span>
-                <strong>{formatPLN(total)}</strong>
+                <strong><AnimatedMoney value={total} /></strong>
               </div>
               <button
                 type="button"
@@ -109,6 +131,9 @@ export default function CartUI({ lang = 'pl' }) {
               >
                 <span className="material-symbols-outlined" aria-hidden>lock</span>
                 {t('Proceed to checkout', 'Przejdź do kasy')}
+              </button>
+              <button type="button" className="emc-continue" onClick={() => setOpen(false)}>
+                {t('Continue browsing packages', 'Wróć do pakietów')}
               </button>
               <p className="emc-note">
                 {t(

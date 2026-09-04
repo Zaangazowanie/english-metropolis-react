@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Skyline } from '../../design/v3/primitives.jsx'
 import './lesson-pricing-signup.css'
 import { COMPANY_PACKAGES, PRIVATE_PACKAGES, PACKAGE_LESSONS, packageValidity } from './packages.js'
 import CartUI from './CartUI.jsx'
-import { cart, parsePricePLN } from './cart-store.js'
+import PackageDial from './PackageDial.jsx'
+import PaymentMark from './PaymentMarks.jsx'
+import { cart, parsePricePLN, formatPLN } from './cart-store.js'
+import { detectInitial } from '../../i18n'
 import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN } from '../legal/foundation-legal-content.js'
 import MetroSignalField from '../../components/public/MetroSignalField.jsx'
 import { clearPointerPolish, setPointerPolish } from '../../components/public/motionPolish.js'
@@ -53,8 +56,9 @@ const SUMMER_COURSES = [
     id: 'september',
     name: 'September Group Course',
     price: '400 PLN / student / month',
-    pricePl: '400 PLN / osoba / miesiąc',
-    detail: 'September only - 2 lessons per week - 8 lessons - max 4 students',
+    priceUnit: '/ student / month',
+    priceUnitPl: '/ osoba / miesiąc',
+    detail: 'September only, 2 lessons per week, 8 lessons, max 4 students',
   },
 ]
 
@@ -79,7 +83,7 @@ const POLICIES = [
   {
     icon: 'verified_user',
     title: 'Student protection',
-    copy: 'If a lesson cannot take place because of teacher cancellation, lack of availability or another issue caused by EnglishMetro, we extend the package validity, credit the unused lesson or issue a refund.',
+    copy: 'If a lesson cannot take place because of teacher cancellation, lack of availability or another issue caused by English Metro, we extend the package validity, credit the unused lesson or issue a refund.',
   },
   {
     icon: 'undo',
@@ -164,12 +168,12 @@ const PACKAGE_PL = {
     pace: '24 lekcje specjalistyczne',
     perLesson: '110 PLN / lekcja',
     bestFor: 'Najlepsza wartość przy dłuższym coachingu specjalistycznym',
-    features: ['Diagnostyczna rozmowa poziomująca', 'Specjalistyczny plan CEFR', '24 x 60 min lekcje specjalistyczne', 'Miesieczne przeglady i notatki'],
+    features: ['Diagnostyczna rozmowa poziomująca', 'Specjalistyczny plan CEFR', '24 x 60 min lekcje specjalistyczne', 'Miesięczne przeglądy i notatki'],
     badge: 'Najlepsza cena specjalistyczna',
   },
   'company-24': {
     pace: '24 firmowe lekcje grupowe',
-    calculation: '24 x 200 PLN = 4,800 PLN',
+    calculation: '24 x 200 PLN = 4 800 PLN',
     perLesson: '200 PLN / lekcja grupowa',
     perStudentPackage: '960 PLN / pracownik / pakiet',
     perStudent: '40 PLN / pracownik / lekcja',
@@ -179,11 +183,11 @@ const PACKAGE_PL = {
   },
   'company-48': {
     pace: '48 firmowych lekcji grupowych',
-    calculation: '7,600 PLN - 20% = 6,080 PLN',
+    calculation: '7 600 PLN - 20% = 6 080 PLN',
     perLesson: '126,67 PLN / lekcja grupowa',
-    perStudentPackage: '1,216 PLN / pracownik / pakiet',
+    perStudentPackage: '1 216 PLN / pracownik / pakiet',
     perStudent: '25,33 PLN / pracownik / lekcja',
-    bestFor: '20% rabatu od wyliczenia 7,600 PLN za program 48 lekcji',
+    bestFor: '20% rabatu od wyliczenia 7 600 PLN za program 48 lekcji',
     features: ['Diagnoza poziomu i celów dla maks. 5 osób', 'Plan CEFR dopasowany do celów firmy', '48 x 60 min lekcje grupowe online', 'Miesięczne podsumowanie postępów dla firmy'],
     badge: '20% rabatu',
   },
@@ -192,7 +196,7 @@ const PACKAGE_PL = {
 const COURSE_PL = {
   september: {
     name: 'Kurs wrześniowy',
-    detail: 'Tylko wrzesień - 2 lekcje w tygodniu - 8 lekcji - maks. 4 osoby',
+    detail: 'Tylko wrzesień, 2 lekcje w tygodniu, 8 lekcji, maks. 4 osoby',
   },
 }
 
@@ -214,7 +218,7 @@ const POLICY_PL = {
   },
   'Student protection': {
     title: 'Ochrona ucznia',
-    copy: 'Jeśli lekcja nie może się odbyć z powodu odwołania przez lektora, braku dostępności lub innej przyczyny po stronie EnglishMetro, przedłużamy ważność pakietu, zaliczamy lekcję na poczet kolejnych albo zwracamy pieniądze.',
+    copy: 'Jeśli lekcja nie może się odbyć z powodu odwołania przez lektora, braku dostępności lub innej przyczyny po stronie English Metro, przedłużamy ważność pakietu, zaliczamy lekcję na poczet kolejnych albo zwracamy pieniądze.',
   },
   'Refunds and credits': {
     title: 'Zwroty i kredyt',
@@ -237,7 +241,7 @@ function buildSummary({ selectedPackage, format, learnerName, email, level, goal
   const packageCopy = lang === 'pl' ? PACKAGE_PL[selectedPackage.id] : null
   const formatCopy = lang === 'pl' ? FORMAT_PL[format.id] : null
   return [
-    lang === 'pl' ? 'Prosba o zapis na lekcje EnglishMetro' : 'EnglishMetro lesson signup request',
+    lang === 'pl' ? 'Prośba o zapis na lekcje English Metro' : 'English Metro lesson signup request',
     '',
     `${lang === 'pl' ? 'Pakiet' : 'Package'}: ${selectedPackage.name} (${packageCopy?.pace || selectedPackage.pace}, ${selectedPackage.price})`,
     `${lang === 'pl' ? 'Format' : 'Format'}: ${formatCopy?.label || format.label} - ${formatCopy?.detail || format.detail}`,
@@ -252,13 +256,108 @@ function buildSummary({ selectedPackage, format, learnerName, email, level, goal
   ].join('\n')
 }
 
+// One card for private, specialist and company packages. The card itself is
+// the selector (click or Enter/Space); the only button on it adds to the cart
+// (or, for company packages, prepares the enquiry).
+// Memoised: selecting or adding used to re-render all twelve cards (576 dial
+// ticks) for one changed flag. Now only the card whose props changed repaints.
+const PackageCard = memo(function PackageCard({ pkg, formatId, selected, lang, added, company = false, onSelect, onAdd, onEnquiry }) {
+  const isPl = lang === 'pl'
+  const t = (en, pl) => (isPl ? pl : en)
+  const priceOf = (item) => formatPLN(parsePricePLN(item.price))
+  const copy = PACKAGE_PL[pkg.id] || {}
+  const lessons = PACKAGE_LESSONS[pkg.id]
+  const validity = packageValidity(lessons)[isPl ? 'pl' : 'en']
+  const select = () => onSelect(pkg.id, formatId)
+  return (
+    <article
+      className={`lp-package lp-package-${pkg.accent} ${selected ? 'is-selected' : ''}`}
+      data-selected={selected}
+      tabIndex={0}
+      onClick={(event) => { if (!event.target.closest('button, a')) select() }}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select() }
+      }}
+      onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+    >
+      <div className="lp-package-top">
+        <span>{isPl ? (copy.badge || pkg.badge) : pkg.badge}</span>
+        <div className="lp-package-visual">
+          <PackageDial lessons={lessons} selected={selected} lang={lang} />
+          <span className="lp-package-selected" aria-hidden>
+            <span className="material-symbols-outlined">check</span>
+          </span>
+        </div>
+      </div>
+      <h3>{pkg.name}</h3>
+      <p className="lp-package-pace">{isPl ? (copy.pace || pkg.pace) : pkg.pace}</p>
+      <div className="lp-price">
+        {priceOf(pkg)}
+        <small>{t('incl. VAT', 'z VAT')}</small>
+      </div>
+      {company && (
+        <p className="lp-price-calculation">
+          <span>{t('Package calculation', 'Wyliczenie pakietu')}</span>
+          <strong>{isPl ? (copy.calculation || pkg.calculation) : pkg.calculation}</strong>
+        </p>
+      )}
+      <p className="lp-per-lesson">{isPl ? (copy.perLesson || pkg.perLesson) : pkg.perLesson}</p>
+      {company && (
+        <>
+          <p className="lp-per-student-package">{isPl ? (copy.perStudentPackage || pkg.perStudentPackage) : pkg.perStudentPackage}</p>
+          <p className="lp-per-student">{isPl ? (copy.perStudent || pkg.perStudent) : pkg.perStudent}</p>
+        </>
+      )}
+      <p className="lp-package-validity">
+        <span className="material-symbols-outlined" aria-hidden>event_available</span>
+        {validity}
+      </p>
+      <p className="lp-best">{isPl ? (copy.bestFor || pkg.bestFor) : pkg.bestFor}</p>
+      <ul>
+        {(isPl ? (copy.features || pkg.features) : pkg.features).map((feature) => (
+          <li key={feature}>
+            <span className="material-symbols-outlined" aria-hidden>check_circle</span>
+            {feature}
+          </li>
+        ))}
+      </ul>
+      {company ? (
+        <button
+          type="button"
+          className="lp-add-cart"
+          onClick={() => onEnquiry(pkg.id)}
+        >
+          <span className="material-symbols-outlined" aria-hidden>business_center</span>
+          {t('Prepare company enquiry', 'Przygotuj zapytanie firmowe')}
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="lp-add-cart"
+          data-added={added}
+          aria-label={t(`Add ${pkg.name} to cart, ${priceOf(pkg)}`, `Dodaj ${pkg.name} do koszyka, ${priceOf(pkg)}`)}
+          onClick={() => onAdd(pkg)}
+        >
+          <span className="material-symbols-outlined" aria-hidden>
+            {added ? 'check' : 'add_shopping_cart'}
+          </span>
+          {added ? t('Added', 'Dodano') : t('Add to cart', 'Do koszyka')}
+        </button>
+      )}
+    </article>
+  )
+})
+
 export default function LessonPricingSignup() {
   const location = useLocation()
   const pageRef = useRef(null)
   const pricingRef = useRef(null)
   const signupRef = useRef(null)
-  const [lang, setLang] = useState('pl')
+  const [lang, setLang] = useState(() => detectInitial())
   const [packageId, setPackageId] = useState('momentum')
+  const [stickyOn, setStickyOn] = useState(false)
+  const [announce, setAnnounce] = useState('')
   const [formatId, setFormatId] = useState('one-to-one')
   const [learnerName, setLearnerName] = useState('')
   const [email, setEmail] = useState('')
@@ -272,20 +371,6 @@ export default function LessonPricingSignup() {
   const [justAdded, setJustAdded] = useState(null)
   const addedTimer = useRef(null)
 
-  function addToCart(pkg, extra = {}) {
-    cart.add({
-      id: pkg.id,
-      name: pkg.name,
-      pace: pkg.pace || pkg.detail || '',
-      pacePl: PACKAGE_PL[pkg.id]?.pace || COURSE_PL[pkg.id]?.detail || pkg.pace || pkg.detail || '',
-      pricePLN: parsePricePLN(pkg.price),
-      ...extra,
-    })
-    setJustAdded(pkg.id)
-    window.clearTimeout(addedTimer.current)
-    addedTimer.current = window.setTimeout(() => setJustAdded(null), 1400)
-  }
-
   const selectedPackage = useMemo(
     () => PACKAGES.find((pkg) => pkg.id === packageId) || PRIVATE_PACKAGES[2],
     [packageId],
@@ -296,6 +381,26 @@ export default function LessonPricingSignup() {
   )
   const isPl = lang === 'pl'
   const t = (en, pl) => (isPl ? pl : en)
+
+  const addToCart = useCallback((pkg, extra = {}) => {
+    cart.add({
+      id: pkg.id,
+      name: pkg.name,
+      namePl: COURSE_PL[pkg.id]?.name || pkg.name,
+      pace: pkg.pace || pkg.detail || '',
+      pacePl: PACKAGE_PL[pkg.id]?.pace || COURSE_PL[pkg.id]?.detail || pkg.pace || pkg.detail || '',
+      pricePLN: parsePricePLN(pkg.price),
+      ...extra,
+    })
+    // Adding IS choosing: the card lights up and the signup summary follows,
+    // so there is one selection on the page, not two competing ones.
+    if (PACKAGES.some((item) => item.id === pkg.id)) setPackageId(pkg.id)
+    setJustAdded(pkg.id)
+    setAnnounce(t(`${pkg.name} added to cart`, `${COURSE_PL[pkg.id]?.name || pkg.name} dodano do koszyka`))
+    window.clearTimeout(addedTimer.current)
+    addedTimer.current = window.setTimeout(() => setJustAdded(null), 1400)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang])
   const packageCopy = PACKAGE_PL[selectedPackage.id] || {}
   const isCompanyPackage = selectedPackage.id.startsWith('company-')
   const summary = useMemo(
@@ -350,6 +455,35 @@ export default function LessonPricingSignup() {
 
   useEffect(() => () => window.clearTimeout(addedTimer.current), [])
 
+  // Sticky mobile CTA: on once the pricing grid has been reached, off again
+  // while the signup form (which has its own buttons) is on screen.
+  useEffect(() => {
+    const pricing = pricingRef.current
+    const signup = signupRef.current
+    if (!pricing || !signup || typeof IntersectionObserver === 'undefined') return undefined
+    let pricingSeen = false
+    let signupIn = false
+    const apply = () => setStickyOn(pricingSeen && !signupIn)
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.target === pricing) {
+          if (entry.isIntersecting) pricingSeen = true
+          else if (entry.boundingClientRect.top > 0) pricingSeen = false
+        }
+        if (entry.target === signup) signupIn = entry.isIntersecting
+      })
+      apply()
+    }, { threshold: 0.02 })
+    io.observe(pricing)
+    io.observe(signup)
+    return () => io.disconnect()
+  }, [])
+
+  useEffect(() => {
+    document.body.setAttribute('data-lp-sticky', stickyOn ? 'true' : 'false')
+    return () => document.body.removeAttribute('data-lp-sticky')
+  }, [stickyOn])
+
   function submitSignup(event) {
     event.preventDefault()
     setError('')
@@ -393,37 +527,50 @@ export default function LessonPricingSignup() {
 
   function chooseLanguage(nextLang) {
     setLang(nextLang)
-    triggerPolish()
+    // Same key the rest of the site reads (i18n detectInitial), so the choice
+    // made here follows the visitor into /checkout instead of resetting to PL.
+    try { window.localStorage.setItem('em.lang.v2', nextLang) } catch { /* private mode */ }
   }
 
-  function choosePackage(nextPackageId, nextFormatId) {
+  const choosePackage = useCallback((nextPackageId, nextFormatId) => {
     setPackageId(nextPackageId)
     if (nextFormatId) setFormatId(nextFormatId)
-    triggerPolish()
-  }
+    const pkg = PACKAGES.find((item) => item.id === nextPackageId)
+    if (pkg) setAnnounce(lang === 'pl' ? `Wybrano: ${pkg.name}` : `Selected: ${pkg.name}`)
+    setPolishKey((current) => current + 1)
+  }, [lang])
+
+  const enquireCompany = useCallback((id) => {
+    choosePackage(id, 'company')
+    signupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [choosePackage])
 
   function chooseFormat(nextFormatId) {
     setFormatId(nextFormatId)
     triggerPolish()
   }
 
+
+  const priceOf = (pkg) => formatPLN(parsePricePLN(pkg.price))
+
   return (
     <main ref={pageRef} className="lp-page">
       {polishKey > 0 && <span key={polishKey} className="lp-click-bloom" aria-hidden />}
+      <p className="sr-only" role="status" aria-live="polite">{announce}</p>
       <header className="lp-nav" onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
-        <Link to="/" className="lp-brand" aria-label="EnglishMetro home">
+        <Link to="/" className="lp-brand" aria-label={t('English Metro home', 'English Metro, strona główna')}>
           <Skyline size={30} />
           <span>English<span>Metro</span>.</span>
         </Link>
-        <nav className="lp-nav-links" aria-label="Public lessons navigation">
+        <nav className="lp-nav-links" aria-label={t('Public lessons navigation', 'Nawigacja strony lekcji')}>
           <a href="#packages">{t('Lessons', 'Lekcje')}</a>
           <a href="#pricing">{t('Pricing', 'Cennik')}</a>
           <a href="#signup">{t('Signup', 'Zapisy')}</a>
           <Link to="/login">{t('Sign in', 'Logowanie')}</Link>
         </nav>
-        <div className="lp-lang-toggle" role="group" aria-label="Language">
-          <button type="button" className={lang === 'en' ? 'is-active' : ''} onClick={() => chooseLanguage('en')}>EN</button>
-          <button type="button" className={lang === 'pl' ? 'is-active' : ''} onClick={() => chooseLanguage('pl')}>PL</button>
+        <div className="lp-lang-toggle" role="group" aria-label={t('Language', 'Język')}>
+          <button type="button" className={lang === 'en' ? 'is-active' : ''} aria-pressed={lang === 'en'} onClick={() => chooseLanguage('en')}>EN</button>
+          <button type="button" className={lang === 'pl' ? 'is-active' : ''} aria-pressed={lang === 'pl'} onClick={() => chooseLanguage('pl')}>PL</button>
         </div>
       </header>
 
@@ -432,42 +579,42 @@ export default function LessonPricingSignup() {
         <div className="lp-hero-copy">
           <p className="lp-kicker">
             <span className="material-symbols-outlined" aria-hidden>verified</span>
-            {t('Live lessons with a teacher and EnglishMetro practice', 'Lekcje na żywo z lektorem i ćwiczenia w EnglishMetro')}
+            {t('Live 1:1 lessons with a teacher, practice in English Metro World', 'Lekcje 1:1 na żywo z lektorem i ćwiczenia w English Metro World')}
           </p>
-          <h1 id="lp-title">{t('EnglishMetro private lessons', 'Prywatne lekcje EnglishMetro')}</h1>
+          <h1 id="lp-title">{t('English Metro private lessons', 'Prywatne lekcje English Metro')}</h1>
           <p>
             {t(
-              'Live 1:1 English lessons, practice after each session, and payment only after we confirm your teacher and time.',
-              'Lekcje angielskiego 1:1 na żywo, ćwiczenia po każdych zajęciach i płatność dopiero po potwierdzeniu lektora oraz terminu.',
+              'Pick a package, pay securely through Przelewy24 and book your lessons from your account. Every package shows its price with VAT and its validity before you pay.',
+              'Wybierz pakiet, zapłać bezpiecznie przez Przelewy24 i rezerwuj lekcje ze swojego konta. Każdy pakiet pokazuje cenę z VAT i okres ważności, zanim zapłacisz.',
             )}
           </p>
           <div className="lp-hero-actions">
-            <a className="lp-button lp-button-primary" href="#signup">
-              <span className="material-symbols-outlined" aria-hidden>edit_calendar</span>
-              {t('Ask for a learning plan', 'Poproś o plan nauki')}
-            </a>
-            <a className="lp-button lp-button-ghost" href="#pricing">
+            <a className="lp-button lp-button-primary" href="#pricing">
               <span className="material-symbols-outlined" aria-hidden>payments</span>
               {t('View packages', 'Zobacz pakiety')}
             </a>
+            <a className="lp-button lp-button-ghost" href="#signup">
+              <span className="material-symbols-outlined" aria-hidden>edit_calendar</span>
+              {t('Ask for a learning plan', 'Poproś o plan nauki')}
+            </a>
           </div>
         </div>
-        <div className="lp-hero-panel" aria-label="Next available lesson flow"
+        <div className="lp-hero-panel" aria-label={t('How buying lessons works', 'Jak kupić lekcje')}
           onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
           <div>
             <span>01</span>
-            <strong>{t('Choose package', 'Wybierz pakiet')}</strong>
-            <p>{t('Pick pace, format, and goals.', 'Wybierz tempo, format i cele.')}</p>
+            <strong>{t('Add a package to the cart', 'Dodaj pakiet do koszyka')}</strong>
+            <p>{t('Compare lesson count, price per lesson and validity.', 'Porównaj liczbę lekcji, cenę za lekcję i ważność.')}</p>
           </div>
           <div>
             <span>02</span>
-            <strong>{t('Confirm a time', 'Potwierdź termin')}</strong>
-            <p>{t('We first match you with a teacher and confirm an available time.', 'Najpierw dobieramy lektora i potwierdzamy dostępny termin.')}</p>
+            <strong>{t('Create your account and pay', 'Załóż konto i zapłać')}</strong>
+            <p>{t('BLIK, card, bank transfer or PayPo, on the secure Przelewy24 page. Invoice on request.', 'BLIK, karta, przelew lub PayPo na bezpiecznej stronie Przelewy24. Faktura na życzenie.')}</p>
           </div>
           <div>
             <span>03</span>
-            <strong>{t('Pay securely', 'Zapłać bezpiecznie')}</strong>
-            <p>{t('Pay online in Przelewy24 when you place the order, or ask us for an invoice.', 'Płacisz online w Przelewy24 przy składaniu zamówienia albo prosisz nas o fakturę.')}</p>
+            <strong>{t('Book lessons from your account', 'Rezerwuj lekcje ze swojego konta')}</strong>
+            <p>{t('Right away, or after the 14-day withdrawal period if you prefer. Cancel free with 24 hours notice.', 'Od razu albo po 14-dniowym okresie na odstąpienie, jak wolisz. Odwołanie bez opłaty z 24-godzinnym wyprzedzeniem.')}</p>
           </div>
         </div>
       </section>
@@ -475,12 +622,43 @@ export default function LessonPricingSignup() {
       <section id="packages" className="lp-band lp-intro">
         <div>
           <p className="lp-section-label">{t('Lesson packages', 'Pakiety lekcji')}</p>
-          <h2>{t('Flexible 1:1 lessons available in packages.', 'Elastyczne lekcje 1:1 dostępne w pakietach.')}</h2>
+          <h2>{t('Every package includes the same lesson. You choose how many.', 'Każdy pakiet to ta sama lekcja. Ty wybierasz, ile ich będzie.')}</h2>
         </div>
+        <ul className="lp-includes" aria-label={t('Included in every package', 'W każdym pakiecie')}>
+          <li>
+            <span className="material-symbols-outlined" aria-hidden>video_camera_front</span>
+            <div>
+              <strong>{t('60-minute live 1:1 lesson', '60-minutowa lekcja 1:1 na żywo')}</strong>
+              <p>{t('Online, with your teacher, booked from your account.', 'Online, z Twoim lektorem, rezerwowana z konta.')}</p>
+            </div>
+          </li>
+          <li>
+            <span className="material-symbols-outlined" aria-hidden>description</span>
+            <div>
+              <strong>{t('PDF notes after each lesson', 'Notatki PDF po każdej lekcji')}</strong>
+              <p>{t('What you covered, corrected, and what to practise.', 'Co było na lekcji, co poprawiono i co ćwiczyć dalej.')}</p>
+            </div>
+          </li>
+          <li>
+            <span className="material-symbols-outlined" aria-hidden>style</span>
+            <div>
+              <strong>{t('Flashcards with a YouTube clip for every word', 'Fiszki z klipem z YouTube do każdego słowa')}</strong>
+              <p>{t('Hear each word from your lesson used by native speakers.', 'Usłysz każde słowo z lekcji w ustach native speakerów.')}</p>
+            </div>
+          </li>
+          <li>
+            <span className="material-symbols-outlined" aria-hidden>sports_esports</span>
+            <div>
+              <strong>{t('Practice in English Metro World', 'Ćwiczenia w English Metro World')}</strong>
+              <p>{t('Your lesson vocabulary, in the 3D city, between lessons.', 'Słownictwo z lekcji w mieście 3D, między lekcjami.')}</p>
+            </div>
+          </li>
+        </ul>
         <p>
+          <span className="lp-optional-tag">{t('Optional at checkout', 'Opcjonalnie w kasie')}</span>{' '}
           {t(
-            'Choose a package that fits your goals. We then confirm the schedule and payment method.',
-            'Wybierz pakiet dopasowany do swoich celów. Następnie potwierdzimy terminy i sposób płatności.',
+            'AI lesson analysis: a written CEFR assessment after every lesson, 20 PLN per lesson, which also unlocks Bajla, your assistant on WhatsApp. Never added without your tick.',
+            'Analiza lekcji AI: pisemna ocena CEFR po każdej lekcji, 20 PLN za lekcję, która włącza też Bajlę, Twoją asystentkę na WhatsAppie. Nigdy nie jest dodawana bez Twojego zaznaczenia.',
           )}
         </p>
       </section>
@@ -491,45 +669,34 @@ export default function LessonPricingSignup() {
             <p className="lp-section-label">{t('Pricing', 'Cennik')}</p>
             <h2 id="pricing-title">{t('Choose how often you learn', 'Wybierz częstotliwość lekcji')}</h2>
           </div>
-          <p>{t('All live lessons are 60 minutes. You see the price, invoice information and payment method before paying.', 'Wszystkie lekcje na żywo trwają 60 minut. Przed płatnością zobaczysz cenę, informacje o fakturze i sposób płatności.')}</p>
+          <p>{t('Prices are gross, VAT included. Click a card to compare it in the summary below, then add it to the cart.', 'Ceny brutto, z VAT. Kliknij kartę, aby porównać ją w podsumowaniu poniżej, a potem dodaj do koszyka.')}</p>
         </div>
+
+        <ul className="lp-trust" aria-label={t('Payment and cancellation terms', 'Warunki płatności i odwołania')}>
+          <li>
+            <span className="lp-trust-marks" aria-hidden>
+              <PaymentMark kind="blik" /><PaymentMark kind="card" /><PaymentMark kind="bank" />
+            </span>
+            <span><strong>Przelewy24</strong> {t('BLIK, card, transfer, PayPo', 'BLIK, karta, przelew, PayPo')}</span>
+          </li>
+          <li>
+            <span className="material-symbols-outlined" aria-hidden>receipt_long</span>
+            <span>{t('Invoice (KSeF) on request', 'Faktura (KSeF) na życzenie')}</span>
+          </li>
+          <li>
+            <span className="material-symbols-outlined" aria-hidden>event_busy</span>
+            <span>{t('Free cancellation 24 h before a lesson', 'Bezpłatne odwołanie 24 h przed lekcją')}</span>
+          </li>
+          <li>
+            <span className="material-symbols-outlined" aria-hidden>undo</span>
+            <span>{t('14-day right of withdrawal', '14 dni na odstąpienie od umowy')}</span>
+          </li>
+        </ul>
 
         <div className="lp-package-grid">
           {PRIVATE_PACKAGES.map((pkg) => (
-            <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}
-              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
-              <div className="lp-package-top">
-                <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
-                <button type="button" onClick={() => choosePackage(pkg.id, 'one-to-one')} aria-pressed={pkg.id === packageId}>
-                  {pkg.id === packageId ? t('Selected', 'Wybrany') : t('Choose', 'Wybierz')}
-                </button>
-              </div>
-              <h3>{pkg.name}</h3>
-              <p className="lp-package-pace">{isPl ? (PACKAGE_PL[pkg.id]?.pace || pkg.pace) : pkg.pace}</p>
-              <div className="lp-price">{pkg.price}</div>
-              <p className="lp-per-lesson">{isPl ? (PACKAGE_PL[pkg.id]?.perLesson || pkg.perLesson) : pkg.perLesson}</p>
-              <p className="lp-package-validity">{packageValidity(PACKAGE_LESSONS[pkg.id])[isPl ? 'pl' : 'en']}</p>
-              <p className="lp-best">{isPl ? (PACKAGE_PL[pkg.id]?.bestFor || pkg.bestFor) : pkg.bestFor}</p>
-              <ul>
-                {(isPl ? (PACKAGE_PL[pkg.id]?.features || pkg.features) : pkg.features).map((feature) => (
-                  <li key={feature}>
-                    <span className="material-symbols-outlined" aria-hidden>check_circle</span>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                className="lp-add-cart"
-                data-added={justAdded === pkg.id}
-                onClick={() => addToCart(pkg)}
-              >
-                <span className="material-symbols-outlined" aria-hidden>
-                  {justAdded === pkg.id ? 'check' : 'add_shopping_cart'}
-                </span>
-                {justAdded === pkg.id ? t('Added', 'Dodano') : t('Add to cart', 'Do koszyka')}
-              </button>
-            </article>
+            <PackageCard key={pkg.id} pkg={pkg} formatId="one-to-one" selected={pkg.id === packageId} lang={lang}
+              added={justAdded === pkg.id} onSelect={choosePackage} onAdd={addToCart} />
           ))}
         </div>
 
@@ -546,40 +713,8 @@ export default function LessonPricingSignup() {
           </div>
           <div className="lp-package-grid lp-specialist-grid">
             {SPECIALIST_PACKAGES.map((pkg) => (
-              <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}
-                onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
-                <div className="lp-package-top">
-                  <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
-                  <button type="button" onClick={() => choosePackage(pkg.id, 'specialist')} aria-pressed={pkg.id === packageId}>
-                    {pkg.id === packageId ? t('Selected', 'Wybrany') : t('Choose', 'Wybierz')}
-                  </button>
-                </div>
-                <h3>{pkg.name}</h3>
-                <p className="lp-package-pace">{isPl ? (PACKAGE_PL[pkg.id]?.pace || pkg.pace) : pkg.pace}</p>
-                <div className="lp-price">{pkg.price}</div>
-                <p className="lp-per-lesson">{isPl ? (PACKAGE_PL[pkg.id]?.perLesson || pkg.perLesson) : pkg.perLesson}</p>
-                <p className="lp-package-validity">{packageValidity(PACKAGE_LESSONS[pkg.id])[isPl ? 'pl' : 'en']}</p>
-                <p className="lp-best">{isPl ? (PACKAGE_PL[pkg.id]?.bestFor || pkg.bestFor) : pkg.bestFor}</p>
-                <ul>
-                  {(isPl ? (PACKAGE_PL[pkg.id]?.features || pkg.features) : pkg.features).map((feature) => (
-                    <li key={feature}>
-                      <span className="material-symbols-outlined" aria-hidden>check_circle</span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  className="lp-add-cart"
-                  data-added={justAdded === pkg.id}
-                  onClick={() => addToCart(pkg)}
-                >
-                  <span className="material-symbols-outlined" aria-hidden>
-                    {justAdded === pkg.id ? 'check' : 'add_shopping_cart'}
-                  </span>
-                  {justAdded === pkg.id ? t('Added', 'Dodano') : t('Add to cart', 'Do koszyka')}
-                </button>
-              </article>
+              <PackageCard key={pkg.id} pkg={pkg} formatId="specialist" selected={pkg.id === packageId} lang={lang}
+                added={justAdded === pkg.id} onSelect={choosePackage} onAdd={addToCart} />
             ))}
           </div>
         </div>
@@ -590,52 +725,15 @@ export default function LessonPricingSignup() {
             <h3 id="company-title">{t('One English course for a team of up to 5 employees.', 'Jeden kurs angielskiego dla zespołu do 5 pracowników.')}</h3>
             <p>
               {t(
-                'The 24-lesson package is 4,800 PLN. The 48-lesson calculation starts at 7,600 PLN and receives a 20% discount.',
-                'Pakiet 24 lekcji kosztuje 4,800 PLN. Wyliczenie dla 48 lekcji zaczyna się od 7,600 PLN i obejmuje 20% rabatu.',
+                'The 24-lesson package is 4 800 PLN. The 48-lesson calculation starts at 7 600 PLN and receives a 20% discount. Company packages are arranged by enquiry and invoiced.',
+                'Pakiet 24 lekcji kosztuje 4 800 PLN. Wyliczenie dla 48 lekcji zaczyna się od 7 600 PLN i obejmuje 20% rabatu. Pakiety firmowe ustalamy na podstawie zapytania i rozliczamy fakturą.',
               )}
             </p>
           </div>
           <div className="lp-package-grid lp-company-grid">
             {COMPANY_PACKAGES.map((pkg) => (
-              <article key={pkg.id} className={`lp-package lp-package-${pkg.accent} ${pkg.id === packageId ? 'is-selected' : ''}`}
-                onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
-                <div className="lp-package-top">
-                  <span>{isPl ? (PACKAGE_PL[pkg.id]?.badge || pkg.badge) : pkg.badge}</span>
-                  <button type="button" onClick={() => choosePackage(pkg.id, 'company')} aria-pressed={pkg.id === packageId}>
-                    {pkg.id === packageId ? t('Selected', 'Wybrany') : t('Choose', 'Wybierz')}
-                  </button>
-                </div>
-                <h3>{pkg.name}</h3>
-                <p className="lp-package-pace">{isPl ? (PACKAGE_PL[pkg.id]?.pace || pkg.pace) : pkg.pace}</p>
-                <div className="lp-price">{pkg.price}</div>
-                <p className="lp-price-calculation">
-                  <span>{t('Package calculation', 'Wyliczenie pakietu')}</span>
-                  <strong>{isPl ? (PACKAGE_PL[pkg.id]?.calculation || pkg.calculation) : pkg.calculation}</strong>
-                </p>
-                <p className="lp-per-lesson">{isPl ? (PACKAGE_PL[pkg.id]?.perLesson || pkg.perLesson) : pkg.perLesson}</p>
-                <p className="lp-per-student-package">{isPl ? (PACKAGE_PL[pkg.id]?.perStudentPackage || pkg.perStudentPackage) : pkg.perStudentPackage}</p>
-                <p className="lp-per-student">{isPl ? (PACKAGE_PL[pkg.id]?.perStudent || pkg.perStudent) : pkg.perStudent}</p>
-                <p className="lp-best">{isPl ? (PACKAGE_PL[pkg.id]?.bestFor || pkg.bestFor) : pkg.bestFor}</p>
-                <ul>
-                  {(isPl ? (PACKAGE_PL[pkg.id]?.features || pkg.features) : pkg.features).map((feature) => (
-                    <li key={feature}>
-                      <span className="material-symbols-outlined" aria-hidden>check_circle</span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  className="lp-add-cart"
-                  onClick={() => {
-                    choosePackage(pkg.id, 'company')
-                    signupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  }}
-                >
-                  <span className="material-symbols-outlined" aria-hidden>business_center</span>
-                  {t('Prepare company enquiry', 'Przygotuj zapytanie firmowe')}
-                </button>
-              </article>
+              <PackageCard key={pkg.id} pkg={pkg} formatId="company" selected={pkg.id === packageId} lang={lang} company
+                added={false} onSelect={choosePackage} onEnquiry={enquireCompany} />
             ))}
           </div>
         </div>
@@ -660,13 +758,17 @@ export default function LessonPricingSignup() {
               onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <span className="material-symbols-outlined" aria-hidden>sunny</span>
               <h3>{isPl ? (COURSE_PL[course.id]?.name || course.name) : course.name}</h3>
-              <strong>{isPl ? (course.pricePl || course.price) : course.price}</strong>
+              <strong>{priceOf(course)} <small>{isPl ? course.priceUnitPl : course.priceUnit}</small></strong>
               <small>{isPl ? (COURSE_PL[course.id]?.detail || course.detail) : course.detail}</small>
+              <p className="lp-package-validity">
+                <span className="material-symbols-outlined" aria-hidden>event_available</span>
+                {packageValidity(PACKAGE_LESSONS[course.id])[isPl ? 'pl' : 'en']}
+              </p>
               <button
                 type="button"
                 className="lp-add-cart lp-add-cart-course"
                 data-added={justAdded === course.id}
-                onClick={() => addToCart({ ...course, name: isPl ? (COURSE_PL[course.id]?.name || course.name) : course.name })}
+                onClick={() => addToCart({ ...course, name: course.name })}
               >
                 <span className="material-symbols-outlined" aria-hidden>
                   {justAdded === course.id ? 'check' : 'add_shopping_cart'}
@@ -682,30 +784,30 @@ export default function LessonPricingSignup() {
         <div className="lp-section-head">
           <div>
             <p className="lp-section-label">{t('Payments', 'Płatności')}</p>
-            <h2 id="payment-title">{t('Pay after your slot is confirmed.', 'Płacisz po potwierdzeniu terminu.')}</h2>
+            <h2 id="payment-title">{t('From cart to first lesson.', 'Od koszyka do pierwszej lekcji.')}</h2>
           </div>
           <p>
             {t(
-              'Send a request first. We confirm the right package, schedule, and invoice details before payment.',
-              'Najpierw wysyłasz prośbę o zapis. Przed płatnością potwierdzamy pakiet, termin i dane do faktury.',
+              'You pay at checkout, once, for the whole package. Your lessons are then allocated to your account automatically after Przelewy24 confirms the payment.',
+              'Płacisz w kasie, raz, za cały pakiet. Po potwierdzeniu płatności przez Przelewy24 lekcje są automatycznie przypisywane do Twojego konta.',
             )}
           </p>
         </div>
         <div className="lp-readiness">
           <div className="lp-readiness-row">
-            <span className="lp-dot lp-dot-done" aria-hidden />
-            <strong>{t('Request', 'Prośba')}</strong>
-            <p>{t('Choose a package and tell us your goal.', 'Wybierz pakiet i napisz swój cel.')}</p>
+            <span className="lp-step-n" aria-hidden>1</span>
+            <strong>{t('Cart', 'Koszyk')}</strong>
+            <p>{t('Add one or more packages. The cart keeps them for 7 days.', 'Dodaj jeden lub więcej pakietów. Koszyk pamięta je przez 7 dni.')}</p>
           </div>
           <div className="lp-readiness-row">
-            <span className="lp-dot lp-dot-done" aria-hidden />
-            <strong>{t('Confirm', 'Potwierdzenie')}</strong>
-            <p>{t('We reply with available times and the final payment route.', 'Odpisujemy z terminami i finalną formą płatności.')}</p>
+            <span className="lp-step-n" aria-hidden>2</span>
+            <strong>{t('Account and payment', 'Konto i płatność')}</strong>
+            <p>{t('Create your account (or sign in), add invoice details if you need them, and pay on the secure Przelewy24 page.', 'Załóż konto (lub zaloguj się), podaj dane do faktury, jeśli ich potrzebujesz, i zapłać na bezpiecznej stronie Przelewy24.')}</p>
           </div>
           <div className="lp-readiness-row">
-            <span className="lp-dot lp-dot-pending" aria-hidden />
-            <strong>{t('Pay', 'Płatność')}</strong>
-            <p>{t('Secure online payment opens in Przelewy24, with the methods available for your transaction.', 'Bezpieczna płatność online otwiera się w Przelewy24, z metodami dostępnymi dla danej transakcji.')}</p>
+            <span className="lp-step-n" aria-hidden>3</span>
+            <strong>{t('Book', 'Rezerwacja')}</strong>
+            <p>{t('Lessons appear in your account after payment is verified. You choose at checkout whether booking opens straight away or after the 14-day withdrawal period.', 'Lekcje pojawiają się na koncie po zweryfikowaniu płatności. W kasie decydujesz, czy rezerwacja otwiera się od razu, czy po 14-dniowym okresie na odstąpienie.')}</p>
           </div>
         </div>
       </section>
@@ -740,15 +842,15 @@ export default function LessonPricingSignup() {
           <h2 id="signup-title">{t('Tell us the package, goal, and schedule shape.', 'Podaj pakiet, cel i preferowany rytm lekcji.')}</h2>
           <p>
             {t(
-              'We will reply with teacher availability and the right payment next step. No card data is collected here.',
-              'Odpowiemy z dostępnością nauczyciela i kolejnym krokiem płatności. Ta strona nie zbiera danych karty.',
+              'Prefer to talk first, or buying for a company? Send a request and we reply with teacher availability and the next step. No card data is collected here.',
+              'Wolisz najpierw porozmawiać albo kupujesz dla firmy? Wyślij prośbę, a odpowiemy z dostępnością lektora i kolejnym krokiem. Ta strona nie zbiera danych karty.',
             )}
           </p>
           <div className="lp-selected">
             <span className="material-symbols-outlined" aria-hidden>local_activity</span>
             <div>
               <strong>{selectedPackage.name}</strong>
-              <p>{isPl ? (packageCopy.pace || selectedPackage.pace) : selectedPackage.pace} - {selectedPackage.price}</p>
+              <p>{isPl ? (packageCopy.pace || selectedPackage.pace) : selectedPackage.pace} · {priceOf(selectedPackage)} · {packageValidity(PACKAGE_LESSONS[selectedPackage.id])[isPl ? 'pl' : 'en']}</p>
             </div>
           </div>
         </div>
@@ -773,18 +875,18 @@ export default function LessonPricingSignup() {
           </fieldset>
 
           <label className="lp-field">
-            <span>{t('Learner name', 'Imie ucznia')}</span>
+            <span>{t('Learner name', 'Imię ucznia')}</span>
             <input value={learnerName} onChange={(event) => setLearnerName(event.target.value)} autoComplete="name" placeholder="Marta Kowalska" />
           </label>
 
           <label className="lp-field">
-            <span>Email</span>
-            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" placeholder="you@example.com" required />
+            <span>E-mail</span>
+            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" placeholder="you@example.com" required aria-invalid={error && !email.trim() ? 'true' : undefined} />
           </label>
 
           <label className="lp-field">
             <span>{t('Current level', 'Obecny poziom')}</span>
-            <select value={level} onChange={(event) => setLevel(event.target.value)}>
+            <select value={level} onChange={(event) => setLevel(event.target.value)} autoComplete="off">
               <option value="">{t('Not sure yet', 'Nie wiem jeszcze')}</option>
               <option value="A2">A2</option>
               <option value="B1">B1</option>
@@ -800,12 +902,13 @@ export default function LessonPricingSignup() {
               value={goals}
               onChange={(event) => setGoals(event.target.value)}
               rows={4}
+              autoComplete="off"
               placeholder={t('Conversation confidence, job interview, IELTS, school support...', 'Pewniejsze rozmowy, praca, egzamin, wsparcie szkolne...')}
             />
           </label>
 
           <label className="lp-check">
-            <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />
+            <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} aria-invalid={error && !accepted ? 'true' : undefined} />
             <span>
               {t(
                 'I understand this is a signup request, not a card payment. I have reviewed the lesson validity, extension, cancellation, refund, and payment summary.',
@@ -830,19 +933,19 @@ export default function LessonPricingSignup() {
 
               <button className="lp-button lp-button-ghost lp-submit" type="submit">
                 <span className="material-symbols-outlined" aria-hidden>send</span>
-                {t('Prefer email? Prepare a request', 'Wolisz email? Przygotuj prośbę')}
+                {t('Prefer e-mail? Prepare a request', 'Wolisz e-mail? Przygotuj prośbę')}
               </button>
             </>
           )}
 
           {submitted && (
             <div className="lp-confirmation" role="status">
-              <strong>{t('Signup request prepared.', 'Prosba o zapis gotowa.')}</strong>
-              <p>{t('Open the email draft or copy the summary for your message to EnglishMetro.', 'Otworz szkic emaila albo skopiuj podsumowanie wiadomosci do EnglishMetro.')}</p>
+              <strong>{t('Signup request prepared.', 'Prośba o zapis gotowa.')}</strong>
+              <p>{t('Open the e-mail draft or copy the summary for your message to English Metro.', 'Otwórz szkic e-maila albo skopiuj podsumowanie wiadomości do English Metro.')}</p>
               <div>
                 <a className="lp-button lp-button-ghost" href={mailHref}>
                   <span className="material-symbols-outlined" aria-hidden>mail</span>
-                  {t('Open email draft', 'Otworz email')}
+                  {t('Open e-mail draft', 'Otwórz e-mail')}
                 </a>
                 <button className="lp-button lp-button-soft" type="button" onClick={copySummary}>
                   <span className="material-symbols-outlined" aria-hidden>content_copy</span>
@@ -873,7 +976,29 @@ export default function LessonPricingSignup() {
         </nav>
       </footer>
 
+      {!isCompanyPackage && (
+        <div className="lp-sticky-cta" data-visible={stickyOn} aria-hidden={!stickyOn}>
+          <div className="lp-sticky-cta-info">
+            <strong>{selectedPackage.name}</strong>
+            <span>{priceOf(selectedPackage)} · {isPl ? (packageCopy.pace || selectedPackage.pace) : selectedPackage.pace}</span>
+          </div>
+          <button
+            type="button"
+            className="lp-add-cart"
+            data-added={justAdded === selectedPackage.id}
+            tabIndex={stickyOn ? 0 : -1}
+            onClick={() => addToCart(selectedPackage)}
+          >
+            <span className="material-symbols-outlined" aria-hidden>
+              {justAdded === selectedPackage.id ? 'check' : 'add_shopping_cart'}
+            </span>
+            {justAdded === selectedPackage.id ? t('Added', 'Dodano') : t('Add to cart', 'Do koszyka')}
+          </button>
+        </div>
+      )}
+
       <CartUI lang={lang} />
     </main>
   )
 }
+

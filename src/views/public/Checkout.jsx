@@ -7,7 +7,10 @@ import { PACKAGE_LESSONS, packageValidity } from './packages.js'
 import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN } from '../legal/foundation-legal-content.js'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 import PaymentMethods from './PaymentMethods.jsx'
+import PaymentMark from './PaymentMarks.jsx'
+import AnimatedMoney from './AnimatedMoney.jsx'
 import { KNOWN_METHOD_KEYS } from './payment-method-copy.js'
+import { joinName, nameFieldOk } from '../../lib/signup-name.js'
 import './checkout.css'
 
 // Checkout = account + order + server-registered Przelewy24 payment. The
@@ -15,7 +18,7 @@ import './checkout.css'
 // and returns the P24 redirect after storing the payment session and order lines.
 const GOOGLE_CLIENT_ID = '960729188616-r2ql4rjid9aibbo1psi678gonf8lp04o.apps.googleusercontent.com'
 
-const ADMIN_NOTICE_PL = 'Administratorem danych wprowadzonych do formularza jest Fundacja Rozwoju Przedsiębiorczości „Twój StartUp". Dane będą przetwarzane w celu zrealizowania usługi oraz w celach marketingowych – w przypadku wyrażenia zgody. Informujemy o możliwości wycofania zgody. Pełne informacje o przetwarzaniu danych i przysługujących prawach znajdują się w polityce prywatności.'
+const ADMIN_NOTICE_PL = 'Administratorem danych wprowadzonych do formularza jest Fundacja Rozwoju Przedsiębiorczości „Twój StartUp". Dane będą przetwarzane w celu zrealizowania usługi oraz, w przypadku wyrażenia zgody, w celach marketingowych. Informujemy o możliwości wycofania zgody. Pełne informacje o przetwarzaniu danych i przysługujących prawach znajdują się w polityce prywatności.'
 const ADMIN_NOTICE_EN = 'The controller of the data entered in this form is Fundacja Rozwoju Przedsiębiorczości "Twój StartUp". The data will be processed to deliver the service and, if you consent, for marketing purposes. Consent can be withdrawn at any time. Full information about data processing and your rights is available in the privacy policy.'
 
 async function callConvex(kind, path, args) {
@@ -36,6 +39,30 @@ function validNIP(raw) {
   const w = [6, 5, 7, 2, 3, 4, 5, 6, 7]
   const sum = w.reduce((s, wi, i) => s + wi * Number(d[i]), 0)
   return sum % 11 === Number(d[9])
+}
+
+// The validation message, with what to do about it. It takes focus when it
+// appears so a keyboard or screen-reader user lands on it, and scrolls itself
+// into view for everyone else: before this it rendered above the submit button
+// and, on a phone, below the fold of whatever the person was looking at.
+function ErrorBanner({ children, hint }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    el.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' })
+    el.focus({ preventScroll: true })
+  }, [children])
+  return (
+    <p ref={ref} className="co-error" role="alert" tabIndex={-1}>
+      <span className="material-symbols-outlined" aria-hidden>error</span>
+      <span className="co-error-body">
+        <span>{children}</span>
+        {hint && <span className="co-error-hint">{hint}</span>}
+      </span>
+    </p>
+  )
 }
 
 function readSession() {
@@ -59,7 +86,12 @@ export default function Checkout() {
   const [lang, setLang] = useState(() => detectInitial())
   // Account section
   const [session, setSession] = useState(() => readSession())
-  const [fullName, setFullName] = useState('')
+  // First AND last name are compulsory (2026-09-03); the server refuses a
+  // one-word name. `fullName` stays the joined string the rest of the page uses.
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const fullName = joinName(firstName, lastName)
+  const namesOk = nameFieldOk(firstName) && nameFieldOk(lastName)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -135,6 +167,8 @@ export default function Checkout() {
   const [methodGroups, setMethodGroups] = useState(null)
   const [methodsFailed, setMethodsFailed] = useState(false)
   const [methodKey, setMethodKey] = useState(null)
+  // Phone only: the order summary starts collapsed to a one-line total.
+  const [summaryOpen, setSummaryOpen] = useState(false)
 
   // Display only. convex/p24.ts re-derives this and is the price authority; if
   // the two ever disagree the customer is charged what the server computed, so
@@ -213,7 +247,7 @@ export default function Checkout() {
   useEffect(() => { if (forChild) setAnalysisAddon(false) }, [forChild])
 
   const accountDone = !!session
-  const emailFormValid = fullName.trim().length >= 2 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()) && password.length >= 8 && !!dateOfBirth
+  const emailFormValid = namesOk && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()) && password.length >= 8 && !!dateOfBirth
   const kontoStepDone = accountDone || emailFormValid
   const sending = phase === 'account' || phase === 'order'
   // Calendar arithmetic, not 18×365.25 days, or the boundary drifts by a day
@@ -230,23 +264,44 @@ export default function Checkout() {
       'You must be 18 or over to create an account. A parent or guardian can create one and buy lessons for a child.',
       'Konto może założyć wyłącznie osoba, która ukończyła 18 lat. Rodzic lub opiekun może założyć konto i kupić lekcje dla dziecka.',
     ),
+    NAME_REQUIRED: t('Please enter your first name and last name.', 'Podaj imię i nazwisko.'),
+    NAME_INCOMPLETE: t(
+      'Please enter both your first name and your last name, letters only, at least 2 each.',
+      'Podaj zarówno imię, jak i nazwisko, same litery, co najmniej 2 w każdym.',
+    ),
   }
   const dobMessage = (r) => (r?.code && DOB_COPY[r.code]) || r?.error || ''
 
   // ── Google Sign-In (same GIS client as /login and /signup) ──
-  async function submitGoogle(idToken, dob) {
+  // `names` is passed on the retry from the "finish" button only: on the first
+  // call Google's own given_name/family_name are judged server-side.
+  async function submitGoogle(idToken, dob, names) {
     setError('')
     try {
-      const result = await callConvex('action', 'googleAuth:googleSignIn',
-        { idToken, ...(dob ? { dateOfBirth: dob } : {}) })
-      // Verified identity, no account yet, no birthdate. Nothing is created
-      // until the field below is answered; the token waits.
-      if (result?.needsDateOfBirth) {
+      const result = await callConvex('action', 'googleAuth:googleSignIn', {
+        idToken,
+        ...(dob ? { dateOfBirth: dob } : {}),
+        ...(names ? { firstName: names.firstName.trim(), lastName: names.lastName.trim() } : {}),
+      })
+      // Verified identity, no account yet, but no birthdate and/or no first
+      // AND last name. Nothing is created until the fields below are answered;
+      // the token waits. Google's partial name pre-fills the empty fields.
+      if (result?.needsDateOfBirth || result?.needsName) {
         setPendingGoogleToken(idToken)
+        // Pre-filled even when only the birthdate is missing, so the finish
+        // button (which needs both names) is not held back by empty fields.
+        setFirstName(v => v || result.suggestedFirstName || '')
+        setLastName(v => v || result.suggestedLastName || '')
         setError(result.code
           ? dobMessage(result)
-          : t('Add your date of birth to finish creating the account.',
-               'Podaj datę urodzenia, aby dokończyć zakładanie konta.'))
+          : result.needsName && result.needsDateOfBirth
+            ? t('Add your first name, last name and date of birth to finish creating the account.',
+                'Podaj imię, nazwisko i datę urodzenia, aby dokończyć zakładanie konta.')
+            : result.needsName
+              ? t('Add your first name and last name to finish creating the account.',
+                  'Podaj imię i nazwisko, aby dokończyć zakładanie konta.')
+              : t('Add your date of birth to finish creating the account.',
+                  'Podaj datę urodzenia, aby dokończyć zakładanie konta.'))
         return
       }
       if (!result?.success || result.kind !== 'student') {
@@ -302,9 +357,13 @@ export default function Checkout() {
   // Fetched once, deliberately not per language. P24 localise the bank NAMES,
   // which this page never shows, so refetching on an EN/PL toggle would only
   // collapse the list back to skeletons and replay its entrance for nothing.
+  // One retry after 1.5s: in the 2026-09-03 crawl the list came back empty on
+  // one of eight loads and the page silently fell back to "choose on the P24
+  // page", which is a worse checkout for a transient timeout.
   useEffect(() => {
     let cancelled = false
-    callConvex('action', 'p24:listMethods', { lang: 'pl' })
+    let retryTimer = 0
+    const load = (attempt) => callConvex('action', 'p24:listMethods', { lang: 'pl' })
       .then((result) => {
         if (cancelled) return
         // A group we have no copy for would render as an invisible row that can
@@ -315,8 +374,13 @@ export default function Checkout() {
         // Preselect the first method so the common path is one tap shorter.
         setMethodKey(groups[0]?.key ?? null)
       })
-      .catch(() => { if (!cancelled) { setMethodsFailed(true); setMethodGroups([]) } })
-    return () => { cancelled = true }
+      .catch(() => {
+        if (cancelled) return
+        if (attempt === 0) { retryTimer = window.setTimeout(() => load(1), 1500); return }
+        setMethodsFailed(true); setMethodGroups([])
+      })
+    load(0)
+    return () => { cancelled = true; window.clearTimeout(retryTimer) }
   }, [])
 
   // A quote is written for one student, so it can only be paid by that student
@@ -415,8 +479,8 @@ export default function Checkout() {
     // and be put on the 14-day wait without having chosen it.
     if (performanceChoice === null) {
       return setError(t(
-        'Choose when your package should activate — straight away, or after the 14-day withdrawal period.',
-        'Wybierz, kiedy pakiet ma zostać aktywowany — od razu czy po upływie 14-dniowego terminu na odstąpienie.',
+        'Choose when your package should activate: straight away, or after the 14-day withdrawal period.',
+        'Wybierz, kiedy pakiet ma zostać aktywowany: od razu czy po upływie 14-dniowego terminu na odstąpienie.',
       ))
     }
     const payPoError = payPoProblem()
@@ -431,7 +495,7 @@ export default function Checkout() {
         }
         setPhase('account')
         const r = await callConvex('action', 'studentAuth:studentSignupAction', {
-          name: fullName.trim(), email: email.trim(), password, phone: phone.trim() || undefined,
+          name: fullName, email: email.trim(), password, phone: phone.trim() || undefined,
           dateOfBirth,
         })
         if (!r?.success) {
@@ -472,6 +536,7 @@ export default function Checkout() {
       blik: 'BLIK',
       card: t('cards', 'karty'),
       paypo: 'PayPo',
+      installments: t('instalments', 'raty'),
       transfer: t('online transfer', 'przelew online'),
     })[group.key])
     .filter(Boolean)
@@ -534,10 +599,18 @@ export default function Checkout() {
                 'Konto pozwala przypisać lekcje do właściwej osoby. Po potwierdzeniu płatności pakiet pojawi się na Twoim koncie.',
               )}
             </p>
-            <ol className="co-steps">
-              <li data-active={true} data-done={kontoStepDone}>{t('Account', 'Konto')}</li>
-              <li data-active={kontoStepDone}>{t('Order', 'Zamówienie')}</li>
-              <li data-active={kontoStepDone && consentTerms}>{t('Payment', 'Płatność')}</li>
+            <ol className="co-steps" aria-label={t('Checkout steps', 'Etapy zamówienia')}>
+              <li data-active={true} data-done={kontoStepDone} aria-current={!kontoStepDone ? 'step' : undefined}>
+                <span className="co-step-n" aria-hidden>{kontoStepDone ? '✓' : '1'}</span>{t('Account', 'Konto')}
+              </li>
+              <li className="co-step-link" role="presentation" aria-hidden />
+              <li data-active={kontoStepDone} aria-current={kontoStepDone && !consentTerms ? 'step' : undefined}>
+                <span className="co-step-n" aria-hidden>2</span>{t('Order', 'Zamówienie')}
+              </li>
+              <li className="co-step-link" role="presentation" aria-hidden />
+              <li data-active={kontoStepDone && consentTerms} aria-current={kontoStepDone && consentTerms ? 'step' : undefined}>
+                <span className="co-step-n" aria-hidden>3</span>{t('Payment', 'Płatność')}
+              </li>
             </ol>
           </header>
 
@@ -571,10 +644,18 @@ export default function Checkout() {
                         <span>{t('or create an account with email', 'lub załóż konto przez e-mail')}</span>
                       </div>
                     )}
-                    <label className="co-field">
-                      <span>{t('Full name', 'Imię i nazwisko')} *</span>
-                      <input value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" placeholder="Marta Kowalska" required />
-                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0 12px' }}>
+                      <label className="co-field">
+                        <span>{t('First name', 'Imię')} *</span>
+                        <input value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" placeholder="Marta" required
+                          aria-invalid={firstName.trim() && !nameFieldOk(firstName) ? true : undefined} />
+                      </label>
+                      <label className="co-field">
+                        <span>{t('Last name', 'Nazwisko')} *</span>
+                        <input value={lastName} onChange={(e) => setLastName(e.target.value)} autoComplete="family-name" placeholder="Kowalska" required
+                          aria-invalid={lastName.trim() && !nameFieldOk(lastName) ? true : undefined} />
+                      </label>
+                    </div>
                     <label className="co-field">
                       <span>E-mail *</span>
                       <input value={email} onChange={(e) => { setEmail(e.target.value); setEmailTaken(false) }} type="email" autoComplete="email" placeholder="marta@example.com" required />
@@ -614,8 +695,8 @@ export default function Checkout() {
                     </label>
                     {pendingGoogleToken && (
                       <button type="button" className="lp-button lp-button-primary co-google-dob"
-                        disabled={!dateOfBirth}
-                        onClick={() => submitGoogle(pendingGoogleToken, dateOfBirth)}>
+                        disabled={!dateOfBirth || !namesOk}
+                        onClick={() => submitGoogle(pendingGoogleToken, dateOfBirth, { firstName, lastName })}>
                         {t('Finish creating my Google account', 'Dokończ zakładanie konta Google')}
                       </button>
                     )}
@@ -653,7 +734,8 @@ export default function Checkout() {
                       </label>
                       <label className="co-field">
                         <span>NIP{company.trim() ? ' *' : ''}</span>
-                        <input value={nip} onChange={(e) => setNip(e.target.value)} inputMode="numeric" placeholder="0000000000" />
+                        <input value={nip} onChange={(e) => setNip(e.target.value)} inputMode="numeric" autoComplete="off" placeholder="0000000000"
+                          aria-invalid={error && nip.trim() && !validNIP(nip) ? 'true' : undefined} />
                       </label>
                       <label className="co-field">
                         <span>{t('Street and number', 'Ulica i numer')}{invoiceUsed ? ' *' : ''}</span>
@@ -705,7 +787,7 @@ export default function Checkout() {
                   </label>
                   <label className="co-field">
                     <span className="sr-only">{t('Notes', 'Uwagi')}</span>
-                    <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)}
+                    <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} autoComplete="off"
                       placeholder={t('E.g. the package is for Zosia, age 12; exam preparation.', 'Np. pakiet dla Zosi, 12 lat; przygotowanie do egzaminu ósmoklasisty.')} />
                   </label>
                 </fieldset>
@@ -775,8 +857,8 @@ export default function Checkout() {
                         </strong>
                         <small className="co-choice-what">
                           {t(
-                            `A CEFR assessment, your strengths, the exact mistakes you made with corrections, and what to practise next \u2014 for each of your ${analysisLessons} lessons. ${ANALYSIS_PLN_PER_LESSON} PLN per lesson. It also switches on Bajla, your WhatsApp assistant, for good.`,
-                            `Ocena poziomu CEFR, mocne strony, konkretne błędy wraz z poprawkami i wskazówki do dalszej pracy \u2014 dla każdej z ${analysisLessons} lekcji. ${ANALYSIS_PLN_PER_LESSON} PLN za lekcję. Włącza też na stałe Bajlę, Twoją asystentkę na WhatsAppie.`,
+                            `A CEFR assessment, your strengths, the exact mistakes you made with corrections, and what to practise next, for each of your ${analysisLessons} lessons. ${ANALYSIS_PLN_PER_LESSON} PLN per lesson. It also switches on Bajla, your WhatsApp assistant, for good.`,
+                            `Ocena poziomu CEFR, mocne strony, konkretne błędy wraz z poprawkami i wskazówki do dalszej pracy, dla każdej z ${analysisLessons} lekcji. ${ANALYSIS_PLN_PER_LESSON} PLN za lekcję. Włącza też na stałe Bajlę, Twoją asystentkę na WhatsAppie.`,
                           )}
                         </small>
                         <small className="co-choice-legal">
@@ -827,7 +909,8 @@ export default function Checkout() {
                 <fieldset className="co-block co-consents">
                   <legend>{t('Consents', 'Zgody')}</legend>
                   <label className="co-check">
-                    <input type="checkbox" checked={consentTerms} onChange={(e) => setConsentTerms(e.target.checked)} required />
+                    <input type="checkbox" checked={consentTerms} onChange={(e) => setConsentTerms(e.target.checked)} required
+                      aria-invalid={error && !consentTerms ? 'true' : undefined} />
                     <span>
                       {isPl ? (
                         <>Akceptuję <Link to="/terms" target="_blank">Regulamin</Link> serwisu prowadzonego przez Fundację Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie. *
@@ -840,12 +923,12 @@ export default function Checkout() {
                       )}
                     </span>
                   </label>
-                  <fieldset className="co-performance-choice">
+                  <fieldset className="co-performance-choice" data-invalid={!!error && consentTerms && performanceChoice === null}>
                     <legend>{t('When should your package activate?', 'Kiedy aktywować pakiet?')} *</legend>
                     <p className="co-consent-hint co-choice-lede">
                       {t(
-                        'Pick one. Your 14-day right to withdraw applies either way — this only sets when your lessons become bookable.',
-                        'Wybierz jedną opcję. 14-dniowe prawo odstąpienia przysługuje Ci w obu przypadkach — ta decyzja określa tylko, kiedy będzie można rezerwować lekcje.',
+                        'Pick one. Your 14-day right to withdraw applies either way. This only sets when your lessons become bookable.',
+                        'Wybierz jedną opcję. 14-dniowe prawo odstąpienia przysługuje Ci w obu przypadkach. Ta decyzja określa tylko, kiedy będzie można rezerwować lekcje.',
                       )}
                     </p>
                     <div className="co-choices">
@@ -906,7 +989,17 @@ export default function Checkout() {
                   </label>
                 </fieldset>
 
-                {error && <p className="co-error" role="alert">{error}</p>}
+                {error && (
+                  <ErrorBanner hint={
+                    !consentTerms
+                      ? t('Tick the Terms box in the Consents section above.', 'Zaznacz pole akceptacji Regulaminu w sekcji Zgody powyżej.')
+                      : performanceChoice === null
+                        ? t('Pick one of the two activation options above.', 'Wybierz jedną z dwóch opcji aktywacji pakietu powyżej.')
+                        : ''
+                  }>
+                    {error}
+                  </ErrorBanner>
+                )}
 
                 <button className="co-submit" type="submit" disabled={sending} data-sending={sending}>
                   <span className="material-symbols-outlined" aria-hidden>{sending ? 'progress_activity' : 'lock'}</span>
@@ -925,8 +1018,17 @@ export default function Checkout() {
               </div>
             </form>
 
-            <aside className="co-summary" aria-label={t('Order summary', 'Podsumowanie zamówienia')}>
-              <h2>{t('Order summary', 'Podsumowanie')}</h2>
+            <aside className="co-summary" data-open={summaryOpen} aria-label={t('Order summary', 'Podsumowanie zamówienia')}>
+              <button type="button" className="co-summary-head" onClick={() => setSummaryOpen(v => !v)}
+                aria-expanded={summaryOpen} aria-controls="co-summary-body">
+                <h2>{t('Order summary', 'Podsumowanie')}</h2>
+                <span className="co-summary-total-inline">
+                  <AnimatedMoney value={total} /><small>{t('incl. VAT', 'z VAT')}</small>
+                </span>
+                <span className="material-symbols-outlined" aria-hidden>expand_more</span>
+              </button>
+              <div className="co-summary-body" id="co-summary-body">
+              <div>
               <ul className="co-items">
                 {quoteReady && (
                   <li key="quote" style={{ '--co-i': 0 }}>
@@ -975,7 +1077,7 @@ export default function Checkout() {
               )}
               <div className="co-total">
                 <span>{t('Total (VAT included)', 'Razem (z VAT)')}</span>
-                <strong>{formatPLN(total)}</strong>
+                <strong><AnimatedMoney value={total} /></strong>
               </div>
               <div className="co-payment">
                 <h3>{t('Payment', 'Płatność')}</h3>
@@ -991,16 +1093,39 @@ export default function Checkout() {
                   <li>{t('You pay on the secure Przelewy24 page.', 'Płacisz na bezpiecznej stronie Przelewy24.')}</li>
                   <li>{t('After verified payment, lessons are allocated automatically.', 'Po zweryfikowaniu płatności lekcje zostaną przydzielone automatycznie.')}</li>
                 </ol>
+                {(methodGroups || []).length > 0 && (
+                  <div className="co-pay-marks" aria-hidden>
+                    {(methodGroups || []).map(group => (
+                      <span key={group.key}><PaymentMark kind={{ blik: 'blik', card: 'card', paypo: 'deferred', transfer: 'bank' }[group.key] || 'card'} /></span>
+                    ))}
+                  </div>
+                )}
                 <p className="co-pay-note">
                   {t(
-                    'No card details are collected on this page. Lesson validity: single lesson 90 days; 4-8 lesson packs 6 months; 16-24 lesson packs 12 months. Statutory 14-day withdrawal rights apply.',
-                    'Ta strona nie zbiera danych karty. Ważność pakietów: lekcja jednorazowa 90 dni; pakiety 4-8 lekcji 6 miesięcy; pakiety 16-24 lekcji 12 miesięcy. Przysługuje ustawowe 14-dniowe prawo odstąpienia.',
+                    'No card details are collected on this page. Lesson validity: single lesson 90 days; 4-8 lesson packs 6 months; 16-24 lesson packs 12 months; 48-lesson packs 24 months.',
+                    'Ta strona nie zbiera danych karty. Ważność pakietów: lekcja jednorazowa 90 dni; pakiety 4-8 lekcji 6 miesięcy; pakiety 16-24 lekcji 12 miesięcy; pakiety 48 lekcji 24 miesiące.',
                   )}
                 </p>
               </div>
+              <ul className="co-trust" aria-label={t('Your rights', 'Twoje prawa')}>
+                <li>
+                  <span className="material-symbols-outlined" aria-hidden>undo</span>
+                  <span><strong>{t('14 days to withdraw', '14 dni na odstąpienie')}</strong> {t('from the contract, without giving a reason.', 'od umowy, bez podawania przyczyny.')}</span>
+                </li>
+                <li>
+                  <span className="material-symbols-outlined" aria-hidden>event_busy</span>
+                  <span><strong>{t('Free cancellation', 'Bezpłatne odwołanie')}</strong> {t('of a lesson with 24 hours notice.', 'lekcji z 24-godzinnym wyprzedzeniem.')}</span>
+                </li>
+                <li>
+                  <span className="material-symbols-outlined" aria-hidden>receipt_long</span>
+                  <span><strong>{t('Invoice available', 'Faktura na życzenie')}</strong> {t('(KSeF), add the details in the form.', '(KSeF), wpisz dane w formularzu.')}</span>
+                </li>
+              </ul>
               <p className="co-legal-links">
                 <Link to="/terms" target="_blank">{t('Terms', 'Regulamin')}</Link> · <Link to="/privacy" target="_blank">{t('Privacy', 'Prywatność')}</Link> · <Link to="/cookies" target="_blank">Cookies</Link>
               </p>
+              </div>
+              </div>
             </aside>
           </div>
         </section>
