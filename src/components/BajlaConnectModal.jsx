@@ -41,21 +41,21 @@ const COPY = {
     },
     mainCta: 'Porozmawiaj z Bajlą na WhatsAppie',
     setupTitle: 'Zanim naprawdę Ci pomogę:',
-    setupPhone: 'Zapisz swój numer WhatsApp w profilu — po nim Cię rozpoznam.',
-    setupPhoneDone: 'Numer WhatsApp zapisany — rozpoznam Cię.',
+    setupPhone: 'Zapisz swój numer WhatsApp w profilu. Po nim Cię rozpoznam.',
+    setupPhoneDone: 'Numer WhatsApp zapisany. Rozpoznam Cię.',
     setupLessons: 'Wykup pakiet lekcji, żebym miała co rezerwować.',
-    setupLessonsDone: 'Masz lekcje na koncie — mogę rezerwować.',
+    setupLessonsDone: 'Masz lekcje na koncie. Mogę rezerwować.',
     setupBuy: 'Kup lekcje →',
-    setupChat: 'Napisz do mnie na WhatsAppie — odpowiadam od razu.',
+    setupChat: 'Napisz do mnie na WhatsAppie. Odpowiadam od razu.',
     footer: 'Bezpiecznie. Prywatnie. Wygodnie.',
     closeAria: 'Zamknij',
     lockedTitle: 'Zarezerwuj lekcje, a mnie włączysz',
-    lockedBody: 'Działam razem z analizą lekcji AI. Wybierz pakiet i zostaw zaznaczoną analizę (+20 zł za lekcję) — od razu przy zakupie włączam się na stałe.',
+    lockedBody: 'Działam razem z analizą lekcji AI. Wybierz pakiet i zostaw zaznaczoną analizę (+20 zł za lekcję). Przy zakupie włączam się od razu i na stałe.',
     lockedCta: 'Zarezerwuj lekcje i włącz Bajlę →',
     lockedNote: 'Analiza będzie już zaznaczona w koszyku. Możesz ją odznaczyć, ale wtedy nie będę dostępna.',
-    consentTitle: 'Jesteś ze mną od początku — zapraszam',
+    consentTitle: 'Jesteś ze mną od początku, zapraszam',
     consentBody: 'Uczysz się z nami, zanim wprowadziliśmy opłatę, więc masz mnie za darmo. Zanim zaczniemy: będę przetwarzać Twój numer telefonu i treść naszych rozmów, żeby Ci pomagać.',
-    consentCta: 'Zgadzam się — porozmawiajmy',
+    consentCta: 'Zgadzam się, porozmawiajmy',
     consentBusy: 'Włączam…',
     consentError: 'Nie udało się włączyć. Spróbuj ponownie.',
     consentNote: 'Zgodę możesz wycofać w każdej chwili.',
@@ -82,21 +82,21 @@ const COPY = {
     },
     mainCta: 'Chat with Bajla on WhatsApp',
     setupTitle: 'Before I can really help you:',
-    setupPhone: 'Save your WhatsApp number to your profile — it is how I recognise you.',
-    setupPhoneDone: 'WhatsApp number saved — I will recognise you.',
+    setupPhone: 'Save your WhatsApp number to your profile. It is how I recognise you.',
+    setupPhoneDone: 'WhatsApp number saved. I will recognise you.',
     setupLessons: 'Buy a lesson package so I have lessons to book for you.',
-    setupLessonsDone: 'You have lessons on your account — I can book them.',
+    setupLessonsDone: 'You have lessons on your account. I can book them.',
     setupBuy: 'Buy lessons →',
-    setupChat: 'Message me on WhatsApp — I reply right away.',
+    setupChat: 'Message me on WhatsApp. I reply right away.',
     footer: 'Safe. Secure. Private.',
     closeAria: 'Close',
     lockedTitle: 'Book lessons and you switch me on',
-    lockedBody: 'I come with the AI lesson analysis. Pick a package and leave the analysis ticked (+20 PLN per lesson) — buying it switches me on for good.',
+    lockedBody: 'I come with the AI lesson analysis. Pick a package and leave the analysis ticked (+20 PLN per lesson). Buying it switches me on for good.',
     lockedCta: 'Book lessons and switch me on →',
     lockedNote: "The analysis will already be ticked in your cart. You can untick it, but then I won't be available.",
-    consentTitle: "You've been with us from the start — come in",
+    consentTitle: "You've been with us from the start, come in",
     consentBody: 'You were learning with us before this became a paid extra, so you have me for free. One thing first: I process your phone number and what you say to me in order to help.',
-    consentCta: "I agree — let's talk",
+    consentCta: "I agree, let's talk",
     consentBusy: 'Switching on…',
     consentError: 'That did not switch on. Please try again.',
     consentNote: 'You can withdraw this at any time.',
@@ -256,6 +256,24 @@ export default function BajlaConnectModal() {
     setOpen(false)
     try { localStorage.setItem(seenKey(accountKey), '1') } catch { /* ignore */ }
   }
+
+  // While open, mark <body> so the floating Bajla launcher (a separate script
+  // at a higher z-index) steps aside instead of sitting clickable on the scrim.
+  useEffect(() => {
+    if (!open) return
+    document.body.classList.add('em-bjp-open')
+    return () => document.body.classList.remove('em-bjp-open')
+  }, [open])
+
+  // Esc dismisses, like every other dialog on the site. Registered only while
+  // open so a closed popup holds no listener.
+  useEffect(() => {
+    if (!open) return
+    function onKey(e) { if (e.key === 'Escape') dismiss() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   // A CTA was tapped. With a number on file we go straight to WhatsApp (direct
   // user gesture → no popup-blocker issue). Without one, collect it first.
@@ -436,13 +454,17 @@ const BJP_CSS = `
 .bjp-overlay{position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;
   padding:20px;background:rgba(8,4,20,.72);backdrop-filter:blur(6px);animation:bjpfade .25s ease}
 @keyframes bjpfade{from{opacity:0}to{opacity:1}}
+.bjp-card{animation:bjpcard .32s cubic-bezier(.16,1,.3,1) both}
+@keyframes bjpcard{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.bjp-overlay,.bjp-card{animation:none}.bjp-action,.bjp-wa-btn,.bjp-close{transition:none}}
 .bjp-card{position:relative;width:100%;max-width:880px;max-height:92vh;overflow:auto;padding:40px 44px;
   border-radius:32px;color:#fff;font-family:Inter,system-ui,sans-serif;
   background:radial-gradient(120% 120% at 85% 10%,#4a1d8f 0%,#2a0f56 45%,#140826 100%);
   border:1px solid rgba(200,120,255,.4);box-shadow:0 0 60px rgba(150,70,255,.35)}
 .bjp-close{position:absolute;top:18px;right:20px;width:42px;height:42px;border-radius:50%;
   border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#fff;font-size:24px;
-  line-height:1;cursor:pointer;transition:.2s}
+  line-height:1;cursor:pointer;transition:background .2s ease,transform .16s cubic-bezier(.16,1,.3,1)}
+.bjp-close:active{transform:scale(.92)}
 .bjp-close:hover{background:rgba(255,255,255,.14)}
 .bjp-brand{font-weight:800;font-size:22px;letter-spacing:-.01em;margin-bottom:26px}
 .bjp-brand span{color:#cdb4ff;font-weight:700}
@@ -458,8 +480,8 @@ const BJP_CSS = `
   margin-bottom:8px}
 .bjp-step:last-child{margin-bottom:0}
 .bjp-step.done{color:#b7f2cd}
-.bjp-step-mark{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
-  border-radius:50%;font-size:11px;font-weight:800;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2)}
+.bjp-step-mark{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
+  border-radius:50%;font-size:13px;font-weight:800;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2)}
 .bjp-step.done .bjp-step-mark{background:rgba(37,211,102,.3);border-color:rgba(37,211,102,.6)}
 .bjp-step-link{color:#7CF2A6;font-weight:700;text-decoration:none}
 .bjp-locked{border:1px solid rgba(217,70,239,.30);border-radius:16px;padding:16px 18px;
@@ -469,15 +491,17 @@ const BJP_CSS = `
 .bjp-locked-cta{background:linear-gradient(135deg,#8B5CF6,#D946EF)!important}
 .bjp-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
 .bjp-action{display:flex;flex-direction:column;gap:6px;text-align:left;padding:16px;border-radius:18px;
-  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;cursor:pointer;transition:.18s}
-.bjp-action:hover{transform:translateY(-3px);background:rgba(255,255,255,.12)}
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;cursor:pointer;transition:transform .2s cubic-bezier(.16,1,.3,1),background .18s ease}
+@media (hover:hover) and (pointer:fine){.bjp-action:hover{transform:translateY(-3px);background:rgba(255,255,255,.12)}}
+.bjp-action:active{transform:scale(.98)}
 .bjp-ico{font-size:22px}
 .bjp-action strong{font-size:15px;font-weight:700}
-.bjp-sub{font-size:12.5px;color:#c7bfd8;line-height:1.35}
+.bjp-sub{font-size:13px;color:#c7bfd8;line-height:1.35}
 .bjp-wa-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:17px 24px;
   border:none;border-radius:18px;font-weight:800;font-size:18px;color:#fff;cursor:pointer;text-decoration:none;
-  background:linear-gradient(135deg,#25D366,#13a84e);box-shadow:0 0 26px rgba(37,211,102,.45);transition:.18s}
-.bjp-wa-btn:hover{filter:brightness(1.07);transform:translateY(-2px)}
+  background:linear-gradient(135deg,#25D366,#13a84e);box-shadow:0 0 26px rgba(37,211,102,.45);transition:transform .2s cubic-bezier(.16,1,.3,1),filter .18s ease}
+@media (hover:hover) and (pointer:fine){.bjp-wa-btn:hover{filter:brightness(1.07);transform:translateY(-2px)}}
+.bjp-wa-btn:active{transform:scale(.98)}
 .bjp-wa-btn:disabled{opacity:.6;cursor:default;transform:none}
 .bjp-wa-ico{font-size:20px}
 .bjp-footer{margin:16px 0 0;font-size:13px;color:#b9aed4;text-align:center}

@@ -1,4 +1,8 @@
-// Floating AI chat widget — restored for v3 chrome (replaces the legacy
+// Floating AI chat widget. NOT MOUNTED: Chrome.jsx keeps `{/* <ChatWidget/> */}`
+// commented out because the injected /students/conversa-widget-v5.js (loaded from
+// index.html) is the live tutor launcher; mounting both would put two floating
+// buttons in the same corner. Kept as the fallback if the script is ever removed.
+// Originally restored for v3 chrome (replaces the legacy
 // /students/conversa-widget-v4g.js script). Posts to /api/conversa/chat which
 // is proxied by nginx to the local Conversa backend on :8800.
 //
@@ -12,7 +16,7 @@
 //    placeholder instead of failing silently — flagged as a known fragile path
 //    in deploy_discipline_em memory.
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useStudentAuth } from '../contexts/StudentAuthContext.jsx'
 import { useV3Theme } from '../design/v3/ThemeProvider.jsx'
@@ -92,7 +96,7 @@ export default function ChatWidget() {
       } else {
         setMessages(m => [...m, { role: 'system', text: 'Chat backend returned no reply yet — TODO: wire response shape.' }])
       }
-    } catch (err) {
+    } catch {
       // Known fragile: /api/conversa/chat may be down. Keep the UI honest.
       setMessages(m => [...m, {
         role: 'system',
@@ -139,7 +143,7 @@ export default function ChatWidget() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: FONT.display, fontSize: 14, fontWeight: 600,
                 color: T.text, letterSpacing: '-0.01em' }}>English Coach</div>
-              <div style={{ fontSize: 11, color: T.textDim, marginTop: 1 }}>
+              <div style={{ fontSize: 13, color: T.textDim, marginTop: 1 }}>
                 Conversa AI · powered by your voice selection
               </div>
             </div>
@@ -160,7 +164,7 @@ export default function ChatWidget() {
                     padding: '8px 12px', borderRadius: 12,
                     background: isDay ? 'rgba(217,70,239,0.08)' : 'rgba(217,70,239,0.16)',
                     border: `1px dashed ${T.borderHi}`,
-                    fontSize: 11, color: T.textSoft, fontStyle: 'italic',
+                    fontSize: 13, color: T.textSoft, fontStyle: 'italic',
                     fontFamily: FONT.body, lineHeight: 1.45,
                   }}>{m.text}</div>
                 )
@@ -183,7 +187,7 @@ export default function ChatWidget() {
             })}
             {busy && (
               <div style={{ alignSelf: 'flex-start', padding: '8px 12px',
-                color: T.textDim, fontSize: 12, display: 'inline-flex',
+                color: T.textDim, fontSize: 13, display: 'inline-flex',
                 alignItems: 'center', gap: 6 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 16,
                   animation: 'chatPulse 1.4s ease-in-out infinite' }}>more_horiz</span>
