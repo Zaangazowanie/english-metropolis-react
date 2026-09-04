@@ -89,5 +89,9 @@ export function cartTotalPLN(s) {
 }
 
 export function formatPLN(n) {
-  return `${n.toLocaleString('pl-PL')} PLN`
+  // pl-PL Intl leaves four-digit amounts ungrouped ("1760"); Polish typography
+  // groups them ("1 760"). Narrow no-break space so the number never wraps.
+  const [int, frac] = Math.abs(Number(n)).toFixed(Number.isInteger(Number(n)) ? 0 : 2).split('.')
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f')
+  return `${n < 0 ? '-' : ''}${grouped}${frac ? ',' + frac : ''} PLN`
 }

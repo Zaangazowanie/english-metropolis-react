@@ -6,7 +6,6 @@ import { useV3Theme } from './ThemeProvider.jsx'
 import { Avatar, Glass, Skyline } from './primitives.jsx'
 import { PageTransition, TabInk } from './motion/index.js'
 import VoiceSelector from '../../components/VoiceSelector.jsx'
-import ChatWidget from '../../components/ChatWidget.jsx'
 import { useI18n } from '../../i18n'
 
 // EN/PL pill toggle — restored to v3 chrome topbar (was lost in the v3 redesign).
@@ -516,7 +515,7 @@ export default function Chrome({ slug, basePath, firstName, children }) {
           which renders the polished gradient pill ("Chat with your AI tutor").
           Re-enable only if the legacy script is removed and we want this
           minimal-circle FAB back. */}
-      {/* <ChatWidget/> */}
+      {/* The tutor widget is the injected /students/conversa-widget-v5.js (index.html); the React ChatWidget is not mounted. */}
     </div>
   )
 }

@@ -433,7 +433,6 @@ function RootRouter() {
         </Route>
 
         <Route path="/settings" element={<Settings />} />
-        <Route path="/app/:slug/settings" element={<Settings />} />
         <Route path="/app/:slug/*" element={<App basePath="/app" />} />
         <Route path="/app/*" element={<App basePath="/app" />} />
         {/* englishmetro.com: an unknown address must not fall into the legacy

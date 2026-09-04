@@ -130,7 +130,7 @@ export default function Login() {
             </button>
 
             <div className="eml-meta">
-              <a href="mailto:hello@englishmetro.com">{t('login.meta.needAccess')}</a>
+              <a href="mailto:support@englishmetro.com">{t('login.meta.needAccess')}</a>
               <span>·</span>
               <Link to="/privacy">{t('login.meta.privacy')}</Link>
               <span>·</span>

@@ -144,8 +144,8 @@
     host.querySelectorAll('.gh-hs-slide').forEach((slide, index) => {
       slide.style.setProperty('--em-slide-index', index)
     })
-    ensureCarouselShader(shaderHost)
-    if (shaderHost !== host) ensureCarouselShader(host)
+    // 2026-09-04: the carousel shader (a second 515KB copy of three.js) is retired;
+    // the bundled ReactiveShaderField already renders the pointer field for the hero.
     if (carouselCleanups.has(host)) return
 
     let activeSlide = null
@@ -470,7 +470,7 @@
     const loginForm = document.querySelector('#root input[autocomplete="username"]')?.closest('form')
     const loginPage = loginForm?.closest('#root > div')
     if (loginPage && /^\/login\/?$/.test(window.location.pathname)) {
-      ensureLoginShader(loginPage)
+      // 2026-09-04: login shader (second three.js copy) retired; the page keeps its CSS motion.
       const card = loginForm.parentElement
       const layout = [...loginPage.children].find(element => element.matches?.('div') && getComputedStyle(element).display === 'grid')
       const copy = layout?.firstElementChild

@@ -187,10 +187,10 @@ export default function Settings() {
 
       <Section title={t('settings.section.data')}>
         <Row label={t('settings.data.downloadMyData')} hint={t('settings.data.requestHint')}>
-          <a href="mailto:hello@englishmetro.com?subject=Data%20export" className="em-btn em-btn-ghost">{t('settings.data.requestExport')}</a>
+          <a href="mailto:support@englishmetro.com?subject=Data%20export" className="em-btn em-btn-ghost">{t('settings.data.requestExport')}</a>
         </Row>
         <Row label={t('settings.data.deleteAccount')} hint={t('settings.data.deleteAccountWarning')}>
-          <a href="mailto:hello@englishmetro.com?subject=Delete%20my%20account" className="em-btn em-btn-danger">{t('settings.data.requestExport')}</a>
+          <a href="mailto:support@englishmetro.com?subject=Delete%20my%20account" className="em-btn em-btn-danger">{t('settings.data.requestExport')}</a>
         </Row>
       </Section>
     </div>

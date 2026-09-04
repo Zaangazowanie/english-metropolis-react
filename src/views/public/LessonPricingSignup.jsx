@@ -410,7 +410,7 @@ export default function LessonPricingSignup() {
     () => buildSummary({ selectedPackage, format: selectedFormat, learnerName, email, level, goals, lang }),
     [selectedPackage, selectedFormat, learnerName, email, level, goals, lang],
   )
-  const mailHref = `mailto:hello@englishmetro.com?subject=${encodeURIComponent(`${isPl ? 'Zapis na lekcje' : 'Lessons signup'} - ${selectedPackage.name}`)}&body=${encodeURIComponent(summary)}`
+  const mailHref = `mailto:support@englishmetro.com?subject=${encodeURIComponent(`${isPl ? 'Zapis na lekcje' : 'Lessons signup'} - ${selectedPackage.name}`)}&body=${encodeURIComponent(summary)}`
 
   useEffect(() => {
     const target = location.pathname.includes('signup')

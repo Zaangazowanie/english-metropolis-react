@@ -299,17 +299,17 @@ export const MCPoster: React.FC<MCPosterProps> = ({
         background: `radial-gradient(circle at 30% 30%, ${hue}, ${hue}99 70%, rgba(0,0,0,0.4) 100%)`,
         boxShadow: '0 2px 3px rgba(0,0,0,0.4)',
       }} />
-      <div className="em-eyebrow" style={{ color: '#8a5a2c', fontFamily: 'var(--em-mono)', fontSize: 9, letterSpacing: '0.22em', marginBottom: 6 }}>
+      <div className="em-eyebrow" style={{ color: '#8a5a2c', fontFamily: 'var(--em-mono)', fontSize: 13, letterSpacing: '0.14em', marginBottom: 6 }}>
         {letter}
       </div>
       <div style={{ wordBreak: 'break-word' }}>{text}</div>
       {showCorrect && (
-        <div aria-hidden="true" style={{ position: 'absolute', bottom: 8, right: 10, fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.24em', color: '#15532A', opacity: 0.85 }}>
+        <div aria-hidden="true" style={{ position: 'absolute', bottom: 8, right: 10, fontFamily: 'var(--em-mono)', fontSize: 13, letterSpacing: '0.14em', color: '#15532A', opacity: 0.85 }}>
           ✓ TAK
         </div>
       )}
       {showWrong && (
-        <div aria-hidden="true" style={{ position: 'absolute', bottom: 8, right: 10, fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.24em', color: ACCENT_DEEP, opacity: 0.85 }}>
+        <div aria-hidden="true" style={{ position: 'absolute', bottom: 8, right: 10, fontFamily: 'var(--em-mono)', fontSize: 13, letterSpacing: '0.14em', color: ACCENT_DEEP, opacity: 0.85 }}>
           ✗ NIE
         </div>
       )}
@@ -672,7 +672,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
             position: 'absolute', left: s.l, top: s.t,
             transform: `rotate(${s.r}deg)`,
             padding: '6px 10px',
-            fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.18em',
+            fontFamily: 'var(--em-mono)', fontSize: 13, letterSpacing: '0.12em',
             color: s.c, background: 'rgba(0,0,0,0.35)',
             border: `1px dashed ${s.c}55`, borderRadius: 3,
             animation: `mc-flutter ${5 + i}s ease-in-out ${i * 0.4}s infinite alternate`,
@@ -744,14 +744,14 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
             {/* CD audit cross-cutting #14 (Ricky 2026-05-02): drop redundant
                 "Q {idx+1} / {total}" — the header <Progress> is the single
                 canonical position counter. Themed eyebrow stays. */}
-            <div className="em-eyebrow" style={{ color: '#A8612C', marginBottom: 6, fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.24em' }}>
+            <div className="em-eyebrow" style={{ color: '#A8612C', marginBottom: 6, fontFamily: 'var(--em-mono)', fontSize: 13, letterSpacing: '0.16em' }}>
               NOTICE · OGŁOSZENIE
             </div>
             <div className="em-decor" style={{ fontSize: 22, lineHeight: 1.25, marginBottom: 8, color: '#2A1810' }}>
               {cur.prompt}
             </div>
             {cur.prompt_pl && (
-              <div style={{ fontSize: 12.5, fontStyle: 'italic', color: '#6E4825', borderTop: '1px dashed rgba(0,0,0,0.18)', paddingTop: 6 }}>
+              <div style={{ fontSize: 13.5, fontStyle: 'italic', color: '#6E4825', borderTop: '1px dashed rgba(0,0,0,0.18)', paddingTop: 6 }}>
                 🇵🇱 {cur.prompt_pl}
               </div>
             )}
@@ -763,7 +763,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
                 background: 'rgba(155,28,46,0.10)',
                 border: `1px dashed ${ACCENT_DEEP}66`,
                 borderRadius: 6,
-                fontSize: 12.5, color: ACCENT_DEEP,
+                fontSize: 13.5, color: ACCENT_DEEP,
                 animation: 'em-tip-fade 220ms var(--em-ease) both',
               }}>
                 <span className="em-eyebrow" style={{ color: ACCENT_DEEP, marginRight: 6 }}>HINT</span>
@@ -844,17 +844,17 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
                     background: `radial-gradient(circle at 30% 30%, ${hue}, ${hue}99 70%, rgba(0,0,0,0.4) 100%)`,
                     boxShadow: '0 2px 3px rgba(0,0,0,0.4)',
                   }} />
-                  <div className="em-eyebrow" style={{ color: '#8a5a2c', fontFamily: 'var(--em-mono)', fontSize: 9, letterSpacing: '0.22em', marginBottom: 6 }}>
+                  <div className="em-eyebrow" style={{ color: '#8a5a2c', fontFamily: 'var(--em-mono)', fontSize: 13, letterSpacing: '0.14em', marginBottom: 6 }}>
                     {String.fromCharCode(65 + i)}
                   </div>
                   <div style={{ wordBreak: 'break-word' }}>{opt}</div>
                   {showCorrect && (
-                    <div aria-hidden="true" style={{ position: 'absolute', bottom: 8, right: 10, fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.24em', color: '#15532A', opacity: 0.85 }}>
+                    <div aria-hidden="true" style={{ position: 'absolute', bottom: 8, right: 10, fontFamily: 'var(--em-mono)', fontSize: 13, letterSpacing: '0.14em', color: '#15532A', opacity: 0.85 }}>
                       ✓ TAK
                     </div>
                   )}
                   {showWrong && (
-                    <div aria-hidden="true" style={{ position: 'absolute', bottom: 8, right: 10, fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.24em', color: ACCENT_DEEP, opacity: 0.85 }}>
+                    <div aria-hidden="true" style={{ position: 'absolute', bottom: 8, right: 10, fontFamily: 'var(--em-mono)', fontSize: 13, letterSpacing: '0.14em', color: ACCENT_DEEP, opacity: 0.85 }}>
                       ✗ NIE
                     </div>
                   )}

@@ -24,6 +24,7 @@ import BuyLessons from './views/v3/BuyLessons.jsx'
 import PracticeNew from './views/v3/PracticeNew.jsx'
 import PracticeDesign from './views/v3/PracticeDesign.jsx'
 import Chrome from './design/v3/Chrome.jsx'
+import Settings from './views/Settings.jsx'
 
 const IS_ENGLISHMETRO = typeof window !== 'undefined' && /englishmetro\.com/i.test(window.location.hostname)
 const USE_V3 = typeof window === 'undefined' || !window.__EM_LEGACY
@@ -87,6 +88,11 @@ function App({ basePath = '' }) {
       <Chrome slug={slug} basePath={basePath} firstName={firstName}>
         <Routes>
           <Route index element={<Navigate to={dashboardPath} replace />} />
+          {/* Settings used to be routed in main.jsx OUTSIDE this chrome, so it
+              rendered in the legacy serif theme with no top bar (2026-09-04). */}
+          <Route path="settings" element={
+            <RouteErrorBoundary name="Settings"><Settings /></RouteErrorBoundary>
+          } />
           <Route path="dashboard" element={
             <RouteErrorBoundary name="Dashboard">
               <DashboardV3 data={studentData} slug={slug} basePath={basePath}/>

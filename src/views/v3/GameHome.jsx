@@ -133,7 +133,7 @@ const GH = {
       <><b>Bajla on WhatsApp</b> books, moves and cancels lessons and sends your notes</>,
       <>Practice between lessons in <b>English Metro World</b>, our 3D city</>,
     ],
-    ctaBook: 'Book your first lesson', ctaPricing: 'See pricing', ctaWorld: 'Play the World for free',
+    ctaBook: 'Book your first lesson', ctaPricing: 'See pricing', ctaWorld: 'Play the World with a free account',
     heroSliderLabel: 'What a course with us includes',
     heroSliderPrev: 'Previous slide', heroSliderNext: 'Next slide',
     heroSlides: [
@@ -186,7 +186,7 @@ const GH = {
     ctaPlay: 'Play for free',
     ctaBeta: 'Try the English Metro World beta',
     lineTags: { 'Arcade Line': 'Fast hands, faster words', 'Word Line': 'Letters into language', 'Quiz Line': 'Think quick, answer quicker', 'City Line': 'Real skills, street level' },
-    worldLink: 'Explore the full 3D city for free',
+    worldLink: 'Explore the full 3D city with a free account',
     stepsKicker: 'from sign-up to speaking', stepsTitle: 'Your first lesson is four steps away',
     steps: [
       { icon: 'person_add', title: 'Create your account', body: 'It takes about two minutes: use your email and password or continue with Google.' },
@@ -235,7 +235,7 @@ const GH = {
       <><b>Bajla na WhatsAppie</b> rezerwuje, przenosi i odwołuje lekcje oraz wysyła notatki</>,
       <>Między lekcjami ćwiczysz w <b>English Metro World</b>, naszym mieście 3D</>,
     ],
-    ctaBook: 'Zarezerwuj pierwszą lekcję', ctaPricing: 'Zobacz cennik', ctaWorld: 'Zagraj w World za darmo',
+    ctaBook: 'Zarezerwuj pierwszą lekcję', ctaPricing: 'Zobacz cennik', ctaWorld: 'Zagraj w World z darmowym kontem',
     heroSliderLabel: 'Co obejmuje kurs u nas',
     heroSliderPrev: 'Poprzedni slajd', heroSliderNext: 'Następny slajd',
     heroSlides: [
@@ -288,7 +288,7 @@ const GH = {
     ctaPlay: 'Graj za darmo',
     ctaBeta: 'Wypróbuj betę English Metro World',
     lineTags: { 'Arcade Line': 'Szybkie ręce, szybsze słowa', 'Word Line': 'Z liter w język', 'Quiz Line': 'Myśl szybko, odpowiadaj szybciej', 'City Line': 'Prawdziwe sytuacje, poziom ulicy' },
-    worldLink: 'Poznaj całe miasto 3D za darmo',
+    worldLink: 'Poznaj całe miasto 3D z darmowym kontem',
     stepsKicker: 'od rejestracji do mówienia', stepsTitle: 'Twoja pierwsza lekcja w czterech krokach',
     steps: [
       { icon: 'person_add', title: 'Załóż konto', body: 'To około dwóch minut: podaj e-mail i hasło lub kontynuuj z Google.' },
