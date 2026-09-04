@@ -1045,7 +1045,6 @@ export default function GameHome() {
               nextLabel={W.heroSliderNext}
               slides={HERO_MEDIA.map((media, i) => ({
                 ...media, ...W.heroSlides[i], alt: W.heroSlides[i].title,
-                aiNote: lang === 'pl' ? 'Obraz wygenerowany przez AI' : 'AI-generated image',
               }))}
             />
           </div>

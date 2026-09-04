@@ -11,13 +11,6 @@ function Slide({ slide, image, active, minimal }) {
     <li className="gh-hs-slide" data-active={active} aria-hidden={!active}>
       <img src={image} alt={slide.alt} loading={active ? 'eager' : 'lazy'}
         width="1600" height="900" draggable="false"/>
-      {/* Mike 2026-09-04: every slide carries the englishmetro.com mark, and a
-          smaller declaration that the picture is AI-generated. Inside the li so
-          both ride the slide transition. */}
-      <span className="gh-hs-marks" aria-hidden={!active}>
-        <span className="gh-hs-mark">englishmetro.com</span>
-        {slide.aiNote && <span className="gh-hs-ai">{slide.aiNote}</span>}
-      </span>
       {minimal ? (
         <span className="gh-hs-chip">
           <span className="material-symbols-outlined" aria-hidden>
