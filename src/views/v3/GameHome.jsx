@@ -25,9 +25,9 @@ import { cart, parsePricePLN } from '../public/cart-store.js'
 import CartUI from '../public/CartUI.jsx'
 import HeroPracticePreview from './HeroPracticePreview.jsx'
 import HeroSlider from './HeroSlider.jsx'
-import MetroSignalField from '../../components/public/MetroSignalField.jsx'
+import HeroSkyline from '../../components/public/HeroSkyline.jsx'
 import ReactiveShaderField from '../../components/public/ReactiveShaderField.jsx'
-import { clearPointerPolish, pulsePointerPolish, setPointerPolish } from '../../components/public/motionPolish.js'
+import { clearPointerPolish, pulsePointerPolish, setPointerPolish, focusSkylineDistrict } from '../../components/public/motionPolish.js'
 const ArcadeCityBackdrop = lazy(() => import('./ArcadeCityBackdrop.jsx'))
 import './game-home.css'
 
@@ -58,7 +58,14 @@ function Reveal({ children, delay = 0, style, className = '' }) {
 // Navigation actions render as links all the way through. This avoids the
 // invalid link > button nesting that previously made some CTAs unreliable.
 function ActionLink({ to, href, children, variant = 'ghost', size = 'md', icon,
-  trailingIcon, full = false, className = '', style, onClick }) {
+  trailingIcon, full = false, className = '', style, onClick, district }) {
+  // Hero CTAs tell the three.js skyline which district the visitor is
+  // considering, so the city answers the intent before the click.
+  const districtProps = district ? {
+    onPointerEnter: () => focusSkylineDistrict(district),
+    onFocus: () => focusSkylineDistrict(district),
+    onBlur: () => focusSkylineDistrict(null),
+  } : {}
   const classes = [
     'gh-action',
     `gh-action--${variant}`,
@@ -73,12 +80,14 @@ function ActionLink({ to, href, children, variant = 'ghost', size = 'md', icon,
   </>
 
   if (to) {
-    return <Link to={to} className={classes} style={style} onClick={onClick}
-      onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+    return <Link to={to} className={classes} style={style} onClick={onClick} {...districtProps}
+      onPointerMove={setPointerPolish}
+      onPointerLeave={(e) => { clearPointerPolish(e); if (district) focusSkylineDistrict(null) }}
       onPointerDown={pulsePointerPolish}>{content}</Link>
   }
-  return <a href={href} className={classes} style={style} onClick={onClick}
-    onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+  return <a href={href} className={classes} style={style} onClick={onClick} {...districtProps}
+    onPointerMove={setPointerPolish}
+    onPointerLeave={(e) => { clearPointerPolish(e); if (district) focusSkylineDistrict(null) }}
     onPointerDown={pulsePointerPolish}>{content}</a>
 }
 
@@ -120,8 +129,9 @@ const GH = {
     heroPoints: [
       <>Live <b>1:1 lessons</b>, 60 minutes, with your own teacher</>,
       <>A course matched to your <b>CEFR level</b></>,
-      <>Lesson vocabulary becomes your <b>flashcards</b></>,
-      <>Practice between lessons in <b>EnglishMetro World</b>, our 3D city</>,
+      <>Every word becomes a <b>flashcard with real YouTube clips</b>, plus a PDF of the lesson</>,
+      <><b>Bajla on WhatsApp</b> books, moves and cancels lessons and sends your notes</>,
+      <>Practice between lessons in <b>English Metro World</b>, our 3D city</>,
     ],
     ctaBook: 'Book your first lesson', ctaPricing: 'See pricing', ctaWorld: 'Play the World for free',
     heroSliderLabel: 'What a course with us includes',
@@ -129,15 +139,40 @@ const GH = {
     heroSlides: [
       { eyebrow: 'our students · one school', title: 'Live 1:1 lessons with your own teacher', cta: 'Book your first lesson', cta2: 'See pricing', to2: '/pricing' },
       { eyebrow: 'your CEFR course', title: 'A course matched to your level and goals', cta: 'See pricing', cta2: 'Book a lesson', to2: '/signup' },
-      { eyebrow: 'practice after every lesson', title: 'Your vocabulary becomes flashcards and real-world clips', cta: 'Play the World', cta2: 'See pricing', to2: '/pricing' },
+      { eyebrow: 'practice after every lesson', title: 'Your vocabulary becomes flashcards with real YouTube clips', cta: 'Play the World', cta2: 'See pricing', to2: '/pricing' },
     ],
-    chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'lesson vocabulary becomes flashcards', 'book online in minutes'],
+    chips: ['60-min live 1:1 lessons', 'CEFR-matched courses', 'flashcards + YouTube clips for every word', 'Bajla on WhatsApp', 'book online in minutes'],
     arcadeBadge: 'quick practice · try it now',
     officeAlt: 'Students laughing together at the English Metro school',
     officeChip: 'Our students · one school',
     arcadeKicker: 'quick practice · no sign-up',
     arcadeTitle: 'Seven ways to practise. Try them now.',
     arcadeBody: 'These are the same games your flashcards feed after every lesson. Flip a card, catch a train, build a sentence. No account needed.',
+    whyKicker: 'why students stay',
+    whyTitle: 'Six things a normal language school does not give you.',
+    whyBody: 'The lesson is the smaller half. What makes English Metro work is everything around the hour, built so the words you learn on Tuesday are still yours on Sunday.',
+    why: [
+      { icon: 'co_present', title: 'Your own teacher, every lesson', body: 'One friendly teacher who knows your goals, your job and your mistakes. Not a rota, not a different face each week.' },
+      { icon: 'forum', title: 'Conversation from minute one', body: 'You talk for most of the hour. Corrections are tied to what you actually said, not to a textbook chapter.' },
+      { icon: 'description', title: 'Notes and a PDF after every lesson', body: 'Nothing evaporates when the call ends. The lesson PDF lands in your library within the day.' },
+      { icon: 'smart_display', title: 'Flashcards with real YouTube clips', body: 'Every word from your lesson gets a Polish translation, a definition, pronunciation you can play, and real YouTube clips of native speakers using that exact word.' },
+      { icon: 'chat', title: 'Bajla on WhatsApp', body: 'Book, move or cancel a lesson, get your notes and do a two-minute drill, in Polish or English, without opening the app. Included with the AI lesson analysis add-on.' },
+      { icon: 'view_in_ar', title: 'A 3D city and quick games', body: 'English Metro World and the games below practise your own vocabulary between lessons. Two minutes or twenty, on your phone or laptop.' },
+    ],
+    bajlaKicker: 'Bajla · your assistant on WhatsApp',
+    bajlaTitle: 'Booking a lesson should take one message.',
+    bajlaBody: 'Bajla is the English Metro owl and your assistant on WhatsApp. She books, moves and cancels lessons in your teacher\u2019s live calendar, sends your notes and flashcards, and runs quick drills on the words you got wrong. She writes in Polish or English, whichever you use. Bajla comes with the optional AI lesson analysis add-on.',
+    bajlaChat: [
+      { from: 'you', text: 'Hi Bajla, can I move Thursday\u2019s lesson to Friday at 6 pm?' },
+      { from: 'bajla', text: 'Sure. Friday 18:00 is free in Natalia\u2019s calendar. I have moved the lesson and sent you a new calendar invitation.' },
+      { from: 'you', text: 'Great. Send me the notes from the last lesson.' },
+      { from: 'bajla', text: 'Here is the PDF from lesson 12 and your 14 new flashcards. Quick drill? "to put something off" means to…' },
+    ],
+    bajlaPoints: ['Books, moves and cancels in the live calendar', 'Sends your lesson PDF and flashcards', 'Two-minute drills on your own mistakes', 'Polish or English, 24 hours a day'],
+    bajlaCta: 'See what the analysis add-on includes',
+    worldTitle: 'The Open World', worldBody: 'Explore the full city as Wren. Ride the metro between language districts, help local characters and practise English as you progress.', worldGo: 'Start exploring',
+    practiceTitle: 'Quick Practice',
+    footAbout: 'About us', footFaq: 'FAQ', footContact: 'Contact', footPricing: 'Pricing', footSignup: 'Sign up', footPrivacy: 'Privacy', footCookies: 'Cookies', footTerms: 'Terms',
     catalogTitle: 'Quick Practice across four lines',
     catalogHint: 'Choose a line to see its games · each game starts immediately',
     catalogBrowse: 'Browse the full catalogue by line and station. You can play your first game without an account.',
@@ -147,9 +182,9 @@ const GH = {
     doorsBody: (n) => `${n} short games across four metro lines: vocabulary, grammar, listening and speaking. Practise for two minutes or twenty.`,
     doorsGo: 'Recommended game:',
     ctaTitle: 'Save your progress with a free account.',
-    ctaBody: 'A free account saves your streaks and vocabulary progress and enables full-screen play in EnglishMetro World and Quick Practice.',
+    ctaBody: 'A free account saves your streaks and vocabulary progress and enables full-screen play in English Metro World and Quick Practice.',
     ctaPlay: 'Play for free',
-    ctaBeta: 'Try the EnglishMetro World beta',
+    ctaBeta: 'Try the English Metro World beta',
     lineTags: { 'Arcade Line': 'Fast hands, faster words', 'Word Line': 'Letters into language', 'Quiz Line': 'Think quick, answer quicker', 'City Line': 'Real skills, street level' },
     worldLink: 'Explore the full 3D city for free',
     stepsKicker: 'from sign-up to speaking', stepsTitle: 'Your first lesson is four steps away',
@@ -157,7 +192,7 @@ const GH = {
       { icon: 'person_add', title: 'Create your account', body: 'It takes about two minutes: use your email and password or continue with Google.' },
       { icon: 'shopping_bag', title: 'Pick a package', body: 'Choose one trial lesson or a package of up to 24 lessons. Pay online or by invoice.' },
       { icon: 'event_available', title: 'Book your times', body: 'Choose an available time in your teacher’s calendar. We will email you the Google Meet link and calendar invitation.' },
-      { icon: 'school', title: 'Learn, then replay', body: 'After each lesson, a PDF is added to your library and the lesson vocabulary is turned into flashcards for further practice.' },
+      { icon: 'school', title: 'Learn, then replay', body: 'After each lesson a PDF is added to your library and the vocabulary becomes flashcards, every word linked to real YouTube clips so you hear how it is pronounced and used.' },
     ],
     packsKicker: '1:1 lesson packages', packsTitle: 'Pick your pace', packsLink: 'Full pricing & details',
     packsStart: 'Start', packsEach: '60 min each',
@@ -171,15 +206,15 @@ const GH = {
     ],
     cityKicker: 'live lessons · practice between sessions',
     cityTitle: 'One learning plan. Connected practice.',
-    cityBody: 'Your teacher sets the focus. Vocabulary from each lesson becomes flashcards and games in EnglishMetro World, so you practise the same material between lessons.',
-    cityFeatures: ['Live feedback from your teacher', 'Vocabulary from your own lessons', 'A 3D world for practice between lessons'],
+    cityBody: 'Your teacher sets the focus. Vocabulary from each lesson becomes flashcards with YouTube clips, then games in English Metro World, so you practise the same material between lessons and Bajla checks in on WhatsApp.',
+    cityFeatures: ['Live feedback from a teacher who knows you', 'Flashcards and YouTube clips from your own lessons', 'A 3D world and Bajla on WhatsApp between lessons'],
     cityCta: 'Start my learning plan',
-    cityLabel: 'Interactive 3D map of EnglishMetro',
+    cityLabel: 'Interactive 3D map of English Metro',
     cityHint: 'Drag the city to explore',
     lessonsKicker: 'live 1:1 lessons',
     lessonsTitle: 'A teacher who knows your goals.',
-    lessonsBody: 'Every lesson is live, individual and matched to your CEFR level. You speak, your teacher gives feedback, and your lesson vocabulary becomes practice material.',
-    lessonsPoints: ['Real conversation from minute one', 'Notes and a PDF after every lesson', 'Flashcards from your lesson vocabulary'],
+    lessonsBody: 'Every lesson is live, individual and matched to your CEFR level. You speak, your teacher listens, corrects and pushes you into the language you would otherwise avoid. Friendly, patient, and the same person every week.',
+    lessonsPoints: ['Real conversation from minute one', 'Notes and a PDF after every lesson', 'Flashcards from your vocabulary, with YouTube clips of every word in real use'],
     lessonsCta: 'Meet your teacher',
     lessonsAltMain: 'A student smiling during a live online English lesson',
     lessonsAltSide: 'A student laughing while practising English on a phone',
@@ -196,8 +231,9 @@ const GH = {
     heroPoints: [
       <>Lekcje <b>1:1 na żywo</b>, 60 minut, z własnym lektorem</>,
       <>Kurs dopasowany do Twojego <b>poziomu CEFR</b></>,
-      <>Słownictwo z lekcji trafia do Twoich <b>fiszek</b></>,
-      <>Między lekcjami ćwiczysz w <b>EnglishMetro World</b>, naszym mieście 3D</>,
+      <>Każde słowo staje się <b>fiszką z prawdziwymi klipami z YouTube</b>, a lekcja PDF-em</>,
+      <><b>Bajla na WhatsAppie</b> rezerwuje, przenosi i odwołuje lekcje oraz wysyła notatki</>,
+      <>Między lekcjami ćwiczysz w <b>English Metro World</b>, naszym mieście 3D</>,
     ],
     ctaBook: 'Zarezerwuj pierwszą lekcję', ctaPricing: 'Zobacz cennik', ctaWorld: 'Zagraj w World za darmo',
     heroSliderLabel: 'Co obejmuje kurs u nas',
@@ -205,15 +241,40 @@ const GH = {
     heroSlides: [
       { eyebrow: 'nasi uczniowie · jedna szkoła', title: 'Lekcje 1:1 na żywo z własnym lektorem', cta: 'Zarezerwuj pierwszą lekcję', cta2: 'Zobacz cennik', to2: '/pricing' },
       { eyebrow: 'Twój kurs CEFR', title: 'Kurs dopasowany do Twojego poziomu i celów', cta: 'Zobacz cennik', cta2: 'Zarezerwuj lekcję', to2: '/signup' },
-      { eyebrow: 'ćwiczenia po każdej lekcji', title: 'Twoje słownictwo trafia do fiszek i klipów z życia', cta: 'Zagraj w World', cta2: 'Zobacz cennik', to2: '/pricing' },
+      { eyebrow: 'ćwiczenia po każdej lekcji', title: 'Twoje słownictwo trafia do fiszek z prawdziwymi klipami z YouTube', cta: 'Zagraj w World', cta2: 'Zobacz cennik', to2: '/pricing' },
     ],
-    chips: ['lekcje 1:1 na żywo, 60 min', 'kursy dopasowane do poziomu CEFR', 'słownictwo z lekcji trafia do fiszek', 'rezerwacja online w kilka minut'],
+    chips: ['lekcje 1:1 na żywo, 60 min', 'kursy dopasowane do poziomu CEFR', 'fiszki i klipy z YouTube do każdego słowa', 'Bajla na WhatsAppie', 'rezerwacja online w kilka minut'],
     arcadeBadge: 'krótkie ćwiczenia · wypróbuj teraz',
     officeAlt: 'Uczniowie śmiejący się razem w szkole English Metro',
     officeChip: 'Nasi uczniowie · jedna szkoła',
     arcadeKicker: 'krótkie ćwiczenia · bez logowania',
     arcadeTitle: 'Siedem sposobów na ćwiczenie. Wypróbuj je teraz.',
     arcadeBody: 'To te same gry, do których po każdej lekcji trafiają Twoje fiszki. Odkryj kartę, złap pociąg, ułóż zdanie. Bez zakładania konta.',
+    whyKicker: 'dlaczego uczniowie zostają',
+    whyTitle: 'Sześć rzeczy, których nie da Ci zwykła szkoła językowa.',
+    whyBody: 'Lekcja to mniejsza połowa. English Metro działa dzięki wszystkiemu wokół tej godziny, zbudowanemu tak, żeby słowa z wtorku były nadal Twoje w niedzielę.',
+    why: [
+      { icon: 'co_present', title: 'Własny lektor na każdej lekcji', body: 'Jeden życzliwy lektor, który zna Twoje cele, Twoją pracę i Twoje błędy. Nie grafik i nie inna twarz co tydzień.' },
+      { icon: 'forum', title: 'Rozmowa od pierwszej minuty', body: 'Mówisz przez większość godziny. Poprawki dotyczą tego, co naprawdę powiedziałeś, a nie rozdziału z podręcznika.' },
+      { icon: 'description', title: 'Notatki i PDF po każdej lekcji', body: 'Nic nie znika, gdy kończy się rozmowa. PDF z lekcji trafia do Twojej biblioteki tego samego dnia.' },
+      { icon: 'smart_display', title: 'Fiszki z prawdziwymi klipami z YouTube', body: 'Każde słowo z lekcji dostaje polskie tłumaczenie, definicję, wymowę do odsłuchania i prawdziwe klipy z YouTube, w których native speakerzy używają dokładnie tego słowa.' },
+      { icon: 'chat', title: 'Bajla na WhatsAppie', body: 'Rezerwuj, przenoś lub odwołuj lekcje, odbieraj notatki i rób dwuminutowe powtórki, po polsku lub po angielsku, bez otwierania aplikacji. W pakiecie z analizą lekcji AI.' },
+      { icon: 'view_in_ar', title: 'Miasto 3D i szybkie gry', body: 'English Metro World i gry poniżej ćwiczą Twoje własne słownictwo między lekcjami. Dwie minuty albo dwadzieścia, na telefonie lub laptopie.' },
+    ],
+    bajlaKicker: 'Bajla · Twoja asystentka na WhatsAppie',
+    bajlaTitle: 'Rezerwacja lekcji to jedna wiadomość.',
+    bajlaBody: 'Bajla to sowa English Metro i Twoja asystentka na WhatsAppie. Rezerwuje, przenosi i odwołuje lekcje w kalendarzu lektora na żywo, wysyła notatki i fiszki i robi krótkie powtórki ze słów, które sprawiły Ci trudność. Pisze po polsku lub po angielsku, tak jak Ty. Bajla jest częścią opcjonalnego dodatku: analizy lekcji AI.',
+    bajlaChat: [
+      { from: 'you', text: 'Cześć Bajla, mogę przenieść czwartkową lekcję na piątek na 18:00?' },
+      { from: 'bajla', text: 'Jasne. Piątek 18:00 jest wolny w kalendarzu Natalii. Przeniosłam lekcję i wysłałam nowe zaproszenie do kalendarza.' },
+      { from: 'you', text: 'Super. Wyślij mi notatki z ostatniej lekcji.' },
+      { from: 'bajla', text: 'Proszę: PDF z lekcji 12 i 14 nowych fiszek. Szybka powtórka? „to put something off” znaczy…' },
+    ],
+    bajlaPoints: ['Rezerwuje, przenosi i odwołuje w kalendarzu na żywo', 'Wysyła PDF z lekcji i fiszki', 'Dwuminutowe powtórki z Twoich błędów', 'Po polsku lub po angielsku, całą dobę'],
+    bajlaCta: 'Zobacz, co obejmuje analiza lekcji',
+    worldTitle: 'Otwarty świat', worldBody: 'Odkrywaj całe miasto jako Wren. Jedź metrem między dzielnicami języka, pomagaj mieszkańcom i ćwicz angielski w miarę postępów.', worldGo: 'Zacznij odkrywać',
+    practiceTitle: 'Szybkie ćwiczenia',
+    footAbout: 'O nas', footFaq: 'Pytania', footContact: 'Kontakt', footPricing: 'Cennik', footSignup: 'Załóż konto', footPrivacy: 'Prywatność', footCookies: 'Cookies', footTerms: 'Regulamin',
     catalogTitle: 'Szybkie ćwiczenia na czterech liniach',
     catalogHint: 'Wybierz linię, aby zobaczyć jej gry · każda gra startuje od razu',
     catalogBrowse: 'Przeglądaj pełny katalog według linii i stacji. W pierwszą grę zagrasz bez konta.',
@@ -223,9 +284,9 @@ const GH = {
     doorsBody: (n) => `${n} krótkich gier na czterech liniach metra: słownictwo, gramatyka, słuchanie i mówienie. Ćwicz dwie minuty albo dwadzieścia.`,
     doorsGo: 'Polecana gra:',
     ctaTitle: 'Zapisuj postępy z darmowym kontem.',
-    ctaBody: 'Darmowe konto zapisuje Twoje serie i postępy w słownictwie oraz włącza grę na pełnym ekranie w EnglishMetro World i Szybkich ćwiczeniach.',
+    ctaBody: 'Darmowe konto zapisuje Twoje serie i postępy w słownictwie oraz włącza grę na pełnym ekranie w English Metro World i Szybkich ćwiczeniach.',
     ctaPlay: 'Graj za darmo',
-    ctaBeta: 'Wypróbuj betę EnglishMetro World',
+    ctaBeta: 'Wypróbuj betę English Metro World',
     lineTags: { 'Arcade Line': 'Szybkie ręce, szybsze słowa', 'Word Line': 'Z liter w język', 'Quiz Line': 'Myśl szybko, odpowiadaj szybciej', 'City Line': 'Prawdziwe sytuacje, poziom ulicy' },
     worldLink: 'Poznaj całe miasto 3D za darmo',
     stepsKicker: 'od rejestracji do mówienia', stepsTitle: 'Twoja pierwsza lekcja w czterech krokach',
@@ -233,7 +294,7 @@ const GH = {
       { icon: 'person_add', title: 'Załóż konto', body: 'To około dwóch minut: podaj e-mail i hasło lub kontynuuj z Google.' },
       { icon: 'shopping_bag', title: 'Wybierz pakiet', body: 'Wybierz pojedynczą lekcję próbną lub pakiet do 24 lekcji. Zapłać online lub na podstawie faktury.' },
       { icon: 'event_available', title: 'Zarezerwuj terminy', body: 'Wybierz wolny termin w kalendarzu lektora. Link do Google Meet i zaproszenie do kalendarza otrzymasz e-mailem.' },
-      { icon: 'school', title: 'Ucz się i powtarzaj', body: 'Po każdej lekcji w bibliotece pojawia się plik PDF, a słownictwo z lekcji trafia do fiszek do dalszych ćwiczeń.' },
+      { icon: 'school', title: 'Ucz się i powtarzaj', body: 'Po każdej lekcji w bibliotece pojawia się PDF, a słownictwo trafia do fiszek, każde słowo z prawdziwymi klipami z YouTube, żeby usłyszeć jego wymowę i użycie.' },
     ],
     packsKicker: 'pakiety lekcji 1:1', packsTitle: 'Wybierz swoje tempo', packsLink: 'Pełny cennik i szczegóły',
     packsStart: 'Zaczynam', packsEach: 'po 60 min',
@@ -247,15 +308,15 @@ const GH = {
     ],
     cityKicker: 'lekcje na żywo · ćwiczenia między zajęciami',
     cityTitle: 'Jeden plan nauki. Spójne ćwiczenia.',
-    cityBody: 'Lektor wyznacza zakres materiału. Słownictwo z każdej lekcji trafia do fiszek i gier w EnglishMetro World, dzięki czemu między zajęciami ćwiczysz ten sam materiał.',
-    cityFeatures: ['Informacja zwrotna od lektora na żywo', 'Słownictwo z Twoich lekcji', 'Świat 3D do ćwiczeń między lekcjami'],
+    cityBody: 'Lektor wyznacza zakres materiału. Słownictwo z każdej lekcji trafia do fiszek z klipami z YouTube, a potem do gier w English Metro World, dzięki czemu między zajęciami ćwiczysz ten sam materiał, a Bajla przypomina o nim na WhatsAppie.',
+    cityFeatures: ['Informacja zwrotna od lektora, który Cię zna', 'Fiszki i klipy z YouTube z Twoich lekcji', 'Świat 3D i Bajla na WhatsAppie między lekcjami'],
     cityCta: 'Rozpocznij plan nauki',
-    cityLabel: 'Interaktywna mapa 3D EnglishMetro',
+    cityLabel: 'Interaktywna mapa 3D English Metro',
     cityHint: 'Przeciągnij miasto, aby je odkrywać',
     lessonsKicker: 'lekcje 1:1 na żywo',
     lessonsTitle: 'Lektor, który zna Twoje cele.',
-    lessonsBody: 'Każda lekcja jest na żywo, indywidualna i dopasowana do poziomu CEFR. Ty mówisz, lektor daje informację zwrotną, a słownictwo z lekcji trafia do ćwiczeń.',
-    lessonsPoints: ['Prawdziwa rozmowa od pierwszej minuty', 'Notatki i PDF po każdej lekcji', 'Fiszki ze słownictwa z Twoich lekcji'],
+    lessonsBody: 'Każda lekcja jest na żywo, indywidualna i dopasowana do poziomu CEFR. Ty mówisz, lektor słucha, poprawia i wyciąga Cię w język, którego normalnie unikasz. Życzliwie, cierpliwie i zawsze ta sama osoba.',
+    lessonsPoints: ['Prawdziwa rozmowa od pierwszej minuty', 'Notatki i PDF po każdej lekcji', 'Fiszki z Twojego słownictwa, z klipami z YouTube z każdym słowem w użyciu'],
     lessonsCta: 'Poznaj swojego lektora',
     lessonsAltMain: 'Uśmiechnięta uczennica podczas lekcji angielskiego online na żywo',
     lessonsAltSide: 'Uczeń śmiejący się podczas ćwiczenia angielskiego na telefonie',
@@ -654,7 +715,7 @@ function PlayOverlay({ game, onClose }) {
           <div style={{ fontFamily: FONT.display, fontWeight: 700, color: DUSK.text, fontSize: 16,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {game.title}
-            <span style={{ color: DUSK.mute, fontWeight: 400, fontSize: 12, marginLeft: 10 }}>{game.venue || game.district}</span>
+            <span style={{ color: DUSK.mute, fontWeight: 400, fontSize: 13, marginLeft: 10 }}>{game.venue || game.district}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -705,7 +766,7 @@ function PlayOverlay({ game, onClose }) {
               </ActionLink>
               <button type="button" onClick={() => setShowCta(false)}
                 style={{ marginTop: 14, background: 'transparent', border: 'none', color: DUSK.mute,
-                  fontSize: 12, cursor: 'pointer', letterSpacing: '0.06em' }}>
+                  fontSize: 13, cursor: 'pointer', letterSpacing: '0.06em' }}>
                 Keep playing
               </button>
             </div>
@@ -749,14 +810,14 @@ function GameCard({ g, color, T, onPlay, index, soon }) {
           border: `3px solid ${color}`, background: 'transparent', flex: 'none' }}/>
         <span style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 16 }}>{g.title}</span>
       </div>
-      <div style={{ fontSize: 11, color: T.textMute, letterSpacing: '0.06em', marginBottom: 8 }}>
+      <div style={{ fontSize: 13, color: T.textMute, letterSpacing: '0.06em', marginBottom: 8 }}>
         {g.venue || g.district}
       </div>
-      <div style={{ fontSize: 12.5, color: T.textDim, lineHeight: 1.5, minHeight: 36 }}>
+      <div style={{ fontSize: 13, color: T.textDim, lineHeight: 1.5, minHeight: 36 }}>
         {g.blurb || (soon ? 'A new 3D district under construction.' : 'A Fluent City 3D district.')}
       </div>
       <div className="gh-card-play" style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center',
-        gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
+        gap: 6, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
         color: soon ? T.textMute : color }}>
         {soon ? 'Arriving soon' : 'Play'}
         {!soon && <span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_forward</span>}
@@ -779,10 +840,10 @@ function LineSection({ line, T, open, onToggle, count, subtitle, children }) {
         <span style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
           <span style={{ display: 'block', fontFamily: FONT.display, fontWeight: 700, fontSize: 18 }}>
             {line.line}
-            <span style={{ marginLeft: 10, fontSize: 11, fontWeight: 600, letterSpacing: '0.14em',
+            <span style={{ marginLeft: 10, fontSize: 13, fontWeight: 600, letterSpacing: '0.14em',
               color: T.textMute }}>{count}</span>
           </span>
-          <span style={{ display: 'block', fontSize: 12.5, color: T.textDim, marginTop: 2,
+          <span style={{ display: 'block', fontSize: 13, color: T.textDim, marginTop: 2,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {subtitle}
           </span>
@@ -837,7 +898,7 @@ export default function GameHome() {
   }, [])
 
   const tickerNames = useMemo(() => {
-    const names = ['EnglishMetro World · OPEN BETA', ...playable3d.map((e) => `${e.title} · 3D`),
+    const names = ['English Metro World · OPEN BETA', ...playable3d.map((e) => `${e.title} · 3D`),
       ...ALL_GAMES.map((g) => g.title)]
     return [...names, ...names] // doubled for a seamless -50% loop
   }, [playable3d])
@@ -923,20 +984,21 @@ export default function GameHome() {
         {/* ── Hero: live lessons first, the city as your practice ground ── */}
         <section className="gh-hero-grid" style={{ display: 'grid',
           gridTemplateColumns: 'minmax(0, 1.02fr) minmax(0, 0.98fr)',
-          gap: 52, alignItems: 'center', padding: '30px 0 44px' }}>
-          <MetroSignalField className="gh-hero-signal" mode={night ? 'dark' : 'light'} density={64}/>
+          gap: 52, alignItems: 'center', padding: '30px 0 var(--gh-hero-pad-bottom, 230px)' }}>
+          <HeroSkyline className="gh-hero-skyline" mode={night ? 'night' : 'day'} reduced={reduced}/>
           <ReactiveShaderField className="gh-reactive-shader" mode={night ? 'dark' : 'light'}/>
           <div className="gh-hero-copy" style={{ minWidth: 0 }}>
             <div className="gh-rise gh-rise-1 gh-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 10,
               marginBottom: 20 }}>
               <span className="gh-eyebrow-mark" aria-hidden/>
-              <span style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+              <span style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
                 textTransform: 'uppercase', color: T.emerald }}>
                 {W.eyebrow}
               </span>
             </div>
-            <h1 className="gh-rise gh-rise-2" style={{ fontFamily: FONT.display, fontWeight: 700,
-              fontSize: 'clamp(40px, 5.45vw, 70px)', lineHeight: 0.98, letterSpacing: '-0.04em', margin: 0 }}>
+            <h1 className="gh-rise gh-rise-2" lang={lang === 'pl' ? 'pl' : 'en'} style={{ fontFamily: FONT.display, fontWeight: 700,
+              /* Polish headline is twice the length of the English one; one step smaller keeps it to three lines. */
+              fontSize: lang === 'pl' ? 'clamp(36px, 4.5vw, 58px)' : 'clamp(40px, 5.45vw, 70px)', lineHeight: 0.98, letterSpacing: '-0.04em', margin: 0 }}>
               {W.h1a}
               <br/>
               <span className="gh-gradient-word" style={{ background: G.brand, WebkitBackgroundClip: 'text',
@@ -956,14 +1018,16 @@ export default function GameHome() {
             </ul>
             <div className="gh-rise gh-rise-4" style={{ marginTop: 22, display: 'flex', gap: 14,
               flexWrap: 'wrap', alignItems: 'center' }}>
-              <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward"
+              <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward" district="school"
                 style={{ fontSize: 15, padding: '18px 32px' }}>{W.ctaBook}</ActionLink>
-              <ActionLink to="/pricing" variant="secondary" size="lg" trailingIcon="sell">
+              <ActionLink to="/pricing" variant="secondary" size="lg" trailingIcon="sell" district="pricing">
                 {W.ctaPricing}
               </ActionLink>
               <a href={WORLD_URL} className="gh-text-link"
+                onPointerEnter={() => focusSkylineDistrict('world')} onPointerLeave={() => focusSkylineDistrict(null)}
+                onFocus={() => focusSkylineDistrict('world')} onBlur={() => focusSkylineDistrict(null)}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T.violet,
-                  fontSize: 13.5, fontWeight: 700, letterSpacing: '0.03em', textDecoration: 'none' }}>
+                  fontSize: 14, fontWeight: 700, letterSpacing: '0.03em', textDecoration: 'none' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 17 }}>play_circle</span>
                 {W.ctaWorld}
               </a>
@@ -998,6 +1062,31 @@ export default function GameHome() {
           ))}
         </section>
 
+        {/* ── Why students stay: the six moats ── */}
+        <section className="gh-section gh-why-section" aria-labelledby="gh-why-title">
+          <Reveal className="gh-section-heading gh-why-heading">
+            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
+              textTransform: 'uppercase', color: T.fuchsia, marginBottom: 12 }}>{W.whyKicker}</div>
+            <h2 id="gh-why-title" style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(30px, 4.2vw, 52px)',
+              lineHeight: 1.04, letterSpacing: '-0.035em', margin: '0 0 16px', maxWidth: 820 }}>{W.whyTitle}</h2>
+            <p style={{ color: T.textDim, fontSize: 'clamp(15px, 1.35vw, 18px)', lineHeight: 1.65, maxWidth: 640, margin: 0 }}>{W.whyBody}</p>
+          </Reveal>
+          <div className="gh-why-grid">
+            {W.why.map((item, i) => (
+              <Reveal key={item.title} delay={i * 70} className="gh-why-slot">
+                <article className="gh-why-card gh-glass gh-shader-surface" data-moat={i}
+                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
+                  <span className="gh-why-icon" aria-hidden>
+                    <span className="material-symbols-outlined">{item.icon}</span>
+                  </span>
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
+                </article>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
         {/* ── Real lessons, real people — photography band ── */}
         <section className="gh-section gh-lessons-band">
           <Reveal className="gh-lessons-media">
@@ -1019,7 +1108,7 @@ export default function GameHome() {
             </div>
           </Reveal>
           <Reveal className="gh-lessons-copy" delay={90}>
-            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
               textTransform: 'uppercase', color: T.fuchsia, marginBottom: 12 }}>{W.lessonsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(30px, 4.2vw, 52px)',
               lineHeight: 1.04, letterSpacing: '-0.035em', margin: '0 0 18px' }}>{W.lessonsTitle}</h2>
@@ -1046,7 +1135,7 @@ export default function GameHome() {
 
         <section className="gh-city-loop gh-section">
           <Reveal className="gh-city-copy">
-            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
               textTransform: 'uppercase', color: T.emerald, marginBottom: 12 }}>{W.cityKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(32px, 4.7vw, 58px)',
               lineHeight: 1.02, letterSpacing: '-0.04em', margin: '0 0 20px' }}>{W.cityTitle}</h2>
@@ -1088,10 +1177,51 @@ export default function GameHome() {
           </Reveal>
         </section>
 
+        {/* ── Bajla on WhatsApp: the assistant, shown doing the job ── */}
+        <section className="gh-section gh-bajla-section" aria-labelledby="gh-bajla-title">
+          <Reveal className="gh-bajla-copy">
+            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
+              textTransform: 'uppercase', color: T.emerald, marginBottom: 12 }}>{W.bajlaKicker}</div>
+            <h2 id="gh-bajla-title" style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(30px, 4.2vw, 52px)',
+              lineHeight: 1.04, letterSpacing: '-0.035em', margin: '0 0 18px' }}>{W.bajlaTitle}</h2>
+            <p style={{ color: T.textDim, fontSize: 'clamp(15px, 1.35vw, 17px)', lineHeight: 1.7, maxWidth: 560, margin: '0 0 22px' }}>{W.bajlaBody}</p>
+            <ul className="gh-lessons-points">
+              {W.bajlaPoints.map((point) => (
+                <li key={point}><span className="material-symbols-outlined" aria-hidden>check_circle</span>{point}</li>
+              ))}
+            </ul>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 26 }}>
+              <ActionLink to="/pricing" variant="secondary" size="lg" trailingIcon="arrow_forward">{W.bajlaCta}</ActionLink>
+            </div>
+          </Reveal>
+          <Reveal className="gh-bajla-stage" delay={90}>
+            <div className="gh-chat gh-glass-strong" role="img" aria-label={W.bajlaTitle}
+              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
+              <div className="gh-chat-head">
+                <img src="/bajla.png" alt="" width="44" height="44"/>
+                <div>
+                  <strong>Bajla</strong>
+                  <span>WhatsApp · English Metro</span>
+                </div>
+                <span className="gh-chat-online" aria-hidden/>
+              </div>
+              <ol className="gh-chat-thread">
+                {W.bajlaChat.map((m, i) => (
+                  <li key={i} className={`gh-chat-msg gh-chat-msg--${m.from}`} style={{ '--gh-chat-i': i }}>
+                    {m.text}
+                  </li>
+                ))}
+                <li className="gh-chat-typing" aria-hidden><i/><i/><i/></li>
+              </ol>
+              <img className="gh-chat-owl" src="/bajla.png" alt="" width="120" height="120" aria-hidden/>
+            </div>
+          </Reveal>
+        </section>
+
         {/* ── How lessons work ── */}
         <section className="gh-section gh-journey-section" style={{ paddingBottom: 64 }}>
           <Reveal className="gh-section-heading">
-            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
               textTransform: 'uppercase', color: T.fuchsia, marginBottom: 10 }}>{W.stepsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: '0 0 26px' }}>
@@ -1132,7 +1262,7 @@ export default function GameHome() {
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
               flexWrap: 'wrap', gap: 12, marginBottom: 26 }}>
               <div>
-                <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+                <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
                   textTransform: 'uppercase', color: T.emerald, marginBottom: 10 }}>{W.packsKicker}</div>
                 <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
                   letterSpacing: '-0.03em', margin: 0 }}>
@@ -1161,13 +1291,13 @@ export default function GameHome() {
                       ? `linear-gradient(${night ? 'rgba(22,10,44,0.92)' : 'rgba(255,255,255,0.96)'}, ${night ? 'rgba(22,10,44,0.92)' : 'rgba(255,255,255,0.96)'}) padding-box, ${G.brand} border-box`
                       : undefined,
                     boxShadow: hot ? '0 24px 70px -30px rgba(217,70,239,0.55)' : 'none' }}>
-                    <div style={{ fontFamily: FONT.mono, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em',
+                    <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
                       textTransform: 'uppercase', color: hot ? T.fuchsia : T.textMute, marginBottom: 10 }}>{lang === 'pl' ? (p.badgePl || p.badge) : p.badge}</div>
                     <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 18, marginBottom: 2 }}>{p.name}</div>
-                    <div style={{ fontSize: 12.5, color: T.textDim, marginBottom: 14 }}>{lang === 'pl' ? (p.pacePl || p.pace) : p.pace} · {W.packsEach}</div>
+                    <div style={{ fontSize: 13, color: T.textDim, marginBottom: 14 }}>{lang === 'pl' ? (p.pacePl || p.pace) : p.pace} · {W.packsEach}</div>
                     <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 30, letterSpacing: '-0.02em' }}>{p.price}</div>
-                    <div style={{ fontSize: 12, color: T.textMute, marginBottom: 14 }}>{p.perLesson}</div>
-                    <p style={{ margin: '0 0 18px', fontSize: 12.5, lineHeight: 1.55, color: T.textDim, flexGrow: 1 }}>{lang === 'pl' ? (p.bestForPl || p.bestFor) : p.bestFor}</p>
+                    <div style={{ fontSize: 13, color: T.textMute, marginBottom: 14 }}>{p.perLesson}</div>
+                    <p style={{ margin: '0 0 18px', fontSize: 13, lineHeight: 1.55, color: T.textDim, flexGrow: 1 }}>{lang === 'pl' ? (p.bestForPl || p.bestFor) : p.bestFor}</p>
                     <button type="button"
                       className={`gh-action gh-action--${hot ? 'primary' : 'secondary'} gh-action--md gh-action--full gh-pack-add`}
                       data-added={packAdded === p.id}
@@ -1192,7 +1322,7 @@ export default function GameHome() {
         {/* ── Two ways in — the practice layer between lessons ── */}
         <section className="gh-section gh-doors-section" style={{ paddingBottom: 58 }}>
           <Reveal className="gh-section-heading">
-            <div style={{ fontFamily: FONT.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.3em',
+            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
               textTransform: 'uppercase', color: T.violet, marginBottom: 10 }}>{W.doorsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: '0 0 26px' }}>
@@ -1209,14 +1339,13 @@ export default function GameHome() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                 <span className="material-symbols-outlined" aria-hidden
                   style={{ fontSize: 26, color: T.violet }}>public</span>
-                <span style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 20 }}>The Open World</span>
+                <span style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 20 }}>{W.worldTitle}</span>
               </div>
-              <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: T.textDim }}>
-                Explore the full city as Wren. Ride the metro between language districts,
-                help local characters and practise English as you progress.
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: T.textDim }}>
+                {W.worldBody}
               </p>
               <span className="gh-door-go" style={{ color: T.violet }}>
-                Start exploring <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_forward</span>
+                {W.worldGo} <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_forward</span>
               </span>
             </a>
             <button type="button" className="gh-door gh-door--practice gh-glass gh-spatial-card" onClick={scrollToPractice}
@@ -1227,7 +1356,7 @@ export default function GameHome() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                 <span className="material-symbols-outlined" aria-hidden
                   style={{ fontSize: 26, color: T.emerald }}>bolt</span>
-                <span style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 20 }}>Quick Practice</span>
+                <span style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 20 }}>{W.practiceTitle}</span>
               </div>
               <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: T.textDim }}>
                 {W.doorsBody(ALL_GAMES.length)}
@@ -1244,7 +1373,7 @@ export default function GameHome() {
           borderBottom: `1px solid ${T.border}`, padding: '12px 0', marginBottom: 58 }}>
           <div className="gh-ticker-track">
             {tickerNames.map((n, i) => (
-              <span key={i} style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: '0.18em',
+              <span key={i} style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: '0.18em',
                 textTransform: 'uppercase', color: i % 2 ? T.textMute : T.textDim, padding: '0 28px' }}>
                 {n} <span style={{ color: T.fuchsia, marginLeft: 28 }}>●</span>
               </span>
@@ -1260,7 +1389,7 @@ export default function GameHome() {
               letterSpacing: '-0.03em', margin: 0 }}>
               {W.catalogTitle}
             </h2>
-            <div style={{ fontSize: 12, color: T.textMute, letterSpacing: '0.08em' }}>
+            <div style={{ fontSize: 13, color: T.textMute, letterSpacing: '0.08em' }}>
               {W.catalogHint}
             </div>
           </div>
@@ -1305,7 +1434,7 @@ export default function GameHome() {
           borderRadius: 26, border: `1px solid ${T.borderHi}`, position: 'relative', overflow: 'hidden' }}>
           <span className="gh-cta-orb gh-cta-orb--one" aria-hidden/>
           <span className="gh-cta-orb gh-cta-orb--two" aria-hidden/>
-          <img className="gh-bajla" src="/bajla.png" alt="Bajla, the EnglishMetro owl" width="112" height="112"/>
+          <img className="gh-bajla" src="/bajla.png" alt="Bajla, the English Metro owl" width="112" height="112"/>
           <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(28px, 4vw, 46px)',
             letterSpacing: '-0.03em', margin: '0 0 12px' }}>
             {W.ctaTitle}
@@ -1324,22 +1453,24 @@ export default function GameHome() {
         </section>
 
         {/* ── Footer ── */}
-        <footer style={{ padding: '0 0 34px', fontSize: 11, color: T.textMute }}>
+        <footer className="gh-footer" style={{ padding: '0 0 34px', fontSize: 13, color: T.textMute }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            flexWrap: 'wrap', gap: 14, marginBottom: 12 }}>
-            <div style={{ letterSpacing: '0.24em', textTransform: 'uppercase' }}>
+            flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
+            <div style={{ letterSpacing: '0.18em', textTransform: 'uppercase', fontSize: 13 }}>
               © {CURRENT_YEAR} englishmetro.com · Warszawa → The World
             </div>
-            <div style={{ display: 'flex', gap: 16 }}>
-              <Link to="/pricing" style={{ color: T.textMute, textDecoration: 'none' }}>Pricing</Link>
-              <Link to="/signup" style={{ color: T.textMute, textDecoration: 'none' }}>Sign up</Link>
-              <Link to="/privacy" style={{ color: T.textMute, textDecoration: 'none' }}>Privacy</Link>
-              <Link to="/cookies" style={{ color: T.textMute, textDecoration: 'none' }}>Cookies</Link>
-              <Link to="/terms" style={{ color: T.textMute, textDecoration: 'none' }}>Terms</Link>
-              <a href="mailto:hello@englishmetro.com" style={{ color: T.textMute, textDecoration: 'none' }}>Contact</a>
-            </div>
+            <nav className="gh-footer-links" aria-label="Footer">
+              <a href="/about/">{W.footAbout}</a>
+              <a href="/faq/">{W.footFaq}</a>
+              <Link to="/pricing">{W.footPricing}</Link>
+              <Link to="/signup">{W.footSignup}</Link>
+              <Link to="/privacy">{W.footPrivacy}</Link>
+              <Link to="/cookies">{W.footCookies}</Link>
+              <Link to="/terms">{W.footTerms}</Link>
+              <a href="/kontakt/">{W.footContact}</a>
+            </nav>
           </div>
-          <p style={{ margin: 0, fontSize: 10.5, lineHeight: 1.6, color: T.textMute, maxWidth: 860 }}>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: T.textMute, maxWidth: 900 }}>
             {lang === 'pl'
               ? 'EnglishMetro, zorganizowana część przedsiębiorstwa Fundacji Rozwoju Przedsiębiorczości „Twój StartUp" z siedzibą w Warszawie, ul. Żurawia 6/12 lok. 766, 00-503 Warszawa · KRS 0000442857 · NIP 5213641211 · REGON 146433467'
               : 'EnglishMetro, an organised business unit of Fundacja Rozwoju Przedsiębiorczości "Twój StartUp", Warsaw · KRS 0000442857 · NIP (Tax ID) 5213641211 · REGON 146433467'}

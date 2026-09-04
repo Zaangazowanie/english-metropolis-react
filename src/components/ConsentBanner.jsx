@@ -100,7 +100,7 @@ export default function ConsentBanner() {
             <h2 className="text-base sm:text-lg text-slate-900 leading-tight font-semibold tracking-[-0.02em]" style={{ fontFamily: "'Sora', 'Plus Jakarta Sans', system-ui, sans-serif" }}>
               {t('consent.title')}
             </h2>
-            <p className="mt-1.5 text-[12px] sm:text-sm text-slate-600 leading-relaxed font-label">
+            <p className="mt-1.5 text-[13px] sm:text-sm text-slate-600 leading-relaxed font-label">
               {t('consent.blurb')} <Link to="/privacy" className="text-[#4333C6] font-semibold underline underline-offset-2 font-label">{t('consent.privacyLink')}</Link> · <Link to="/cookies" className="text-[#4333C6] font-semibold underline underline-offset-2 font-label">{t('consent.cookieLink')}</Link>
             </p>
 
@@ -124,8 +124,8 @@ export default function ConsentBanner() {
                       className="mt-0.5 h-4 w-4 shrink-0 accent-violet-600"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[12px] font-bold text-slate-800 font-label">{cat.label}</p>
-                      <p className="text-[11px] text-slate-500 leading-relaxed font-label">{cat.desc}</p>
+                      <p className="text-[13px] font-bold text-slate-800 font-label">{cat.label}</p>
+                      <p className="text-[13px] text-slate-500 leading-relaxed font-label">{cat.desc}</p>
                     </div>
                   </label>
                 ))}

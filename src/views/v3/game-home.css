@@ -76,7 +76,7 @@
 }
 .gh-action > * { position: relative; z-index: 1; }
 .gh-action .material-symbols-outlined { font-size: 17px; transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1); }
-.gh-action--sm { min-height: 38px; padding: 8px 14px; font-size: 12px; }
+.gh-action--sm { min-height: 40px; padding: 8px 14px; font-size: 13px; }
 .gh-action--md { padding: 11px 20px; }
 .gh-action--lg { min-height: 52px; padding: 16px 28px; font-size: 14px; gap: 10px; }
 .gh-action--full { width: 100%; }
@@ -165,7 +165,7 @@
 .gh-beta-pill {
   display: inline-flex; align-items: center;
   padding: 5px 13px; border-radius: 999px;
-  font-size: 11px; font-weight: 800; letter-spacing: 0.3em; text-indent: 0.15em;
+  font-size: 13px; font-weight: 800; letter-spacing: 0.24em; text-indent: 0.12em;
   background:
     linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.5) 50%, transparent 70%),
     linear-gradient(135deg, #8B5CF6 0%, #D946EF 55%, #F472B6 100%);
@@ -215,14 +215,14 @@
   position: absolute; top: 16px; right: 16px; transform: rotate(7deg);
   padding: 8px 12px; border: 2px dashed; border-radius: 10px;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px; font-weight: 800; letter-spacing: 0.28em; line-height: 1.7;
+  font-size: 13px; font-weight: 800; letter-spacing: 0.22em; line-height: 1.6;
   text-align: center; text-indent: 0.14em;
   background: rgba(10, 6, 24, 0.25); backdrop-filter: blur(3px);
 }
 .gh-postcard-caption {
   position: absolute; left: 18px; bottom: 66px;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px; letter-spacing: 0.22em; color: rgba(255,255,255,0.88);
+  font-size: 13px; letter-spacing: 0.18em; color: rgba(255,255,255,0.88);
   text-shadow: 0 1px 8px rgba(0,0,0,0.55);
 }
 
@@ -244,13 +244,13 @@
 .gh-door-go {
   position: absolute; left: 26px; bottom: 20px;
   display: inline-flex; align-items: center; gap: 6px;
-  font-size: 11.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
   transition: gap 200ms ease;
 }
 .gh-door:hover .gh-door-go { gap: 11px; }
 .gh-door-ribbon {
   position: absolute; top: 15px; right: -35px; transform: rotate(38deg); z-index: 1;
-  padding: 4px 42px; font-size: 10px; font-weight: 800; letter-spacing: 0.3em; text-indent: 0.15em;
+  padding: 4px 42px; font-size: 13px; font-weight: 800; letter-spacing: 0.24em; text-indent: 0.12em;
   color: #fff; background: linear-gradient(135deg, #FB923C 0%, #F97316 100%);
   box-shadow: 0 4px 14px -4px rgba(249,115,22,0.6);
 }
@@ -350,7 +350,7 @@
   transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms ease; }
 .gh-step:hover { transform: translateY(-4px); box-shadow: 0 22px 60px -30px rgba(139,92,246,0.45); }
 .gh-step-num { display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 9px; font-size: 12px; font-weight: 700;
+  width: 28px; height: 28px; border-radius: 9px; font-size: 13px; font-weight: 700;
   color: #fff; background: linear-gradient(135deg, #8B5CF6, #D946EF); }
 @media (max-width: 1020px) { .gh-steps { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
 @media (max-width: 560px)  { .gh-steps { grid-template-columns: 1fr !important; } }
@@ -381,7 +381,7 @@
 /* Language toggle (header) */
 .gh-lang { display: inline-flex; border-radius: 999px; overflow: hidden;
   border: 1px solid rgba(139,92,246,0.35); }
-.gh-lang-btn { padding: 8px 13px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em;
+.gh-lang-btn { padding: 8px 13px; font-size: 13px; font-weight: 800; letter-spacing: 0.08em;
   border: none; cursor: pointer; background: transparent; color: inherit; opacity: 0.6;
   transition: all 160ms ease; }
 .gh-lang-btn.on { opacity: 1; color: #fff; background: linear-gradient(135deg, #8B5CF6, #D946EF); }
@@ -655,8 +655,8 @@
 }
 .gh-proof-item span {
   color: var(--gh-text-dim);
-  font: 700 10px/1.3 'JetBrains Mono', ui-monospace, monospace;
-  letter-spacing: 0.16em;
+  font: 700 13px/1.3 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 .gh-city-loop {
@@ -840,8 +840,8 @@
   backdrop-filter: blur(18px) saturate(150%);
   transform: translateX(-50%);
   pointer-events: none;
-  font: 700 8px/1 'JetBrains Mono', ui-monospace, monospace;
-  letter-spacing: 0.12em;
+  font: 700 13px/1 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.1em;
   white-space: nowrap;
 }
 .gh-three-route i { flex: 1; height: 1px; background: linear-gradient(90deg, #8b5cf6, #d946ef); }
@@ -1016,7 +1016,11 @@
 @media (max-width: 1050px) {
   .gh-header { border-radius: 18px; }
   .gh-menu-toggle { display: inline-flex; margin-left: auto; }
-  .gh-nav {
+  /* `.gh-header > .gh-nav`, not `.gh-nav`: public/assets/em-motion-20260825-v3.css
+     sets `.gh-header > * { position: relative }` and won the cascade, so the
+     collapsed menu sat IN FLOW and the phone header was 346px tall (live,
+     2026-09-04 crawl). */
+  .gh-header > .gh-nav {
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
@@ -1041,7 +1045,7 @@
   }
   .gh-night .gh-nav { background: rgba(15, 8, 34, 0.96); }
   .gh-day .gh-nav { background: rgba(255, 255, 255, 0.96); }
-  .gh-nav.is-open { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
+  .gh-header > .gh-nav.is-open { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
   .gh-nav .gh-action { width: 100%; }
   .gh-nav .gh-lang { justify-self: stretch; justify-content: center; min-height: 44px; }
   .gh-nav .gh-theme-btn { width: 100%; height: 44px; }
@@ -1073,12 +1077,12 @@
   .gh-proof-rail { margin-bottom: 72px; padding: 8px; }
   .gh-proof-item { min-height: 76px; padding-inline: 8px; }
   .gh-proof-item strong { font-size: 25px; }
-  .gh-proof-item span { font-size: 8.5px; letter-spacing: 0.11em; }
+  .gh-proof-item span { font-size: 13px; letter-spacing: 0.08em; }
   .gh-city-loop { gap: 32px; padding-bottom: 78px; }
   .gh-city-actions .gh-action { width: 100%; }
   .gh-three-shell { min-height: 430px; border-radius: 8px; }
   .gh-three-hud { top: 12px; left: 12px; right: 12px; }
-  .gh-three-route { bottom: 12px; width: calc(100% - 24px); gap: 7px; padding-inline: 10px; font-size: 7px; }
+  .gh-three-route { bottom: 12px; width: calc(100% - 24px); gap: 7px; padding-inline: 10px; font-size: 13px; }
   .gh-steps { gap: 14px !important; }
   .gh-steps::before, .gh-steps::after {
     top: 26px;
@@ -1233,7 +1237,7 @@
   border: 1px solid rgba(16, 10, 40, 0.08);
   box-shadow: 0 14px 34px -14px rgba(23, 16, 46, 0.3);
   color: #17102E;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.02em;
   animation: ghGentleFloat 6s ease-in-out infinite alternate;
@@ -1736,7 +1740,7 @@
 @media (max-width: 620px) {
   .gh-hs-caption { padding: 62px 18px 18px; }
   .gh-hs-actions { display: none; }
-  .gh-hs-chip { top: 12px; left: 12px; min-height: 34px; padding: 7px 11px; font-size: 11px; }
+  .gh-hs-chip { top: 12px; left: 12px; min-height: 36px; padding: 7px 11px; font-size: 13px; }
   .gh-hs-dots { top: 12px; right: 12px; }
   .gh-hs-arrow { width: 36px; height: 36px; }
   .gh-hs-arrow--prev { left: 8px; }
@@ -1748,4 +1752,147 @@
   .gh-hs-dot,
   .gh-hs-arrow { transition: none; }
   .gh-hs-slide[data-active="true"] img { animation: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   2026-09-03 — hero skyline, "why students stay" moats, Bajla on WhatsApp,
+   footer. Type floor: nothing on this page renders under 13px.
+   ═══════════════════════════════════════════════════════════════════════ */
+/* The hero keeps a 210px band under the copy for the city; the tall far-row
+   towers rise behind the photo, the near rows and the train sit in the band,
+   and nothing stands behind the bullet list or the CTAs. */
+.gh-hero-grid { --gh-hero-pad-bottom: 230px; }
+.gh-hero-skyline {
+  position: absolute;
+  left: -24px; right: -24px; bottom: -30px;
+  height: min(62%, 470px);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.96;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 90%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 90%, transparent 100%);
+}
+.gh-hero-skyline canvas { display: block; width: 100% !important; height: 100% !important; }
+.gh-day .gh-hero-skyline { opacity: 0.88; }
+.gh-hero-skyline[data-webgl="fallback"] {
+  background:
+    linear-gradient(180deg, transparent 40%, rgba(139,92,246,0.10) 100%),
+    url('/em-skyline-outline.png') center bottom / 1200px auto no-repeat;
+  opacity: 0.45;
+}
+/* the copy column stays legible over the city */
+.gh-hero-copy { position: relative; z-index: 2; }
+.gh-hero-copy::before {
+  content: ''; position: absolute; inset: -32px -40px -24px -40px; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse 70% 70% at 30% 40%, var(--gh-hero-veil, rgba(251,250,255,0.86)), transparent 72%);
+}
+.gh-night .gh-hero-copy::before { --gh-hero-veil: rgba(6,4,16,0.78); }
+@media (max-width: 900px) {
+  .gh-hero-grid { --gh-hero-pad-bottom: 160px; }
+  .gh-hero-skyline { height: 34%; bottom: -16px; opacity: 0.85; }
+  .gh-hero-copy::before { inset: -20px -16px; }
+}
+
+/* ── why students stay ── */
+.gh-why-section { padding-top: 10px; }
+.gh-why-heading { margin-bottom: 30px; }
+.gh-why-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;
+}
+.gh-why-slot { height: 100%; }
+.gh-why-card {
+  position: relative; height: 100%; padding: 26px 24px 28px; border-radius: 22px;
+  border: 1px solid var(--gh-border); overflow: hidden;
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 320ms ease, border-color 320ms ease;
+}
+.gh-why-card::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at var(--motion-x, 50%) var(--motion-y, 50%), rgba(217,70,239,0.16), transparent 55%);
+  transition: opacity 320ms ease;
+}
+.gh-why-card:hover { transform: translateY(-5px); border-color: var(--gh-border-hi); box-shadow: 0 30px 70px -32px rgba(139,92,246,0.5); }
+.gh-why-card:hover::after { opacity: 1; }
+.gh-why-icon {
+  display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; margin-bottom: 16px;
+  color: #fff; background: linear-gradient(135deg, #8B5CF6 0%, #D946EF 55%, #F472B6 100%);
+  box-shadow: 0 10px 26px -10px rgba(217,70,239,0.7);
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gh-why-card[data-moat="1"] .gh-why-icon { background: linear-gradient(135deg, #34D399, #10B981); box-shadow: 0 10px 26px -10px rgba(16,185,129,0.6); }
+.gh-why-card[data-moat="3"] .gh-why-icon { background: linear-gradient(135deg, #FB7185, #E11D48); box-shadow: 0 10px 26px -10px rgba(225,29,72,0.55); }
+.gh-why-card[data-moat="4"] .gh-why-icon { background: linear-gradient(135deg, #25D366, #128C7E); box-shadow: 0 10px 26px -10px rgba(18,140,126,0.6); }
+.gh-why-card[data-moat="5"] .gh-why-icon { background: linear-gradient(135deg, #FCD34D, #F59E0B); box-shadow: 0 10px 26px -10px rgba(245,158,11,0.6); }
+.gh-why-card:hover .gh-why-icon { transform: translateY(-3px) rotate(-4deg) scale(1.06); }
+.gh-why-icon .material-symbols-outlined { font-size: 24px; }
+.gh-why-card h3 { margin: 0 0 8px; font-size: 19px; line-height: 1.25; letter-spacing: -0.02em; font-weight: 700; }
+.gh-why-card p { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--gh-text-dim); }
+@media (max-width: 1050px) { .gh-why-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .gh-why-grid { grid-template-columns: 1fr; gap: 12px; } .gh-why-card { padding: 22px 20px 24px; } }
+
+/* ── Bajla on WhatsApp ── */
+.gh-bajla-section {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: center;
+}
+.gh-bajla-stage { position: relative; }
+.gh-chat {
+  position: relative; max-width: 520px; margin: 0 auto; padding: 18px 18px 22px; border-radius: 28px;
+  border: 1px solid var(--gh-border-hi); overflow: visible;
+  box-shadow: 0 40px 90px -40px rgba(139,92,246,0.55);
+  transform: perspective(1200px) rotateX(var(--motion-tilt-x, 0deg)) rotateY(var(--motion-tilt-y, 0deg));
+  transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gh-chat-head {
+  display: flex; align-items: center; gap: 12px; padding: 4px 6px 14px;
+  border-bottom: 1px solid var(--gh-border);
+}
+.gh-chat-head img { width: 44px; height: 44px; object-fit: contain; border-radius: 14px; background: rgba(139,92,246,0.12); }
+.gh-chat-head strong { display: block; font-size: 16px; letter-spacing: -0.01em; }
+.gh-chat-head span { display: block; font-size: 13px; color: var(--gh-text-dim); }
+.gh-chat-online { margin-left: auto; width: 10px; height: 10px; border-radius: 50%; background: #25D366; box-shadow: 0 0 0 4px rgba(37,211,102,0.18); }
+.gh-chat-thread { list-style: none; margin: 0; padding: 16px 4px 0; display: grid; gap: 10px; }
+.gh-chat-msg {
+  max-width: 86%; padding: 11px 14px; border-radius: 18px; font-size: 14.5px; line-height: 1.5;
+  opacity: 0; transform: translateY(10px) scale(0.98);
+  animation: gh-chat-in 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--gh-chat-i, 0) * 900ms + 300ms);
+}
+.gh-chat-msg--you { justify-self: end; border-bottom-right-radius: 6px; color: #fff;
+  background: linear-gradient(135deg, #8B5CF6 0%, #D946EF 100%); }
+.gh-chat-msg--bajla { justify-self: start; border-bottom-left-radius: 6px; color: var(--gh-text);
+  background: var(--gh-surface); border: 1px solid var(--gh-border); }
+.gh-night .gh-chat-msg--bajla { background: rgba(255,255,255,0.07); }
+.gh-chat-typing {
+  justify-self: start; display: inline-flex; gap: 5px; padding: 12px 14px; border-radius: 18px; border-bottom-left-radius: 6px;
+  background: var(--gh-surface); border: 1px solid var(--gh-border);
+  opacity: 0; animation: gh-chat-in 400ms ease forwards; animation-delay: 4.1s;
+}
+.gh-chat-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--gh-text-dim); animation: gh-chat-dot 1.1s ease-in-out infinite; }
+.gh-chat-typing i:nth-child(2) { animation-delay: 0.15s; }
+.gh-chat-typing i:nth-child(3) { animation-delay: 0.3s; }
+.gh-chat-owl {
+  position: absolute; right: -34px; bottom: -30px; width: 120px; height: 120px; object-fit: contain;
+  filter: drop-shadow(0 18px 30px rgba(60,20,120,0.35));
+  animation: gh-float 7s ease-in-out infinite;
+}
+@keyframes gh-chat-in { to { opacity: 1; transform: none; } }
+@keyframes gh-chat-dot { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-4px); opacity: 1; } }
+/* the thread animates only once it is on screen */
+.gh-sr:not(.on) .gh-chat-msg, .gh-sr:not(.on) .gh-chat-typing { animation-play-state: paused; }
+@media (max-width: 1080px) {
+  .gh-bajla-section { grid-template-columns: 1fr; gap: 30px; }
+  .gh-bajla-copy { max-width: 760px; }
+  .gh-chat-owl { right: -8px; bottom: -26px; width: 92px; height: 92px; }
+}
+@media (max-width: 620px) { .gh-chat { padding: 14px 12px 18px; border-radius: 22px; } .gh-chat-msg { max-width: 92%; } }
+
+/* ── footer ── */
+.gh-footer-links { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.gh-footer-links a { color: inherit; text-decoration: none; font-size: 13px; min-height: 32px; display: inline-flex; align-items: center;
+  border-bottom: 1px solid transparent; transition: color 200ms ease, border-color 200ms ease; }
+.gh-footer-links a:hover { color: var(--gh-text); border-color: currentColor; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gh-chat-msg, .gh-chat-typing { animation: none; opacity: 1; transform: none; }
+  .gh-chat-typing i, .gh-chat-owl { animation: none; }
+  .gh-why-card, .gh-why-icon, .gh-chat { transition: none; }
 }

@@ -208,6 +208,38 @@ function TutorRouteVisibility() {
   return null
 }
 
+function PublicFallback() {
+  const location = useLocation()
+  let slug = ''
+  try { slug = JSON.parse(window.localStorage.getItem('em-student-session') || 'null')?.slug || '' } catch { slug = '' }
+  if (slug) return <Navigate to={`/app/${slug}/dashboard`} replace />
+  const pl = (() => { try { return (window.localStorage.getItem('em.lang.v2') || 'pl') !== 'en' } catch { return true } })()
+  return (
+    <main style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: '48px 24px',
+      fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif", textAlign: 'center',
+      background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(139,92,246,0.14), transparent 60%), #FBFAFF', color: '#0E0A1B' }}>
+      <div style={{ maxWidth: 520 }}>
+        <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 800, letterSpacing: '0.24em', textTransform: 'uppercase', color: '#8B5CF6' }}>404</p>
+        <h1 style={{ margin: '0 0 12px', fontSize: 'clamp(28px, 5vw, 44px)', lineHeight: 1.05, letterSpacing: '-0.03em' }}>
+          {pl ? 'Tej strony nie ma na mapie.' : 'This page is not on the map.'}
+        </h1>
+        <p style={{ margin: '0 0 26px', fontSize: 16, lineHeight: 1.6, color: '#5F5780' }}>
+          {pl ? <>Adres <code style={{ fontSize: 14 }}>{location.pathname}</code> nie istnieje albo został przeniesiony.</>
+              : <>The address <code style={{ fontSize: 14 }}>{location.pathname}</code> does not exist or has moved.</>}
+        </p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link to="/" style={{ padding: '14px 24px', borderRadius: 999, fontWeight: 700, fontSize: 15, color: '#fff', textDecoration: 'none',
+            background: 'linear-gradient(135deg, #8B5CF6 0%, #D946EF 55%, #F472B6 100%)' }}>{pl ? 'Strona główna' : 'Home'}</Link>
+          <Link to="/pricing" style={{ padding: '14px 24px', borderRadius: 999, fontWeight: 700, fontSize: 15, color: '#0E0A1B', textDecoration: 'none',
+            border: '1px solid rgba(16,10,40,0.16)' }}>{pl ? 'Cennik' : 'Pricing'}</Link>
+          <Link to="/login" style={{ padding: '14px 24px', borderRadius: 999, fontWeight: 700, fontSize: 15, color: '#0E0A1B', textDecoration: 'none',
+            border: '1px solid rgba(16,10,40,0.16)' }}>{pl ? 'Zaloguj się' : 'Sign in'}</Link>
+        </div>
+      </div>
+    </main>
+  )
+}
+
 function RootRouter() {
   return (
     <>
@@ -234,7 +266,6 @@ function RootRouter() {
         {IS_ENGLISHMETRO && <Route path="/pricing" element={<LessonPricingSignup />} />}
         {IS_ENGLISHMETRO && <Route path="/checkout" element={<Checkout />} />}
         {IS_ENGLISHMETRO && <Route path="/payment/return" element={<PaymentReturn />} />}
-        {IS_ENGLISHMETRO && <Route path="/signup" element={<LessonPricingSignup />} />}
         <Route path="/world-next" element={
           <RootErrorBoundary>
             <WorldNext />
@@ -405,7 +436,11 @@ function RootRouter() {
         <Route path="/app/:slug/settings" element={<Settings />} />
         <Route path="/app/:slug/*" element={<App basePath="/app" />} />
         <Route path="/app/*" element={<App basePath="/app" />} />
-        <Route path="/*" element={<App />} />
+        {/* englishmetro.com: an unknown address must not fall into the legacy
+            student shell, which rendered "Welcome back, Szymon" (the .env demo
+            student) for /any-typo (2026-09-03 crawl). Signed-in students go to
+            their own dashboard; everyone else gets a real 404. */}
+        <Route path="/*" element={IS_ENGLISHMETRO ? <PublicFallback /> : <App />} />
       </Routes>
       {/* Consent banner rendered once at the root so it's visible everywhere */}
       <ConsentBanner />

@@ -1738,12 +1738,13 @@ html.dark .lp-page .lp-field textarea::placeholder { color: rgba(74,66,112,.68) 
   backdrop-filter: none !important;
 }
 
-/* Keep the complete skyline inside the original hero row. */
+/* 2026-09-04: the hero now reserves a band under the copy for the three.js
+   skyline (game-home.css --gh-hero-pad-bottom); this rule no longer pins the
+   bottom padding. */
 .gh-hero-grid {
   grid-template-rows: auto;
   column-gap: clamp(18px,1.8vw,28px) !important;
   row-gap: 0 !important;
-  padding-bottom: 44px !important;
 }
 
 .gh-hero-grid > .gh-hero-copy {

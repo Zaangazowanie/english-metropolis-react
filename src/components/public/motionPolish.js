@@ -47,3 +47,15 @@ export function clearPointerPolish(event) {
   element.style.setProperty('--motion-shift-y', '0px')
   element.style.setProperty('--motion-angle', '0deg')
 }
+
+// ── Skyline focus ────────────────────────────────────────────────────────
+// Hero CTAs publish the district the visitor is considering ("school" = book a
+// lesson, "pricing", "world" = the 3D city); HeroSkyline.jsx lights that part
+// of the city and sends the train there. Lives here (not in the component
+// file) so React fast-refresh keeps working: component files export only
+// components.
+export const SKYLINE_FOCUS_EVENT = 'englishmetro:skyline-focus'
+export function focusSkylineDistrict(district) {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent(SKYLINE_FOCUS_EVENT, { detail: { district } }))
+}

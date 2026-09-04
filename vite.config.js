@@ -35,6 +35,11 @@ export default defineConfig({
     host: '127.0.0.1',
   },
   build: {
+    // Vite inlines assets under 4 KB as data: URIs. The site's CSP is
+    // `font-src 'self'`, so every inlined @font-face subset was refused and
+    // logged "Loading the font 'data:font/woff2...'" 13 times on every page
+    // (2026-09-03 crawl). Keep fonts as files; everything else may inline.
+    assetsInlineLimit: (filePath) => !/\.(woff2?|ttf|otf|eot)$/i.test(filePath),
     rollupOptions: {
       output: {
         manualChunks: shellManualChunks,

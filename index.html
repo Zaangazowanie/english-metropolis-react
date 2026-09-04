@@ -119,12 +119,10 @@
     <link href="/fonts/material-symbols.css" rel="stylesheet">
 
 
-    <!-- jsPDF for lesson-analysis PDFs. The app also lazy-loads this via
-         ensureJsPdf() on demand, but eagerly including it here shaves ~400ms
-         off the "Analysis PDF" click latency and avoids a loading hiccup.
-         ?v=2 busts a stale Cloudflare 404 cache from before the vendor dir
-         existed (safe to increment when swapping jsPDF versions). -->
-    <script src="/students/vendor/jspdf.umd.min.js?v=2" defer></script>
+    <!-- jsPDF (365 KB) is loaded on demand by src/utils/pdf-loader.js when a
+         student clicks a PDF button. It used to be eagerly loaded here on EVERY
+         page, including the landing, and the vendor file had been missing from
+         the webroot since May 2026, so every page logged a 404 (2026-09-03). -->
     <!-- Google Identity Services — powers the new "Sign in with Google" button
          on /login. Additive auth: existing email+password studentLogin still
          works untouched. The button is rendered via google.accounts.id.* in
@@ -151,7 +149,7 @@
          the app sheet, for exactly that reason. Document order is the only
          mechanism available here, since we cannot place a tag after one vite
          has not written yet. -->
-    <link rel="stylesheet" href="/assets/em-motion-20260825-v3.css?v=28">
+    <link rel="stylesheet" href="/assets/em-motion-20260825-v3.css?v=29">
     <script defer src="/assets/em-motion-20260825-v3.js?v=16"></script>
     <!-- Conversa AI Tutor — loaded on student/admin app pages only.
          ?v=2 busts Cloudflare's cached 404 from when the widget wasn't
@@ -159,7 +157,7 @@
     <script>
       if (!window.__EM_HIDE_TUTOR) {
         var s = document.createElement('script');
-        s.src = '/students/conversa-widget-v5.js?v=booking-20260827b';
+        s.src = '/students/conversa-widget-v5.js?v=motion-20260903';
         s.defer = true;
         document.body.appendChild(s);
       }

@@ -748,7 +748,13 @@ export default function MetroLearningCity({ reduced = false, night = true, label
         trams.forEach((tram) => {
           const sweep = (tram.phase * 2 + elapsed * tram.speed) % 2
           const backwards = sweep > 1
-          const progress = backwards ? 2 - sweep : sweep
+          let progress = backwards ? 2 - sweep : sweep
+          // A non-finite progress (a NaN frame timestamp, a paused tab resuming)
+          // made CatmullRomCurve3.getPoint index points[NaN] and throw on the
+          // live landing (2026-09-03 crawl: "Cannot read properties of undefined
+          // (reading 'x')"). Clamp, and skip the frame if it is still not a number.
+          if (!Number.isFinite(progress)) return
+          progress = Math.min(1, Math.max(0, progress))
           tram.curve.getPointAt(progress, tram.position)
           tram.curve.getTangentAt(progress, tram.tangent)
           if (backwards) tram.tangent.multiplyScalar(-1)
@@ -801,6 +807,8 @@ export default function MetroLearningCity({ reduced = false, night = true, label
             backwards = sweep > 1
             progress = backwards ? 2 - sweep : sweep
           }
+          if (!Number.isFinite(progress)) return
+          progress = Math.min(1, Math.max(0, progress))
           car.curve.getPointAt(progress, car.position)
           car.curve.getTangentAt(progress, car.tangent)
           if (backwards) car.tangent.multiplyScalar(-1)
