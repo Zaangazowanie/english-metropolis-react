@@ -1,3 +1,4 @@
+import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Picture Quiz shell — "The Photography Salon" district.
 // A gallery wall at dusk. Each question hangs in an ornate gilt frame with
 // a cream mat; a brass plaque underneath asks "What is this?" and the
@@ -266,9 +267,12 @@ export const PictureQuizShell: React.FC<PictureQuizShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useChallengeArcade();
   const activePuzzle = puzzle && puzzle.items.length > 0 ? puzzle : PQ_PUZZLE;
   const persisted = useShellProgress('picturequiz');
 
+  const [mysteryFocus, setMysteryFocus] = useState(true);
+  const [focusRevealed, setFocusRevealed] = useState(false);
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -293,10 +297,11 @@ export const PictureQuizShell: React.FC<PictureQuizShellProps> = ({
   const total = activePuzzle.items.length;
   const cur = activePuzzle.items[idx];
   const completed = solved >= total || (seen >= total && !forcedState);
+  useEffect(() => { if (completed && !forcedState) arcade.finish(); }, [completed, forcedState]);
 
   // Reset image-failed state per question.
   useEffect(() => {
-    setImageStage(0);
+    setImageStage(0); setFocusRevealed(false);
   }, [idx]);
 
   // v10 instructional speech-bubble broadcast (Mike directive 2026-05-03).
@@ -401,13 +406,13 @@ export const PictureQuizShell: React.FC<PictureQuizShellProps> = ({
   useEffect(() => {
     if (forcedState) return;
     persisted.save({
-      progress: solved / Math.max(total, 1),
-      lastState: solved >= total ? 'complete' : 'active',
+      progress: seen / Math.max(total, 1),
+      lastState: seen >= total ? 'complete' : 'active',
     });
-    if (solved >= total) {
+    if (seen >= total) {
       persisted.save({ progress: 1, completed: true, lastState: 'complete' });
     }
-  }, [solved, forcedState, total]);
+  }, [seen, forcedState, total]);
 
   useEffect(() => {
     if (!forcedState) return;
@@ -433,6 +438,7 @@ export const PictureQuizShell: React.FC<PictureQuizShellProps> = ({
     setPicked(optIdx);
     setRevealed(true);
     const correct = optIdx === cur.answerIndex;
+    arcade.decide(correct, cur.id, mysteryFocus && !focusRevealed && imageStage < 2 ? 150 : 100);
     setAnnouncement(
       correct
         ? `Correct. The frame shows ${cur.options[cur.answerIndex]}.`
@@ -511,6 +517,8 @@ export const PictureQuizShell: React.FC<PictureQuizShellProps> = ({
   };
 
   const reset = () => {
+    setStudentPicks({}); setAllWrongAttempts([]); setCompletedFired(false); setFocusRevealed(false);
+    arcade.reset();
     setIdx(0); setPicked(null); setRevealed(false); setSeen(0); setSolved(0);
     setHintsUsed(0); setHintShown(false); setQuestionFinalised(false);
   };
@@ -530,7 +538,7 @@ export const PictureQuizShell: React.FC<PictureQuizShellProps> = ({
 
   return (
     <div
-      className="em-shell em-shell-picturequiz"
+      className="em-shell em-shell-picturequiz challenge-enhanced"
       role="application"
       aria-label="Picture quiz, The Photography Salon"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -592,7 +600,7 @@ export const PictureQuizShell: React.FC<PictureQuizShellProps> = ({
       <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} aria-hidden="true" />
 
       {/* Top bar */}
-      <div
+      <div className="challenge-enhanced-toolbar"
         style={{
           position: 'relative',
           padding: '20px 28px 10px',
@@ -639,6 +647,10 @@ export const PictureQuizShell: React.FC<PictureQuizShellProps> = ({
           alignItems: 'center',
         }}
       >
+        <ChallengeMission title="Solve the mystery in the frame." detail="Switch on Mystery crop for a closer clue. Solve it before revealing the full photo for 150 base points." current={solved} total={total}>
+          <button type="button" disabled={revealed || imageStage >= 2} aria-pressed={mysteryFocus} onClick={() => { setMysteryFocus(v => !v); if (mysteryFocus) setFocusRevealed(true); }}>Mystery crop · Tajemniczy kadr</button>
+          {mysteryFocus && !focusRevealed && <button type="button" onClick={() => setFocusRevealed(true)}>Reveal full photo · Pokaż całość</button>}
+        </ChallengeMission>
         {/* GILT FRAME */}
         <div
           style={{
@@ -709,6 +721,7 @@ export const PictureQuizShell: React.FC<PictureQuizShellProps> = ({
                     // second onError can fire against the picsum URL.
                     key={`pq-img-${idx}-${imageStage}`}
                     src={stagedImageSrc}
+                    className={mysteryFocus && !focusRevealed && !revealed ? "challenge-photo is-cropped" : "challenge-photo"}
                     alt={`Photograph for question ${idx + 1}`}
                     onError={() => {
                       // stage 0 → 1: try picsum (only useful if we were on a
@@ -716,7 +729,7 @@ export const PictureQuizShell: React.FC<PictureQuizShellProps> = ({
                       // and it 404'd, picsum's random photo would mislead, so
                       // jump straight to the placeholder).
                       setImageStage((s) => {
-                        if (s === 0) return hasImageUrl ? 2 : 1;
+                        if (s === 0) return 2;
                         return 2;
                       });
                     }}

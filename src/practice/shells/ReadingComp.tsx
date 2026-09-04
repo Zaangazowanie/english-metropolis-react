@@ -1,3 +1,4 @@
+import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Reading Comprehension shell — "The Reading Room" district.
 // A library reading nook at dusk: a parchment passage glows under a brass
 // reading lamp; the student answers comprehension MCQs underneath. The
@@ -295,6 +296,7 @@ export const ReadingCompShell: React.FC<ReadingCompShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useChallengeArcade();
   const activePuzzle = puzzle && puzzle.questions.length > 0 ? puzzle : RC_PUZZLE;
   const persisted = useShellProgress('readingcomp');
   // D3 Wave-5 (Ricky 2026-05-02): per-question pick log + wrong attempts.
@@ -302,6 +304,7 @@ export const ReadingCompShell: React.FC<ReadingCompShellProps> = ({
   const [allWrongAttempts, setAllWrongAttempts] = useState<Array<{ questionId: string; studentAnswer: string; correctAnswer: string; explanationPL?: string; exerciseId?: string }>>([]);
   const [completedFired, setCompletedFired] = useState(false);
 
+  const [evidenceMarked, setEvidenceMarked] = useState(false);
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -315,21 +318,23 @@ export const ReadingCompShell: React.FC<ReadingCompShellProps> = ({
   const [questionFinalised, setQuestionFinalised] = useState(false);
   const [announcement, setAnnouncement] = useState('');
 
+  useEffect(() => setEvidenceMarked(false), [idx]);
   const total = activePuzzle.questions.length;
   const cur = activePuzzle.questions[idx];
   const completed = solved >= total || (seen >= total && !forcedState);
+  useEffect(() => { if (completed && !forcedState) arcade.finish(); }, [completed, forcedState]);
 
   // Persist progress whenever solved count changes.
   useEffect(() => {
     if (forcedState) return;
     persisted.save({
-      progress: solved / Math.max(total, 1),
-      lastState: solved >= total ? 'complete' : 'active',
+      progress: seen / Math.max(total, 1),
+      lastState: seen >= total ? 'complete' : 'active',
     });
-    if (solved >= total) {
+    if (seen >= total) {
       persisted.save({ progress: 1, completed: true, lastState: 'complete' });
     }
-  }, [solved, forcedState, total]);
+  }, [seen, forcedState, total]);
 
   // v10 instructional speech-bubble broadcast (Mike directive 2026-05-03).
   useEffect(() => {
@@ -378,6 +383,7 @@ export const ReadingCompShell: React.FC<ReadingCompShellProps> = ({
     setPicked(optIdx);
     setRevealed(true);
     const correct = optIdx === cur.answerIndex;
+    arcade.decide(correct, cur.id, evidenceMarked ? 150 : 100);
     setAnnouncement(
       correct
         ? 'Correct. The passage backs you up.'
@@ -456,6 +462,8 @@ export const ReadingCompShell: React.FC<ReadingCompShellProps> = ({
   };
 
   const reset = () => {
+    setStudentPicks({}); setAllWrongAttempts([]); setCompletedFired(false); setEvidenceMarked(false);
+    arcade.reset();
     setIdx(0); setPicked(null); setRevealed(false); setSeen(0); setSolved(0);
     setHintsUsed(0); setHintShown(false); setQuestionFinalised(false);
   };
@@ -481,7 +489,7 @@ export const ReadingCompShell: React.FC<ReadingCompShellProps> = ({
 
   return (
     <div
-      className="em-shell em-shell-readingcomp"
+      className="em-shell em-shell-readingcomp challenge-enhanced"
       role="application"
       aria-label="Reading comprehension, The Reading Room"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -568,7 +576,7 @@ export const ReadingCompShell: React.FC<ReadingCompShellProps> = ({
       />
 
       {/* Top bar */}
-      <div
+      <div className="challenge-enhanced-toolbar"
         style={{
           position: 'relative',
           padding: '20px 28px 10px',
@@ -619,6 +627,7 @@ export const ReadingCompShell: React.FC<ReadingCompShellProps> = ({
           zIndex: 3,
         }}
       >
+        <ChallengeMission title="Collect the evidence. Solve the case." detail="Mark a supporting sentence before a correct answer for 150 base points. · Znajdź dowód w tekście." current={solved} total={total} />
         {/* PASSAGE — parchment under spotlight */}
         <div
           className="em-card em-rc-page"
@@ -671,6 +680,7 @@ export const ReadingCompShell: React.FC<ReadingCompShellProps> = ({
             {activePuzzle.title_pl} · czytanka
           </div>
 
+          <EvidenceScanner key={cur.id} passage={activePuzzle.passage} onMark={() => setEvidenceMarked(true)} />
           {/* Passage toggle + Polish toggle */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
             <button

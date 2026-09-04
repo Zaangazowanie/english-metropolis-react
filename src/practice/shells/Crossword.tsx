@@ -1,5 +1,6 @@
 // Crossword shell — "The Grid District" — city blueprint metaphor.
 // Streets are words. Intersections are clue crossings.
+import { WordMission, useWordArcade } from './word-arcade';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Bajla,
@@ -343,6 +344,7 @@ export function renderCrosswordReviewItem(
 }
 
 export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', state: forcedState = null, puzzle, onWrongAnswer, onSessionComplete }) => {
+  const arcade = useWordArcade();
   // Kelly Tier-2 (2026-05-02): defensive props guard.
   const propsInvalid = !forcedState && puzzle !== undefined && (!puzzle.words || puzzle.words.length === 0);
   const activePuzzle: CWPuzzle = puzzle && puzzle.words.length > 0 ? puzzle : CW_PUZZLE;
@@ -461,6 +463,7 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
     if (sessionFiredRef.current) return;
     if (!onSessionComplete) return;
     sessionFiredRef.current = true;
+    arcade.complete();
     onSessionComplete({
       correctCount: solvedWordIds.size,
       totalQuestions: activePuzzle.words.length,
@@ -500,7 +503,7 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
             w.dir === 'across' ? { ...a, c: a.c + 1 } : { ...a, r: a.r + 1 },
           );
         }
-        checkCompletion({ ...entries, [k]: key.toUpperCase() });
+        // A street is committed by Check; typing the last letter must not finish before grading.
       }
       if (key === 'Backspace') {
         const k = `${active.r},${active.c}`;
@@ -522,7 +525,7 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
   );
 
   const checkWord = () => {
-    if (!activeWord) return;
+    if (!activeWord || forcedState || solvedWordIds.has(activeWord.id)) return;
     const w = activeWord;
     const typedWord = Array.from({ length: w.answer.length })
       .map((_, i) => {
@@ -531,14 +534,18 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
         return entries[`${r},${c}`] ?? '';
       })
       .join('');
+    if (typedWord.length < w.answer.length) { setFeedback('wrong'); setTimeout(()=>setFeedback(null),1200); return; }
     const correct = typedWord === w.answer;
+    arcade.answer(correct,150);
     setFeedback(correct ? 'correct' : 'wrong');
     setTimeout(() => setFeedback(null), 1600);
     if (correct) {
-      checkCompletion(entries);
+      if (solvedWordIds.size + 1 === activePuzzle.words.length) checkCompletion(entries);
       // EM-041: mark this word as both seen and solved.
       setSeenWordIds((s) => new Set(s).add(w.id));
       setSolvedWordIds((s) => new Set(s).add(w.id));
+      const nextStreet = activePuzzle.words.find(street => street.id !== w.id && !solvedWordIds.has(street.id) && !skippedWordIdsRef.current.includes(street.id));
+      if(nextStreet) setTimeout(()=>setActive({r:nextStreet.row,c:nextStreet.col,dir:nextStreet.dir}),550);
     }
     // Layer-4: fire wrong-answer callback so the host can show an
     // InterferenceTip overlay. Skip for forced-state demos.
@@ -566,7 +573,6 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
       };
       if (existing >= 0) wrongAttemptsRef.current[existing] = entry;
       else wrongAttemptsRef.current.push(entry);
-      setSeenWordIds((s) => new Set(s).add(w.id));
     }
   };
 
@@ -990,6 +996,7 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
             </div>
           </div>
 
+<WordMission kind="crossword" current={solvedWordIds.size} total={activePuzzle.words.length} chain={arcade.chain} reaction={arcade.reaction}/>
           <div className="em-card" style={{ padding: 20, background: `linear-gradient(160deg, ${blueprintColor}1a, var(--em-card))`, border: `1px solid ${blueprintColor}44` }}>
             <div className="em-eyebrow" style={{ color: blueprintColor, marginBottom: 8 }}>
               {activeWord?.id} · {activeWord?.dir === 'across' ? 'ACROSS · POZIOMO' : 'DOWN · PIONOWO'} · {activeWord?.answer.length} letters

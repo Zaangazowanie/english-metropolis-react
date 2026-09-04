@@ -1869,62 +1869,6 @@
 @media (max-width: 1050px) { .gh-why-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 620px) { .gh-why-grid { grid-template-columns: 1fr; gap: 12px; } .gh-why-card { padding: 22px 20px 24px; } }
 
-/* ── Bajla on WhatsApp ── */
-.gh-bajla-section {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: center;
-}
-.gh-bajla-stage { position: relative; }
-.gh-chat {
-  position: relative; max-width: 520px; margin: 0 auto; padding: 18px 18px 22px; border-radius: 28px;
-  border: 1px solid var(--gh-border-hi); overflow: visible;
-  box-shadow: 0 40px 90px -40px rgba(139,92,246,0.55);
-  transform: perspective(1200px) rotateX(var(--motion-tilt-x, 0deg)) rotateY(var(--motion-tilt-y, 0deg));
-  transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.gh-chat-head {
-  display: flex; align-items: center; gap: 12px; padding: 4px 6px 14px;
-  border-bottom: 1px solid var(--gh-border);
-}
-.gh-chat-head img { width: 44px; height: 44px; object-fit: contain; border-radius: 14px; background: rgba(139,92,246,0.12); }
-.gh-chat-head strong { display: block; font-size: 16px; letter-spacing: -0.01em; }
-.gh-chat-head span { display: block; font-size: 13px; color: var(--gh-text-dim); }
-.gh-chat-online { margin-left: auto; width: 10px; height: 10px; border-radius: 50%; background: #25D366; box-shadow: 0 0 0 4px rgba(37,211,102,0.18); }
-.gh-chat-thread { list-style: none; margin: 0; padding: 16px 4px 0; display: grid; gap: 10px; }
-.gh-chat-msg {
-  max-width: 86%; padding: 11px 14px; border-radius: 18px; font-size: 14.5px; line-height: 1.5;
-  opacity: 0; transform: translateY(10px) scale(0.98);
-  animation: gh-chat-in 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  animation-delay: calc(var(--gh-chat-i, 0) * 900ms + 300ms);
-}
-.gh-chat-msg--you { justify-self: end; border-bottom-right-radius: 6px; color: #fff;
-  background: linear-gradient(135deg, #8B5CF6 0%, #D946EF 100%); }
-.gh-chat-msg--bajla { justify-self: start; border-bottom-left-radius: 6px; color: var(--gh-text);
-  background: var(--gh-surface); border: 1px solid var(--gh-border); }
-.gh-night .gh-chat-msg--bajla { background: rgba(255,255,255,0.07); }
-.gh-chat-typing {
-  justify-self: start; display: inline-flex; gap: 5px; padding: 12px 14px; border-radius: 18px; border-bottom-left-radius: 6px;
-  background: var(--gh-surface); border: 1px solid var(--gh-border);
-  opacity: 0; animation: gh-chat-in 400ms ease forwards; animation-delay: 4.1s;
-}
-.gh-chat-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--gh-text-dim); animation: gh-chat-dot 1.1s ease-in-out infinite; }
-.gh-chat-typing i:nth-child(2) { animation-delay: 0.15s; }
-.gh-chat-typing i:nth-child(3) { animation-delay: 0.3s; }
-.gh-chat-owl {
-  position: absolute; right: -34px; bottom: -30px; width: 120px; height: 120px; object-fit: contain;
-  filter: drop-shadow(0 18px 30px rgba(60,20,120,0.35));
-  animation: gh-float 7s ease-in-out infinite;
-}
-@keyframes gh-chat-in { to { opacity: 1; transform: none; } }
-@keyframes gh-chat-dot { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-4px); opacity: 1; } }
-/* the thread animates only once it is on screen */
-.gh-sr:not(.on) .gh-chat-msg, .gh-sr:not(.on) .gh-chat-typing { animation-play-state: paused; }
-@media (max-width: 1080px) {
-  .gh-bajla-section { grid-template-columns: 1fr; gap: 30px; }
-  .gh-bajla-copy { max-width: 760px; }
-  .gh-chat-owl { right: -8px; bottom: -26px; width: 92px; height: 92px; }
-}
-@media (max-width: 620px) { .gh-chat { padding: 14px 12px 18px; border-radius: 22px; } .gh-chat-msg { max-width: 92%; } }
-
 /* ── footer ── */
 .gh-footer-links { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .gh-footer-links a { color: inherit; text-decoration: none; font-size: 13px; min-height: 32px; display: inline-flex; align-items: center;
@@ -1932,9 +1876,7 @@
 .gh-footer-links a:hover { color: var(--gh-text); border-color: currentColor; }
 
 @media (prefers-reduced-motion: reduce) {
-  .gh-chat-msg, .gh-chat-typing { animation: none; opacity: 1; transform: none; }
-  .gh-chat-typing i, .gh-chat-owl { animation: none; }
-  .gh-why-card, .gh-why-icon, .gh-chat { transition: none; }
+  .gh-why-card, .gh-why-icon { transition: none; }
 }
 
 /* ── Photo watermark ──────────────────────────────────────────────────────

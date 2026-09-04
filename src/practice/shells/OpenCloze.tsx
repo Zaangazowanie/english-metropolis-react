@@ -1,3 +1,4 @@
+import { clozeResolved } from './word-arcade-mechanics';
 // Open Cloze — The Vellum Atelier district.
 // A scribe's desk at dusk. A sheet of parchment lies under candlelight; the
 // student fills the missing words with quill-ink (typed input). Each blank
@@ -5,6 +6,7 @@
 // "dries" into the parchment. Wax drips around the candle when complete.
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
+import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
@@ -325,6 +327,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useWordArcade();
   // Kelly Tier-2 (2026-05-02): defensive props guard.
   const propsInvalid = !forcedState && puzzle !== undefined && (!puzzle.gaps || puzzle.gaps.length === 0);
   const activePuzzle: ShellOpenClozePuzzle =
@@ -345,6 +348,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
   const nextDistrictBtnRef = useRef<HTMLButtonElement | null>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
+  const [skippedIds, setSkippedIds] = useState<Set<number>>(new Set());
   const correctCount = Object.values(locked).filter((s) => s === 'right').length;
   const completed = correctCount === total;
   const tip = useEndOfShellTip({ onWrongAnswer, completed, forcedState });
@@ -392,7 +396,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
   // D3 Wave-5: fire onSessionComplete ONCE when every inkwell on the parchment
   // has been resolved (right OR locked-wrong via Skip). Distinct from the
   // in-shell "ink has dried" overlay which only fires on full success.
-  const allResolved = activePuzzle.gaps.every((g) => locked[g.id] === 'right' || locked[g.id] === 'wrong');
+  const allResolved = clozeResolved(activePuzzle.gaps, locked, skippedIds);
   useEffect(() => {
     if (forcedState) return;
     if (!allResolved) return;
@@ -403,6 +407,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
     const snapshot: Record<number, string> = {};
     activePuzzle.gaps.forEach((g) => { snapshot[g.id] = values[g.id] ?? ''; });
     studentInputsRef.current = snapshot;
+    arcade.complete();
     onSessionComplete({
       correctCount,
       totalGaps: total,
@@ -454,12 +459,13 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
     if (forcedState) return;
     const gap = activePuzzle.gaps.find((g) => g.id === id);
     if (!gap) return;
-    if (locked[id] === 'right') return;
+    if (locked[id] === 'right' || skippedIds.has(id)) return;
     const candidate = normalise(values[id] ?? '');
     if (!candidate) return;
     const accepted = [normalise(gap.answer), ...(gap.acceptedAnswers ?? []).map(normalise)];
     const correct = accepted.includes(candidate);
     setLocked((prev) => ({ ...prev, [id]: correct ? 'right' : 'wrong' }));
+    arcade.answer(correct);
     if (correct) {
       setAnnouncement(`Inkwell ${id} dries: ${gap.answer}.`);
       // Auto-advance focus to the next un-answered gap.
@@ -470,7 +476,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
         setTimeout(() => inputRefs.current[nextGap.id]?.focus(), 60);
       }
     } else {
-      setAnnouncement(`Not quite. The ink ran. Correct word: ${gap.answer}.`);
+      setAnnouncement(`Not quite. The ink ran. Try another word or use a hint.`);
       const wrongPayload = {
         questionId: `gap-${id}`,
         studentAnswer: values[id] ?? '',
@@ -498,8 +504,10 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
 
   const skip = (): void => {
     if (forcedState) return;
-    const target = activePuzzle.gaps.find((g) => locked[g.id] !== 'right');
+    const target = activePuzzle.gaps.find((g) => locked[g.id] !== 'right' && !skippedIds.has(g.id));
     if (!target) return;
+    setSkippedIds(prev => new Set(prev).add(target.id));
+    arcade.answer(false);
     setLocked((prev) => ({ ...prev, [target.id]: 'wrong' }));
     setAnnouncement(`Skipped. Correct word: ${target.answer}.`);
     // D3 Wave-5: log the skip as a wrong-attempt with empty student input.
@@ -513,6 +521,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
   };
 
   const reset = (): void => {
+    arcade.restart(); setSkippedIds(new Set());
     setValues({}); setLocked({}); setActiveId(activePuzzle.gaps[0]?.id ?? 1);
     setHintsUsed(0); setRevealedHintFor(null); setAnnouncement('');
     tip.reset();
@@ -568,7 +577,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
 
   return (
     <div
-      className="em-shell em-shell-opencloze"
+      className="em-shell wa-form-game em-shell-opencloze"
       role="application"
       aria-label="Open Cloze, The Vellum Atelier"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -639,7 +648,9 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
       </div>
 
       {/* ─── Parchment ─── */}
-      <div style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', zIndex: 4 }}>
+      <div className="oc-stage" style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', zIndex: 4 }}>
+        <WordMission kind="manuscript" current={correctCount} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+        <div className="wa-checklist">{activePuzzle.gaps.map(g=><span key={g.id} className={locked[g.id]==='right'?'is-ready':''}>Seal {g.id} {locked[g.id]==='right'?'✓':skippedIds.has(g.id)?'—':'○'}</span>)}</div>
         <div
           role="region"
           aria-label="Parchment passage"
@@ -696,7 +707,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
                     onBlur={() => { if (!locked[t.id] && (values[t.id] ?? '').trim()) submit(t.id); }}
                     aria-label={`Blank ${t.id}, ${gap.hint}`}
                     aria-invalid={status === 'wrong'}
-                    disabled={status === 'right' || !!forcedState}
+                    disabled={status === 'right' || skippedIds.has(t.id) || !!forcedState}
                     placeholder={`(${t.id})`}
                     style={{
                       width,

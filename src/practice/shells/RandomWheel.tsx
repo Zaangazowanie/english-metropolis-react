@@ -1,3 +1,7 @@
+import { useActionCompletion } from './action-arcade-completion';
+import { useArcadeEvents } from '../lib/arcade-events';
+import { useActionTimers } from './action-arcade-timers';
+import './action-arcade.css';
 // RandomWheel — "The Spinner Stand" district.
 //
 // 2026-05-02 (Ricky, post-CD audit §5 Random Wheel):
@@ -48,68 +52,42 @@ import type { FullInstructions } from '../components';
 
 // Spinner Stand · Random Wheel — full bilingual instruction copy.
 const RANDOMWHEEL_INSTRUCTIONS: FullInstructions = {
-  whatYouDo: {
-    en: [
-      'A tall carnival-stand wheel mounted on a stand: each wedge is a difficulty TIER (Easy / Medium / Hard / Bonus / Wild / Lightning).',
-      'Tap SPIN — the wheel decelerates and the pointer lands on a tier wedge.',
-      'The tier you land on selects which round you answer AND the score multiplier (Easy ×1, Lightning ×3).',
-      'Answer the question correctly to bank the multiplied points; spin again until every tier wedge is checked.',
+  "whatYouDo": {
+    "en": [
+      "Spin for a challenge tier, then solve its question to clear that wedge."
     ],
-    pl: [
-      'Wysokie koło karnawałowe na statywie: każdy klin to POZIOM trudności (Łatwy / Średni / Trudny / Bonus / Wild / Błyskawica).',
-      'Stuknij SPIN — koło zwalnia i wskaźnik ląduje na klinie poziomu.',
-      'Poziom, na który trafiasz, wybiera rundę do odpowiedzi ORAZ mnożnik wyniku (Łatwy ×1, Błyskawica ×3).',
-      'Odpowiedz poprawnie, aby zaksięgować pomnożone punkty; kręć dalej, aż każdy klin poziomu będzie odhaczony.',
+    "pl": [
+      "Zakręć po poziom wyzwania i rozwiąż pytanie, aby zaliczyć pole."
+    ]
+  },
+  "controls": {
+    "en": [
+      "Spin, read and choose. Two rerolls let you exchange a revealed question for another remaining challenge."
     ],
+    "pl": [
+      "Zakręć, przeczytaj i wybierz. Dwa ponowne losowania pozwalają zamienić odkryte pytanie na inne pozostałe wyzwanie."
+    ]
   },
-  controls: {
-    en: [
-      'Tall stand wheel: 6 tier wedges (Easy / Medium / Hard / Bonus / Wild / Lightning) — numbered Q1–Q6, no truncation.',
-      'SPIN handle: brass lever at the bottom — tap to launch the wheel.',
-      'Tonight\'s Categories (right panel): live scoreboard showing tier names, multipliers, and check status per wedge.',
-      'Bajla "barker call": shouts the tier name when the wheel lands ("Step right up! LIGHTNING tier!").',
-      'Skip + Hint buttons: Skip jumps the active question, Hint greys one wrong option.',
+  "rightWrongSkip": {
+    "en": [
+      "Wrong answers reveal the correction and stay on the wheel for recovery. Skip returns to the wheel without claiming the question as solved."
     ],
-    pl: [
-      'Wysokie koło na statywie: 6 klinów poziomu (Łatwy / Średni / Trudny / Bonus / Wild / Błyskawica) — numerowane Q1–Q6, bez ucinania.',
-      'Dźwignia SPIN: brązowa dźwignia u dołu — stuknij, aby zakręcić.',
-      'Dzisiejsze kategorie (panel z prawej): tablica wyników z nazwami poziomów, mnożnikami i stanem odhaczenia każdego klina.',
-      'Bajla „barker": wykrzykuje nazwę poziomu po wylądowaniu koła („Step right up! LIGHTNING tier!").',
-      'Przyciski Pomiń i Podpowiedź: Pomiń przeskakuje aktywne pytanie, Podpowiedź wyszarza jedną błędną opcję.',
-    ],
+    "pl": [
+      "Błędne odpowiedzi pokazują poprawkę i zostają na kole do ponownej próby. Pomiń wraca do koła bez zaliczenia pytania."
+    ]
   },
-  rightWrongSkip: {
-    en: [
-      'Right answer: ✓ green flash + multiplier-pop animation, points × tier-multiplier added to your tally, that wedge marks checked.',
-      'Wrong answer: ✗ rose flash, correct option highlights green; the wedge marks unchecked-with-X so you remember it failed.',
-      'Skip: counts as wrong — no points, the wedge marks unchecked-with-X.',
-      'You can re-spin and re-attempt failed wedges later in the round; the round only ends when every wedge is checked.',
-    ],
-    pl: [
-      'Trafna odpowiedź: ✓ zielony błysk + animacja mnożnika, punkty × mnożnik poziomu dodane do wyniku, klin oznaczony jako odhaczony.',
-      'Błąd: ✗ różowy błysk, poprawna opcja podświetla się na zielono; klin oznaczony jako „nieodhaczony z X", żebyś pamiętał o porażce.',
-      'Pomiń: liczy się jako błąd — bez punktów, klin oznaczony jako „nieodhaczony z X".',
-      'Możesz zakręcić ponownie i powtórzyć nieudane kliny później w rundzie; runda kończy się dopiero, gdy każdy klin jest odhaczony.',
-    ],
+  "hintMechanic": {
+    "en": "Use the limited Hint button for help with the current clue.",
+    "pl": "Użyj ograniczonej liczby podpowiedzi do aktualnej wskazówki."
   },
-  hintMechanic: {
-    en:
-      'You have 3 hints per session. Each tap greys out one wrong option on the active question. Save them for Hard / Lightning tier rounds where the multiplier amplifies the cost of a wrong pick.',
-    pl:
-      'Masz 3 podpowiedzi na sesję. Każde stuknięcie wyszarza jedną błędną opcję na aktywnym pytaniu. Zachowaj je na rundy Trudne / Błyskawica, gdzie mnożnik wzmacnia koszt błędu.',
+  "scoring": {
+    "en": "Each tier has its own prize multiplier. Solve every wedge to finish the run.",
+    "pl": "Każdy poziom ma własny mnożnik nagrody. Rozwiąż wszystkie pola, aby ukończyć rundę."
   },
-  scoring: {
-    en:
-      'Skip counts as wrong (no points, wedge marked unchecked). Each correct answer adds points × tier-multiplier to your session tally. Checking every wedge unlocks the post-shell review with explanations of any wrong picks.',
-    pl:
-      'Pomiń liczy się jako błąd (bez punktów, klin nieodhaczony). Każda trafna odpowiedź dodaje punkty × mnożnik poziomu do wyniku sesji. Odhaczenie wszystkich klinów odblokowuje przegląd po sesji z wyjaśnieniami błędów.',
-  },
-  l1Pattern: {
-    en:
-      'Random + tier-difficulty drill. Polish learners often plateau on a comfortable tier; the wheel forces exposure to all tiers so you can\'t hide from the harder ones — Lightning rounds especially target idiomatic chunks where direct PL→EN translation fails.',
-    pl:
-      'Trening losowy + zróżnicowany poziom. Polscy uczniowie zatrzymują się na wygodnym poziomie; koło wymusza ekspozycję na wszystkie poziomy, więc nie da się unikać trudniejszych — szczególnie Błyskawica celuje w idiomatyczne wyrażenia, gdzie dosłowne tłumaczenie PL→EN zawodzi.',
-  },
+  "l1Pattern": {
+    "en": "Practise English meaning and sentence context before you make your move.",
+    "pl": "Ćwicz angielskie znaczenie i kontekst zdania przed wykonaniem ruchu."
+  }
 };
 
 export interface WrapperRound {
@@ -287,6 +265,8 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
 }) => {
   const active: WrapperPuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : RW_DEMO;
   const persisted = useShellProgress('randomwheel');
+  const arcadeEvent = useArcadeEvents();
+  const { later, cancel: cancelActionTimers } = useActionTimers();
 
   const N = active.rounds.length;
   const wedgeAngle = 360 / N;
@@ -296,6 +276,8 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
   // answer is worth 3 points, an Easy correct is 1. Tracked but no longer
   // surfaced in the header counter (per cross-cutting #14 — Q N/M is the
   // only header counter; points appear in the right-side scoreboard).
+  const [rerolls, setRerolls] = useState(2);
+  const [retryRounds, setRetryRounds] = useState<Set<number>>(new Set());
   const [points, setPoints] = useState<number>(0);
   const [phase, setPhase] = useState<Phase>('idle');
   const [wheelRotation, setWheelRotation] = useState<number>(0);
@@ -310,8 +292,10 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
     () => Object.fromEntries(TIERS.map((t) => [t.id, { played: 0, right: 0 }])),
   );
   const seedRef = useRef<number>(0xC0FFEE);
+  const rerollExcluded = useRef<number | null>(null);
 
   const completed = !forcedState && completedRounds.size === N;
+  useActionCompletion(completedRounds.size === N, Boolean(forcedState), arcadeEvent);
   // correctCount derived from tier stats (right answers across all tiers).
   const computedCorrect = Object.values(tierStats).reduce((s, t) => s + t.right, 0);
 
@@ -348,10 +332,10 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'randomwheel',
-      brief: 'Spin the wheel; the tier you land on picks the question.',
-      brief_pl: 'Zakręć kołem; poziom, na który trafisz, wybiera pytanie.',
-      detail: 'Tap SPIN. The wheel chooses tonight\'s tier — Easy, Hard, Bonus, even LIGHTNING. Each tier comes with its own question and a score multiplier. Right answers add points and check off the wedge; wrong answers leave the wedge open for another spin.',
-      detail_pl: 'Stuknij SPIN. Koło wybiera dzisiejszy poziom — Łatwy, Trudny, Bonus, nawet BŁYSKAWICA. Każdy poziom ma własne pytanie i mnożnik punktów. Trafione dodają punkty i odhaczają klin; błędne zostawiają go na następne kręcenie.',
+      brief: RANDOMWHEEL_INSTRUCTIONS.whatYouDo.en[0],
+      brief_pl: RANDOMWHEEL_INSTRUCTIONS.whatYouDo.pl[0],
+      detail: RANDOMWHEEL_INSTRUCTIONS.controls.en.join(' ') + ' ' + RANDOMWHEEL_INSTRUCTIONS.rightWrongSkip.en.join(' '),
+      detail_pl: RANDOMWHEEL_INSTRUCTIONS.controls.pl.join(' ') + ' ' + RANDOMWHEEL_INSTRUCTIONS.rightWrongSkip.pl.join(' '),
       fullInstructions: RANDOMWHEEL_INSTRUCTIONS,
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
@@ -375,6 +359,8 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
     const remaining: number[] = [];
     for (let i = 0; i < N; i++) if (!completedRounds.has(i)) remaining.push(i);
     if (remaining.length === 0) return 0;
+    if (remaining.length > 1 && rerollExcluded.current !== null) { const omit = remaining.indexOf(rerollExcluded.current); if (omit >= 0) remaining.splice(omit, 1); }
+    rerollExcluded.current = null;
     seedRef.current = (seedRef.current * 9301 + 49297) & 0x7fffffff;
     return remaining[seedRef.current % remaining.length];
   };
@@ -399,7 +385,7 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
     setPhase('spinning');
     setActiveRound(target);
     // After the deceleration ends, reveal the question.
-    setTimeout(() => {
+    later(() => {
       setPhase('reveal');
     }, SPIN_WAIT_MS);
   };
@@ -412,7 +398,8 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
     setPhase('verdict');
     const right = i === round.answerIndex;
     setVerdict(right ? 'right' : 'wrong');
-    setAnnouncement(right ? `Correct. +${tier.mult} points (${tier.labelEN}).` : 'Wrong.');
+    setAnnouncement(right ? `Correct. +${tier.mult} points (${tier.labelEN}).` : 'The answer is revealed below. This question stays on the wheel for a recovery round.');
+    arcadeEvent({ type: right ? 'correct' : 'incorrect', points: tier.mult * 100 });
     if (right) setPoints((p) => p + tier.mult);
     else {
       tip.recordWrong({
@@ -428,9 +415,10 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
       const cur = prev[tier.id] ?? { played: 0, right: 0 };
       return { ...prev, [tier.id]: { played: cur.played + 1, right: cur.right + (right ? 1 : 0) } };
     });
-    setCompletedRounds((s) => { const ns = new Set(s); ns.add(activeRound); return ns; });
+    if (right) { setCompletedRounds((s) => new Set([...s, activeRound])); setRetryRounds(s => { const next = new Set(s); next.delete(activeRound); return next; }); }
+    else setRetryRounds(s => new Set([...s, activeRound]));
     // After verdict pause, return to idle so they can spin again.
-    setTimeout(() => {
+    later(() => {
       setPhase('idle');
       setPicked(null);
       setVerdict(null);
@@ -446,6 +434,9 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
   };
 
   const reset = (): void => {
+    cancelActionTimers();
+    arcadeEvent({ type: 'reset' });
+    setRerolls(2); setRetryRounds(new Set());
     setCompletedRounds(new Set()); setPoints(0);
     setTierStats(Object.fromEntries(TIERS.map((t) => [t.id, { played: 0, right: 0 }])));
     setPhase('idle'); setWheelRotation(0); setActiveRound(null); setPicked(null); setVerdict(null);
@@ -513,7 +504,7 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
         @keyframes em-rw-arrow-tap { 0%, 100% { transform: translateY(0) rotate(180deg); } 50% { transform: translateY(3px) rotate(180deg); } }
         @keyframes em-rw-card-up { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes em-rw-bulb-flicker { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
-        @keyframes em-rw-spinhint-pulse { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.05); opacity: 1; } }
+        @keyframes em-rw-spinhint-pulse { 0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.85; } 50% { transform: translateX(-50%) scale(1.05); opacity: 1; } }
         /* On narrow viewports the right-side categories panel would overlap
            the wheel — hide it (the tier nameplates outside the wheel rim still
            communicate the tier mechanic). On ≥1024px both render. */
@@ -542,7 +533,7 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
       </svg>
 
       {/* Top bar */}
-      <div style={{ position: 'absolute', top: 28, left: 28, right: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 6, gap: 12, flexWrap: 'wrap' }}>
+      <div className="action-random-header" style={{ position: 'absolute', top: 28, left: 28, right: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 6, gap: 12, flexWrap: 'wrap' }}>
         <AmbientAudioPlayer shellSlug="randomwheel" />
         <Nameplate
           district="The Spinner Stand"
@@ -555,7 +546,7 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
             scoreboard, not in the header. */}
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <Progress current={completedRounds.size} total={N} accent={ACCENT} />
-          <SkipButton onClick={() => { if (activeRound !== null) { setCompletedRounds((s) => { const ns = new Set(s); ns.add(activeRound); return ns; }); setPhase('idle'); setActiveRound(null); } }} />
+          <SkipButton onClick={() => { if (phase === 'reveal') { setPhase('idle'); setActiveRound(null); setRevealedHint(false); } }} />
           <HintButton onClick={useHint} used={hintsUsed} total={2} />
         </div>
       </div>
@@ -566,7 +557,7 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
           align in a balanced two-column composition. The wheel sits on a
           stand-leg pedestal (carnival-stand aesthetic vs Carnival Wheel's
           flat roulette table). */}
-      <div style={{ position: 'absolute', top: 100, left: 'min(20%, 240px)', width: 420, height: 420, zIndex: 4 }}>
+      <div className="action-random-wheel" style={{ position: 'absolute', top: 100, left: 'min(20%, 240px)', width: 420, height: 420, zIndex: 4 }}>
         {/* Stand pedestal — visible carnival-stand structure under the wheel.
             Two angled legs + brass plate plinth, anchoring the wheel visually
             so it doesn't float. */}
@@ -649,7 +640,7 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
             rest (the #20 truncation/rotation fix). Each plate has the wedge
             colour as its left bar + the EN tier label + tiny PL gloss + a
             thin connector line back to the rim. */}
-        <svg aria-hidden="true" width="420" height="420" viewBox="0 0 400 400" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }}>
+        <svg className="action-random-tier-labels" aria-hidden="true" width="420" height="420" viewBox="0 0 400 400" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }}>
           {wedges.map((w, i) => {
             // Place nameplate at the OUTSIDE midpoint of each wedge.
             // Use the wedge's centre angle (in the static frame, since
@@ -694,6 +685,7 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
 
         {/* Spin button — large, in the middle of the hub */}
         {phase === 'idle' && !completed && (
+
           <button
             type="button"
             onClick={spin}
@@ -713,10 +705,13 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
         )}
       </div>
 
+      <div className="action-random-tier-legend" aria-label="Wheel prize tiers">{TIERS.map(t => <span key={t.id}>{t.labelEN} · ×{t.mult}</span>)}</div>
+          <div className="action-arcade-hud action-random-hud" style={{ position: 'absolute', bottom: 16, left: 24, right: 24, zIndex: 7 }}><div><strong>{points} PRIZE POINTS</strong><small>{retryRounds.size ? `${retryRounds.size} recovery question${retryRounds.size === 1 ? '' : 's'} still on the wheel.` : 'Clear every wedge. Each tier carries a different prize.'} A wrong answer stays in play until you solve it.</small></div><button disabled={phase !== 'reveal' || rerolls === 0} onClick={() => { rerollExcluded.current = activeRound; setRerolls(n => n - 1); setPhase('idle'); setActiveRound(null); setRevealedHint(false); setAnnouncement('Reroll ready. Spin for a new challenge.'); }}>Reroll · {rerolls} left</button></div>
       {/* Question kiosk window — appears below the wheel after spin lands */}
       {(phase === 'reveal' || phase === 'verdict') && round && (
         <div
           key={activeRound ?? 'k'}
+          className="action-random-question"
           style={{
             position: 'absolute', bottom: 100, left: '50%', transform: 'translateX(-50%)',
             width: 'min(640px, 92%)', padding: '20px 24px',
@@ -910,8 +905,8 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
           <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa` }}>The wheel rests.</div>
           <div className="em-eyebrow">EVERY WEDGE PLAYED · WSZYSTKIE KLINY ZAGRANE</div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-            <button className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
+            <button className="em-btn em-btn-ghost" onClick={reset}>Restart run</button>
+            <button className="em-btn em-btn-primary" onClick={reset}>Play again →</button>
           </div>
         </div>
       )}

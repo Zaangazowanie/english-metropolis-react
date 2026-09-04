@@ -1,3 +1,4 @@
+import { expandErrorSelection, insertionPointMatches } from './word-arcade-mechanics';
 // Sentence Correction — The Editor's Office district.
 // A newspaper editor's room at midnight. Each sentence comes off the wire
 // onto a typewriter sheet pinned to a clipboard. The student clicks (or
@@ -5,6 +6,7 @@
 // reader's pencil marks the edit; the page stamps "FILED" when correct.
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
+import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
@@ -348,6 +350,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useWordArcade();
   const activePuzzle: ShellSentenceCorrectionPuzzle =
     puzzle && puzzle.items.length > 0 ? puzzle : SC_PUZZLE;
   const total = activePuzzle.items.length;
@@ -356,6 +359,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
   const [idx, setIdx] = useState(0);
   const [selection, setSelection] = useState<[number, number] | null>(null);
   const [draft, setDraft] = useState('');
+  const [extendSelection, setExtendSelection] = useState(false);
   const [verdict, setVerdict] = useState<'right' | 'wrong' | null>(null);
   const [score, setScore] = useState(0);
   const [questionsSeen, setQuestionsSeen] = useState(0);
@@ -375,7 +379,8 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
     completed,
     forcedState,
     onSessionComplete: onSessionComplete ? ({ wrongAttempts }) => {
-      onSessionComplete({
+      arcade.complete();
+    onSessionComplete({
         correctCount: score,
         totalQuestions: total,
         wrongAttempts,
@@ -441,6 +446,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
     if (!sel || !cur) return false;
     const [s, e] = sel;
     const [es, ee] = cur.error_span;
+    if (es===ee) return s===e && insertionPointMatches(cur.sentence_with_error,es,s);
     // Accept any overlap that covers at least the error span centre.
     return s <= es && e >= ee;
   };
@@ -449,7 +455,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
     if (forcedState || verdict === 'right') return;
     const t = tokens[i];
     if (!t || t.kind !== 'word') return;
-    setSelection([t.start, t.end]);
+    setSelection(previous => expandErrorSelection(previous,[t.start,t.end],extendSelection));
     setVerdict(null);
     setTimeout(() => inputRef.current?.focus(), 60);
   };
@@ -458,9 +464,10 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
   // Wires through the existing answer-submit pipeline using a sentinel so the
   // host's onWrongAnswer + scoring flow doesn't need a separate code path.
   const submitNoError = (): void => {
-    if (forcedState || !cur) return;
+    if (forcedState || !cur || verdict === 'right' || completed) return;
     const isNoErrorSentence = cur.errorType === 'no-error';
     setVerdict(isNoErrorSentence ? 'right' : 'wrong');
+    arcade.answer(isNoErrorSentence);
     if (isNoErrorSentence) {
       setScore((s) => s + 1);
       setAnnouncement('Filed. Correctly identified as error-free.');
@@ -477,7 +484,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
   };
 
   const submit = (): void => {
-    if (forcedState || !cur) return;
+    if (forcedState || !cur || verdict === 'right' || completed) return;
     if (!selection) {
       setAnnouncement('Tap the wrong word(s) first.');
       return;
@@ -488,6 +495,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
     const spanRight = selectionMatches(selection);
     const correct = spanRight && accepted.includes(candidate);
     setVerdict(correct ? 'right' : 'wrong');
+    arcade.answer(correct);
     if (correct) {
       setScore((s) => s + 1);
       setAnnouncement('Filed. Correction stands.');
@@ -530,6 +538,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
   };
 
   const reset = (): void => {
+    arcade.restart();
     setIdx(0); setSelection(null); setDraft(''); setVerdict(null); setScore(0);
     setQuestionsSeen(0); setHintsUsed(0); setHintRevealed(false);
     tip.reset();
@@ -540,7 +549,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
 
   return (
     <div
-      className="em-shell em-shell-sentencecorrection"
+      className="em-shell wa-form-game em-shell-sentencecorrection"
       role="application"
       aria-label="Sentence Correction, The Editor's Office"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -633,7 +642,9 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
         const isNoError = errType === 'no-error';
         return (
         <div className="sc-stage" style={{ position: 'absolute', inset: '124px 24px 220px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, zIndex: 4, overflowY: 'auto' }}>
+          <WordMission kind="scanner" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
 
+          <div className="wa-inline-tools"><button aria-pressed={extendSelection} onClick={()=>setExtendSelection(v=>!v)}>Select phrase {extendSelection?'on':'off'}</button><button onClick={()=>setSelection(null)}>Clear selection</button><span>{extendSelection?'Tap the first and last words in the phrase.':'Tap the word that needs repairing.'}</span></div>
           {/* Kelly Tier-2 audit (2026-05-02): error-type chip — tells the
               student what category of mistake to hunt for, so the shell
               isn't a guessing game. */}
@@ -662,10 +673,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
               textAlign: 'center',
             }}>
               <span className="em-eyebrow" style={{ color: '#FBBF24', marginRight: 8 }}>BRAK ELEMENTU · MISSING ELEMENT</span>
-              Ten typ błędu wymaga uzupełnienia · This error type requires fill-in.
-              <button className="em-btn em-btn-ghost" onClick={skip} style={{ marginLeft: 12, padding: '4px 12px', fontSize: 12 }}>
-                Skip · Pomiń
-              </button>
+              Choose a + insertion point, then type the missing word. · Wybierz + i wpisz brakujące słowo.
             </div>
           )}
 
@@ -699,6 +707,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
               WIRE COPY · KORESPONDENCJA · LINE {idx + 1} / {total}
             </div>
 
+            {isMissingWord && <div className="wa-insertion-points" role="group" aria-label="Choose where to insert the missing word">{tokens.filter(t=>t.kind==='word').map((t,i)=><button key={t.start} className={selection?.[0]===t.start&&selection?.[1]===t.start?'is-selected':''} onClick={()=>{setSelection([t.start,t.start]);setVerdict(null);inputRef.current?.focus();}}>+ before {t.text}</button>)}<button onClick={()=>{const end=cur.sentence_with_error.length;setSelection([end,end]);setVerdict(null);inputRef.current?.focus();}}>+ at end</button></div>}
             {/* Tokenised sentence */}
             <div style={{ display: 'inline-block', userSelect: 'none' }}>
               {tokens.map((t, i) => {

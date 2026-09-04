@@ -1,3 +1,4 @@
+import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Listening Comprehension shell — "The Listening Booth" district.
 // A vintage glass-fronted recording cabin: a vinyl spins on the turntable,
 // the ON-AIR sign glows when audio plays, and a violet oscilloscope wave
@@ -309,6 +310,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useChallengeArcade();
   const activePuzzle = puzzle && puzzle.questions.length > 0 ? puzzle : LC_PUZZLE;
   const persisted = useShellProgress('listeningcomp');
   // D3 Wave-5 (Ricky 2026-05-02): per-question pick log + wrong-attempt log.
@@ -329,6 +331,9 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
   const [announcement, setAnnouncement] = useState('');
   const [audioFailed, setAudioFailed] = useState(false);
   const [playsRemaining, setPlaysRemaining] = useState(activePuzzle.maxPlays ?? 2);
+  const [hasListened, setHasListened] = useState(false);
+  const [slowPlayback, setSlowPlayback] = useState(false);
+  const [audioPosition, setAudioPosition] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -336,18 +341,19 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
   const total = activePuzzle.questions.length;
   const cur = activePuzzle.questions[idx];
   const completed = solved >= total || (seen >= total && !forcedState);
+  useEffect(() => { if (completed && !forcedState) arcade.finish(); }, [completed, forcedState]);
 
   // Persist progress.
   useEffect(() => {
     if (forcedState) return;
     persisted.save({
-      progress: solved / Math.max(total, 1),
-      lastState: solved >= total ? 'complete' : 'active',
+      progress: seen / Math.max(total, 1),
+      lastState: seen >= total ? 'complete' : 'active',
     });
-    if (solved >= total) {
+    if (seen >= total) {
       persisted.save({ progress: 1, completed: true, lastState: 'complete' });
     }
-  }, [solved, forcedState, total]);
+  }, [seen, forcedState, total]);
 
   // v10 instructional speech-bubble broadcast (Mike directive 2026-05-03).
   useEffect(() => {
@@ -402,9 +408,10 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
     }
     const el = audioRef.current;
     if (!el) return;
+    el.playbackRate = slowPlayback ? 0.8 : 1;
     el.currentTime = 0;
     void el.play().then(() => {
-      setIsPlaying(true);
+      setIsPlaying(true); setHasListened(true);
       setPlaysRemaining((p) => Math.max(0, p - 1));
     }).catch(() => {
       setAudioFailed(true);
@@ -417,6 +424,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
     setPicked(optIdx);
     setRevealed(true);
     const correct = optIdx === cur.answerIndex;
+    arcade.decide(correct, cur.id, hasListened && !showTranscript && !audioFailed ? 150 : 100);
     setAnnouncement(
       correct
         ? 'Correct. The recording confirms it.'
@@ -494,6 +502,9 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
   };
 
   const reset = () => {
+    setStudentPicks({}); setAllWrongAttempts([]); setCompletedFired(false);
+    audioRef.current?.pause(); setIsPlaying(false); setAudioPosition(0); setShowTranscript(false); setHasListened(false);
+    arcade.reset();
     setIdx(0); setPicked(null); setRevealed(false); setSeen(0); setSolved(0);
     setHintsUsed(0); setHintShown(false); setQuestionFinalised(false);
     setPlaysRemaining(activePuzzle.maxPlays ?? 2);
@@ -514,7 +525,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
 
   return (
     <div
-      className="em-shell em-shell-listeningcomp"
+      className="em-shell em-shell-listeningcomp challenge-enhanced"
       role="application"
       aria-label="Listening comprehension, The Listening Booth"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -579,7 +590,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
       <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} aria-hidden="true" />
 
       {/* Top bar */}
-      <div
+      <div className="challenge-enhanced-toolbar"
         style={{
           position: 'relative',
           padding: '20px 28px 10px',
@@ -624,6 +635,9 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
           zIndex: 3,
         }}
       >
+        <ChallengeMission title="Catch the signal. Decode the message." detail="Correct answers without the transcript earn 150 base points. Use slower playback whenever you need it." current={solved} total={total}>
+          <button type="button" aria-pressed={slowPlayback} disabled={isPlaying} onClick={() => setSlowPlayback(v => !v)}>{slowPlayback ? '0.8× · Slower playback' : '1× · Normal playback'}</button>
+        </ChallengeMission>
         {/* BOOTH — vinyl + on-air + waveform */}
         <div
           className="em-card"
@@ -779,9 +793,11 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
             </svg>
           </div>
 
+          <div className={`challenge-wave ${isPlaying ? 'is-playing' : ''}`} aria-hidden="true">{Array.from({length:32},(_,i)=><i key={i} style={{height:`${14+i*19%36}px`,animationDelay:`${i*-.08}s`,background:i/32 < audioPosition ? '#f1d68a' : '#869acd'}} />)}</div>
           {/* Audio element + play/transcript controls */}
           <audio
             ref={audioRef}
+            onTimeUpdate={e => setAudioPosition(Number.isFinite(e.currentTarget.duration) && e.currentTarget.duration > 0 ? e.currentTarget.currentTime / e.currentTarget.duration : 0)}
             preload="none"
             onEnded={() => setIsPlaying(false)}
             onError={() => setAudioFailed(true)}

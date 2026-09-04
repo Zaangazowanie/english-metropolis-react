@@ -1,3 +1,4 @@
+import { typingDispatchStats } from './word-arcade-mechanics';
 // Typing Test — The Telegraph Office district.
 // A brass-key telegraph at dusk. Paper tape spools out of the receiver as the
 // student types; correctly typed characters punch holes in the tape, wrong
@@ -6,9 +7,10 @@
 // brass switch.
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
+import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Bajla,
   HintCard,
@@ -179,12 +181,7 @@ const ACCENT = '#7DD3FC';
 const ACCENT_DEEP = '#1F73A6';
 const BRASS = '#C49A4D';
 
-function calcWpm(charsCorrect: number, msElapsed: number): number {
-  if (msElapsed <= 0) return 0;
-  // 5 chars = 1 word convention.
-  const minutes = msElapsed / 60000;
-  return Math.round((charsCorrect / 5) / Math.max(minutes, 0.001));
-}
+
 
 // ─────────────────────────────────────────────────────────────────────────
 // renderTypingTestReviewItem — per-phrase locked render for PracticeReview.
@@ -292,6 +289,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useWordArcade();
   const activePuzzle: ShellTypingTestPuzzle =
     puzzle && puzzle.phrases.length > 0 ? puzzle : TT_PUZZLE;
   const total = activePuzzle.phrases.length;
@@ -299,6 +297,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
 
   const [idx, setIdx] = useState(0);
   const [draft, setDraft] = useState('');
+  const [paceWpm, setPaceWpm] = useState(25);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState<number>(Date.now());
   const [score, setScore] = useState(0);
@@ -321,7 +320,8 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
     completed,
     forcedState,
     onSessionComplete: onSessionComplete ? ({ wrongAttempts }) => {
-      onSessionComplete({
+      arcade.complete();
+    onSessionComplete({
         correctCount: score,
         totalQuestions: total,
         wrongAttempts,
@@ -382,17 +382,16 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
 
   // ─── Per-keystroke evaluation ──────────────────────────────────────────
   const target = cur?.target_text ?? '';
-  const charsCorrect = useMemo(() => {
-    let n = 0;
-    for (let i = 0; i < draft.length && i < target.length; i++) {
-      if (draft[i] === target[i]) n++;
-    }
-    return n;
-  }, [draft, target]);
-  const charsTotal = draft.length;
-  const accuracy = charsTotal === 0 ? 100 : Math.max(0, Math.round((charsCorrect / charsTotal) * 100));
   const elapsed = startedAt ? now - startedAt : 0;
-  const liveWpm = calcWpm(charsCorrect, elapsed || 1);
+  const currentStats = typingDispatchStats(draft, target, elapsed);
+  const charsCorrect = currentStats.correct;
+  const lastDispatch = phraseLog[phraseLog.length - 1];
+  // Keep the finished gauges identical to the stored result and announcement.
+  // Both live and final stats use the same one-second floor for instant input.
+  const finishedDispatch = verdict === 'right' && lastDispatch?.id === cur.id && lastDispatch.typed === draft
+    ? lastDispatch : null;
+  const accuracy = finishedDispatch?.acc ?? currentStats.accuracy;
+  const liveWpm = finishedDispatch?.wpm ?? currentStats.wpm;
 
   const onChange = (v: string): void => {
     if (forcedState || verdict === 'right') return;
@@ -401,6 +400,8 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
       setNow(Date.now());
     }
     setDraft(v);
+    setNow(Date.now());
+    if (v.length < target.length) setVerdict(null);
     // Per-keystroke jam: if the student types a wrong char where correct is
     // expected, briefly shake the input but keep the character so they see
     // the mismatch and can backspace.
@@ -413,12 +414,14 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
       // End of phrase — evaluate.
       const ok = v === target;
       setVerdict(ok ? 'right' : 'wrong');
+      arcade.answer(ok, 150);
+      const {accuracy:finalAcc,wpm:finalWpm} = typingDispatchStats(v,target,Date.now()-(startedAt??Date.now()));
       if (ok) {
         setScore((s) => s + 1);
-        setPhraseLog((log) => [...log, { id: cur?.id ?? `phrase-${idx}`, wpm: liveWpm, acc: accuracy, ok: true, typed: v }]);
-        setAnnouncement(`Sent. ${liveWpm} WPM. ${accuracy}% accuracy.`);
+        setPhraseLog((log) => [...log, { id: cur?.id ?? `phrase-${idx}`, wpm: finalWpm, acc: finalAcc, ok: true, typed: v }]);
+        setAnnouncement(`Sent. ${finalWpm} WPM. ${finalAcc}% accuracy.`);
       } else {
-        setPhraseLog((log) => [...log, { id: cur?.id ?? `phrase-${idx}`, wpm: liveWpm, acc: accuracy, ok: false, typed: v }]);
+        setPhraseLog((log) => [...log, { id: cur?.id ?? `phrase-${idx}`, wpm: finalWpm, acc: finalAcc, ok: false, typed: v }]);
         setAnnouncement('Telegraph jammed — characters did not match. Backspace and try again.');
         tip.recordWrong({
           questionId: cur?.id ?? `phrase-${idx}`,
@@ -459,6 +462,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
   };
 
   const reset = (): void => {
+    arcade.restart();
     setIdx(0); setDraft(''); setVerdict(null); setScore(0); setStartedAt(null);
     setQuestionsSeen(0); setHintsUsed(0); setHintRevealed(false);
     setPhraseLog([]);
@@ -466,12 +470,12 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
   };
 
   const liveStatus = completed
-    ? `All dispatches sent. Final ${liveWpm} WPM, ${accuracy}% accuracy.`
+    ? `All dispatches reviewed. Session average ${avgWpm} WPM, ${avgAcc}% accuracy.`
     : announcement;
 
   return (
     <div
-      className="em-shell em-shell-typingtest"
+      className="em-shell wa-form-game em-shell-typingtest"
       role="application"
       aria-label="Typing Test, The Telegraph Office"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -599,6 +603,18 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
       {/* Main: paper tape + brass desk */}
       {!completed && cur && (
         <div className="tt-stage" style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, zIndex: 4 }}>
+          <WordMission kind="dispatch" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+          <div className="wa-typing-track">
+            <header><span>DISPATCH {idx+1} / {total}</span><span>{Math.round(charsCorrect/Math.max(1,target.length)*100)}% delivered</span></header>
+            <svg viewBox="0 0 600 74" aria-label="Dispatch train progress">
+              <path d="M12 29H588M12 57H588" stroke="#31506b" strokeWidth="2" strokeDasharray="7 5"/>
+              {[0,1,2,3,4].map(i=><path key={i} d={`M${20+i*140} 17v48`} stroke="#5a83a433"/>)}
+              <g className="wa-player" style={{transform:`translateX(${Math.min(1,charsCorrect/Math.max(1,target.length))*535}px)`}}><rect x="10" y="13" width="44" height="21" rx="6" fill="#a6e6ff"/><path d="M17 20h6m4 0h6m4 0h9" stroke="#11273d" strokeWidth="5"/><circle cx="20" cy="35" r="3" fill="#a6e6ff"/><circle cx="44" cy="35" r="3" fill="#a6e6ff"/></g>
+              <g style={{transform:`translateX(${Math.min(1,elapsed/60000*paceWpm*5/Math.max(1,target.length))*535}px)`,opacity:.5}}><rect x="10" y="46" width="44" height="15" rx="5" fill="#c4a1ff"/><path d="M17 51h28" stroke="#17202f" strokeWidth="3"/></g>
+            </svg>
+            <div className="wa-inline-tools"><span>Pace train</span>{[15,25,40].map(p=><button key={p} aria-pressed={paceWpm===p} onClick={()=>setPaceWpm(p)}>{p} WPM</button>)}<span>No time limit. Accuracy comes first.</span></div>
+          </div>
+
           {/* Paper tape */}
           <div
             key={`t-${cur.id}`}

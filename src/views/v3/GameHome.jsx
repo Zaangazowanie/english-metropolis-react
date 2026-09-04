@@ -26,6 +26,7 @@ import CartUI from '../public/CartUI.jsx'
 import HeroPracticePreview from './HeroPracticePreview.jsx'
 import HeroSlider from './HeroSlider.jsx'
 import HeroSkyline from '../../components/public/HeroSkyline.jsx'
+import BajlaShowcase from './BajlaShowcase.jsx'
 import ReactiveShaderField from '../../components/public/ReactiveShaderField.jsx'
 import { clearPointerPolish, pulsePointerPolish, setPointerPolish, focusSkylineDistrict } from '../../components/public/motionPolish.js'
 const ArcadeCityBackdrop = lazy(() => import('./ArcadeCityBackdrop.jsx'))
@@ -159,17 +160,6 @@ const GH = {
       { icon: 'chat', title: 'Bajla on WhatsApp', body: 'Book, move or cancel a lesson, get your notes and do a two-minute drill, in Polish or English, without opening the app. Included with the AI lesson analysis add-on.' },
       { icon: 'view_in_ar', title: 'A 3D city and quick games', body: 'English Metro World and the games below practise your own vocabulary between lessons. Two minutes or twenty, on your phone or laptop.' },
     ],
-    bajlaKicker: 'Bajla · your assistant on WhatsApp',
-    bajlaTitle: 'Booking a lesson should take one message.',
-    bajlaBody: 'Bajla is the English Metro owl and your assistant on WhatsApp. She books, moves and cancels lessons in your teacher\u2019s live calendar, sends your notes and flashcards, and runs quick drills on the words you got wrong. She writes in Polish or English, whichever you use. Bajla comes with the optional AI lesson analysis add-on.',
-    bajlaChat: [
-      { from: 'you', text: 'Hi Bajla, can I move Thursday\u2019s lesson to Friday at 6 pm?' },
-      { from: 'bajla', text: 'Sure. Friday 18:00 is free in Natalia\u2019s calendar. I have moved the lesson and sent you a new calendar invitation.' },
-      { from: 'you', text: 'Great. Send me the notes from the last lesson.' },
-      { from: 'bajla', text: 'Here is the PDF from lesson 12 and your 14 new flashcards. Quick drill? "to put something off" means to…' },
-    ],
-    bajlaPoints: ['Books, moves and cancels in the live calendar', 'Sends your lesson PDF and flashcards', 'Two-minute drills on your own mistakes', 'Polish or English, 24 hours a day'],
-    bajlaCta: 'See what the analysis add-on includes',
     worldTitle: 'The Open World', worldBody: 'Explore the full city as Wren. Ride the metro between language districts, help local characters and practise English as you progress.', worldGo: 'Start exploring',
     practiceTitle: 'Quick Practice',
     footAbout: 'About us', footFaq: 'FAQ', footContact: 'Contact', footPricing: 'Pricing', footSignup: 'Sign up', footPrivacy: 'Privacy', footCookies: 'Cookies', footTerms: 'Terms',
@@ -261,17 +251,6 @@ const GH = {
       { icon: 'chat', title: 'Bajla na WhatsAppie', body: 'Rezerwuj, przenoś lub odwołuj lekcje, odbieraj notatki i rób dwuminutowe powtórki, po polsku lub po angielsku, bez otwierania aplikacji. W pakiecie z analizą lekcji AI.' },
       { icon: 'view_in_ar', title: 'Miasto 3D i szybkie gry', body: 'English Metro World i gry poniżej ćwiczą Twoje własne słownictwo między lekcjami. Dwie minuty albo dwadzieścia, na telefonie lub laptopie.' },
     ],
-    bajlaKicker: 'Bajla · Twoja asystentka na WhatsAppie',
-    bajlaTitle: 'Rezerwacja lekcji to jedna wiadomość.',
-    bajlaBody: 'Bajla to sowa English Metro i Twoja asystentka na WhatsAppie. Rezerwuje, przenosi i odwołuje lekcje w kalendarzu lektora na żywo, wysyła notatki i fiszki i robi krótkie powtórki ze słów, które sprawiły Ci trudność. Pisze po polsku lub po angielsku, tak jak Ty. Bajla jest częścią opcjonalnego dodatku: analizy lekcji AI.',
-    bajlaChat: [
-      { from: 'you', text: 'Cześć Bajla, mogę przenieść czwartkową lekcję na piątek na 18:00?' },
-      { from: 'bajla', text: 'Jasne. Piątek 18:00 jest wolny w kalendarzu Natalii. Przeniosłam lekcję i wysłałam nowe zaproszenie do kalendarza.' },
-      { from: 'you', text: 'Super. Wyślij mi notatki z ostatniej lekcji.' },
-      { from: 'bajla', text: 'Proszę: PDF z lekcji 12 i 14 nowych fiszek. Szybka powtórka? „to put something off” znaczy…' },
-    ],
-    bajlaPoints: ['Rezerwuje, przenosi i odwołuje w kalendarzu na żywo', 'Wysyła PDF z lekcji i fiszki', 'Dwuminutowe powtórki z Twoich błędów', 'Po polsku lub po angielsku, całą dobę'],
-    bajlaCta: 'Zobacz, co obejmuje analiza lekcji',
     worldTitle: 'Otwarty świat', worldBody: 'Odkrywaj całe miasto jako Wren. Jedź metrem między dzielnicami języka, pomagaj mieszkańcom i ćwicz angielski w miarę postępów.', worldGo: 'Zacznij odkrywać',
     practiceTitle: 'Szybkie ćwiczenia',
     footAbout: 'O nas', footFaq: 'Pytania', footContact: 'Kontakt', footPricing: 'Cennik', footSignup: 'Załóż konto', footPrivacy: 'Prywatność', footCookies: 'Cookies', footTerms: 'Regulamin',
@@ -1141,45 +1120,7 @@ export default function GameHome() {
           </Reveal>
         </section>
 
-        {/* ── Bajla on WhatsApp: the assistant, shown doing the job ── */}
-        <section className="gh-section gh-bajla-section" aria-labelledby="gh-bajla-title">
-          <Reveal className="gh-bajla-copy">
-            <div className="gh-kicker" style={{ color: T.emerald }}>{W.bajlaKicker}</div>
-            <h2 id="gh-bajla-title" style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(30px, 4.2vw, 52px)',
-              lineHeight: 1.04, letterSpacing: '-0.035em', margin: '0 0 18px' }}>{W.bajlaTitle}</h2>
-            <p style={{ color: T.textDim, fontSize: 'clamp(15px, 1.35vw, 17px)', lineHeight: 1.7, maxWidth: 560, margin: '0 0 22px' }}>{W.bajlaBody}</p>
-            <ul className="gh-lessons-points">
-              {W.bajlaPoints.map((point) => (
-                <li key={point}><span className="material-symbols-outlined" aria-hidden>check_circle</span>{point}</li>
-              ))}
-            </ul>
-            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 26 }}>
-              <ActionLink to="/pricing" variant="secondary" size="lg" trailingIcon="arrow_forward">{W.bajlaCta}</ActionLink>
-            </div>
-          </Reveal>
-          <Reveal className="gh-bajla-stage" delay={90}>
-            <div className="gh-chat gh-glass-strong" role="img" aria-label={W.bajlaTitle}
-              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
-              <div className="gh-chat-head">
-                <img src="/brand/em-bajla-icon.webp" alt="" width="44" height="44" style={{ borderRadius: 12 }}/>
-                <div>
-                  <strong>Bajla</strong>
-                  <span>WhatsApp · English Metro</span>
-                </div>
-                <span className="gh-chat-online" aria-hidden/>
-              </div>
-              <ol className="gh-chat-thread">
-                {W.bajlaChat.map((m, i) => (
-                  <li key={i} className={`gh-chat-msg gh-chat-msg--${m.from}`} style={{ '--gh-chat-i': i }}>
-                    {m.text}
-                  </li>
-                ))}
-                <li className="gh-chat-typing" aria-hidden><i/><i/><i/></li>
-              </ol>
-              <img className="gh-chat-owl" src="/brand/em-bajla-icon.webp" alt="" width="120" height="120" style={{ borderRadius: 28 }} aria-hidden/>
-            </div>
-          </Reveal>
-        </section>
+        <BajlaShowcase lang={lang}/>
 
         {/* ── How lessons work ── */}
         <section className="gh-section gh-journey-section">

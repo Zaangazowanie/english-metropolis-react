@@ -9,6 +9,7 @@
 // click+Enter/Space keyboard fallback both converge on the same handleDrop().
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
+import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import type { ShellDragDropPuzzle } from '../lib/adapters';
 
@@ -272,6 +273,7 @@ export function renderDragDropReviewItem(rec: DragDropReviewScene): React.ReactN
 // Component
 // ─────────────────────────────────────────────────────────────
 export const DragDropShell: React.FC<DragDropShellProps> = ({ time = 'dusk', state: forcedState = null, puzzle: puzzleProp, onWrongAnswer, onSessionComplete }) => {
+  const arcade = useWordArcade();
   const accent = '#7DD3FC';
   // Kelly Tier-2 (2026-05-02): defensive props guard. When the host hands us
   // an explicitly-empty puzzle and we're not in a forced-state demo, flag it
@@ -285,6 +287,7 @@ export const DragDropShell: React.FC<DragDropShellProps> = ({ time = 'dusk', sta
     puzzleProp && puzzleProp.scenes.length > 0 ? puzzleProp.scenes : DD_PUZZLES;
   const [puzzleIdx, setPuzzleIdx] = useState<number>(0);
   const [filled, setFilled] = useState<FilledMap>({});
+  const awardedGaps = useRef(new Set<string>());
 
   const puzzle = activeDeck[puzzleIdx] ?? activeDeck[0];
 
@@ -293,9 +296,9 @@ export const DragDropShell: React.FC<DragDropShellProps> = ({ time = 'dusk', sta
     if (forcedState) return;
     const total = puzzle.answers.length;
     const correct = puzzle.answers.filter((a, i) => filled[i] === a).length;
-    persisted.save({ progress: correct / total, lastState: correct === total ? 'complete' : 'active' });
-    if (correct === total) persisted.save({ progress: 1, completed: true, lastState: 'complete' });
-  }, [Object.keys(filled).length, forcedState]);
+    const progress = Math.min(1,(puzzleIdx + correct / Math.max(1,total)) / activeDeck.length);
+    persisted.save({ progress, completed:progress===1, lastState:progress===1?'complete':'active' });
+  }, [Object.keys(filled).length, puzzleIdx, forcedState]);
 
   // v10 instructional speech-bubble broadcast (Mike directive 2026-05-03).
   useEffect(() => {
@@ -402,6 +405,7 @@ export const DragDropShell: React.FC<DragDropShellProps> = ({ time = 'dusk', sta
     if (sessionFiredRef.current) return;
     if (!onSessionComplete) return;
     sessionFiredRef.current = true;
+    arcade.complete();
     onSessionComplete({
       correctCount: scenesSolvedRef.current,
       totalQuestions: activeDeck.length,
@@ -492,6 +496,10 @@ export const DragDropShell: React.FC<DragDropShellProps> = ({ time = 'dusk', sta
   // touch-DnD and keyboard-fallback all funnel through here.
   const tryPlace = (gapIdx: number, word: string): void => {
     if (forcedState) return;
+    if (filled[gapIdx] === word || allCorrect) return;
+    const awardKey = `${puzzleIdx}:${gapIdx}`;
+    if (puzzle.answers[gapIdx] !== word) arcade.answer(false);
+    else if (!awardedGaps.current.has(awardKey)) { arcade.answer(true); awardedGaps.current.add(awardKey); }
     if (puzzle.answers[gapIdx] === word) {
       setFilled(f => ({ ...f, [gapIdx]: word }));
       setAnnouncement(`Correct. "${word}" placed.`);
@@ -648,6 +656,7 @@ export const DragDropShell: React.FC<DragDropShellProps> = ({ time = 'dusk', sta
       </div>
 
       <div className="em-shell-body" style={{ position: 'absolute', inset: '108px 32px 28px', display: 'flex', flexDirection: 'column', gap: 14, zIndex: 4 }}>
+        <WordMission kind="cargo" current={Object.keys(filled).length} total={puzzle.answers.length} chain={arcade.chain} reaction={arcade.reaction}/>
         {/* Ricky 2026-05-02 layout restructure:
             1. Sticky tense/grammar chip ABOVE the sentence (was floating bin label
                mid-canvas at "Present Perfect · czas Present Perfect")

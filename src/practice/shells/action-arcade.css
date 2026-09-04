@@ -1,0 +1,48 @@
+.action-arcade-hud{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;color:#ecefff;background:linear-gradient(120deg,#102130e8,#18102de8);border:1px solid #7dd3fc44;border-radius:12px;font:12px var(--em-mono);box-shadow:inset 0 1px #ffffff12,0 8px 24px #0003}
+.action-arcade-hud strong{color:#7dd3fc;font-size:16px}.action-arcade-hud small{display:block;color:#b6bfd0;font:11px var(--em-body);line-height:1.5;max-width:440px}
+.action-arcade-hud button,.action-arcade-controls button{padding:9px 14px;min-height:44px;border-radius:8px;border:1px solid #ffffff30;background:#2a2454;color:#fff;cursor:pointer;font:600 12px var(--em-body);box-shadow:0 3px 0 #090c19;transition:transform .16s,background .16s}
+.action-arcade-hud button:active,.action-arcade-controls button:active{transform:translateY(2px)}.action-arcade-hud button[aria-pressed=true]{background:#115e59;border-color:#5eead4}.action-arcade-hud button:focus-visible,.action-arcade-controls button:focus-visible{outline:3px solid #fbbf24;outline-offset:3px}
+.action-arcade-controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.action-arcade-option-list{display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;color:#f4efff;font:12px var(--em-body)}.action-arcade-option-list span{border:1px solid #ffffff22;border-radius:8px;padding:8px;background:#100c25}.action-arcade-option-list b{color:#7dd3fc;margin-right:9px}
+.action-flight-control{position:absolute;z-index:7;bottom:18px;left:24px;right:24px;display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap}.action-flight-control p{margin:0;color:#f1efff;font:12px var(--em-body)}.action-flight-lane{position:absolute;left:5%;right:4%;height:1px;background:linear-gradient(90deg,transparent,#7dd3fc4a,transparent);pointer-events:none}.action-flight-lane span{position:absolute;right:1%;top:-18px;color:#d1e8ff;font:11px var(--em-mono)}
+.action-wheel-choices button[aria-pressed=true]{outline:2px solid #fbbf24;outline-offset:2px}.action-wheel-choices button{cursor:pointer;text-align:left}.action-vault-loot{position:absolute;inset:14% 20%;display:flex;align-items:center;justify-content:center;color:#ffe399;font:42px var(--em-decor);text-shadow:0 0 16px #ffc44b;animation:action-loot-in .65s ease-out}.action-vault-loot span{display:block;transform:rotate(-18deg);padding:8px;background:linear-gradient(135deg,#ffef99,#be7116);color:#4f280a;border:2px solid #ffe791;border-radius:5px;box-shadow:6px 6px #87520e,0 0 22px #fbbf2455;font-size:16px}
+@keyframes action-loot-in{from{opacity:0;transform:translateY(12px) scale(.7)}to{opacity:1;transform:none}}.action-sonar-sweep{position:absolute;inset:0;pointer-events:none;opacity:.14;background:conic-gradient(from 0deg at 50% 50%,transparent 75%,#7dd3fc);animation:action-sonar 8s linear infinite}.action-harvest-trail{position:absolute;width:62px;height:6px;background:#fef3c7;border-radius:50%;box-shadow:0 0 18px #fbbf24;pointer-events:none;transform:translate(-50%,-50%) rotate(-35deg)}
+@keyframes action-sonar{to{transform:rotate(360deg)}}
+@media(max-width:620px){.action-arcade-hud{font-size:11px;padding:10px;gap:8px}.action-flight-control{left:8px;right:8px;bottom:12px;gap:7px}.action-flight-control p{flex-basis:100%;text-align:center}.action-wheel-choices{grid-template-columns:repeat(2,minmax(0,1fr))!important}.em-bs-cell{min-width:30px!important;min-height:34px!important;width:100%!important;height:34px!important}.action-bs-board{width:100%}.action-bs-row{grid-template-columns:18px repeat(8,minmax(0,1fr))!important}.em-snake-dpad,.em-mz-dpad{position:relative!important;bottom:auto!important;right:auto!important;margin:12px auto;display:grid!important}.em-snake-play,.em-mz-play{overflow:visible!important}.action-arcade-option-list{grid-template-columns:1fr 1fr}}
+@media(prefers-reduced-motion:reduce){.action-sonar-sweep,.action-vault-loot{animation:none}.action-arcade-hud button,.action-arcade-controls button{transition:none}}
+
+.action-arcade-hud{box-sizing:border-box;width:100%;min-width:0}.em-shell-snake:focus-visible,.em-shell-mazechase:focus-visible,.em-shell-airplane:focus-visible,.em-shell-whackamole:focus-visible{outline:2px solid #7dd3fc;outline-offset:-4px}
+/* Flight and harvest headers wrap in their own rows; their game fields never sit underneath them. */
+.action-flying-toolbar{flex-wrap:wrap;min-width:0}
+@media(max-width:760px){
+ .em-shell-host:has(.em-shell-airplane),.em-shell-host:has(.em-shell-flyingfruit){height:auto!important;min-height:0!important}
+ .em-shell-airplane,.em-shell-flyingfruit{height:auto!important;min-height:0!important;display:flex;flex-direction:column;gap:16px;padding:20px 12px 24px;box-sizing:border-box}
+ .em-shell-airplane .action-flying-header,.em-shell-flyingfruit .action-flying-header{position:relative!important;inset:auto!important;display:flex!important;flex-direction:column;align-items:stretch!important;gap:14px!important;flex:none;width:100%;min-width:0}
+ .action-flying-toolbar{display:grid!important;grid-template-columns:minmax(0,1fr) auto auto!important;gap:10px 8px!important;align-items:center!important}
+ .action-flying-toolbar>[aria-label*="caught"],.action-flying-toolbar>[aria-label^="Score:"]{grid-row:2;grid-column:1/-1;justify-self:start}
+ .action-flying-toolbar>button{min-width:0!important;white-space:normal;max-width:100%}
+ .em-shell-airplane .action-flying-question,.em-shell-flyingfruit .action-flying-question{position:relative!important;inset:auto!important;transform:none!important;max-width:none!important;width:100%;box-sizing:border-box;padding:14px 12px!important;flex:none;overflow-wrap:anywhere}
+ .em-shell-airplane .action-flight-sky,.em-shell-flyingfruit .action-harvest-field{position:relative!important;inset:auto!important;flex:none;width:100%;height:390px;min-height:390px;margin:0;overflow:hidden;border:1px solid #ffffff16;border-radius:12px;background:linear-gradient(#ffffff02,#00000024)}
+ .em-shell-airplane .action-flight-control,.em-shell-flyingfruit .action-flight-control{position:relative;inset:auto;flex:none;padding:14px 10px;background:#0d1128de;border:1px solid #ffffff20;border-radius:12px;box-sizing:border-box;gap:10px}
+ .em-shell-airplane .action-flight-control>button{flex:1 1 42%;min-width:0}
+ .em-shell-airplane .em-ap-cloud-btn{width:114px!important;height:90px!important;gap:0}
+ .em-shell-airplane .em-ap-cloud-btn>svg:first-child{width:110px!important;height:58px!important;flex:none}
+ .em-shell-airplane .em-ap-cloud-btn>svg:not(:first-child){display:none!important}
+ .em-shell-airplane .em-ap-cloud-btn>div{max-width:110px;box-sizing:border-box;font-size:12px!important;line-height:1.2;padding:5px 7px!important;white-space:normal!important;overflow-wrap:anywhere}
+ .em-shell-flyingfruit [data-fruit]{width:74px!important;height:74px!important}
+ .em-shell-flyingfruit [data-fruit]>svg{width:74px!important;height:74px!important}
+ .em-shell-flyingfruit .action-flight-control>p{line-height:1.6}
+}
+.action-random-tier-legend{display:none}
+@media(max-width:760px){
+ .em-shell-host:has(.em-shell-randomwheel){height:auto!important;min-height:0!important}
+ .em-shell-randomwheel{height:auto!important;min-height:0!important;display:flex;flex-direction:column;gap:16px;padding:20px 12px 24px;box-sizing:border-box}
+ .em-shell-randomwheel .action-random-header{position:relative!important;inset:auto!important;flex-direction:column;align-items:stretch!important;flex:none;gap:14px!important}
+ .action-random-header>div:last-child{flex-wrap:wrap;gap:8px!important;justify-content:space-between}
+ .em-shell-randomwheel .action-random-wheel{position:relative!important;top:auto!important;left:50%!important;flex:none;transform:translateX(-50%) scale(.62);transform-origin:top center;margin:18px 0 -110px}
+ .action-random-tier-labels{display:none}
+ .action-random-tier-legend{display:flex;position:relative;z-index:4;gap:6px;flex-wrap:wrap;justify-content:center;color:#ffe89a;font:10px var(--em-mono)}
+ .action-random-tier-legend>span{padding:5px 8px;border:1px solid #fbbf2440;border-radius:6px;background:#201331}
+ .em-shell-randomwheel .action-random-hud,.em-shell-randomwheel .action-random-question{position:relative!important;inset:auto!important;transform:none!important;width:100%!important;max-width:100%;box-sizing:border-box;flex:none;animation:none!important;padding:14px 12px!important}
+ .em-shell-randomwheel .action-random-question{order:2}
+ .em-shell-randomwheel .action-random-hud{order:3}
+}

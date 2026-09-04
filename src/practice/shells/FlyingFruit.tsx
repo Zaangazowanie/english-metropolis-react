@@ -1,3 +1,7 @@
+import { useActionCompletion } from './action-arcade-completion';
+import { useArcadeEvents } from '../lib/arcade-events';
+import { useActionTimers } from './action-arcade-timers';
+import './action-arcade.css';
 // FlyingFruit — "The Orchard Square" district.
 // An open-air orchard market. Painted wooden baskets at the bottom edge.
 // Fruits float across the screen along smooth bezier arcs (parabolas with
@@ -31,68 +35,42 @@ import type { FullInstructions } from '../components';
 
 // Orchard Square · Flying Fruit — full bilingual instruction copy.
 const FLYINGFRUIT_INSTRUCTIONS: FullInstructions = {
-  whatYouDo: {
-    en: [
-      'A gap-fill prompt appears above the orchard.',
-      'Pieces of fruit arc through the air, each carrying a word on a floating dark nameplate beside it.',
-      'Tap the fruit whose nameplate word fits the gap — mid-flight, before it lands in a basket.',
-      'Right tap — the fruit pops with confetti; wrong tap — the fruit thuds into a basket and counts as a miss.',
+  "whatYouDo": {
+    "en": [
+      "Launch a harvest and slice the fruit with the word that matches the clue."
     ],
-    pl: [
-      'Zdanie z luką pojawia się nad sadem.',
-      'Kawałki owoców lecą łukiem w powietrzu, a obok każdego unosi się ciemna tabliczka ze słowem.',
-      'Stuknij owoc, którego słowo pasuje do luki — w locie, zanim wyląduje w koszu.',
-      'Trafnie — owoc pęka z konfetti; błędnie — wpada do kosza i liczy się jako pudło.',
+    "pl": [
+      "Uruchom zbiory i przetnij owoc ze słowem pasującym do wskazówki."
+    ]
+  },
+  "controls": {
+    "en": [
+      "In Tap mode, tap a fruit or use Tab and Enter. Switch to Blade mode to drag from empty ground across a fruit. Pause to read. Reduced motion keeps the targets still."
     ],
+    "pl": [
+      "W trybie Tap stuknij owoc lub użyj Tab i Enter. Włącz Blade, by przeciągać z pustej części sadu przez owoc. Możesz wstrzymać ruch, by przeczytać wskazówkę. Ograniczony ruch zatrzymuje cele."
+    ]
   },
-  controls: {
-    en: [
-      'Prompt strip: gap-fill sentence above the orchard.',
-      'Flying fruit + nameplate: word labels detached to floating dark pills beside the fruit (no truncation).',
-      'Trees + woven baskets: decorative — no interaction; baskets catch missed fruit.',
-      'Hit / Miss / Q counters: top-corner tally for this round.',
-      'Skip + Hint buttons: Skip jumps the round, Hint dims one wrong fruit.',
+  "rightWrongSkip": {
+    "en": [
+      "A slice commits the word. Wrong picks and skipped harvests are recorded for review."
     ],
-    pl: [
-      'Pasek pytania: zdanie z luką nad sadem.',
-      'Latający owoc + tabliczka: etykiety odsunięte od owoców na ciemne pigułki obok (bez ucinania tekstu).',
-      'Drzewa i wiklinowe kosze: dekoracyjne — bez interakcji; kosze łapią nietrafione owoce.',
-      'Liczniki trafień / pomyłek / Q: ranga rundy w rogu ekranu.',
-      'Przyciski Pomiń i Podpowiedź: Pomiń przeskakuje rundę, Podpowiedź wygasza jeden błędny owoc.',
-    ],
+    "pl": [
+      "Cięcie zatwierdza słowo. Złe wybory i pominięcia trafiają do powtórki."
+    ]
   },
-  rightWrongSkip: {
-    en: [
-      'Right tap: ✓ confetti burst, fruit pops mid-air, +1 hit, next round queues.',
-      'Wrong tap: ✗ fruit thuds into a basket, miss counter +1; the right fruit flashes so you see what you missed.',
-      'Skip: counts as wrong — moves to next round.',
-      'If a fruit lands before you tap, it counts as a miss and the round retries with a fresh batch.',
-    ],
-    pl: [
-      'Trafienie: ✓ konfetti, owoc pęka w locie, +1 do trafień, następna runda w kolejce.',
-      'Błąd: ✗ owoc wpada do kosza, licznik pomyłek +1; poprawny owoc mignie, abyś zobaczył, co Ci umknęło.',
-      'Pomiń: liczy się jako błąd — przejście do następnej rundy.',
-      'Jeśli owoc wyląduje, zanim klikniesz, liczy się to jako pudło, a runda startuje na nowo.',
-    ],
+  "hintMechanic": {
+    "en": "Use the limited Hint button for help with the current clue.",
+    "pl": "Użyj ograniczonej liczby podpowiedzi do aktualnej wskazówki."
   },
-  hintMechanic: {
-    en:
-      'You have 3 hints per session. Each tap dims one wrong fruit at the start of the next pass. Save them for fast prompts when fruit arc quickly across short trajectories.',
-    pl:
-      'Masz 3 podpowiedzi na sesję. Każde stuknięcie wygasza jeden błędny owoc na początku następnej tury. Zachowaj je na szybkie rundy, gdy owoce lecą na krótszych łukach.',
+  "scoring": {
+    "en": "Correct cuts earn 100 arcade points. Slice near the top of an arc, while its gold ring is visible, for 150.",
+    "pl": "Dobre cięcie daje 100 punktów. Traf na szczycie łuku przy złotym pierścieniu, aby zdobyć 150."
   },
-  scoring: {
-    en:
-      'Skip counts as wrong. Each correct catch adds to your session streak. Tagging every fruit in the deck unlocks the post-shell review with explanations of any wrong picks.',
-    pl:
-      'Pomiń liczy się jako błąd. Każde trafienie buduje serię w sesji. Trafienie wszystkich rund odblokowuje przegląd z wyjaśnieniami błędów.',
-  },
-  l1Pattern: {
-    en:
-      'Vocab + reaction time. Polish learners often hover between two near-synonyms (e.g. "borrow" vs "lend"); the arc-through-air time pressure trains a single decisive choice instead of bilingual second-guessing.',
-    pl:
-      'Słownictwo + czas reakcji. Polscy uczniowie często wahają się między bliskoznacznymi słowami (np. „borrow" vs „lend"); presja łuku w powietrzu uczy jednego pewnego wyboru bez podwójnego myślenia po polsku.',
-  },
+  "l1Pattern": {
+    "en": "Practise English meaning and sentence context before you make your move.",
+    "pl": "Ćwicz angielskie znaczenie i kontekst zdania przed wykonaniem ruchu."
+  }
 };
 
 export interface WrapperRound {
@@ -274,10 +252,20 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
 }) => {
   const active: WrapperPuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : FF_DEMO;
   const persisted = useShellProgress('flyingfruit');
+  const arcadeEvent = useArcadeEvents();
+  const { later, cancel: cancelActionTimers } = useActionTimers();
   // D3 Wave-5 (Ricky 2026-05-02): per-round student-pick log.
   const [studentPicks, setStudentPicks] = useState<Record<string, string>>({});
 
   const [idx, setIdx] = useState<number>(0);
+  const [harvesting, setHarvesting] = useState(false);
+  const [bladeMode, setBladeMode] = useState(false);
+  const [harvestPoints, setHarvestPoints] = useState(0);
+  const [harvestNotice, setHarvestNotice] = useState('Slice the matching word. A cut at the top of its arc earns +50.');
+  const [bladeTrail, setBladeTrail] = useState<{ x: number; y: number }[]>([]);
+  const swiping = useRef(false);
+  const fruitLocked = useRef(false);
+  const elapsedRef = useRef(0);
   const [tElapsed, setTElapsed] = useState<number>(0); // seconds since round started
   const [verdict, setVerdict] = useState<'right' | 'wrong' | null>(null);
   const [pickedOption, setPickedOption] = useState<number | null>(null);
@@ -294,6 +282,7 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
 
   const round = active.rounds[idx];
   const completed = !forcedState && idx >= active.rounds.length;
+  useActionCompletion(idx >= active.rounds.length, Boolean(forcedState), arcadeEvent);
   const tip = useEndOfShellTip({
     onWrongAnswer,
     completed,
@@ -439,10 +428,10 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'flyingfruit',
-      brief: 'Tap the airborne fruit whose word fits the gap, before it lands.',
-      brief_pl: 'Stuknij latający owoc ze słowem pasującym do luki, zanim wyląduje.',
-      detail: 'Fruits arc across the orchard sky, each labelled with a word. Read the prompt at the top, then tap the right fruit mid-flight. Catching the wrong one or missing entirely costs you; baskets at the bottom catch what falls.',
-      detail_pl: 'Owoce lecą łukiem nad sadem, każdy z innym słowem. Przeczytaj zdanie u góry, a potem złap właściwy owoc w locie. Złapanie złego lub przegapienie kosztuje punkt; kosze u dołu łapią to, co spadnie.',
+      brief: FLYINGFRUIT_INSTRUCTIONS.whatYouDo.en[0],
+      brief_pl: FLYINGFRUIT_INSTRUCTIONS.whatYouDo.pl[0],
+      detail: FLYINGFRUIT_INSTRUCTIONS.controls.en.join(' ') + ' ' + FLYINGFRUIT_INSTRUCTIONS.rightWrongSkip.en.join(' '),
+      detail_pl: FLYINGFRUIT_INSTRUCTIONS.controls.pl.join(' ') + ' ' + FLYINGFRUIT_INSTRUCTIONS.rightWrongSkip.pl.join(' '),
       fullInstructions: FLYINGFRUIT_INSTRUCTIONS,
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
@@ -451,28 +440,13 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
     };
   }, [forcedState]);
 
-  // Animation timer — drives the global t for the round's bezier.
+  useEffect(() => { setHarvesting(false); elapsedRef.current = 0; setTElapsed(0); setBladeTrail([]); swiping.current = false; fruitLocked.current = false; }, [round?.id]);
   useEffect(() => {
-    if (forcedState) return;
-    if (verdict !== null) return;
-    if (completed) return;
-    if (reduceMotion) {
-      // Freeze every fruit at its arc apex (phase = 0.5 ⇒ t = 0.5 above the
-      // basket). Pick the longest delay+duration/2 so all fruits have entered.
-      const maxApex = Math.max(0, ...fruits.map(f => f.delay + f.duration / 2));
-      setTElapsed(maxApex);
-      return;
-    }
-    startedAtRef.current = performance.now();
-    setTElapsed(0);
-    const tick = (now: number): void => {
-      setTElapsed((now - startedAtRef.current) / 1000);
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [verdict, forcedState, completed, round, reduceMotion, fruits]);
-
+    if (forcedState || verdict !== null || completed || reduceMotion || !harvesting) return;
+    let previous = performance.now(); let raf = 0;
+    const frame = (now: number) => { elapsedRef.current += Math.min(.04, (now - previous) / 1000); previous = now; setTElapsed(elapsedRef.current); raf = requestAnimationFrame(frame); };
+    raf = requestAnimationFrame(frame); return () => cancelAnimationFrame(raf);
+  }, [verdict, forcedState, completed, reduceMotion, harvesting, round?.id]);
   useEffect(() => {
     if (forcedState) return;
     const total = active.rounds.length;
@@ -490,10 +464,16 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
   }, [forcedState, active.rounds]);
 
   const onTapFruit = (optionIdx: number): void => {
-    if (forcedState || verdict !== null || !round) return;
+    if (forcedState || verdict !== null || !round || fruitLocked.current || (!harvesting && !reduceMotion)) return;
+    fruitLocked.current = true;
     setPickedOption(optionIdx);
     const right = optionIdx === round.answerIndex;
     setVerdict(right ? 'right' : 'wrong');
+    const fruit = fruits.find(f => f.optionIdx === optionIdx);
+    const phase = fruit ? ((tElapsed - fruit.delay) / fruit.duration) % 1 : 0;
+    const perfect = !reduceMotion && phase >= .35 && phase <= .65;
+    const earned = perfect ? 150 : 100; arcadeEvent({ type: right ? 'correct' : 'incorrect', points: earned });
+    if (right) { setHarvestPoints(n => n + earned); setHarvestNotice(perfect ? 'PERFECT SLICE · +150' : 'CLEAN CUT · +100'); } else setHarvestNotice('Wrong fruit. Check the answer, then try the next harvest.');
     setAnnouncement(right ? 'Caught.' : `Missed. The right one was ${round.options[round.answerIndex]}.`);
     // D3 Wave-5: log per-round pick.
     setStudentPicks((p) => ({ ...p, [round.id]: round.options[optionIdx] }));
@@ -512,7 +492,7 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
 
   useEffect(() => {
     if (verdict === null || forcedState) return;
-    const t = setTimeout(() => {
+    const t = later(() => {
       setIdx((i) => i + 1);
       setVerdict(null);
       setPickedOption(null);
@@ -528,6 +508,9 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
   };
 
   const reset = (): void => {
+    cancelActionTimers();
+    arcadeEvent({ type: 'reset' });
+    setHarvesting(false); setHarvestPoints(0); setBladeTrail([]); setStudentPicks({}); fruitLocked.current = false; elapsedRef.current = 0;
     setIdx(0); setVerdict(null); setPickedOption(null); setScore({ right: 0, wrong: 0 });
     setHintsUsed(0); setRevealedHint(false); tip.reset();
   };
@@ -547,8 +530,8 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
     >
       <style>{`
         @keyframes em-ff-basket-sit { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
-        @keyframes em-ff-pop { 0% { transform: scale(1); } 60% { transform: scale(1.4); } 100% { transform: scale(0); opacity: 0; } }
-        @keyframes em-ff-splat { 0% { transform: scale(1) rotate(0); } 30% { transform: scale(1.2) rotate(-12deg); } 100% { transform: scale(0.8) rotate(8deg); opacity: 0.5; } }
+        @keyframes em-ff-pop { 0% { transform: translate(-50%, -50%) scale(1); } 60% { transform: translate(-50%, -50%) scale(1.4); } 100% { transform: translate(-50%, -50%) scale(0); opacity: 0; } }
+        @keyframes em-ff-splat { 0% { transform: translate(-50%, -50%) scale(1) rotate(0); } 30% { transform: translate(-50%, -50%) scale(1.2) rotate(-12deg); } 100% { transform: translate(-50%, -50%) scale(0.8) rotate(8deg); opacity: 0.5; } }
         @keyframes em-ff-leaf-rustle { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
         @keyframes em-ff-tree-sway { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1deg); } }
         /* Sunset polish (2026-05-02): orchard ambience — falling leaves drift
@@ -683,7 +666,7 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
       </div>
 
       {/* Top bar */}
-      <div style={{ position: 'absolute', top: 28, left: 28, right: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 6, gap: 12, flexWrap: 'wrap' }}>
+      <div className="action-flying-header" style={{ position: 'absolute', top: 28, left: 28, right: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 6, gap: 12, flexWrap: 'wrap' }}>
         <AmbientAudioPlayer shellSlug="flyingfruit" />
         <Nameplate
           district="The Orchard Square"
@@ -691,12 +674,12 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
           accent={ACCENT}
           icon={<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="13" r="6" stroke={ACCENT} strokeWidth="1.6" /><path d="M11 7 Q 13 3 16 5" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" fill="none" /></svg>}
         />
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="action-flying-toolbar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           {/* Triple counter cleanup (CD audit #14, 2026-05-02): drop the
               CAUGHT/MISSED dual eyebrows; primary counter is the shared
               Progress primitive; ✓/✗ tally collapsed into one small chip. */}
           <Progress
-            current={Math.min(idx, active.rounds.length)}
+            current={Math.min(idx + 1, active.rounds.length)}
             total={active.rounds.length}
             accent={ACCENT}
           />
@@ -715,14 +698,14 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
             <span style={{ opacity: 0.35 }}>·</span>
             <span style={{ color: '#FB7185' }}>✗ {score.wrong}</span>
           </div>
-          <SkipButton onClick={() => { setIdx((i) => i + 1); setVerdict(null); setPickedOption(null); }} />
+          <SkipButton onClick={() => { if (verdict !== null || !round) return; arcadeEvent({ type: 'incorrect' }); tip.recordWrong({ questionId: round.id, studentAnswer: 'Skipped', correctAnswer: round.options[round.answerIndex], explanationPL: round.hint_pl, exerciseId: round.exerciseId }); setIdx(i => i + 1); }} />
           <HintButton onClick={useHint} used={hintsUsed} total={2} />
         </div>
       </div>
 
       {/* Question prompt — pinned top-center */}
       {!completed && round && (
-        <div style={{
+        <div className="action-flying-question" style={{
           position: 'absolute', top: 96, left: '50%', transform: 'translateX(-50%)',
           maxWidth: 'min(620px, 80%)', padding: '12px 22px',
           background: 'linear-gradient(180deg, rgba(20,42,16,0.85) 0%, rgba(8,18,10,0.9) 100%)',
@@ -742,43 +725,54 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
         </div>
       )}
 
-      {/* Fruit play area — flying fruits along bezier arcs.
-          CD audit fix (Ricky, 2026-05-03): bumped sprite to 108x108 (above
-          iOS 44px Fitts minimum, easily tappable on touch + clearly visible
-          on mouse) and split the label out of the rotating <button> so the
-          word-pill rides directly UNDER the fruit at (x%, y%) without being
-          flung around by the per-fruit spin. The button still rotates; the
-          sibling label tracks the same live (x, y) without inheriting rot. */}
-      <div style={{ position: 'absolute', top: 180, left: 0, right: 0, bottom: 130, zIndex: 4 }}>
+      {/* Only the fruit art rotates: its circular tap target and separate
+          word label stay centered on the same live arc position. */}
+      <div className="action-harvest-field" onPointerDown={e => { if (!bladeMode || (e.target as HTMLElement).closest('button')) return; swiping.current = true; e.currentTarget.setPointerCapture(e.pointerId); }} onPointerUp={() => { swiping.current = false; setBladeTrail([]); }} onPointerCancel={() => { swiping.current = false; setBladeTrail([]); }} onPointerMove={e => {
+        if (!bladeMode || !swiping.current || !harvesting || fruitLocked.current) return;
+        const bounds = e.currentTarget.getBoundingClientRect();
+        setBladeTrail(points => [...points.slice(-7), { x: e.clientX - bounds.left, y: e.clientY - bounds.top }]);
+        for (const target of e.currentTarget.querySelectorAll<HTMLElement>('[data-fruit]')) {
+          const rect = target.getBoundingClientRect(); const dx = e.clientX - rect.left - rect.width / 2; const dy = e.clientY - rect.top - rect.height / 2;
+          if (dx * dx + dy * dy < Math.pow(rect.width * .43, 2)) { onTapFruit(Number(target.dataset.fruit)); break; }
+        }
+      }} style={{ position: 'absolute', top: 180, left: 0, right: 0, bottom: 130, zIndex: 4, touchAction: 'none' }}>
+        <svg aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 8 }}><polyline points={bladeTrail.map(p => `${p.x},${p.y}`).join(' ')} stroke="#fff3b2" strokeWidth="5" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 6px #fbbf24)' }} /></svg>
+
         {fruits.map((f) => {
           // Compute current position from arc parameters + elapsed time.
           const phase = ((tElapsed - f.delay) / f.duration);
           // If pre-delay or post-arc, hide.
-          const t = phase < 0 ? 0 : phase > 1 ? phase - Math.floor(phase) : phase;
-          const visible = phase >= 0;
-          const x = bezier(t, f.startX, f.peakX, f.endX);
-          const y = bezier(t, f.baseY, f.peakY, f.baseY);
-          const rot = f.rot0 + tElapsed * f.spin;
+          const t = reduceMotion || !harvesting ? .5 : phase < 0 ? 0 : phase > 1 ? phase - Math.floor(phase) : phase;
+          const visible = reduceMotion || !harvesting || phase >= 0;
+          const x = reduceMotion || !harvesting ? 18 + f.optionIdx * 64 / Math.max(1, fruits.length - 1) : bezier(t, f.startX, f.peakX, f.endX);
+          const y = reduceMotion || !harvesting ? 25 + (f.optionIdx % 2) * 34 : bezier(t, f.baseY, f.peakY, f.baseY);
+          const rot = reduceMotion ? 0 : f.rot0 + tElapsed * f.spin;
           const isAnswer = f.optionIdx === round?.answerIndex;
           const isPicked = pickedOption === f.optionIdx;
           const showRight = verdict === 'right' && isPicked;
           const showWrong = verdict === 'wrong' && isPicked;
           const dim = verdict !== null && !isAnswer && !isPicked;
-          const palette = FRUIT_PALETTES[f.paletteIdx];
-          // Tappable size — 108×108 CSS px. Above iOS Fitts minimum (44) and
-          // big enough that the SVG body reads at a glance on mobile.
-          const SPRITE = 108;
+          const fruitWord = f.text.toLowerCase().trim();
+          const fruitKind = /^(lemon|lime)s?$/.test(fruitWord) ? 'citrus' : /^pears?$/.test(fruitWord) ? 'pear' : /^(cherry|cherries)$/.test(fruitWord) ? 'cherry' : 'round';
+          const fruitFill = /^lemons?$/.test(fruitWord) ? '#facc15' : /^limes?$/.test(fruitWord) ? '#84cc16' : /^oranges?$/.test(fruitWord) ? '#fb923c' : /^apples?$/.test(fruitWord) ? '#ef4444' : /^pears?$/.test(fruitWord) ? '#a3cc40' : /^plums?$/.test(fruitWord) ? '#8b5cf6' : /^(cherry|cherries)$/.test(fruitWord) ? '#e11d48' : FRUIT_PALETTES[f.paletteIdx].fill;
+          const palette = { fill: fruitFill, leaf: '#4ade80' };
+          // Mobile CSS uses 74px, with the same circular target as the artwork.
+          const SPRITE = 84;
           return (
             <React.Fragment key={f.optionIdx}>
               <button
                 type="button"
-                onClick={() => onTapFruit(f.optionIdx)}
-                disabled={!!forcedState || verdict !== null || completed}
+                data-fruit={visible ? f.optionIdx : undefined}
+                onPointerDown={event => { if (bladeMode) return; event.stopPropagation(); swiping.current = false; onTapFruit(f.optionIdx); }}
+                onClick={event => { if (event.detail === 0) onTapFruit(f.optionIdx); }}
+                disabled={!visible || !!forcedState || verdict !== null || completed || (!harvesting && !reduceMotion)}
                 aria-label={`Fruit labelled ${f.text}`}
                 style={{
                   position: 'absolute',
                   left: `${x}%`, top: `${y}%`,
-                  transform: `translate(-50%, -50%) rotate(${rot}deg)`,
+                  transform: 'translate(-50%, -50%)',
+                  clipPath: 'circle(50%)',
+                  pointerEvents: visible ? 'auto' : 'none',
                   background: 'transparent', border: 'none', padding: 0,
                   cursor: verdict !== null || completed ? 'default' : 'pointer',
                   opacity: visible ? (dim ? 0.35 : 1) : 0,
@@ -788,7 +782,7 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
                   minWidth: 44, minHeight: 44,
                 }}
               >
-                <svg width={SPRITE} height={SPRITE} viewBox="0 0 76 76">
+                <svg width={SPRITE} height={SPRITE} viewBox="0 0 76 76" style={{ transform: `rotate(${rot}deg)`, pointerEvents: 'none' }}>
                   <defs>
                     <radialGradient id={`fr-grad-${f.optionIdx}`} cx="40%" cy="35%">
                       <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.6" />
@@ -798,8 +792,11 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
                   </defs>
                   {/* shadow */}
                   <ellipse cx="40" cy="42" rx="28" ry="26" fill="rgba(0,0,0,0.25)" />
+                  {!reduceMotion && harvesting && t >= .35 && t <= .65 && <circle cx="38" cy="40" r="35" fill="none" stroke="#fef3c7" strokeWidth="2" strokeDasharray="4 4" />}
                   {/* fruit body */}
-                  <ellipse cx="38" cy="40" rx="28" ry="26" fill={`url(#fr-grad-${f.optionIdx})`} stroke="#0E0A1A" strokeWidth="1.2" />
+                  {fruitKind === 'citrus' ? <path d="M6 40Q10 14 38 16Q65 15 70 40Q64 65 38 65Q11 66 6 40Z" fill={`url(#fr-grad-${f.optionIdx})`} stroke="#805c0b" strokeWidth="1.2"/> : fruitKind === 'pear' ? <path d="M29 18Q38 11 46 20L49 31Q73 56 52 65Q28 75 15 56Q10 42 26 31Z" fill={`url(#fr-grad-${f.optionIdx})`} stroke="#3d6217" strokeWidth="1.2"/> : fruitKind === 'cherry' ? <g><path d="M25 42Q33 18 44 15Q39 35 53 47" fill="none" stroke="#4ade80" strokeWidth="2"/><circle cx="25" cy="47" r="18" fill={`url(#fr-grad-${f.optionIdx})`}/><circle cx="52" cy="49" r="19" fill={`url(#fr-grad-${f.optionIdx})`}/></g> : <ellipse cx="38" cy="40" rx="28" ry="26" fill={`url(#fr-grad-${f.optionIdx})`} stroke="#0E0A1A" strokeWidth="1.2"/>}
+                  {f.paletteIdx % 3 === 1 && <path d="M19 38Q38 15 57 38M16 47Q38 24 59 47M22 57Q38 41 53 57" fill="none" stroke="#ffe69b" strokeWidth="2" opacity=".5"/>}
+                  {f.paletteIdx % 3 === 2 && <path d="M38 15Q28 40 38 63" fill="none" stroke="#4c1d95" strokeWidth="2" opacity=".45"/>}
                   {/* highlight */}
                   <ellipse cx="30" cy="32" rx="6" ry="8" fill="#FFFFFF" opacity="0.4" />
                   {/* leaf */}
@@ -814,11 +811,8 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
                   )}
                 </svg>
               </button>
-              {/* Label rides with the fruit at the SAME live (x, y) but is a
-                  sibling — so the per-fruit rotation/spin never moves it. The
-                  -50% / +SPRITE/2 + 8 offset puts the pill flush under the
-                  bottom edge of the rotating sprite. pointer-events:none so
-                  taps fall through to the button beneath. */}
+              {/* The label follows the fruit center without rotating or
+                  creating an extra transparent hit area. */}
               <div
                 aria-hidden="true"
                 style={{
@@ -843,22 +837,7 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
         })}
       </div>
 
-      {/* Instructions modal only — centered HintCard + standalone Bajla
-          removed 2026-05-03; chat-widget speech bubble carries the brief. */}
-      {!completed && (
-        <div style={{
-          position: 'absolute', bottom: 28, left: 28, maxWidth: 360, zIndex: 5,
-          padding: '8px 10px',
-          background: 'rgba(14,10,26,0.78)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: 16,
-          boxShadow: '0 12px 28px rgba(0,0,0,0.45)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
-        }}>
-        </div>
-      )}
-
+      {!completed && <div className="action-flight-control action-arcade-controls"><p><strong>{harvestPoints} POINTS</strong> · {harvestNotice}</p><button disabled={verdict !== null} onClick={() => setHarvesting(v => !v)}>{harvesting ? 'Pause harvest' : 'Launch harvest'}</button><button disabled={verdict !== null} aria-pressed={bladeMode} onClick={() => { swiping.current = false; setBladeTrail([]); setBladeMode(v => !v); }}>{bladeMode ? 'Blade mode' : 'Tap mode'}</button><span style={{ color: '#e8dfbd', font: '11px var(--em-body)' }}>{bladeMode ? 'Start a swipe on empty ground, then slice through a fruit.' : 'Tap a fruit to catch it. Keyboard: Tab + Enter.'}</span></div>}
       {/* Completion */}
       {completed && (
         <div
@@ -881,8 +860,8 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
             <div style={{ textAlign: 'center' }}><div className="em-decor" style={{ fontSize: 44, color: '#FB7185' }}>{score.wrong}</div><div className="em-eyebrow" style={{ color: '#FB7185' }}>MISSED · ZGUBIONE</div></div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-            <button className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
+            <button className="em-btn em-btn-ghost" onClick={reset}>Restart run</button>
+            <button className="em-btn em-btn-primary" onClick={reset}>Play again →</button>
           </div>
         </div>
       )}

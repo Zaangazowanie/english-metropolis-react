@@ -1,3 +1,7 @@
+import { useActionCompletion } from './action-arcade-completion';
+import { useArcadeEvents } from '../lib/arcade-events';
+import { useActionTimers } from './action-arcade-timers';
+import './action-arcade.css';
 // Open the Box — "The Vault Room" district.
 //
 // A dimly lit vault wall of brass safe-deposit boxes. The student taps a box
@@ -11,7 +15,7 @@ import { useShellProgress } from '../lib/convex-stubs';
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
 import { buildSafeHint } from '../lib/safeHint';
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useRef, useState, useEffect, useMemo, Suspense } from 'react';
 import {
   Bajla,
   HintCard,
@@ -55,68 +59,42 @@ import type { FullInstructions } from '../components/ExpandableInstructions';
 
 // Vault Room · Open the Box — full bilingual instruction copy.
 const OPENTHEBOX_INSTRUCTIONS: FullInstructions = {
-  whatYouDo: {
-    en: [
-      'A grid of brass vault doors lines the wall — each door hides one multiple-choice question.',
-      'Tap a door to swing it open and reveal the question inside.',
-      'Pick the right answer chip to seal the box (green); a wrong answer marks the box red but moves on.',
-      'Goal: open and seal every box on the wall.',
+  "whatYouDo": {
+    "en": [
+      "Choose a brass safe. Read the clue and set its word dial before turning the key."
     ],
-    pl: [
-      'Na ścianie jest siatka mosiężnych drzwi do skrytek — każde drzwi ukrywają pytanie wyboru.',
-      'Stuknij drzwi, aby je otworzyć i odsłonić pytanie.',
-      'Wybierz właściwą odpowiedź, aby zaplombować skrytkę (zielona); błędna oznacza ją na czerwono, ale przechodzi dalej.',
-      'Cel: otworzyć i zaplombować każdą skrytkę na ścianie.',
+    "pl": [
+      "Wybierz mosiężny sejf. Przeczytaj wskazówkę i ustaw słowo na pokrętle, zanim przekręcisz klucz."
+    ]
+  },
+  "controls": {
+    "en": [
+      "Tap a word or turn the dial with the left/right buttons, then press Unlock. Only one safe can be open at a time."
     ],
+    "pl": [
+      "Stuknij słowo lub obracaj pokrętło przyciskami lewo/prawo, potem naciśnij Unlock. Otwarty może być tylko jeden sejf."
+    ]
   },
-  controls: {
-    en: [
-      'Vault doors: tappable brass squares — each one opens to a question.',
-      'Question card (right side): the prompt + answer chips appear when you open a box.',
-      'Vault ledger (right side): a running list of which boxes are sealed (green) vs busted (red).',
-      'Hint button: 3 hints per session — eliminates one wrong answer chip from the open box.',
-      'Skip button: closes the open box without an answer (counts as busted).',
+  "rightWrongSkip": {
+    "en": [
+      "A correct combination secures the treasure. Two wrong attempts slam the door; reopen it or try a different safe. All safes remain recoverable."
     ],
-    pl: [
-      'Drzwi skrytek: klikalne mosiężne kwadraty — każde otwiera pytanie.',
-      'Karta pytania (po prawej): pytanie + odpowiedzi pojawiają się po otwarciu skrytki.',
-      'Księga skrytek (po prawej): lista, które skrytki są zaplombowane (zielone) lub uszkodzone (czerwone).',
-      'Przycisk Podpowiedź: 3 podpowiedzi na sesję — usuwa jedną błędną odpowiedź z otwartej skrytki.',
-      'Przycisk Pomiń: zamyka otwartą skrytkę bez odpowiedzi (liczy się jako uszkodzona).',
-    ],
+    "pl": [
+      "Dobra kombinacja zabezpiecza skarb. Dwa błędy zatrzaskują drzwi; otwórz je ponownie lub spróbuj innego sejfu. Każdy sejf można odzyskać."
+    ]
   },
-  rightWrongSkip: {
-    en: [
-      'Right pick: the door slams shut with a green seal, +1 to your tally, ledger marks the box sealed.',
-      'Wrong pick: the door slams shut with a red broken-seal mark; correct answer is shown briefly.',
-      'Skip: counts as busted; the correct answer is shown before the next box becomes selectable.',
-      'Boxes can be tapped in any order — pick a strategy (corners first, centre first, random).',
-    ],
-    pl: [
-      'Trafny wybór: drzwi się zatrzaskują z zieloną pieczęcią, +1 do wyniku, księga zapisuje skrytkę jako zaplombowaną.',
-      'Błędny wybór: drzwi zatrzaskują się ze złamaną czerwoną pieczęcią; pojawia się prawidłowa odpowiedź.',
-      'Pomiń: liczy się jako uszkodzona; pojawia się prawidłowa odpowiedź, zanim następna skrytka stanie się klikalna.',
-      'Skrytki możesz stukać w dowolnej kolejności — wybierz strategię (rogi, środek, losowo).',
-    ],
+  "hintMechanic": {
+    "en": "Use the limited Hint button for help with the current clue.",
+    "pl": "Użyj ograniczonej liczby podpowiedzi do aktualnej wskazówki."
   },
-  hintMechanic: {
-    en:
-      'You have 3 hints per session. The hint button on an open box eliminates one wrong answer chip (greys it out). Same drill discipline as Multiple Choice — save them for the trickiest verb-form and false-friend questions.',
-    pl:
-      'Masz 3 podpowiedzi na sesję. Przycisk podpowiedzi w otwartej skrytce usuwa jedną błędną odpowiedź (wyszarza ją). Ta sama dyscyplina co w Multiple Choice — zachowaj je na najtrudniejsze pytania o formę czasownika i fałszywych przyjaciół.',
+  "scoring": {
+    "en": "First-attempt locks earn 150 arcade points, recovered locks earn 100. Secure every safe.",
+    "pl": "Pierwsza próba daje 150 punktów, odzyskany zamek 100. Zabezpiecz każdy sejf."
   },
-  scoring: {
-    en:
-      'Skip counts as busted. Each sealed box adds to your session streak. Sealing every box on the wall unlocks the Vault Room completion screen and posts your score to your timeline.',
-    pl:
-      'Pomiń liczy się jako uszkodzona. Każda zaplombowana skrytka zwiększa serię. Zaplombowanie wszystkich skrytek odblokowuje ekran zakończenia Sali Skarbca i zapisuje wynik na osi czasu.',
-  },
-  l1Pattern: {
-    en:
-      'Same as Multiple Choice — Polish learners often pick the wrong helping verb (have / has / had) or over-regularize irregular past forms. The vault format adds spatial memory: which box was the false-friend trap?',
-    pl:
-      'Tak samo jak w Multiple Choice — polscy uczniowie często wybierają złą formę pomocniczą (have / has / had) albo „regularyzują" nieregularne formy przeszłe. Format skarbca dodaje pamięć przestrzenną: w której skrytce była pułapka fałszywego przyjaciela?',
-  },
+  "l1Pattern": {
+    "en": "Practise English meaning and sentence context before you make your move.",
+    "pl": "Ćwicz angielskie znaczenie i kontekst zdania przed wykonaniem ruchu."
+  }
 };
 
 export type ArcadeForcedState = 'empty' | 'active' | 'wrong' | 'correct' | 'complete' | null;
@@ -305,6 +283,8 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
 }) => {
   const activePuzzle: ArcadePuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : DEMO_PUZZLE;
   const persisted = useShellProgress('openthebox');
+  const arcadeEvent = useArcadeEvents();
+  const { later, cancel: cancelActionTimers } = useActionTimers();
 
   const initialBoxes = (): BoxState[] => activePuzzle.rounds.map(() => ({ face: 'closed', tries: 0, pickedIndex: null }));
   const [boxes, setBoxes] = useState<BoxState[]>(initialBoxes);
@@ -312,10 +292,17 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
   const [hintsUsed, setHintsUsed] = useState(0);
   const [revealedHint, setRevealedHint] = useState<number | null>(null);
   const [shake, setShake] = useState(false);
+  const [dial, setDial] = useState(0);
+  const [loot, setLoot] = useState(0);
+  const [lockBusy, setLockBusy] = useState(false);
+  const lockRef = useRef(false);
+  const recoveredLocks = useRef(new Set<number>());
+  const [lastLoot, setLastLoot] = useState('First-attempt locks earn 150. Recover a lock for 100.');
 
   const sealedCount = boxes.filter(b => b.face === 'sealed').length;
   const total = activePuzzle.rounds.length;
   const completed = sealedCount === total;
+  useActionCompletion(completed, Boolean(forcedState), arcadeEvent);
   const tip = useEndOfShellTip({
     onWrongAnswer,
     completed,
@@ -356,10 +343,10 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'openthebox',
-      brief: 'Tap a brass door, then answer the question inside to seal the box.',
-      brief_pl: 'Stuknij mosiężne drzwi, a potem odpowiedz na pytanie w środku.',
-      detail: 'A wall of safe-deposit boxes — each door hides one question. Tap a door to open it; pick the right answer to seal the box. Wrong answers stay open so you can try again. Seal every box to close the vault.',
-      detail_pl: 'Ściana skrytek bankowych — za każdymi drzwiami kryje się pytanie. Stuknij drzwi, aby je otworzyć; wybierz dobrą odpowiedź, by zaplombować skrytkę. Błędne pozostają otwarte. Zaplombuj wszystkie, aby zamknąć skarbiec.',
+      brief: OPENTHEBOX_INSTRUCTIONS.whatYouDo.en[0],
+      brief_pl: OPENTHEBOX_INSTRUCTIONS.whatYouDo.pl[0],
+      detail: OPENTHEBOX_INSTRUCTIONS.controls.en.join(' ') + ' ' + OPENTHEBOX_INSTRUCTIONS.rightWrongSkip.en.join(' '),
+      detail_pl: OPENTHEBOX_INSTRUCTIONS.controls.pl.join(' ') + ' ' + OPENTHEBOX_INSTRUCTIONS.rightWrongSkip.pl.join(' '),
       fullInstructions: OPENTHEBOX_INSTRUCTIONS,
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
@@ -376,7 +363,7 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
     }
     if (forcedState === 'wrong') {
       const b = initialBoxes(); b[2] = { face: 'open', tries: 1, pickedIndex: 0 };
-      setBoxes(b); setActiveIdx(2); setShake(true); setTimeout(() => setShake(false), 380);
+      setBoxes(b); setActiveIdx(2); setShake(true); later(() => setShake(false), 380);
     }
     if (forcedState === 'correct') {
       const b = initialBoxes(); b[0] = { face: 'sealed', tries: 0, pickedIndex: 0 };
@@ -388,11 +375,12 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
   }, [forcedState]);
 
   const openBox = (i: number): void => {
-    if (forcedState) return;
+    if (forcedState || lockRef.current || boxes.some(b => b.face === 'opening')) return;
     if (boxes[i].face === 'sealed') return;
     if (activeIdx !== null && activeIdx !== i) return; // one open at a time
-    setBoxes(prev => prev.map((b, j) => j === i ? { ...b, face: 'opening' } : b));
-    window.setTimeout(() => {
+    setDial(0); setActiveIdx(i);
+    setBoxes(prev => prev.map((b, j) => j === i ? { ...b, face: 'opening', pickedIndex: null, tries: b.tries >= 2 ? 0 : b.tries } : b));
+    later(() => {
       setBoxes(prev => prev.map((b, j) => j === i ? { ...b, face: 'open' } : b));
       setActiveIdx(i);
     }, FLIP_WAIT_MS);
@@ -400,25 +388,29 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
 
   const closeBox = (i: number): void => {
     setBoxes(prev => prev.map((b, j) => j === i ? { ...b, face: 'slam', pickedIndex: null } : b));
-    window.setTimeout(() => {
+    later(() => {
       setBoxes(prev => prev.map((b, j) => j === i ? { ...b, face: 'closed' } : b));
     }, FLIP_WAIT_MS);
     setActiveIdx(null);
   };
 
   const pick = (boxIdx: number, optIdx: number): void => {
-    if (forcedState) return;
+    if (forcedState || lockRef.current || boxes[boxIdx]?.face !== 'open') return;
+    lockRef.current = true; setLockBusy(true);
     const round = activePuzzle.rounds[boxIdx];
     const correct = optIdx === round.answerIndex;
     setBoxes(prev => prev.map((b, j) => j === boxIdx ? { ...b, pickedIndex: optIdx } : b));
     if (correct) {
-      window.setTimeout(() => {
+      const reward = recoveredLocks.current.has(boxIdx) ? 100 : 150; setLoot(n => n + reward); setLastLoot(`SAFE ${String(boxIdx + 1).padStart(2, '0')} CRACKED · +${reward}`); arcadeEvent({ type: 'correct', points: reward });
+      later(() => {
         setBoxes(prev => prev.map((b, j) => j === boxIdx ? { ...b, face: 'sealed' } : b));
-        setActiveIdx(null);
+        setActiveIdx(null); lockRef.current = false; setLockBusy(false);
       }, PICK_WAIT_MS);
     } else {
+      recoveredLocks.current.add(boxIdx);
+      arcadeEvent({ type: 'incorrect' }); later(() => { lockRef.current = false; setLockBusy(false); }, SLAM_DELAY_MS + FLIP_WAIT_MS);
       setShake(true);
-      setTimeout(() => setShake(false), 380);
+      later(() => setShake(false), 380);
       setBoxes(prev => prev.map((b, j) => j === boxIdx ? { ...b, tries: b.tries + 1 } : b));
       tip.recordWrong({
         questionId: round.id,
@@ -429,7 +421,7 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
       });
       // After 2 wrong tries, slam shut so they have to come back to it.
       if (boxes[boxIdx].tries + 1 >= 2) {
-        window.setTimeout(() => closeBox(boxIdx), SLAM_DELAY_MS);
+        later(() => closeBox(boxIdx), SLAM_DELAY_MS);
       }
     }
   };
@@ -438,10 +430,13 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
     if (hintsUsed >= 3 || activeIdx === null) return;
     setRevealedHint(activeIdx);
     setHintsUsed(h => h + 1);
-    window.setTimeout(() => setRevealedHint(null), HINT_PULSE_MS);
+    later(() => setRevealedHint(null), HINT_PULSE_MS);
   };
 
   const reset = (): void => {
+    cancelActionTimers();
+    arcadeEvent({ type: 'reset' });
+    lockRef.current = false; recoveredLocks.current.clear(); setLockBusy(false); setLoot(0); setDial(0);
     setBoxes(initialBoxes());
     setActiveIdx(null);
     setHintsUsed(0);
@@ -450,7 +445,7 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
   };
 
   const skipBox = (): void => {
-    if (activeIdx === null) return;
+    if (activeIdx === null || lockRef.current) return;
     closeBox(activeIdx);
   };
 
@@ -746,6 +741,7 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
             )}
           </div>
 
+          <div className="action-arcade-hud" style={{ position: 'relative', zIndex: 2 }}><div><strong>VAULT HAUL · {loot}</strong><small>{lastLoot} Pick a safe, set its word dial, then turn the key.</small></div><span>{sealedCount}/{total} safes</span></div>
           {/* Question overlay — appears when a box is open.
               Ricky 2026-05-03 (CD audit, OTB-bug-1): popup was clipping
               options B + D off-screen on narrow viewports because width was
@@ -782,7 +778,9 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
                   return (
                     <button
                       key={oi}
-                      onClick={() => pick(activeIdx as number, oi)}
+                      onClick={() => setDial(oi)}
+                      disabled={lockBusy}
+                      aria-pressed={dial === oi}
                       aria-label={`Option ${String.fromCharCode(65 + oi)}: ${opt}`}
                       style={{
                         minHeight: 44, padding: '10px 14px', borderRadius: 10,
@@ -794,6 +792,7 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
                             : hinted
                               ? `${ACCENT}22`
                               : 'rgba(255,255,255,0.04)',
+                        outline: dial === oi ? '2px solid #fbbf24' : 'none',
                         border: `1px solid ${showRight ? '#34D39966' : showWrong ? '#FB718566' : hinted ? `${ACCENT}88` : 'rgba(255,255,255,0.1)'}`,
                         color: showRight ? '#34D399' : showWrong ? '#FB7185' : 'var(--em-text)',
                         fontFamily: 'var(--em-body)', fontSize: 14,
@@ -812,6 +811,7 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
                   );
                 })}
               </div>
+              <div className="action-arcade-controls" style={{ marginTop: 14 }}><button disabled={lockBusy} aria-label="Turn dial left" onClick={() => setDial(i => (i - 1 + cur.options.length) % cur.options.length)}>↶</button><button disabled={lockBusy} onClick={() => pick(activeIdx as number, dial)} style={{ background: 'linear-gradient(#fde68a,#dca844)', color: '#311c08', minWidth: 180 }}>{lockBusy ? 'Turning the lock…' : `Unlock with ${String.fromCharCode(65 + dial)}`}</button><button disabled={lockBusy} aria-label="Turn dial right" onClick={() => setDial(i => (i + 1) % cur.options.length)}>↷</button></div>
               {curBox.tries > 0 && (
                 <div style={{ marginTop: 10, fontFamily: 'var(--em-mono)', fontSize: 10, color: '#FB7185', letterSpacing: '0.16em' }}>
                   TRY {curBox.tries} OF 2 · {curBox.tries >= 2 ? 'BOX SLAMS SHUT' : 'ONE MORE CHANCE'}
@@ -839,8 +839,8 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
               <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa`, textAlign: 'center', padding: '0 16px' }}>The vault is sealed.</div>
               <div className="em-eyebrow">EVERY BOX SECURED · WSZYSTKO ZAMKNIĘTE</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-                <button className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
+                <button className="em-btn em-btn-ghost" onClick={reset}>Restart run</button>
+                <button className="em-btn em-btn-primary" onClick={reset}>Play again →</button>
               </div>
             </div>
           )}

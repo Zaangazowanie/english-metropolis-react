@@ -1,3 +1,8 @@
+import { useActionCompletion } from './action-arcade-completion';
+import { sonarCount } from './action-arcade-logic.mjs';
+import { useArcadeEvents } from '../lib/arcade-events';
+import { useActionTimers } from './action-arcade-timers';
+import './action-arcade.css';
 // Battleship — "The Harbour Grid" district.
 //
 // Harbour at night. The student calls out coordinates (B7, F4…) on a grid
@@ -31,68 +36,42 @@ import type { FullInstructions } from '../components';
 
 // Harbour Grid · Battleship — full bilingual instruction copy.
 const BATTLESHIP_INSTRUCTIONS: FullInstructions = {
-  whatYouDo: {
-    en: [
-      'A 10×10 harbour grid (A1–J10) shows the fog-of-war over an enemy fleet.',
-      'Pick a coordinate by tapping a grid cell — that fires on that square.',
-      'If you hit a ship cell, an MCQ pops over the grid; answer correctly to confirm the strike.',
-      'Sink all 4 ships by hitting + answering every cell of their hulls; the harbour clears when the last hull goes down.',
+  "whatYouDo": {
+    "en": [
+      "Search the harbour for ships. Solve a ship’s question to sink its entire hull."
     ],
-    pl: [
-      'Siatka portu 10×10 (A1–J10) pokazuje mgłę wojny nad wrogą flotą.',
-      'Wybierz współrzędną, stukając pole siatki — strzelasz w to pole.',
-      'Jeśli trafisz okręt, nad siatką pojawi się pytanie wyboru; odpowiedz poprawnie, aby potwierdzić trafienie.',
-      'Zatop wszystkie 4 okręty, trafiając + odpowiadając na pytania w każdym polu kadłuba; port czyści się po zatopieniu ostatniego.',
+    "pl": [
+      "Szukaj okrętów w porcie. Rozwiąż pytanie, aby zatopić cały kadłub."
+    ]
+  },
+  "controls": {
+    "en": [
+      "Tap a coordinate, or use arrows and Enter on the grid. Numbers in empty water show adjacent unhit hull squares, including diagonals."
     ],
+    "pl": [
+      "Stuknij współrzędne lub użyj strzałek i Enter na siatce. Liczby na wodzie pokazują sąsiednie nietrafione fragmenty kadłubów, także po skosie."
+    ]
   },
-  controls: {
-    en: [
-      'Grid: 10×10 fog-of-war. Tap any cell to fire.',
-      'MCQ overlay: appears after a hit — pick the right option to confirm the strike.',
-      'Fleet status (right panel): list of 4 ships with hit-progress dots per ship.',
-      'Skip + Hint buttons: Skip jumps the current cell, Hint eliminates one wrong MCQ option.',
-      'Counter (top): sunk N / total — your fleet-clearing progress.',
+  "rightWrongSkip": {
+    "en": [
+      "Correct answers sink the vessel. A wrong answer closes the question but leaves the ship available to retry. Empty-water sonar pings are not English mistakes."
     ],
-    pl: [
-      'Siatka: mgła wojny 10×10. Stuknij dowolne pole, aby strzelić.',
-      'Nakładka pytania: pojawia się po trafieniu — wybierz poprawną opcję, aby potwierdzić trafienie.',
-      'Stan floty (panel z prawej): lista 4 okrętów z kropkami postępu trafień.',
-      'Przyciski Pomiń i Podpowiedź: Pomiń przeskakuje bieżące pole, Podpowiedź usuwa jedną błędną opcję pytania.',
-      'Licznik (u góry): zatopione N / razem — postęp w czyszczeniu floty.',
-    ],
+    "pl": [
+      "Dobra odpowiedź zatapia okręt. Zła zamyka pytanie, ale pozwala próbować ponownie. Pusta woda nie jest błędem językowym."
+    ]
   },
-  rightWrongSkip: {
-    en: [
-      'Hit + correct MCQ: ✓ red flash on the hull cell, +1 to your tally, the cell stays HIT.',
-      'Hit + wrong MCQ: ✗ rose flash, the strike does NOT register; you can re-fire the same cell next turn.',
-      'Miss (sea cell): ✗ blue splash, no score impact, fog clears on that cell so you don\'t re-fire it.',
-      'Skip: counts as a wrong MCQ — the cell remains unconfirmed and you move to the next.',
-    ],
-    pl: [
-      'Trafienie + poprawna odpowiedź: ✓ czerwony błysk na polu kadłuba, +1 do wyniku, pole zostaje oznaczone HIT.',
-      'Trafienie + błędna odpowiedź: ✗ różowy błysk, trafienie NIE zalicza się; możesz powtórzyć strzał w to samo pole w następnej turze.',
-      'Pudło (morze): ✗ niebieski rozprysk, bez wpływu na wynik, mgła znika z tego pola, abyś go nie powtarzał.',
-      'Pomiń: liczy się jako błędna odpowiedź — pole pozostaje niepotwierdzone, przeskok do następnego.',
-    ],
+  "hintMechanic": {
+    "en": "Use the limited Hint button for help with the current clue.",
+    "pl": "Użyj ograniczonej liczby podpowiedzi do aktualnej wskazówki."
   },
-  hintMechanic: {
-    en:
-      'You have 3 hints per session. Each tap eliminates one wrong option from the active MCQ overlay. Save them for hits where two options look equally plausible — answering wrong wastes a turn.',
-    pl:
-      'Masz 3 podpowiedzi na sesję. Każde stuknięcie usuwa jedną błędną opcję z aktywnej nakładki pytania. Zachowaj je na trafienia, w których dwie opcje wyglądają równie prawdopodobnie — błąd traci turę.',
+  "scoring": {
+    "en": "150 arcade points per ship. Sink the whole fleet.",
+    "pl": "150 punktów za okręt. Zatop całą flotę."
   },
-  scoring: {
-    en:
-      'Skip counts as a wrong MCQ. Each confirmed hit adds to your session streak. Sinking every ship unlocks the post-shell review with the answer for any wrong MCQ.',
-    pl:
-      'Pomiń liczy się jako błędna odpowiedź. Każde potwierdzone trafienie buduje serię w sesji. Zatopienie wszystkich okrętów odblokowuje przegląd po sesji z poprawną odpowiedzią dla każdego błędu.',
-  },
-  l1Pattern: {
-    en:
-      'MC + spatial-planning drill. Polish learners often pick the right vocab but lose marks to careless answer-confirmation; the two-step (coordinate, then MCQ) splits cognitive load and trains decisive answer commit.',
-    pl:
-      'Trening MC + planowanie przestrzenne. Polscy uczniowie często wybierają właściwe słowo, ale tracą punkty na nieuważne potwierdzenia; dwustopniowy układ (koordynat, potem pytanie) rozkłada obciążenie i uczy zdecydowanego zatwierdzania odpowiedzi.',
-  },
+  "l1Pattern": {
+    "en": "Practise English meaning and sentence context before you make your move.",
+    "pl": "Ćwicz angielskie znaczenie i kontekst zdania przed wykonaniem ruchu."
+  }
 };
 
 export type ArcadeForcedState = 'empty' | 'active' | 'wrong' | 'correct' | 'complete' | null;
@@ -305,6 +284,8 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
   const propsInvalid = !forcedState && puzzle !== undefined && (!puzzle.rounds || puzzle.rounds.length === 0);
   const activePuzzle: ArcadePuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : DEMO_PUZZLE;
   const persisted = useShellProgress('battleship');
+  const arcadeEvent = useArcadeEvents();
+  const { later, cancel: cancelActionTimers } = useActionTimers();
 
   const initialShips = useMemo(() => buildShips(activePuzzle.rounds.length), [activePuzzle]);
   const [ships, setShips] = useState<ShipCell[]>(initialShips);
@@ -335,6 +316,7 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
     return s.length > 0 && s.every(c => c.isHit);
   });
   const completed = sunkRounds.every(Boolean);
+  useActionCompletion(completed, Boolean(forcedState), arcadeEvent);
   const tip = useEndOfShellTip({
     onWrongAnswer,
     completed,
@@ -364,10 +346,10 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'battleship',
-      brief: 'Tap a grid cell to fire; if you hit a ship, answer the question to confirm.',
-      brief_pl: 'Stuknij pole siatki, aby strzelić; po trafieniu odpowiedz na pytanie.',
-      detail: 'The harbour grid hides ships labelled with sentence prompts. Tap a square to fire — empty water is a miss. When you hit a ship, a question appears; answer it correctly to confirm the strike. Sink every ship to clear the harbour.',
-      detail_pl: 'Pod siatką portu kryją się okręty oznaczone zdaniami. Stuknij pole, aby strzelić — pusta woda to pudło. Po trafieniu pojawi się pytanie; odpowiedz dobrze, aby potwierdzić. Zatop wszystkie okręty, by oczyścić port.',
+      brief: BATTLESHIP_INSTRUCTIONS.whatYouDo.en[0],
+      brief_pl: BATTLESHIP_INSTRUCTIONS.whatYouDo.pl[0],
+      detail: BATTLESHIP_INSTRUCTIONS.controls.en.join(' ') + ' ' + BATTLESHIP_INSTRUCTIONS.rightWrongSkip.en.join(' '),
+      detail_pl: BATTLESHIP_INSTRUCTIONS.controls.pl.join(' ') + ' ' + BATTLESHIP_INSTRUCTIONS.rightWrongSkip.pl.join(' '),
       fullInstructions: BATTLESHIP_INSTRUCTIONS,
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
@@ -387,7 +369,7 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
   const cellFired = (r: number, c: number): FiredCell | null => fired.find(f => f.r === r && f.c === c) || null;
 
   const fireAt = (r: number, c: number): void => {
-    if (forcedState) return;
+    if (forcedState || completed) return;
     if (cellFired(r, c)) return;
     if (activeCell) return; // can't open another while one's open
     const ship = cellShip(r, c);
@@ -395,7 +377,7 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
       // Empty water — instant miss.
       setFired(prev => [...prev, { r, c, result: 'miss' }]);
       setFeedback('wrong');
-      window.setTimeout(() => setFeedback(null), 600);
+      later(() => setFeedback(null), 600);
       return;
     }
     // Ship cell — open the question.
@@ -404,22 +386,25 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
   };
 
   const pick = (oi: number): void => {
-    if (forcedState || !activeCell) return;
+    if (forcedState || !activeCell || pickedIdx !== null) return;
     const round = activePuzzle.rounds[cellShip(activeCell.r, activeCell.c)!.roundIdx];
     setPickedIdx(oi);
     const correct = oi === round.answerIndex;
     if (correct) {
-      // HIT — mark the ship cell, count as fired.
-      setShips(prev => prev.map(s => (s.r === activeCell.r && s.c === activeCell.c) ? { ...s, isHit: true } : s));
-      setFired(prev => [...prev, { r: activeCell.r, c: activeCell.c, result: 'hit' }]);
+      // A solved question sinks its whole ship: no repeated question for every hull tile.
+      const targetRound = cellShip(activeCell.r, activeCell.c)!.roundIdx;
+      arcadeEvent({ type: 'correct', points: 150 });
+      setShips(prev => prev.map(s => s.roundIdx === targetRound ? { ...s, isHit: true } : s));
+      setFired(prev => [...prev.filter(f => !ships.some(s => s.roundIdx === targetRound && s.r === f.r && s.c === f.c)), ...ships.filter(s => s.roundIdx === targetRound).map(s => ({ r: s.r, c: s.c, result: 'hit' as const }))]);
       setFeedback('correct');
-      window.setTimeout(() => {
+      later(() => {
         setActiveCell(null);
         setPickedIdx(null);
         setFeedback(null);
       }, 900);
     } else {
       setFeedback('wrong');
+      arcadeEvent({ type: 'incorrect' });
       tip.recordWrong({
         questionId: round.id,
         studentAnswer: round.options[oi],
@@ -429,8 +414,8 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
       });
       // Mark the cell as missed (water splash) so we don't re-prompt the same cell,
       // and the player has to fire at another cell of the same ship.
-      window.setTimeout(() => {
-        setFired(prev => [...prev, { r: activeCell.r, c: activeCell.c, result: 'miss' }]);
+      later(() => {
+        // Keep the hull available: a wrong English answer must never make a ship impossible to sink.
         setActiveCell(null);
         setPickedIdx(null);
         setFeedback(null);
@@ -445,7 +430,7 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
     if (rIdx < 0) return;
     setHintShipRound(rIdx);
     setHintsUsed(h => h + 1);
-    window.setTimeout(() => setHintShipRound(null), 3200);
+    later(() => setHintShipRound(null), 3200);
   };
 
   const skipCell = (): void => {
@@ -454,6 +439,8 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
   };
 
   const reset = (): void => {
+    cancelActionTimers();
+    arcadeEvent({ type: 'reset' });
     setShips(initialShips);
     setFired([]);
     setActiveCell(null);
@@ -473,9 +460,9 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
 
   // Kelly Tier-2 (2026-05-02): focus-trap effect for the completion overlay.
   useEffect(() => {
-    if (!completed) return;
+    if (!completed || onSessionComplete) return;
     previouslyFocusedRef.current = (document.activeElement as HTMLElement) || null;
-    const focusId = window.setTimeout(() => { nextDistrictBtnRef.current?.focus(); }, 0);
+    const focusId = later(() => { nextDistrictBtnRef.current?.focus(); }, 0);
     const trap = (e: KeyboardEvent) => {
       if (e.key === 'Tab') {
         const focusables = [tryAnotherBtnRef.current, nextDistrictBtnRef.current].filter(Boolean) as HTMLButtonElement[];
@@ -498,13 +485,14 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
       const prev = previouslyFocusedRef.current;
       if (prev && typeof prev.focus === 'function') prev.focus();
     };
-  }, [completed]);
+  }, [completed, onSessionComplete]);
 
   // Kelly Tier-2 (2026-05-02): keyboard navigation on the focused canvas.
   // Arrow keys move the cursor across the 8×8 grid; Space/Enter fires at
   // the cursor cell (equivalent to a tap). Only active while the canvas
   // wrapper has focus, so global keypresses (chat boxes etc.) are unaffected.
   const onCanvasKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (e.target !== e.currentTarget) return;
     if (forcedState || completed) return;
     if (activeCell) return; // a question is open — don't move while answering
     if (e.key === 'ArrowUp')   { e.preventDefault(); setCursor(c => ({ r: Math.max(0, c.r - 1), c: c.c })); }
@@ -591,6 +579,7 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
             </div>
           </div>
 
+          <div className="action-arcade-hud"><div><strong>SONAR HUNT · {sunkCount}/{totalShips}</strong><small>Search the harbour. A number in empty water counts nearby hull squares. Find a ship, then solve its question to sink the entire vessel.</small></div><span>{fired.filter(f => f.result === 'miss').length} sonar pings</span></div>
           {/* Kelly Tier-2 (2026-05-02): tabbable canvas wrapper. Keyboard
               users land focus here, then use arrow keys + Space/Enter as a
               "fire at coordinate" tap equivalent. The cursor cell renders
@@ -605,9 +594,10 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
             onKeyDown={onCanvasKeyDown}
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, position: 'relative' }}
           >
-            <div style={{ position: 'relative' }}>
+            <div className="action-bs-board" style={{ position: 'relative' }}>
+              <div className="action-sonar-sweep" aria-hidden="true" />
               {/* Column headers (A-H) */}
-              <div style={{ display: 'grid', gridTemplateColumns: `28px repeat(${COLS}, 44px)`, gap: 2, marginBottom: 4 }}>
+              <div className="action-bs-row" style={{ display: 'grid', gridTemplateColumns: `28px repeat(${COLS}, 44px)`, gap: 2, marginBottom: 4 }}>
                 <div />
                 {Array.from({ length: COLS }).map((_, c) => (
                   <div key={c} style={{
@@ -618,7 +608,7 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
                 ))}
               </div>
               {Array.from({ length: ROWS }).map((_, r) => (
-                <div key={r} style={{ display: 'grid', gridTemplateColumns: `28px repeat(${COLS}, 44px)`, gap: 2, marginBottom: 2 }}>
+                <div key={r} className="action-bs-row" style={{ display: 'grid', gridTemplateColumns: `28px repeat(${COLS}, 44px)`, gap: 2, marginBottom: 2 }}>
                   <div style={{
                     fontFamily: 'var(--em-mono)', fontSize: 11,
                     color: ACCENT, opacity: 0.7,
@@ -670,13 +660,13 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
                           </svg>
                         )}
                         {f?.result === 'miss' && (
-                          <div style={{
-                            width: 12, height: 12, borderRadius: '50%',
+                          <div title="Adjacent unhit hull squares" style={{
+                            width: 24, height: 24, borderRadius: '50%', color: '#bdeeff', fontSize: 13,
                             background: 'transparent',
                             border: `1.5px solid ${ACCENT}88`,
                             margin: 'auto',
                             animation: 'em-bs-splash 600ms var(--em-ease)',
-                          }} />
+                          }}>{sonarCount(ships, r, c) || '·'}</div>
                         )}
                       </button>
                     );
@@ -744,8 +734,8 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
               <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa`, textAlign: 'center', padding: '0 16px' }}>The harbour clears.</div>
               <div className="em-eyebrow">ALL SHIPS DOWN · WSZYSTKIE OKRĘTY ZATOPIONE</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button ref={tryAnotherBtnRef} type="button" className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-                <button ref={nextDistrictBtnRef} type="button" className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
+                <button ref={tryAnotherBtnRef} type="button" className="em-btn em-btn-ghost" onClick={reset}>Restart run</button>
+                <button ref={nextDistrictBtnRef} type="button" className="em-btn em-btn-primary" onClick={reset}>Play again →</button>
               </div>
             </div>
           )}

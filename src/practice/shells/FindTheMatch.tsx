@@ -1,3 +1,4 @@
+import { PairArena, useChallengeArcade } from './challenge-arcade';
 // FindTheMatch — "The Lost & Found" district.
 // A municipal lost-and-found office: items scattered across a counter and a
 // pegboard wall behind. All cards visible from the start. Player taps a clue
@@ -262,6 +263,7 @@ export const FindTheMatchShell: React.FC<FindTheMatchShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useChallengeArcade();
   const active: WrapperPuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : FM_DEMO;
   const persisted = useShellProgress('findthematch');
 
@@ -297,6 +299,7 @@ export const FindTheMatchShell: React.FC<FindTheMatchShellProps> = ({
   const [announcement, setAnnouncement] = useState<string>('');
 
   const completed = !forcedState && matched.length === active.rounds.length;
+  useEffect(() => { if (completed && !forcedState) arcade.finish(); }, [completed, forcedState]);
 
   const tip = useEndOfShellTip({
     onWrongAnswer,
@@ -351,7 +354,7 @@ export const FindTheMatchShell: React.FC<FindTheMatchShellProps> = ({
   }, [forcedState, active.rounds, cards]);
 
   const onTap = (key: string): void => {
-    if (forcedState) return;
+    if (forcedState || wrongFlash.length) return;
     const card = cards.find((c) => c.key === key);
     if (!card || matched.includes(card.pairId)) return;
     if (selected === key) { setSelected(null); return; }
@@ -362,6 +365,8 @@ export const FindTheMatchShell: React.FC<FindTheMatchShellProps> = ({
     // Same side? Switch selection.
     if (sel.side === card.side) { setSelected(key); return; }
 
+    const priorityId = active.rounds.find(r => !matched.includes(r.id))?.id;
+    arcade.decide(sel.pairId === card.pairId, sel.side === 'prompt' ? sel.pairId : card.pairId, card.pairId === priorityId ? 150 : 100);
     if (sel.pairId === card.pairId) {
       setMatched((m) => [...m, card.pairId]);
       setAnnouncement('Pair found.');
@@ -395,6 +400,7 @@ export const FindTheMatchShell: React.FC<FindTheMatchShellProps> = ({
   };
 
   const reset = (): void => {
+    arcade.reset();
     setSelected(null); setMatched([]); setWrongFlash([]);
     setHintsUsed(0); setHintGlow(null); tip.reset();
   };
@@ -405,187 +411,8 @@ export const FindTheMatchShell: React.FC<FindTheMatchShellProps> = ({
       ? 'linear-gradient(180deg, #1F1240 0%, #1B3A5C 100%)'
       : 'linear-gradient(180deg, #06031A 0%, #08222F 100%)';
 
-  return (
-    <div
-      className="em-shell em-shell-findthematch"
-      role="application"
-      aria-label="Find The Match, The Lost and Found office"
-      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: grad }}
-    >
-      <style>{`
-        @keyframes em-fm-card-rise { from { opacity: 0; transform: translate(var(--ox), 18px) rotate(var(--rot)); } to { opacity: 1; transform: translate(var(--ox), var(--oy)) rotate(var(--rot)); } }
-        @keyframes em-fm-shake { 0%, 100% { transform: translate(var(--ox), var(--oy)) rotate(var(--rot)); } 25% { transform: translate(calc(var(--ox) - 8px), var(--oy)) rotate(var(--rot)); } 75% { transform: translate(calc(var(--ox) + 8px), var(--oy)) rotate(var(--rot)); } }
-        @keyframes em-fm-shelf-glow { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.9; } }
-        @keyframes em-fm-stamp { 0% { transform: translate(var(--ox), var(--oy)) rotate(var(--rot)) scale(1); } 50% { transform: translate(var(--ox), var(--oy)) rotate(var(--rot)) scale(1.06); } 100% { transform: translate(var(--ox), var(--oy)) rotate(var(--rot)) scale(1); } }
-        @keyframes em-fm-tag-swing { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
-      `}</style>
-
-      <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
-        {announcement}
-      </div>
-
-      {/* Pegboard background — square dots like a workshop wall */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', inset: 0, opacity: 0.18,
-        backgroundImage: 'radial-gradient(rgba(125,211,252,0.4) 1.5px, transparent 1.5px)',
-        backgroundSize: '24px 24px', pointerEvents: 'none',
-      }} />
-
-      {/* Item silhouettes on the wall behind */}
-      <svg aria-hidden="true" style={{ position: 'absolute', top: 80, left: 60, width: 140, height: 180, opacity: 0.22, pointerEvents: 'none' }} viewBox="0 0 140 180">
-        {/* umbrella */}
-        <path d="M 70 30 Q 30 30 25 60 L 115 60 Q 110 30 70 30 Z" fill={ACCENT} />
-        <line x1="70" y1="60" x2="70" y2="160" stroke={ACCENT} strokeWidth="3" />
-        <path d="M 70 160 Q 80 168 86 160" stroke={ACCENT} strokeWidth="3" fill="none" />
-      </svg>
-      <svg aria-hidden="true" style={{ position: 'absolute', top: 100, right: 80, width: 120, height: 160, opacity: 0.22, pointerEvents: 'none' }} viewBox="0 0 120 160">
-        {/* hanging key */}
-        <circle cx="60" cy="40" r="22" stroke={ACCENT} strokeWidth="4" fill="none" />
-        <line x1="60" y1="62" x2="60" y2="120" stroke={ACCENT} strokeWidth="6" />
-        <line x1="60" y1="100" x2="78" y2="100" stroke={ACCENT} strokeWidth="6" />
-        <line x1="60" y1="115" x2="74" y2="115" stroke={ACCENT} strokeWidth="6" />
-      </svg>
-
-      {/* Counter top — wood grain strip across the bottom 30% */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', left: 0, right: 0, bottom: 0, height: '34%',
-        background: 'linear-gradient(180deg, rgba(122,90,42,0.0) 0%, rgba(58,36,16,0.85) 60%, rgba(20,8,8,0.95) 100%)',
-        borderTop: `2px solid ${ACCENT}55`,
-        boxShadow: `0 -8px 24px ${ACCENT}22`,
-        pointerEvents: 'none', zIndex: 1,
-      }} />
-
-      {/* Top bar */}
-      <div style={{ position: 'absolute', top: 28, left: 28, right: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 6, gap: 12, flexWrap: 'wrap' }}>
-        <AmbientAudioPlayer shellSlug="findthematch" />
-        <Nameplate
-          district="The Lost & Found"
-          subtitle="Find the Match · Znajdź dopasowanie · pair the clue with its word"
-          accent={ACCENT}
-          icon={<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="9" cy="9" r="5" stroke={ACCENT} strokeWidth="1.6" /><line x1="13" y1="13" x2="18" y2="18" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" /></svg>}
-        />
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <Progress current={matched.length} total={active.rounds.length} accent={ACCENT} />
-          <SkipButton onClick={reset} />
-          <HintButton onClick={useHint} used={hintsUsed} total={2} />
-        </div>
-      </div>
-
-      {/* The counter — scattered cards */}
-      <div style={{
-        position: 'absolute', top: 110, left: 24, right: 24, bottom: 180, zIndex: 4,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <div style={{
-          display: 'grid', gridTemplateColumns: `repeat(${cards.length <= 8 ? 4 : 6}, minmax(110px, 1fr))`,
-          gap: 14, maxWidth: 920, width: '100%',
-        }}>
-          {cards.map((c, i) => {
-            const isMatched = matched.includes(c.pairId);
-            const isSelected = selected === c.key;
-            const isWrong = wrongFlash.includes(c.key);
-            const isHinted = hintGlow === c.pairId;
-            const baseColor = c.side === 'prompt' ? '#F4EFEF' : `${ACCENT}33`;
-            const textColor = c.side === 'prompt' ? '#1F0E40' : '#F4EFEF';
-            return (
-              <button
-                key={c.key}
-                type="button"
-                onClick={() => onTap(c.key)}
-                disabled={!!forcedState || isMatched}
-                aria-label={`${c.side === 'prompt' ? 'Clue' : 'Word'}: ${c.text}${isMatched ? ', matched' : isSelected ? ', selected' : ''}`}
-                aria-pressed={isSelected}
-                style={{
-                  position: 'relative', minHeight: 110, padding: 14,
-                  background: c.side === 'prompt'
-                    ? `linear-gradient(180deg, ${baseColor} 0%, #DCD2D2 100%)`
-                    : `linear-gradient(180deg, ${ACCENT}26 0%, #08222F 100%)`,
-                  color: textColor, textAlign: 'left',
-                  border: isMatched ? `2px solid ${ACCENT}` : isSelected ? `2px solid ${ACCENT}` : '1px solid rgba(125,211,252,0.25)',
-                  borderRadius: 10,
-                  cursor: forcedState || isMatched ? 'default' : 'pointer',
-                  opacity: isMatched ? 0.55 : 1,
-                  filter: isMatched ? 'grayscale(0.4)' : 'none',
-                  boxShadow: isHinted
-                    ? `0 0 0 4px ${ACCENT}66, 0 0 22px ${ACCENT}aa`
-                    : isSelected
-                      ? `0 0 0 3px ${ACCENT}66, 0 8px 16px rgba(0,0,0,0.5)`
-                      : '0 6px 14px rgba(0,0,0,0.4)',
-                  // CSS variables for the scatter animation.
-                  ['--ox' as string]: `${c.offsetX}px`,
-                  ['--oy' as string]: `${c.offsetY}px`,
-                  ['--rot' as string]: `${c.rotate}deg`,
-                  transform: `translate(${c.offsetX}px, ${c.offsetY}px) rotate(${c.rotate}deg)`,
-                  animation: isWrong
-                    ? 'em-fm-shake 0.34s var(--em-ease)'
-                    : isMatched
-                      ? 'em-fm-stamp 0.45s var(--em-ease)'
-                      : `em-fm-card-rise ${480 + (i * 30)}ms var(--em-ease) both`,
-                  animationDelay: isWrong || isMatched ? '0s' : `${i * 28}ms`,
-                  transition: 'box-shadow 240ms var(--em-ease), border-color 240ms var(--em-ease), opacity 320ms',
-                }}
-              >
-                <div className="em-eyebrow" style={{
-                  color: c.side === 'prompt' ? '#7A5A2A' : ACCENT,
-                  fontSize: 9, marginBottom: 6, letterSpacing: '0.18em',
-                }}>
-                  {c.side === 'prompt' ? 'CLUE · OPIS' : 'ITEM · RZECZ'}
-                </div>
-                <div style={{
-                  fontFamily: c.side === 'prompt' ? 'var(--em-body)' : 'var(--em-decor)',
-                  fontSize: c.side === 'prompt' ? 11 : 16, lineHeight: 1.3,
-                }}>{c.text}</div>
-                {/* Brass tag */}
-                <div aria-hidden="true" style={{
-                  position: 'absolute', top: -8, right: 10,
-                  width: 22, height: 14, borderRadius: 3,
-                  background: isMatched ? `${ACCENT}` : '#7A5A2A',
-                  border: '1px solid rgba(0,0,0,0.4)',
-                  fontSize: 7, color: isMatched ? '#0E0A1A' : '#F4EFEF',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'var(--em-mono)', letterSpacing: '0.1em',
-                  transformOrigin: 'top center',
-                  animation: isMatched ? 'none' : `em-fm-tag-swing ${2 + (i % 3) * 0.4}s ease-in-out infinite`,
-                }}>{isMatched ? '✓' : `#${(i + 1).toString().padStart(2, '0')}`}</div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Instructions modal only — centered HintCard + standalone Bajla
-          removed 2026-05-03; chat-widget speech bubble carries the brief. */}
-      {!completed && (
-        <div style={{ position: 'absolute', bottom: 28, left: 28, right: 200, maxWidth: 460, zIndex: 5 }}>
-        </div>
-      )}
-
-      {/* Completion */}
-      {completed && !onSessionComplete && (
-        <div
-          role="dialog"
-          aria-live="assertive"
-          aria-label="Lost and Found complete"
-          style={{
-            position: 'absolute', inset: 0,
-            background: `radial-gradient(ellipse, ${ACCENT}22, rgba(14,10,26,0.62))`,
-            backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14,
-            animation: 'em-rise 0.4s var(--em-ease)', zIndex: 10,
-          }}
-        >
-          <Bajla size={84} mood="cheer" decorative />
-          <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa` }}>Every owner found.</div>
-          <div className="em-eyebrow">COUNTER CLEARED · LADA PUSTA</div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-            <button className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
-          </div>
-        </div>
-      )}
-      <Confetti show={completed} />
-    </div>
-  );
+  const priorityId = active.rounds.find(r => !matched.includes(r.id))?.id;
+  return <PairArena title="The Lost & Found" memory={false} cards={cards} matched={matched} selected={selected} wrong={wrongFlash} hintGlow={hintGlow} onPick={onTap} onHint={useHint} hintDisabled={hintsUsed >= 2} onReset={reset} priority={cards.find(c => c.pairId === priorityId && c.side === 'prompt')?.text} />;
 };
 
 export default FindTheMatchShell;

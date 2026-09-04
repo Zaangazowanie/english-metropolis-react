@@ -1,3 +1,8 @@
+import { useActionCompletion } from './action-arcade-completion';
+import { selectedWheelRotation } from './action-arcade-logic.mjs';
+import { useArcadeEvents } from '../lib/arcade-events';
+import { useActionTimers } from './action-arcade-timers';
+import './action-arcade.css';
 // Spin the Wheel — "The Carnival Wheel" district.
 //
 // A carnival booth at dusk: marquee bulbs around a wheel of options. Tap
@@ -30,68 +35,42 @@ import type { FullInstructions } from '../components';
 
 // Carnival Wheel · Spin the Wheel — full bilingual instruction copy.
 const SPINTHEWHEEL_INSTRUCTIONS: FullInstructions = {
-  whatYouDo: {
-    en: [
-      'A question appears beside the carnival wheel; four answer wedges sit on the rim labelled A / B / C / D.',
-      'Tap the SPIN handle to send the wheel spinning — it decelerates and the pointer lands on one wedge.',
-      'The wedge under the pointer is your committed answer — there is no "change my mind" once it stops.',
-      'Right pick lights the marquee bulbs and bumps your score; wrong pick rings a buzzer and Bajla nudges the right wedge.',
+  "whatYouDo": {
+    "en": [
+      "Choose the word that fits the clue, then spin to lock your answer."
     ],
-    pl: [
-      'Pytanie pojawia się obok koła karnawałowego; cztery klinki odpowiedzi na obrzeżu mają litery A / B / C / D.',
-      'Stuknij dźwignię SPIN, aby zakręcić kołem — zwalnia i wskaźnik ląduje na jednym klinie.',
-      'Klin pod wskaźnikiem to Twoja zatwierdzona odpowiedź — po zatrzymaniu nie ma „zmiany zdania".',
-      'Trafienie zapala żarówki marquee i podbija wynik; błąd włącza brzęczyk, a Bajla wskazuje właściwy klin.',
+    "pl": [
+      "Wybierz słowo pasujące do wskazówki i zakręć kołem, aby je zatwierdzić."
+    ]
+  },
+  "controls": {
+    "en": [
+      "Tap a word in the fixed legend. Choose Bank or Double before spinning. The wheel always lands on your selected word."
     ],
+    "pl": [
+      "Stuknij słowo w nieruchomej legendzie. Wybierz Bank lub Double. Koło zawsze zatrzymuje się na wybranym słowie."
+    ]
   },
-  controls: {
-    en: [
-      'Question card: pinned to the left of the wheel — read it before spinning.',
-      'Wheel: 4 numbered wedges (A / B / C / D) — labels also appear as nameplate-callouts outside the rim so they never truncate.',
-      'SPIN handle: brass lever at the bottom of the wheel — tap to launch.',
-      'Skip button: jumps to the next round (counts as wrong).',
-      'Hint button: 3 hints per session — each eliminates one wrong wedge by greying it out.',
+  "rightWrongSkip": {
+    "en": [
+      "Correct answers clear the clue. Wrong picks reveal the answer and let you retry. Skip returns to another unsolved clue; chance never grades your English."
     ],
-    pl: [
-      'Karta pytania: przypięta po lewej stronie koła — przeczytaj przed kręceniem.',
-      'Koło: 4 numerowane kliny (A / B / C / D) — etykiety pojawiają się też jako podpisy poza obręczą, więc nigdy się nie ucinają.',
-      'Dźwignia SPIN: brązowa dźwignia u dołu koła — stuknij, aby zakręcić.',
-      'Przycisk Pomiń: przeskakuje do następnej rundy (liczy się jako błąd).',
-      'Przycisk Podpowiedź: 3 podpowiedzi na sesję — każda usuwa jeden błędny klin, wyszarzając go.',
-    ],
+    "pl": [
+      "Dobre odpowiedzi zaliczają wskazówkę. Błędy pokazują odpowiedź i pozwalają próbować ponownie. Pomiń zmienia nierozwiązane pytanie; los nie ocenia Twojego angielskiego."
+    ]
   },
-  rightWrongSkip: {
-    en: [
-      'Right pick: ✓ marquee bulbs flash green, +1 to your tally, the wheel resets for the next round.',
-      'Wrong pick: ✗ red glow on the wedge, the correct wedge highlights green so you can see what you missed.',
-      'Skip: counts as wrong — the wheel auto-advances without spinning.',
-      'You cannot re-spin the same question — once committed, the next round queues automatically.',
-    ],
-    pl: [
-      'Trafienie: ✓ żarówki marquee migają na zielono, +1 do wyniku, koło resetuje się do następnej rundy.',
-      'Błąd: ✗ czerwona poświata na klinie, poprawny klin podświetla się na zielono, abyś zobaczył, co Ci umknęło.',
-      'Pomiń: liczy się jako błąd — koło automatycznie przeskakuje bez kręcenia.',
-      'Nie możesz zakręcić ponownie tego samego pytania — po zatwierdzeniu następna runda ładuje się automatycznie.',
-    ],
+  "hintMechanic": {
+    "en": "Use the limited Hint button for help with the current clue.",
+    "pl": "Użyj ograniczonej liczby podpowiedzi do aktualnej wskazówki."
   },
-  hintMechanic: {
-    en:
-      'You have 3 hints per session. Each tap greys out one wrong wedge so the pointer effectively lands on fewer choices. Save them for rounds where two wedges look equally plausible.',
-    pl:
-      'Masz 3 podpowiedzi na sesję. Każde stuknięcie wyszarza jeden błędny klin, więc wskaźnik trafia na mniej opcji. Zachowaj je na rundy, w których dwa kliny wyglądają równie prawdopodobnie.',
+  "scoring": {
+    "en": "Bank: 100 tickets on success. Double: 200 on success, lose 100 on a wrong answer, never below zero.",
+    "pl": "Bank: 100 biletów za sukces. Double: 200 za sukces, utrata 100 przy błędzie, nigdy poniżej zera."
   },
-  scoring: {
-    en:
-      'Skip counts as wrong. Each correct spin builds your session streak. Completing every round unlocks the post-shell review with explanations of any wrong picks.',
-    pl:
-      'Pomiń liczy się jako błąd. Każdy poprawny obrót buduje serię w sesji. Ukończenie wszystkich rund odblokowuje przegląd po sesji z wyjaśnieniami błędnych odpowiedzi.',
-  },
-  l1Pattern: {
-    en:
-      'Spin-the-wheel rounds rotate over your active vocabulary bank. Polish learners often pick a "false-friend" wedge (a similar-sounding word with a different meaning); the wheel format makes this slip visible because the pointer commits decisively.',
-    pl:
-      'Rundy koła kręcą się po Twoim aktywnym banku słownictwa. Polscy uczniowie często wybierają klin „fałszywego przyjaciela" (podobnie brzmiące słowo o innym znaczeniu); format koła unaocznia ten błąd, bo wskaźnik zatwierdza wybór bezdyskusyjnie.',
-  },
+  "l1Pattern": {
+    "en": "Practise English meaning and sentence context before you make your move.",
+    "pl": "Ćwicz angielskie znaczenie i kontekst zdania przed wykonaniem ruchu."
+  }
 };
 
 export type ArcadeForcedState = 'empty' | 'active' | 'wrong' | 'correct' | 'complete' | null;
@@ -260,6 +239,8 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
 }) => {
   const activePuzzle: ArcadePuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : DEMO_PUZZLE;
   const persisted = useShellProgress('spinthewheel');
+  const arcadeEvent = useArcadeEvents();
+  const { later, cancel: cancelActionTimers } = useActionTimers();
 
   const [roundIdx, setRoundIdx] = useState(0);
   const [angle, setAngle] = useState(0);
@@ -270,6 +251,9 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
   const [hintsUsed, setHintsUsed] = useState(0);
   const [showHintGlow, setShowHintGlow] = useState(false);
   const angleRef = useRef(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [tickets, setTickets] = useState(0);
+  const [risk, setRisk] = useState(false);
 
   const cur = activePuzzle.rounds[roundIdx];
   // CD audit 2026-05-02 (#19): mask the answer-word in the prompt so the
@@ -282,6 +266,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
     [cur?.prompt, cur?.options, cur?.answerIndex]
   );
   const completed = solved.every(Boolean);
+  useActionCompletion(completed, Boolean(forcedState), arcadeEvent);
   const correctCount = solved.filter(Boolean).length;
   const tip = useEndOfShellTip({
     onWrongAnswer,
@@ -321,10 +306,10 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'spinthewheel',
-      brief: 'Tap SPIN. The pointer commits whichever wedge it lands on.',
-      brief_pl: 'Stuknij SPIN. Wskaźnik zatwierdza klin, na którym się zatrzyma.',
-      detail: 'A carnival prize wheel is divided into option wedges. Tap SPIN; when the pointer settles, that wedge is your committed answer. There is no take-back — pick carefully if you want to change spins. Right answers light the wedge green; wrong ones reveal the correct one.',
-      detail_pl: 'Karnawałowe koło z nagrodami jest podzielone na klin-opcje. Stuknij SPIN; gdy wskaźnik się zatrzyma, ten klin to Twoja zatwierdzona odpowiedź. Nie ma cofnięcia — wybieraj uważnie. Trafione świecą na zielono; błędne pokazują właściwą.',
+      brief: SPINTHEWHEEL_INSTRUCTIONS.whatYouDo.en[0],
+      brief_pl: SPINTHEWHEEL_INSTRUCTIONS.whatYouDo.pl[0],
+      detail: SPINTHEWHEEL_INSTRUCTIONS.controls.en.join(' ') + ' ' + SPINTHEWHEEL_INSTRUCTIONS.rightWrongSkip.en.join(' '),
+      detail_pl: SPINTHEWHEEL_INSTRUCTIONS.controls.pl.join(' ') + ' ' + SPINTHEWHEEL_INSTRUCTIONS.rightWrongSkip.pl.join(' '),
       fullInstructions: SPINTHEWHEEL_INSTRUCTIONS,
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
@@ -341,42 +326,32 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
   }, [forcedState]);
 
   const spin = (): void => {
-    if (spinning || forcedState) return;
+    if (spinning || forcedState || completed || selected === null || feedback === 'correct') return;
     setLandedOn(null);
     setFeedback(null);
     setSpinning(true);
-    // Pointer is at top (12 o'clock). Wedge index `i` is centered at angle
-    // i * wedgeAngle + wedgeAngle/2 (clockwise from top in our drawing).
-    // We pick a target wedge — slightly biased towards correct so the game
-    // feels fair-ish but still loses sometimes (33% chance to land on
-    // non-correct so the student practises picking from feedback).
-    const bias = Math.random() < 0.66 ? cur.answerIndex
-      : Math.floor(Math.random() * wedgeCount);
-    const target = bias;
-    // To land target wedge under the top pointer, the wheel rotation R such
-    // that (target_center + R) mod 360 == 0 (i.e. -target_center mod 360).
-    const targetCenter = target * wedgeAngle + wedgeAngle / 2;
-    // 5 full rotations + carry to that target.
-    const baseTurns = 5 * 360;
-    const offset = ((360 - targetCenter) % 360);
-    const finalAngle = angleRef.current + baseTurns + offset - (angleRef.current % 360);
+    const target = selected;
+    const finalAngle = selectedWheelRotation(angleRef.current, target, wedgeCount);
     angleRef.current = finalAngle;
     setAngle(finalAngle);
-    window.setTimeout(() => {
+    later(() => {
       setSpinning(false);
       setLandedOn(target);
       const correct = target === cur.answerIndex;
       setFeedback(correct ? 'correct' : 'wrong');
       if (correct) {
+        const won = risk ? 200 : 100; setTickets(n => n + won); arcadeEvent({ type: 'correct', points: won });
         setSolved(prev => prev.map((v, i) => i === roundIdx ? true : v));
-        window.setTimeout(() => {
-          if (roundIdx + 1 < activePuzzle.rounds.length) {
-            setRoundIdx(i => i + 1);
+        later(() => {
+          const nextRound = solved.findIndex((done, i) => !done && i !== roundIdx);
+          if (nextRound >= 0) {
+            setSelected(null); setRoundIdx(nextRound);
             setLandedOn(null);
             setFeedback(null);
           }
         }, ADVANCE_WAIT_MS);
       } else {
+        if (risk) setTickets(n => Math.max(0, n - 100)); arcadeEvent({ type: 'incorrect' });
         tip.recordWrong({
           questionId: cur.id,
           studentAnswer: cur.options[target],
@@ -401,10 +376,13 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
     if (hintsUsed >= 3 || spinning) return;
     setShowHintGlow(true);
     setHintsUsed(h => h + 1);
-    window.setTimeout(() => setShowHintGlow(false), HINT_GLOW_MS);
+    later(() => setShowHintGlow(false), HINT_GLOW_MS);
   };
 
   const reset = (): void => {
+    cancelActionTimers();
+    arcadeEvent({ type: 'reset' });
+    setSelected(null); setTickets(0); setRisk(false);
     setRoundIdx(0);
     setSolved(activePuzzle.rounds.map(() => false));
     setLandedOn(null);
@@ -699,8 +677,9 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
                live OUT here, never rotate, never truncate. The student reads
                the landed letter at the pointer, then crosses to the legend. */}
             <div
-              role="list"
-              aria-label="Wheel legend"
+              className="action-wheel-choices"
+              role="group"
+              aria-label="Choose your answer before spinning"
               style={{
                 display: 'grid',
                 gridTemplateColumns: `repeat(${Math.min(wedgeCount, 4)}, minmax(0, 1fr))`,
@@ -715,9 +694,12 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
                 const showCorrectGlow = (feedback === 'correct' || feedback === 'wrong') && isCorrect;
                 const showLandedWrong = feedback === 'wrong' && isLanded;
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={w.i}
-                    role="listitem"
+                    disabled={spinning || completed || feedback === 'correct'}
+                    onClick={() => { setSelected(w.i); setFeedback(null); setLandedOn(null); }}
+                    aria-pressed={selected === w.i}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '6px 10px', borderRadius: 10,
@@ -753,24 +735,23 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
                         // available via the `title` tooltip + the answer
                         // reveal panel below).
                         wordBreak: 'keep-all',
-                        overflowWrap: 'normal',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
+                        whiteSpace: 'normal',
+                        overflowWrap: 'anywhere',
                         lineHeight: 1.2,
                       }}
                       title={w.opt}
                     >{w.opt}</div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
 
+            <div className="action-arcade-hud"><div><strong>{tickets} TICKETS</strong><small>Pick the word, then spin to lock your answer. Bank 100 tickets, or play Double for 200; a wrong Double costs 100.</small></div><button disabled={spinning} aria-pressed={risk} onClick={() => setRisk(v => !v)}>{risk ? 'Double · 200 / −100' : 'Bank · 100'}</button></div>
             {/* Spin button */}
             <button
               className="em-btn em-btn-primary"
               onClick={spin}
-              disabled={spinning || completed}
+              disabled={spinning || completed || selected === null || feedback === 'correct'}
               aria-label={spinning ? 'Wheel spinning' : 'Spin the wheel'}
               style={{
                 minHeight: 48, padding: '12px 32px',
@@ -784,7 +765,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
                 transition: 'all 220ms var(--em-ease)',
               }}
             >
-              {spinning ? 'SPINNING…' : feedback === 'wrong' ? 'SPIN AGAIN' : 'SPIN'}
+              {spinning ? 'LOCKING IN…' : selected === null ? 'CHOOSE A WORD' : 'SPIN & LOCK ANSWER'}
             </button>
 
             {feedback === 'wrong' && landedOn !== null && (
@@ -816,8 +797,8 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
               <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa`, textAlign: 'center', padding: '0 16px' }}>The wheel rests.</div>
               <div className="em-eyebrow">CARNIVAL CLOSING TIME · WESOŁE MIASTECZKO ZAMYKA</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-                <button className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
+                <button className="em-btn em-btn-ghost" onClick={reset}>Restart run</button>
+                <button className="em-btn em-btn-primary" onClick={reset}>Play again →</button>
               </div>
             </div>
           )}
@@ -828,7 +809,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Progress current={solved.filter(Boolean).length} total={activePuzzle.rounds.length} accent={ACCENT} />
             <div style={{ display: 'flex', gap: 6 }}>
-              <SkipButton onClick={skipRound} />
+              <SkipButton onClick={() => { if (spinning || feedback === 'correct' || completed) return; const next = solved.findIndex((done, i) => !done && i !== roundIdx); if (next >= 0) { setSelected(null); setFeedback(null); setLandedOn(null); setRoundIdx(next); } }} />
               <HintButton onClick={useHint} used={hintsUsed} total={3} />
             </div>
           </div>

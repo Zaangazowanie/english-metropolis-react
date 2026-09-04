@@ -1,3 +1,4 @@
+import { ChallengeArena, useChallengeArcade } from './challenge-arcade';
 // RandomCards — "The Dealer's Table" district.
 // A felt-topped card table with a brass card-shoe at the back. Player taps the
 // shoe; a card flies out, lands on the felt, and shows its question. Pick
@@ -228,6 +229,7 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useChallengeArcade();
   // Kelly Tier-2 (2026-05-02): defensive props guard.
   const propsInvalid = !forcedState && puzzle !== undefined && (!puzzle.rounds || puzzle.rounds.length === 0);
   const active: WrapperPuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : RC_DEMO;
@@ -251,11 +253,11 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'randomcards',
-      brief: 'Tap the shoe to draw a card; pick the right option to win it.',
-      brief_pl: 'Stuknij shoe, aby losować kartę; wybierz właściwą opcję, by ją wygrać.',
-      detail: 'You are at the dealer\'s table. Tap the brass card shoe to draw a random card; the card carries a question and answer chips. Pick the right one and you win the card; pick wrong and the dealer takes it. Play through the deck to clear the table.',
-      detail_pl: 'Jesteś przy stole krupiera. Stuknij brązowy „shoe", aby wylosować kartę; karta ma pytanie i kafelki z odpowiedziami. Wybierz dobrą i wygrywasz kartę; źle — krupier ją bierze. Rozegraj całą talię, aby zamknąć stół.',
-      fullInstructions: RANDOMCARDS_INSTRUCTIONS,
+      brief: "Deal a card, read the challenge and choose its answer.",
+      brief_pl: "Rozdaj kartę, przeczytaj wyzwanie i wybierz odpowiedź.",
+      detail: "Deal a card, read the challenge and choose its answer. Correct answers join your winning hand. Use a boost before answering for double points. The answer stays visible until you choose Next challenge, then deal another card.",
+      detail_pl: "Rozdaj kartę, przeczytaj wyzwanie i wybierz odpowiedź. Poprawne odpowiedzi trafiają do wygranej puli. Włącz premię przed odpowiedzią. Odpowiedź pozostaje widoczna, aż wybierzesz Dalej. Następnie rozdaj kolejną kartę.",
+      fullInstructions: { ...RANDOMCARDS_INSTRUCTIONS, whatYouDo: {"en": ["Deal a card, read the challenge and choose its answer.", "Correct answers join your winning hand. Use a boost before answering for double points.", "The answer stays visible until you choose Next challenge, then deal another card."], "pl": ["Rozdaj kartę, przeczytaj wyzwanie i wybierz odpowiedź.", "Poprawne odpowiedzi trafiają do wygranej puli. Włącz premię przed odpowiedzią.", "Odpowiedź pozostaje widoczna, aż wybierzesz Dalej. Następnie rozdaj kolejną kartę."]}, controls: {"en": ["Deal a card, read the challenge and choose its answer.", "Correct answers join your winning hand. Use a boost before answering for double points.", "The answer stays visible until you choose Next challenge, then deal another card."], "pl": ["Rozdaj kartę, przeczytaj wyzwanie i wybierz odpowiedź.", "Poprawne odpowiedzi trafiają do wygranej puli. Włącz premię przed odpowiedzią.", "Odpowiedź pozostaje widoczna, aż wybierzesz Dalej. Następnie rozdaj kolejną kartę."]}, rightWrongSkip: {"en": ["Correct choices earn arcade points. Mistakes stay available in your session review. Skip moves on without points."], "pl": ["Poprawne wybory dają punkty arcade. Błędy zobaczysz w przeglądzie sesji. Pominięcie przechodzi dalej bez punktów."]} },
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
     return () => {
@@ -279,6 +281,7 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   const completed = !forcedState && idx >= active.rounds.length;
+  useEffect(() => { if (completed && !forcedState) arcade.finish(); }, [completed, forcedState]);
 
   const tip = useEndOfShellTip({
     onWrongAnswer,
@@ -312,7 +315,7 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
   }, [forcedState, active.rounds]);
 
   const drawCard = (): void => {
-    if (forcedState || phase !== 'shoe') return;
+    if (forcedState || phase !== 'shoe' || shuffling) return;
     setShuffling(true);
     setAnnouncement('Dealing.');
     // Kelly Tier-2 (2026-05-02): collapse the shuffle pause to ~instant when
@@ -330,6 +333,7 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
     setPicked(i);
     setPhase('verdict');
     const right = i === round.answerIndex;
+    arcade.decide(right, round.id);
     setVerdict(right ? 'right' : 'wrong');
     setAnnouncement(right ? 'Correct.' : `Wrong. The card was ${round.options[round.answerIndex]}.`);
     if (right) setScore((s) => ({ ...s, right: s.right + 1 }));
@@ -345,19 +349,16 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
     }
   };
 
-  // After verdict, brief pause then re-shuffle and serve next.
-  useEffect(() => {
-    if (forcedState) return;
-    if (phase !== 'verdict') return;
-    const t = setTimeout(() => {
-      setIdx((i) => i + 1);
-      setPicked(null);
-      setVerdict(null);
-      setRevealedHint(false);
-      setPhase('shoe');
-    }, 1500);
-    return () => clearTimeout(t);
-  }, [phase, forcedState]);
+  // A real hand ends on the player's choice, leaving time to read feedback.
+  const advanceCard = () => {
+    setIdx(i => i + 1); setPicked(null); setVerdict(null);
+    setRevealedHint(false); setPhase('shoe');
+  };
+  const skipCard = () => {
+    if (forcedState || phase !== 'reveal' || !round) return;
+    tip.recordWrong({ questionId: round.id, studentAnswer: '(skipped)', correctAnswer: round.options[round.answerIndex], explanationPL: round.hint_pl, exerciseId: round.exerciseId });
+    arcade.decide(false, round.id); advanceCard();
+  };
 
   const useHint = (): void => {
     if (forcedState || hintsUsed >= 2 || !round) return;
@@ -366,39 +367,13 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
   };
 
   const reset = (): void => {
+    arcade.reset();
     setIdx(0); setPhase('shoe'); setPicked(null); setVerdict(null);
     setScore({ right: 0, wrong: 0 }); setHintsUsed(0); setRevealedHint(false);
     tip.reset();
   };
 
-  // Kelly Tier-2 (2026-05-02): focus-trap effect for the completion overlay.
-  useEffect(() => {
-    if (!completed) return;
-    previouslyFocusedRef.current = (document.activeElement as HTMLElement) || null;
-    const focusId = window.setTimeout(() => { nextDistrictBtnRef.current?.focus(); }, 0);
-    const trap = (e: KeyboardEvent) => {
-      if (e.key === 'Tab') {
-        const focusables = [tryAnotherBtnRef.current, nextDistrictBtnRef.current].filter(Boolean) as HTMLButtonElement[];
-        if (focusables.length === 0) return;
-        const i = focusables.indexOf(document.activeElement as HTMLButtonElement);
-        e.preventDefault();
-        if (e.shiftKey) {
-          const next2 = i <= 0 ? focusables[focusables.length - 1] : focusables[i - 1];
-          next2.focus();
-        } else {
-          const next2 = i === -1 || i >= focusables.length - 1 ? focusables[0] : focusables[i + 1];
-          next2.focus();
-        }
-      }
-    };
-    document.addEventListener('keydown', trap);
-    return () => {
-      window.clearTimeout(focusId);
-      document.removeEventListener('keydown', trap);
-      const prev = previouslyFocusedRef.current;
-      if (prev && typeof prev.focus === 'function') prev.focus();
-    };
-  }, [completed]);
+
 
   const grad = time === 'day'
     ? 'radial-gradient(ellipse at 50% 60%, #2D6A4F 0%, #14342B 60%, #08160F 100%)'
@@ -411,233 +386,7 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
     return <div className="em-shell-host-error">No puzzle data available · Brak danych ćwiczenia</div>;
   }
 
-  return (
-    <div
-      className="em-shell em-shell-randomcards em-rc-felt"
-      role="application"
-      aria-label="Random Cards, The Dealer's Table"
-      tabIndex={0}
-      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: grad }}
-    >
-      {/* Shell-scoped keyframes → src/practice/styles/shells/randomcards.css */}
-
-      <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
-        {announcement}
-      </div>
-
-      {/* Felt grain */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', inset: 0, opacity: 0.5,
-        backgroundImage: 'radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px)',
-        backgroundSize: '4px 4px', pointerEvents: 'none',
-        animation: 'em-rc-felt-shimmer 6s ease-in-out infinite',
-      }} />
-      {/* Felt edge ring */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', top: '14%', left: '8%', right: '8%', bottom: '14%',
-        borderRadius: '50%', border: `2px solid ${ACCENT}33`,
-        boxShadow: `inset 0 0 60px ${ACCENT}1a`, pointerEvents: 'none',
-      }} />
-
-      {/* Top bar */}
-      <div style={{ position: 'absolute', top: 28, left: 28, right: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 6, gap: 12, flexWrap: 'wrap' }}>
-        <AmbientAudioPlayer shellSlug="randomcards" />
-        <Nameplate
-          district="The Dealer's Table"
-          subtitle="Random Cards · Karty losowe · the shoe never sleeps"
-          accent={ACCENT}
-          icon={<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="4" y="3" width="10" height="14" rx="1.5" stroke={ACCENT} strokeWidth="1.6" transform="rotate(-8 9 10)" /><rect x="8" y="5" width="10" height="14" rx="1.5" stroke={ACCENT} strokeWidth="1.6" transform="rotate(8 13 12)" /></svg>}
-        />
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div className="em-eyebrow" style={{ color: '#34D399' }}>WON {String(score.right).padStart(2, '0')}</div>
-          <div className="em-eyebrow" style={{ color: '#FB7185' }}>LOST {String(score.wrong).padStart(2, '0')}</div>
-          <Progress current={Math.min(idx, active.rounds.length)} total={active.rounds.length} accent={ACCENT} />
-          <SkipButton onClick={() => { if (phase === 'reveal') { setPhase('verdict'); setVerdict(null); setIdx((i) => i + 1); setPhase('shoe'); } }} />
-          <HintButton onClick={useHint} used={hintsUsed} total={2} />
-        </div>
-      </div>
-
-      {/* Discard pile — left.
-          Ricky 2026-05-02 (#15 audit pass): aria-hidden cosmetic decoration.
-          Was missing pointerEvents:none — at narrow viewports (375/414) the
-          left:60 width:90 box could push under the active card / answer
-          chips at left ~50%. Now non-blocking + hidden under 480px so the
-          center card has the full canvas. Same fix for the WON pile on the
-          right (which was also crowding the brass card-shoe at right:80). */}
-      <div aria-hidden="true" className="em-rc-pile em-rc-pile-discard" style={{ position: 'absolute', left: 60, top: '40%', zIndex: 1, pointerEvents: 'none' }}>
-        <div style={{
-          width: 90, height: 130, borderRadius: 8,
-          background: 'repeating-linear-gradient(45deg, #2A0E36 0 6px, #1F0E40 6px 12px)',
-          border: '1px solid #5C3A2A', boxShadow: '0 6px 14px rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          opacity: 0.45, transform: 'rotate(-8deg)',
-        }}>
-          <span className="em-eyebrow" style={{ color: '#FB7185' }}>DISCARD</span>
-        </div>
-      </div>
-
-      {/* Won pile — right */}
-      <div aria-hidden="true" className="em-rc-pile em-rc-pile-won" style={{ position: 'absolute', right: 60, top: '40%', zIndex: 1, pointerEvents: 'none' }}>
-        <div style={{
-          width: 90, height: 130, borderRadius: 8,
-          background: 'linear-gradient(135deg, #34D399 0%, #1B8060 100%)',
-          border: '1px solid rgba(255,255,255,0.25)',
-          boxShadow: `0 6px 14px rgba(0,0,0,0.5), 0 0 18px #34D39955`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          opacity: 0.55, transform: 'rotate(6deg)',
-        }}>
-          <span className="em-eyebrow" style={{ color: '#0E2A1F' }}>WON</span>
-        </div>
-      </div>
-      <style>{`
-        @media (max-width: 480px) {
-          .em-rc-pile { display: none; }
-        }
-      `}</style>
-
-      {/* The card-shoe — back-right of the felt */}
-      <div style={{ position: 'absolute', top: 110, right: 80, zIndex: 4 }}>
-        <button
-          type="button"
-          onClick={drawCard}
-          disabled={!!forcedState || phase !== 'shoe' || completed}
-          aria-label={phase === 'shoe' ? 'Draw a card from the shoe' : 'Card in play'}
-          style={{
-            position: 'relative', width: 130, height: 170, padding: 0,
-            background: 'linear-gradient(180deg, #B58943 0%, #6F4818 100%)',
-            border: '2px solid #3A2410', borderRadius: 12,
-            cursor: phase === 'shoe' && !completed ? 'pointer' : 'default',
-            animation: phase === 'shoe' && !completed ? 'em-rc-shoe-pulse 2.4s ease-in-out infinite' : 'none',
-          }}
-        >
-          <div className="em-eyebrow" style={{ position: 'absolute', top: 10, left: 0, right: 0, color: '#FBBF24' }}>BRASS SHOE</div>
-          {/* Stack of card edges visible inside the shoe */}
-          <div style={{ position: 'absolute', top: 32, left: 12, right: 12, bottom: 24, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {deckStack.map((i) => (
-              <div key={i} style={{
-                height: 12, borderRadius: 2,
-                background: 'repeating-linear-gradient(90deg, #2A0E36 0 4px, #1F0E40 4px 8px)',
-                border: '1px solid rgba(0,0,0,0.4)',
-                animation: shuffling ? `em-rc-shuffle-fan 0.5s ease-in-out ${i * 0.04}s` : 'none',
-              }} />
-            ))}
-          </div>
-          <div style={{ position: 'absolute', bottom: 6, left: 0, right: 0, fontFamily: 'var(--em-mono)', fontSize: 9, color: '#FBBF24', letterSpacing: '0.2em' }}>
-            {phase === 'shoe' && !completed ? 'TAP · STUKNIJ' : '•••'}
-          </div>
-        </button>
-      </div>
-
-      {/* Center stage — the active card + answer rail */}
-      {!completed && round && phase !== 'shoe' && (
-        <div style={{
-          position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, zIndex: 5,
-        }}>
-          {/* The card */}
-          <div
-            key={idx}
-            style={{
-              width: 280, minHeight: 200, padding: 22,
-              background: 'linear-gradient(180deg, #F4EFEF 0%, #DCD2D2 100%)',
-              border: `2px solid ${verdict === 'right' ? '#34D399' : verdict === 'wrong' ? '#FB7185' : '#3A2410'}`,
-              borderRadius: 12, color: '#1F0E40',
-              boxShadow: `0 18px 36px rgba(0,0,0,0.5), 0 0 ${verdict ? '24px' : '0'} ${verdict === 'right' ? '#34D399aa' : verdict === 'wrong' ? '#FB7185aa' : 'transparent'}`,
-              animation: verdict === 'right'
-                ? 'em-rc-card-win 0.9s var(--em-ease) 0.4s forwards'
-                : verdict === 'wrong'
-                  ? 'em-rc-card-discard 0.9s var(--em-ease) 0.4s forwards'
-                  : 'em-rc-card-fly 0.55s var(--em-ease) both',
-              transformStyle: 'preserve-3d', perspective: 800,
-            }}
-          >
-            {/* Suit pip top-left */}
-            <div className="em-eyebrow" style={{ position: 'absolute', top: 10, left: 14, color: ACCENT, letterSpacing: '0.2em' }}>♠ {String(idx + 1).padStart(2, '0')}</div>
-            <div className="em-eyebrow" style={{ position: 'absolute', bottom: 10, right: 14, color: ACCENT, letterSpacing: '0.2em', transform: 'rotate(180deg)' }}>♠ {String(idx + 1).padStart(2, '0')}</div>
-            <div className="em-decor" style={{ fontSize: 18, lineHeight: 1.35, marginTop: 18, textAlign: 'center' }}>{round.prompt}</div>
-            {revealedHint && (
-              <div style={{ marginTop: 10, fontSize: 12, color: '#7A5A2A', fontStyle: 'italic', textAlign: 'center' }}>
-                💡 {round.hint}
-              </div>
-            )}
-          </div>
-
-          {/* Answer chips — small, in a fan below */}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {round.options.map((opt, i) => {
-              const isPicked = picked === i;
-              const isAnswer = i === round.answerIndex;
-              const showRight = verdict !== null && isAnswer;
-              const showWrong = verdict === 'wrong' && isPicked && !isAnswer;
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => onPick(i)}
-                  disabled={!!forcedState || phase !== 'reveal'}
-                  aria-label={`Bet on ${opt}`}
-                  style={{
-                    minWidth: 80, padding: '12px 18px', minHeight: 44,
-                    background: showRight
-                      ? 'linear-gradient(180deg, #34D399, #1B8060)'
-                      : showWrong
-                        ? 'linear-gradient(180deg, #FB7185, #BE3A4F)'
-                        : isPicked
-                          ? `linear-gradient(180deg, ${ACCENT}, #BE3A4F)`
-                          : 'linear-gradient(180deg, rgba(244,239,239,0.95), rgba(220,210,210,0.95))',
-                    color: showRight || showWrong || isPicked ? '#0E0A1A' : '#1F0E40',
-                    border: '2px solid rgba(0,0,0,0.4)', borderRadius: '50%',
-                    fontFamily: 'var(--em-decor)', fontSize: 14,
-                    cursor: phase === 'reveal' ? 'pointer' : 'default',
-                    boxShadow: '0 6px 14px rgba(0,0,0,0.5), inset 0 -3px 6px rgba(0,0,0,0.2)',
-                    transition: 'all 220ms var(--em-ease)',
-                    transform: isPicked ? 'translateY(-3px)' : 'translateY(0)',
-                  }}
-                >{opt}</button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Instructions modal only — HintCard + standalone Bajla removed
-          2026-05-03; chat-widget speech bubble carries the brief. */}
-      {!completed && (
-        <div style={{ position: 'absolute', bottom: 28, left: 28, maxWidth: 360, zIndex: 5 }}>
-        </div>
-      )}
-
-      {/* Completion */}
-      {completed && !onSessionComplete && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-live="assertive"
-          aria-label="Dealer's Table complete"
-          style={{
-            position: 'absolute', inset: 0,
-            background: `radial-gradient(ellipse, ${ACCENT}22, rgba(14,10,26,0.62))`,
-            backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14,
-            animation: 'em-rise 0.4s var(--em-ease)', zIndex: 10,
-          }}
-        >
-          <Bajla size={84} mood="cheer" decorative />
-          <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa` }}>Last card. House closes.</div>
-          <div className="em-eyebrow">DEALER OUT · KRUPIER WYCHODZI</div>
-          <div style={{ display: 'flex', gap: 28, alignItems: 'baseline' }}>
-            <div style={{ textAlign: 'center' }}><div className="em-decor" style={{ fontSize: 44, color: '#34D399' }}>{score.right}</div><div className="em-eyebrow" style={{ color: '#34D399' }}>WON</div></div>
-            <div style={{ textAlign: 'center' }}><div className="em-decor" style={{ fontSize: 44, color: '#FB7185' }}>{score.wrong}</div><div className="em-eyebrow" style={{ color: '#FB7185' }}>LOST</div></div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button ref={tryAnotherBtnRef} type="button" className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-            <button ref={nextDistrictBtnRef} type="button" className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
-          </div>
-        </div>
-      )}
-      <Confetti show={completed} />
-    </div>
-  );
+  return <ChallengeArena variant="dealer" title="The Dealer’s Table" mission="Collect the winning cards. Play your two boosts wisely." prompt={round?.prompt} options={round?.options ?? []} picked={picked} answerIndex={round?.answerIndex ?? -1} revealed={phase === 'verdict'} round={idx} total={active.rounds.length} score={score.right} completed={completed} onPick={onPick} onNext={advanceCard} onSkip={skipCard} onReset={reset} onHint={useHint} hintDisabled={hintsUsed >= 2 || revealedHint || phase !== 'reveal'} hint={phase === 'verdict' ? round?.hint_pl || round?.hint : revealedHint ? round?.hint : undefined} run={arcade} ready={phase !== 'shoe'} onReady={drawCard} />;
 };
 
 export default RandomCardsShell;

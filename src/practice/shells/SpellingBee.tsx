@@ -6,6 +6,7 @@
 // the spotlight bursts and the curtain rises a touch.
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
+import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
@@ -312,6 +313,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useWordArcade();
   const activePuzzle: ShellSpellingBeePuzzle =
     puzzle && puzzle.words.length > 0 ? puzzle : SB_PUZZLE;
   const total = activePuzzle.words.length;
@@ -319,6 +321,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
 
   const [idx, setIdx] = useState(0);
   const [draft, setDraft] = useState('');
+  const [slowPlayback, setSlowPlayback] = useState(false);
   const [verdict, setVerdict] = useState<'right' | 'wrong' | null>(null);
   const [score, setScore] = useState(0);
   const [questionsSeen, setQuestionsSeen] = useState(0);
@@ -339,7 +342,8 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
     completed,
     forcedState,
     onSessionComplete: onSessionComplete ? ({ wrongAttempts }) => {
-      onSessionComplete({
+      arcade.complete();
+    onSessionComplete({
         correctCount: score,
         totalQuestions: total,
         wrongAttempts,
@@ -404,6 +408,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
     }
     if (src) {
       audioRef.current.src = src;
+      audioRef.current.playbackRate = slowPlayback ? .75 : 1;
       if (autoplay) {
         audioRef.current.play().catch(() => speakWord(cur.word));
       }
@@ -427,6 +432,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
     if (!cur || !audioRef.current) return;
     if (audioRef.current.src && audioRef.current.src !== window.location.href) {
       audioRef.current.currentTime = 0;
+      audioRef.current.playbackRate = slowPlayback ? .75 : 1;
       audioRef.current.play().catch(() => speakWord(cur.word));
     } else {
       // Source not yet wired (e.g. user clicked Hear again before auto-speak
@@ -436,11 +442,12 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
   };
 
   const submit = (): void => {
-    if (forcedState || !cur) return;
+    if (forcedState || !cur || verdict === 'right' || completed) return;
     const candidate = normalise(draft);
     if (!candidate) return;
     const correct = candidate === normalise(cur.word);
     setVerdict(correct ? 'right' : 'wrong');
+    arcade.answer(correct);
     if (correct) {
       setScore((s) => s + 1);
       setHistory((h) => [...h, { word: cur.word, verdict: 'right' }]);
@@ -490,6 +497,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
   };
 
   const reset = (): void => {
+    arcade.restart();
     setIdx(0); setDraft(''); setVerdict(null); setScore(0);
     setQuestionsSeen(0); setHintsUsed(0); setHintRevealed(false); setRevealedFirst('');
     setHistory([]);
@@ -500,7 +508,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
 
   return (
     <div
-      className="em-shell em-shell-spellingbee"
+      className="em-shell wa-form-game em-shell-spellingbee"
       role="application"
       aria-label="Spelling Bee, The Concert Hall"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -609,6 +617,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
       {/* Stage centrepiece */}
       {!completed && cur && (
         <div className="sb-stage" style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: 28, zIndex: 4 }}>
+          <WordMission kind="stage" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/><div className="wa-inline-tools"><button aria-pressed={slowPlayback} onClick={()=>{setSlowPlayback(v=>!v);if(audioRef.current)audioRef.current.playbackRate=slowPlayback?1:.75;}}>Slow listening {slowPlayback?'on · 0.75×':'off · 1×'}</button><span>Listen as often as you need. No points lost.</span></div>
           {/* Microphone */}
           <div
             key={`m-${cur.id}`}
