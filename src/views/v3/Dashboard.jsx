@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import './dashboard-metropolis.css'
 import { Link } from 'react-router-dom'
 import { FONT, G, CEFR_COLOR } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
@@ -119,12 +120,12 @@ function MetricCard({ axis, score, slug, basePath }) {
   )
 }
 
-function LatestLessonCard({ lesson, slug, basePath, pdfUrl }) {
+export function LatestLessonCard({ lesson, slug, basePath, pdfUrl }) {
   const { T } = useV3Theme()
   const { t } = useI18n()
   if (!lesson) {
     return (
-      <Glass padding={28} hover style={{ minHeight: 220 }}>
+      <Glass className="em-dashboard-card em-dashboard-card--analysis" padding={28} hover style={{ minHeight: 220 }}>
         <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
           textTransform: 'uppercase', color: T.textDim, marginBottom: 6 }}>
           {t('dashboard.latest.kicker')}
@@ -145,7 +146,7 @@ function LatestLessonCard({ lesson, slug, basePath, pdfUrl }) {
   const topics = (lesson.topics || []).slice(0, 4)
   const lessonPath = slug ? `${basePath}/${slug}/lessons?openLesson=${lesson.id}` : '#'
   return (
-    <Glass padding={28} hover>
+    <Glass className="em-dashboard-card em-dashboard-card--analysis" padding={28} hover>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         gap: 16, flexWrap: 'wrap' }}>
         <div>
@@ -195,11 +196,11 @@ function LatestLessonCard({ lesson, slug, basePath, pdfUrl }) {
   )
 }
 
-function AccuracyAtSpeedCard({ slug, basePath }) {
+export function AccuracyAtSpeedCard({ slug, basePath }) {
   const { T, isMobile } = useV3Theme()
   const practicePath = `${basePath}/${slug}/practice`
   return (
-    <Glass padding={0} style={{
+    <Glass className="em-dashboard-card em-dashboard-card--speed" padding={0} style={{
       marginBottom: 24,
       overflow: 'hidden',
       borderColor: 'rgba(217,70,239,0.26)',
@@ -248,7 +249,7 @@ function AccuracyAtSpeedCard({ slug, basePath }) {
   )
 }
 
-function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null }) {
+export function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null }) {
   const { T } = useV3Theme()
   const { t } = useI18n()
   // Live clock (30s tick) so "starts in N min" and the Join state stay honest
@@ -269,7 +270,7 @@ function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null }) {
   // Empty state — calm, on-tone with the rest of the hero row.
   if (!upcoming) {
     return (
-      <Glass padding={28} hover style={{
+      <Glass className="em-dashboard-card em-dashboard-card--upcoming" padding={28} hover style={{
         position: 'relative', display: 'flex', flexDirection: 'column',
         justifyContent: 'space-between', minHeight: 220,
       }}>
@@ -323,7 +324,7 @@ function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null }) {
   const lessonPath = slug ? `${basePath}/${slug}/lessons?openLesson=${upcoming.id}` : '#'
 
   return (
-    <Glass padding={28} hover style={{
+    <Glass className="em-dashboard-card em-dashboard-card--upcoming" padding={28} hover style={{
       position: 'relative',
       borderColor: isLive ? T.emerald : undefined,
       boxShadow: isLive ? `0 0 0 2px ${T.emerald}, 0 0 40px -8px ${T.emerald}` : undefined,
@@ -395,7 +396,7 @@ function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null }) {
 
 // The "do it now" revision card — deep-links into the flashcard deck
 // pre-filtered to the latest lesson's keywords (Vocabulary ?lesson=<date>).
-function ReviseCard({ lesson, slug, basePath }) {
+export function ReviseCard({ lesson, slug, basePath }) {
   const { T } = useV3Theme()
   const { t } = useI18n()
   const kwCount = numberOr(lesson?.keyword_count)
@@ -404,7 +405,7 @@ function ReviseCard({ lesson, slug, basePath }) {
     : '#'
   const allPath = slug ? `${basePath}/${slug}/vocabulary` : '#'
   return (
-    <Glass padding={28} hover style={{ display: 'flex', flexDirection: 'column',
+    <Glass className="em-dashboard-card em-dashboard-card--revision" padding={28} hover style={{ display: 'flex', flexDirection: 'column',
       justifyContent: 'space-between', minHeight: 220 }}>
       <div>
         <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
@@ -449,10 +450,10 @@ function ReviseCard({ lesson, slug, basePath }) {
 // line shows the completed-lesson history instead, so it always reflects the
 // student's real state and is never decorative.
 function LessonLineSvg({ stations, lit, next, T, isDay }) {
-  const n = Math.max(2, Math.min(30, stations || 2))
+  const n = Math.max(1, Math.floor(stations || 1))
   const w = 600, h = 120
   const pts = Array.from({ length: n }, (_, i) => {
-    const t = i / (n - 1)
+    const t = n === 1 ? .5 : i / (n - 1)
     return [20 + t * (w - 40), h / 2 - Math.sin(t * Math.PI * 1.6 + 0.4) * 22]
   })
   const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
@@ -471,7 +472,7 @@ function LessonLineSvg({ stations, lit, next, T, isDay }) {
   )
 }
 
-function LessonLineCard({ alloc, lessonsCount, upcoming, slug, basePath }) {
+export function LessonLineCard({ alloc, lessonsCount, upcoming, slug, basePath }) {
   const { T, mode, isMobile } = useV3Theme()
   const { t, lang } = useI18n()
   const isDay = mode === 'day'
@@ -500,7 +501,7 @@ function LessonLineCard({ alloc, lessonsCount, upcoming, slug, basePath }) {
     </span>
   )
   return (
-    <Glass padding={0} style={{ marginBottom: 32, overflow: 'hidden' }}>
+    <Glass className="em-lesson-city" padding={0} style={{ marginBottom: 32, overflow: 'hidden' }}>
       <div style={{ padding: isMobile ? '18px 18px 0' : '22px 26px 0', display: 'flex', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', alignItems: 'baseline' }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.textDim }}>
@@ -523,9 +524,17 @@ function LessonLineCard({ alloc, lessonsCount, upcoming, slug, basePath }) {
         </div>
       </div>
       <ThreeSlot id="metro-line" load={() => import('../../design/v3/three/MetroLine.jsx')}
-        stations={stations} lit={lit} next={upcoming} isDay={isDay} height={isMobile ? 130 : 160}
-        style={{ minHeight: isMobile ? 130 : 160 }}
+        stations={stations} lit={lit} next={upcoming} isDay={isDay} height={isMobile ? 180 : 250}
+        style={{ minHeight: isMobile ? 180 : 250 }}
         fallback={<div style={{ padding: '10px 12px 0' }}><LessonLineSvg stations={stations} lit={lit} next={upcoming} T={T} isDay={isDay}/></div>}/>
+      <ol className="em-lesson-stops" aria-label={t('dashboard.metro.kicker')}>
+        {Array.from({ length: Math.max(1, Math.floor(stations)) }, (_, i) => {
+          const status = i < lit ? 'taken' : upcoming && i === lit ? 'next' : 'remaining'
+          return <li key={i} data-status={status} aria-label={`${i + 1}: ${t(`dashboard.metro.legend.${status}`)}`}>
+            <span aria-hidden>{String(i + 1).padStart(2, '0')}</span>
+          </li>
+        })}
+      </ol>
       <div style={{ padding: isMobile ? '0 18px 16px' : '0 26px 18px', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <span style={{ fontSize: 13, color: T.textMute }}>{t('dashboard.metro.hint')}</span>
         {packageMode && numberOr(alloc?.remaining) > 0 && (
@@ -640,7 +649,7 @@ function ExpandableSummary({ text, T, preferShort, t }) {
 }
 
 export default function DashboardV3({ data, slug, basePath = '' }) {
-  const { T, isMobile } = useV3Theme()
+  const { T, mode, isMobile } = useV3Theme()
   const { t, lang } = useI18n()
   const heroReveal = useReveal({ stagger: 60, cap: 3 })
   const metricsReveal = useReveal({ stagger: 40, cap: 6 })
@@ -762,7 +771,7 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
     .find(pdf => pdf.date === lessons[0]?.date)
 
   return (
-    <div className="em-content-in" style={{ maxWidth: 1840, margin: '0 auto',
+    <div className="em-content-in em-metropolis-dashboard" data-theme={mode} style={{ maxWidth: 1840, margin: '0 auto',
       padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }}>
 
       <div style={{ marginBottom: isMobile ? 36 : 48 }}>

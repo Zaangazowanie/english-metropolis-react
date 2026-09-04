@@ -312,7 +312,7 @@ export const Progress: React.FC<ProgressProps> = ({ current, total, accent = 'va
     ? `Question ${position} of ${total}, ${completed} correct`
     : `Question ${position} of ${total}`;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div className="em-game-progress" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <div className="em-eyebrow" aria-label={ariaLabel}>
         <span style={{ opacity: 0.6, marginRight: 4 }}>Q</span>
         <span>{position}</span>
@@ -345,7 +345,7 @@ export interface NameplateProps {
 }
 
 export const Nameplate: React.FC<NameplateProps> = ({ district, subtitle, accent = 'var(--em-magenta)', icon }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+  <div className="em-game-nameplate" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
     <div style={{
       width: 44, height: 44, borderRadius: 12,
       background: `linear-gradient(135deg, ${accent}, rgba(255,255,255,0.05))`,

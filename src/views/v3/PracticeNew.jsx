@@ -28,6 +28,7 @@ import '@fontsource/jetbrains-mono/700.css'
 
 import '../../practice/styles/system.css'
 import '../../practice/styles/global.css'
+import '../../practice/styles/arcade.css'
 
 export default function PracticeNew() {
   return <StudentPractice />

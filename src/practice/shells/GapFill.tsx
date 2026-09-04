@@ -574,7 +574,7 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
 
   return (
     <div
-      className="em-shell"
+      className="em-shell em-shell-gapfill"
       role="application"
       aria-label="Gap fill exercise, Construction Quarter"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -626,7 +626,7 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
 
       <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
 
-      <div style={{ position: 'relative', display: 'grid', gridTemplateRows: 'auto 1fr auto', gap: 24, padding: '60px 32px 32px', height: '100%', boxSizing: 'border-box' }}>
+      <div className="em-gap-layout" style={{ position: 'relative', display: 'grid', gridTemplateRows: 'auto 1fr auto', gap: 24, padding: '60px 32px 32px', height: '100%', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <AmbientAudioPlayer shellSlug="gapfill" />
           <Nameplate
@@ -637,14 +637,14 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {/* EM-041: pass `seen` so eyebrow shows Q seen/total · ✓ solved/total. */}
-            <Progress current={scenesSolved} total={activePuzzle.scenes.length} seen={scenesSeen} accent={accent} />
+            <Progress current={scenesSolved} total={activePuzzle.scenes.length} seen={Math.min(scene + 1, activePuzzle.scenes.length)} accent={accent} />
             <SkipButton onClick={skip} />
             <HintButton onClick={useHint} used={hintsUsed} total={3} />
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-          <div style={{ position: 'relative', width: '78%', maxWidth: 760 }}>
+          <div className="em-gap-sign" style={{ position: 'relative', width: '78%', maxWidth: 760 }}>
             <div style={{
               position: 'relative',
               background: 'linear-gradient(180deg, #2A1B45 0%, #1A1030 100%)',
