@@ -5,6 +5,7 @@ import './lesson-pricing-signup.css'
 import { COMPANY_PACKAGES, PRIVATE_PACKAGES, PACKAGE_LESSONS, packageValidity } from './packages.js'
 import CartUI from './CartUI.jsx'
 import PackageDial from './PackageDial.jsx'
+import RatyWidget from './RatyWidget.jsx'
 import PaymentMark from './PaymentMarks.jsx'
 import { cart, parsePricePLN, formatPLN } from './cart-store.js'
 import { detectInitial } from '../../i18n'
@@ -296,6 +297,8 @@ const PackageCard = memo(function PackageCard({ pkg, formatId, selected, lang, a
         {priceOf(pkg)}
         <small>{t('incl. VAT', 'z VAT')}</small>
       </div>
+      {/* Przelewy24's own instalment badge; renders nothing until Raty is offered (server-decided). */}
+      {!company && <RatyWidget amountPLN={parsePricePLN(pkg.price)} />}
       {company && (
         <p className="lp-price-calculation">
           <span>{t('Package calculation', 'Wyliczenie pakietu')}</span>

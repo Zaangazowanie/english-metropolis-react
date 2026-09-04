@@ -2035,3 +2035,7 @@ html.dark .lp-page .lp-field textarea:focus {
   font-weight: 650;
   text-transform: none;
 }
+
+/* Przelewy24 instalment badge, rendered by their SDK; empty until Raty is offered. */
+.lp-raty-widget:empty { display: none; }
+.lp-raty-widget { margin-top: .5rem; min-height: 0; }

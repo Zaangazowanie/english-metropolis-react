@@ -672,6 +672,17 @@ type MethodGroupKey = "blik" | "card" | "paypo" | "installments" | "transfer";
 // Przelewy24 Raty (bank-financed instalments). `group` is a fixed English enum
 // in P24's spec, identical in the PL and EN method lists.
 const RATY_METHOD_ID = 303;
+// ⛔ Mike, 2026-09-04: do NOT offer Raty until Przelewy24 answer whether the 0%
+// tenors can be tiered by basket (under 2 000 PLN → 5 only; 2 000–2 999,99 →
+// up to 10; 3 000+ → up to 20) and the Regulamin + privacy policy carry the
+// linked-credit wording. The register API has no tenor field (checked against
+// their OpenAPI spec), so the only lever we own is whether the tile shows at
+// all. Flipping this ONE constant turns on both the checkout tile and the P24
+// instalment widget on the pricing page (installmentWidgetConfig below).
+export const RATY_OFFERED = false;
+// Pricing-page widget shows only on packages from this amount up (Mike's
+// lowest tier boundary). Irrelevant while RATY_OFFERED is false.
+export const RATY_WIDGET_MIN_PLN = 2000;
 
 export function methodGroupOf(method: any): MethodGroupKey {
   const group = String(method?.group || "");
@@ -719,7 +730,8 @@ export const listMethods = action({
     }
     // Keep a non-credit method first: the checkout preselects the first option,
     // so deferred payment must always remain an active customer choice.
-    const order: MethodGroupKey[] = ["blik", "paypo", "installments", "card", "transfer"];
+    const order: MethodGroupKey[] = (["blik", "paypo", "installments", "card", "transfer"] as MethodGroupKey[])
+      .filter((key) => key !== "installments" || RATY_OFFERED);
     return {
       groups: order.flatMap((key) => {
         const ids = byGroup.get(key);
@@ -736,6 +748,26 @@ export const listMethods = action({
         return [{ key, methodId: key === "transfer" ? null : Math.min(...ids), count }];
       }),
     };
+  },
+});
+
+// Config for Przelewy24's own instalment widget/simulator (their published SDK
+// at apm.przelewy24.pl). Rendering THEIR widget unaltered is the defensible
+// way to show "5, 10 or 20 rat": PayPro S.A. is the registered credit
+// intermediary, we are not, so we author no instalment copy of our own. The
+// sign needs the CRC, which never leaves the server — hence an action. Returns
+// null while Raty is not offered or the basket is under the widget floor, and
+// the page renders nothing at all in that case (no script is even loaded).
+export const installmentWidgetConfig = action({
+  args: { amount: v.number() },   // grosze
+  handler: async (_ctx, args): Promise<null | { sign: string; posid: string; method: string; amount: number; currency: "PLN"; lang: "pl" }> => {
+    if (!RATY_OFFERED) return null;
+    const amount = Math.trunc(args.amount);
+    if (!Number.isSafeInteger(amount) || amount < RATY_WIDGET_MIN_PLN * 100 || amount > 5_000_000) return null;
+    const cfg = p24Config();
+    // Documented: SHA-384({"crc":"string","posId":int,"method":int}), key order as written.
+    const sign = await sha384({ crc: cfg.crc, posId: cfg.posId, method: RATY_METHOD_ID });
+    return { sign, posid: String(cfg.posId), method: String(RATY_METHOD_ID), amount, currency: "PLN", lang: "pl" };
   },
 });
 
