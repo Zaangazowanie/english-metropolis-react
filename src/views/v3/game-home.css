@@ -847,7 +847,58 @@
 .gh-three-route i { flex: 1; height: 1px; background: linear-gradient(90deg, #8b5cf6, #d946ef); }
 
 /* ── journey, packages and catalog glass hierarchy ── */
-.gh-section { position: relative; }
+/* ── Section rhythm ───────────────────────────────────────────────────────
+   Until 2026-09-04 .gh-section carried no vertical space at all: four sections
+   had an ad-hoc inline paddingBottom and the rest had nothing, so a CTA button
+   could sit directly on the next section's label. One clamp here owns the
+   spacing for every section; do not reintroduce inline padding on a section. */
+.gh-section {
+  position: relative;
+  padding-block: clamp(72px, 7.5vw, 128px);
+}
+.gh-section + .gh-section { padding-top: clamp(56px, 6vw, 104px); }
+
+/* ── Section kicker ───────────────────────────────────────────────────────
+   Was JetBrains Mono 13/700 at 0.22em uppercase, which reads as machine output
+   and is the single most generated-looking thing on the page (Mike, 2026-09-04).
+   Now Lora italic in sentence case behind a short rule: a warm serif label under
+   a geometric sans headline, which is a deliberate pairing rather than a default.
+   Lora italic is the only real italic serif in /fonts (Newsreader and Playfair
+   ship upright only, so `font-style: italic` on those would be a fake oblique),
+   and its latin-ext subset covers ą ć ę ł ń ó ś ź ż. Colour comes from the
+   section's own accent, set inline. */
+.gh-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 16px;
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.gh-kicker::before {
+  content: '';
+  width: 26px;
+  height: 1px;
+  flex: none;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+/* Pricing-card badges keep the label role but drop the monospace: a geometric
+   sans at modest tracking, not a terminal readout. */
+.gh-card-badge {
+  font-family: 'Plus Jakarta Sans', 'Space Grotesk', Inter, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
 .gh-section-heading { transform-origin: left center; }
 .gh-steps { position: relative; }
 .gh-steps::before,
@@ -1794,7 +1845,7 @@
 }
 
 /* ── why students stay ── */
-.gh-why-section { padding-top: 10px; }
+/* padding-top now comes from the .gh-section rhythm */
 .gh-why-heading { margin-bottom: 30px; }
 .gh-why-grid {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;

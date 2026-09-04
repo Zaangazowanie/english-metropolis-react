@@ -145,10 +145,10 @@ const GH = {
     arcadeBadge: 'quick practice · try it now',
     officeAlt: 'Students laughing together at the English Metro school',
     officeChip: 'Our students · one school',
-    arcadeKicker: 'quick practice · no sign-up',
+    arcadeKicker: 'Quick practice · no sign-up',
     arcadeTitle: 'Seven ways to practise. Try them now.',
     arcadeBody: 'These are the same games your flashcards feed after every lesson. Flip a card, catch a train, build a sentence. No account needed.',
-    whyKicker: 'why students stay',
+    whyKicker: 'Why students stay',
     whyTitle: 'Six things a normal language school does not give you.',
     whyBody: 'The lesson is the smaller half. What makes English Metro work is everything around the hour, built so the words you learn on Tuesday are still yours on Sunday.',
     why: [
@@ -187,7 +187,7 @@ const GH = {
     ctaBeta: 'Try the English Metro World beta',
     lineTags: { 'Arcade Line': 'Fast hands, faster words', 'Word Line': 'Letters into language', 'Quiz Line': 'Think quick, answer quicker', 'City Line': 'Real skills, street level' },
     worldLink: 'Explore the full 3D city with a free account',
-    stepsKicker: 'from sign-up to speaking', stepsTitle: 'Your first lesson is four steps away',
+    stepsKicker: 'From sign-up to speaking', stepsTitle: 'Your first lesson is four steps away',
     steps: [
       { icon: 'person_add', title: 'Create your account', body: 'It takes about two minutes: use your email and password or continue with Google.' },
       { icon: 'shopping_bag', title: 'Pick a package', body: 'Choose one trial lesson or a package of up to 24 lessons. Pay online or by invoice.' },
@@ -196,7 +196,7 @@ const GH = {
     ],
     packsKicker: '1:1 lesson packages', packsTitle: 'Pick your pace', packsLink: 'Full pricing & details',
     packsStart: 'Start', packsEach: '60 min each',
-    doorsKicker: 'between lessons', doorsTitle: 'Keep practising in the city',
+    doorsKicker: 'Between lessons', doorsTitle: 'Keep practising in the city',
     proofLabel: 'What your route includes',
     proof: (n) => [
       { value: '1:1', label: 'live teacher' },
@@ -204,14 +204,14 @@ const GH = {
       { value: 'CEFR', label: 'matched course' },
       { value: String(n), label: 'instant games' },
     ],
-    cityKicker: 'live lessons · practice between sessions',
+    cityKicker: 'Live lessons · practice between sessions',
     cityTitle: 'One learning plan. Connected practice.',
     cityBody: 'Your teacher sets the focus. Vocabulary from each lesson becomes flashcards with YouTube clips, then games in English Metro World, so you practise the same material between lessons and Bajla checks in on WhatsApp.',
     cityFeatures: ['Live feedback from a teacher who knows you', 'Flashcards and YouTube clips from your own lessons', 'A 3D world and Bajla on WhatsApp between lessons'],
     cityCta: 'Start my learning plan',
     cityLabel: 'Interactive 3D map of English Metro',
     cityHint: 'Drag the city to explore',
-    lessonsKicker: 'live 1:1 lessons',
+    lessonsKicker: 'Live 1:1 lessons',
     lessonsTitle: 'A teacher who knows your goals.',
     lessonsBody: 'Every lesson is live, individual and matched to your CEFR level. You speak, your teacher listens, corrects and pushes you into the language you would otherwise avoid. Friendly, patient, and the same person every week.',
     lessonsPoints: ['Real conversation from minute one', 'Notes and a PDF after every lesson', 'Flashcards from your vocabulary, with YouTube clips of every word in real use'],
@@ -247,10 +247,10 @@ const GH = {
     arcadeBadge: 'krótkie ćwiczenia · wypróbuj teraz',
     officeAlt: 'Uczniowie śmiejący się razem w szkole English Metro',
     officeChip: 'Nasi uczniowie · jedna szkoła',
-    arcadeKicker: 'krótkie ćwiczenia · bez logowania',
+    arcadeKicker: 'Krótkie ćwiczenia · bez logowania',
     arcadeTitle: 'Siedem sposobów na ćwiczenie. Wypróbuj je teraz.',
     arcadeBody: 'To te same gry, do których po każdej lekcji trafiają Twoje fiszki. Odkryj kartę, złap pociąg, ułóż zdanie. Bez zakładania konta.',
-    whyKicker: 'dlaczego uczniowie zostają',
+    whyKicker: 'Dlaczego uczniowie zostają',
     whyTitle: 'Sześć rzeczy, których nie da Ci zwykła szkoła językowa.',
     whyBody: 'Lekcja to mniejsza połowa. English Metro działa dzięki wszystkiemu wokół tej godziny, zbudowanemu tak, żeby słowa z wtorku były nadal Twoje w niedzielę.',
     why: [
@@ -289,7 +289,7 @@ const GH = {
     ctaBeta: 'Wypróbuj betę English Metro World',
     lineTags: { 'Arcade Line': 'Szybkie ręce, szybsze słowa', 'Word Line': 'Z liter w język', 'Quiz Line': 'Myśl szybko, odpowiadaj szybciej', 'City Line': 'Prawdziwe sytuacje, poziom ulicy' },
     worldLink: 'Poznaj całe miasto 3D z darmowym kontem',
-    stepsKicker: 'od rejestracji do mówienia', stepsTitle: 'Twoja pierwsza lekcja w czterech krokach',
+    stepsKicker: 'Od rejestracji do mówienia', stepsTitle: 'Twoja pierwsza lekcja w czterech krokach',
     steps: [
       { icon: 'person_add', title: 'Załóż konto', body: 'To około dwóch minut: podaj e-mail i hasło lub kontynuuj z Google.' },
       { icon: 'shopping_bag', title: 'Wybierz pakiet', body: 'Wybierz pojedynczą lekcję próbną lub pakiet do 24 lekcji. Zapłać online lub na podstawie faktury.' },
@@ -298,7 +298,7 @@ const GH = {
     ],
     packsKicker: 'pakiety lekcji 1:1', packsTitle: 'Wybierz swoje tempo', packsLink: 'Pełny cennik i szczegóły',
     packsStart: 'Zaczynam', packsEach: 'po 60 min',
-    doorsKicker: 'między lekcjami', doorsTitle: 'Ćwicz dalej w mieście',
+    doorsKicker: 'Między lekcjami', doorsTitle: 'Ćwicz dalej w mieście',
     proofLabel: 'Co obejmuje Twoja ścieżka',
     proof: (n) => [
       { value: '1:1', label: 'lektor na żywo' },
@@ -997,8 +997,10 @@ export default function GameHome() {
             <div className="gh-rise gh-rise-1 gh-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 10,
               marginBottom: 20 }}>
               <span className="gh-eyebrow-mark" aria-hidden/>
-              <span style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
-                textTransform: 'uppercase', color: T.emerald }}>
+              {/* Not .gh-kicker: this row already has its own .gh-eyebrow-mark, and
+                  em-motion restyles this span with !important. Sans, not mono. */}
+              <span style={{ fontFamily: FONT.display, fontSize: 14, fontWeight: 600,
+                letterSpacing: '0.03em', color: T.emerald }}>
                 {W.eyebrow}
               </span>
             </div>
@@ -1071,8 +1073,7 @@ export default function GameHome() {
         {/* ── Why students stay: the six moats ── */}
         <section className="gh-section gh-why-section" aria-labelledby="gh-why-title">
           <Reveal className="gh-section-heading gh-why-heading">
-            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
-              textTransform: 'uppercase', color: T.fuchsia, marginBottom: 12 }}>{W.whyKicker}</div>
+            <div className="gh-kicker" style={{ color: T.fuchsia }}>{W.whyKicker}</div>
             <h2 id="gh-why-title" style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(30px, 4.2vw, 52px)',
               lineHeight: 1.04, letterSpacing: '-0.035em', margin: '0 0 16px', maxWidth: 820 }}>{W.whyTitle}</h2>
             <p style={{ color: T.textDim, fontSize: 'clamp(15px, 1.35vw, 18px)', lineHeight: 1.65, maxWidth: 640, margin: 0 }}>{W.whyBody}</p>
@@ -1116,8 +1117,7 @@ export default function GameHome() {
             </div>
           </Reveal>
           <Reveal className="gh-lessons-copy" delay={90}>
-            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
-              textTransform: 'uppercase', color: T.fuchsia, marginBottom: 12 }}>{W.lessonsKicker}</div>
+            <div className="gh-kicker" style={{ color: T.fuchsia }}>{W.lessonsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(30px, 4.2vw, 52px)',
               lineHeight: 1.04, letterSpacing: '-0.035em', margin: '0 0 18px' }}>{W.lessonsTitle}</h2>
             <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.35vw, 17px)', lineHeight: 1.7,
@@ -1144,8 +1144,7 @@ export default function GameHome() {
         {/* ── Bajla on WhatsApp: the assistant, shown doing the job ── */}
         <section className="gh-section gh-bajla-section" aria-labelledby="gh-bajla-title">
           <Reveal className="gh-bajla-copy">
-            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
-              textTransform: 'uppercase', color: T.emerald, marginBottom: 12 }}>{W.bajlaKicker}</div>
+            <div className="gh-kicker" style={{ color: T.emerald }}>{W.bajlaKicker}</div>
             <h2 id="gh-bajla-title" style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(30px, 4.2vw, 52px)',
               lineHeight: 1.04, letterSpacing: '-0.035em', margin: '0 0 18px' }}>{W.bajlaTitle}</h2>
             <p style={{ color: T.textDim, fontSize: 'clamp(15px, 1.35vw, 17px)', lineHeight: 1.7, maxWidth: 560, margin: '0 0 22px' }}>{W.bajlaBody}</p>
@@ -1183,10 +1182,9 @@ export default function GameHome() {
         </section>
 
         {/* ── How lessons work ── */}
-        <section className="gh-section gh-journey-section" style={{ paddingBottom: 64 }}>
+        <section className="gh-section gh-journey-section">
           <Reveal className="gh-section-heading">
-            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
-              textTransform: 'uppercase', color: T.fuchsia, marginBottom: 10 }}>{W.stepsKicker}</div>
+            <div className="gh-kicker" style={{ color: T.fuchsia }}>{W.stepsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: '0 0 26px' }}>
               {W.stepsTitle}
@@ -1222,13 +1220,12 @@ export default function GameHome() {
         </section>
 
         {/* ── Lesson packages — the live pricing, right here ── */}
-        <section className="gh-section gh-packages-section" style={{ paddingBottom: 64 }}>
+        <section className="gh-section gh-packages-section">
           <Reveal className="gh-section-heading">
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
               flexWrap: 'wrap', gap: 12, marginBottom: 26 }}>
               <div>
-                <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
-                  textTransform: 'uppercase', color: T.emerald, marginBottom: 10 }}>{W.packsKicker}</div>
+                <div className="gh-kicker" style={{ color: T.emerald }}>{W.packsKicker}</div>
                 <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
                   letterSpacing: '-0.03em', margin: 0 }}>
                   {W.packsTitle}
@@ -1256,8 +1253,7 @@ export default function GameHome() {
                       ? `linear-gradient(${night ? 'rgba(22,10,44,0.92)' : 'rgba(255,255,255,0.96)'}, ${night ? 'rgba(22,10,44,0.92)' : 'rgba(255,255,255,0.96)'}) padding-box, ${G.brand} border-box`
                       : undefined,
                     boxShadow: hot ? '0 24px 70px -30px rgba(217,70,239,0.55)' : 'none' }}>
-                    <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
-                      textTransform: 'uppercase', color: hot ? T.fuchsia : T.textMute, marginBottom: 10 }}>{lang === 'pl' ? (p.badgePl || p.badge) : p.badge}</div>
+                    <div className="gh-card-badge" style={{ color: hot ? T.fuchsia : T.textMute }}>{lang === 'pl' ? (p.badgePl || p.badge) : p.badge}</div>
                     <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 18, marginBottom: 2 }}>{p.name}</div>
                     <div style={{ fontSize: 13, color: T.textDim, marginBottom: 14 }}>{lang === 'pl' ? (p.pacePl || p.pace) : p.pace} · {W.packsEach}</div>
                     <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 30, letterSpacing: '-0.02em' }}>{p.price}</div>
@@ -1285,10 +1281,9 @@ export default function GameHome() {
         </section>
 
         {/* ── Two ways in — the practice layer between lessons ── */}
-        <section className="gh-section gh-doors-section" style={{ paddingBottom: 58 }}>
+        <section className="gh-section gh-doors-section">
           <Reveal className="gh-section-heading">
-            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
-              textTransform: 'uppercase', color: T.violet, marginBottom: 10 }}>{W.doorsKicker}</div>
+            <div className="gh-kicker" style={{ color: T.violet }}>{W.doorsKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
               letterSpacing: '-0.03em', margin: '0 0 26px' }}>
               {W.doorsTitle}
@@ -1347,7 +1342,7 @@ export default function GameHome() {
         </div>
 
         {/* ── Practice catalog: expandable metro lines ── */}
-        <section ref={practiceRef} className="gh-section gh-practice-section" style={{ scrollMarginTop: 110, paddingBottom: 36 }}>
+        <section ref={practiceRef} className="gh-section gh-practice-section" style={{ scrollMarginTop: 110 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
             flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
@@ -1399,8 +1394,7 @@ export default function GameHome() {
            not as the opening pitch, and Bajla takes the slot it used to hold. ── */}
         <section className="gh-city-loop gh-section">
           <Reveal className="gh-city-copy">
-            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
-              textTransform: 'uppercase', color: T.emerald, marginBottom: 12 }}>{W.cityKicker}</div>
+            <div className="gh-kicker" style={{ color: T.emerald }}>{W.cityKicker}</div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(32px, 4.7vw, 58px)',
               lineHeight: 1.02, letterSpacing: '-0.04em', margin: '0 0 20px' }}>{W.cityTitle}</h2>
             <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.35vw, 17px)', lineHeight: 1.7,
