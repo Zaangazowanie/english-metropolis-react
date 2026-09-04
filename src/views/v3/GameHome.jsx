@@ -566,6 +566,12 @@ const CURRENT_YEAR = new Date().getFullYear()
 // three.js build) — a plain anchor, not a router Link.
 const WORLD_URL = '/play/'
 
+// Every photograph in the hero pools and the /home/photo-* frames is model
+// output, so each frame says so, in the reader's language. Scoped to those
+// frames only: the logo, the Bajla mark and the flags are not generated, and
+// labelling them would be its own false statement.
+const AI_NOTE = (lang) => (lang === 'pl' ? 'Wygenerowane przez AI' : 'AI generated')
+
 // The original homepage carousel: live learning first, then course fit and
 // connected practice. The first frame deliberately uses the approved school
 // photograph from the reference design instead of choosing a random image.
@@ -1044,7 +1050,7 @@ export default function GameHome() {
               prevLabel={W.heroSliderPrev}
               nextLabel={W.heroSliderNext}
               slides={HERO_MEDIA.map((media, i) => ({
-                ...media, ...W.heroSlides[i], alt: W.heroSlides[i].title,
+                ...media, ...W.heroSlides[i], alt: W.heroSlides[i].title, aiNote: AI_NOTE(lang),
               }))}
             />
           </div>
@@ -1093,6 +1099,7 @@ export default function GameHome() {
             <div className="gh-photo-frame gh-photo-frame--main"
               onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <img src="/home/photo-student.webp" alt={W.lessonsAltMain} loading="lazy" width="1600" height="1067"/>
+              <span className="gh-ai-note">{AI_NOTE(lang)}</span>
               <span className="gh-float-chip gh-float-chip--a">
                 <span className="material-symbols-outlined" aria-hidden>videocam</span>
                 {W.lessonsChipA}
@@ -1105,6 +1112,7 @@ export default function GameHome() {
             <div className="gh-photo-frame gh-photo-frame--side"
               onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <img src="/home/photo-practice-2607.webp" alt={W.lessonsAltSide} loading="lazy" width="800" height="533"/>
+              <span className="gh-ai-note">{AI_NOTE(lang)}</span>
             </div>
           </Reveal>
           <Reveal className="gh-lessons-copy" delay={90}>
@@ -1232,6 +1240,7 @@ export default function GameHome() {
             <div className="gh-photo-frame gh-photo-frame--wide"
               onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <img src="/home/photo-group-2607.webp" alt={W.stepsAlt} loading="lazy" width="1600" height="900"/>
+              <span className="gh-ai-note">{AI_NOTE(lang)}</span>
               <span className="gh-float-chip gh-float-chip--a">
                 <span className="material-symbols-outlined" aria-hidden>co_present</span>
                 {W.stepsChip}

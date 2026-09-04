@@ -11,6 +11,10 @@ function Slide({ slide, image, active, minimal }) {
     <li className="gh-hs-slide" data-active={active} aria-hidden={!active}>
       <img src={image} alt={slide.alt} loading={active ? 'eager' : 'lazy'}
         width="1600" height="900" draggable="false"/>
+      {/* A real element, not ::before: em-motion's .em-carousel-dramatic
+          .gh-hs-slide::before owns that pseudo for the vignette and outranks
+          us, which is why the English note rendered empty on 2026-09-04. */}
+      {slide.aiNote && <span className="gh-ai-note">{slide.aiNote}</span>}
       {minimal ? (
         <span className="gh-hs-chip">
           <span className="material-symbols-outlined" aria-hidden>
