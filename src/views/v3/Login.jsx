@@ -136,6 +136,23 @@ export default function LoginV3() {
         return
       }
       const result = await callConvexAction('googleAuth:googleSignIn', { idToken })
+      // A brand-new Google identity: verified address, but no account yet and
+      // no date of birth (Google never sends one) and/or no first AND last
+      // name. /signup owns that follow-up step, so hand it the already-verified
+      // token and what Google did know; it opens the step without a second popup.
+      if (result?.needsDateOfBirth || result?.needsName) {
+        try {
+          window.sessionStorage.setItem('em-google-pending', JSON.stringify({
+            idToken,
+            needsDateOfBirth: !!result.needsDateOfBirth,
+            needsName: !!result.needsName,
+            suggestedFirstName: result.suggestedFirstName || '',
+            suggestedLastName: result.suggestedLastName || '',
+          }))
+        } catch { /* storage blocked: /signup falls back to its own Google button */ }
+        window.location.href = `/signup${nextPath ? `?next=${encodeURIComponent(nextPath)}` : ''}`
+        return
+      }
       if (!result?.success) {
         setErr(result?.error || t('login.error.googleFailed'))
         setLoading(false)
@@ -310,8 +327,8 @@ export default function LoginV3() {
         <div style={{ minWidth: 0 }}>
           {branded ? (
             <div className="ca-login-hero">
-              <div style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 700,
-                letterSpacing: '0.34em', textTransform: 'uppercase', color: '#8db4f7',
+              <div style={{ fontFamily: FONT.body, fontSize: 13, fontWeight: 700,
+                letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8db4f7',
                 marginBottom: 30, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#8db4f7',
                   boxShadow: '0 0 10px #8db4f7' }}/>
@@ -386,7 +403,7 @@ export default function LoginV3() {
 
           {/* Universal sign-in: the Student vs School/Admin tabs are gone
               (Mike, 2026-06-12). One form, role auto-detected on submit. */}
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.3em',
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: T.textDim, marginBottom: 18 }}>
             {t('login.cardLabel.student')}
           </div>
@@ -416,7 +433,7 @@ export default function LoginV3() {
               <div style={{ marginBottom: 14, padding: '10px 14px',
                 background: isDay ? 'rgba(220,38,38,0.08)' : 'rgba(251,113,133,0.12)',
                 border: isDay ? '1px solid rgba(220,38,38,0.25)' : '1px solid rgba(251,113,133,0.35)',
-                borderRadius: 10, color: T.rose, fontSize: 12 }}>{err}</div>
+                borderRadius: 10, color: T.rose, fontSize: 13 }}>{err}</div>
             )}
             <Btn variant="primary" size="lg" full type="submit" trailingIcon="arrow_forward"
               disabled={loading} onClick={submit}
@@ -426,7 +443,7 @@ export default function LoginV3() {
           </form>
 
           <div style={{ marginTop: 12, textAlign: 'right' }}>
-            <Link to="/reset" style={{ fontSize: 12, color: T.textDim, textDecoration: 'none' }}>
+            <Link to="/reset" style={{ fontSize: 13, color: T.textDim, textDecoration: 'none' }}>
               {t('login.meta.forgot')}
             </Link>
           </div>
@@ -440,7 +457,7 @@ export default function LoginV3() {
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ flex: 1, height: 1,
               background: isDay ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)' }}/>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.25em',
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
               textTransform: 'uppercase', color: T.textMute }}>{t('login.divider.or')}</div>
             <div style={{ flex: 1, height: 1,
               background: isDay ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)' }}/>
@@ -449,7 +466,7 @@ export default function LoginV3() {
             <div ref={googleBtnRef} aria-label={t('login.google.aria')}/>
           </div>
           {!googleReady && (
-            <div style={{ marginTop: 10, textAlign: 'center', fontSize: 11,
+            <div style={{ marginTop: 10, textAlign: 'center', fontSize: 13,
               color: T.textMute, letterSpacing: '0.05em' }}>
               {t('login.google.loading')}
             </div>
@@ -458,9 +475,9 @@ export default function LoginV3() {
           <div style={{ marginTop: 18, display: 'flex', justifyContent: 'space-between',
             alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
             <Link to="/signup"
-              style={{ fontSize: 11, color: T.brandInk || T.brand, fontWeight: 700, letterSpacing: '0.08em',
+              style={{ fontSize: 13, color: T.brandInk || T.brand, fontWeight: 700, letterSpacing: '0.08em',
                 textDecoration: 'none' }}>{t('login.meta.needAccess')}</Link>
-            <div style={{ display: 'flex', gap: 14, fontSize: 11 }}>
+            <div style={{ display: 'flex', gap: 14, fontSize: 13 }}>
               <Link to="/privacy" style={{ color: T.textDim, textDecoration: 'none' }}>{t('login.meta.privacy')}</Link>
               <span style={{ color: T.textMute }}>·</span>
               <Link to="/terms" style={{ color: T.textDim, textDecoration: 'none' }}>{t('login.meta.terms')}</Link>
@@ -470,7 +487,7 @@ export default function LoginV3() {
       </div>
 
       <div style={{ position: 'absolute', bottom: 20, left: 0, right: 0, textAlign: 'center',
-        fontSize: 10, letterSpacing: '0.28em', textTransform: 'uppercase',
+        fontSize: 13, letterSpacing: '0.14em', textTransform: 'uppercase',
         color: T.textMute, fontFamily: FONT.body, zIndex: 2 }}>
         {t('login.footer', { year: new Date().getFullYear() })}
       </div>

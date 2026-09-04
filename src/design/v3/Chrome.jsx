@@ -4,6 +4,7 @@ import { useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
 import { EASE, FONT, G } from './tokens.js'
 import { useV3Theme } from './ThemeProvider.jsx'
 import { Avatar, Glass, Skyline } from './primitives.jsx'
+import { PageTransition, TabInk } from './motion/index.js'
 import VoiceSelector from '../../components/VoiceSelector.jsx'
 import ChatWidget from '../../components/ChatWidget.jsx'
 import { useI18n } from '../../i18n'
@@ -36,7 +37,7 @@ function V3LanguageToggle({ T, EASE }) {
                 setLang(code)
                 // Mark this as a manual choice so the auto-default-by-CEFR
                 // logic in App.jsx leaves the language alone going forward.
-                try { window.localStorage.setItem('em.lang.userExplicit', 'true') } catch {}
+                try { window.localStorage.setItem('em.lang.userExplicit', 'true') } catch { /* storage blocked */ }
               }}
               aria-pressed={active}
               title={code === 'pl' ? 'Polski' : 'English'}
@@ -49,11 +50,12 @@ function V3LanguageToggle({ T, EASE }) {
                 background: active ? T.brandInk || T.brand : 'transparent',
                 color: active ? '#FFFFFF' : T.textSoft,
                 fontFamily: FONT.body,
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 transition: `all 160ms ${EASE.springFast}`,
-              }}>
+              }}
+              className="em-press em-focus">
               {code.toUpperCase()}
             </button>
           )
@@ -72,7 +74,7 @@ function V3LanguageToggle({ T, EASE }) {
             setEnglishLevel(englishLevel === 'simple' ? 'full' : 'simple')
             // Mark this as a manual choice so the auto-default-by-CEFR
             // in App.jsx doesn't override on next mount.
-            try { window.localStorage.setItem('em.englishLevel.userExplicit', 'true') } catch {}
+            try { window.localStorage.setItem('em.englishLevel.userExplicit', 'true') } catch { /* storage blocked */ }
           }}
           aria-pressed={englishLevel === 'simple'}
           title={englishLevel === 'simple' ? t('chrome.englishLevel.toFull') : t('chrome.englishLevel.toSimple')}
@@ -85,12 +87,13 @@ function V3LanguageToggle({ T, EASE }) {
             color: englishLevel === 'simple' ? '#FFFFFF' : T.textSoft,
             cursor: 'pointer',
             fontFamily: FONT.body,
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 700,
             letterSpacing: '0.04em',
             display: 'inline-flex', alignItems: 'center', gap: 4,
             transition: `all 160ms ${EASE.springFast}`,
-          }}>
+          }}
+          className="em-press em-focus">
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
             {englishLevel === 'simple' ? 'auto_awesome' : 'school'}
           </span>
@@ -124,6 +127,7 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
   const { t } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
+  const navRef = useRef(null)
   // Track <=480px so the avatar popover can pin to the viewport's right edge
   // (rather than the avatar's right edge, which bleeds offscreen on narrow
   // phones). Separate from the theme-context isMobile (which trips at 720px).
@@ -169,7 +173,7 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
         padding: isMobile ? '12px 16px' : '14px 28px',
         display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16,
         justifyContent: isMobile ? 'space-between' : 'flex-start' }}>
-        <Link to={`${tabBase}/dashboard`} aria-label="EnglishMetro.com — home" style={{
+        <Link to={`${tabBase}/dashboard`} aria-label={t('chrome.aria.home')} className="em-focus" style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           textDecoration: 'none', color: T.text, flexShrink: 0 }}>
           {/* Brand mark — Chubby Bajla replaces the Skyline mark in the
@@ -188,7 +192,7 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
             English<span style={{ background: G.brand, WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Metro</span>
             <span style={{ color: T.ember }}>.</span>
-            <span style={{ fontSize: 12, color: T.textDim, marginLeft: -2 }}>com</span>
+            <span style={{ fontSize: 13, color: T.textDim, marginLeft: -2 }}>com</span>
           </span>
           )}
         </Link>
@@ -196,25 +200,35 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
         {/* Desktop: top horizontal nav. Mobile: hidden — navigation lives in
             <MobileTabBar> fixed at bottom instead. */}
         {!isMobile && (
-          <nav style={{ flex: 1, display: 'flex', gap: 4, overflowX: 'auto',
-            scrollbarWidth: 'none', justifyContent: 'center' }}
+          <nav ref={navRef} style={{ flex: 1, display: 'flex', gap: 4, overflowX: 'auto',
+            scrollbarWidth: 'none', justifyContent: 'center', position: 'relative' }}
             className="v3-nav-scroll" aria-label={t('chrome.aria.primaryNav')}>
+            {/* Sliding ink: one clipped layer behind the buttons glides to the
+                active tab (clip-path, compositor-only). */}
+            <TabInk navRef={navRef} activeKey={currentTab}
+              background={isDay ? 'rgba(162,28,175,0.10)' : 'rgba(217,70,239,0.14)'}
+              boxShadow={isDay ? 'none' : 'inset 0 0 0 1px rgba(217,70,239,0.18)'}/>
             {TABS.map(tab => {
               const active = currentTab === tab.k
               return (
-                <button key={tab.k} onClick={() => navigate(`${tabBase}/${tab.k}`)}
+                <button key={tab.k} data-tab={tab.k} onClick={() => navigate(`${tabBase}/${tab.k}`)}
+                  aria-current={active ? 'page' : undefined}
+                  className="em-press"
                   style={{
-                    padding: '10px 16px',
+                    position: 'relative', zIndex: 1,
+                    padding: '10px 16px', minHeight: 40,
                     border: 'none', cursor: 'pointer', borderRadius: 999,
-                    background: active ? (isDay ? 'rgba(162,28,175,0.10)' : 'rgba(217,70,239,0.14)') : 'transparent',
+                    background: 'transparent',
                     color: active ? (isDay ? T.brand : T.text) : T.textSoft,
                     fontFamily: FONT.body, fontSize: 13, fontWeight: active ? 600 : 500,
                     letterSpacing: '0.02em', whiteSpace: 'nowrap', flexShrink: 0,
                     display: 'inline-flex', alignItems: 'center', gap: 6,
-                    transition: `all 180ms ${EASE.springFast}`,
+                    transition: `color 180ms ${EASE.springFast}`,
                   }}>
                   <span className="material-symbols-outlined"
-                    style={{ fontSize: 18, opacity: active ? 1 : 0.75 }}>{tab.icon}</span>
+                    style={{ fontSize: 18, opacity: active ? 1 : 0.75,
+                      fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0",
+                      transition: 'opacity 180ms ease, font-variation-settings 180ms ease' }}>{tab.icon}</span>
                   {t(`chrome.tab.${tab.k}`)}
                 </button>
               )
@@ -232,6 +246,7 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
           onClick={() => setMode(isDay ? 'night' : 'day')}
           aria-label={isDay ? t('chrome.theme.toNight') : t('chrome.theme.toDay')}
           title={isDay ? t('chrome.theme.night') : t('chrome.theme.day')}
+          className="em-press em-focus"
           style={{
             flexShrink: 0,
             width: 38, height: 38, borderRadius: 12,
@@ -242,7 +257,7 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             transition: `all 180ms ${EASE.springFast}`,
           }}>
-          <span className="material-symbols-outlined" style={{
+          <span key={mode} className="material-symbols-outlined em-content-in" style={{
             fontSize: 20,
             color: isDay ? T.amber : T.brandInk,
             fontVariationSettings: "'FILL' 1",
@@ -263,7 +278,7 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
             // Narrow-viewport (<=480px): pin the popover to the viewport's right
             // edge with an 8px margin so it never bleeds past the screen.
             // Wider: anchor to the avatar's right (parent-relative) as before.
-            <div style={isNarrow
+            <div className="em-pop" role="menu" style={isNarrow
               ? { position: 'fixed', right: 8, top: 60, left: 'auto',
                   maxWidth: 'calc(100vw - 16px)', minWidth: 240,
                   background: isDay ? '#FFFFFF' : 'rgba(17,9,42,0.96)',
@@ -276,18 +291,18 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
               <div style={{ padding: '8px 10px', borderBottom: `1px solid ${T.border}`,
                 marginBottom: 8 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{firstName}</div>
-                <div style={{ fontSize: 11, color: T.textDim, marginTop: 2,
-                  letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('chrome.menu.studentLabel')}</div>
+                <div style={{ fontSize: 13, color: T.textDim, marginTop: 2,
+                  letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('chrome.menu.studentLabel')}</div>
               </div>
-              <div style={{ padding: '6px 10px', fontSize: 10, fontWeight: 700,
-                letterSpacing: '0.18em', textTransform: 'uppercase',
+              <div style={{ padding: '6px 10px', fontSize: 13, fontWeight: 700,
+                letterSpacing: '0.12em', textTransform: 'uppercase',
                 color: T.textDim }}>{t('chrome.menu.themeHeader')}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4,
                 padding: '0 6px 8px' }}>
                 {['night', 'day'].map(m => (
-                  <button key={m} onClick={() => setMode(m)}
-                    style={{ padding: '8px', border: 'none', cursor: 'pointer',
-                      borderRadius: 10, fontFamily: FONT.body, fontSize: 11,
+                  <button key={m} onClick={() => setMode(m)} className="em-press em-focus"
+                    style={{ padding: '10px 8px', minHeight: 40, border: 'none', cursor: 'pointer',
+                      borderRadius: 10, fontFamily: FONT.body, fontSize: 13,
                       textTransform: 'capitalize', fontWeight: 600,
                       background: mode === m ? G.brand : T.surface,
                       color: mode === m ? '#fff' : T.textSoft,
@@ -299,8 +314,8 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
               <div style={{ height: 1, background: T.border, margin: '4px 0 6px' }} />
               <Link
                 to={`${tabBase}/settings`}
-                onClick={() => setMenuOpen(false)}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px',
+                onClick={() => setMenuOpen(false)} className="em-press em-focus"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '12px 10px', minHeight: 44,
                   color: T.textSoft, fontFamily: FONT.body, fontSize: 13,
                   textDecoration: 'none', borderRadius: 8,
                   display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -313,8 +328,8 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
                   its location to be disclosed — the checkout consent text and the
                   legal pages do the disclosing. It does not have to sit next to
                   Log out on every screen. */}
-              <button onClick={() => { studentLogout(); window.location.href = '/login' }}
-                style={{ width: '100%', padding: '10px 10px', border: 'none',
+              <button onClick={() => { studentLogout(); window.location.href = '/login' }} className="em-press em-focus"
+                style={{ width: '100%', padding: '12px 10px', minHeight: 44, border: 'none',
                   cursor: 'pointer', background: 'transparent',
                   color: T.textSoft, fontFamily: FONT.body, fontSize: 13,
                   textAlign: 'left', borderRadius: 8,
@@ -364,32 +379,38 @@ function MobileTabBar({ slug, basePath = '' }) {
         ? '0 -10px 30px -12px rgba(100,50,180,0.08)'
         : '0 -10px 30px -12px rgba(0,0,0,0.5)',
     }}>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${MOBILE_TABS.length}, 1fr)` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${MOBILE_TABS.length}, 1fr)`, position: 'relative' }}>
+        {/* One indicator slides between columns (translateX, not re-mounted). */}
+        <span aria-hidden style={{ position: 'absolute', top: 0, left: 0,
+          width: `${100 / MOBILE_TABS.length}%`, height: 3, pointerEvents: 'none',
+          transform: `translateX(${Math.max(0, MOBILE_TABS.findIndex(tab => tab.k === currentTab)) * 100}%)`,
+          transition: `transform 320ms ${EASE.springFast}`,
+          display: 'flex', justifyContent: 'center' }}>
+          <span style={{ width: 24, height: 3, borderRadius: 3, background: G.brand,
+            boxShadow: isDay ? 'none' : '0 0 10px rgba(217,70,239,0.6)' }}/>
+        </span>
         {MOBILE_TABS.map(tab => {
           const active = currentTab === tab.k
           return (
             <button key={tab.k} onClick={() => navigate(`${tabBase}/${tab.k}`)}
+              aria-current={active ? 'page' : undefined}
+              className="em-press"
               style={{ background: 'transparent', border: 'none', cursor: 'pointer',
-                padding: '8px 4px 6px', display: 'flex', flexDirection: 'column',
+                padding: '8px 2px 6px', minHeight: 52, display: 'flex', flexDirection: 'column',
                 alignItems: 'center', gap: 3,
                 color: active ? (isDay ? T.brand : T.text) : T.textDim,
                 position: 'relative',
                 transition: 'color 160ms' }}>
-              {active && (
-                <span style={{ position: 'absolute', top: 0, left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: 24, height: 3, borderRadius: 3,
-                  background: G.brand,
-                  boxShadow: isDay ? 'none' : '0 0 10px rgba(217,70,239,0.6)' }}/>
-              )}
               <span className="material-symbols-outlined"
                 style={{ fontSize: 22,
                   fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0",
-                  transition: 'font-variation-settings 180ms' }}>
+                  transform: active ? 'translateY(-1px)' : 'none',
+                  transition: `font-variation-settings 180ms, transform 240ms ${EASE.springFast}` }}>
                 {tab.icon}
               </span>
-              <span style={{ fontSize: 10, fontFamily: FONT.body,
-                fontWeight: active ? 600 : 500, letterSpacing: '0.02em' }}>
+              <span style={{ fontSize: 13, fontFamily: FONT.body, lineHeight: 1.1,
+                fontWeight: active ? 600 : 500, letterSpacing: 0, maxWidth: '100%',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {t(`chrome.mobile.${tab.i18nKey}`)}
               </span>
             </button>
@@ -444,7 +465,7 @@ function InstallHint() {
         <div style={{ fontSize: 14, fontWeight: 600, color: T.text, marginBottom: 4 }}>
           {t('chrome.install.title')}
         </div>
-        <div style={{ fontSize: 12, color: T.textDim, lineHeight: 1.45 }}>
+        <div style={{ fontSize: 13, color: T.textDim, lineHeight: 1.45 }}>
           {/* iOS Safari has no programmatic install API — instruct the user to use Safari's own
               share button at the bottom of the screen. The arrow + label make it explicit that
               the action lives outside this hint. */}
@@ -465,6 +486,11 @@ function InstallHint() {
 
 export default function Chrome({ slug, basePath, firstName, children }) {
   const { T, mode, isMobile } = useV3Theme()
+  const location = useLocation()
+  // Tab segment after the slug drives the page transition key, so a query
+  // change inside a tab (filters, openLesson) does not replay the entrance.
+  const routeKey = TABS.find(tab => location.pathname.includes(`/${tab.k}`))?.k
+    || location.pathname.split('/').filter(Boolean).slice(-1)[0] || 'dashboard'
   return (
     <div style={{ minHeight: '100vh', background: T.pageBg, color: T.text,
       fontFamily: FONT.body, position: 'relative', overflow: 'hidden' }}>
@@ -480,7 +506,7 @@ export default function Chrome({ slug, basePath, firstName, children }) {
             ? '16px 12px calc(80px + env(safe-area-inset-bottom))'
             : '24px 16px 80px',
           position: 'relative' }}>
-          {children}
+          <PageTransition routeKey={routeKey}>{children}</PageTransition>
         </main>
       </div>
       {isMobile && <MobileTabBar slug={slug} basePath={basePath}/>}

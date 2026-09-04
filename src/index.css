@@ -3247,3 +3247,19 @@ html.org-conversa ::selection { background: rgba(24, 99, 220, 0.22); }
    `display` rather than `visibility` because the intent is that she is not on
    these pages at all, not that she is merely invisible on them. */
 body[data-em-hide-tutor="true"] .bjl-root { display: none; }
+
+
+/* 2026-09-04 (Ricky): student portal type floor is 13px on every visible text
+   node (design floor). Settings page and popover secondary text were 11px. */
+.em-settings-row-text span,
+.em-settings-pop-name small,
+.em-settings-section-title { font-size: 13px; }
+.em-settings-row-text span { line-height: 1.45; }
+.em-seg-btn { font-size: 13px; min-height: 40px; }
+/* Narrow phones: the settings control (3-way segment) is wider than the label
+   column allows at 390px; stack it under the label instead of overflowing. */
+@media (max-width: 480px) {
+  .em-settings-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  .em-settings-row-control { max-width: 100%; }
+  .em-seg { flex-wrap: wrap; }
+}

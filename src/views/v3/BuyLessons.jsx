@@ -12,6 +12,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { FONT, G } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Glass, Pill } from '../../design/v3/primitives.jsx'
+import { useReveal } from '../../design/v3/motion/index.js'
 import { useI18n } from '../../i18n'
 import { getStudentSessionToken, useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
 import { useEmailVerified } from '../../hooks/useEmailVerified'
@@ -65,6 +66,8 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
   const [showErrs, setShowErrs] = useState(false)
   const [orders, setOrders] = useState(null)
   const [alloc, setAlloc] = useState(null)
+  const pkgReveal = useReveal({ stagger: 50, cap: 6 })
+  const groupReveal = useReveal({ stagger: 50, cap: 6 })
 
   const navigate = useNavigate()
 
@@ -213,7 +216,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
     return (
       <div style={{ maxWidth: 1840, margin: '0 auto', padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }}>
         <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.28em', textTransform: 'uppercase',
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
             color: T.brandInk || T.brand, marginBottom: 10 }}>{L.kicker}</div>
           <h1 style={{ fontFamily: FONT.display, fontWeight: 600, fontSize: isMobile ? 34 : 48,
             lineHeight: 1.05, letterSpacing: '-0.03em', margin: 0, color: T.text }}>{V.title}</h1>
@@ -243,7 +246,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
   return (
     <div style={{ maxWidth: 1840, margin: '0 auto', padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }}>
       <div style={{ marginBottom: 28 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.28em', textTransform: 'uppercase',
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
           color: T.brandInk || T.brand, marginBottom: 10 }}>{L.kicker}</div>
         <h1 style={{ fontFamily: FONT.display, fontWeight: 600, fontSize: isMobile ? 34 : 48,
           lineHeight: 1.05, letterSpacing: '-0.03em', margin: 0, color: T.text }}>{L.title}</h1>
@@ -261,7 +264,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
       {!HAS_ONLINE_CHECKOUT && <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
         {[L.step1, L.step2, L.step3].map((label, i) => (
           <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '5px 12px', borderRadius: 999, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+            padding: '5px 12px', borderRadius: 999, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em',
             background: step === i + 1 ? G.brand : step > i + 1 ? 'rgba(52,211,153,0.12)' : T.surface,
             color: step === i + 1 ? '#fff' : step > i + 1 ? T.emerald : T.textDim,
             border: `1px solid ${step > i + 1 ? 'rgba(52,211,153,0.3)' : T.border}` }}>
@@ -272,9 +275,9 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
       </div>}
 
       {step === 1 && (
-        <div style={{ display: 'grid', gap: 16, gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-          {[...PRIVATE_PACKAGES, ...SPECIALIST_PACKAGES].map(p => (
-            <Glass key={p.id} padding={22} hover style={{ display: 'flex', flexDirection: 'column',
+        <div {...pkgReveal.container} style={{ display: 'grid', gap: 16, gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+          {[...PRIVATE_PACKAGES, ...SPECIALIST_PACKAGES].map((p, i) => (
+            <Glass key={p.id} padding={22} hover {...pkgReveal.item(i)} style={{ display: 'flex', flexDirection: 'column', ...pkgReveal.item(i).style,
               borderColor: pkg?.id === p.id ? 'rgba(217,70,239,0.5)' : undefined }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontFamily: FONT.display, fontSize: 19, fontWeight: 600, color: T.text }}>{p.name}</span>
@@ -282,7 +285,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
               </div>
               <div style={{ marginTop: 8, fontFamily: FONT.display, fontSize: 30, fontWeight: 600,
                 background: G.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{p.price}</div>
-              <div style={{ fontSize: 12, color: T.textDim }}>{p.pace} · {p.perLesson} · {packageValidity(PACKAGE_LESSONS[p.id])[pl ? 'pl' : 'en']}</div>
+              <div style={{ fontSize: 13, color: T.textDim }}>{p.pace} · {p.perLesson} · {packageValidity(PACKAGE_LESSONS[p.id])[pl ? 'pl' : 'en']}</div>
               <p style={{ marginTop: 10, fontSize: 13, color: T.textSoft, lineHeight: 1.5, flex: 1 }}>{p.bestFor}</p>
               <div style={{ marginTop: 14 }}>
                 <Btn variant={pkg?.id === p.id ? 'primary' : 'secondary'} size="md"
@@ -297,16 +300,16 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
 
       {step === 1 && (
         <div style={{ marginTop: 34 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.28em', textTransform: 'uppercase',
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
             color: T.brandInk || T.brand, marginBottom: 8 }}>{pl ? 'Lekcje grupowe' : 'Group lessons'}</div>
           <p style={{ margin: '0 0 16px', fontSize: 14, color: T.textDim, maxWidth: 640, lineHeight: 1.55 }}>
             {pl
               ? 'Grupy do 4 osób na Twoim poziomie, dwie lekcje w tygodniu, o stałych porach od poniedziałku do czwartku. Terminy przydzielamy po zapisaniu się.'
               : 'Groups of up to 4 students at your level, twice a week, at fixed times Monday to Thursday. We assign your times once you have joined.'}
           </p>
-          <div style={{ display: 'grid', gap: 16, gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-            {GROUP_COURSES.map(p => (
-              <Glass key={p.id} padding={22} hover style={{ display: 'flex', flexDirection: 'column' }}>
+          <div {...groupReveal.container} style={{ display: 'grid', gap: 16, gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+            {GROUP_COURSES.map((p, i) => (
+              <Glass key={p.id} padding={22} hover {...groupReveal.item(i)} style={{ display: 'flex', flexDirection: 'column', ...groupReveal.item(i).style }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontFamily: FONT.display, fontSize: 19, fontWeight: 600, color: T.text }}>
                     {pl ? p.namePl : p.name}
@@ -315,7 +318,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
                 </div>
                 <div style={{ marginTop: 8, fontFamily: FONT.display, fontSize: 30, fontWeight: 600,
                   background: G.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{p.price}</div>
-                <div style={{ fontSize: 12, color: T.textDim }}>{(pl ? p.pacePl : p.pace)} · {p.perLesson} · {packageValidity(PACKAGE_LESSONS[p.id])[pl ? 'pl' : 'en']}</div>
+                <div style={{ fontSize: 13, color: T.textDim }}>{(pl ? p.pacePl : p.pace)} · {p.perLesson} · {packageValidity(PACKAGE_LESSONS[p.id])[pl ? 'pl' : 'en']}</div>
                 <p style={{ marginTop: 10, fontSize: 13, color: T.textSoft, lineHeight: 1.5, flex: 1 }}>
                   {pl ? p.bestForPl : p.bestFor}
                 </p>
@@ -342,7 +345,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
             </datalist>
             {['fullName', 'email', 'phone', 'addressLine', 'city', 'postalCode', 'country', 'company', 'nip'].map(k => (
               <label key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: T.textDim }}>{L.fields[k]}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textDim }}>{L.fields[k]}</span>
                 <input value={billing[k]}
                   list={k === 'city' && isPL ? 'pl-cities' : undefined}
                   inputMode={k === 'postalCode' ? 'numeric' : k === 'phone' ? 'tel' : undefined}
@@ -359,13 +362,13 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
                     border: `1px solid ${showErrs && fieldErrs[k] ? 'rgba(244,63,94,0.65)' : T.border}`,
                     color: T.text, fontSize: 14, outline: 'none' }} />
                 {showErrs && fieldErrs[k] && (
-                  <span style={{ fontSize: 11.5, color: T.rose || '#fb7185' }}>{fieldErrs[k]}</span>
+                  <span style={{ fontSize: 13, color: T.rose || '#fb7185' }}>{fieldErrs[k]}</span>
                 )}
               </label>
             ))}
           </div>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 12 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: T.textDim }}>{L.fields.notes}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textDim }}>{L.fields.notes}</span>
             <textarea rows={2} value={billing.notes} onChange={e => setBilling(b => ({ ...b, notes: e.target.value }))}
               style={{ padding: '10px 12px', borderRadius: 10, background: T.surfaceLo,
                 border: `1px solid ${T.border}`, color: T.text, fontSize: 14, outline: 'none', resize: 'vertical' }} />
@@ -391,7 +394,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
               <div key={k}><span style={{ color: T.textDim }}>{L.fields[k].replace(' *', '')}: </span>{billing[k]}</div>
             ) : null)}
           </div>
-          <p style={{ marginTop: 14, fontSize: 12, color: T.amber }}>{L.reviewNote}</p>
+          <p style={{ marginTop: 14, fontSize: 13, color: T.amber }}>{L.reviewNote}</p>
           {err && <p style={{ marginTop: 10, fontSize: 13, color: T.rose }}>{err}</p>}
           <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
             <Btn variant="ghost" size="md" onClick={() => setStep(2)}>← {L.back}</Btn>
@@ -418,13 +421,13 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
       {/* orders history */}
       {orders && orders.length > 0 && (
         <div style={{ marginTop: 34 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.24em', textTransform: 'uppercase',
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
             color: T.textDim, marginBottom: 10 }}>{L.myOrders}</div>
           <div style={{ display: 'grid', gap: 8 }}>
             {orders.map(o => (
               <Glass key={o._id} padding={14} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: FONT.display, fontSize: 15, fontWeight: 600, color: T.text }}>{o.packageName}</span>
-                <span style={{ fontSize: 12, color: T.textDim }}>{o.lessons} × 60 min · {o.priceLabel}</span>
+                <span style={{ fontSize: 13, color: T.textDim }}>{o.lessons} × 60 min · {o.priceLabel}</span>
                 <Pill tone={o.status === 'confirmed' ? 'emerald' : o.status === 'cancelled' ? 'neutral' : 'amber'} size="sm">
                   {L.statuses[o.status] || o.status}
                 </Pill>

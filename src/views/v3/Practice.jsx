@@ -231,12 +231,12 @@ function V3Confetti() {
    Shared style snippets
    ============================================================================ */
 
-const EYEBROW = { fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase' }
-const MONO_SM = { fontFamily: FONT.mono, fontSize: 11 }
+const EYEBROW = { fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }
+const MONO_SM = { fontFamily: FONT.mono, fontSize: 13 }
 
 function ActionChip({ href, bg, icon, children }) {
   return (
-    <a href={href} target="_blank" rel="noreferrer" style={{ padding: '8px 14px', borderRadius: 999, background: bg, color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+    <a href={href} target="_blank" rel="noreferrer" style={{ padding: '8px 14px', borderRadius: 999, background: bg, color: '#fff', fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
       <span className="material-symbols-outlined" style={{ fontSize: 14 }}>{icon}</span>{children}
     </a>
   )
@@ -254,7 +254,7 @@ function BackNav({ slug, basePath = '', label, onBack }) {
   const labelText = label || t('quiz.nav.back')
   const chip = {
     display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px',
-    fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase',
+    fontSize: 13, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase',
     fontFamily: FONT.body, textDecoration: 'none',
     background: T.surface, color: T.textSoft, border: `1px solid ${T.border}`, borderRadius: 999,
   }
@@ -273,7 +273,7 @@ function BackNav({ slug, basePath = '', label, onBack }) {
     }}>
       <button type="button" onClick={onBack || (() => navigate(-1))} style={{
         display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px',
-        fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase',
+        fontSize: 13, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase',
         fontFamily: FONT.body, cursor: 'pointer',
         background: G.brand, color: '#fff', border: '1px solid rgba(255,255,255,0.18)',
         borderRadius: 999, boxShadow: '0 6px 20px -8px rgba(217,70,239,0.45)',
@@ -381,7 +381,7 @@ function QuestionCard({ question, onAnswer, answered, userAnswer, correct, accen
                 }}>
                 <span style={{
                   width: 28, height: 28, borderRadius: 8, background: badgeBg, color: badgeColor,
-                  fontFamily: FONT.mono, fontSize: 12, fontWeight: 700,
+                  fontFamily: FONT.mono, fontSize: 13, fontWeight: 700,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>{String.fromCharCode(65 + i)}</span>
                 <span style={{ flex: 1 }}>{opt}</span>
@@ -516,7 +516,7 @@ function Session({ exercise, category, tier, onComplete, onExit }) {
               ? t('quiz.session.tierLongNamed', { label: catLabel, tier, name: TIER_NAMES[tier] })
               : t('quiz.session.tierLong', { label: catLabel, tier })}
           </div>
-          <div style={{ ...MONO_SM, color: T.textDim, fontSize: 12 }}>
+          <div style={{ ...MONO_SM, color: T.textDim, fontSize: 13 }}>
             {t('quiz.session.questionOf', { idx: idx + 1, total: questions.length })}
           </div>
         </div>
@@ -524,7 +524,7 @@ function Session({ exercise, category, tier, onComplete, onExit }) {
         <div style={{
           position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '6px 12px', borderRadius: 999, background: G.brand, color: '#fff',
-          fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
+          fontSize: 13, fontWeight: 700, letterSpacing: '0.06em',
           boxShadow: '0 6px 20px -8px rgba(217,70,239,0.45)',
         }}>
           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>stars</span>
@@ -543,7 +543,7 @@ function Session({ exercise, category, tier, onComplete, onExit }) {
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
             padding: '6px 12px', borderRadius: 999, background: G.ember, color: '#fff',
-            fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
+            fontSize: 13, fontWeight: 700, letterSpacing: '0.06em',
             boxShadow: '0 6px 20px -8px rgba(251,146,60,0.45)',
           }}>
             <span className="material-symbols-outlined"
@@ -607,7 +607,7 @@ function SessionResults({ completed, category, onBackToArena, onTryAnother }) {
           {ok ? 'emoji_events' : 'refresh'}
         </span>
       </div>
-      <div style={{ ...EYEBROW, color: accent.solid, letterSpacing: '0.28em', marginBottom: 12 }}>
+      <div style={{ ...EYEBROW, color: accent.solid, letterSpacing: '0.14em', marginBottom: 12 }}>
         {t('quiz.complete.drillComplete')}
       </div>
       <div style={{
@@ -676,7 +676,7 @@ function PronunciationLauncher({ onClick, headline, body, ctaLabel }) {
           <div style={{ fontFamily: FONT.display, fontSize: 20, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 6 }}>{headlineText}</div>
           <div style={{ fontSize: 13, opacity: 0.88, lineHeight: 1.5 }}>{bodyText}</div>
         </div>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 999, background: 'rgba(255,255,255,0.22)', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 999, background: 'rgba(255,255,255,0.22)', fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>record_voice_over</span>{cta}
         </div>
       </div>
@@ -776,7 +776,7 @@ function FreeWriteDrill({ advice, slug }) {
         <div aria-hidden style={{ position: 'absolute', inset: 0, opacity: 0.2,
           background: 'radial-gradient(circle at 20% 20%, white 0%, transparent 45%), radial-gradient(circle at 80% 80%, white 0%, transparent 45%)' }}/>
         <div style={{ position: 'relative' }}>
-          <div style={{ ...EYEBROW, letterSpacing: '0.24em', opacity: 0.9, marginBottom: 8 }}>
+          <div style={{ ...EYEBROW, letterSpacing: '0.14em', opacity: 0.9, marginBottom: 8 }}>
             {t('quiz.free.kickerShort')}
           </div>
           <h1 style={{ fontFamily: FONT.display, fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1.2, margin: 0 }}>
@@ -817,11 +817,11 @@ function FreeWriteDrill({ advice, slug }) {
               style={{
                 flex: 1, minWidth: 240, padding: '10px 14px', borderRadius: 12,
                 background: T.surface, border: `1px solid ${T.border}`,
-                color: T.text, fontSize: 12, fontFamily: FONT.mono, outline: 'none',
+                color: T.text, fontSize: 13, fontFamily: FONT.mono, outline: 'none',
               }}/>
             <Btn variant="ember" size="sm" onClick={handleLoadVideo}>{t('quiz.free.loadVideo')}</Btn>
           </div>
-          {urlError && <div style={{ marginTop: 8, fontSize: 11, color: T.rose }}>{urlError}</div>}
+          {urlError && <div style={{ marginTop: 8, fontSize: 13, color: T.rose }}>{urlError}</div>}
           {videoEmbed?.src && (
             <div style={{ marginTop: 12, aspectRatio: '16 / 9', borderRadius: 14,
               overflow: 'hidden', background: '#000', border: `1px solid ${T.border}` }}>
@@ -835,7 +835,7 @@ function FreeWriteDrill({ advice, slug }) {
             <a href={videoEmbed.url} target="_blank" rel="noreferrer" style={{
               marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '8px 14px', borderRadius: 999, background: T.text, color: isDay ? '#fff' : '#0E0A1B',
-              fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', textDecoration: 'none',
+              fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', textDecoration: 'none',
             }}>
               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>open_in_new</span>
               {t('quiz.free.openOn', { source: videoEmbed.source })}
@@ -916,7 +916,7 @@ function FocusPicker({ focus, category, matches, onPick, onLaunchPronunciation, 
         <div aria-hidden style={{ position: 'absolute', inset: 0, opacity: 0.22,
           background: 'radial-gradient(circle at 20% 20%, white 0%, transparent 45%), radial-gradient(circle at 80% 80%, white 0%, transparent 45%)' }}/>
         <div style={{ position: 'relative' }}>
-          <div style={{ ...EYEBROW, letterSpacing: '0.24em', opacity: 0.9, marginBottom: 8 }}>{t('quiz.focus.kickerTargeted')}</div>
+          <div style={{ ...EYEBROW, letterSpacing: '0.14em', opacity: 0.9, marginBottom: 8 }}>{t('quiz.focus.kickerTargeted')}</div>
           <h1 style={{ fontFamily: FONT.display, fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1.2, margin: 0 }}>
             {title}
           </h1>
@@ -961,18 +961,18 @@ function FocusPicker({ focus, category, matches, onPick, onLaunchPronunciation, 
                     }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 6 }}>
                       <span style={{
-                        fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
+                        fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
                         padding: '3px 8px', borderRadius: 999, background: catMeta.grad, color: '#fff',
                       }}>{exCatLabel}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: T.textDim, fontFamily: FONT.mono }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: T.textDim, fontFamily: FONT.mono }}>
                         {t('quiz.card.tierLong', { tier: ex.difficultyTier })}
                       </span>
                     </div>
                     <div style={{ fontFamily: FONT.display, fontSize: 15, fontWeight: 600, lineHeight: 1.3, marginBottom: 4 }}>{ex.title}</div>
-                    <div style={{ fontSize: 12, color: T.textDim, lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ex.description}</div>
+                    <div style={{ fontSize: 13, color: T.textDim, lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ex.description}</div>
                     <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 10, color: T.textDim, fontFamily: FONT.mono }}>{t('quiz.card.qsShortAlt', { n: ex.questionCount || 10 })}</span>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: catMeta.solid, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                      <span style={{ fontSize: 13, color: T.textDim, fontFamily: FONT.mono }}>{t('quiz.card.qsShortAlt', { n: ex.questionCount || 10 })}</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: catMeta.solid, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                         {t('quiz.card.start')}<span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_forward</span>
                       </span>
                     </div>
@@ -987,7 +987,7 @@ function FocusPicker({ focus, category, matches, onPick, onLaunchPronunciation, 
       <button type="button" onClick={onExit} style={{
         width: '100%', padding: '14px 18px', borderRadius: 14,
         background: 'transparent', color: T.textDim, border: `1px dashed ${T.borderHi}`,
-        fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
+        fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
         cursor: 'pointer', fontFamily: FONT.body,
       }}>
         {t('quiz.focus.browseAllShort')}
@@ -1015,12 +1015,12 @@ function KbDrillPicker({ drillData, onLaunchSet, onLaunchPronunciation, onExit }
         <div aria-hidden style={{ position: 'absolute', inset: 0, opacity: 0.22,
           background: 'radial-gradient(circle at 30% 20%, white 0%, transparent 45%), radial-gradient(circle at 70% 80%, white 0%, transparent 45%)' }}/>
         <div style={{ position: 'relative' }}>
-          <div style={{ ...EYEBROW, letterSpacing: '0.24em', opacity: 0.9, marginBottom: 8, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ ...EYEBROW, letterSpacing: '0.14em', opacity: 0.9, marginBottom: 8, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>flag</span>
             {t('quiz.kb.kickerSuite')}
             {drillData?.fossilized && (
               <span style={{ marginLeft: 6, padding: '3px 8px', borderRadius: 999,
-                background: '#FBBF24', color: '#78350F', fontSize: 9, letterSpacing: '0.16em', fontWeight: 700 }}>{t('quiz.kb.fossilised')}</span>
+                background: '#FBBF24', color: '#78350F', fontSize: 13, letterSpacing: '0.12em', fontWeight: 700 }}>{t('quiz.kb.fossilised')}</span>
             )}
           </div>
           <h1 style={{ fontFamily: FONT.display, fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1.2, margin: 0 }}>
@@ -1070,10 +1070,10 @@ function KbDrillPicker({ drillData, onLaunchSet, onLaunchPronunciation, onExit }
                 <Pill size="sm" tone="neutral">{t('quiz.card.qsShortAlt', { n })}</Pill>
               </div>
               <div style={{ fontFamily: FONT.display, fontSize: 14, fontWeight: 600, lineHeight: 1.3, marginBottom: 6 }}>{qtypeLabelOf(t, s.type)}</div>
-              <div style={{ fontSize: 11, color: T.textDim, lineHeight: 1.45, marginBottom: 12 }}>
+              <div style={{ fontSize: 13, color: T.textDim, lineHeight: 1.45, marginBottom: 12 }}>
                 {n > 0 ? t('quiz.card.targetedQs', { n }) : t('quiz.card.noQsYet')}
               </div>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: T.brandInk || T.brand, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: T.brandInk || T.brand, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                 {t('quiz.kb.startDrill')}<span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_forward</span>
               </span>
             </button>
@@ -1084,7 +1084,7 @@ function KbDrillPicker({ drillData, onLaunchSet, onLaunchPronunciation, onExit }
       <button type="button" onClick={onExit} style={{
         width: '100%', padding: '14px 18px', borderRadius: 14,
         background: 'transparent', color: T.textDim, border: `1px dashed ${T.borderHi}`,
-        fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
+        fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
         cursor: 'pointer', fontFamily: FONT.body,
       }}>
         {t('quiz.focus.browseAllShort')}
@@ -1136,7 +1136,7 @@ function CatButton({ cat, meta, active, count, onClick }) {
       <span className="material-symbols-outlined" style={{ fontSize: 22 }}>{meta.icon}</span>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 14, fontWeight: 600 }}>{t(meta.labelKey)}</div>
-        <div style={{ fontSize: 11, opacity: active ? 0.85 : 0.55, marginTop: 2 }}>{t('quiz.card.drillCount', { n: count })}</div>
+        <div style={{ fontSize: 13, opacity: active ? 0.85 : 0.55, marginTop: 2 }}>{t('quiz.card.drillCount', { n: count })}</div>
       </div>
     </button>
   )
@@ -1164,17 +1164,17 @@ function TierCard({ tier, name, count, questionCount, cefr, best, accent, onStar
         opacity: 0.1, letterSpacing: '-0.04em', pointerEvents: 'none',
       }}>{String(tier).padStart(2, '0')}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', fontFamily: FONT.mono, color: accent.solid }}>
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', fontFamily: FONT.mono, color: accent.solid }}>
           {t('quiz.card.tierLong', { tier: String(tier).padStart(2, '0') })}
         </div>
         {cefr && <span style={{
-          marginLeft: 'auto', fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 999,
+          marginLeft: 'auto', fontSize: 13, fontWeight: 700, padding: '2px 7px', borderRadius: 999,
           background: (CEFR_COLOR[cefr] || T.brand) + '22', color: CEFR_COLOR[cefr] || T.textSoft,
-          letterSpacing: '0.16em',
+          letterSpacing: '0.12em',
         }}>{cefr}</span>}
       </div>
       <div style={{ fontFamily: FONT.display, fontSize: 17, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 10, color: T.text, position: 'relative' }}>{name}</div>
-      <div style={{ display: 'flex', gap: 12, fontSize: 11, color: T.textDim, fontFamily: FONT.mono, marginBottom: 14, position: 'relative' }}>
+      <div style={{ display: 'flex', gap: 12, fontSize: 13, color: T.textDim, fontFamily: FONT.mono, marginBottom: 14, position: 'relative' }}>
         <span>{t('quiz.card.qsShortAlt', { n: questionCount || 10 })}</span><span>·</span>
         <span>{t('quiz.card.tierMinutes', { n: Math.max(4, Math.round((questionCount || 10) * 0.7)) })}</span>
         {count > 1 && <><span>·</span><span>{t('quiz.card.drillCount', { n: count })}</span></>}
@@ -1182,10 +1182,10 @@ function TierCard({ tier, name, count, questionCount, cefr, best, accent, onStar
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: `1px solid ${T.borderSoft}`, position: 'relative' }}>
         {hasBest
           ? <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: T.textDim }}>{t('quiz.card.bestLabel')}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textDim }}>{t('quiz.card.bestLabel')}</span>
               <span style={{ fontFamily: FONT.display, fontSize: 18, fontWeight: 600, color: bestColor, letterSpacing: '-0.02em' }}>{best}</span>
             </div>
-          : <span style={{ fontSize: 11, color: T.textDim, fontStyle: 'italic' }}>{t('quiz.card.notAttempted')}</span>}
+          : <span style={{ fontSize: 13, color: T.textDim, fontStyle: 'italic' }}>{t('quiz.card.notAttempted')}</span>}
         <span className="material-symbols-outlined"
           style={{ fontSize: 18, color: accent.solid, transform: hov ? 'translateX(3px)' : 'none', transition: 'transform 180ms' }}>
           play_arrow
@@ -1411,7 +1411,7 @@ export default function PracticeV3({ data, basePath = '', legacyBanner = false }
 
       {/* Hero */}
       <div style={{ marginBottom: isMobile ? 28 : 36 }}>
-        <div style={{ ...EYEBROW, letterSpacing: '0.28em', color: T.brandInk || T.brand, marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ ...EYEBROW, letterSpacing: '0.14em', color: T.brandInk || T.brand, marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: T.brand, boxShadow: `0 0 10px ${T.brand}` }}/>
           {t('quiz.arena.kickerTrainingRoom')}
         </div>
@@ -1465,7 +1465,7 @@ export default function PracticeV3({ data, basePath = '', legacyBanner = false }
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <div>
-            <div style={{ ...EYEBROW, letterSpacing: '0.24em', color: T.textDim, marginBottom: 4 }}>
+            <div style={{ ...EYEBROW, letterSpacing: '0.14em', color: T.textDim, marginBottom: 4 }}>
               {t('quiz.arena.tierHeaderShort', { label: catLabelOf(t, activeCategory) })}
             </div>
             <h2 style={{ fontFamily: FONT.display, fontSize: isMobile ? 22 : 28, fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>

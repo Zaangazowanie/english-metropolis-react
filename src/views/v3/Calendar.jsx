@@ -8,6 +8,7 @@ import { Link, useParams } from 'react-router-dom'
 import { FONT, G } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Glass, Btn, Pill, Skeleton } from '../../design/v3/primitives.jsx'
+import { useReveal } from '../../design/v3/motion/index.js'
 import { useI18n } from '../../i18n'
 import LessonBooking from './LessonBooking.jsx'
 import Curriculum from './Curriculum.jsx'
@@ -126,13 +127,13 @@ function UpcomingCard({ item, slug, earliestDate, now }) {
           lineHeight: 1, letterSpacing: '-0.03em', color: T.text }}>
           {parseInt(dd, 10)}
         </div>
-        <div style={{ fontSize: 11, color: T.textDim, fontFamily: FONT.mono }}>
+        <div style={{ fontSize: 13, color: T.textDim, fontFamily: FONT.mono }}>
           {monthLabel} {y}
         </div>
       </div>
-      <div style={{ fontSize: 12, color: T.textSoft, fontFamily: FONT.mono, marginBottom: 10 }}>
+      <div style={{ fontSize: 13, color: T.textSoft, fontFamily: FONT.mono, marginBottom: 10 }}>
         {item.startTime || '—'}{' '}
-        <span style={{ color: T.textDim, fontSize: 10 }}>CEST</span>
+        <span style={{ color: T.textDim, fontSize: 13 }}>CEST</span>
       </div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
         <Pill tone="violet" size="sm">{code}</Pill>
@@ -204,7 +205,7 @@ function MonthGrid({ cursor, setCursor, lessonItems, slug, earliestDate, todaySt
         {/* Monday-first short weekday header — index maps to weekday.short.<idx>
             (1=Mon, …, 6=Sat, 0=Sun) so the strip stays Polish on PL. */}
         {[1,2,3,4,5,6,0].map(idx => (
-          <div key={idx} style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
+          <div key={idx} style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
             textTransform: 'uppercase', color: T.textDim, padding: '4px 8px' }}>{t(`weekday.short.${idx}`)}</div>
         ))}
         {cells.map((c, i) => {
@@ -218,7 +219,7 @@ function MonthGrid({ cursor, setCursor, lessonItems, slug, earliestDate, todaySt
               borderRadius: 10, padding: 6,
               display: 'flex', flexDirection: 'column', gap: 3,
             }}>
-              <div style={{ fontSize: 10, fontWeight: 600, fontFamily: FONT.mono,
+              <div style={{ fontSize: 13, fontWeight: 600, fontFamily: FONT.mono,
                 color: isToday ? (T.brandInk || T.brand) : T.textDim }}>{c.day}</div>
               {c.lessons.map(l => {
                 const code = groupCodeFor(l.lesson, slug, earliestDate)
@@ -229,7 +230,7 @@ function MonthGrid({ cursor, setCursor, lessonItems, slug, earliestDate, todaySt
                   background: isUpcoming ? 'rgba(139,92,246,0.18)' : 'rgba(255,255,255,0.06)',
                   color: isUpcoming ? T.violet : T.textDim,
                   border: `1px solid ${isUpcoming ? 'rgba(139,92,246,0.30)' : 'transparent'}`,
-                  fontSize: 9, fontFamily: FONT.mono,
+                  fontSize: 13, fontFamily: FONT.mono,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   textDecoration: 'none',
                 }
@@ -238,7 +239,7 @@ function MonthGrid({ cursor, setCursor, lessonItems, slug, earliestDate, todaySt
                 }
                 const path = `/app/${slug}/lessons?openLesson=${l._id}`
                 return (
-                  <Link key={l._id} to={path} title={l.title}
+                  <Link key={l._id} to={path} title={l.title} className="em-focus"
                     style={{ ...cellStyle, cursor: 'pointer' }}>
                     {code}
                   </Link>
@@ -284,6 +285,7 @@ export default function Calendar({ data }) {
     const id = setInterval(() => setNow(new Date()), 30000)
     return () => clearInterval(id)
   }, [])
+  const upcomingReveal = useReveal({ stagger: 50, cap: 4 })
 
   const lessonItems = useMemo(() => {
     const todayStr = ymd(now)
@@ -362,7 +364,7 @@ export default function Calendar({ data }) {
           background: `${G.brandSoft}, rgba(255,255,255,0.04)`,
           borderColor: 'rgba(217,70,239,0.25)',
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.28em',
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 10 }}>
             {t('calendar.hero.kicker')}
           </div>
@@ -408,9 +410,9 @@ export default function Calendar({ data }) {
               borderRadius: 999,
               background: 'rgba(255,255,255,0.40)',
               border: '1px solid rgba(255,255,255,0.34)',
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: 800,
-              letterSpacing: '0.16em',
+              letterSpacing: '0.12em',
               textTransform: 'uppercase',
               color: T.brandInk || T.brand,
               marginBottom: 13,
@@ -468,7 +470,7 @@ export default function Calendar({ data }) {
                 }}>
                   {item.n}
                 </div>
-                <div style={{ marginTop: 6, color: T.textDim, fontSize: 12, fontWeight: 650 }}>
+                <div style={{ marginTop: 6, color: T.textDim, fontSize: 13, fontWeight: 650 }}>
                   {item.label}
                 </div>
               </div>
@@ -487,16 +489,18 @@ export default function Calendar({ data }) {
       {/* Upcoming strip */}
       {upcoming.length > 0 && (
         <>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.24em',
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: T.textDim, marginBottom: 14 }}>
             {t('calendar.upcoming.heading', { n: upcoming.length })}
           </div>
-          <div style={{ display: 'grid',
+          <div {...upcomingReveal.container} style={{ display: 'grid',
             gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
             gap: 14, marginBottom: 36 }}>
-            {upcoming.map(item => (
-              <UpcomingCard key={item._id} item={item} slug={slug}
-                earliestDate={earliestDate} now={now}/>
+            {upcoming.map((item, i) => (
+              <div key={item._id} {...upcomingReveal.item(i)}>
+                <UpcomingCard item={item} slug={slug}
+                  earliestDate={earliestDate} now={now}/>
+              </div>
             ))}
           </div>
         </>
@@ -509,7 +513,7 @@ export default function Calendar({ data }) {
 
       {/* Legend */}
       <div style={{ marginTop: 16, display: 'flex', gap: 18,
-        fontSize: 11, flexWrap: 'wrap', fontFamily: FONT.mono }}>
+        fontSize: 13, flexWrap: 'wrap', fontFamily: FONT.mono }}>
         <LegendDot color="rgba(255,255,255,0.25)" label={t('calendar.legend.past')}/>
         <LegendDot color={T.violet} label={t('calendar.legend.upcoming')}/>
         <LegendDot color={T.emerald} label={t('calendar.legend.live')} pulse/>

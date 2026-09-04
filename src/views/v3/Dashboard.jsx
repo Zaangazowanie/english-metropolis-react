@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FONT, G, CEFR_COLOR } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
-import { Btn, Glass, MetricBar, Pill, Skeleton, useNumberFlow } from '../../design/v3/primitives.jsx'
+import { Btn, Glass, MetricBar, Pill, Skeleton } from '../../design/v3/primitives.jsx'
+import { AnimatedNumber, ProgressRing, useAnimatedValue, useReveal } from '../../design/v3/motion/index.js'
+import { ThreeSlot } from '../../design/v3/three/ThreeSlot.jsx'
 import { useI18n } from '../../i18n'
 import { applyGreeting, useStudentDesign } from '../../design/v3/studentDesign.js'
 import { fetchJSONCached } from '../../practice/lib/practice-cache'
@@ -78,7 +80,7 @@ function StatTile({ label, value, icon }) {
         marginTop: 2 }}>
         {value}
       </div>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.22em',
+      <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
         textTransform: 'uppercase', color: T.textDim, marginTop: 6 }}>{label}</div>
     </Glass>
   )
@@ -96,19 +98,19 @@ function MetricCard({ axis, score, slug, basePath }) {
   const practicePath = slug ? `${basePath}/${slug}/practice?category=${axis.practice}` : '#'
   return (
     <Glass padding={18} hover>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em',
+      <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
         textTransform: 'uppercase', color: T.textDim }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6 }}>
         <div style={{ fontFamily: FONT.display, fontSize: 32, fontWeight: 600,
           color: T.text, letterSpacing: '-0.02em', lineHeight: 1 }}>{score}</div>
-        <div style={{ fontSize: 12, color: T.textDim, fontFamily: FONT.mono }}>/100</div>
+        <div style={{ fontSize: 13, color: T.textDim, fontFamily: FONT.mono }}>/100</div>
       </div>
-      <div style={{ fontSize: 11, color, fontWeight: 600, marginTop: 2,
+      <div style={{ fontSize: 13, color, fontWeight: 600, marginTop: 2,
         letterSpacing: '0.06em' }}>{tier}</div>
       <div style={{ marginTop: 10 }}><MetricBar value={score} color={color}/></div>
       <Link to={practicePath}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 10,
-          fontSize: 11, color: T.textDim, textDecoration: 'none',
+          fontSize: 13, color: T.textDim, textDecoration: 'none',
           letterSpacing: '0.04em' }}>
         {t('dashboard.metric.drill', { label })}
         <span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_forward</span>
@@ -123,7 +125,7 @@ function LatestLessonCard({ lesson, slug, basePath, pdfUrl }) {
   if (!lesson) {
     return (
       <Glass padding={28} hover style={{ minHeight: 220 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.28em',
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
           textTransform: 'uppercase', color: T.textDim, marginBottom: 6 }}>
           {t('dashboard.latest.kicker')}
         </div>
@@ -147,7 +149,7 @@ function LatestLessonCard({ lesson, slug, basePath, pdfUrl }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.28em',
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: T.textDim, marginBottom: 6 }}>
             {t('dashboard.latest.kickerDated', { date })}
           </div>
@@ -221,7 +223,7 @@ function AccuracyAtSpeedCard({ slug, basePath }) {
         <div>
           <div style={{
             marginBottom: 5, color: T.brandInk || T.brand,
-            fontSize: 9, fontWeight: 750, letterSpacing: '0.2em',
+            fontSize: 13, fontWeight: 750, letterSpacing: '0.14em',
             textTransform: 'uppercase',
           }}>
             New practice from your 29 July lesson
@@ -249,7 +251,13 @@ function AccuracyAtSpeedCard({ slug, basePath }) {
 function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null }) {
   const { T } = useV3Theme()
   const { t } = useI18n()
-  const nowMs = Date.now()
+  // Live clock (30s tick) so "starts in N min" and the Join state stay honest
+  // while the dashboard sits open.
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 30000)
+    return () => clearInterval(id)
+  }, [])
   const startAt = upcoming?.startAtMs || 0
   const prox = describeUpcomingProximity(t, startAt, nowMs)
   const isLive = prox.urgency === 'live'
@@ -266,7 +274,7 @@ function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null }) {
         justifyContent: 'space-between', minHeight: 220,
       }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.28em',
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: T.textDim, marginBottom: 6 }}>
             {t('dashboard.upcoming.kicker')}
           </div>
@@ -327,7 +335,7 @@ function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null }) {
           boxShadow: `0 0 14px ${T.emerald}`,
         }}/>
       )}
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.28em',
+      <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
         textTransform: 'uppercase', color: T.textDim, marginBottom: 6 }}>
         {t('dashboard.upcoming.kicker')}
       </div>
@@ -399,7 +407,7 @@ function ReviseCard({ lesson, slug, basePath }) {
     <Glass padding={28} hover style={{ display: 'flex', flexDirection: 'column',
       justifyContent: 'space-between', minHeight: 220 }}>
       <div>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.28em',
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
           textTransform: 'uppercase', color: T.textDim, marginBottom: 6,
           display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <span className="material-symbols-outlined" style={{ fontSize: 14, color: T.brand }}>style</span>
@@ -433,28 +441,126 @@ function ReviseCard({ lesson, slug, basePath }) {
   )
 }
 
+// ---------------------------------------------------------------------------
+// The lesson line — the student's package drawn as a metro line. Stations are
+// the allocated lessons, lit stations the ones already taken, the emerald halo
+// the next booked lesson. Numbers come from orders:getStudentAllocation (the
+// same `alloc` the hero card uses) and data.upcomingLesson. With no package the
+// line shows the completed-lesson history instead, so it always reflects the
+// student's real state and is never decorative.
+function LessonLineSvg({ stations, lit, next, T, isDay }) {
+  const n = Math.max(2, Math.min(30, stations || 2))
+  const w = 600, h = 120
+  const pts = Array.from({ length: n }, (_, i) => {
+    const t = i / (n - 1)
+    return [20 + t * (w - 40), h / 2 - Math.sin(t * Math.PI * 1.6 + 0.4) * 22]
+  })
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="120" aria-hidden style={{ display: 'block' }}>
+      <path d={d} fill="none" stroke={isDay ? '#C4B5FD' : '#4C1D95'} strokeWidth="5" strokeLinecap="round"/>
+      {lit > 1 && <path d={pts.slice(0, lit).map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')}
+        fill="none" stroke="#D946EF" strokeWidth="6" strokeLinecap="round"/>}
+      {pts.map((p, i) => {
+        const taken = i < lit, isNext = next && i === lit
+        return <circle key={i} cx={p[0]} cy={p[1]} r={taken || isNext ? 8 : 6}
+          fill={taken ? '#D946EF' : isNext ? '#34D399' : (isDay ? '#fff' : '#1B1236')}
+          stroke={taken ? '#F0ABFC' : isNext ? '#6EE7B7' : T.borderHi} strokeWidth="2"/>
+      })}
+    </svg>
+  )
+}
+
+function LessonLineCard({ alloc, lessonsCount, upcoming, slug, basePath }) {
+  const { T, mode, isMobile } = useV3Theme()
+  const { t, lang } = useI18n()
+  const isDay = mode === 'day'
+  const allocated = numberOr(alloc?.allocated)
+  const used = numberOr(alloc?.used)
+  const packageMode = allocated > 0
+  const stations = packageMode ? allocated : Math.min(24, lessonsCount)
+  const lit = packageMode ? Math.min(used, allocated) : stations
+  if (!packageMode && lessonsCount === 0) {
+    return (
+      <Glass padding={isMobile ? 20 : 24} style={{ marginBottom: 32 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.textDim }}>
+          {t('dashboard.metro.kicker')}
+        </div>
+        <p style={{ margin: '8px 0 0', fontSize: 14, color: T.textDim, lineHeight: 1.55 }}>{t('dashboard.metro.empty')}</p>
+      </Glass>
+    )
+  }
+  const validUntil = alloc?.validUntil
+    ? new Date(alloc.validUntil).toLocaleDateString(lang === 'pl' ? 'pl-PL' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null
+  const legendDot = (color, label) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: T.textDim }}>
+      <span style={{ width: 9, height: 9, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}` }}/>
+      {label}
+    </span>
+  )
+  return (
+    <Glass padding={0} style={{ marginBottom: 32, overflow: 'hidden' }}>
+      <div style={{ padding: isMobile ? '18px 18px 0' : '22px 26px 0', display: 'flex', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', alignItems: 'baseline' }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.textDim }}>
+            {t('dashboard.metro.kicker')}
+          </div>
+          <div style={{ marginTop: 6, fontFamily: FONT.display, fontSize: isMobile ? 18 : 20, fontWeight: 600, color: T.text, letterSpacing: '-0.01em' }}>
+            {packageMode
+              ? t('dashboard.metro.package', { used, allocated, remaining: numberOr(alloc?.remaining) })
+              : t('dashboard.metro.history', { n: lessonsCount })}
+          </div>
+          {/* Regulamin § 5 ust. 2: validity is shown wherever a package is. */}
+          {packageMode && validUntil && (
+            <div style={{ marginTop: 4, fontSize: 13, color: T.textDim }}>{t('dashboard.metro.validUntil', { date: validUntil })}</div>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          {legendDot('#D946EF', t('dashboard.metro.legend.taken'))}
+          {upcoming && legendDot('#34D399', t('dashboard.metro.legend.next'))}
+          {packageMode && legendDot(isDay ? '#C4B5FD' : '#4C1D95', t('dashboard.metro.legend.remaining'))}
+        </div>
+      </div>
+      <ThreeSlot id="metro-line" load={() => import('../../design/v3/three/MetroLine.jsx')}
+        stations={stations} lit={lit} next={upcoming} isDay={isDay} height={isMobile ? 130 : 160}
+        style={{ minHeight: isMobile ? 130 : 160 }}
+        fallback={<div style={{ padding: '10px 12px 0' }}><LessonLineSvg stations={stations} lit={lit} next={upcoming} T={T} isDay={isDay}/></div>}/>
+      <div style={{ padding: isMobile ? '0 18px 16px' : '0 26px 18px', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <span style={{ fontSize: 13, color: T.textMute }}>{t('dashboard.metro.hint')}</span>
+        {packageMode && numberOr(alloc?.remaining) > 0 && (
+          <Link to={slug ? `${basePath}/${slug}/calendar#lesson-booking` : '#'} style={{ textDecoration: 'none' }}>
+            <Btn variant="secondary" size="sm" icon="event_available">{t('dashboard.upcoming.bookNow')}</Btn>
+          </Link>
+        )}
+      </div>
+    </Glass>
+  )
+}
+
 function RecentLessons({ lessons, slug, basePath }) {
   const { T, isMobile } = useV3Theme()
   const { t } = useI18n()
+  const reveal = useReveal({ stagger: 50, cap: 3 })
   if (!lessons.length) return null
   return (
     <div>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.28em',
+      <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
         textTransform: 'uppercase', color: T.textDim, marginBottom: 14 }}>
         {t('dashboard.recent.kicker')}
       </div>
-      <div style={{ display: 'grid',
+      <div {...reveal.container} style={{ display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
         gap: 16 }}>
-        {lessons.slice(0, 3).map(lesson => {
+        {lessons.slice(0, 3).map((lesson, i) => {
           const band = lesson.analysis?.cefrBand || '—'
           const overall = numberOr(lesson.analysis?.overallScore)
           const path = slug ? `${basePath}/${slug}/lessons?openLesson=${lesson.id}` : '#'
           return (
-            <Link key={lesson.id} to={path}
-              style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link key={lesson.id} to={path} className={`em-focus ${reveal.item(i).className}`}
+              style={{ textDecoration: 'none', color: 'inherit', ...reveal.item(i).style }}>
               <Glass padding={20} hover style={{ height: '100%' }}>
-                <div style={{ fontFamily: FONT.mono, fontSize: 11, color: T.textDim,
+                <div style={{ fontFamily: FONT.mono, fontSize: 13, color: T.textDim,
                   letterSpacing: '0.08em' }}>{lesson.date}</div>
                 <div style={{ fontFamily: FONT.display, fontSize: 16, fontWeight: 600,
                   color: T.text, marginTop: 6, lineHeight: 1.3, minHeight: 42,
@@ -468,8 +574,8 @@ function RecentLessons({ lessons, slug, basePath }) {
                     {t('dashboard.recent.wordsCount', { n: lesson.keyword_count || 0 })}
                   </Pill>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700,
-                      letterSpacing: '0.2em', textTransform: 'uppercase',
+                    <span style={{ fontSize: 13, fontWeight: 700,
+                      letterSpacing: '0.14em', textTransform: 'uppercase',
                       color: CEFR_COLOR[band] || T.textDim }}>{band}</span>
                     {overall > 0 && (
                       <span style={{ fontFamily: FONT.mono, fontSize: 13,
@@ -536,7 +642,9 @@ function ExpandableSummary({ text, T, preferShort, t }) {
 export default function DashboardV3({ data, slug, basePath = '' }) {
   const { T, isMobile } = useV3Theme()
   const { t, lang } = useI18n()
-  const allLessons = data?.lessons || []
+  const heroReveal = useReveal({ stagger: 60, cap: 3 })
+  const metricsReveal = useReveal({ stagger: 40, cap: 6 })
+  const allLessons = useMemo(() => data?.lessons || [], [data?.lessons])
   // Latest Lesson should reference *completed* lessons, not the next planned
   // session — otherwise an upcoming lesson would push the most recent
   // analysed lesson out of view.
@@ -554,7 +662,8 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
   const showCard = id => design.cards.includes(id)
   const customWelcome = applyGreeting(design.greeting, firstName)
   const cefr = profile.level || latestAnalysisRaw?.cefrBand || '—'
-  const composite = useNumberFlow(numberOr(data?.averageScore))
+  const compositeTarget = numberOr(data?.averageScore)
+  const composite = Math.round(useAnimatedValue(compositeTarget))
   const [progressOpen, setProgressOpen] = useState(false)
   const [alloc, setAlloc] = useState(null)
   const [pdfMap, setPdfMap] = useState({})
@@ -653,11 +762,11 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
     .find(pdf => pdf.date === lessons[0]?.date)
 
   return (
-    <div style={{ maxWidth: 1840, margin: '0 auto',
+    <div className="em-content-in" style={{ maxWidth: 1840, margin: '0 auto',
       padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }}>
 
       <div style={{ marginBottom: isMobile ? 36 : 48 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.28em',
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
           textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 14,
           display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: T.brand,
@@ -691,20 +800,33 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
 
       {/* The "right now" row — what a student actually needs when they log in:
           join the next lesson, revise the last one, reread its analysis. */}
-      <div style={{ display: 'grid',
+      <div {...heroReveal.container} style={{ display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
         gap: 20, marginBottom: 32 }}>
         {showCard('upcoming') && (
-          <UpcomingLessonCard upcoming={upcomingLesson} slug={slug} basePath={basePath} alloc={alloc}/>
+          <div {...heroReveal.item(0)}>
+            <UpcomingLessonCard upcoming={upcomingLesson} slug={slug} basePath={basePath} alloc={alloc}/>
+          </div>
         )}
 
-        {showCard('revise') && <ReviseCard lesson={lessons[0]} slug={slug} basePath={basePath}/>}
+        {showCard('revise') && (
+          <div {...heroReveal.item(1)}>
+            <ReviseCard lesson={lessons[0]} slug={slug} basePath={basePath}/>
+          </div>
+        )}
 
         {showCard('latest') && (
-          <LatestLessonCard lesson={lessons[0]} slug={slug} basePath={basePath}
-            pdfUrl={latestLessonPdf?.url}/>
+          <div {...heroReveal.item(2)}>
+            <LatestLessonCard lesson={lessons[0]} slug={slug} basePath={basePath}
+              pdfUrl={latestLessonPdf?.url}/>
+          </div>
         )}
       </div>
+
+      {/* The lesson line: the student's package as a metro line (3D when
+          WebGL + motion allow, SVG otherwise). Same numbers either way. */}
+      <LessonLineCard alloc={alloc} lessonsCount={lessons.length}
+        upcoming={!!upcomingLesson} slug={slug} basePath={basePath}/>
 
       {/* Everything analytical lives behind one calm disclosure — full detail
           on demand, zero noise by default. The closed header still whispers
@@ -712,7 +834,7 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
       {!emptyState && showCard('analytics') && (
         <div style={{ marginBottom: 32 }}>
           <button type="button" onClick={() => setProgressOpen(o => !o)}
-            aria-expanded={progressOpen}
+            aria-expanded={progressOpen} className="em-press em-focus"
             style={{ width: '100%', textAlign: 'left', cursor: 'pointer',
               background: 'transparent', border: `1px solid ${T.border}`,
               borderRadius: 18, padding: '16px 20px', color: T.text,
@@ -720,20 +842,23 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
             <span className="material-symbols-outlined"
               style={{ fontSize: 20, color: T.brand }}>monitoring</span>
             <div style={{ flex: 1, minWidth: 180 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.18em',
+              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
                 textTransform: 'uppercase', color: T.text }}>
                 {t('dashboard.progress.show')}
               </div>
-              <div style={{ fontSize: 11, color: T.textDim, marginTop: 2 }}>
+              <div style={{ fontSize: 13, color: T.textDim, marginTop: 2 }}>
                 {t('dashboard.progress.hint')}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontFamily: FONT.display, fontSize: 26, fontWeight: 600,
-                background: G.brand, WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                {composite}
-              </span>
+              <ProgressRing value={compositeTarget} size={46} stroke={4} color={T.brand}
+                track={T.border} title={t('dashboard.composite.label')}>
+                <span style={{ fontFamily: FONT.display, fontSize: 15, fontWeight: 700,
+                  background: G.brand, WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                  {composite}
+                </span>
+              </ProgressRing>
               <Pill tone="brand" size="sm">{cefr}</Pill>
               <span className="material-symbols-outlined"
                 style={{ fontSize: 22, color: T.textDim,
@@ -743,9 +868,9 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
           </button>
 
           {progressOpen && (
-            <div style={{ marginTop: 16 }}>
+            <div className="em-content-in" style={{ marginTop: 16 }}>
               <Glass padding={28} style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.28em',
+                <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                   textTransform: 'uppercase', color: T.textDim, marginBottom: 12 }}>
                   {t('dashboard.composite.label')}
                 </div>
@@ -756,7 +881,7 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
                     WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                     {composite}
                   </div>
-                  <div style={{ fontSize: 11, color: T.textDim }}>{t('dashboard.composite.outOf')}</div>
+                  <div style={{ fontSize: 13, color: T.textDim }}>{t('dashboard.composite.outOf')}</div>
                 </div>
                 <div style={{ marginTop: 24, display: 'grid',
                   gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
@@ -767,18 +892,20 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
               </Glass>
 
               {metricScores ? (
-                <div style={{ display: 'grid',
+                <div {...metricsReveal.container} style={{ display: 'grid',
                   gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)',
                   gap: 12 }}>
-                  {METRICS.map(axis => (
-                    <MetricCard key={axis.k} axis={axis}
-                      score={numberOr(metricScores[axis.k], 0)}
-                      slug={slug} basePath={basePath}/>
+                  {METRICS.map((axis, i) => (
+                    <div key={axis.k} {...metricsReveal.item(i)}>
+                      <MetricCard axis={axis}
+                        score={numberOr(metricScores[axis.k], 0)}
+                        slug={slug} basePath={basePath}/>
+                    </div>
                   ))}
                 </div>
               ) : (
                 <Glass padding={20} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 12, color: T.textDim, letterSpacing: '0.08em' }}>
+                  <div style={{ fontSize: 13, color: T.textDim, letterSpacing: '0.08em' }}>
                     {t('dashboard.metric.empty')}
                   </div>
                 </Glass>

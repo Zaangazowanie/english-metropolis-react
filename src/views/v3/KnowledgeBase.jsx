@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { FONT, G, EASE } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Glass, Pill, Skeleton } from '../../design/v3/primitives.jsx'
+import { Sheet, useReveal } from '../../design/v3/motion/index.js'
 import { useI18n } from '../../i18n'
 import { fetchJSONCached } from '../../practice/lib/practice-cache'
 
@@ -119,7 +120,7 @@ function StatTile({ label, value, tone = 'brand' }) {
         WebkitTextFillColor: 'transparent', backgroundClip: 'text' }
   return (
     <Glass padding={16} style={{ minWidth: 104, textAlign: 'center' }}>
-      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.22em',
+      <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
         textTransform: 'uppercase', color: T.textDim }}>{label}</div>
       <div style={{ fontFamily: FONT.display, fontSize: 30, fontWeight: 600,
         lineHeight: 1.05, letterSpacing: '-0.02em', marginTop: 4, ...valueStyle }}>
@@ -137,7 +138,7 @@ function CategoryChip({ active, accent, onClick, children }) {
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
         padding: '7px 14px', borderRadius: 999, cursor: 'pointer',
-        fontFamily: FONT.body, fontSize: 11, fontWeight: 700,
+        fontFamily: FONT.body, fontSize: 13, fontWeight: 700,
         letterSpacing: '0.12em', textTransform: 'uppercase',
         background: active ? G.brand : (hov ? T.surfaceHi : T.surface),
         color: active ? '#fff' : T.textSoft,
@@ -186,7 +187,7 @@ function PanelBox({ children, tone = 'panel', icon, label, style = {} }) {
       background: t.bg, border: `1px solid ${t.border}`, ...style }}>
       {label && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
-          fontSize: 10, fontWeight: 700, letterSpacing: '0.2em',
+          fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
           textTransform: 'uppercase', color: t.accent, fontFamily: FONT.body }}>
           {icon && <span className="material-symbols-outlined"
             style={{ fontSize: 14, color: t.accent }}>{icon}</span>}
@@ -224,7 +225,7 @@ function EntryCard({ entry, expanded, onToggle, onQuickDrill, onFullDrill }) {
         transition: `all 240ms ${EASE.springFast}`,
         boxShadow: hov || expanded ? T.shadow : T.shadowSm,
       }}>
-      <button type="button" onClick={onToggle}
+      <button type="button" onClick={onToggle} className="em-press em-focus"
         style={{ display: 'flex', alignItems: 'flex-start', gap: 14,
           width: '100%', padding: '18px 20px', textAlign: 'left',
           background: 'transparent', border: 'none', cursor: 'pointer',
@@ -240,7 +241,7 @@ function EntryCard({ entry, expanded, onToggle, onQuickDrill, onFullDrill }) {
             flexWrap: 'wrap', marginBottom: 8 }}>
             <span style={{ padding: '3px 9px', borderRadius: 999,
               background: catTint, border: `1px solid ${catBorder}`,
-              color: meta.color, fontSize: 10, fontWeight: 700,
+              color: meta.color, fontSize: 13, fontWeight: 700,
               letterSpacing: '0.14em', textTransform: 'uppercase',
               fontFamily: FONT.body }}>
               {catLabel}
@@ -296,7 +297,7 @@ function EntryCard({ entry, expanded, onToggle, onQuickDrill, onFullDrill }) {
           {entry.examples.length > 0 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
-                fontSize: 10, fontWeight: 700, letterSpacing: '0.2em',
+                fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                 textTransform: 'uppercase', color: T.textDim, fontFamily: FONT.body }}>
                 <span className="material-symbols-outlined"
                   style={{ fontSize: 14 }}>history</span>
@@ -309,18 +310,18 @@ function EntryCard({ entry, expanded, onToggle, onQuickDrill, onFullDrill }) {
                     <div key={i} style={{ padding: 12, borderRadius: 12,
                       background: mode === 'day' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.03)',
                       border: `1px solid ${T.border}` }}>
-                      <p style={{ margin: 0, fontFamily: FONT.mono, fontSize: 12,
+                      <p style={{ margin: 0, fontFamily: FONT.mono, fontSize: 13,
                         color: T.rose, fontStyle: 'italic',
                         textDecoration: 'line-through',
                         textDecorationColor: T.rose + '80' }}>
                         "{ex.said}"
                       </p>
-                      <p style={{ margin: '6px 0 0', fontFamily: FONT.mono, fontSize: 12,
+                      <p style={{ margin: '6px 0 0', fontFamily: FONT.mono, fontSize: 13,
                         color: T.emerald }}>
                         <span style={{ fontWeight: 700 }}>→</span> "{ex.corrected}"
                       </p>
                       {(ex.lessonDate || ex.context) && (
-                        <p style={{ margin: '6px 0 0', fontSize: 10, color: T.textDim,
+                        <p style={{ margin: '6px 0 0', fontSize: 13, color: T.textDim,
                           fontFamily: FONT.mono }}>
                           {ex.lessonDate}{ex.context ? ` · ${ex.context}` : ''}
                         </p>
@@ -376,12 +377,6 @@ function InPlaceDrillModal({ drill, entry, onClose }) {
   const [submitted, setSubmitted] = useState(false)
   const [correct, setCorrect] = useState(false)
 
-  useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [onClose])
-
   function submit() {
     const isCorrect = gradeAnswer(value, drill)
     setCorrect(isCorrect)
@@ -393,25 +388,19 @@ function InPlaceDrillModal({ drill, entry, onClose }) {
   }
 
   return (
-    <div role="dialog" aria-modal="true"
-      onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 60,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: isMobile ? 16 : 32,
-        background: isDay ? 'rgba(14,10,27,0.55)' : 'rgba(4,2,12,0.75)',
-        backdropFilter: 'blur(12px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(12px) saturate(140%)' }}>
-      <div onClick={(e) => e.stopPropagation()}
-        style={{ width: '100%', maxWidth: 620, maxHeight: '88vh', overflow: 'auto',
-          borderRadius: 22,
-          background: isDay ? '#fff' : '#11092A',
-          border: `1px solid ${T.borderHi}`,
-          boxShadow: T.shadow,
-          padding: isMobile ? 22 : 28 }}>
+    <Sheet onClose={onClose} zIndex={60} padding={isMobile ? 16 : 32} label={t('knowledge.modal.kicker')}
+      backdrop={isDay ? 'rgba(14,10,27,0.55)' : 'rgba(4,2,12,0.75)'}
+      panelStyle={{ maxWidth: 620, maxHeight: '88vh', overflow: 'auto',
+        borderRadius: 22,
+        background: isDay ? '#fff' : '#11092A',
+        border: `1px solid ${T.borderHi}`,
+        boxShadow: T.shadow,
+        padding: isMobile ? 22 : 28 }}>
+      <div>
         <div style={{ display: 'flex', alignItems: 'flex-start',
           justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.24em',
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
               textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 6 }}>
               {t('knowledge.modal.kicker')}
             </div>
@@ -420,8 +409,8 @@ function InPlaceDrillModal({ drill, entry, onClose }) {
               {entry.title}
             </h3>
           </div>
-          <button type="button" onClick={onClose} aria-label={t('common.close')}
-            style={{ width: 34, height: 34, borderRadius: 10,
+          <button type="button" onClick={onClose} aria-label={t('common.close')} className="em-press em-focus"
+            style={{ width: 44, height: 44, borderRadius: 12,
               background: 'transparent', border: 'none', cursor: 'pointer',
               color: T.textDim, display: 'inline-flex',
               alignItems: 'center', justifyContent: 'center' }}>
@@ -433,7 +422,7 @@ function InPlaceDrillModal({ drill, entry, onClose }) {
           <div style={{ padding: 16, borderRadius: 14, marginBottom: 14,
             background: isDay ? '#F8F5FF' : 'rgba(139,92,246,0.08)',
             border: `1px solid ${isDay ? '#E9D5FF' : 'rgba(139,92,246,0.30)'}` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em',
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
               textTransform: 'uppercase', color: T.violet, marginBottom: 6 }}>
               {t('knowledge.modal.polishInterference')}
             </div>
@@ -446,7 +435,7 @@ function InPlaceDrillModal({ drill, entry, onClose }) {
         <div style={{ padding: 20, borderRadius: 16,
           background: isDay ? '#FAF7FF' : 'rgba(255,255,255,0.03)',
           border: `1px solid ${T.border}` }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em',
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: T.textDim, marginBottom: 10 }}>
             {t('knowledge.drill.yourTask')}
           </div>
@@ -488,8 +477,8 @@ function InPlaceDrillModal({ drill, entry, onClose }) {
                       color: correct ? T.emerald : T.rose }}>
                     {correct ? 'check_circle' : 'cancel'}
                   </span>
-                  <span style={{ fontSize: 11, fontWeight: 700,
-                    letterSpacing: '0.18em', textTransform: 'uppercase',
+                  <span style={{ fontSize: 13, fontWeight: 700,
+                    letterSpacing: '0.12em', textTransform: 'uppercase',
                     color: correct ? T.emerald : T.rose }}>
                     {correct
                       ? t('knowledge.drill.correct')
@@ -513,7 +502,7 @@ function InPlaceDrillModal({ drill, entry, onClose }) {
           )}
         </div>
       </div>
-    </div>
+    </Sheet>
   )
 }
 
@@ -531,6 +520,7 @@ export default function KnowledgeBaseV3({ data, slug: slugProp, basePath = '/app
   const [search, setSearch] = useState('')
   const [expandedId, setExpandedId] = useState(null)
   const [activeDrill, setActiveDrill] = useState(null)
+  const listReveal = useReveal({ stagger: 40, cap: 8 })
 
   useEffect(() => {
     let cancelled = false
@@ -625,7 +615,7 @@ export default function KnowledgeBaseV3({ data, slug: slugProp, basePath = '/app
         <div style={{ display: 'flex', alignItems: 'flex-start',
           justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 280 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.28em',
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
               textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 12,
               display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%',
@@ -692,7 +682,7 @@ export default function KnowledgeBaseV3({ data, slug: slugProp, basePath = '/app
             <input type="checkbox" checked={showFossilizedOnly}
               onChange={(e) => setShowFossilizedOnly(e.target.checked)}
               style={{ accentColor: T.rose, cursor: 'pointer' }}/>
-            <span style={{ fontSize: 11, fontWeight: 700,
+            <span style={{ fontSize: 13, fontWeight: 700,
               letterSpacing: '0.14em', textTransform: 'uppercase',
               color: showFossilizedOnly ? T.rose : T.textSoft }}>
               {t('knowledge.fossilisedOnly')}
@@ -702,15 +692,17 @@ export default function KnowledgeBaseV3({ data, slug: slugProp, basePath = '/app
       </Glass>
 
       {/* Entry list */}
-      <div style={{ display: 'grid', gap: 14 }}>
-        {filtered.map(entry => (
-          <EntryCard key={entry.id || entry.title} entry={entry}
+      <div {...listReveal.container} style={{ display: 'grid', gap: 14 }}>
+        {filtered.map((entry, i) => (
+          <div key={entry.id || entry.title} {...listReveal.item(i)}>
+          <EntryCard entry={entry}
             expanded={expandedId === (entry.id || entry.title)}
             onToggle={() => setExpandedId(prev =>
               prev === (entry.id || entry.title) ? null : (entry.id || entry.title))}
             onQuickDrill={() => setActiveDrill({ entry, drill: entry.miniDrill })}
             onFullDrill={() => navigate(
               `${basePath}/${slug}/practice?errorId=${encodeURIComponent(entry.id)}`)}/>
+          </div>
         ))}
         {filtered.length === 0 && (
           <Glass padding={32} style={{ textAlign: 'center' }}>

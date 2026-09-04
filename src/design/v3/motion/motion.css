@@ -1,0 +1,113 @@
+/* English Metro v3 motion kit — shared keyframes, reveal/stagger, page enter,
+   sliding tab ink, sheets, focus rings. Transform + opacity only. Every rule
+   collapses to an opacity-only or instant equivalent under reduced motion
+   (OS setting or the in-app Settings → Animations choice on <html data-motion>). */
+
+:root {
+  --em-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --em-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --em-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --em-ease-inout: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* ---- Staggered reveal (useReveal) ---- */
+.em-reveal-item {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 360ms var(--em-ease-out), transform 460ms var(--em-ease-out);
+  transition-delay: var(--em-reveal-delay, 0ms);
+}
+.em-reveal-in .em-reveal-item {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- Route / tab page enter (PageTransition) ---- */
+@keyframes emPageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.em-page-enter { animation: emPageIn 300ms var(--em-ease-out) both; }
+/* Once the entrance has played the wrapper must stop being a containing
+   block for position:fixed descendants (modals), so the animation clears
+   its own transform via `both` + `none` end state; nothing else needed. */
+
+/* ---- Sliding active-tab ink (TopBar) ---- */
+.em-tab-ink {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 999px;
+  transition: clip-path 340ms var(--em-ease-out), opacity 200ms ease;
+}
+.em-tab-ink[data-ready="0"] { transition: none; }
+
+/* ---- Sheets / modals ---- */
+@keyframes emSheetBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes emSheetIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.965); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes emDrawerIn {
+  from { transform: translateY(100%); }
+  to   { transform: none; }
+}
+.em-sheet-backdrop { animation: emSheetBackdropIn 220ms ease both; }
+.em-sheet-panel { animation: emSheetIn 340ms var(--em-ease-out) both; }
+.em-sheet-panel[data-side="bottom"] { animation: emDrawerIn 380ms var(--em-ease-drawer) both; }
+
+/* ---- Skeleton -> content crossfade ---- */
+@keyframes emContentIn { from { opacity: 0; } to { opacity: 1; } }
+.em-content-in { animation: emContentIn 260ms ease both; }
+
+/* ---- Pressables (Btn, PressScale) ---- */
+.em-press {
+  transition: transform 220ms var(--em-ease-out), box-shadow 220ms var(--em-ease-out),
+    background-color 180ms ease, color 180ms ease, border-color 180ms ease, opacity 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.em-press[data-pressed="1"] { transition-duration: 90ms; }
+.em-sheen {
+  position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  opacity: 0; transition: opacity 260ms ease;
+}
+.em-glow {
+  position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  opacity: 0; transition: opacity 320ms ease;
+}
+
+/* ---- Focus rings (keyboard only) ---- */
+.em-press:focus-visible,
+.em-focus:focus-visible,
+.v3-nav-scroll button:focus-visible,
+.v3-field-input:focus-visible {
+  outline: 2px solid #D946EF;
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+/* ---- Progress ---- */
+.em-ring-arc { transition: stroke-dashoffset 900ms var(--em-ease-out); }
+.em-bar-fill { transform-origin: left center; transition: transform 720ms var(--em-ease-out); }
+
+/* ---- Reduced motion: opacity-only, near-instant ---- */
+@media (prefers-reduced-motion: reduce) {
+  .em-reveal-item { transform: none; transition: opacity 150ms ease; transition-delay: 0ms; }
+  .em-page-enter { animation: emContentIn 150ms ease both; }
+  .em-tab-ink { transition: opacity 120ms ease; }
+  .em-sheet-panel, .em-sheet-panel[data-side="bottom"] { animation: emContentIn 150ms ease both; }
+  .em-press { transition-duration: 1ms; }
+  .em-ring-arc, .em-bar-fill { transition: none; }
+}
+html[data-motion="reduced"] .em-reveal-item,
+html[data-motion="none"] .em-reveal-item { transform: none; transition: none; opacity: 1; }
+html[data-motion="reduced"] .em-page-enter,
+html[data-motion="none"] .em-page-enter,
+html[data-motion="reduced"] .em-sheet-panel,
+html[data-motion="none"] .em-sheet-panel { animation: none; }
+
+/* ---- Popovers (avatar menu): scale from the trigger corner ---- */
+.em-pop { animation: emSheetIn 220ms var(--em-ease-out) both; transform-origin: top right; }
+@media (prefers-reduced-motion: reduce) { .em-pop { animation: emContentIn 120ms ease both; } }
+html[data-motion="reduced"] .em-pop, html[data-motion="none"] .em-pop { animation: none; }

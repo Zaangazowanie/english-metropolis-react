@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { FONT, G, EASE, CEFR_COLOR } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Glass, Pill } from '../../design/v3/primitives.jsx'
+import { ProgressBar, useReveal } from '../../design/v3/motion/index.js'
+import { ThreeSlot } from '../../design/v3/three/ThreeSlot.jsx'
 import { useI18n } from '../../i18n'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 
@@ -186,7 +188,7 @@ const V3_VOCAB_CSS = `
 .v3-scrolltop-fab{position:absolute;bottom:14px;right:14px;width:34px;height:34px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);color:#fff;border:1px solid rgba(255,255,255,.2);cursor:pointer;transition:opacity 220ms}
 .v3-scroll-area::-webkit-scrollbar{width:8px}
 .v3-scroll-area::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
-.v3-topic-pill{padding:6px 12px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:inherit;transition:all 200ms cubic-bezier(.16,1,.3,1)}
+.v3-topic-pill{padding:6px 12px;border-radius:999px;font-size: 13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:inherit;transition:all 200ms cubic-bezier(.16,1,.3,1)}
 .v3-topic-pill:disabled{cursor:not-allowed;opacity:.35}
 `
 
@@ -254,7 +256,7 @@ function YouGlishModal({ word, onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={iconBoxStyle}><span className="material-symbols-outlined" style={{ color: '#fff' }}>record_voice_over</span></div>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.8)' }}>{t('vocabulary.youglish.header')}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.8)' }}>{t('vocabulary.youglish.header')}</div>
               <div style={{ fontFamily: FONT.display, fontSize: 22, fontWeight: 600, color: '#fff' }}>"{word}"</div>
             </div>
           </div>
@@ -263,7 +265,7 @@ function YouGlishModal({ word, onClose }) {
           </button>
         </div>
         {fallbackFrom && state.data?.keyword && state.data.keyword !== fallbackFrom && (
-          <div style={{ padding: '10px 20px', fontSize: 12, color: T.amber, background: 'rgba(252,211,77,0.10)', fontStyle: 'italic' }}>
+          <div style={{ padding: '10px 20px', fontSize: 13, color: T.amber, background: 'rgba(252,211,77,0.10)', fontStyle: 'italic' }}>
             {t('vocabulary.youglish.fallback', { from: fallbackFrom, to: state.data.keyword })}
           </div>
         )}
@@ -295,7 +297,7 @@ function YouGlishModal({ word, onClose }) {
                     if (occIdx > 0) setOccIdx(occIdx - 1)
                     else if (videoIdx > 0) { setVideoIdx(videoIdx - 1); setOccIdx(0) }
                   }}>{t('vocabulary.youglish.prevShort')}</Btn>
-                <div style={{ fontSize: 11, color: T.textDim, fontFamily: FONT.mono }}>
+                <div style={{ fontSize: 13, color: T.textDim, fontFamily: FONT.mono }}>
                   {t('vocabulary.youglish.clipCounter', {
                     current: occIdx + 1,
                     total: video?.occurrences?.length || 0,
@@ -385,14 +387,14 @@ function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0 }) {
 
   // Shared small styles
   const metaRow = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap', marginBottom: 10 }
-  const metaMono = { fontSize: 11, fontFamily: FONT.mono, color: T.textDim, letterSpacing: '0.08em' }
+  const metaMono = { fontSize: 13, fontFamily: FONT.mono, color: T.textDim, letterSpacing: '0.08em' }
   const ipaStyle = { marginTop: 12, fontFamily: FONT.mono, fontSize: 18, color: T.brandInk || T.brand }
   const sylRow = { marginTop: 16, display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }
   const actionRow = { display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 'auto' }
   const lessonBtn = { width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 14, background: T.surface, border: `1px solid ${T.border}`, color: T.text, cursor: 'pointer', textAlign: 'left', fontFamily: FONT.body, minWidth: 0, transition: `all 220ms ${EASE.springFast}` }
-  const lessonLbl = { display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.textDim }
+  const lessonLbl = { display: 'block', fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textDim }
   const lessonTitle = { display: 'block', fontSize: 13, fontWeight: 600, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
-  const hintLine = { marginTop: 14, textAlign: 'center', fontSize: 10, color: T.textDim, letterSpacing: '0.16em', textTransform: 'uppercase', fontStyle: 'italic' }
+  const hintLine = { marginTop: 14, textAlign: 'center', fontSize: 13, color: T.textDim, letterSpacing: '0.12em', textTransform: 'uppercase', fontStyle: 'italic' }
 
   return (
     <div className={`v3-flashcard-scene ${summoned ? 'is-summoned' : ''}`}>
@@ -482,13 +484,13 @@ function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0 }) {
               )}
               {(keyword.definitionEn || keyword.definition) && (
                 <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.textDim, marginBottom: 6 }}>{t('vocabulary.card.definitionEn')}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textDim, marginBottom: 6 }}>{t('vocabulary.card.definitionEn')}</div>
                   <p style={{ fontSize: 15, color: T.textSoft, lineHeight: 1.55, margin: 0 }}>{keyword.definitionEn || keyword.definition}</p>
                 </div>
               )}
               {keyword.definitionPl && (
                 <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.textDim, marginBottom: 6 }}>{t('vocabulary.card.definitionPl')}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textDim, marginBottom: 6 }}>{t('vocabulary.card.definitionPl')}</div>
                   <p style={{ fontSize: 15, color: T.textSoft, lineHeight: 1.55, margin: 0 }}>{keyword.definitionPl}</p>
                 </div>
               )}
@@ -511,7 +513,7 @@ function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0 }) {
                 <div style={{ marginTop: 10 }}>
                   {collocGroups.map(g => (
                     <div key={g.key} style={{ marginBottom: 14 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 8 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 8 }}>
                         {t(COLLOC_LABEL_KEYS[g.key] || 'vocabulary.card.collocations')}
                       </div>
                       <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
@@ -564,11 +566,51 @@ function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0 }) {
    Main Vocabulary view
    ============================================================================ */
 
+// Static fallback for the word tower: one bar per lesson, width by word count,
+// filled by mastered + seen. Same data as the 3D tower.
+function WordTowerBars({ tower, T }) {
+  const max = Math.max(1, ...tower.rings.map(r => r.count))
+  return (
+    <div aria-hidden style={{ display: 'flex', flexDirection: 'column-reverse', gap: 4, padding: '6px 0' }}>
+      {tower.rings.slice(0, 14).map(r => {
+        const w = 30 + (r.count / max) * 70
+        const done = (r.mastered.size + r.seen.size) / Math.max(1, r.count)
+        return (
+          <div key={r.id} style={{ height: 10, width: `${w}%`, margin: '0 auto', borderRadius: 5, background: T.surfaceHi, border: `1px solid ${T.border}`, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${Math.min(100, done * 100)}%`, background: G.brand, borderRadius: 5 }}/>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function WordTowerCard({ tower, T, t, compact = false }) {
+  const { mode } = useV3Theme()
+  const isDay = mode === 'day'
+  const total = tower.rings.reduce((n, r) => n + r.count, 0)
+  return (
+    <Glass padding={compact ? 14 : 16} style={{ marginBottom: compact ? 20 : 0 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.textDim }}>
+        {t('vocabulary.tower.kicker')}
+      </div>
+      <ThreeSlot id="word-tower" load={() => import('../../design/v3/three/WordTower.jsx')}
+        rings={tower.rings} active={tower.active} isDay={isDay} size={compact ? 180 : 220}
+        style={{ minHeight: compact ? 180 : 220, marginTop: 6 }}
+        fallback={<WordTowerBars tower={tower} T={T}/>}/>
+      <div style={{ fontSize: 13, color: T.textSoft, lineHeight: 1.5 }}>
+        {t('vocabulary.tower.summary', { n: total, lessons: tower.lessons, mastered: tower.mastered, seen: tower.seen })}
+      </div>
+      <div style={{ marginTop: 4, fontSize: 13, color: T.textMute, lineHeight: 1.45 }}>{t('vocabulary.tower.hint')}</div>
+    </Glass>
+  )
+}
+
 export default function VocabularyV3({ data, slug, basePath = '' }) {
   const { T, isMobile } = useV3Theme()
   const { t } = useI18n()
-  const lessons = data?.lessons || []
-  const keywords = data?.keywords || []
+  const lessons = useMemo(() => data?.lessons || [], [data?.lessons])
+  const keywords = useMemo(() => data?.keywords || [], [data?.keywords])
 
   // ?lesson=<lessonId-or-date> deep-links the deck pre-filtered to one lesson
   // (the Dashboard "Revise your last lesson" card); ?mode=study starts shuffled.
@@ -585,6 +627,9 @@ export default function VocabularyV3({ data, slug, basePath = '' }) {
   const [summonPulse, setSummonPulse] = useState(0)
   const [studyDeck, setStudyDeck] = useState([])
   const [youglishWord, setYouglishWord] = useState(null)
+  const listReveal = useReveal({ stagger: 30, cap: 10 })
+  // Cards opened in this session light their segment on the word tower.
+  const [seenIds, setSeenIds] = useState(() => new Set())
 
   const stageRef = useRef(null)
   const summonCard = (i) => {
@@ -647,6 +692,41 @@ export default function VocabularyV3({ data, slug, basePath = '' }) {
   }, [filteredKeywords.length])
 
   const activeKeyword = filteredKeywords[activeIndex] || null
+  const activeId = activeKeyword?.id
+  useEffect(() => {
+    if (!activeId) return
+    setSeenIds(prev => (prev.has(activeId) ? prev : new Set(prev).add(activeId)))
+  }, [activeId])
+
+  // Word tower data: one ring per lesson (oldest at the bottom), one segment
+  // per keyword; mastered from the lesson data, seen from this session.
+  const tower = useMemo(() => {
+    const byLesson = new Map()
+    for (const kw of keywords) {
+      const k = String(kw.lessonId || '')
+      if (!byLesson.has(k)) byLesson.set(k, [])
+      byLesson.get(k).push(kw)
+    }
+    const ordered = [...lessons].reverse().map(l => String(l.id)).filter(id => byLesson.has(id))
+    for (const id of byLesson.keys()) if (!ordered.includes(id)) ordered.push(id)
+    let mastered = 0
+    const rings = ordered.map(id => {
+      const list = byLesson.get(id)
+      const m = new Set(), s = new Set()
+      list.forEach((kw, i) => {
+        if (/master/i.test(kw.mastery_level || '')) { m.add(i); mastered++ }
+        if (seenIds.has(kw.id)) s.add(i)
+      })
+      return { id, count: list.length, mastered: m, seen: s, ids: list.map(kw => kw.id) }
+    })
+    let active = null
+    if (activeKeyword) {
+      const ri = rings.findIndex(r => r.id === String(activeKeyword.lessonId || ''))
+      const idx = ri >= 0 ? rings[ri].ids.indexOf(activeKeyword.id) : -1
+      if (ri >= 0 && idx >= 0) active = { ring: ri, idx }
+    }
+    return { rings, active, mastered, seen: seenIds.size, lessons: rings.length }
+  }, [keywords, lessons, seenIds, activeKeyword])
 
   function jumpToLesson(lessonId, keywordWord) {
     if (!lessonId) return
@@ -663,18 +743,17 @@ export default function VocabularyV3({ data, slug, basePath = '' }) {
 
   // Container + shared styles
   const container = { maxWidth: 1840, margin: '0 auto', padding: isMobile ? '24px 18px 80px' : '40px 32px 80px' }
-  const kicker = { fontSize: 11, fontWeight: 700, letterSpacing: '0.28em', textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 10 }
+  const kicker = { fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 10 }
   const heroH1 = { fontFamily: FONT.display, fontWeight: 600, fontSize: isMobile ? 36 : 52, letterSpacing: '-0.03em', margin: 0, lineHeight: 1.05, color: T.text }
   const controlsRow = { display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }
   const modeToggle = { display: 'flex', gap: 2, padding: 3, background: T.bg2, borderRadius: 999, border: `1px solid ${T.border}` }
   const inputStyle = { flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 12, background: T.surface, border: `1px solid ${T.border}`, color: T.text, fontFamily: FONT.body, fontSize: 13, outline: 'none' }
   const selectStyle = { padding: '10px 14px', borderRadius: 12, background: T.surface, border: `1px solid ${T.border}`, color: T.text, fontFamily: FONT.body, fontSize: 13, cursor: 'pointer' }
-  const progressOuter = { marginTop: 14, height: 4, background: T.bg2, borderRadius: 999, overflow: 'hidden' }
   const gridStage = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '260px 1fr', gap: 20 }
   const sidebarShell = { maxHeight: 620, overflowY: 'auto', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, padding: 10 }
-  const sidebarHead = { padding: '4px 8px 10px', fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.textDim }
+  const sidebarHead = { padding: '4px 8px 10px', fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.textDim }
   const navRow = { marginTop: 16, display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }
-  const navHintPill = { fontSize: 11, color: T.textDim, fontFamily: FONT.mono, padding: '6px 12px', background: T.surface, borderRadius: 999, border: `1px solid ${T.border}` }
+  const navHintPill = { fontSize: 13, color: T.textDim, fontFamily: FONT.mono, padding: '6px 12px', background: T.surface, borderRadius: 999, border: `1px solid ${T.border}` }
 
   return (
     <div style={container}>
@@ -693,8 +772,8 @@ export default function VocabularyV3({ data, slug, basePath = '' }) {
         <div style={controlsRow}>
           <div style={modeToggle}>
             {['browse', 'study'].map(m => (
-              <button key={m} type="button" onClick={() => setMode(m)}
-                style={{ padding: '7px 14px', borderRadius: 999, border: 'none', background: mode === m ? G.brand : 'transparent', color: mode === m ? '#fff' : T.textDim, fontSize: 11, fontFamily: FONT.body, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+              <button key={m} type="button" onClick={() => setMode(m)} className="em-press em-focus" aria-pressed={mode === m}
+                style={{ padding: '9px 14px', minHeight: 38, borderRadius: 999, border: 'none', background: mode === m ? G.brand : 'transparent', color: mode === m ? '#fff' : T.textDim, fontSize: 13, fontFamily: FONT.body, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
                 {t(`vocabulary.mode.${m}Short`)}
               </button>
             ))}
@@ -709,7 +788,7 @@ export default function VocabularyV3({ data, slug, basePath = '' }) {
               return <option key={l.id} value={l.id}>{num ? `L${num} · ` : ''}{title} ({kwCount})</option>
             })}
           </select>
-          <div style={{ fontSize: 11, color: T.textDim, fontFamily: FONT.mono }}>
+          <div style={{ fontSize: 13, color: T.textDim, fontFamily: FONT.mono }}>
             <span style={{ background: G.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontWeight: 700 }}>{activeIndex + 1}</span>
             <span style={{ opacity: 0.5 }}> / </span>
             {filteredKeywords.length}
@@ -739,42 +818,48 @@ export default function VocabularyV3({ data, slug, basePath = '' }) {
           </div>
         )}
 
-        {/* Progress bar */}
-        <div style={progressOuter}>
-          <div style={{ width: `${progressPct}%`, height: '100%', background: G.brand, transition: `width 460ms ${EASE.editorial}` }} />
+        {/* Progress bar (scaleX, not width) */}
+        <div style={{ marginTop: 14 }}>
+          <ProgressBar value={progressPct} max={100} h={4} color={T.brand} track={T.bg2}/>
         </div>
       </Glass>
+
+      {isMobile && keywords.length > 0 && <WordTowerCard tower={tower} T={T} t={t} compact/>}
 
       {/* Main stage */}
       <div ref={stageRef} style={gridStage}>
         {!isMobile && (
-          <div className="v3-scroll-area" style={sidebarShell}>
+          <div style={{ display: 'grid', gap: 14, alignContent: 'start' }}>
+          {keywords.length > 0 && <WordTowerCard tower={tower} T={T} t={t}/>}
+          <div className="v3-scroll-area" {...listReveal.container} style={sidebarShell}>
             <div style={sidebarHead}>{t('vocabulary.sidebar.allCards', { count: filteredKeywords.length })}</div>
             {filteredKeywords.slice(0, 100).map((kw, i) => {
               const isActive = activeIndex === i
               return (
                 <button key={kw.id || `${kw.word}-${i}`} type="button" onClick={() => summonCard(i)}
-                  style={{ width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 10, marginBottom: 2, background: isActive ? 'rgba(217,70,239,0.14)' : 'transparent', border: `1px solid ${isActive ? 'rgba(217,70,239,0.4)' : 'transparent'}`, cursor: 'pointer', transition: `all 180ms ${EASE.springFast}`, fontFamily: FONT.body }}>
-                  <div style={{ fontSize: 10, fontFamily: FONT.mono, color: T.textDim }}>
+                  className={`em-press em-focus ${listReveal.item(i).className}`} aria-current={isActive ? 'true' : undefined}
+                  style={{ ...listReveal.item(i).style, width: '100%', textAlign: 'left', padding: '10px 12px', minHeight: 44, borderRadius: 10, marginBottom: 2, background: isActive ? 'rgba(217,70,239,0.14)' : 'transparent', border: `1px solid ${isActive ? 'rgba(217,70,239,0.4)' : 'transparent'}`, cursor: 'pointer', fontFamily: FONT.body }}>
+                  <div style={{ fontSize: 13, fontFamily: FONT.mono, color: T.textDim }}>
                     {String(i + 1).padStart(2, '0')}
                     {kw.cefr_level ? ` · ${kw.cefr_level}` : ''}
                     {kw.lessonNumber ? ` · L${kw.lessonNumber}` : ''}
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{kw.word}</div>
                   {kw.translation && (
-                    <div style={{ fontSize: 11, color: T.textDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kw.translation}</div>
+                    <div style={{ fontSize: 13, color: T.textDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kw.translation}</div>
                   )}
                 </button>
               )
             })}
             {filteredKeywords.length > 100 && (
-              <div style={{ padding: 10, fontSize: 10, color: T.textDim, fontStyle: 'italic', textAlign: 'center' }}>
+              <div style={{ padding: 10, fontSize: 13, color: T.textDim, fontStyle: 'italic', textAlign: 'center' }}>
                 {t('vocabulary.sidebar.truncated')}
               </div>
             )}
             {filteredKeywords.length === 0 && (
-              <div style={{ padding: 18, fontSize: 12, color: T.textDim, textAlign: 'center' }}>{t('vocabulary.empty.noMatchesShort')}</div>
+              <div style={{ padding: 18, fontSize: 13, color: T.textDim, textAlign: 'center' }}>{t('vocabulary.empty.noMatchesShort')}</div>
             )}
+          </div>
           </div>
         )}
 

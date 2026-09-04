@@ -132,7 +132,7 @@ export default function AnalysisUpgradeCTA({ lessonId: rawLessonId, compact = fa
         transition: `all 280ms ${EASE.springFast}`,
       }}>
       <div style={{
-        fontSize: 10, fontWeight: 700, letterSpacing: '0.26em', textTransform: 'uppercase',
+        fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
         color: T.brandInk || T.brand, marginBottom: 8,
       }}>
         {t('Optional paid add-on', 'Płatny dodatek opcjonalny')}
@@ -188,7 +188,7 @@ export default function AnalysisUpgradeCTA({ lessonId: rawLessonId, compact = fa
           a confirmation afterwards. The backlog count is the server's, and it
           is the number the price was actually worked out from. */}
       {bulk.available && (
-        <p style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.55, color: T.textMute }}>
+        <p style={{ margin: '10px 0 0', fontSize: 13, lineHeight: 1.55, color: T.textMute }}>
           {t(
             `“All my lessons” covers every lesson already on your account that has no analysis (${bulk.coveredLessons} right now) and every lesson you have from now on, for as long as you study here. That works out at ${bulk.perLessonPLN} PLN a lesson instead of ${single.pricePLN ?? bulk.listTotalPLN / bulk.billableLessons} PLN.`,
             `„Wszystkie moje lekcje” obejmuje każdą lekcję już na Twoim koncie, która nie ma analizy (obecnie ${bulk.coveredLessons}), oraz każdą kolejną lekcję — tak długo, jak się u nas uczysz. To ${bulk.perLessonPLN} PLN za lekcję zamiast ${single.pricePLN ?? bulk.listTotalPLN / bulk.billableLessons} PLN.`,
@@ -204,7 +204,7 @@ export default function AnalysisUpgradeCTA({ lessonId: rawLessonId, compact = fa
       )}
 
       {error && (
-        <p style={{ margin: '10px 0 0', fontSize: 12, color: T.bad }}>{error}</p>
+        <p style={{ margin: '10px 0 0', fontSize: 13, color: T.bad }}>{error}</p>
       )}
     </div>
   )

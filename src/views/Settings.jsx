@@ -2,6 +2,15 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
 import { useTheme } from '../contexts/ThemeContext'
+import { useStudentAuth } from '../contexts/StudentAuthContext.jsx'
+
+const PREFS_KEY = 'em.settings.prefs'
+function readPrefs() {
+  try { return JSON.parse(window.localStorage.getItem(PREFS_KEY) || '{}') } catch { return {} }
+}
+function writePrefs(patch) {
+  try { window.localStorage.setItem(PREFS_KEY, JSON.stringify({ ...readPrefs(), ...patch })) } catch { /* storage blocked */ }
+}
 
 function Section({ title, children }) {
   return (
@@ -56,24 +65,17 @@ function Toggle({ checked, onChange }) {
 export default function Settings() {
   const { t, lang, setLang, supported } = useI18n()
   const { theme, setTheme, fontSize, setFontSize, motion, setMotion, dyslexicFont, setDyslexicFont } = useTheme()
+  const { studentUser } = useStudentAuth()
 
-  const [profile, setProfile] = useState({ name: '', email: '' })
-  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
-  const [notif, setNotif] = useState({ emailDigest: false, studyReminders: true })
-  const [audio, setAudio] = useState({ autoplay: true })
+  // Profile is the school record (read-only here). Preferences with no
+  // backend yet persist on this device only, and the page says so.
+  const profile = { name: studentUser?.name || '', email: studentUser?.email || studentUser?.googleEmail || '' }
+  const [notif, setNotif] = useState(() => ({ emailDigest: false, studyReminders: true, ...(readPrefs().notif || {}) }))
+  const [audio, setAudio] = useState(() => ({ autoplay: true, ...(readPrefs().audio || {}) }))
   const [savedBanner, setSavedBanner] = useState(false)
-
-  function onSaveProfile(e) {
-    e.preventDefault()
-    setSavedBanner(true)
-    setTimeout(() => setSavedBanner(false), 2000)
-  }
-
-  function onChangePassword(e) {
-    e.preventDefault()
-    setSavedBanner(true)
-    setTimeout(() => setSavedBanner(false), 2000)
-  }
+  const flashSaved = () => { setSavedBanner(true); setTimeout(() => setSavedBanner(false), 2000) }
+  const updateNotif = (patch) => setNotif(n => { const next = { ...n, ...patch }; writePrefs({ notif: next }); flashSaved(); return next })
+  const updateAudio = (patch) => setAudio(a => { const next = { ...a, ...patch }; writePrefs({ audio: next }); flashSaved(); return next })
 
   return (
     <div className="em-settings-page">
@@ -83,27 +85,14 @@ export default function Settings() {
       </header>
 
       <Section title={t('settings.section.profile')}>
-        <form onSubmit={onSaveProfile} className="em-settings-form">
+        <div className="em-settings-form">
           <Row label={t('settings.profile.name')}>
-            <input
-              type="text"
-              className="em-input"
-              value={profile.name}
-              onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
-              placeholder="—"
-            />
+            <input type="text" className="em-input" value={profile.name} readOnly aria-readonly="true"/>
           </Row>
-          <Row label={t('settings.profile.email')}>
-            <input
-              type="email"
-              className="em-input"
-              value={profile.email}
-              onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
-              placeholder="you@englishmetro.com"
-            />
+          <Row label={t('settings.profile.email')} hint={t('settings.profile.managedHint')}>
+            <input type="email" className="em-input" value={profile.email} readOnly aria-readonly="true"/>
           </Row>
-          <button type="submit" className="em-btn em-btn-primary">{t('common.save')}</button>
-        </form>
+        </div>
       </Section>
 
       <Section title={t('settings.section.appearance')}>
@@ -156,17 +145,17 @@ export default function Settings() {
       </Section>
 
       <Section title={t('settings.section.notifications')}>
-        <Row label={t('settings.notifications.emailDigest')}>
-          <Toggle checked={notif.emailDigest} onChange={v => setNotif(n => ({ ...n, emailDigest: v }))} />
+        <Row label={t('settings.notifications.emailDigest')} hint={t('settings.notifications.comingSoon')}>
+          <Toggle checked={notif.emailDigest} onChange={v => updateNotif({ emailDigest: v })} />
         </Row>
         <Row label={t('settings.notifications.studyReminders')}>
-          <Toggle checked={notif.studyReminders} onChange={v => setNotif(n => ({ ...n, studyReminders: v }))} />
+          <Toggle checked={notif.studyReminders} onChange={v => updateNotif({ studyReminders: v })} />
         </Row>
       </Section>
 
       <Section title={t('settings.section.audio')}>
         <Row label={t('settings.audio.autoplay')}>
-          <Toggle checked={audio.autoplay} onChange={v => setAudio(a => ({ ...a, autoplay: v }))} />
+          <Toggle checked={audio.autoplay} onChange={v => updateAudio({ autoplay: v })} />
         </Row>
       </Section>
 
@@ -185,26 +174,23 @@ export default function Settings() {
       </Section>
 
       <Section title={t('settings.section.security')}>
-        <form onSubmit={onChangePassword} className="em-settings-form">
-          <Row label={t('settings.security.currentPassword')}>
-            <input type="password" className="em-input" value={pwForm.current} onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))} />
-          </Row>
-          <Row label={t('settings.security.newPassword')}>
-            <input type="password" className="em-input" value={pwForm.next} onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))} />
-          </Row>
-          <Row label={t('settings.security.confirmPassword')}>
-            <input type="password" className="em-input" value={pwForm.confirm} onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} />
-          </Row>
-          <button type="submit" className="em-btn em-btn-primary">{t('settings.security.updatePassword')}</button>
-        </form>
+        <div className="em-settings-row">
+          <div className="em-settings-row-text">
+            <strong>{t('settings.security.changePassword')}</strong>
+            <span>{t('settings.security.resetHint')}</span>
+          </div>
+          <div className="em-settings-row-control">
+            <Link to="/reset" className="em-btn em-btn-primary">{t('settings.security.resetLink')}</Link>
+          </div>
+        </div>
       </Section>
 
       <Section title={t('settings.section.data')}>
-        <Row label={t('settings.data.downloadMyData')}>
-          <button type="button" className="em-btn em-btn-ghost">{t('common.save')}</button>
+        <Row label={t('settings.data.downloadMyData')} hint={t('settings.data.requestHint')}>
+          <a href="mailto:hello@englishmetro.com?subject=Data%20export" className="em-btn em-btn-ghost">{t('settings.data.requestExport')}</a>
         </Row>
         <Row label={t('settings.data.deleteAccount')} hint={t('settings.data.deleteAccountWarning')}>
-          <button type="button" className="em-btn em-btn-danger">{t('settings.data.deleteAccount')}</button>
+          <a href="mailto:hello@englishmetro.com?subject=Delete%20my%20account" className="em-btn em-btn-danger">{t('settings.data.requestExport')}</a>
         </Row>
       </Section>
     </div>

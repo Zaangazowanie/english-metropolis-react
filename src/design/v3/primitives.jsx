@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useV3Theme } from './ThemeProvider.jsx'
 import { EASE, FONT, G } from './tokens.js'
+import { useMagnetic, usePointerGlow } from './motion/index.js'
 
 export function AuroraBG({ intensity = 1, children, style = {} }) {
   const { T, mode } = useV3Theme()
@@ -27,32 +28,47 @@ export function AuroraBG({ intensity = 1, children, style = {} }) {
   )
 }
 
-export function Glass({ children, style = {}, hover = false, padding = 24, ...rest }) {
+export function Glass({ children, style = {}, hover = false, padding = 24, glow = hover, lift = hover, ...rest }) {
   const { T, mode } = useV3Theme()
   const [hov, setHov] = useState(false)
+  const ref = useRef(null)
+  // Pointer-tracking highlight (fine pointers only) — written straight onto
+  // the .em-glow overlay, so a pointermove never re-renders the card.
+  usePointerGlow(ref, { color: mode === 'day' ? 'rgba(139,92,246,0.10)' : 'rgba(217,70,239,0.16)' })
   return (
-    <div {...rest}
+    <div {...rest} ref={ref}
       onMouseEnter={hover ? () => setHov(true) : undefined}
       onMouseLeave={hover ? () => setHov(false) : undefined}
       style={{
+        position: 'relative',
         background: mode === 'day' ? G.glassDay : (hov ? G.glassHi : G.glass),
         backdropFilter: 'blur(14px) saturate(140%)',
         WebkitBackdropFilter: 'blur(14px) saturate(140%)',
         border: `1px solid ${hov ? T.borderHi : T.border}`,
         borderRadius: 20,
         padding,
-        transition: `all 280ms ${EASE.springFast}`,
+        transition: `background 280ms ${EASE.springFast}, border-color 280ms ${EASE.springFast}, box-shadow 280ms ${EASE.springFast}, transform 320ms ${EASE.springFast}`,
         boxShadow: hov ? T.shadow : T.shadowSm,
+        // Lift only while hovered: a resting card has no transform, so it is
+        // never a containing block for position:fixed children (modals).
+        transform: lift && hov ? 'translateY(-2px)' : undefined,
         ...style,
-      }}>{children}</div>
+      }}>
+      {glow && <span aria-hidden className="em-glow"/>}
+      {children}
+    </div>
   )
 }
 
-export function Btn({ children, variant = 'ghost', size = 'md', onClick, icon, trailingIcon, disabled, full, style = {}, type = 'button' }) {
+export function Btn({ children, variant = 'ghost', size = 'md', onClick, icon, trailingIcon, disabled, full, style = {}, type = 'button', magnetic = true, ...rest }) {
   const { T } = useV3Theme()
   const [hov, setHov] = useState(false)
+  const ref = useRef(null)
+  // Press physics: lean toward the pointer, sheen under it, scale(0.97) on
+  // pointerdown. Feedback lands on the press, not the release.
+  useMagnetic(ref, { strength: magnetic && !disabled ? 3 : 0, press: disabled ? 1 : 0.97, sheen: true })
   const sizes = {
-    sm: { py: 8, px: 14, fs: 12, gap: 6 },
+    sm: { py: 8, px: 14, fs: 13, gap: 6 },
     md: { py: 12, px: 20, fs: 13, gap: 8 },
     lg: { py: 16, px: 28, fs: 14, gap: 10 },
   }
@@ -71,7 +87,7 @@ export function Btn({ children, variant = 'ghost', size = 'md', onClick, icon, t
   }
   const v = variants[variant] || variants.ghost
   return (
-    <button type={type} onClick={onClick} disabled={disabled}
+    <button ref={ref} type={type} onClick={onClick} disabled={disabled} className="em-press" {...rest}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
         position: 'relative', overflow: 'hidden',
@@ -82,19 +98,19 @@ export function Btn({ children, variant = 'ghost', size = 'md', onClick, icon, t
         borderRadius: 999, cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.45 : 1,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: s.gap,
+        minHeight: size === 'sm' ? 40 : 44,
         width: full ? '100%' : undefined,
         boxShadow: v.shadow,
-        transform: hov && !disabled ? 'translateY(-1px)' : 'translateY(0)',
-        transition: `all 220ms ${EASE.springFast}`,
         ...style,
       }}>
       {(variant === 'primary' || variant === 'ember') && (
         <span aria-hidden style={{ position: 'absolute', inset: 0,
           background: G.sheen, borderRadius: 999, pointerEvents: 'none' }}/>
       )}
-      {icon && <span className="material-symbols-outlined" style={{ fontSize: s.fs + 4, zIndex: 1 }}>{icon}</span>}
+      <span aria-hidden className="em-sheen"/>
+      {icon && <span className="material-symbols-outlined" style={{ fontSize: s.fs + 5, zIndex: 1 }}>{icon}</span>}
       <span style={{ zIndex: 1 }}>{children}</span>
-      {trailingIcon && <span className="material-symbols-outlined" style={{ fontSize: s.fs + 4, zIndex: 1 }}>{trailingIcon}</span>}
+      {trailingIcon && <span className="material-symbols-outlined" style={{ fontSize: s.fs + 5, zIndex: 1 }}>{trailingIcon}</span>}
     </button>
   )
 }
@@ -113,13 +129,13 @@ export function Pill({ children, tone = 'neutral', icon, size = 'md', style = {}
     solid: { bg: G.brand, color: '#fff', border: 'transparent' },
   }
   const t = tones[tone] || tones.neutral
-  const sz = size === 'sm' ? { fs: 10, py: 3, px: 8 } : { fs: 11, py: 4, px: 10 }
+  const sz = size === 'sm' ? { fs: 13, py: 3, px: 9 } : { fs: 13, py: 5, px: 11 }
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
       padding: `${sz.py}px ${sz.px}px`, fontSize: sz.fs, fontWeight: 600,
-      letterSpacing: '0.08em', textTransform: 'uppercase',
-      fontFamily: FONT.body, whiteSpace: 'nowrap',
+      letterSpacing: '0.06em', textTransform: 'uppercase',
+      fontFamily: FONT.body, whiteSpace: 'nowrap', lineHeight: 1.2,
       background: t.bg, color: t.color, border: `1px solid ${t.border}`,
       borderRadius: 999, ...style,
     }}>
@@ -135,7 +151,7 @@ export function Field({ label, value, onChange, type = 'text', placeholder, icon
   return (
     <div style={{ marginBottom: 14, ...style }}>
       {label && (
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
           textTransform: 'uppercase', color: T.textDim, marginBottom: 8 }}>{label}</div>
       )}
       <div style={{ position: 'relative',
@@ -163,7 +179,7 @@ export function Field({ label, value, onChange, type = 'text', placeholder, icon
 
 export function Avatar({ initials = 'AG', size = 36, onClick, ring = true }) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} className="em-press em-focus" style={{
       width: size, height: size, borderRadius: '50%',
       background: G.brand, color: '#fff',
       fontFamily: FONT.display, fontWeight: 700, fontSize: size * 0.38,
@@ -230,15 +246,19 @@ export function Skeleton({ h = 80, w = '100%', style = {} }) {
 }
 
 export function MetricBar({ value, max = 100, color = '#D946EF', h = 6 }) {
+  // Fill is a scaleX transform (compositor), never a width animation.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { const id = requestAnimationFrame(() => setMounted(true)); return () => cancelAnimationFrame(id) }, [])
+  const pct = Math.max(0, Math.min(1, (Number(value) || 0) / (max || 1)))
   return (
     <div style={{ width: '100%', height: h,
       background: 'rgba(255,255,255,0.06)', borderRadius: h,
       overflow: 'hidden' }}>
-      <div style={{ width: `${(value/max) * 100}%`, height: '100%',
+      <div className="em-bar-fill" style={{ width: '100%', height: '100%',
         background: `linear-gradient(90deg, ${color}80, ${color})`,
         borderRadius: h,
         boxShadow: `0 0 8px ${color}80`,
-        transition: `width 720ms ${EASE.editorial}` }}/>
+        transform: `scaleX(${mounted ? pct : 0})` }}/>
     </div>
   )
 }

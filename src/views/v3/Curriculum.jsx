@@ -89,14 +89,14 @@ export default function Curriculum() {
   }
 
   const sectionLabel = {
-    fontSize: 11, fontWeight: 700, letterSpacing: '0.28em',
+    fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
     textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 10,
   }
   const heading = {
     fontFamily: FONT.display, fontWeight: 600, fontSize: isMobile ? 24 : 32,
     lineHeight: 1.05, letterSpacing: '-0.02em', margin: 0, color: T.text,
   }
-  const numStyle = { fontFamily: FONT.mono, fontSize: 12, minWidth: 24, textAlign: 'right' }
+  const numStyle = { fontFamily: FONT.mono, fontSize: 13, minWidth: 24, textAlign: 'right' }
 
   // Collapsible section header (the "dropdown" affordance).
   function Accordion({ id, title, count, accent, children }) {
@@ -106,9 +106,9 @@ export default function Curriculum() {
         <button type="button" onClick={() => toggleSec(id)} aria-expanded={isOpen}
           style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10,
             background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
             color: accent || T.textDim }}>{title}</span>
-          <span style={{ fontFamily: FONT.mono, fontSize: 12, color: T.textMute }}>{count}</span>
+          <span style={{ fontFamily: FONT.mono, fontSize: 13, color: T.textMute }}>{count}</span>
           <span className="material-symbols-outlined" style={{ marginLeft: 'auto', fontSize: 22, color: T.textMute }}>
             {isOpen ? 'expand_less' : 'expand_more'}
           </span>
@@ -147,7 +147,7 @@ export default function Curriculum() {
             : <span style={{ ...numStyle, color: T.textDim }}>{it.position}</span>}
           <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: isNext ? 700 : 500, color: ink, lineHeight: 1.3 }}>{it.title}</span>
           {it.targetCefr && (
-            <span style={{ fontFamily: FONT.mono, fontSize: 10, fontWeight: 700, color: T.textDim,
+            <span style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, color: T.textDim,
               border: `1px solid ${T.border}`, borderRadius: 6, padding: '2px 6px' }}>{it.targetCefr}</span>
           )}
           {soon && <Pill tone="neutral" size="sm">{t('curriculum.comingSoon')}</Pill>}
@@ -162,13 +162,13 @@ export default function Curriculum() {
           <div style={{ padding: isMobile ? '0 14px 14px 14px' : '0 18px 16px 18px', display: 'grid', gap: 12 }}>
             {it.aim && (
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.textDim, marginBottom: 4 }}>{t('curriculum.outcome')}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textDim, marginBottom: 4 }}>{t('curriculum.outcome')}</div>
                 <div style={{ fontSize: 13.5, color: T.textSoft, lineHeight: 1.55 }}>{it.aim}</div>
               </div>
             )}
             {it.topics?.length > 0 && (
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.textDim, marginBottom: 6 }}>{t('curriculum.topics')}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textDim, marginBottom: 6 }}>{t('curriculum.topics')}</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {it.topics.map((tp, i) => <Pill key={i} tone="violet" size="sm">{tp}</Pill>)}
                 </div>
@@ -181,10 +181,10 @@ export default function Curriculum() {
             )}
             {it.keywords?.length > 0 && (
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.textDim, marginBottom: 6 }}>{t('curriculum.keywords')}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textDim, marginBottom: 6 }}>{t('curriculum.keywords')}</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {it.keywords.map((kw, i) => (
-                    <span key={i} style={{ fontFamily: FONT.mono, fontSize: 11.5, color: T.textSoft,
+                    <span key={i} style={{ fontFamily: FONT.mono, fontSize: 13, color: T.textSoft,
                       background: T.surface, border: `1px solid ${T.border}`, borderRadius: 7, padding: '3px 8px' }}>{kw}</span>
                   ))}
                 </div>
@@ -265,7 +265,7 @@ export default function Curriculum() {
           marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 8,
           background: 'rgba(217,70,239,0.08)', border: '1px solid rgba(217,70,239,0.30)',
           color: T.brandInk || T.brand, borderRadius: 999, padding: '6px 14px',
-          fontSize: 12, fontWeight: 700, letterSpacing: '0.08em',
+          fontSize: 13, fontWeight: 700, letterSpacing: '0.08em',
         }}>
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>schedule</span>
           {t('curriculum.comingSoon')}
@@ -283,10 +283,10 @@ export default function Curriculum() {
                   borderRadius: 12, border: `1px dashed ${T.border}`, background: 'transparent',
                   padding: isMobile ? '12px 14px' : '14px 16px', opacity: 0.6,
                 }}>
-                  <span style={{ fontFamily: FONT.mono, fontSize: 12, fontWeight: 700, color: T.textDim,
+                  <span style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, color: T.textDim,
                     border: `1px solid ${T.border}`, borderRadius: 8, padding: '4px 8px', minWidth: 36, textAlign: 'center' }}>{tr.code}</span>
                   <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: T.textDim }}>{tr.name}</span>
-                  <span style={{ fontFamily: FONT.mono, fontSize: 11, color: T.textMute }}>
+                  <span style={{ fontFamily: FONT.mono, fontSize: 13, color: T.textMute }}>
                     {t('curriculum.winter')} {WINTER_COUNT} · {t('curriculum.summer')} {SUMMER_COUNT}
                   </span>
                 </div>

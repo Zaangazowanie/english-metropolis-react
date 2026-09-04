@@ -59,7 +59,7 @@ function Shell({ children }) {
 function Label({ children }) {
   const { T } = useV3Theme()
   return (
-    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase',
+    <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
       color: T.textDim, marginBottom: 14 }}>{children}</div>
   )
 }
@@ -82,7 +82,7 @@ function Notice({ tone = 'error', children }) {
   const isDay = mode === 'day'
   const good = tone === 'ok'
   return (
-    <div role="alert" style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, fontSize: 12.5,
+    <div role="alert" style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, fontSize: 13,
       lineHeight: 1.5,
       background: good ? (isDay ? 'rgba(5,150,105,0.10)' : 'rgba(52,211,153,0.12)')
                        : (isDay ? 'rgba(220,38,38,0.08)' : 'rgba(251,113,133,0.12)'),
@@ -97,7 +97,7 @@ function BackToSignIn() {
   const { t } = useI18n()
   return (
     <div style={{ marginTop: 18, textAlign: 'center' }}>
-      <Link to="/login" style={{ fontSize: 12, color: T.brandInk || T.brand, fontWeight: 700,
+      <Link to="/login" style={{ fontSize: 13, color: T.brandInk || T.brand, fontWeight: 700,
         textDecoration: 'none' }}>{t('account.backToSignIn')}</Link>
     </div>
   )
@@ -272,7 +272,7 @@ export function ResetPassword() {
             <Field label={t('account.reset.repeatLabel')} type={showPw ? 'text' : 'password'}
               value={pw2} onChange={setPw2} icon="lock" autoComplete="new-password" required/>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px',
-              fontSize: 12.5, cursor: 'pointer' }}>
+              fontSize: 13, cursor: 'pointer' }}>
               <input type="checkbox" checked={showPw} onChange={(e) => setShowPw(e.target.checked)}/>
               {t('account.reset.showPassword')}
             </label>

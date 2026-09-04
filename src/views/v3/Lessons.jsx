@@ -16,6 +16,7 @@ import {
 } from '../../components/analytics/AnalyticsPrimitives.jsx'
 import { FONT, G, EASE, CEFR_COLOR } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
+import { Sheet, useReveal } from '../../design/v3/motion/index.js'
 import { Btn, Glass, Pill } from '../../design/v3/primitives.jsx'
 import { generateLessonPdf } from './lessons-pdf.js'
 import AnalysisUpgradeCTA from './AnalysisUpgradeCTA.jsx'
@@ -206,7 +207,7 @@ function SectionLabel({ children, icon, tone = 'brand', T }) {
   }[tone] || T.textDim
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
-      fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase',
+      fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
       color: toneColor, marginBottom: 12 }}>
       {icon && <span className="material-symbols-outlined" style={{ fontSize: 14 }}>{icon}</span>}
       {children}
@@ -268,10 +269,10 @@ function KeywordCard({ keyword, onYouglish, forceExpanded = false }) {
             <span style={{ fontFamily: FONT.display, fontSize: 19, fontWeight: 600,
               letterSpacing: '-0.02em', color: T.text }}>{keyword.word}</span>
             {keyword.ipa && (
-              <span style={{ fontFamily: FONT.mono, fontSize: 12, color: T.sky }}>{keyword.ipa}</span>
+              <span style={{ fontFamily: FONT.mono, fontSize: 13, color: T.sky }}>{keyword.ipa}</span>
             )}
             {keyword.cefr_level && (
-              <span style={{ padding: '2px 7px', borderRadius: 10, fontSize: 9, fontWeight: 700,
+              <span style={{ padding: '2px 7px', borderRadius: 10, fontSize: 13, fontWeight: 700,
                 letterSpacing: '0.1em', textTransform: 'uppercase',
                 background: isDay ? '#F3EEFE' : 'rgba(217,70,239,0.10)',
                 color: T.brandInk || T.brand,
@@ -319,7 +320,7 @@ function KeywordCard({ keyword, onYouglish, forceExpanded = false }) {
               gridTemplateColumns: keyword.definition && keyword.definitionPl ? '1fr 1fr' : '1fr' }}>
               {keyword.definition && (
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
                     textTransform: 'uppercase', color: T.textDim, marginBottom: 4 }}>
                     {t('lessons.keyword.definitionEn')}
                   </div>
@@ -328,7 +329,7 @@ function KeywordCard({ keyword, onYouglish, forceExpanded = false }) {
               )}
               {keyword.definitionPl && (
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
                     textTransform: 'uppercase', color: T.textDim, marginBottom: 4 }}>
                     {t('lessons.keyword.definitionPl')}
                   </div>
@@ -343,7 +344,7 @@ function KeywordCard({ keyword, onYouglish, forceExpanded = false }) {
               border: `1px solid ${isDay ? 'rgba(191,219,254,0.6)' : 'rgba(96,165,250,0.2)'}`,
               display: 'flex', alignItems: 'flex-start', gap: 10 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
+                <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
                   textTransform: 'uppercase', color: T.sky, marginBottom: 4 }}>
                   {t('lessons.keyword.exampleSentence')}
                 </div>
@@ -363,14 +364,14 @@ function KeywordCard({ keyword, onYouglish, forceExpanded = false }) {
           )}
           {collocGroups.length > 0 && (
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
+              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
                 textTransform: 'uppercase', color: T.violet, marginBottom: 8 }}>
                 {t('lessons.keyword.collocationsUsage')}
               </div>
               <div style={{ display: 'grid', gap: 12 }}>
                 {collocGroups.map(g => (
                   <div key={g.key}>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+                    <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                       textTransform: 'uppercase', color: T.textDim, marginBottom: 4 }}>
                       {g.key === 'commonCollocations' ? t('lessons.keyword.commonCollocations')
                         : g.key === 'contexts' ? t('lessons.keyword.contexts')
@@ -498,17 +499,12 @@ function YouGlishModal({ word, onClose }) {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 60,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div onClick={onClose} style={{
-        position: 'absolute', inset: 0,
-        background: isDay ? 'rgba(16,10,40,0.5)' : 'rgba(6,4,16,0.75)',
-        backdropFilter: 'blur(8px)' }}/>
-      <div style={{ position: 'relative', width: '100%', maxWidth: 820,
-        borderRadius: 26, overflow: 'hidden',
+    <Sheet onClose={onClose} zIndex={60} label={t('lessons.youglish.kicker')}
+      backdrop={isDay ? 'rgba(16,10,40,0.5)' : 'rgba(6,4,16,0.75)'}
+      panelStyle={{ maxWidth: 820, borderRadius: 26, overflow: 'hidden',
         background: isDay ? '#fff' : NIGHT_SURFACE,
-        border: `1px solid ${T.border}`,
-        boxShadow: T.shadow }}>
+        border: `1px solid ${T.border}`, boxShadow: T.shadow }}>
+      <div>
         {/* Header */}
         <div style={{ background: G.brand, padding: '16px 20px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -519,7 +515,7 @@ function YouGlishModal({ word, onClose }) {
               <span className="material-symbols-outlined" style={{ color: '#fff' }}>record_voice_over</span>
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em',
+              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                 textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)' }}>
                 {t('lessons.youglish.kicker')}
               </div>
@@ -529,7 +525,7 @@ function YouGlishModal({ word, onClose }) {
               </div>
               {state.data?.fallbackFrom && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3,
-                  fontSize: 11, color: 'rgba(255,230,150,0.95)' }}>
+                  fontSize: 13, color: 'rgba(255,230,150,0.95)' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 13 }}>info</span>
                   {t('lessons.youglish.fallbackHint', { requested: state.data.fallbackFrom, shown: state.data.keyword })}
                 </div>
@@ -563,7 +559,7 @@ function YouGlishModal({ word, onClose }) {
               border: `1px solid ${isDay ? '#FECACA' : 'rgba(251,113,133,0.35)'}` }}>
               <span className="material-symbols-outlined" style={{ fontSize: 32, color: T.rose }}>error_outline</span>
               <div style={{ marginTop: 6, fontSize: 13, color: T.rose }}>{t('lessons.youglish.error')}</div>
-              <div style={{ fontSize: 11, color: T.textDim, marginTop: 2 }}>{state.error}</div>
+              <div style={{ fontSize: 13, color: T.textDim, marginTop: 2 }}>{state.error}</div>
             </div>
           )}
           {!state.loading && !state.error && videos.length === 0 && (
@@ -572,7 +568,7 @@ function YouGlishModal({ word, onClose }) {
               border: `1px solid ${T.border}` }}>
               <span className="material-symbols-outlined" style={{ fontSize: 40, color: T.textDim }}>videocam_off</span>
               <div style={{ marginTop: 10, fontSize: 13, color: T.textSoft }}>{t('lessons.youglish.empty')}</div>
-              <div style={{ fontSize: 11, color: T.textDim, marginTop: 3 }}>{t('lessons.youglish.emptyHint')}</div>
+              <div style={{ fontSize: 13, color: T.textDim, marginTop: 3 }}>{t('lessons.youglish.emptyHint')}</div>
             </div>
           )}
           {video && embedUrl && (
@@ -602,7 +598,7 @@ function YouGlishModal({ word, onClose }) {
                 <div style={{ marginTop: 14, padding: '12px 16px', borderRadius: 12,
                   background: isDay ? '#fff' : 'rgba(255,255,255,0.04)',
                   border: `1px solid ${T.border}` }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.2em',
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                     textTransform: 'uppercase', color: T.sky, marginBottom: 6 }}>
                     {t('lessons.youglish.caption')}
                   </div>
@@ -626,18 +622,18 @@ function YouGlishModal({ word, onClose }) {
                     borderRadius: 999, padding: '8px 14px',
                     background: isDay ? '#fff' : 'rgba(255,255,255,0.04)',
                     border: `1px solid ${T.border}`,
-                    fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
+                    fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                     textTransform: 'uppercase', color: T.textSoft, cursor: 'pointer',
                     opacity: (videoIdx === 0 && occIdx === 0) ? 0.3 : 1 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_back</span>
                   {t('lessons.youglish.previous')}
                 </button>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em',
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
                     textTransform: 'uppercase', color: T.sky }}>
                     {t('lessons.youglish.clipOf', { a: globalOccIdx, b: totalOccurrences })}
                   </div>
-                  <div style={{ fontSize: 11, color: T.textDim }}>
+                  <div style={{ fontSize: 13, color: T.textDim }}>
                     {t('lessons.youglish.videoOf', { a: videoIdx + 1, b: videos.length })}
                   </div>
                 </div>
@@ -648,7 +644,7 @@ function YouGlishModal({ word, onClose }) {
                     borderRadius: 999, padding: '8px 14px',
                     background: isDay ? '#fff' : 'rgba(255,255,255,0.04)',
                     border: `1px solid ${T.border}`,
-                    fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
+                    fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                     textTransform: 'uppercase', color: T.textSoft, cursor: 'pointer',
                     opacity: (videoIdx === videos.length - 1 && occIdx === (video?.occurrences.length || 1) - 1) ? 0.3 : 1 }}>
                   {t('lessons.youglish.next')}
@@ -675,14 +671,14 @@ function YouGlishModal({ word, onClose }) {
                 </div>
               )}
               <div style={{ marginTop: 12, textAlign: 'center',
-                fontSize: 10, color: T.textDim }}>
+                fontSize: 13, color: T.textDim }}>
                 {t('lessons.youglish.keyboardHint')}
               </div>
             </>
           )}
         </div>
       </div>
-    </div>
+    </Sheet>
   )
 }
 
@@ -699,7 +695,7 @@ function TopicFilterStrip({ topics, value, onChange, label, allLabel }) {
     el.scrollBy({ left: el.clientWidth * 0.6 * dir, behavior: 'smooth' })
   }
   const arrowBtn = {
-    width: 28, height: 28, borderRadius: '50%',
+    width: 36, height: 36, borderRadius: '50%',
     background: isDay ? '#fff' : 'rgba(255,255,255,0.04)',
     border: `1px solid ${T.border}`, color: T.textSoft,
     cursor: 'pointer', flexShrink: 0,
@@ -707,8 +703,8 @@ function TopicFilterStrip({ topics, value, onChange, label, allLabel }) {
   }
   const pillBtn = (isActive) => ({
     flexShrink: 0, whiteSpace: 'nowrap',
-    padding: '5px 12px', borderRadius: 999, cursor: 'pointer',
-    fontSize: 11, fontFamily: FONT.mono, fontWeight: 500,
+    padding: '9px 14px', minHeight: 36, borderRadius: 999, cursor: 'pointer',
+    fontSize: 13, fontFamily: FONT.mono, fontWeight: 500,
     letterSpacing: '0.06em', textTransform: 'uppercase',
     background: isActive ? G.brand : (isDay ? '#fff' : 'rgba(255,255,255,0.04)'),
     color: isActive ? '#fff' : T.textSoft,
@@ -717,7 +713,7 @@ function TopicFilterStrip({ topics, value, onChange, label, allLabel }) {
   })
   return (
     <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
+      <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
         textTransform: 'uppercase', color: T.textDim, flexShrink: 0 }}>{label}</span>
       <button type="button" onClick={() => scroll(-1)} style={arrowBtn} aria-label="Scroll topics left">
         <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
@@ -763,7 +759,7 @@ function HorizontalLessonNavigator({ lessons }) {
   }
   if (!lessons.length) return null
   const arrowBtn = {
-    width: 28, height: 28, borderRadius: '50%',
+    width: 36, height: 36, borderRadius: '50%',
     background: isDay ? '#fff' : 'rgba(255,255,255,0.04)',
     border: `1px solid ${T.border}`, color: T.textSoft,
     cursor: 'pointer',
@@ -773,7 +769,7 @@ function HorizontalLessonNavigator({ lessons }) {
     <Glass padding={12} style={{ marginBottom: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 8, padding: '0 6px' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em',
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
           textTransform: 'uppercase', color: T.textDim }}>
           {t('lessons.nav.quickJump')}
         </div>
@@ -807,25 +803,25 @@ function HorizontalLessonNavigator({ lessons }) {
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.brand; e.currentTarget.style.transform = 'translateY(-2px)' }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.transform = 'none' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 12, color: T.textDim }}>event</span>
-                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em',
+                <span className="material-symbols-outlined" style={{ fontSize: 13, color: T.textDim }}>event</span>
+                <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                   textTransform: 'uppercase', color: T.textDim }}>
                   {formatDate(l.date)}
                 </span>
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.3,
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.text, lineHeight: 1.3,
                 display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
                 overflow: 'hidden' }}>
                 {l.title}
               </div>
               <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                 {band && (
-                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+                  <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
                     color: CEFR_COLOR[band] || T.textDim }}>
                     {band} {overall ? Math.round(overall) : ''}
                   </span>
                 )}
-                <span style={{ fontSize: 9, color: T.textDim }}>
+                <span style={{ fontSize: 13, color: T.textDim }}>
                   {t('lessons.kwAbbrev', { n: l.keywordCount || l.keyword_count || l.keywords?.length || 0 })}
                 </span>
               </div>
@@ -868,7 +864,7 @@ function PersonalizedRecommendationsBlock({ recs }) {
           <span className="material-symbols-outlined">auto_awesome</span>
         </div>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.22em',
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: T.sky }}>{t('lessons.recs.kicker')}</div>
           <div style={{ fontFamily: FONT.display, fontSize: 20, fontWeight: 600, color: T.text }}>
             {t('lessons.recs.title')}
@@ -901,12 +897,12 @@ function PersonalizedRecommendationsBlock({ recs }) {
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{icon}</span>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.18em',
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
                     textTransform: 'uppercase', color: T.brandInk || T.brand }}>{label}</div>
                   <div style={{ fontFamily: FONT.display, fontSize: 15, fontWeight: 600,
                     color: T.text, lineHeight: 1.3, marginTop: 2 }}>{r.title}</div>
                   {r.creator && (
-                    <div style={{ fontSize: 11, color: T.textDim, marginTop: 2 }}>
+                    <div style={{ fontSize: 13, color: T.textDim, marginTop: 2 }}>
                       {t('lessons.recs.byCreator', { creator: r.creator })}
                     </div>
                   )}
@@ -914,12 +910,12 @@ function PersonalizedRecommendationsBlock({ recs }) {
                 <span className="material-symbols-outlined" style={{ color: T.textDim, fontSize: 16, flexShrink: 0 }}>open_in_new</span>
               </div>
               {r.whyThisMatches && (
-                <div style={{ fontSize: 12, color: T.textSoft, lineHeight: 1.55, marginBottom: 6 }}>
+                <div style={{ fontSize: 13, color: T.textSoft, lineHeight: 1.55, marginBottom: 6 }}>
                   <strong style={{ color: T.text }}>{t('lessons.recs.whyMatches')}</strong> {r.whyThisMatches}
                 </div>
               )}
               {r.howToNavigate && (
-                <div style={{ fontSize: 12, color: T.textSoft, lineHeight: 1.55,
+                <div style={{ fontSize: 13, color: T.textSoft, lineHeight: 1.55,
                   marginTop: 6, paddingTop: 6, borderTop: `1px solid ${T.borderSoft}` }}>
                   <strong style={{ color: T.sky }}>{t('lessons.recs.howToUse')}</strong> {r.howToNavigate}
                 </div>
@@ -927,13 +923,13 @@ function PersonalizedRecommendationsBlock({ recs }) {
               {r.focusVocab?.length > 0 && (
                 <div style={{ marginTop: 8, paddingTop: 8,
                   borderTop: `1px solid ${T.borderSoft}` }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
                     textTransform: 'uppercase', color: T.textDim, marginBottom: 4 }}>
                     {t('lessons.recs.focusVocab')}
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                     {r.focusVocab.map((w, j) => (
-                      <span key={j} style={{ fontSize: 10, fontFamily: FONT.mono,
+                      <span key={j} style={{ fontSize: 13, fontFamily: FONT.mono,
                         color: T.textSoft, padding: '2px 7px', borderRadius: 6,
                         background: isDay ? '#F3EEFE' : 'rgba(217,70,239,0.08)',
                         border: `1px solid ${T.borderSoft}` }}>{w}</span>
@@ -982,7 +978,7 @@ function LessonSummaryOnion({ summary, title, deeperLabel }) {
         : 'linear-gradient(135deg, rgba(96,165,250,0.05), rgba(255,255,255,0.02))',
       border: `1px solid ${isDay ? 'rgba(191,219,254,0.6)' : 'rgba(96,165,250,0.18)'}` }}>
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
-        fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
+        fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
         textTransform: 'uppercase', color: T.sky, marginBottom: 16 }}>
         <span className="material-symbols-outlined" style={{ fontSize: 14 }}>auto_stories</span>
         {title}
@@ -1013,7 +1009,7 @@ function LessonSummaryOnion({ summary, title, deeperLabel }) {
               ? 'linear-gradient(90deg, rgba(243,238,255,1), rgba(219,234,254,1))'
               : 'linear-gradient(90deg, rgba(139,92,246,0.12), rgba(96,165,250,0.12))',
             border: `1px solid ${isDay ? '#DDD6FE' : 'rgba(139,92,246,0.35)'}`,
-            fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
+            fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: T.violet }}>
             <span className="material-symbols-outlined" style={{ fontSize: 15 }}>science</span>
             {deeperLabel}
@@ -1094,14 +1090,14 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
             padding: '12px 18px', borderRadius: 999, textDecoration: 'none',
             background: G.brand, color: '#fff',
             boxShadow: '0 14px 40px -12px rgba(217,70,239,0.55)',
-            fontSize: 12, fontWeight: 700, letterSpacing: '0.14em',
+            fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
             textTransform: 'uppercase' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
           <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
-            <div style={{ fontSize: 10, opacity: 0.85, letterSpacing: '0.2em' }}>
+            <div style={{ fontSize: 13, opacity: 0.85, letterSpacing: '0.14em' }}>
               {focusKeyword ? t('lessons.detail.viewingInContext', { kw: focusKeyword }) : t('lessons.detail.jumpedFromVocab')}
             </div>
-            <div style={{ fontSize: 12 }}>{t('lessons.detail.backToVocab')}</div>
+            <div style={{ fontSize: 13 }}>{t('lessons.detail.backToVocab')}</div>
           </div>
           <span className="material-symbols-outlined" style={{ marginLeft: 'auto', fontSize: 20 }}>library_books</span>
         </a>
@@ -1111,7 +1107,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{
           padding: '5px 12px', borderRadius: 999, background: G.brand, color: '#fff',
-          fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
+          fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
           textTransform: 'uppercase' }}>
           {formatLongDate(lesson.date)}
         </span>
@@ -1120,12 +1116,12 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
             <span style={{
               padding: '5px 10px', borderRadius: 999,
               background: CEFR_COLOR[band] || T.brand, color: '#fff',
-              fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
+              fontSize: 13, fontWeight: 700, letterSpacing: '0.1em',
               fontFamily: FONT.mono }}>{band}</span>
             {typeof overall === 'number' && (
               <span style={{
                 fontFamily: FONT.display, fontSize: 20, fontWeight: 600,
-                color: T.text }}>{Math.round(overall)}<span style={{ fontSize: 12, color: T.textDim }}>/100</span></span>
+                color: T.text }}>{Math.round(overall)}<span style={{ fontSize: 13, color: T.textDim }}>/100</span></span>
             )}
           </div>
         )}
@@ -1137,7 +1133,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
               padding: '6px 12px', borderRadius: 999, textDecoration: 'none',
               background: isDay ? '#fff' : 'rgba(255,255,255,0.05)',
               border: `1px solid ${T.border}`, color: T.textSoft,
-              fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+              fontSize: 13, fontWeight: 700, letterSpacing: '0.08em',
               textTransform: 'uppercase',
             }}>
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>download</span>
@@ -1171,15 +1167,15 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
             </div>
             <div>
               <div style={{
-                color: T.brandInk || T.brand, fontSize: 9, fontWeight: 750,
-                letterSpacing: '0.18em', textTransform: 'uppercase',
+                color: T.brandInk || T.brand, fontSize: 13, fontWeight: 750,
+                letterSpacing: '0.12em', textTransform: 'uppercase',
               }}>
                 Practice for this lesson
               </div>
               <div style={{ marginTop: 4, color: T.text, fontFamily: FONT.display, fontSize: 20, fontWeight: 650 }}>
                 Accuracy at Speed
               </div>
-              <p style={{ margin: '5px 0 0', color: T.textDim, fontSize: 12, lineHeight: 1.5 }}>
+              <p style={{ margin: '5px 0 0', color: T.textDim, fontSize: 13, lineHeight: 1.5 }}>
                 Build faster, more reliable grammar with a tap challenge or spoken coaching from Bajla.
               </p>
             </div>
@@ -1189,7 +1185,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                 style={{
                   minHeight: 42, padding: '0 14px', display: 'inline-flex', alignItems: 'center', gap: 7,
                   border: 0, borderRadius: 11, cursor: 'pointer', color: '#fff', background: G.brand,
-                  fontSize: 12, fontWeight: 700,
+                  fontSize: 13, fontWeight: 700,
                 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>touch_app</span>
                 Tap challenge
@@ -1200,7 +1196,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                   minHeight: 42, padding: '0 14px', display: 'inline-flex', alignItems: 'center', gap: 7,
                   border: `1px solid ${T.border}`, borderRadius: 11, cursor: 'pointer',
                   color: T.text, background: isDay ? '#fff' : 'rgba(255,255,255,0.05)',
-                  fontSize: 12, fontWeight: 700,
+                  fontSize: 13, fontWeight: 700,
                 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mic</span>
                 Speak with Bajla
@@ -1215,7 +1211,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
+              fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
               textTransform: 'uppercase', color: T.violet }}>
               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>translate</span>
               {t('lessons.detail.vocabHeading', { n: lesson.keywords.length })}
@@ -1225,9 +1221,9 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
               style={{ width: 200, padding: '8px 12px', borderRadius: 10,
                 background: isDay ? '#fff' : 'rgba(255,255,255,0.04)',
                 border: `1px solid ${T.border}`, color: T.text,
-                fontSize: 12, outline: 'none' }}/>
+                fontSize: 13, outline: 'none' }}/>
           </div>
-          <div style={{ fontSize: 11, color: T.textDim, fontStyle: 'italic', marginBottom: 10 }}>
+          <div style={{ fontSize: 13, color: T.textDim, fontStyle: 'italic', marginBottom: 10 }}>
             {t('lessons.detail.vocabHint')}
           </div>
           <div style={{ display: 'grid', gap: 8 }}>
@@ -1272,16 +1268,16 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
           <span className="material-symbols-outlined"
             style={{ fontSize: 20, color: T.brand }}>analytics</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.16em',
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
               textTransform: 'uppercase' }}>{t('lessons.detail.fullAnalysis')}</div>
-            <div style={{ fontSize: 11, color: T.textDim, marginTop: 2 }}>
+            <div style={{ fontSize: 13, color: T.textDim, marginTop: 2 }}>
               {t('lessons.detail.fullAnalysisHint')}
             </div>
           </div>
           {typeof overall === 'number' && (
             <span style={{ fontFamily: FONT.display, fontSize: 22, fontWeight: 600,
               color: T.text }}>{Math.round(overall)}
-              <span style={{ fontSize: 11, color: T.textDim }}>/100</span></span>
+              <span style={{ fontSize: 13, color: T.textDim }}>/100</span></span>
           )}
           <span className="material-symbols-outlined"
             style={{ fontSize: 22, color: T.textDim,
@@ -1306,7 +1302,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                 padding: '4px 10px', borderRadius: 999,
                 background: isDay ? '#F3EEFE' : 'rgba(139,92,246,0.10)',
                 border: `1px solid ${isDay ? '#E6DDFB' : 'rgba(139,92,246,0.25)'}`,
-                fontSize: 12, color: T.violet }}>{tp}</span>
+                fontSize: 13, color: T.violet }}>{tp}</span>
             ))}
           </div>
         </div>
@@ -1332,7 +1328,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                   background: isDay ? '#EFF6FF' : 'rgba(96,165,250,0.10)',
                   border: `1px solid ${isDay ? '#BFDBFE' : 'rgba(96,165,250,0.28)'}`,
                   color: T.sky,
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: 700,
                 }}
               >
@@ -1366,7 +1362,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                   <span className="material-symbols-outlined" style={{ fontSize: 14, color: m.hue.stroke }}>
                     {m.icon}
                   </span>
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+                  <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                     textTransform: 'uppercase', color: T.textSoft,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {m.shortLabel}
@@ -1376,7 +1372,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                   <span style={{ fontFamily: FONT.display, fontSize: 22, fontWeight: 600,
                     color: T.text, letterSpacing: '-0.02em',
                     fontVariantNumeric: 'tabular-nums' }}>{Math.round(val)}</span>
-                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                  <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.1em',
                     textTransform: 'uppercase', color: tierTextColor }}>{tier.label}</span>
                 </div>
                 <div style={{ marginTop: 6, height: 4, borderRadius: 4, overflow: 'hidden',
@@ -1386,7 +1382,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                     background: m.hue.stroke }}/>
                 </div>
                 {commentary && (
-                  <div style={{ marginTop: 8, fontSize: 10, color: T.textDim, fontStyle: 'italic',
+                  <div style={{ marginTop: 8, fontSize: 13, color: T.textDim, fontStyle: 'italic',
                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
                     overflow: 'hidden', lineHeight: 1.4 }}>
                     {commentary.slice(0, 90)}...
@@ -1411,11 +1407,11 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
         <Glass padding={20}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: T.emerald }}>celebration</span>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.22em',
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
               textTransform: 'uppercase', color: T.emerald }}>
               {t('lessons.detail.strengthsHeading')}
             </span>
-            <span style={{ fontSize: 10, color: T.textDim, fontWeight: 400, textTransform: 'none',
+            <span style={{ fontSize: 13, color: T.textDim, fontWeight: 400, textTransform: 'none',
               letterSpacing: 'normal' }}>
               {t('lessons.detail.strengthsHint')}
             </span>
@@ -1448,11 +1444,11 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
         <Glass padding={20}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: T.amber }}>rocket_launch</span>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.22em',
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
               textTransform: 'uppercase', color: T.amber }}>
               {t('lessons.detail.improvementsHeading')}
             </span>
-            <span style={{ fontSize: 10, color: T.textDim, fontWeight: 400, textTransform: 'none',
+            <span style={{ fontSize: 13, color: T.textDim, fontWeight: 400, textTransform: 'none',
               letterSpacing: 'normal' }}>
               {t('lessons.detail.improvementsHint')}
             </span>
@@ -1488,9 +1484,9 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                     </div>
                   </div>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4,
-                    fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+                    fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                     textTransform: 'uppercase', color: T.amber }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 12 }}>play_arrow</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>play_arrow</span>
                     {t('lessons.detail.practiceThis')}
                   </span>
                 </button>
@@ -1505,11 +1501,11 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
         <Glass padding={20}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: T.rose }}>flag_circle</span>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.22em',
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
               textTransform: 'uppercase', color: T.rose }}>
               {t('lessons.detail.errorsHeading')}
             </span>
-            <span style={{ fontSize: 10, color: T.textDim, fontWeight: 400, textTransform: 'none',
+            <span style={{ fontSize: 13, color: T.textDim, fontWeight: 400, textTransform: 'none',
               letterSpacing: 'normal' }}>
               {t('lessons.detail.errorsHint')}
             </span>
@@ -1533,25 +1529,25 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                 onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = T.shadow }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                  <div style={{ fontFamily: FONT.mono, fontSize: 12, fontStyle: 'italic',
+                  <div style={{ fontFamily: FONT.mono, fontSize: 13, fontStyle: 'italic',
                     color: T.rose, lineHeight: 1.5, flex: 1 }}>"{err.error}"</div>
                   {err.category && (
                     <span style={{ flexShrink: 0, padding: '2px 7px', borderRadius: 999,
                       background: isDay ? '#FEE2E2' : 'rgba(251,113,133,0.15)',
                       border: `1px solid ${isDay ? '#FECACA' : 'rgba(251,113,133,0.3)'}`,
-                      fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+                      fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
                       textTransform: 'uppercase', color: T.rose }}>{err.category}</span>
                   )}
                 </div>
                 {err.correction && (
-                  <div style={{ fontSize: 12, color: T.emerald, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 13, color: T.emerald, lineHeight: 1.5 }}>
                     <strong>→</strong> {err.correction}
                   </div>
                 )}
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4,
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+                  fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                   textTransform: 'uppercase', color: T.rose, marginTop: 2 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 12 }}>play_arrow</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }}>play_arrow</span>
                   {t('lessons.detail.drillThis')}
                 </span>
               </button>
@@ -1565,11 +1561,11 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
         <Glass padding={20}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: T.sky }}>tips_and_updates</span>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.22em',
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
               textTransform: 'uppercase', color: T.sky }}>
               {t('lessons.detail.adviceHeading')}
             </span>
-            <span style={{ fontSize: 10, color: T.textDim, fontWeight: 400, textTransform: 'none',
+            <span style={{ fontSize: 13, color: T.textDim, fontWeight: 400, textTransform: 'none',
               letterSpacing: 'normal' }}>
               {t('lessons.detail.adviceHint')}
             </span>
@@ -1602,9 +1598,9 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                     <div style={{ fontSize: 13, color: T.textSoft, lineHeight: 1.55 }}>{adviceText}</div>
                   </div>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4,
-                    fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+                    fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                     textTransform: 'uppercase', color: T.sky, marginTop: 4 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 12 }}>{link ? 'arrow_forward' : 'edit_note'}</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>{link ? 'arrow_forward' : 'edit_note'}</span>
                     {link ? link.label : t('lessons.detail.openFreewrite')}
                   </span>
                 </button>
@@ -1633,30 +1629,21 @@ function LessonDetailModal({ lesson, onClose, onYouglish, focusKeyword, cameFrom
   const isDay = mode === 'day'
   const { t } = useI18n()
 
-  useEffect(() => {
-    const h = (e) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', h)
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { window.removeEventListener('keydown', h); document.body.style.overflow = prev }
-  }, [onClose])
-
   if (!lesson) return null
+  // Sheet: Escape + backdrop dismiss, scroll lock, focus return, spring-in.
+  // On phones it rises from the bottom edge like a drawer.
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 50,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 0 : 16 }}>
-      <div onClick={onClose} style={{
-        position: 'absolute', inset: 0,
-        background: isDay ? 'rgba(16,10,40,0.45)' : 'rgba(6,4,16,0.75)',
-        backdropFilter: 'blur(8px)' }}/>
-      <div style={{
-        position: 'relative', width: '100%', maxWidth: 1080,
-        maxHeight: isMobile ? '100vh' : '90vh',
-        borderRadius: isMobile ? 0 : 24,
+    <Sheet onClose={onClose} zIndex={50} side={isMobile ? 'bottom' : 'center'} labelledBy="lesson-detail-title"
+      backdrop={isDay ? 'rgba(16,10,40,0.45)' : 'rgba(6,4,16,0.75)'}
+      panelStyle={{
+        maxWidth: 1080,
+        maxHeight: isMobile ? '100dvh' : '90vh',
+        borderRadius: isMobile ? '22px 22px 0 0' : 24,
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
         background: isDay ? '#FDFCFF' : '#0A0718',
         border: `1px solid ${T.border}`,
         boxShadow: T.shadow }}>
+      <div style={{ display: 'contents' }}>
         {/* Header */}
         <div style={{ padding: isMobile ? '18px 20px 14px' : '24px 28px 18px',
           borderBottom: `1px solid ${T.border}`,
@@ -1664,16 +1651,16 @@ function LessonDetailModal({ lesson, onClose, onYouglish, focusKeyword, cameFrom
             ? 'linear-gradient(180deg, rgba(243,238,255,0.6), rgba(253,252,255,0))'
             : 'linear-gradient(180deg, rgba(139,92,246,0.15), rgba(139,92,246,0))',
           position: 'relative' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.24em',
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 6 }}>
             {t('lessons.modalDefaultTitle')}
           </div>
-          <h2 style={{ fontFamily: FONT.display, fontSize: isMobile ? 22 : 28,
+          <h2 id="lesson-detail-title" style={{ fontFamily: FONT.display, fontSize: isMobile ? 22 : 28,
             fontWeight: 600, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.2,
             color: T.text, paddingRight: 44 }}>{lesson.title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close"
+          <button type="button" onClick={onClose} aria-label={t('common.close')} className="em-press em-focus"
             style={{ position: 'absolute', top: isMobile ? 14 : 18, right: isMobile ? 14 : 18,
-              width: 36, height: 36, borderRadius: 10, border: 'none',
+              width: 44, height: 44, borderRadius: 12, border: 'none',
               background: isDay ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)',
               color: T.textSoft, cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1693,7 +1680,7 @@ function LessonDetailModal({ lesson, onClose, onYouglish, focusKeyword, cameFrom
             pdfUrl={pdfUrl}/>
         </div>
       </div>
-    </div>
+    </Sheet>
   )
 }
 
@@ -1759,7 +1746,7 @@ function LessonCard({ lesson, analysis, pdfUrl, onOpen, onTopicClick, topicFilte
         gap: 10, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: 16 }}>event</span>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
             textTransform: 'uppercase', color: '#fff' }}>
             {formatDate(lesson.date)}
           </span>
@@ -1770,14 +1757,14 @@ function LessonCard({ lesson, analysis, pdfUrl, onOpen, onTopicClick, topicFilte
               display: 'inline-flex', alignItems: 'center', gap: 4,
               padding: '3px 10px', borderRadius: 999,
               background: 'rgba(255,255,255,0.95)', color: T.brand,
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+              fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
               textTransform: 'uppercase' }}>
               {band}{typeof overall === 'number' ? ` ${Math.round(overall)}` : ''}
             </span>
           )}
           <span style={{ padding: '2px 8px', borderRadius: 999,
             background: 'rgba(255,255,255,0.2)', color: '#fff',
-            fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}>
+            fontSize: 13, fontWeight: 700, letterSpacing: '0.08em' }}>
             {t('lessons.wordsCount', { n: keywordCount })}
           </span>
         </div>
@@ -1802,7 +1789,7 @@ function LessonCard({ lesson, analysis, pdfUrl, onOpen, onTopicClick, topicFilte
                   background: topicFilter === tp ? G.brand : (isDay ? '#F3EEFE' : 'rgba(139,92,246,0.10)'),
                   color: topicFilter === tp ? '#fff' : T.violet,
                   border: `1px solid ${topicFilter === tp ? 'transparent' : (isDay ? '#E6DDFB' : 'rgba(139,92,246,0.25)')}`,
-                  fontSize: 11, fontFamily: FONT.mono, fontWeight: 500,
+                  fontSize: 13, fontFamily: FONT.mono, fontWeight: 500,
                   letterSpacing: '0.04em',
                   transition: `all 160ms ${EASE.springFast}` }}>
                 {tp}
@@ -1838,7 +1825,7 @@ function LessonCard({ lesson, analysis, pdfUrl, onOpen, onTopicClick, topicFilte
                 display: 'inline-flex', alignItems: 'center', gap: 4,
                 padding: '6px 12px', borderRadius: 999, textDecoration: 'none',
                 background: G.brand, color: '#fff',
-                fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+                fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                 textTransform: 'uppercase',
                 boxShadow: '0 6px 18px -8px rgba(217,70,239,0.55)',
                 // Preview is the ONE escape hatch on a greyed-out upcoming
@@ -1858,7 +1845,7 @@ function LessonCard({ lesson, analysis, pdfUrl, onOpen, onTopicClick, topicFilte
                 padding: '5px 11px', borderRadius: 999, textDecoration: 'none',
                 background: isDay ? '#fff' : 'rgba(255,255,255,0.04)',
                 border: `1px solid ${T.border}`, color: T.textSoft,
-                fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+                fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                 textTransform: 'uppercase' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>description</span>
               {t('lessons.rawNotes')}
@@ -1873,7 +1860,7 @@ function LessonCard({ lesson, analysis, pdfUrl, onOpen, onTopicClick, topicFilte
                 padding: '5px 11px', borderRadius: 999,
                 background: isDay ? '#fff' : 'rgba(255,255,255,0.04)',
                 border: `1px solid ${T.border}`, color: T.textSoft,
-                fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+                fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                 textTransform: 'uppercase' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>picture_as_pdf</span>
               {t('lessons.analysisPdf')}
@@ -1905,10 +1892,10 @@ function CompactLessonRow({ lesson, analysis, onOpen }) {
   const overall = analysis?.overallScore
   const keywordCount = lesson.keyword_count || lesson.keywords?.length || 0
   return (
-    <button type="button" onClick={onOpen}
+    <button type="button" onClick={onOpen} className="em-press em-focus"
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
-        width: '100%', textAlign: 'left', cursor: 'pointer',
+        width: '100%', textAlign: 'left', cursor: 'pointer', minHeight: 44,
         display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16,
         padding: isMobile ? '12px 14px' : '13px 18px', borderRadius: 16,
         background: isDay ? '#fff' : 'rgba(255,255,255,0.03)',
@@ -1916,7 +1903,7 @@ function CompactLessonRow({ lesson, analysis, onOpen }) {
         color: T.text, transition: `all 200ms ${EASE.springFast}`,
         transform: hov ? 'translateY(-1px)' : 'none',
         boxShadow: hov ? T.shadowSm : 'none' }}>
-      <span style={{ fontFamily: FONT.mono, fontSize: 11, color: T.textDim,
+      <span style={{ fontFamily: FONT.mono, fontSize: 13, color: T.textDim,
         letterSpacing: '0.06em', flexShrink: 0, width: isMobile ? 74 : 92 }}>
         {formatDate(lesson.date)}
       </span>
@@ -1926,7 +1913,7 @@ function CompactLessonRow({ lesson, analysis, onOpen }) {
         {lesson.title}
       </span>
       {!isMobile && keywordCount > 0 && (
-        <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+        <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em',
           color: T.violet, padding: '3px 9px', borderRadius: 999,
           background: isDay ? '#F3EEFE' : 'rgba(139,92,246,0.10)',
           border: `1px solid ${isDay ? '#E6DDFB' : 'rgba(139,92,246,0.25)'}` }}>
@@ -1934,7 +1921,7 @@ function CompactLessonRow({ lesson, analysis, onOpen }) {
         </span>
       )}
       {band && (
-        <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700,
+        <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 700,
           letterSpacing: '0.1em', fontFamily: FONT.mono, color: '#fff',
           padding: '3px 8px', borderRadius: 999,
           background: CEFR_COLOR[band] || T.brand }}>
@@ -1963,6 +1950,7 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
   const [focusKeyword, setFocusKeyword] = useState(null)
   const [cameFromVocab, setCameFromVocab] = useState(false)
   const [topicFilter, setTopicFilter] = useState(null)
+  const listReveal = useReveal({ stagger: 40, cap: 8 })
 
   const lessons = data?.lessons || []
   const profile = data?.profile || {}
@@ -2060,7 +2048,7 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
           gap: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 220 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.28em',
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
               textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 8 }}>
               {t('lessons.hero.kicker')}
             </div>
@@ -2076,7 +2064,7 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
           <div style={{ flexShrink: 0, padding: '10px 16px', borderRadius: 14,
             background: isDay ? '#fff' : 'rgba(255,255,255,0.04)',
             border: `1px solid ${T.border}`, textAlign: 'center', minWidth: 88 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.18em',
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
               textTransform: 'uppercase', color: T.textDim }}>
               {t('lessons.hero.statLabel')}
             </div>
@@ -2140,7 +2128,7 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
               <span style={{
                 fontSize: 13,
                 fontWeight: 700,
-                letterSpacing: '0.18em',
+                letterSpacing: '0.12em',
                 textTransform: 'uppercase',
                 color: T.violet || '#A78BFA',
               }}>
@@ -2190,9 +2178,9 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
                       <span className="material-symbols-outlined" style={{ fontSize: 18, color: T.violet || '#A78BFA', flexShrink: 0 }}>schedule</span>
                       <div style={{ minWidth: 0 }}>
                         <div style={{
-                          fontSize: 10,
+                          fontSize: 13,
                           fontWeight: 700,
-                          letterSpacing: '0.16em',
+                          letterSpacing: '0.12em',
                           textTransform: 'uppercase',
                           color: T.violet || '#A78BFA',
                         }}>
@@ -2213,7 +2201,7 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                       <span style={{
-                        fontSize: 9,
+                        fontSize: 13,
                         fontWeight: 700,
                         letterSpacing: '0.12em',
                         textTransform: 'uppercase',
@@ -2222,9 +2210,9 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
                         {t('lessons.wordsCount', { n: keywordCount })}
                       </span>
                       <span style={{
-                        fontSize: 9,
+                        fontSize: 13,
                         fontWeight: 700,
-                        letterSpacing: '0.18em',
+                        letterSpacing: '0.12em',
                         textTransform: 'uppercase',
                         color: T.violet || '#A78BFA',
                       }}>
@@ -2241,14 +2229,14 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
 
       {/* Lesson cards — the latest lesson keeps its rich card; every earlier
           lesson is one compact row (full detail one click away). */}
-      <div style={{ display: 'grid', gap: 14 }}>
+      <div {...listReveal.container} style={{ display: 'grid', gap: 14 }}>
         {completedLessons.length ? completedLessons.map((lesson, idx) => {
           const analysis = lesson.analysis
           const pdf = (pdfMap[studentSlug || ''] || []).find(p => p.date === lesson.date)
           if (idx === 0) {
             return (
+              <div key={lesson.id} {...listReveal.item(0)}>
               <LessonCard
-                key={lesson.id}
                 lesson={lesson}
                 analysis={analysis}
                 pdfUrl={pdf?.url}
@@ -2256,13 +2244,14 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
                 onTopicClick={(tp) => setTopicFilter(topicFilter === tp ? null : tp)}
                 topicFilter={topicFilter}
                 profile={profile}/>
+              </div>
             )
           }
           return (
-            <div key={lesson.id} style={{ display: 'grid', gap: 8 }}>
+            <div key={lesson.id} {...listReveal.item(idx)} style={{ display: 'grid', gap: 8, ...listReveal.item(idx).style }}>
               {idx === 1 && (
-                <div style={{ marginTop: 10, fontSize: 10, fontWeight: 700,
-                  letterSpacing: '0.24em', textTransform: 'uppercase', color: T.textDim }}>
+                <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700,
+                  letterSpacing: '0.14em', textTransform: 'uppercase', color: T.textDim }}>
                   {t('lessons.archive.earlier')}
                 </div>
               )}

@@ -17,6 +17,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { FONT, G } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
+import { ThreeSlot } from '../../design/v3/three/ThreeSlot.jsx'
 import { Glass, Btn, Pill } from '../../design/v3/primitives.jsx'
 import { useStudentAuth, getStudentSessionToken } from '../../contexts/StudentAuthContext.jsx'
 import { useI18n } from '../../i18n'
@@ -141,7 +142,7 @@ function Notice({ notice, T, onResend, resendLabel }) {
       {notice.resend && onResend && (
         <button type="button" onClick={onResend}
           style={{ marginLeft: 'auto', border: `1px solid ${tone.border}`, background: 'transparent',
-            color: tone.color, borderRadius: 999, padding: '6px 14px', fontSize: 12.5,
+            color: tone.color, borderRadius: 999, padding: '6px 14px', fontSize: 13,
             fontWeight: 700, cursor: 'pointer', font: 'inherit' }}>
           {resendLabel}
         </button>
@@ -197,7 +198,7 @@ function SlotDayCard({ date, slots, dayLabel, selected, onPick, T, isMobile }) {
             <div style={{ fontSize: 14, fontWeight: 800, color: T.text, letterSpacing: '-0.01em' }}>
               {dayLabel(date)}
             </div>
-            <div style={{ marginTop: 5, fontFamily: FONT.mono, fontSize: 11, color: T.textDim }}>
+            <div style={{ marginTop: 5, fontFamily: FONT.mono, fontSize: 13, color: T.textDim }}>
               {first}{last && last !== first ? ` – ${last}` : ''}
             </div>
           </div>
@@ -251,6 +252,23 @@ function SlotDayCard({ date, slots, dayLabel, selected, onPick, T, isMobile }) {
   )
 }
 
+// The confirm button's surface: a shader plane over the button that ripples
+// from the pointer while hovering, breathes while the request is in flight and
+// settles to emerald when the booking succeeds. Pointer events stay on the
+// button; the canvas only listens through hostRef. Falls back to the plain
+// button (its own sheen) without WebGL or under reduced motion.
+function RippleConfirm({ hostRef, busy, settled, children }) {
+  return (
+    <span ref={hostRef} style={{ position: 'relative', display: 'inline-flex', borderRadius: 999, isolation: 'isolate' }}>
+      {children}
+      <ThreeSlot id="booking-ripple" load={() => import('../../design/v3/three/RippleButton.jsx')}
+        busy={busy} settled={settled} host={hostRef}
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'none', borderRadius: 999, overflow: 'hidden', zIndex: 2 }}
+        fallback={null}/>
+    </span>
+  )
+}
+
 function Chip({ children, active, onClick, T, disabled, dataAttr }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled} aria-pressed={active} {...(dataAttr || {})}
@@ -289,7 +307,17 @@ export default function LessonBooking() {
   const [pendingCancel, setPendingCancel] = useState(null)
   const [pendingSeriesCancel, setPendingSeriesCancel] = useState(null)
   const [confirming, setConfirming] = useState(false)
+  const [booked, setBooked] = useState(false)
   const [busy, setBusy] = useState(false)
+  const rippleHostRef = useRef(null)
+  // Success: let the confirm surface settle to emerald for a beat before the
+  // block collapses, so the student sees the booking land where they pressed.
+  const settleConfirm = async () => {
+    setBooked(true)
+    await new Promise(r => setTimeout(r, 700))
+    setConfirming(false)
+    setBooked(false)
+  }
   const [notice, setNotice] = useState(null)
   const [tick, setTick] = useState(Date.now())
   const lateArmedRef = useRef(null)
@@ -471,7 +499,7 @@ export default function LessonBooking() {
       const n = r?.bookings?.length || selectedList.length
       setNotice({ kind: 'ok', text: n === 1 ? t('booking.booked') : t('booking.bookedMany', { n, lessons: lessons(n) }) })
       setSelected(new Map())
-      setConfirming(false)
+      await settleConfirm()
       await refresh()
     } catch (e) {
       const n = describeRefusal(e)
@@ -504,7 +532,7 @@ export default function LessonBooking() {
       let text = n === 1 ? t('booking.booked') : t('booking.bookedMany', { n, lessons: lessons(n) })
       if (skipped.length) text += ' ' + t('booking.skippedWeeks', { list: skipped.map(s => `${dayLabel(s.dateWarsaw)} (${t(`booking.status.${s.reason || s.status}`)})`).join(', ') })
       setNotice({ kind: 'ok', text })
-      setConfirming(false)
+      await settleConfirm()
       setWeekly(w => ({ ...w, count: 0 }))
       setMode('pick')
       await refresh()
@@ -620,7 +648,7 @@ export default function LessonBooking() {
   const seriesFirstLate = pendingSeriesCancel && pendingSeriesCancel.rows.length && (pendingSeriesCancel.rows[0].startUtc - nowMs < CANCELLATION_WINDOW_MS)
   const panelGrid = isMobile ? '1fr' : 'minmax(0, 1.15fr) minmax(280px, 0.85fr)'
   const tz = warsawTzLabel()
-  const sectionLabel = { fontSize: 12, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: T.textDim }
+  const sectionLabel = { fontSize: 13, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textDim }
   const cardBox = (tone) => ({
     marginTop: 20,
     padding: isMobile ? 16 : 20,
@@ -645,7 +673,7 @@ export default function LessonBooking() {
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 999,
                 background: 'rgba(217,70,239,0.10)', border: '1px solid rgba(217,70,239,0.22)',
-                color: T.brandInk || T.brand, fontSize: 11, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase',
+                color: T.brandInk || T.brand, fontSize: 13, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase',
               }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 15 }}>calendar_add_on</span>
                 {t('booking.kicker')}
@@ -662,7 +690,7 @@ export default function LessonBooking() {
               {alloc && (
                 <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                   <span data-testid="credits-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px',
-                    borderRadius: 999, fontSize: 12, fontWeight: 700,
+                    borderRadius: 999, fontSize: 13, fontWeight: 700,
                     background: alloc.remaining > 0 ? 'rgba(52,211,153,0.12)' : 'rgba(252,211,77,0.12)',
                     color: alloc.remaining > 0 ? T.emerald : T.amber,
                     border: `1px solid ${alloc.remaining > 0 ? 'rgba(52,211,153,0.3)' : 'rgba(252,211,77,0.35)'}` }}>
@@ -671,7 +699,7 @@ export default function LessonBooking() {
                     {alloc.remaining > 0 && alloc.validUntil ? ` · ${t('booking.validUntil', { date: fmtDay(alloc.validUntil) })}` : ''}
                   </span>
                   {alloc.remaining <= 0 && alloc.expiredUnused > 0 && alloc.expiredAt && (
-                    <span data-testid="package-expired" style={{ fontSize: 12, color: T.amber, maxWidth: 520, lineHeight: 1.5 }}>
+                    <span data-testid="package-expired" style={{ fontSize: 13, color: T.amber, maxWidth: 520, lineHeight: 1.5 }}>
                       {t('booking.packageExpired', { date: fmtDay(alloc.expiredAt), n: alloc.expiredUnused, lessons: lessons(alloc.expiredUnused) })}
                     </span>
                   )}
@@ -679,7 +707,7 @@ export default function LessonBooking() {
                     <a href={`/app/${studentUser.slug}/buy`} style={{ display: 'inline-flex', alignItems: 'center',
                       gap: 6, padding: '7px 14px', borderRadius: 999, textDecoration: 'none',
                       background: 'linear-gradient(135deg, #8B5CF6, #D946EF)', color: '#fff',
-                      fontSize: 12, fontWeight: 700, letterSpacing: '0.06em' }}>
+                      fontSize: 13, fontWeight: 700, letterSpacing: '0.06em' }}>
                       <span className="material-symbols-outlined" style={{ fontSize: 15 }}>shopping_cart</span>
                       {t('booking.buyCta')}
                     </a>
@@ -698,7 +726,7 @@ export default function LessonBooking() {
                     <span className="material-symbols-outlined">event_available</span>
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: T.emerald }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.emerald }}>
                       {t('booking.nextLesson')}
                     </div>
                     <div style={{ marginTop: 3, color: T.text, fontSize: 18, fontWeight: 750 }}>
@@ -718,7 +746,7 @@ export default function LessonBooking() {
                     <span className="material-symbols-outlined">event_upcoming</span>
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: T.textDim }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textDim }}>
                       {t('booking.nextAvailable')}
                     </div>
                     <div style={{ marginTop: 3, color: T.text, fontSize: 18, fontWeight: 750 }}>
@@ -884,7 +912,7 @@ export default function LessonBooking() {
                             <button key={s.startUtc} type="button" onClick={() => setSelected(prev => { const next = new Map(prev); next.delete(s.startUtc); return next })}
                               title={t('booking.cancel')}
                               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 999, border: `1px solid ${T.borderHi}`,
-                                background: T.surface, color: T.text, font: 'inherit', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+                                background: T.surface, color: T.text, font: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                               {dayLabel(s.dateWarsaw)} {s.timeWarsaw}
                               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>close</span>
                             </button>
@@ -914,9 +942,11 @@ export default function LessonBooking() {
                               : t('booking.confirmMultiBody')}
                           </p>
                           <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                            <Btn variant="primary" size="md" icon="check" onClick={doBookSelected} disabled={busy || excess > 0}>
-                              {busy ? '…' : (selectedList.length === 1 ? t('booking.confirmBookBtn') : t('booking.confirmMultiBtn', { n: selectedList.length, lessons: lessons(selectedList.length) }))}
-                            </Btn>
+                            <RippleConfirm hostRef={rippleHostRef} busy={busy} settled={booked}>
+                              <Btn variant="primary" size="md" icon={booked ? 'task_alt' : 'check'} onClick={doBookSelected} disabled={busy || excess > 0} data-testid="confirm-book">
+                                {busy ? '…' : (selectedList.length === 1 ? t('booking.confirmBookBtn') : t('booking.confirmMultiBtn', { n: selectedList.length, lessons: lessons(selectedList.length) }))}
+                              </Btn>
+                            </RippleConfirm>
                             <Btn variant="ghost" size="md" onClick={() => setConfirming(false)} disabled={busy}>{t('booking.back')}</Btn>
                           </div>
                         </div>
@@ -973,7 +1003,7 @@ export default function LessonBooking() {
                         {!preview.loading && preview.weeks.length > 0 && (
                           <Pill tone={openWeeks.length ? 'emerald' : 'amber'} size="sm">{t('booking.weeklySummary', { open: openWeeks.length, count: preview.weeks.length })}</Pill>
                         )}
-                        {preview.loading && <span style={{ color: T.textDim, fontSize: 12 }}>…</span>}
+                        {preview.loading && <span style={{ color: T.textDim, fontSize: 13 }}>…</span>}
                       </div>
                       {preview.error && <p style={{ margin: '8px 0 0', color: T.rose, fontSize: 13 }}>{t('booking.loadError', { reason: preview.error })}</p>}
                       <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
@@ -1002,9 +1032,11 @@ export default function LessonBooking() {
                           ) : (
                             <>
                               <span style={{ color: T.textSoft, fontSize: 14 }}>{t('booking.confirmMultiBody')}</span>
-                              <Btn variant="primary" size="md" icon="check" disabled={busy || weeklyExcess > 0} onClick={doBookWeekly}>
-                                {busy ? '…' : t('booking.confirmWeeklyBtn', { n: openWeeks.length, lessons: lessons(openWeeks.length) })}
-                              </Btn>
+                              <RippleConfirm hostRef={rippleHostRef} busy={busy} settled={booked}>
+                                <Btn variant="primary" size="md" icon={booked ? 'task_alt' : 'check'} disabled={busy || weeklyExcess > 0} onClick={doBookWeekly} data-testid="confirm-weekly">
+                                  {busy ? '…' : t('booking.confirmWeeklyBtn', { n: openWeeks.length, lessons: lessons(openWeeks.length) })}
+                                </Btn>
+                              </RippleConfirm>
                               <Btn variant="ghost" size="md" onClick={() => setConfirming(false)} disabled={busy}>{t('booking.back')}</Btn>
                             </>
                           )}
