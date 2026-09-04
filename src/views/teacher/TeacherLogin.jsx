@@ -53,7 +53,7 @@ export default function TeacherLogin() {
           <div className="relative">
             <div className="flex items-center gap-2">
               <span className="em-brand-skyline" aria-hidden="true" />
-              <p className="font-label text-xs font-bold uppercase tracking-[0.28em] text-sky-600">English Metropolis</p>
+              <p className="font-label text-[13px] font-bold uppercase tracking-[0.2em] text-sky-600">English Metro</p>
             </div>
             <h1 className="mt-3 font-headline text-4xl text-slate-900 sm:text-5xl leading-[1.05]">
               Teacher <span className="italic text-sky-600">sign-in</span>
@@ -73,7 +73,7 @@ export default function TeacherLogin() {
                   <button
                     type="button"
                     onClick={() => { setSent(false); setError('') }}
-                    className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-white/80 px-4 py-2 text-xs font-label font-bold uppercase tracking-[0.16em] text-emerald-700 transition hover:bg-emerald-50 cursor-pointer"
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-white/80 px-4 py-2 text-[13px] font-label font-bold uppercase tracking-[0.12em] text-emerald-700 transition hover:bg-emerald-50 cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-base">refresh</span>
                     Use a different email
@@ -83,7 +83,7 @@ export default function TeacherLogin() {
             ) : (
               <form onSubmit={handleSubmit} className="mt-8 space-y-5">
                 <label className="block">
-                  <span className="font-label text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Email address</span>
+                  <span className="font-label text-[13px] font-bold uppercase tracking-[0.14em] text-slate-500">Email address</span>
                   <input
                     type="email"
                     value={email}
