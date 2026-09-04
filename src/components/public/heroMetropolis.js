@@ -63,8 +63,9 @@ export function buildMetropolis(THREE, scene, day) {
       }
       for (let c = 0; c < sides; c++) {
         const color = random(seed * 61 + f * 19 + c) > 0.65 ? p.warm : p.pane
-        part('light', x + w / 2 + 0.012, y, z - d / 2 + d / sides * (c + 0.5),
+        const idx = part('light', x + w / 2 + 0.012, y, z - d / 2 + d / sides * (c + 0.5),
           0.015, 0.22, d / sides * 0.52, day ? p.pane : color)
+        windowRecords.push({ index: idx, x, color: day ? p.pane : color, side: true })
       }
     }
     // Vertical structural fins make each tower read as architecture at small sizes.
@@ -112,8 +113,9 @@ export function buildMetropolis(THREE, scene, day) {
       for (let c = 0; c < 24; c++) {
         const angle = c / 24 * Math.PI * 2
         const color = !day && random(seed + floor * 31 + c) > 0.5 ? p.warm : p.pane
-        part('light', x + Math.sin(angle) * 1.406, y, z + Math.cos(angle) * 1.406,
+        const idx = part('light', x + Math.sin(angle) * 1.406, y, z + Math.cos(angle) * 1.406,
           0.21, 0.25, 0.022, color, angle)
+        windowRecords.push({ index: idx, x, color })
       }
     }
     part('round', x, height + 0.08, z, diameter + 0.16, 0.16, diameter + 0.16, p.trim)
@@ -244,20 +246,76 @@ export function buildMetropolis(THREE, scene, day) {
     scene.add(car)
     cars.push({ mesh: car, direction, speed: 1.1 + random(i) * 0.65 })
   }
-  let lastFocus = undefined
-  const tint = new THREE.Color(), base = new THREE.Color(), highlight = new THREE.Color(day ? 0xf7e6cc : 0xffe3b1)
+  // A shared soft radial sprite gives the changing windows a small optical glow.
+  // Depth testing keeps it on the façade; this adds one draw call, not bloom passes.
+  const glowPixels = new Uint8Array(32 * 32 * 4)
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
+    const radius = Math.hypot((x - 15.5) / 15.5, (y - 15.5) / 15.5)
+    const i = (y * 32 + x) * 4
+    glowPixels[i] = glowPixels[i + 1] = glowPixels[i + 2] = 255
+    glowPixels[i + 3] = Math.round(255 * Math.exp(-radius * radius * 5) * Math.max(0, 1 - radius))
+  }
+  const glowMap = new THREE.DataTexture(glowPixels, 32, 32)
+  glowMap.magFilter = THREE.LinearFilter; glowMap.minFilter = THREE.LinearFilter
+  glowMap.needsUpdate = true
+  const animatedWindows = windowRecords.filter(w => random(w.index * 7.13) > 0.62)
+  const halos = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({
+    map: glowMap, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    toneMapped: false, opacity: day ? 0.12 : 0.42,
+  }), animatedWindows.length)
+  const lightParts = pools.get('light')
+  animatedWindows.forEach((w, i) => {
+    const part = lightParts[w.index]
+    const angle = w.side ? Math.PI / 2 : part.rotation
+    matrix.position.set(part.x + Math.sin(angle) * 0.026, part.y, part.z + Math.cos(angle) * 0.026)
+    matrix.rotation.set(0, angle, 0)
+    matrix.scale.set((w.side ? part.d : part.w) * 2.8, part.h * 2.3, 1)
+    matrix.updateMatrix(); halos.setMatrixAt(i, matrix.matrix)
+    w.halo = i
+    w.phase = random(w.index * 3.71) * Math.PI * 2
+    w.speed = 0.28 + random(w.index * 1.91) * 0.42 // independent 9–22 second cycles
+    w.warm = new THREE.Color(random(w.index * 2.31) > 0.84 ? 0x9cdce1 : p.warm)
+    w.base = new THREE.Color(w.color)
+  })
+  halos.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(animatedWindows.length * 3), 3)
+  halos.instanceColor.setUsage(THREE.DynamicDrawUsage)
+  halos.computeBoundingSphere(); scene.add(halos)
+  const windowMesh = meshes.get('light')
+  windowMesh.instanceColor.setUsage(THREE.DynamicDrawUsage)
+  let lastFocus = undefined, focusX = null, lightsDirty = true, lastWindowTime = -1
+  const tint = new THREE.Color(), base = new THREE.Color(), glowTint = new THREE.Color()
+  const dim = new THREE.Color(day ? p.pane : 0x24364f)
+  const highlight = new THREE.Color(day ? 0xf7e6cc : 0xffe3b1)
   return {
     train, cars,
     focus(x) {
       if (x === lastFocus) return
-      lastFocus = x
-      const mesh = meshes.get('light')
+      lastFocus = x; focusX = x; lightsDirty = true
       for (const w of windowRecords) {
         const amount = x === null ? 0 : Math.max(0, 1 - Math.abs(w.x - x) / 6) * 0.8
         tint.copy(base.setHex(w.color)).lerp(highlight, amount)
-        mesh.setColorAt(w.index, tint)
+        windowMesh.setColorAt(w.index, tint)
       }
-      mesh.instanceColor.needsUpdate = true
+      windowMesh.instanceColor.needsUpdate = true
+    },
+    animateWindows(time, still = false) {
+      const t = still ? 0 : time
+      if (!lightsDirty && t === lastWindowTime) return
+      lastWindowTime = t; lightsDirty = false
+      for (const w of animatedWindows) {
+        // Smooth easing gives long fades with quiet bright/dark pauses, no flicker.
+        const wave = (Math.sin(t * w.speed + w.phase) + 1) * 0.5
+        const level = wave * wave * (3 - 2 * wave)
+        const near = focusX === null ? 0 : Math.max(0, 1 - Math.abs(w.x - focusX) / 6) * 0.8
+        tint.copy(dim).lerp(w.warm, 0.06 + level * 0.94)
+        if (day) tint.lerp(w.base, 0.76)
+        tint.lerp(highlight, near)
+        windowMesh.setColorAt(w.index, tint)
+        glowTint.copy(w.warm).multiplyScalar((level * level * 0.88 + near * 0.45) * (day ? 0.3 : 1))
+        halos.setColorAt(w.halo, glowTint)
+      }
+      windowMesh.instanceColor.needsUpdate = true
+      halos.instanceColor.needsUpdate = true
     },
   }
 }

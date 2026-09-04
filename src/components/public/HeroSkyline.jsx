@@ -39,7 +39,7 @@ export default function HeroSkyline({ className = '', mode = 'night', reduced = 
       scene.add(rim)
       const camera = new THREE.OrthographicCamera(-45, 45, 10, -10, 0.1, 160)
       const city = buildMetropolis(THREE, scene, day)
-      let raf = 0, visible = true, last = 0
+      let raf = 0, visible = true, last = 0, elapsed = 0
       let focus = null, trainX = -16, targetX = 38, dwell = 0
       const pointer = { x: 0, y: 0, tx: 0, ty: 0 }
       function draw() {
@@ -55,6 +55,7 @@ export default function HeroSkyline({ className = '', mode = 'night', reduced = 
         const dt = Math.min((now - last) / 1000, 0.06)
         last = now
         if (!reduced) {
+          elapsed += dt
           pointer.x += (pointer.tx - pointer.x) * 0.075
           pointer.y += (pointer.ty - pointer.y) * 0.075
           if (focus) targetX = DISTRICTS[focus]
@@ -74,6 +75,7 @@ export default function HeroSkyline({ className = '', mode = 'night', reduced = 
           }
         }
         city.focus(focus ? DISTRICTS[focus] : null)
+        city.animateWindows(elapsed, reduced)
         draw()
         if (!reduced) raf = requestAnimationFrame(frame)
       }
@@ -145,7 +147,8 @@ export default function HeroSkyline({ className = '', mode = 'night', reduced = 
           if (object.material) (Array.isArray(object.material) ? object.material : [object.material]).forEach(m => materials.add(m))
           if (object.isInstancedMesh) object.dispose()
         })
-        geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose())
+        geometries.forEach(g => g.dispose())
+        materials.forEach(m => { m.map?.dispose(); m.dispose() })
         renderer.dispose()
         renderer.domElement.remove()
       }
