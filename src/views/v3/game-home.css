@@ -932,12 +932,10 @@
   gap: 16px;
   align-items: stretch;
 }
-.gh-pack-slot--1,
-.gh-pack-slot--2 { grid-column: span 3; }
-.gh-pack-slot--3 { grid-column: span 6; }
-.gh-pack-slot--4,
-.gh-pack-slot--5 { grid-column: span 6; }
-.gh-pack-slot--6 { grid-column: 4 / span 6; }
+/* Six equal cards, three to a row. The old spans (3,3,6 / 6,6 / offset 6) gave
+   five different card widths and a stranded last card, which read as an error
+   rather than a hierarchy (Mike, 2026-09-04). */
+.gh-pack-slot { grid-column: span 4; }
 .gh-pack {
   position: relative;
   isolation: isolate;
@@ -952,10 +950,6 @@
   z-index: -1;
   pointer-events: none;
   background: radial-gradient(circle at var(--motion-x, 100%) var(--motion-y, 0%), rgba(139,92,246,0.22), transparent 42%);
-}
-.gh-pack.is-featured::after {
-  background: radial-gradient(circle at var(--motion-x, 100%) var(--motion-y, 0%), rgba(217,70,239,0.34), transparent 45%),
-    linear-gradient(145deg, rgba(255,255,255,0.08), transparent 36%);
 }
 .gh-spatial-card {
   --motion-x: 50%;
@@ -983,8 +977,6 @@
 .gh-door.gh-spatial-card:hover {
   transform: perspective(1100px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateY(-4px);
 }
-.gh-pack.is-featured { transform: perspective(1100px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateY(-4px); }
-.gh-pack.is-featured:hover { transform: perspective(1100px) rotateX(var(--motion-tilt-x)) rotateY(var(--motion-tilt-y)) translateY(-9px); }
 
 .gh-door--world { background-color: var(--gh-glass-bg); background-image: linear-gradient(135deg, rgba(139,92,246,0.18), transparent 72%); }
 .gh-door--practice { background-color: var(--gh-glass-bg); background-image: linear-gradient(135deg, rgba(52,211,153,0.14), transparent 72%); }
@@ -1102,8 +1094,6 @@
   .gh-nav .gh-theme-btn { width: 100%; height: 44px; }
   .gh-nav .gh-action--primary { grid-column: 1 / -1; }
   .gh-packs > .gh-pack-slot { grid-column: span 6; }
-  .gh-pack.is-featured { transform: none; }
-  .gh-pack.is-featured:hover { transform: translateY(-5px); }
   .gh-proof-rail { grid-template-columns: 1fr 1fr; }
   .gh-proof-item:nth-child(2) { border-right: 0; }
   .gh-proof-item:nth-child(-n+2) { border-bottom: 1px solid var(--gh-border); }
@@ -1180,7 +1170,7 @@
   }
   .gh-motion-line { display: none; }
   .gh-feature-chip { opacity: 1; transform: none; }
-  .gh-hero-frame, .gh-hero-frame:hover, .gh-pack.is-featured { transform: none; }
+  .gh-hero-frame, .gh-hero-frame:hover { transform: none; }
   .gh-nav { transition: none; }
   .gh-action:hover,
   .gh-city-feature:hover,
@@ -1189,7 +1179,6 @@
   .gh-door:hover,
   .gh-theme-btn:hover,
   .gh-pack:hover,
-  .gh-pack.is-featured:hover { transform: none !important; }
   .gh-action--primary:hover::before { transform: translateX(-125%) !important; }
 }
 

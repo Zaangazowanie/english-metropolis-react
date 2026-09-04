@@ -1239,28 +1239,27 @@ export default function GameHome() {
             </div>
           </Reveal>
           <div className="gh-packs">
-            {PRIVATE_PACKAGES.map((p, i) => {
-              const hot = p.accent === 'brand'
-              return (
+            {/* Mike 2026-09-04: every card is presented identically. Three of the six
+                used to carry a gradient border, a fuchsia glow, a brighter badge and a
+                filled button while the rest were outlined and grey, which read as
+                "these ones are disabled" rather than "these ones are recommended".
+                The recommendation now lives only in the badge text. */}
+            {PRIVATE_PACKAGES.map((p, i) => (
                 <Reveal key={p.id} delay={i * 80} style={{ height: '100%' }}
-                  className={`gh-pack-slot gh-pack-slot--${i + 1}${hot ? ' is-featured' : ''}`}>
-                  <div className={`gh-pack gh-glass gh-spatial-card${hot ? ' is-featured' : ''}`}
+                  className="gh-pack-slot">
+                  <div className="gh-pack gh-glass gh-spatial-card"
                     onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
                     onPointerDown={pulsePointerPolish}
                     style={{ height: '100%', display: 'flex', flexDirection: 'column',
-                    border: hot ? '1px solid transparent' : `1px solid ${T.border}`,
-                    background: hot
-                      ? `linear-gradient(${night ? 'rgba(22,10,44,0.92)' : 'rgba(255,255,255,0.96)'}, ${night ? 'rgba(22,10,44,0.92)' : 'rgba(255,255,255,0.96)'}) padding-box, ${G.brand} border-box`
-                      : undefined,
-                    boxShadow: hot ? '0 24px 70px -30px rgba(217,70,239,0.55)' : 'none' }}>
-                    <div className="gh-card-badge" style={{ color: hot ? T.fuchsia : T.textMute }}>{lang === 'pl' ? (p.badgePl || p.badge) : p.badge}</div>
+                    border: `1px solid ${T.border}` }}>
+                    <div className="gh-card-badge" style={{ color: T.fuchsia }}>{lang === 'pl' ? (p.badgePl || p.badge) : p.badge}</div>
                     <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 18, marginBottom: 2 }}>{p.name}</div>
                     <div style={{ fontSize: 13, color: T.textDim, marginBottom: 14 }}>{lang === 'pl' ? (p.pacePl || p.pace) : p.pace} · {W.packsEach}</div>
                     <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 30, letterSpacing: '-0.02em' }}>{p.price}</div>
                     <div style={{ fontSize: 13, color: T.textMute, marginBottom: 14 }}>{p.perLesson}</div>
                     <p style={{ margin: '0 0 18px', fontSize: 13, lineHeight: 1.55, color: T.textDim, flexGrow: 1 }}>{lang === 'pl' ? (p.bestForPl || p.bestFor) : p.bestFor}</p>
                     <button type="button"
-                      className={`gh-action gh-action--${hot ? 'primary' : 'secondary'} gh-action--md gh-action--full gh-pack-add`}
+                      className="gh-action gh-action--primary gh-action--md gh-action--full gh-pack-add"
                       data-added={packAdded === p.id}
                       onClick={() => addPackToCart(p)}
                       onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
@@ -1275,8 +1274,7 @@ export default function GameHome() {
                     </button>
                   </div>
                 </Reveal>
-              )
-            })}
+            ))}
           </div>
         </section>
 
