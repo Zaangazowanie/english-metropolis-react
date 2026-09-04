@@ -2,6 +2,7 @@
 // Players drag across glowing neon signs to find words hidden in the marquee.
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
+import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import type { ShellWordsearchPuzzle } from '../lib/adapters';
 
@@ -357,6 +358,8 @@ export function renderWordsearchReviewItem(
 }
 
 export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night', state: forcedState = null, puzzle, onWrongAnswer, onSessionComplete }) => {
+  const arcade = useWordArcade();
+  const [clueHunt, setClueHunt] = useState(false);
   // Kelly Tier-2 (2026-05-02): defensive props guard.
   const propsInvalid = !forcedState && puzzle !== undefined && (!puzzle.words || puzzle.words.length === 0);
   const activePuzzle: WSPuzzle = puzzle && puzzle.words.length > 0
@@ -527,12 +530,14 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
         (w.start[0] === r2 && w.start[1] === c2 && w.end[0] === r1 && w.end[1] === c1),
     );
     if (matchIdx >= 0 && !found.includes(matchIdx)) {
+      arcade.answer(true,150);
       setFound((f) => [...f, matchIdx]);
       setFeedback('correct');
       setTimeout(() => setFeedback(null), 1000);
       // If the hint was on this word, clear the reveal — it's done its job.
       if (hintReveal === matchIdx) setHintReveal(null);
     } else if (matchIdx < 0 && (r1 !== r2 || c1 !== c2)) {
+      arcade.answer(false);
       setFeedback('wrong');
       setTimeout(() => setFeedback(null), 800);
       // Layer-4 (EM-040): instead of firing onWrongAnswer immediately on
@@ -656,6 +661,7 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
     if (sessionFiredRef.current) return;
     if (!onSessionComplete) return;
     sessionFiredRef.current = true;
+    arcade.complete();
     onSessionComplete({
       correctCount: found.length,
       totalQuestions: activePuzzle.words.length,
@@ -947,6 +953,8 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
             </div>
           </div>
 
+<WordMission kind="search" current={found.length} total={activePuzzle.words.length} chain={arcade.chain} reaction={arcade.reaction}/>
+          <div className="wa-inline-tools"><button aria-pressed={clueHunt} onClick={()=>setClueHunt(v=>!v)}>Clue hunt {clueHunt?'on':'off'}</button><span>{clueHunt?'Use the meaning to find the hidden English word.':'See the words or switch to a harder clue hunt.'}</span></div>
           <div className="em-shell-hint" style={{ minWidth: 0 }}>
           </div>
 
@@ -966,7 +974,7 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
                   <div
                     key={i}
                     role="listitem"
-                    aria-label={`${w.word}, ${displayHint}${got ? ', found' : ', not yet found'}`}
+                    aria-label={`${clueHunt&&!got?`${w.word.length} letters`:w.word}, ${displayHint}${got ? ', found' : ', not yet found'}`}
                     style={{
                       padding: '10px 12px',
                       borderRadius: 10,
@@ -984,7 +992,7 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
                       letterSpacing: '0.06em',
                       textDecorationLine: got ? 'line-through' : 'none',
                       textDecorationColor: `${neonColors[i]}66`,
-                    }}>{w.word}</div>
+                    }}>{clueHunt&&!got?`${w.word.length} letters · ?`:w.word}</div>
                     <div style={{ fontSize: 11, color: 'var(--em-text-dim)', marginTop: 2 }}>{displayHint}</div>
                   </div>
                 );

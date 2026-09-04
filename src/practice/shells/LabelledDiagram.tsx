@@ -1,3 +1,4 @@
+import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Labelled Diagram shell — "The Atrium Schematic" district.
 // A blueprint chamber: an architectural drafting paper grid with the
 // atrium silhouette laid over it. Hotspots are pinpoints (small cyan
@@ -273,6 +274,7 @@ export const LabelledDiagramShell: React.FC<LabelledDiagramShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useChallengeArcade();
   const activePuzzle = puzzle && puzzle.hotspots.length > 0 ? puzzle : LD_PUZZLE;
   const persisted = useShellProgress('labelleddiagram');
 
@@ -291,6 +293,7 @@ export const LabelledDiagramShell: React.FC<LabelledDiagramShellProps> = ({
   const total = activePuzzle.hotspots.length;
   const solved = activePuzzle.hotspots.filter((h) => placement[h.id] === h.id).length;
   const completed = solved >= total && !forcedState;
+  useEffect(() => { if (completed && !forcedState) arcade.finish(); }, [completed, forcedState]);
   const tip = useEndOfShellTip({
     onWrongAnswer,
     completed,
@@ -363,17 +366,18 @@ export const LabelledDiagramShell: React.FC<LabelledDiagramShellProps> = ({
 
   // Place a label onto a hotspot. Validates correctness.
   const placeLabel = (hotspotId: string, labelId: string) => {
-    if (forcedState) return;
+    if (forcedState || placement[hotspotId] === hotspotId) return;
     setPlacement((prev) => {
       // If this label is currently placed elsewhere, remove it from there first.
       const cleaned: Record<string, string> = {};
       Object.entries(prev).forEach(([h, l]) => {
         if (l !== labelId) cleaned[h] = l;
       });
-      cleaned[hotspotId] = labelId;
+      if (labelId === hotspotId) cleaned[hotspotId] = labelId;
       return cleaned;
     });
     const correct = labelId === hotspotId;
+    arcade.decide(correct, hotspotId);
     setFeedback({ id: hotspotId, ok: correct });
     setSelectedLabelId(null);
     setHoverHotspot(null);
@@ -406,6 +410,7 @@ export const LabelledDiagramShell: React.FC<LabelledDiagramShellProps> = ({
   };
 
   const reset = () => {
+    arcade.reset();
     setPlacement({});
     setFeedback(null);
     setSelectedLabelId(null);
@@ -459,7 +464,7 @@ export const LabelledDiagramShell: React.FC<LabelledDiagramShellProps> = ({
 
   return (
     <div
-      className="em-shell em-shell-labelleddiagram"
+      className="em-shell em-shell-labelleddiagram challenge-enhanced"
       role="application"
       aria-label="Labelled diagram, The Atrium Schematic"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -516,7 +521,7 @@ export const LabelledDiagramShell: React.FC<LabelledDiagramShellProps> = ({
       <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} aria-hidden="true" />
 
       {/* Top bar */}
-      <div
+      <div className="challenge-enhanced-toolbar"
         style={{
           position: 'relative',
           padding: '20px 28px 10px',
@@ -564,6 +569,7 @@ export const LabelledDiagramShell: React.FC<LabelledDiagramShellProps> = ({
           zIndex: 3,
         }}
       >
+        <ChallengeMission title="Bring the schematic online." detail="Connect each label to the right location. Correct connections illuminate the network; wrong labels return to the tray." current={solved} total={total} />
         {/* DIAGRAM PANE */}
         <div
           className="em-card"
@@ -588,6 +594,7 @@ export const LabelledDiagramShell: React.FC<LabelledDiagramShellProps> = ({
             dangerouslySetInnerHTML={{ __html: activePuzzle.diagram_svg }}
           />
 
+          <svg className="challenge-connections" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">{activePuzzle.hotspots.filter(h => placement[h.id] === h.id).map(h => <g key={h.id}><path d={`M50 98V${h.y}H${h.x}`} /><circle cx={h.x} cy={h.y} r="2" /></g>)}</svg>
           {/* Hotspots overlay */}
           <div
             style={{

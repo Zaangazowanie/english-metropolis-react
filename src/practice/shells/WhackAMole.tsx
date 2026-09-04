@@ -1,3 +1,8 @@
+import { useActionCompletion } from './action-arcade-completion';
+import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
+import { useArcadeEvents } from '../lib/arcade-events';
+import { useActionTimers } from './action-arcade-timers';
+import './action-arcade.css';
 // Whack-a-Mole — "The Subway Mole" district.
 //
 // A subway platform at night. From the round station holes (manhole/access
@@ -30,68 +35,42 @@ import type { FullInstructions } from '../components';
 
 // Subway Mole · Whack-a-Mole — full bilingual instruction copy.
 const WHACKAMOLE_INSTRUCTIONS: FullInstructions = {
-  whatYouDo: {
-    en: [
-      'A sentence with a gap appears at the top — read it before any moles pop.',
-      'Tap START to begin the round. Six subway access pits will start producing moles, each holding a word card.',
-      'Tap the mole whose word fits the gap before it ducks back down — moles only stay up for ~1.5 seconds.',
-      'Tap the wrong mole and it dives with a hiss; the round continues until you whack the right one or run out of pops.',
+  "whatYouDo": {
+    "en": [
+      "Read the clue and start the platform. Catch the conductor holding the matching word."
     ],
-    pl: [
-      'Zdanie z luką pojawia się u góry — przeczytaj je, zanim wyskoczą krety.',
-      'Stuknij START, aby rozpocząć rundę. Z sześciu otworów będą wyskakiwać krety, każdy trzyma kartę ze słowem.',
-      'Stuknij kreta, którego słowo pasuje do luki, zanim się schowa — krety są na wierzchu tylko ok. 1,5 sekundy.',
-      'Stukniesz złego kreta — z syknięciem zniknie; runda trwa, aż trafisz właściwego lub skończą się wyskoki.',
+    "pl": [
+      "Przeczytaj wskazówkę i uruchom peron. Złap konduktora z właściwym słowem."
+    ]
+  },
+  "controls": {
+    "en": [
+      "Tap a mole or press the number of its hole, 1–6. Focus mode keeps targets up; Arcade mode makes them rise and hide. Missed targets return."
     ],
+    "pl": [
+      "Stuknij kreta lub naciśnij numer otworu, 1–6. Focus zatrzymuje cele, a Arcade sprawia, że się chowają. Przegapione cele wracają."
+    ]
   },
-  controls: {
-    en: [
-      'Prompt strip: gap-fill sentence at the top of the platform.',
-      'Six holes: numbered access pits arranged in a 3×2 grid; moles pop from each.',
-      'START button: launches the mole-pop loop for the round.',
-      'Service board (right panel): queued sentences with a NOW indicator showing your position.',
-      'Skip + Hint buttons: Skip jumps round, Hint greys one wrong mole when it next pops.',
+  "rightWrongSkip": {
+    "en": [
+      "Correct catches clear the clue. Wrong words stay in review and return to play. Skip switches to another unsolved clue."
     ],
-    pl: [
-      'Pasek pytania: zdanie z luką u góry peronu.',
-      'Sześć otworów: numerowane pułapki ułożone w siatce 3×2; z każdej wyskakują krety.',
-      'Przycisk START: uruchamia pętlę wyskakiwania kretów dla rundy.',
-      'Tablica serwisowa (panel z prawej): kolejka zdań ze wskaźnikiem NOW, pokazująca Twoją pozycję.',
-      'Przyciski Pomiń i Podpowiedź: Pomiń przeskakuje rundę, Podpowiedź wyszarza jednego błędnego kreta przy następnym wyskoku.',
-    ],
+    "pl": [
+      "Dobre trafienie zalicza wskazówkę. Błędne słowo trafia do powtórki i wraca do gry. Pomiń zmienia nierozwiązane pytanie."
+    ]
   },
-  rightWrongSkip: {
-    en: [
-      'Right whack: ✓ green flash, mole tips its hat, +1 to your tally, next round queues.',
-      'Wrong whack: ✗ rose flash, that mole dives, miss counter +1; the right mole keeps popping until you find it.',
-      'Skip: counts as wrong — moves to the next round without a whack.',
-      'If the round ends without a correct whack (rare), the answer reveals and the next round queues.',
-    ],
-    pl: [
-      'Trafienie: ✓ zielony błysk, kret unosi czapkę, +1 do wyniku, następna runda w kolejce.',
-      'Pudło: ✗ różowy błysk, ten kret się chowa, licznik pomyłek +1; właściwy kret wyskakuje dalej, aż go znajdziesz.',
-      'Pomiń: liczy się jako błąd — przeskok do następnej rundy bez trafienia.',
-      'Jeśli runda kończy się bez trafienia (rzadko), odpowiedź się ujawnia, a następna runda staje w kolejce.',
-    ],
+  "hintMechanic": {
+    "en": "Use the limited Hint button for help with the current clue.",
+    "pl": "Użyj ograniczonej liczby podpowiedzi do aktualnej wskazówki."
   },
-  hintMechanic: {
-    en:
-      'You have 3 hints per session. Each tap greys out one wrong mole the next time it pops, so you can focus on the remaining options. Save them for fast rounds where moles cycle quickly.',
-    pl:
-      'Masz 3 podpowiedzi na sesję. Każde stuknięcie wyszarza jednego błędnego kreta przy następnym wyskoku, abyś skupił się na pozostałych opcjach. Zachowaj je na szybkie rundy, w których krety wyskakują często.',
+  "scoring": {
+    "en": "Correct catches earn 100 arcade points; catching within 1.1 seconds of a moving target appearing earns 150.",
+    "pl": "Dobre trafienie daje 100 punktów; złapanie ruchomego celu w 1,1 sekundy daje 150."
   },
-  scoring: {
-    en:
-      'Skip counts as wrong. Each correct whack adds to your session streak. Completing every round on the service board unlocks the post-shell review with explanations of any wrong picks.',
-    pl:
-      'Pomiń liczy się jako błąd. Każde celne trafienie buduje serię w sesji. Ukończenie wszystkich rund na tablicy odblokowuje przegląd po sesji z wyjaśnieniami błędów.',
-  },
-  l1Pattern: {
-    en:
-      'Visual-search + reading-speed drill. Polish learners often slow down on cognates that look similar but mean different things ("eventually" vs "ostatecznie"); the time-pressure forces fast, correct recognition.',
-    pl:
-      'Trening wzrokowo-językowy: szybkie czytanie i wybór. Polscy uczniowie zwalniają na pozornych podobieństwach („eventually" vs „ostatecznie"); presja czasu wymusza szybkie i trafne rozpoznanie.',
-  },
+  "l1Pattern": {
+    "en": "Practise English meaning and sentence context before you make your move.",
+    "pl": "Ćwicz angielskie znaczenie i kontekst zdania przed wykonaniem ruchu."
+  }
 };
 
 export type ArcadeForcedState = 'empty' | 'active' | 'wrong' | 'correct' | 'complete' | null;
@@ -266,6 +245,9 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
 }) => {
   const activePuzzle: ArcadePuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : DEMO_PUZZLE;
   const persisted = useShellProgress('whackamole');
+  const arcadeEvent = useArcadeEvents();
+  const interactionRef = useRef<HTMLDivElement>(null);
+  const { later, cancel: cancelActionTimers } = useActionTimers();
 
   const [roundIdx, setRoundIdx] = useState(0);
   const [solved, setSolved] = useState<boolean[]>(() => activePuzzle.rounds.map(() => false));
@@ -281,11 +263,17 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
   // behind an explicit START overlay that shows the prompt + a one-line
   // explainer so the user knows what to do BEFORE the first mole rises.
   const [started, setStarted] = useState(false);
+  const reduceMotion = usePrefersReducedMotion();
+  const [precision, setPrecision] = useState(false);
+  const [reaction, setReaction] = useState<number | null>(null);
+  const [points, setPoints] = useState(0);
+  const [roundLocked, setRoundLocked] = useState(false);
   const roundTimerRef = useRef<number | null>(null);
   const moleTimersRef = useRef<number[]>([]);
 
   const cur = activePuzzle.rounds[roundIdx];
   const completed = solved.every(Boolean);
+  useActionCompletion(completed, Boolean(forcedState), arcadeEvent);
   const correctCount = solved.filter(Boolean).length;
   const tip = useEndOfShellTip({
     onWrongAnswer,
@@ -324,10 +312,10 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'whackamole',
-      brief: 'Tap the mole holding the right word before it ducks back down.',
-      brief_pl: 'Stuknij kreta z właściwym słowem, zanim schowa się z powrotem.',
-      detail: 'Moles pop up from the subway platform, each holding a word. Read the prompt, then tap only the mole carrying the right answer. Wrong taps cost a point; let the right mole duck and you miss the round. Watch every mole — the right one isn\'t always first up.',
-      detail_pl: 'Krety wyskakują z peronu metra, każdy z innym słowem. Przeczytaj polecenie, a potem stuknij TYLKO kreta z poprawną odpowiedzią. Złe stuknięcia kosztują punkt; jeśli właściwy kret zniknie, runda przepada. Patrz na wszystkich kretów — właściwy nie zawsze wyskakuje pierwszy.',
+      brief: WHACKAMOLE_INSTRUCTIONS.whatYouDo.en[0],
+      brief_pl: WHACKAMOLE_INSTRUCTIONS.whatYouDo.pl[0],
+      detail: WHACKAMOLE_INSTRUCTIONS.controls.en.join(' ') + ' ' + WHACKAMOLE_INSTRUCTIONS.rightWrongSkip.en.join(' '),
+      detail_pl: WHACKAMOLE_INSTRUCTIONS.controls.pl.join(' ') + ' ' + WHACKAMOLE_INSTRUCTIONS.rightWrongSkip.pl.join(' '),
       fullInstructions: WHACKAMOLE_INSTRUCTIONS,
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
@@ -337,11 +325,12 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
   }, [forcedState]);
 
   const cleanup = useCallback(() => {
+    cancelActionTimers();
     if (roundTimerRef.current) window.clearTimeout(roundTimerRef.current);
     moleTimersRef.current.forEach(t => window.clearTimeout(t));
     moleTimersRef.current = [];
     roundTimerRef.current = null;
-  }, []);
+  }, [cancelActionTimers]);
 
   // Mike playtest fix (Ricky 2026-05-02): popOnce schedules a single mole's
   // rise → up → fall → down lifecycle, then auto-clears its 'down' state so
@@ -353,19 +342,19 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
       if (s.state !== 'down') return s; // skip: already up / whacked / falling
       return { ...s, state: 'rising', spawnedAt: Date.now() };
     }));
-    const upT = window.setTimeout(() => {
+    const upT = later(() => {
       setMoles(prev => prev.map((s, idx) => idx === slotIdx && s.state === 'rising' ? { ...s, state: 'up' } : s));
     }, 280);
     moleTimersRef.current.push(upT);
 
     // After POP_DURATION, duck back down (unless whacked).
-    const downT = window.setTimeout(() => {
+    const downT = later(() => {
       setMoles(prev => prev.map((s, idx) => {
         if (idx !== slotIdx) return s;
         if (s.state === 'whacked') return s;
         return { ...s, state: 'falling' };
       }));
-      const hideT = window.setTimeout(() => {
+      const hideT = later(() => {
         setMoles(prev => prev.map((s, idx) => idx === slotIdx && s.state === 'falling' ? { ...s, state: 'down' } : s));
       }, 260);
       moleTimersRef.current.push(hideT);
@@ -393,9 +382,10 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
       state: 'down',
       spawnedAt: 0,
     }));
+    setRoundLocked(false); setReaction(null); setHintHole(null); setBajlaShake(false);
     setMoles(placements);
     setFeedback(null);
-    setMissCount(0);
+    if (reduceMotion || precision) { setMoles(placements.map(m => ({ ...m, state: 'up', spawnedAt: Date.now() }))); return; }
 
     if (process.env.NODE_ENV !== 'production') {
       // eslint-disable-next-line no-console
@@ -405,7 +395,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
     // Initial wave — stagger first pop-ups so the platform fills smoothly.
     placements.forEach((_, i) => {
       const popDelay = FIRST_POP_DELAY + i * 380 + Math.random() * 180;
-      const popT = window.setTimeout(() => popOneMole(i), popDelay);
+      const popT = later(() => popOneMole(i), popDelay);
       moleTimersRef.current.push(popT);
     });
 
@@ -415,7 +405,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
     // re-pop so the same word doesn't always emerge from the same hole.
     const initialWaveLastDelay = FIRST_POP_DELAY + (placements.length - 1) * 380 + 180;
     const recycleStart = initialWaveLastDelay + POP_DURATION + 400;
-    const recycleT = window.setTimeout(() => {
+    const recycleT = later(() => {
       const tick = (): void => {
         // Bail if cleaned up.
         if (moleTimersRef.current.length === 0 && roundTimerRef.current === null) return;
@@ -432,28 +422,22 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
             : prev[downIdx].holeIdx;
           // Schedule the actual pop on the next microtask so the holeIdx
           // commit lands first (avoids a frame where two moles share a hole).
-          window.setTimeout(() => popOneMole(downIdx), 0);
+          later(() => popOneMole(downIdx), 0);
           if (process.env.NODE_ENV !== 'production') {
             // eslint-disable-next-line no-console
             console.log('[WhackAMole] recycle slot', downIdx, 'word', prev[downIdx].word, 'newHole', newHole);
           }
           return prev.map((s, i) => i === downIdx ? { ...s, holeIdx: newHole } : s);
         });
-        const nextT = window.setTimeout(tick, RESPAWN_INTERVAL);
+        const nextT = later(tick, RESPAWN_INTERVAL);
         moleTimersRef.current.push(nextT);
       };
       tick();
     }, recycleStart);
     moleTimersRef.current.push(recycleT);
 
-    // Round-level fail-safe (very long — recycling normally keeps moles
-    // popping until the student answers or skips).
-    roundTimerRef.current = window.setTimeout(() => {
-      setMoles(prev => prev.map(s => s.state === 'up' || s.state === 'rising' ? { ...s, state: 'missed' } : s));
-      setBajlaShake(true);
-      window.setTimeout(() => setBajlaShake(false), 480);
-    }, ROUND_TIMEOUT);
-  }, [cur, cleanup, forcedState, popOneMole]);
+    // No timeout makes a target permanently unavailable. The platform recycles until solved.
+  }, [cur?.id, cleanup, forcedState, popOneMole, precision, reduceMotion]);
 
   // Spawn moles when round changes — but ONLY after the user taps START
   // (first-impression fix, see `started` declaration above). Once started,
@@ -470,7 +454,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
     if (!started) return;
     spawnMoles();
     return cleanup;
-  }, [roundIdx, started, forcedState]);
+  }, [roundIdx, started, forcedState, precision, reduceMotion]);
 
   useEffect(() => () => cleanup(), [cleanup]);
 
@@ -489,25 +473,29 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
   }, [forcedState]);
 
   const whack = (moleIdx: number): void => {
-    if (forcedState) return;
+    if (forcedState || !started || roundLocked) return;
     const m = moles[moleIdx];
     if (!m || (m.state !== 'up' && m.state !== 'rising')) return;
     const isCorrect = m.isAnswer;
     setMoles(prev => prev.map((s, i) => i === moleIdx ? { ...s, state: 'whacked' } : s));
     if (isCorrect) {
+      setRoundLocked(true); const ms = Date.now() - m.spawnedAt; setReaction(ms);
+      const earned = !precision && !reduceMotion && ms < 1100 ? 150 : 100; setPoints(p => p + earned); arcadeEvent({ type: 'correct', points: earned });
       setFeedback('correct');
       setSolved(prev => prev.map((v, i) => i === roundIdx ? true : v));
       cleanup();
-      window.setTimeout(() => {
-        if (roundIdx + 1 < activePuzzle.rounds.length) {
-          setRoundIdx(i => i + 1);
+      later(() => {
+        const nextRound = solved.findIndex((done, i) => !done && i !== roundIdx);
+        if (nextRound >= 0) {
+          setRoundIdx(nextRound);
         }
       }, 1200);
     } else {
+      arcadeEvent({ type: 'incorrect' });
       setFeedback('wrong');
       setMissCount(c => c + 1);
       setBajlaShake(true);
-      window.setTimeout(() => setBajlaShake(false), 480);
+      later(() => setBajlaShake(false), 480);
       tip.recordWrong({
         questionId: cur.id,
         studentAnswer: m.word,
@@ -515,16 +503,26 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
         explanationPL: cur.hint_pl,
         exerciseId: cur.exerciseId,
       });
-      window.setTimeout(() => setFeedback(null), 800);
+      later(() => setFeedback(null), 800);
       // Mike playtest fix (Ricky 2026-05-02): reset the wrong-tapped mole's
       // slot to 'down' after the whack animation, so the recycling loop can
       // re-pop it (possibly the SAME word, possibly the answer) without the
       // slot being permanently "whacked"-locked.
-      window.setTimeout(() => {
+      later(() => {
         setMoles(prev => prev.map((s, i) => i === moleIdx && s.state === 'whacked' ? { ...s, state: 'down' } : s));
       }, 600);
     }
   };
+
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => {
+      if (!interactionRef.current?.contains(event.target as Node)) return;
+      if ((event.target as HTMLElement)?.closest('input,textarea,select')) return;
+      const hole = Number(event.key) - 1;
+      if (hole >= 0 && hole < HOLES) { const i = moles.findIndex(m => m.holeIdx === hole && (m.state === 'up' || m.state === 'rising')); if (i >= 0) { event.preventDefault(); whack(i); } }
+    };
+    window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key);
+  }, [moles, started, roundLocked, roundIdx]);
 
   const useHint = (): void => {
     if (hintsUsed >= 3) return;
@@ -532,15 +530,18 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
     if (!answerMole) return;
     setHintHole(answerMole.holeIdx);
     setHintsUsed(h => h + 1);
-    window.setTimeout(() => setHintHole(null), 2400);
+    later(() => setHintHole(null), 2400);
   };
 
   const skipRound = (): void => {
     cleanup();
-    if (roundIdx + 1 < activePuzzle.rounds.length) setRoundIdx(i => i + 1);
+    const nextRound = solved.findIndex((done, i) => !done && i !== roundIdx); if (nextRound >= 0) setRoundIdx(nextRound);
   };
 
   const reset = (): void => {
+    cancelActionTimers();
+    arcadeEvent({ type: 'reset' });
+    cleanup(); setPoints(0); setReaction(null); setRoundLocked(false);
     setRoundIdx(0);
     setSolved(activePuzzle.rounds.map(() => false));
     setMoles([]);
@@ -572,6 +573,9 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
   return (
     <div
       className="em-shell em-shell-whackamole"
+      ref={interactionRef}
+      tabIndex={0}
+      onPointerDown={event => { if (!(event.target as HTMLElement).closest('button,a,input,textarea,select')) interactionRef.current?.focus({ preventScroll: true }); }}
       role="application"
       aria-label="Whack-a-mole practice, the Subway Mole"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -695,6 +699,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
             <div className="em-decor" style={{ fontSize: 18, color: 'var(--em-text)', flex: 1, lineHeight: 1.3 }}>{maskedPrompt}</div>
           </div>
 
+          <div className="action-arcade-hud" style={{ margin: '12px 24px 0' }}><div><strong>{points} POINTS</strong><small>{reaction !== null ? `Caught in ${(reaction / 1000).toFixed(2)}s. ${reaction < 1100 && !precision && !reduceMotion ? 'Quick catch +50 bonus!' : 'Station cleared.'}` : 'Catch the correct conductor. Quick catches earn 50 bonus points. Press 1–6 or tap a mole.'}</small></div><button disabled={roundLocked} aria-pressed={precision} onClick={() => setPrecision(v => !v)}>{precision || reduceMotion ? 'Focus · steady targets' : 'Arcade · moving targets'}</button></div>
           {/* Platform with mole holes */}
           <div style={{ flex: 1, position: 'relative', margin: '20px 24px', overflow: 'hidden' }}>
             {/* Tile floor (lighter band at bottom) */}
@@ -766,11 +771,12 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
                             fontFamily="var(--em-decor)"
                             fontSize="10"
                             fontWeight="600"
-                            fill="#0E0A1A">{mole.word.length > 11 ? mole.word.slice(0, 10) + '…' : mole.word}</text>
+                            fill="#0E0A1A">{String(hi + 1)}</text>
                         </svg>
                       </button>
                     )}
                   </div>
+                  {mole && <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', width: 'min(140px, 28vw)', padding: '5px 7px', background: '#101321', border: '1px solid #bef26470', borderRadius: 6, color: '#f0ffd3', font: '12px var(--em-body)', textAlign: 'center', overflowWrap: 'anywhere', pointerEvents: 'none' }}>{mole.word}</div>}
                   {/* Hole rim shadow underneath */}
                   <div style={{
                     position: 'absolute', bottom: -6, left: '15%', right: '15%', height: 8,
@@ -849,7 +855,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
               </div>
               <button
                 className="em-btn em-btn-primary"
-                onClick={() => setStarted(true)}
+                onClick={() => { setStarted(true); interactionRef.current?.focus({ preventScroll: true }); }}
                 autoFocus
                 style={{
                   marginTop: 8,
@@ -887,8 +893,8 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
               <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa`, textAlign: 'center', padding: '0 16px' }}>The platform clears.</div>
               <div className="em-eyebrow">LAST TRAIN AWAY · OSTATNI POCIĄG ODJECHAŁ</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-                <button className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
+                <button className="em-btn em-btn-ghost" onClick={reset}>Restart run</button>
+                <button className="em-btn em-btn-primary" onClick={reset}>Play again →</button>
               </div>
             </div>
           )}
@@ -926,7 +932,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
               )}
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <SkipButton onClick={skipRound} />
+              <SkipButton onClick={() => { if (roundLocked) return; const next = solved.findIndex((done, i) => !done && i !== roundIdx); if (next >= 0) { cleanup(); setRoundIdx(next); } }} />
               <HintButton onClick={useHint} used={hintsUsed} total={3} />
             </div>
           </div>

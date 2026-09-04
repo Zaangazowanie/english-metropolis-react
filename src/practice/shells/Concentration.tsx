@@ -1,3 +1,4 @@
+import { PairArena, useChallengeArcade } from './challenge-arcade';
 // Concentration — "The Memory Cellar" district.
 // A stone cellar with a wooden card-table and an oil lamp. Each round produces
 // two face-down cards: a PROMPT card (the question) and an ANSWER card (the
@@ -276,6 +277,7 @@ export const ConcentrationShell: React.FC<ConcentrationShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useChallengeArcade();
   const active: WrapperPuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : CO_DEMO;
   const persisted = useShellProgress('concentration');
 
@@ -290,6 +292,13 @@ export const ConcentrationShell: React.FC<ConcentrationShellProps> = ({
     return deterministicShuffle(cards, active.rounds.length * 31 + 11);
   }, [active]);
 
+  const [scouting, setScouting] = useState(false);
+  const [scoutUsed, setScoutUsed] = useState(false);
+  useEffect(() => {
+    if (!scouting) return;
+    const timer = window.setTimeout(() => setScouting(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, [scouting]);
   const [flipped, setFlipped] = useState<string[]>([]);   // currently face-up but unmatched
   const [matched, setMatched] = useState<string[]>([]);   // pairId list, completed
   const [wrongFlash, setWrongFlash] = useState<string[]>([]); // brief mismatch shake
@@ -303,6 +312,7 @@ export const ConcentrationShell: React.FC<ConcentrationShellProps> = ({
   const [attemptCounts, setAttemptCounts] = useState<Record<string, number>>({});
 
   const completed = !forcedState && matched.length === active.rounds.length;
+  useEffect(() => { if (completed && !forcedState) arcade.finish(); }, [completed, forcedState]);
 
   const tip = useEndOfShellTip({
     onWrongAnswer,
@@ -356,7 +366,7 @@ export const ConcentrationShell: React.FC<ConcentrationShellProps> = ({
   }, [forcedState, active.rounds, board]);
 
   const onFlip = (key: string): void => {
-    if (forcedState) return;
+    if (forcedState || scouting) return;
     if (matched.some((pid) => board.find((c) => c.pairId === pid)?.pairId === board.find((c) => c.key === key)?.pairId)) return;
     if (flipped.includes(key)) return;
     if (wrongFlash.length > 0) return;
@@ -385,6 +395,7 @@ export const ConcentrationShell: React.FC<ConcentrationShellProps> = ({
         if (a.pairId !== b.pairId) out[b.pairId] = (out[b.pairId] ?? 0) + 1;
         return out;
       });
+      arcade.decide(isMatch, a.pairId);
       if (isMatch) {
         setTimeout(() => {
           setMatched((m) => [...m, a.pairId]);
@@ -427,6 +438,7 @@ export const ConcentrationShell: React.FC<ConcentrationShellProps> = ({
   };
 
   const reset = (): void => {
+    arcade.reset(); setScouting(false); setScoutUsed(false);
     setFlipped([]); setMatched([]); setWrongFlash([]);
     setHintsUsed(0); setHintGlow(null);
     setAttemptCounts({});
@@ -440,202 +452,7 @@ export const ConcentrationShell: React.FC<ConcentrationShellProps> = ({
       ? 'radial-gradient(ellipse at 50% 40%, #4A2C1F 0%, #1F100E 60%, #08040A 100%)'
       : 'radial-gradient(ellipse at 50% 40%, #36211C 0%, #14080A 60%, #02010A 100%)';
 
-  return (
-    <div
-      className="em-shell em-shell-concentration"
-      role="application"
-      aria-label="Concentration memory game, The Memory Cellar"
-      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: grad }}
-    >
-      <style>{`
-        @keyframes em-co-flame { 0%, 100% { transform: scale(1) translateY(0); opacity: 0.85; } 50% { transform: scale(1.08) translateY(-1px); opacity: 1; } }
-        @keyframes em-co-stone-flicker { 0%, 100% { opacity: 0.16; } 50% { opacity: 0.22; } }
-        @keyframes em-co-card-flip { from { transform: rotateY(180deg); } to { transform: rotateY(0); } }
-        @keyframes em-co-card-match { 0% { box-shadow: 0 0 0 0 rgba(167,139,250,0.65); } 100% { box-shadow: 0 0 0 24px rgba(167,139,250,0); } }
-        @keyframes em-co-shake { 0%, 100% { transform: translateX(0) rotateY(180deg); } 25% { transform: translateX(-6px) rotateY(180deg); } 75% { transform: translateX(6px) rotateY(180deg); } }
-        @keyframes em-co-glow-hint { 0%, 100% { box-shadow: 0 0 0 0 rgba(167,139,250,0); } 50% { box-shadow: 0 0 0 6px rgba(167,139,250,0.65), 0 0 28px rgba(167,139,250,0.55); } }
-      `}</style>
-
-      <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
-        {announcement}
-      </div>
-
-      {/* Stone wall — background pattern */}
-      <svg aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.18, pointerEvents: 'none' }}>
-        <defs>
-          <pattern id="co-stone" x="0" y="0" width="80" height="48" patternUnits="userSpaceOnUse">
-            <rect width="80" height="48" fill="#1A0E0A" />
-            <rect x="2" y="2" width="36" height="20" rx="3" fill="#3B2418" />
-            <rect x="42" y="2" width="36" height="20" rx="3" fill="#33201A" />
-            <rect x="-18" y="26" width="36" height="20" rx="3" fill="#33201A" />
-            <rect x="22" y="26" width="36" height="20" rx="3" fill="#3F2818" />
-            <rect x="62" y="26" width="36" height="20" rx="3" fill="#33201A" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#co-stone)" />
-      </svg>
-
-      {/* Oil lamp — top-right */}
-      <div aria-hidden="true" style={{ position: 'absolute', top: 60, right: 80, zIndex: 2, pointerEvents: 'none' }}>
-        <svg width="74" height="120" viewBox="0 0 74 120">
-          {/* hanging chain */}
-          <line x1="37" y1="0" x2="37" y2="20" stroke="#7A5A2A" strokeWidth="1.5" strokeDasharray="2 2" />
-          {/* lamp body */}
-          <ellipse cx="37" cy="56" rx="22" ry="20" fill="#3A2410" stroke="#7A5A2A" strokeWidth="1.5" />
-          <rect x="32" y="20" width="10" height="20" fill="#3A2410" stroke="#7A5A2A" strokeWidth="1.2" />
-          {/* glass globe */}
-          <ellipse cx="37" cy="56" rx="14" ry="12" fill="rgba(251,191,36,0.18)" stroke="#FBBF24" strokeWidth="1" opacity="0.85" />
-          {/* flame */}
-          <path d="M 37 50 Q 33 56 37 64 Q 41 56 37 50 Z" fill="#FBBF24" style={{ animation: 'em-co-flame 1.6s ease-in-out infinite', transformOrigin: '37px 60px' }} />
-        </svg>
-      </div>
-
-      {/* Lamp light pool — radial highlight on the table */}
-      <div aria-hidden="true" style={{ position: 'absolute', top: '40%', left: '50%', width: 720, height: 460, transform: 'translate(-50%, -50%)', borderRadius: '50%', background: `radial-gradient(ellipse, ${ACCENT}1c 0%, transparent 70%)`, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 1, animation: 'em-co-stone-flicker 3.2s ease-in-out infinite' }} />
-
-      {/* Top bar — Ricky CD-fix (2026-05-03): pointerEvents:'none' on the
-          wrapper so wrapped flex content can't block card clicks below. The
-          interactive children (audio toggle, Skip, Hint buttons) re-enable
-          pointer events themselves so they remain clickable. CD audit
-          reported "Clicked 2 cards (605,175 and 785,175) — neither flipped"
-          which traced to topbar wrap overlapping the upper card row. */}
-      <div style={{ position: 'absolute', top: 28, left: 28, right: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 6, gap: 12, flexWrap: 'wrap', pointerEvents: 'none' }}>
-        <div style={{ pointerEvents: 'auto' }}><AmbientAudioPlayer shellSlug="concentration" /></div>
-        <div style={{ pointerEvents: 'auto' }}>
-          <Nameplate
-            district="The Memory Cellar"
-            subtitle="Concentration · Pamięć · flip two at a time"
-            accent={ACCENT}
-            icon={<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="4" width="7" height="10" rx="1.4" stroke={ACCENT} strokeWidth="1.6" /><rect x="12" y="4" width="7" height="10" rx="1.4" stroke={ACCENT} strokeWidth="1.6" /></svg>}
-          />
-        </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', pointerEvents: 'auto' }}>
-          <Progress current={matched.length} total={active.rounds.length} accent={ACCENT} />
-          <SkipButton onClick={reset} />
-          <HintButton onClick={useHint} used={hintsUsed} total={2} />
-        </div>
-      </div>
-
-      {/* Wooden card table — centered grid */}
-      <div style={{
-        position: 'absolute', top: 100, left: 0, right: 0, bottom: 200,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', perspective: 1200, zIndex: 4,
-      }}>
-        <div style={{
-          padding: 32, borderRadius: 20,
-          background: 'linear-gradient(160deg, #2A1810 0%, #1A0F0A 100%)',
-          border: '2px solid #5C3A2A', boxShadow: '0 24px 60px rgba(0,0,0,0.6), inset 0 0 32px rgba(0,0,0,0.5)',
-        }}>
-          <div style={{
-            display: 'grid', gridTemplateColumns: `repeat(${board.length <= 6 ? 3 : 4}, 110px)`, gap: 14,
-          }}>
-            {board.map((c) => {
-              const isMatched = matched.includes(c.pairId);
-              const isFlipped = isMatched || flipped.includes(c.key);
-              const isWrong = wrongFlash.includes(c.key);
-              const isHinted = hintGlow === c.pairId && !isMatched;
-              return (
-                <button
-                  key={c.key}
-                  type="button"
-                  aria-label={isFlipped ? `${c.side === 'prompt' ? 'Prompt' : 'Answer'}: ${c.text}` : 'Face-down card. Tap to flip.'}
-                  aria-pressed={isFlipped}
-                  onClick={() => onFlip(c.key)}
-                  disabled={!!forcedState}
-                  style={{
-                    background: 'transparent', border: 'none', padding: 0,
-                    width: 110, height: 150,
-                    cursor: isMatched || isFlipped || forcedState ? 'default' : 'pointer',
-                    perspective: 800,
-                  }}
-                >
-                  <div style={{
-                    position: 'relative', width: '100%', height: '100%',
-                    transformStyle: 'preserve-3d',
-                    transform: isFlipped ? 'rotateY(0deg)' : 'rotateY(180deg)',
-                    transition: 'transform 600ms var(--em-ease)',
-                    animation: isWrong ? 'em-co-shake 0.34s var(--em-ease)' : isMatched ? 'em-co-card-match 0.8s var(--em-ease)' : isHinted ? 'em-co-glow-hint 1.6s ease-in-out' : 'none',
-                    borderRadius: 10,
-                  }}>
-                    {/* FRONT — face */}
-                    <div style={{
-                      position: 'absolute', inset: 0,
-                      backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
-                      borderRadius: 10, padding: 10,
-                      background: c.side === 'prompt'
-                        ? 'linear-gradient(180deg, #F4EFEF 0%, #DCD2D2 100%)'
-                        : `linear-gradient(180deg, ${ACCENT}33 0%, #1F0E40 100%)`,
-                      color: c.side === 'prompt' ? '#1F0E40' : '#F4EFEF',
-                      border: isMatched ? `2px solid ${ACCENT}` : '1px solid rgba(0,0,0,0.4)',
-                      boxShadow: isMatched ? `0 0 18px ${ACCENT}88, 0 6px 14px rgba(0,0,0,0.5)` : '0 6px 14px rgba(0,0,0,0.5)',
-                      display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
-                      textAlign: 'center', overflow: 'hidden',
-                    }}>
-                      <div className="em-eyebrow" style={{ color: c.side === 'prompt' ? '#7A5A2A' : ACCENT, fontSize: 9, marginBottom: 6, letterSpacing: '0.18em' }}>
-                        {c.side === 'prompt' ? 'CLUE · KARTA' : 'WORD · SŁOWO'}
-                      </div>
-                      <div style={{
-                        fontFamily: c.side === 'prompt' ? 'var(--em-body)' : 'var(--em-decor)',
-                        fontSize: c.side === 'prompt' ? 10 : 18, lineHeight: 1.3,
-                      }}>{c.text}</div>
-                    </div>
-                    {/* BACK — face-down */}
-                    <div style={{
-                      position: 'absolute', inset: 0,
-                      backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
-                      transform: 'rotateY(180deg)', borderRadius: 10,
-                      background: 'repeating-linear-gradient(45deg, #2A0E36 0 6px, #1F0E40 6px 12px)',
-                      border: '1px solid #5C3A2A',
-                      boxShadow: '0 6px 14px rgba(0,0,0,0.5), inset 0 0 8px rgba(0,0,0,0.4)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <div style={{ width: 38, height: 38, borderRadius: '50%', border: `1.5px solid ${ACCENT}88`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${ACCENT}22` }}>
-                        <span className="em-decor" style={{ color: ACCENT, fontSize: 22 }}>✦</span>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Instructions modal (full mechanic walkthrough). The centered HintCard
-          and decorative Bajla were removed 2026-05-03 — the chat-widget
-          speech bubble now carries the per-shell brief. */}
-      {!completed && (
-        <div style={{ position: 'absolute', bottom: 28, left: 28, right: 200, maxWidth: 460, zIndex: 5 }}>
-        </div>
-      )}
-
-      {/* Completion overlay — suppressed when host wires onSessionComplete
-          (the host's <PracticeReview> takes over). */}
-      {completed && !onSessionComplete && (
-        <div
-          role="dialog"
-          aria-live="assertive"
-          aria-label="Memory Cellar complete"
-          style={{
-            position: 'absolute', inset: 0,
-            background: `radial-gradient(ellipse, ${ACCENT}22, rgba(14,10,26,0.62))`,
-            backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14,
-            animation: 'em-rise 0.4s var(--em-ease)', zIndex: 10,
-          }}
-        >
-          <Bajla size={84} mood="cheer" decorative />
-          <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa` }}>Every pair remembered.</div>
-          <div className="em-eyebrow">CELLAR LIT · PIWNICA OŚWIETLONA</div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-            <button className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
-          </div>
-        </div>
-      )}
-      <Confetti show={completed} />
-    </div>
-  );
+  return <PairArena title="The Memory Cellar" memory cards={board} matched={matched} flipped={flipped} wrong={wrongFlash} hintGlow={hintGlow} onPick={onFlip} onHint={useHint} hintDisabled={hintsUsed >= 2 || scouting} onReset={reset} scouting={scouting} scoutUsed={scoutUsed} onScout={() => { if (scoutUsed || flipped.length || wrongFlash.length || forcedState) return; setScoutUsed(true); setScouting(true); }} />;
 };
 
 export default ConcentrationShell;

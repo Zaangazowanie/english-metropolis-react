@@ -1,3 +1,4 @@
+import { ChallengeArena, useChallengeArcade } from './challenge-arcade';
 // Multiple Choice — The Bulletin Board district.
 // A cork-board plastered with announcement posters at dusk. The current
 // question is pinned to the centre on a fresh poster; four answer cards
@@ -383,6 +384,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useChallengeArcade();
   // Kelly Tier-2 (2026-05-02): defensive props guard.
   const propsInvalid = !forcedState && puzzle !== undefined && (!puzzle.questions || puzzle.questions.length === 0);
   const activePuzzle: ShellMultipleChoicePuzzle =
@@ -411,6 +413,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
 
   const cur = activePuzzle.questions[idx % total];
   const completed = idx >= total;
+  useEffect(() => { if (completed && !forcedState) arcade.finish(); }, [completed, forcedState]);
   const tip = useEndOfShellTip({
     onWrongAnswer,
     completed,
@@ -435,11 +438,11 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'multiplechoice',
-      brief: 'Read the question, then tap one of the four answer chips.',
-      brief_pl: 'Przeczytaj pytanie, a potem stuknij jedną z czterech kart-odpowiedzi.',
-      detail: 'A sentence appears on the cork-board with a gap or a question. Four poster chips show possible answers. Tap the one you think is right; you commit immediately. Right answers light green and advance; wrong ones reveal the correct chip and explain why.',
-      detail_pl: 'Na tablicy pojawia się zdanie z luką lub pytanie. Cztery plakaty pokazują możliwe odpowiedzi. Stuknij tę, którą uważasz za poprawną; zatwierdzasz od razu. Poprawne świecą na zielono i przechodzą dalej; błędne pokazują właściwą i wyjaśniają, dlaczego.',
-      fullInstructions: MULTIPLECHOICE_INSTRUCTIONS,
+      brief: "Read the poster and choose one answer. Each correct answer lights more of the city.",
+      brief_pl: "Przeczytaj plakat i wybierz jedną odpowiedź. Każda poprawna odpowiedź rozświetla miasto.",
+      detail: "Read the poster and choose one answer. Each correct answer lights more of the city. Use a double-points boost before a question if you feel confident. Read the feedback, then choose Next challenge.",
+      detail_pl: "Przeczytaj plakat i wybierz jedną odpowiedź. Każda poprawna odpowiedź rozświetla miasto. Przed odpowiedzią możesz włączyć premię podwójnych punktów. Przeczytaj informację zwrotną i wybierz Dalej.",
+      fullInstructions: { ...MULTIPLECHOICE_INSTRUCTIONS, whatYouDo: {"en": ["Read the poster and choose one answer. Each correct answer lights more of the city.", "Use a double-points boost before a question if you feel confident.", "Read the feedback, then choose Next challenge."], "pl": ["Przeczytaj plakat i wybierz jedną odpowiedź. Każda poprawna odpowiedź rozświetla miasto.", "Przed odpowiedzią możesz włączyć premię podwójnych punktów.", "Przeczytaj informację zwrotną i wybierz Dalej."]}, controls: {"en": ["Read the poster and choose one answer. Each correct answer lights more of the city.", "Use a double-points boost before a question if you feel confident.", "Read the feedback, then choose Next challenge."], "pl": ["Przeczytaj plakat i wybierz jedną odpowiedź. Każda poprawna odpowiedź rozświetla miasto.", "Przed odpowiedzią możesz włączyć premię podwójnych punktów.", "Przeczytaj informację zwrotną i wybierz Dalej."]}, rightWrongSkip: {"en": ["Correct choices earn arcade points. Mistakes stay available in your session review. Skip moves on without points."], "pl": ["Poprawne wybory dają punkty arcade. Błędy zobaczysz w przeglądzie sesji. Pominięcie przechodzi dalej bez punktów."]} },
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
     return () => {
@@ -473,6 +476,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
 
   const pick = (i: number): void => {
     if (forcedState || revealed || completed) return;
+    arcade.decide(i === cur.answerIndex, cur.id);
     setPicked(i);
     setRevealed(true);
     if (i === cur.answerIndex) {
@@ -507,6 +511,8 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
 
   const skip = (): void => {
     if (forcedState || completed) return;
+    arcade.decide(false, cur.id);
+    tip.recordWrong({questionId:cur.id,studentAnswer:'(skipped)',correctAnswer:cur.options[cur.answerIndex],explanationPL:cur.explanationPL ?? cur.hint_pl,exerciseId:cur.exerciseId});
     setAnnouncement(`Skipped. The right poster would have been ${cur.options[cur.answerIndex]}.`);
     setIdx((i) => i + 1);
     setPicked(null);
@@ -521,47 +527,13 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
   };
 
   const reset = (): void => {
+    arcade.reset();
     setIdx(0); setPicked(null); setRevealed(false); setScore(0);
     setHintsUsed(0); setHintRevealed(false);
     tip.reset();
   };
 
-  // Kelly Tier-2 (2026-05-02): focus-trap effect for the board-full dialog.
-  // Skipped when the host wires onSessionComplete (host's PracticeReview takes
-  // over the completion experience and renders its own focus management).
-  useEffect(() => {
-    if (!completed) return;
-    if (onSessionComplete) return; // host owns the completion UI
-    previouslyFocusedRef.current = (document.activeElement as HTMLElement) || null;
-    const focusId = window.setTimeout(() => { nextDistrictBtnRef.current?.focus(); }, 0);
-    const trap = (e: KeyboardEvent) => {
-      if (e.key === 'Tab') {
-        const focusables = [tryAnotherBtnRef.current, nextDistrictBtnRef.current].filter(Boolean) as HTMLButtonElement[];
-        if (focusables.length === 0) return;
-        const idx = focusables.indexOf(document.activeElement as HTMLButtonElement);
-        e.preventDefault();
-        if (e.shiftKey) {
-          const next2 = idx <= 0 ? focusables[focusables.length - 1] : focusables[idx - 1];
-          next2.focus();
-        } else {
-          const next2 = idx === -1 || idx >= focusables.length - 1 ? focusables[0] : focusables[idx + 1];
-          next2.focus();
-        }
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        reset();
-      }
-    };
-    document.addEventListener('keydown', trap);
-    return () => {
-      window.clearTimeout(focusId);
-      document.removeEventListener('keydown', trap);
-      const prev = previouslyFocusedRef.current;
-      if (prev && typeof prev.focus === 'function') prev.focus();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [completed, onSessionComplete]);
+
 
   // Memoised poster rotations so they don't re-jitter on every render.
   const rotations = useMemo(
@@ -578,358 +550,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
     return <div className="em-shell-host-error">No puzzle data available · Brak danych ćwiczenia</div>;
   }
 
-  return (
-    <div
-      className="em-shell em-shell-multiplechoice"
-      role="application"
-      aria-label="Multiple choice, The Bulletin Board"
-      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
-    >
-      <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
-        {liveStatus}
-      </div>
-
-      {/* ─── Bulletin Board scene (Mike's redesign 2026-05-02) ─────────────
-          Magenta-pink radial gradient + animated starfield (the "stars and
-          glitter" per his note) + faint paper-grain veil for texture. */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        background:
-          time === 'day'
-            ? 'radial-gradient(ellipse at 50% 30%, #C5598E 0%, #6A2A8C 50%, #2A1450 100%)'
-            : time === 'dusk'
-              ? 'radial-gradient(ellipse at 50% 35%, #B85A88 0%, #6E325E 45%, #1F1240 100%)'
-              : 'radial-gradient(ellipse at 50% 40%, #5A2D6F 0%, #2A1450 55%, #07041A 100%)',
-      }} />
-      {/* Animated starfield — three layers at different sizes/speeds for parallax */}
-      <svg aria-hidden="true" viewBox="0 0 1200 800" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        <defs>
-          <radialGradient id="mc-star" cx="0.5" cy="0.5">
-            <stop offset="0" stopColor="#FFFEF8" stopOpacity="1" />
-            <stop offset="0.5" stopColor="#FBBF24" stopOpacity="0.6" />
-            <stop offset="1" stopColor="#FBBF24" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="mc-glitter" cx="0.5" cy="0.5">
-            <stop offset="0" stopColor="#E879F9" stopOpacity="0.85" />
-            <stop offset="1" stopColor="#E879F9" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        {/* Far layer — small twinkling stars */}
-        {Array.from({ length: 60 }).map((_, i) => {
-          const x = (i * 73 + 17) % 1200;
-          const y = (i * 41 + 23) % 800;
-          const r = 1 + ((i * 7) % 3) * 0.5;
-          const dur = 1.6 + ((i * 11) % 5) * 0.4;
-          const delay = (i * 0.13) % 3;
-          return (
-            <circle key={`f${i}`} cx={x} cy={y} r={r} fill="url(#mc-star)" style={{ animation: `mc-twinkle ${dur}s ease-in-out ${delay}s infinite alternate` }} />
-          );
-        })}
-        {/* Mid layer — bigger glitter specks in pink */}
-        {Array.from({ length: 22 }).map((_, i) => {
-          const x = (i * 137 + 53) % 1200;
-          const y = (i * 89 + 31) % 800;
-          const r = 2 + (i % 3);
-          const dur = 2.4 + ((i * 7) % 6) * 0.4;
-          const delay = (i * 0.27) % 4;
-          return (
-            <circle key={`m${i}`} cx={x} cy={y} r={r} fill="url(#mc-glitter)" style={{ animation: `mc-glitter ${dur}s ease-in-out ${delay}s infinite alternate` }} />
-          );
-        })}
-        {/* Near layer — gold sparkles, slow drift */}
-        {Array.from({ length: 14 }).map((_, i) => {
-          const x = (i * 211 + 71) % 1200;
-          const y = (i * 157 + 41) % 800;
-          const dur = 3.6 + ((i * 5) % 4) * 0.5;
-          const delay = (i * 0.41) % 5;
-          return (
-            <g key={`n${i}`} transform={`translate(${x},${y})`} style={{ animation: `mc-twinkle ${dur}s ease-in-out ${delay}s infinite alternate` }}>
-              <path d="M0 -6 L1.5 -1.5 L6 0 L1.5 1.5 L0 6 L-1.5 1.5 L-6 0 L-1.5 -1.5 Z" fill="#FBBF24" opacity="0.85" />
-            </g>
-          );
-        })}
-      </svg>
-      {/* Soft horizontal cord with paper streamer at the top */}
-      <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 6, background: 'linear-gradient(90deg, transparent, rgba(251,113,133,0.45), transparent)', boxShadow: '0 1px 8px rgba(251,113,133,0.55)' }} />
-      <div aria-hidden="true" style={{ position: 'absolute', top: 8, left: '12%', right: '12%', height: 2, background: 'linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.18), rgba(255,255,255,0.06))', borderRadius: 999 }} />
-      {/* Faint paper-grain veil */}
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
-      {/* Corner kiosk vignette */}
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
-
-      {/* ─── Floating notice slips drifting in the breeze ─────────────────── */}
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.55 }}>
-        {[
-          { l: '6%',  t: '14%', txt: 'OPEN MIC FRI', c: '#FBBF24', r: -7 },
-          { l: '88%', t: '12%', txt: 'LOST CAT',     c: '#7DD3FC', r: 5 },
-          { l: '4%',  t: '76%', txt: 'GIG · 22:00',  c: '#BEF264', r: 4 },
-          { l: '90%', t: '78%', txt: 'BUY · SELL',   c: '#E879F9', r: -6 },
-        ].map((s, i) => (
-          <div key={i} style={{
-            position: 'absolute', left: s.l, top: s.t,
-            transform: `rotate(${s.r}deg)`,
-            padding: '6px 10px',
-            fontFamily: 'var(--em-mono)', fontSize: 13, letterSpacing: '0.12em',
-            color: s.c, background: 'rgba(0,0,0,0.35)',
-            border: `1px dashed ${s.c}55`, borderRadius: 3,
-            animation: `mc-flutter ${5 + i}s ease-in-out ${i * 0.4}s infinite alternate`,
-          }}>{s.txt}</div>
-        ))}
-      </div>
-
-      {/* ─── Header bar ───────────────────────────────────────────────────── */}
-      <div className="em-mc-toolbar" style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, zIndex: 5, flexWrap: 'wrap' }}>
-        <AmbientAudioPlayer shellSlug="multiplechoice" />
-        <Nameplate
-          district="The Bulletin Board"
-          subtitle="Multiple Choice · Wybierz odpowiedź · pin the right poster"
-          accent={ACCENT}
-          icon={
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <rect x="3" y="4" width="16" height="14" rx="1.5" stroke={ACCENT} strokeWidth="1.6" />
-              <path d="M6 8 H16 M6 11 H14 M6 14 H12" stroke={ACCENT} strokeWidth="1.4" strokeLinecap="round" />
-              <circle cx="11" cy="3.2" r="1.4" fill={ACCENT} />
-            </svg>
-          }
-        />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <Progress
-            current={score}
-            seen={Math.min(idx + 1, total)}
-            total={total}
-            accent={ACCENT}
-          />
-          <SkipButton onClick={skip} />
-          <HintButton onClick={useHint} used={hintsUsed} total={3} />
-        </div>
-      </div>
-
-      {/* ─── Main poster + answer cards ───────────────────────────────────── */}
-      {!completed && cur && (
-        <div
-          key={cur.id}
-          className="em-mc-round"
-          style={{
-            position: 'absolute', inset: '110px 24px 220px',
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'flex-start', gap: 28,
-            zIndex: 4,
-          }}
-        >
-          {/* Question poster */}
-          <div
-            role="region"
-            aria-label="Question poster"
-            className="em-arcade-question"
-            style={{
-              position: 'relative',
-              maxWidth: 560, width: '100%',
-              padding: '24px 26px 22px',
-              background: 'linear-gradient(180deg, #FFF8E7 0%, #F2DFB6 100%)',
-              color: '#2A1810',
-              borderRadius: 6,
-              transform: `rotate(${posterRot}deg)`,
-              boxShadow: '0 18px 40px -16px rgba(0,0,0,0.55), 0 6px 14px -6px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.4)',
-              animation: `mc-poster-rise 540ms var(--em-ease) both, ${shake ? 'em-shake 0.42s var(--em-ease)' : 'none'}`,
-            }}
-          >
-            {/* Push pin */}
-            <div aria-hidden="true" style={{
-              position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
-              width: 18, height: 18, borderRadius: '50%',
-              background: `radial-gradient(circle at 30% 30%, ${ACCENT} 0%, ${ACCENT_DEEP} 70%, #4a0a1a 100%)`,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.5), 0 6px 14px rgba(251,113,133,0.45)',
-            }} />
-            {/* CD audit cross-cutting #14 (Ricky 2026-05-02): drop redundant
-                "Q {idx+1} / {total}" — the header <Progress> is the single
-                canonical position counter. Themed eyebrow stays. */}
-            <div className="em-eyebrow" style={{ color: '#A8612C', marginBottom: 6, fontFamily: 'var(--em-mono)', fontSize: 13, letterSpacing: '0.16em' }}>
-              NOTICE · OGŁOSZENIE
-            </div>
-            <div className="em-decor" style={{ fontSize: 22, lineHeight: 1.25, marginBottom: 8, color: '#2A1810' }}>
-              {cur.prompt}
-            </div>
-            {cur.prompt_pl && (
-              <div style={{ fontSize: 13.5, fontStyle: 'italic', color: '#6E4825', borderTop: '1px dashed rgba(0,0,0,0.18)', paddingTop: 6 }}>
-                🇵🇱 {cur.prompt_pl}
-              </div>
-            )}
-            {/* Hint reveal — spray-painted "tip" stamp */}
-            {hintRevealed && (
-              <div role="status" aria-live="polite" style={{
-                marginTop: 10,
-                padding: '7px 11px',
-                background: 'rgba(155,28,46,0.10)',
-                border: `1px dashed ${ACCENT_DEEP}66`,
-                borderRadius: 6,
-                fontSize: 13.5, color: ACCENT_DEEP,
-                animation: 'em-tip-fade 220ms var(--em-ease) both',
-              }}>
-                <span className="em-eyebrow" style={{ color: ACCENT_DEEP, marginRight: 6 }}>HINT</span>
-                {cur.hint} <span style={{ opacity: 0.75 }}>· 🇵🇱 {cur.hint_pl}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Answer cards */}
-          <div
-            role="radiogroup"
-            aria-label="Choose the answer poster"
-            style={{
-              display: 'grid',
-              // Mike 2026-05-02: lock to 2x2 layout. The previous auto-fit
-              // with minmax(150px, 1fr) produced 3-up at desktop widths,
-              // leaving an awkward orphan in the bottom row when there are 4
-              // options. Mockup specifies a clean 2x2 grid; mobile fallback
-              // (also 2 columns via the @media rule below) stays consistent.
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: 14,
-              width: '100%', maxWidth: 640,
-            }}
-          >
-            {cur.options.map((opt, i) => {
-              const isPicked = picked === i;
-              const isCorrect = i === cur.answerIndex;
-              const showState = revealed;
-              const showCorrect = showState && isCorrect;
-              const showWrong = showState && isPicked && !isCorrect;
-              const dim = showState && !isCorrect && !isPicked;
-              const hue = POSTER_HUES[i % POSTER_HUES.length];
-              const rot = rotations[i] ?? 0;
-
-              const bg = showCorrect
-                ? `linear-gradient(180deg, ${hue}, ${hue}cc)`
-                : showWrong
-                  ? `linear-gradient(180deg, #fdfcf6, #f0e6cd)`
-                  : 'linear-gradient(180deg, #fffefb 0%, #f4ead0 100%)';
-
-              return (
-                <button
-                  key={i}
-                  ref={(el) => { cardRefs.current[i] = el; }}
-                  role="radio"
-                  className={`em-arcade-answer${showCorrect ? ' is-correct' : showWrong ? ' is-wrong' : ''}`}
-                  aria-checked={isPicked}
-                  aria-disabled={revealed}
-                  aria-label={`Option ${String.fromCharCode(65 + i)}: ${opt}${showCorrect ? ', correct' : showWrong ? ', wrong' : ''}`}
-                  onClick={() => pick(i)}
-                  style={{
-                    position: 'relative',
-                    minHeight: 96,
-                    padding: '18px 14px 14px',
-                    border: 'none',
-                    borderRadius: 6,
-                    cursor: revealed ? 'default' : 'pointer',
-                    background: bg,
-                    color: '#2A1810',
-                    transform: `rotate(${rot}deg) translateY(${showCorrect ? '-4px' : showWrong ? '2px' : '0'})`,
-                    boxShadow: showCorrect
-                      ? `0 16px 36px -12px ${hue}cc, 0 0 0 2px ${hue}, 0 0 28px ${hue}88`
-                      : showWrong
-                        ? `0 6px 16px -8px rgba(0,0,0,0.5), inset 0 0 0 2px ${ACCENT}99`
-                        : '0 8px 20px -10px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.4)',
-                    opacity: dim ? 0.45 : 1,
-                    fontFamily: 'var(--em-decor)',
-                    fontSize: 18,
-                    letterSpacing: '0.005em',
-                    transition: 'transform 220ms var(--em-ease), box-shadow 220ms var(--em-ease), opacity 220ms var(--em-ease)',
-                    animation: `mc-card-rise 520ms var(--em-ease) ${i * 60}ms both`,
-                    textAlign: 'left',
-                  }}
-                >
-                  {/* Pin */}
-                  <div aria-hidden="true" style={{
-                    position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)',
-                    width: 12, height: 12, borderRadius: '50%',
-                    background: `radial-gradient(circle at 30% 30%, ${hue}, ${hue}99 70%, rgba(0,0,0,0.4) 100%)`,
-                    boxShadow: '0 2px 3px rgba(0,0,0,0.4)',
-                  }} />
-                  <div className="em-eyebrow" style={{ color: '#8a5a2c', fontFamily: 'var(--em-mono)', fontSize: 13, letterSpacing: '0.14em', marginBottom: 6 }}>
-                    {String.fromCharCode(65 + i)}
-                  </div>
-                  <div style={{ wordBreak: 'break-word' }}>{opt}</div>
-                  {showCorrect && (
-                    <div aria-hidden="true" style={{ position: 'absolute', bottom: 8, right: 10, fontFamily: 'var(--em-mono)', fontSize: 13, letterSpacing: '0.14em', color: '#15532A', opacity: 0.85 }}>
-                      ✓ TAK
-                    </div>
-                  )}
-                  {showWrong && (
-                    <div aria-hidden="true" style={{ position: 'absolute', bottom: 8, right: 10, fontFamily: 'var(--em-mono)', fontSize: 13, letterSpacing: '0.14em', color: ACCENT_DEEP, opacity: 0.85 }}>
-                      ✗ NIE
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Reveal-state next button */}
-          {revealed && (
-            <button
-              className="em-btn em-btn-primary"
-              onClick={advance}
-              style={{
-                marginTop: 4, animation: 'em-rise 320ms var(--em-ease) both',
-                background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT_DEEP})`,
-                color: '#FFF', borderColor: ACCENT,
-              }}
-            >
-              {idx + 1 >= total ? 'See the board →' : 'Next poster →'}
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ─── Instructions modal (bottom strip). HintCard + standalone Bajla
-          removed 2026-05-03 — chat-widget speech bubble carries the brief. */}
-      <div style={{ position: 'absolute', bottom: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, zIndex: 5 }}>
-        <div className="em-shell-hint" style={{ flex: 1, maxWidth: 560 }}>
-        </div>
-      </div>
-
-      {/* ─── Completion overlay (DESIGN.md §4 spec exactly) ──────────────── */}
-      {completed && !onSessionComplete && (
-        // D1 (2026-05-02): when the host wires onSessionComplete, the
-        // <PracticeReview> overlay takes over the completion experience —
-        // suppress this in-shell dialog so we don't double-render. The shell
-        // STILL ships this dialog as a fallback for the design canvas + any
-        // host that doesn't want the review pattern.
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-live="assertive"
-          aria-label="Bulletin Board complete"
-          style={{
-            position: 'absolute', inset: 0,
-            background: `radial-gradient(ellipse, ${ACCENT}22, rgba(14,10,26,0.62))`,
-            backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', gap: 14,
-            animation: 'em-rise 0.4s var(--em-ease)', zIndex: 20,
-          }}
-        >
-          <Bajla size={84} mood="cheer" decorative />
-          <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa` }}>
-            The board is full.
-          </div>
-          <div className="em-eyebrow">{score} / {total} CORRECT · TABLICA OGŁOSZEŃ ZAMKNIĘTA</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button ref={tryAnotherBtnRef} className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-            <button
-              ref={nextDistrictBtnRef}
-              className="em-btn em-btn-primary"
-              onClick={reset}
-              style={{ background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT_DEEP})`, color: '#FFF', borderColor: ACCENT }}
-            >
-              Next district →
-            </button>
-          </div>
-        </div>
-      )}
-      <Confetti show={completed} />
-      {/* Shell-scoped keyframes/responsive rules → src/practice/styles/shells/multiplechoice.css */}
-    </div>
-  );
+  return <ChallengeArena variant="bulletin" title="The Bulletin Board" mission="Restore power, one correct poster at a time." prompt={cur?.prompt} translation={cur?.prompt_pl} options={cur?.options ?? []} picked={picked} answerIndex={cur?.answerIndex ?? -1} revealed={revealed} round={idx} total={total} score={score} completed={completed} onPick={pick} onNext={advance} onSkip={skip} onReset={reset} onHint={useHint} hintDisabled={hintsUsed >= 3 || hintRevealed} hint={revealed ? cur?.hint_pl || cur?.hint : hintRevealed ? cur?.hint : undefined} run={arcade} />;
 };
 
 export default MultipleChoiceShell;

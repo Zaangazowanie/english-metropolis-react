@@ -1,3 +1,5 @@
+import { sentenceIsCorrect } from './challenge-arcade-logic';
+import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Unjumble shell — "The Puzzle Workshop" district.
 // A typesetter's workshop at dusk: wood-block letter blocks scattered on a
 // workbench, brass lining gauge across the top of the composing tray, ink
@@ -154,7 +156,7 @@ export function renderUnjumbleReviewItem(
 ): React.ReactNode {
   const correctSentence = sentence.correct_order.map((wi) => sentence.words[wi]).join(' ');
   const studentSentence = studentArrangement.map((wi) => (wi !== null ? sentence.words[wi] : '___')).join(' ');
-  const allCorrect = studentArrangement.every((wi, slotIdx) => wi === sentence.correct_order[slotIdx]);
+  const allCorrect = sentenceIsCorrect(sentence.words, sentence.correct_order, studentArrangement);
   const isWrong = !allCorrect;
   return (
     <div style={{
@@ -188,7 +190,7 @@ export function renderUnjumbleReviewItem(
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
         {studentArrangement.map((wi, slotIdx) => {
           const word = wi !== null ? sentence.words[wi] : '___';
-          const isPosCorrect = wi === sentence.correct_order[slotIdx];
+          const isPosCorrect = wi !== null && sentence.words[wi] === sentence.words[sentence.correct_order[slotIdx]];
           return (
             <span key={slotIdx} style={{
               padding: '4px 10px', borderRadius: 4, fontSize: 13,
@@ -270,6 +272,7 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useChallengeArcade();
   const activePuzzle = puzzle && puzzle.items.length > 0 ? puzzle : UJ_PUZZLE;
   const persisted = useShellProgress('unjumble');
   // D3 Wave-5 (Ricky 2026-05-02): per-sentence final arrangement log.
@@ -292,6 +295,7 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
   const total = activePuzzle.items.length;
   const cur = activePuzzle.items[idx];
   const completed = (solved >= total || (seen >= total && !forcedState));
+  useEffect(() => { if (completed && !forcedState) arcade.finish(); }, [completed, forcedState]);
   const tip = useEndOfShellTip({
     onWrongAnswer,
     completed,
@@ -319,13 +323,13 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
   useEffect(() => {
     if (forcedState) return;
     persisted.save({
-      progress: solved / Math.max(total, 1),
-      lastState: solved >= total ? 'complete' : 'active',
+      progress: seen / Math.max(total, 1),
+      lastState: seen >= total ? 'complete' : 'active',
     });
-    if (solved >= total) {
+    if (seen >= total) {
       persisted.save({ progress: 1, completed: true, lastState: 'complete' });
     }
-  }, [solved, forcedState, total]);
+  }, [seen, forcedState, total]);
 
   // v10 instructional speech-bubble broadcast (Mike directive 2026-05-03).
   useEffect(() => {
@@ -333,11 +337,11 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'unjumble',
-      brief: 'Drag the wood blocks onto the brass gauge in the right order.',
-      brief_pl: 'Przeciągnij drewniane klocki na mosiężną listwę we właściwej kolejności.',
-      detail: 'A scrambled English sentence sits on the printer\'s tray as wooden type blocks. Drag (or tap-and-place) each block onto the brass gauge above, left to right, in the order that makes a grammatical sentence. The gauge lights green when the sentence is right.',
-      detail_pl: 'Pomieszane zdanie po angielsku leży na tacy drukarza w postaci drewnianych klocków. Przeciągnij (albo stuknij i postaw) każdy klocek na mosiężną listwę u góry, od lewej do prawej, w kolejności tworzącej poprawne zdanie. Listwa zaświeci na zielono, gdy będzie dobrze.',
-      fullInstructions: UNJUMBLE_INSTRUCTIONS,
+      brief: "Build a sentence by moving each word onto the rail.",
+      brief_pl: "Zbuduj zdanie, przenosząc słowa na listwę.",
+      detail: "Build a sentence by moving each word onto the rail. Choose Launch sentence when every slot is filled. A wrong launch shows which positions to reconsider. Adjust the words and launch again.",
+      detail_pl: "Zbuduj zdanie, przenosząc słowa na listwę. Gdy wszystkie miejsca są pełne, wybierz Wyślij zdanie. Po błędzie zobaczysz pozycje wymagające zmiany. Popraw kolejność i wyślij ponownie.",
+      fullInstructions: { ...UNJUMBLE_INSTRUCTIONS, whatYouDo: {"en": ["Build a sentence by moving each word onto the rail.", "Choose Launch sentence when every slot is filled.", "A wrong launch shows which positions to reconsider. Adjust the words and launch again."], "pl": ["Zbuduj zdanie, przenosząc słowa na listwę.", "Gdy wszystkie miejsca są pełne, wybierz Wyślij zdanie.", "Po błędzie zobaczysz pozycje wymagające zmiany. Popraw kolejność i wyślij ponownie."]}, controls: {"en": ["Build a sentence by moving each word onto the rail.", "Choose Launch sentence when every slot is filled.", "A wrong launch shows which positions to reconsider. Adjust the words and launch again."], "pl": ["Zbuduj zdanie, przenosząc słowa na listwę.", "Gdy wszystkie miejsca są pełne, wybierz Wyślij zdanie.", "Po błędzie zobaczysz pozycje wymagające zmiany. Popraw kolejność i wyślij ponownie."]}, rightWrongSkip: {"en": ["Correct choices earn arcade points. Mistakes stay available in your session review. Skip moves on without points."], "pl": ["Poprawne wybory dają punkty arcade. Błędy zobaczysz w przeglądzie sesji. Pominięcie przechodzi dalej bez punktów."]} },
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
     return () => {
@@ -381,7 +385,8 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
   }, [forcedState, activePuzzle, total]);
 
   const placeWord = (slotIdx: number, wordIdx: number) => {
-    if (forcedState) return;
+    if (forcedState || questionFinalised) return;
+    setFeedback(null);
     setGauge((prev) => {
       const next = [...prev];
       // Remove wordIdx from any other slot.
@@ -401,7 +406,8 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
   };
 
   const removeFromSlot = (slotIdx: number) => {
-    if (forcedState) return;
+    if (forcedState || questionFinalised) return;
+    setFeedback(null);
     setGauge((prev) => {
       const next = [...prev];
       next[slotIdx] = null;
@@ -409,16 +415,17 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
     });
   };
 
-  // Check the gauge against correct_order whenever it's full.
-  useEffect(() => {
-    if (forcedState) return;
+  // Submit a complete sentence intentionally; arranging tiles does not reveal answers.
+  const launchSentence = () => {
+    if (forcedState || questionFinalised) return;
     if (gauge.length === 0) return;
     if (gauge.some((s) => s === null)) {
       // Not full — reset feedback on subsequent moves.
       if (feedback) setFeedback(null);
       return;
     }
-    const allCorrect = gauge.every((wordIdx, slotIdx) => wordIdx === cur.correct_order[slotIdx]);
+    const allCorrect = sentenceIsCorrect(cur.words, cur.correct_order, gauge);
+    arcade.decide(allCorrect, cur.id);
     if (allCorrect) {
       setFeedback('correct');
       if (!questionFinalised) {
@@ -444,7 +451,8 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
       setStudentArrangements((p) => ({ ...p, [cur.id]: [...gauge] }));
       setAnnouncement(`Not quite. Re-arrange the blocks.`);
     }
-  }, [gauge, cur, forcedState, questionFinalised, total]);
+  };
+
 
   const next = () => {
     if (forcedState) return;
@@ -472,6 +480,8 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
   };
 
   const reset = () => {
+    setStudentArrangements({});
+    arcade.reset();
     setIdx(0); setGauge(Array(activePuzzle.items[0].words.length).fill(null));
     setSeen(0); setSolved(0); setFeedback(null); setHintsUsed(0);
     setHintShown(false); setQuestionFinalised(false);
@@ -518,7 +528,7 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
 
   return (
     <div
-      className="em-shell em-shell-unjumble"
+      className="em-shell em-shell-unjumble challenge-enhanced"
       role="application"
       aria-label="Unjumble, The Puzzle Workshop"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -563,7 +573,7 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
       <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} aria-hidden="true" />
 
       {/* Top bar */}
-      <div
+      <div className="challenge-enhanced-toolbar"
         style={{
           position: 'relative',
           padding: '20px 28px 10px',
@@ -597,6 +607,7 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
       </div>
 
       <div
+        className="challenge-unjumble-layout"
         style={{
           position: 'relative',
           padding: '8px 28px 24px',
@@ -608,6 +619,9 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
           zIndex: 3,
         }}
       >
+        <ChallengeMission title="Assemble the message. Launch the signal." detail="Build your sentence on the rail, then launch it. Adjust any misplaced words and try again. · Ułóż i wyślij." current={gauge.filter(v => v !== null).length} total={cur.words.length}>
+          <button type="button" disabled={questionFinalised || gauge.some(v => v === null)} onClick={launchSentence}>Launch sentence · Wyślij zdanie →</button>
+        </ChallengeMission>
         {/* Sentence info */}
         <div
           className="em-card"
@@ -715,7 +729,7 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
             const isOccupied = wordIdx !== null;
             const isHovered = hoverSlot === slotIdx;
             const word = isOccupied && wordIdx !== null ? cur.words[wordIdx] : null;
-            const isCorrectHere = isOccupied && wordIdx === cur.correct_order[slotIdx];
+            const isCorrectHere = isOccupied && wordIdx !== null && cur.words[wordIdx] === cur.words[cur.correct_order[slotIdx]];
             return (
               <div
                 key={slotIdx}

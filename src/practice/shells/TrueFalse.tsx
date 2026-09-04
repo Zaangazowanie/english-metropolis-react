@@ -1,3 +1,4 @@
+import { ChallengeArena, useChallengeArcade } from './challenge-arcade';
 // True / False — The Crossroads district.
 // Statements about English grammar/facts arrive on a street sign.
 // Players slap the green TRUE light or red FALSE light. Streak builds.
@@ -219,6 +220,7 @@ export function renderTrueFalseReviewItem(
 // Component
 // ─────────────────────────────────────────────────────────────
 export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ time = 'dusk', state: forcedState = null, puzzle, onWrongAnswer, onSessionComplete }) => {
+  const arcade = useChallengeArcade();
   // Use the supplied puzzle (when StudentPractice mounts the shell with vocab-
   // generated questions); otherwise fall back to the built-in demo set.
   const activeQuestions: TFQuestion[] = puzzle && puzzle.questions.length > 0 ? puzzle.questions : TF_QUESTIONS;
@@ -246,9 +248,9 @@ export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ time = 'dusk', s
   useEffect(() => {
     if (forcedState) return;
     const total = activeQuestions.length;
-    persisted.save({ progress: idx / total, lastState: idx >= total ? 'complete' : 'active' });
-    if (idx >= total) persisted.save({ progress: 1, completed: true, lastState: 'complete' });
-  }, [idx, forcedState, activeQuestions.length]);
+    persisted.save({ progress: questionsSeen / total, lastState: questionsSeen >= total ? 'complete' : 'active' });
+    if (questionsSeen >= total) persisted.save({ progress: 1, completed: true, lastState: 'complete' });
+  }, [questionsSeen, forcedState, activeQuestions.length]);
 
   // v10 instructional speech-bubble broadcast (Mike directive 2026-05-03).
   useEffect(() => {
@@ -256,11 +258,11 @@ export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ time = 'dusk', s
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'truefalse',
-      brief: 'Read the sign. Tap green TRUE or red FALSE.',
-      brief_pl: 'Przeczytaj znak. Stuknij zielone PRAWDA lub czerwone FAŁSZ.',
-      detail: 'A road sign appears with a single statement. Decide whether it is true or false based on the lesson facts. Tap TRUE for green, FALSE for red — you commit immediately. Right answers light up; wrong ones reveal the correct verdict.',
-      detail_pl: 'Pojawia się znak drogowy z jednym stwierdzeniem. Zdecyduj, czy jest prawdziwe czy fałszywe na podstawie faktów z lekcji. Stuknij TRUE (zielony) lub FALSE (czerwony) — zatwierdzasz od razu. Trafione świecą; błędne pokazują właściwą odpowiedź.',
-      fullInstructions: TRUEFALSE_INSTRUCTIONS,
+      brief: "Read the statement and choose TRUE or FALSE to open the crossing.",
+      brief_pl: "Przeczytaj stwierdzenie i wybierz PRAWDA lub FAŁSZ.",
+      detail: "Read the statement and choose TRUE or FALSE to open the crossing. A wrong verdict reveals the correct answer and the explanation. Use T / F or tap the answer. Continue when you have read the feedback.",
+      detail_pl: "Przeczytaj stwierdzenie i wybierz PRAWDA lub FAŁSZ. Po błędzie zobaczysz poprawny werdykt i wyjaśnienie. Użyj T / F lub stuknij odpowiedź. Kontynuuj po przeczytaniu wyjaśnienia.",
+      fullInstructions: { ...TRUEFALSE_INSTRUCTIONS, whatYouDo: {"en": ["Read the statement and choose TRUE or FALSE to open the crossing.", "A wrong verdict reveals the correct answer and the explanation.", "Use T / F or tap the answer. Continue when you have read the feedback."], "pl": ["Przeczytaj stwierdzenie i wybierz PRAWDA lub FAŁSZ.", "Po błędzie zobaczysz poprawny werdykt i wyjaśnienie.", "Użyj T / F lub stuknij odpowiedź. Kontynuuj po przeczytaniu wyjaśnienia."]}, controls: {"en": ["Read the statement and choose TRUE or FALSE to open the crossing.", "A wrong verdict reveals the correct answer and the explanation.", "Use T / F or tap the answer. Continue when you have read the feedback."], "pl": ["Przeczytaj stwierdzenie i wybierz PRAWDA lub FAŁSZ.", "Po błędzie zobaczysz poprawny werdykt i wyjaśnienie.", "Użyj T / F lub stuknij odpowiedź. Kontynuuj po przeczytaniu wyjaśnienia."]}, rightWrongSkip: {"en": ["Correct choices earn arcade points. Mistakes stay available in your session review. Skip moves on without points."], "pl": ["Poprawne wybory dają punkty arcade. Błędy zobaczysz w przeglądzie sesji. Pominięcie przechodzi dalej bez punktów."]} },
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
     return () => {
@@ -308,6 +310,7 @@ export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ time = 'dusk', s
     if (forcedState) return;
     if (answered) return;
     const correct = val === q.ans;
+    arcade.decide(correct, `verdict-${idx}`);
 
     // Fix-2 (Opus 4.7): Layer-4 InterferenceTip overlay — fire the parent
     // callback FIRST, before any local state mutation, so the parent's
@@ -367,6 +370,7 @@ export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ time = 'dusk', s
   // statement has been seen (judged or skipped). The host then mounts
   // <PracticeReview> over the shell area and suppresses the in-shell dialog.
   const sessionComplete = questionsSeen >= activeQuestions.length;
+  useEffect(() => { if (sessionComplete && !forcedState) arcade.finish(); }, [sessionComplete, forcedState]);
   useEffect(() => {
     if (forcedState) return;
     if (!sessionComplete) return;
@@ -392,6 +396,7 @@ export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ time = 'dusk', s
   };
 
   const reset = (): void => {
+    arcade.reset();
     setIdx(0);
     setScore({ right: 0, wrong: 0 });
     setStreak(0);
@@ -418,181 +423,7 @@ export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ time = 'dusk', s
 
   const isDone = idx === activeQuestions.length - 1 && answered;
 
-  return (
-    <div className="em-shell" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-      {/* Decorative atmosphere stack — Ricky 2026-05-02 (#15 audit pass).
-          Background, zebra-crossing, and grain all forced to zIndex:0 +
-          pointerEvents:none so the bottom-edge zebra (which used 3D-perspective
-          transform) cannot intercept taps near the Bajla footer / Next-sign
-          button at common viewports (375/414/768/1280/1920). */}
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background:
-        time === 'day'
-          ? 'linear-gradient(180deg, #4C2F7E 0%, #C58BD9 100%)'
-          : time === 'night'
-            ? 'linear-gradient(180deg, #06031A 0%, #1F0E3A 100%)'
-            : 'linear-gradient(180deg, #1F1240 0%, #4C2570 100%)'
-      }}/>
-      {/* zebra crossing on the road */}
-      <div aria-hidden="true" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, zIndex: 0, pointerEvents: 'none', background:
-        'repeating-linear-gradient(90deg, rgba(255,255,255,0.45) 0 28px, transparent 28px 56px)',
-        transform: 'perspective(300px) rotateX(40deg)', transformOrigin: 'bottom', opacity: 0.6 }}/>
-      <div className="em-grain" aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}/>
-
-      <div style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', zIndex: 5 }}>
-        {/* Kelly Tier-2 audit (2026-05-02): unified district + subtitle to
-            "Courthouse" — previous "Crossroads" subtitle conflicted with the
-            "Courthouse" district name, splitting the theme. */}
-        <AmbientAudioPlayer shellSlug="truefalse" />
-        <Nameplate district="The Courthouse" subtitle="True / False · Prawda czy fałsz · weigh the verdict" accent="#34D399"
-          icon={<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="8" y="3" width="6" height="16" rx="2" stroke="#34D399" strokeWidth="1.5"/><circle cx="11" cy="7" r="1.5" fill="#FB7185"/><circle cx="11" cy="11" r="1.5" fill="#FBBF24"/><circle cx="11" cy="15" r="1.5" fill="#34D399"/></svg>}/>
-        {/* Kelly Tier-2 audit (2026-05-02): the header had FOUR counters —
-            ✓N ✗N + Progress's "Q seen/total · ✓ correct/total" — duplicating
-            the ✓ tally. The new shared Progress primitive already shows
-            position + completion via the dotted bar; we keep only the
-            ✓/✗ tally chips and the position counter, dropping the redundant
-            "✓ N / N" mirror. */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span className="em-eyebrow" style={{ color: '#34D399' }} aria-label={`${score.right} correct`}>✓ {score.right}</span>
-          <span className="em-eyebrow" style={{ color: '#FB7185' }} aria-label={`${score.wrong} wrong`}>✕ {score.wrong}</span>
-          {streak >= 2 && <span className="em-eyebrow" style={{ color: '#FBBF24' }} aria-label={`${streak} streak`}>🔥 {streak} STREAK</span>}
-          {/* Position-only — `current` omitted so Progress shows clean Q seen/total
-              and the dotted bar visually conveys completion (filled cells = score.right). */}
-          <Progress current={score.right} total={activeQuestions.length} seen={questionsSeen} accent="#34D399"/>
-          <SkipButton onClick={skip} />
-          <HintButton onClick={useHint} used={hintsUsed} total={3} />
-        </div>
-      </div>
-
-      <div style={{ position: 'absolute', inset: '110px 32px 80px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 64 }}>
-        {/* the question on a street sign */}
-        <div style={{ position: 'relative', maxWidth: 380 }} role="region" aria-label="Statement">
-          <div style={{
-            position: 'relative',
-            background: '#F5EBD8',
-            color: '#3F2510',
-            padding: '32px 28px',
-            borderRadius: 8,
-            boxShadow: '0 18px 40px rgba(0,0,0,0.5)',
-            border: '4px solid #1A0F08',
-            fontFamily: 'var(--em-decor)', fontSize: 22, lineHeight: 1.3,
-            transition: 'transform 220ms',
-          }}>
-            <div className="em-eyebrow" style={{ color: '#876543', marginBottom: 8 }}>STREET FACT · FAKT ULICY · No.{idx + 1}</div>
-            "{q.q}"
-            <div style={{ fontFamily: 'var(--em-body)', fontSize: 13, color: '#876543', marginTop: 12, fontStyle: 'italic' }}>
-              🇵🇱 {q.q_pl}
-            </div>
-            {showHint && !answered && (
-              <div
-                role="status"
-                aria-live="polite"
-                style={{
-                  marginTop: 12,
-                  padding: '10px 12px',
-                  background: '#FBBF2422',
-                  border: '1px dashed #FBBF24',
-                  borderRadius: 6,
-                  fontFamily: 'var(--em-body)',
-                  fontSize: 12,
-                  color: '#3F2510',
-                  animation: 'em-tip-fade 220ms var(--em-ease) both',
-                }}
-              >
-                <strong>Hint:</strong> the answer is {q.ans ? 'TRUE' : 'FALSE'}.
-                <span className="em-hint-pl" style={{ display: 'block', marginTop: 4, color: '#876543' }}>
-                  🇵🇱 odpowiedź to {q.ans ? 'PRAWDA' : 'FAŁSZ'}
-                </span>
-              </div>
-            )}
-            {answered && (
-              <div style={{ marginTop: 14, padding: '10px 12px', background: verdict === 'right' ? '#34D39922' : '#FB718522', border: `1px solid ${verdict === 'right' ? '#34D399' : '#FB7185'}`, borderRadius: 6, fontFamily: 'var(--em-body)', fontSize: 12, color: '#3F2510', fontStyle: 'italic' }}>
-                {q.fact}
-              </div>
-            )}
-            {/* sign post */}
-            <div style={{ position: 'absolute', bottom: -120, left: '50%', transform: 'translateX(-50%)', width: 8, height: 120, background: '#1A0F08' }}/>
-          </div>
-        </div>
-
-        {/* The traffic light verdict */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center' }} role="group" aria-label="True or false answer">
-          <button onClick={() => answer(true)} disabled={answered}
-            role="button"
-            aria-label="True"
-            tabIndex={0}
-            style={{
-              width: 130, height: 130, borderRadius: '50%',
-              background: 'radial-gradient(circle at 30% 30%, #6CFAB8, #34D399)',
-              border: '6px solid #14082A',
-              boxShadow: (verdict === 'right' && q.ans === true) ? '0 0 60px #34D399, inset 0 -8px 12px rgba(0,0,0,0.3)' : '0 0 30px #34D39988, inset 0 -8px 12px rgba(0,0,0,0.3)',
-              cursor: answered ? 'default' : 'pointer',
-              color: '#0E2A1F', fontFamily: 'var(--em-decor)', fontSize: 28,
-              opacity: answered && q.ans !== true ? 0.4 : 1,
-              transition: 'all 220ms var(--em-ease)',
-              transform: (verdict && q.ans === true) ? 'scale(1.1)' : 'scale(1)',
-            }}>TRUE</button>
-          <button onClick={() => answer(false)} disabled={answered}
-            role="button"
-            aria-label="False"
-            tabIndex={0}
-            style={{
-              width: 130, height: 130, borderRadius: '50%',
-              background: 'radial-gradient(circle at 30% 30%, #FFA8B8, #FB7185)',
-              border: '6px solid #14082A',
-              boxShadow: (verdict === 'right' && q.ans === false) ? '0 0 60px #FB7185, inset 0 -8px 12px rgba(0,0,0,0.3)' : '0 0 30px #FB718588, inset 0 -8px 12px rgba(0,0,0,0.3)',
-              cursor: answered ? 'default' : 'pointer',
-              color: '#3A0F1A', fontFamily: 'var(--em-decor)', fontSize: 26,
-              opacity: answered && q.ans !== false ? 0.4 : 1,
-              transition: 'all 220ms var(--em-ease)',
-              transform: (verdict && q.ans === false) ? 'scale(1.1)' : 'scale(1)',
-            }}>FALSE</button>
-        </div>
-      </div>
-
-      <div style={{ position: 'absolute', bottom: 24, left: 24, right: 24, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', zIndex: 5 }}>
-        {answered && !isDone && (
-          <button className="em-btn em-btn-primary" onClick={next} aria-label="Next sign">Next sign →</button>
-        )}
-      </div>
-
-      {/* Instructions modal — centered HintCard + standalone Bajla removed
-          2026-05-03; chat-widget speech bubble carries the brief. */}
-      <div style={{ position: 'absolute', bottom: 90, left: 24, maxWidth: 280, zIndex: 4, opacity: answered ? 0 : 1, transition: 'opacity 220ms var(--em-ease)', pointerEvents: answered ? 'none' : 'auto' }}>
-      </div>
-
-      {/* Live region for assistive tech */}
-      <div aria-live="polite" aria-atomic="true" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>
-        {announcement}
-      </div>
-
-      {isDone && !onSessionComplete && (
-        // D3 Wave-2 (2026-05-02): when the host wires onSessionComplete, the
-        // <PracticeReview> overlay takes over the completion experience —
-        // suppress this in-shell dialog so we don't double-render. Kept as a
-        // fallback for the design canvas + any host that doesn't want review.
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'radial-gradient(ellipse at center, rgba(52,211,153,0.18), rgba(14,10,26,0.9))',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, backdropFilter: 'blur(2px)',
-          animation: 'em-rise 0.5s var(--em-ease)', zIndex: 10,
-        }} role="region" aria-label="Quiz complete">
-          <Bajla size={84} mood="cheer" decorative/>
-          <div className="em-decor" style={{ fontSize: 38, color: 'var(--em-text)' }}>Crossing complete.</div>
-          <div style={{ display: 'flex', gap: 24, alignItems: 'baseline' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--em-decor)', fontSize: 44, color: '#34D399' }}>{score.right}</div>
-              <div className="em-eyebrow" style={{ color: '#34D399' }}>RIGHT · TRAFNE</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--em-decor)', fontSize: 44, color: '#FB7185' }}>{score.wrong}</div>
-              <div className="em-eyebrow" style={{ color: '#FB7185' }}>WRONG · BŁĘDY</div>
-            </div>
-          </div>
-          <button className="em-btn em-btn-primary" onClick={reset} aria-label="Walk again">Walk again →</button>
-        </div>
-      )}
-    </div>
-  );
+  return <ChallengeArena variant="verdict" title="The Courthouse" mission="Light every crossing with a sound verdict." prompt={q.q} translation={q.q_pl} options={['TRUE · PRAWDA', 'FALSE · FAŁSZ']} picked={answered ? (verdict === 'right' ? (q.ans ? 0 : 1) : (q.ans ? 1 : 0)) : null} answerIndex={q.ans ? 0 : 1} revealed={answered} round={idx} total={activeQuestions.length} score={score.right} completed={sessionComplete} onPick={i => answer(i === 0)} onNext={next} onSkip={skip} onReset={reset} hint={answered ? q.fact : undefined} run={arcade} />;
 };
 
 export default TrueFalseShell;

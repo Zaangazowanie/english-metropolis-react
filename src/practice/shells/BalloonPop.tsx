@@ -1,3 +1,8 @@
+import { useActionCompletion } from './action-arcade-completion';
+import { maskAnswerInPrompt } from '../lib/exercise-adapters';
+import { useArcadeEvents } from '../lib/arcade-events';
+import { useActionTimers } from './action-arcade-timers';
+import './action-arcade.css';
 // Balloon Pop — "The Rooftop Garden" district.
 //
 // Rooftop garden at dusk, city lights below. Balloons drift upward from
@@ -28,68 +33,42 @@ import type { FullInstructions } from '../components';
 
 // Rooftop Garden · Balloon Pop — full bilingual instruction copy.
 const BALLOONPOP_INSTRUCTIONS: FullInstructions = {
-  whatYouDo: {
-    en: [
-      'A prompt sentence with a gap appears at the top above the rooftop garden.',
-      'Four balloons drift up from the railing, each carrying a word chip.',
-      'Tap the balloon whose word fits the gap before it floats off the top of the screen.',
-      'Pop the right balloon and confetti bursts; pop the wrong one and it deflates with a hiss — try the next pass.',
+  "whatYouDo": {
+    "en": [
+      "Read the clue and launch the balloons. Pop the balloon holding the matching word."
     ],
-    pl: [
-      'Zdanie z luką pojawia się u góry nad ogrodem na dachu.',
-      'Cztery balony unoszą się znad balustrady, każdy z karteczką słowa.',
-      'Stuknij balon, którego słowo pasuje do luki, zanim ucieknie z ekranu.',
-      'Trafny balon strzela konfetti; błędny opada z syknięciem — spróbuj przy następnym przelocie.',
+    "pl": [
+      "Przeczytaj wskazówkę i wypuść balony. Przebij balon z właściwym słowem."
+    ]
+  },
+  "controls": {
+    "en": [
+      "Tap a balloon or focus it with Tab and press Enter. Pause any time. Three wind freezes hold balloons for four seconds each."
     ],
+    "pl": [
+      "Stuknij balon albo wybierz go Tab i naciśnij Enter. Możesz zatrzymać grę. Trzy zamrożenia wiatru zatrzymują balony na cztery sekundy."
+    ]
   },
-  controls: {
-    en: [
-      'Prompt strip: gap-fill sentence at the top of the rooftop scene.',
-      'Four colored balloons: drift upward, each labelled with a word chip.',
-      'Plant pots / railing: decorative — no interaction.',
-      'Skip + Hint buttons: Skip jumps to next round, Hint deflates one wrong balloon.',
-      'Balloon log (right panel): queued sentences with progress dots per round.',
+  "rightWrongSkip": {
+    "en": [
+      "Wrong words deflate. Unanswered balloons return, so the clue remains solvable. Skip switches to another unsolved clue."
     ],
-    pl: [
-      'Pasek pytania: zdanie z luką u góry sceny dachu.',
-      'Cztery kolorowe balony: unoszą się w górę, każdy z karteczką słowa.',
-      'Donice / balustrada: dekoracyjne — bez interakcji.',
-      'Przyciski Pomiń i Podpowiedź: Pomiń przeskakuje rundę, Podpowiedź zdmuchuje jeden błędny balon.',
-      'Dziennik balonów (panel z prawej): kolejka zdań z kropkami postępu.',
-    ],
+    "pl": [
+      "Złe słowa tracą powietrze. Balony bez odpowiedzi wracają. Pomiń przenosi do innej nierozwiązanej wskazówki."
+    ]
   },
-  rightWrongSkip: {
-    en: [
-      'Right pop: ✓ confetti burst + green flash, +1 to your tally, next round queues.',
-      'Wrong pop: ✗ balloon deflates with a hiss, miss counter +1; correct balloon flashes green so you can see what you missed.',
-      'Skip: counts as wrong — moves to the next round.',
-      'If a balloon escapes off the top before any pop, it counts as a miss and the round retries with a fresh batch.',
-    ],
-    pl: [
-      'Trafienie: ✓ wybuch konfetti + zielony błysk, +1 do wyniku, następna runda w kolejce.',
-      'Błąd: ✗ balon syknie i opadnie, licznik pomyłek +1; poprawny balon mignie na zielono, abyś zobaczył, co Ci umknęło.',
-      'Pomiń: liczy się jako błąd — przeskok do następnej rundy.',
-      'Jeśli balon ucieknie przed strzeleniem, liczy się jako pudło, a runda powtarza się ze świeżą turą balonów.',
-    ],
+  "hintMechanic": {
+    "en": "Use the limited Hint button for help with the current clue.",
+    "pl": "Użyj ograniczonej liczby podpowiedzi do aktualnej wskazówki."
   },
-  hintMechanic: {
-    en:
-      'You have 3 hints per session. Each tap deflates one wrong balloon at the start of the next pass, leaving fewer choices in the air. Save them for fast rounds where balloons rise quickly.',
-    pl:
-      'Masz 3 podpowiedzi na sesję. Każde stuknięcie zdmuchuje jeden błędny balon na początku kolejnego przelotu. Zachowaj je na szybkie rundy, w których balony unoszą się szybko.',
+  "scoring": {
+    "en": "100 arcade points per correct pop; 150 inside the golden bonus band while the wind is moving.",
+    "pl": "100 punktów za dobre przebicie; 150 w złotej strefie, gdy wiatr jest w ruchu."
   },
-  scoring: {
-    en:
-      'Skip counts as wrong. Each correct pop adds to your session streak. Popping every round in the deck unlocks the post-shell review with explanations of any wrong picks.',
-    pl:
-      'Pomiń liczy się jako błąd. Każde trafienie buduje serię w sesji. Strzelenie wszystkich rund odblokowuje przegląd po sesji z wyjaśnieniami błędów.',
-  },
-  l1Pattern: {
-    en:
-      'Vocab-recognition speed drill. Polish learners often hesitate between two near-synonyms (e.g. "remember" vs "remind"); the rising-balloon time pressure trains quick, decisive recall.',
-    pl:
-      'Trening szybkiego rozpoznawania słownictwa. Polscy uczniowie wahają się między dwoma bliskoznacznymi słowami (np. „remember" vs „remind"); presja unoszących się balonów uczy szybkiej i pewnej decyzji.',
-  },
+  "l1Pattern": {
+    "en": "Practise English meaning and sentence context before you make your move.",
+    "pl": "Ćwicz angielskie znaczenie i kontekst zdania przed wykonaniem ruchu."
+  }
 };
 
 export type ArcadeForcedState = 'empty' | 'active' | 'wrong' | 'correct' | 'complete' | null;
@@ -267,6 +246,8 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
   const propsInvalid = !forcedState && puzzle !== undefined && (!puzzle.rounds || puzzle.rounds.length === 0);
   const activePuzzle: ArcadePuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : DEMO_PUZZLE;
   const persisted = useShellProgress('balloonpop');
+  const arcadeEvent = useArcadeEvents();
+  const { later, cancel: cancelActionTimers } = useActionTimers();
 
   // Kelly Tier-2 (2026-05-02): JS-side prefers-reduced-motion gate. The
   // CSS @media rule (global.css §1395) freezes keyframe-driven animation,
@@ -287,10 +268,10 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'balloonpop',
-      brief: 'Tap the rising balloon whose word fits the gap before it floats away.',
-      brief_pl: 'Stuknij wznoszący się balon ze słowem pasującym do luki, zanim ucieknie.',
-      detail: 'Balloons rise from the rooftop garden, each carrying a word. Read the prompt and tap the balloon whose word completes the sentence. Pop the wrong balloon and you lose a point; let one drift off-screen and the round resets.',
-      detail_pl: 'Balony unoszą się z ogrodu na dachu, każdy z innym słowem. Przeczytaj polecenie i stuknij balon, którego słowo pasuje do luki. Pęknięcie złego kosztuje punkt; jeśli ucieknie z ekranu, runda się resetuje.',
+      brief: BALLOONPOP_INSTRUCTIONS.whatYouDo.en[0],
+      brief_pl: BALLOONPOP_INSTRUCTIONS.whatYouDo.pl[0],
+      detail: BALLOONPOP_INSTRUCTIONS.controls.en.join(' ') + ' ' + BALLOONPOP_INSTRUCTIONS.rightWrongSkip.en.join(' '),
+      detail_pl: BALLOONPOP_INSTRUCTIONS.controls.pl.join(' ') + ' ' + BALLOONPOP_INSTRUCTIONS.rightWrongSkip.pl.join(' '),
       fullInstructions: BALLOONPOP_INSTRUCTIONS,
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
@@ -307,6 +288,12 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
   const [hintBalloonId, setHintBalloonId] = useState<number | null>(null);
   const [missCount, setMissCount] = useState(0);
   const balloonIdSeed = useRef(1);
+  const [launched, setLaunched] = useState(false);
+  const [frozen, setFrozen] = useState(false);
+  const [freezeCharges, setFreezeCharges] = useState(3);
+  const [points, setPoints] = useState(0);
+  const [reward, setReward] = useState('Pop in the golden band for a +50 skill bonus.');
+  const roundLocked = useRef(false);
   const tickRef = useRef<number | null>(null);
   const spawnRoundRef = useRef<() => void>(() => {});
   const respawnTimerRef = useRef<number | null>(null);
@@ -317,6 +304,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
 
   const cur = activePuzzle.rounds[roundIdx];
   const completed = solved.every(Boolean);
+  useActionCompletion(completed, Boolean(forcedState), arcadeEvent);
   const correctCount = solved.filter(Boolean).length;
   const tip = useEndOfShellTip({
     onWrongAnswer,
@@ -362,9 +350,9 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
       color: BALLOON_PALETTE[oi % BALLOON_PALETTE.length],
       state: 'rising',
     }));
-    setBalloons(newBalloons);
+    roundLocked.current = false; setLaunched(false);
+    setBalloons(newBalloons.map(b => ({ ...b, bottom: reduce ? b.bottom : 3 + b.optionIdx * 7 })));
     setFeedback(null);
-    setMissCount(0);
   }, [cur, forcedState]);
 
   // Keep latest spawnRound reachable from stable effects/timers without
@@ -378,7 +366,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
 
   // Animation tick — moves balloons upward.
   useEffect(() => {
-    if (forcedState) return;
+    if (forcedState || !launched || frozen || completed || roundLocked.current) return;
     // Kelly Tier-2 (2026-05-02): JS-side reduced-motion gate. CSS can't stop
     // requestAnimationFrame; we skip the entire physics loop when the user
     // has motion-reduce set. Balloons remain frozen at their spawn position
@@ -387,7 +375,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
     let raf = 0;
     let last = performance.now();
     const tick = (now: number) => {
-      const dt = (now - last) / 16.67;
+      const dt = Math.min(3, (now - last) / 16.67);
       last = now;
       setBalloons(prev => {
         const next = prev.map(b => {
@@ -410,7 +398,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
           // Round not yet solved — respawn after brief pause. Guard against
           // queueing a fresh timer every frame (which would reset balloons
           // to their spawn position dozens of times in a row).
-          respawnTimerRef.current = window.setTimeout(() => {
+          respawnTimerRef.current = later(() => {
             respawnTimerRef.current = null;
             spawnRoundRef.current();
           }, 600);
@@ -428,7 +416,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
         respawnTimerRef.current = null;
       }
     };
-  }, [forcedState]);
+  }, [forcedState, launched, frozen, completed, feedback]);
 
   useEffect(() => {
     if (forcedState === 'empty') { setSolved(activePuzzle.rounds.map(() => false)); setBalloons([]); }
@@ -445,19 +433,23 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
   }, [forcedState]);
 
   const pop = (id: number): void => {
-    if (forcedState) return;
+    if (forcedState || roundLocked.current || (!launched && !reducedMotionRef.current)) return;
     const b = balloons.find(b => b.id === id);
     if (!b || b.state !== 'rising') return;
     if (b.isAnswer) {
+      roundLocked.current = true; const bonus = b.bottom >= 28 && b.bottom <= 60 && !frozen && !reducedMotionRef.current;
+      const earned = bonus ? 150 : 100; setPoints(p => p + earned); setReward(bonus ? 'GOLDEN BAND! +150 points' : '+100 points · rooftop cleared'); arcadeEvent({ type: 'correct', points: earned });
       setBalloons(prev => prev.map(x => x.id === id ? { ...x, state: 'popped' } : x));
       setFeedback('correct');
       setSolved(prev => prev.map((v, i) => i === roundIdx ? true : v));
-      window.setTimeout(() => {
-        if (roundIdx + 1 < activePuzzle.rounds.length) {
-          setRoundIdx(i => i + 1);
+      later(() => {
+        const nextRound = solved.findIndex((done, i) => !done && i !== roundIdx);
+        if (nextRound >= 0) {
+          setRoundIdx(nextRound);
         }
       }, 1200);
     } else {
+      arcadeEvent({ type: 'incorrect' });
       setBalloons(prev => prev.map(x => x.id === id ? { ...x, state: 'deflated' } : x));
       setFeedback('wrong');
       setMissCount(c => c + 1);
@@ -468,7 +460,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
         explanationPL: cur.hint_pl,
         exerciseId: cur.exerciseId,
       });
-      window.setTimeout(() => setFeedback(null), 800);
+      later(() => setFeedback(null), 800);
     }
   };
 
@@ -478,17 +470,20 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
     if (!ans) return;
     setHintBalloonId(ans.id);
     setHintsUsed(h => h + 1);
-    window.setTimeout(() => setHintBalloonId(null), 2400);
+    later(() => setHintBalloonId(null), 2400);
   };
 
   const skipRound = (): void => {
-    if (roundIdx + 1 < activePuzzle.rounds.length) setRoundIdx(i => i + 1);
+    const nextRound = solved.findIndex((done, i) => !done && i !== roundIdx); if (nextRound >= 0) setRoundIdx(nextRound);
   };
 
   const reset = (): void => {
+    cancelActionTimers();
+    arcadeEvent({ type: 'reset' });
+    roundLocked.current = false; setFreezeCharges(3); setFrozen(false); setLaunched(false); setPoints(0); spawnRoundRef.current();
     setRoundIdx(0);
     setSolved(activePuzzle.rounds.map(() => false));
-    setBalloons([]);
+    setBalloons([]); later(() => spawnRoundRef.current(), 0);
     setFeedback(null);
     setHintsUsed(0);
     setMissCount(0);
@@ -505,9 +500,9 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
   // Two focusable buttons (Try another / Next district →) — Tab cycles
   // forward, Shift+Tab cycles backward, focus restored on close.
   useEffect(() => {
-    if (!completed) return;
+    if (!completed || onSessionComplete) return;
     previouslyFocusedRef.current = (document.activeElement as HTMLElement) || null;
-    const focusId = window.setTimeout(() => { nextDistrictBtnRef.current?.focus(); }, 0);
+    const focusId = later(() => { nextDistrictBtnRef.current?.focus(); }, 0);
     const trap = (e: KeyboardEvent) => {
       if (e.key === 'Tab') {
         const focusables = [tryAnotherBtnRef.current, nextDistrictBtnRef.current].filter(Boolean) as HTMLButtonElement[];
@@ -530,7 +525,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
       const prev = previouslyFocusedRef.current;
       if (prev && typeof prev.focus === 'function') prev.focus();
     };
-  }, [completed]);
+  }, [completed, onSessionComplete]);
 
   const liveStatus = completed
     ? 'The garden settles. All balloons popped.'
@@ -633,9 +628,10 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
               fontFamily: 'var(--em-mono)', fontSize: 11, color: ACCENT, letterSpacing: '0.18em',
               padding: '4px 8px', border: `1px solid ${ACCENT}66`, borderRadius: 4, flexShrink: 0,
             }}>RND {String(roundIdx + 1).padStart(2, '0')}</div>
-            <div className="em-decor" style={{ fontSize: 18, color: 'var(--em-text)', flex: 1, lineHeight: 1.3 }}>{cur.prompt}</div>
+            <div className="em-decor" style={{ fontSize: 18, color: 'var(--em-text)', flex: 1, lineHeight: 1.3 }}>{maskAnswerInPrompt(cur.prompt, cur.options[cur.answerIndex])}</div>
           </div>
 
+          <div className="action-arcade-hud" style={{ margin: '12px 24px 0' }}><div><strong>{points} POINTS</strong><small>{reward}</small></div><button disabled={completed || roundLocked.current} onClick={() => setLaunched(v => !v)}>{launched ? 'Pause' : 'Launch balloons'}</button><button disabled={!launched || frozen || freezeCharges === 0 || completed || roundLocked.current} onClick={() => { setFreezeCharges(n => n - 1); setFrozen(true); later(() => setFrozen(false), 4000); }}>{frozen ? 'Wind frozen · 4s' : `Freeze wind · ${freezeCharges}`}</button></div>
           {/* Garden floor area (where balloons fly through).
               Kelly Tier-2 (2026-05-02): made keyboard-focusable so non-mouse
               users can at least land focus here and Tab into the per-balloon
@@ -652,6 +648,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
             aria-label="Rooftop garden canvas — balloons rise from the railing; Tab to move between balloon buttons, Space or Enter to pop the focused balloon"
             style={{ flex: 1, position: 'relative', overflow: 'hidden', margin: '14px 0 0' }}
           >
+            <div aria-hidden="true" style={{ position: 'absolute', bottom: '28%', height: '32%', left: 0, right: 0, borderTop: '1px dashed #fbbf2480', borderBottom: '1px dashed #fbbf2480', background: 'linear-gradient(90deg,#fbbf2400,#fbbf2414,#fbbf2400)', pointerEvents: 'none' }}><span style={{ position: 'absolute', right: 12, top: 5, color: '#fde68a', font: '10px var(--em-mono)' }}>BONUS AIRSPACE +50</span></div>
             {/* Railing/parapet */}
             <div style={{
               position: 'absolute', bottom: 0, left: 0, right: 0, height: 56,
@@ -677,7 +674,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
 
             {balloons.map(b => {
               if (b.state === 'escaped') return null;
-              const wobX = Math.sin(performance.now() / 800 + b.phase) * b.wobble;
+              const wobX = reducedMotionRef.current || !launched || frozen ? 0 : Math.sin(performance.now() / 800 + b.phase) * b.wobble;
               const isHinted = hintBalloonId === b.id;
               return (
                 <button
@@ -685,10 +682,10 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
                   type="button"
                   onClick={() => pop(b.id)}
                   aria-label={`Balloon with answer ${b.word}, tap to pop`}
-                  disabled={b.state !== 'rising'}
+                  disabled={b.state !== 'rising' || (!launched && !reducedMotionRef.current) || roundLocked.current}
                   style={{
                     position: 'absolute',
-                    left: `calc(${b.x}% + ${wobX}px)`,
+                    left: `clamp(48px, calc(${b.x}% + ${wobX}px), calc(100% - 48px))`,
                     bottom: `${b.bottom}%`,
                     transform: 'translateX(-50%)',
                     width: 90, height: 130,
@@ -700,7 +697,6 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
                       b.state === 'popped' ? 'em-bp-pop 360ms var(--em-ease) forwards'
                         : b.state === 'deflated' ? 'em-bp-deflate 480ms var(--em-ease) forwards'
                         : 'em-bp-wobble 2.4s var(--em-ease) infinite',
-                    ['--wob' as never]: `${b.wobble}px`,
                     touchAction: 'manipulation',
                     // No CSS transition: rAF already drives `bottom` every
                     // frame, and a 60ms tween between rAF updates fights the
@@ -771,8 +767,8 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
               <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa`, textAlign: 'center', padding: '0 16px' }}>The garden settles.</div>
               <div className="em-eyebrow">EVERY BALLOON POPPED · WSZYSTKO PĘKŁO</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button ref={tryAnotherBtnRef} type="button" className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-                <button ref={nextDistrictBtnRef} type="button" className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
+                <button ref={tryAnotherBtnRef} type="button" className="em-btn em-btn-ghost" onClick={reset}>Restart run</button>
+                <button ref={nextDistrictBtnRef} type="button" className="em-btn em-btn-primary" onClick={reset}>Play again →</button>
               </div>
             </div>
           )}
@@ -783,7 +779,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Progress current={solved.filter(Boolean).length} total={activePuzzle.rounds.length} accent={ACCENT} />
             <div style={{ display: 'flex', gap: 6 }}>
-              <SkipButton onClick={skipRound} />
+              <SkipButton onClick={() => { if (roundLocked.current) return; const next = solved.findIndex((done, i) => !done && i !== roundIdx); if (next >= 0) setRoundIdx(next); }} />
               <HintButton onClick={useHint} used={hintsUsed} total={3} />
             </div>
           </div>

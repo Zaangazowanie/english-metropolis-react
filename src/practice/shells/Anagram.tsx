@@ -1,8 +1,10 @@
+import { anagramCleanCount } from './word-arcade-mechanics';
 // Anagram — The Underpass district.
 // Click letter tiles to spell the word. Click filled slots to remove.
 // Tiles glow neon when used; brick wall for atmosphere.
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
+import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import type { ShellAnagramPuzzle } from '../lib/adapters';
 
@@ -225,6 +227,7 @@ interface Tile {
 // Component
 // ─────────────────────────────────────────────────────────────
 export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', state: forcedState = null, puzzle: puzzleProp, onWrongAnswer, onSessionComplete }) => {
+  const arcade = useWordArcade();
   const accent = '#BEF264';
   // Kelly Tier-2 (2026-05-02): defensive props guard.
   const propsInvalid = !forcedState && puzzleProp !== undefined && (
@@ -243,6 +246,7 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
 
   const [puzzleIdx, setPuzzleIdx] = useState<number>(0);
   const [slots, setSlots] = useState<number[]>([]);
+  const [mix, setMix] = useState(0);
   const [shake, setShake] = useState<boolean>(false);
   const [announcement, setAnnouncement] = useState<string>('');
   const [hintsUsed, setHintsUsed] = useState<number>(0);
@@ -275,7 +279,7 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
   // Build deterministic shuffled tile pool
   const tiles: Tile[] = useMemo(() => {
     const letters = puzzle.word.split('');
-    const seed = puzzle.word.length * 17 + 5;
+    const seed = puzzle.word.length * 17 + 5 + mix * 11;
     const indexed: Tile[] = letters.map((l, i) => ({
       id: i,
       letter: l,
@@ -283,7 +287,7 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
       rot: ((i * seed) % 9) - 4,
     }));
     return indexed.slice().sort((a, b) => ((a.id * seed) % 13) - ((b.id * seed) % 13));
-  }, [puzzleIdx, puzzle.word]);
+  }, [puzzleIdx, puzzle.word, mix]);
 
   useEffect(() => {
     setSlots([]);
@@ -356,8 +360,9 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
   // Auto-save on win or hint use.
   useEffect(() => {
     if (forcedState) return;
-    if (won) persisted.save({ progress: 1, completed: true, lastState: 'complete' });
-  }, [won, forcedState]);
+    const finished = visitedIds.size >= puzzleDeck.length;
+    persisted.save({ progress: visitedIds.size / Math.max(1,puzzleDeck.length), completed:finished, lastState: finished?'complete':'active' });
+  }, [visitedIds.size, puzzleDeck.length, forcedState]);
 
   // Layer-4 (EM-040): when the puzzle is won, surface the first wrong
   // attempt accumulated during play so the InterferenceTip overlay renders
@@ -375,12 +380,13 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
 
   const placeTile = (id: number): void => {
     if (forcedState) return;
-    if (inSlots.has(id)) return;
+    if (won || inSlots.has(id)) return;
     if (slots.length >= targetLen) return;
     const next = [...slots, id];
     setSlots(next);
     const builtNext = next.map(tid => tiles.find(t => t.id === tid)?.letter ?? '').join('');
     if (builtNext.length === targetLen && builtNext !== puzzle.word) {
+      arcade.answer(false);
       setShake(true);
       setAnnouncement('Wrong order. Spróbuj jeszcze raz.');
       setTimeout(() => setShake(false), 500);
@@ -401,6 +407,7 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
       setAllWrongAttempts((prev) => [...prev, w]);
       setStudentAnswers((prev) => ({ ...prev, [puzzle.word]: builtNext }));
     } else if (builtNext === puzzle.word) {
+      arcade.answer(true, 150);
       setAnnouncement(`Correct. ${puzzle.word}.`);
       // D3 Wave-5: record the student's correct final spelling so the review
       // shows "you spelled X" even on first-try wins.
@@ -414,11 +421,19 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
   };
 
   const removeAt = (i: number): void => {
+    if (won || forcedState) return;
     setSlots(s => s.filter((_, idx) => idx !== i));
     setHintReveal(null);
   };
   const clear = (): void => { setSlots([]); setAnnouncement(''); setHintReveal(null); };
   const next = (): void => {
+    if (forcedState) return;
+    if (!won && !visitedIds.has(puzzle.word)) {
+      arcade.answer(false);
+      const skipped = { questionId: puzzle.word, studentAnswer: built, correctAnswer: puzzle.word, explanationPL: puzzle.clue_pl, exerciseId: puzzle.exerciseId };
+      setAllWrongAttempts(prev => [...prev, skipped]);
+      setStudentAnswers(prev => ({ ...prev, [puzzle.word]: built }));
+    }
     // D3 Wave-5: mark the current puzzle as visited (skipped or solved),
     // so the deck's session-complete trigger advances even on Skip.
     setVisitedIds((prev) => {
@@ -442,8 +457,9 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
     if (visitedIds.size < puzzleDeck.length) return;
     setCompletedFired(true);
     const wrongIds = new Set(allWrongAttempts.map((w) => w.questionId));
+    arcade.complete();
     onSessionComplete({
-      correctCount: puzzleDeck.length - wrongIds.size,
+      correctCount: anagramCleanCount(puzzleDeck.map(p=>p.word), allWrongAttempts.map(w=>w.questionId), studentAnswers),
       totalQuestions: puzzleDeck.length,
       wrongAttempts: allWrongAttempts,
       puzzle: { items: puzzleDeck },
@@ -495,208 +511,33 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
     return <div className="em-shell-host-error">No puzzle data available · Brak danych ćwiczenia</div>;
   }
 
+  const safeClue = puzzle.clue.toLowerCase().includes(puzzle.word.toLowerCase()) ? `${targetLen}-letter word — use the translation to assemble it.` : puzzle.clue;
   return (
-    <div className="em-shell" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-      {/* Decorative atmosphere stack — Ricky 2026-05-02 (#15 audit pass).
-          All four full-bleed layers below are pure decoration. Force zIndex:0
-          and pointerEvents:none so taps never get captured by the brick wall
-          or vignette overlays — guarantees the slot row (zIndex:5) and tile
-          pool always receive clicks at every viewport. */}
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background:
-        time === 'day'
-          ? 'linear-gradient(180deg, #2D1F4A 0%, #4C2570 100%)'
-          : time === 'dusk'
-            ? 'linear-gradient(180deg, #110A22 0%, #2A1450 100%)'
-            : 'linear-gradient(180deg, #07041A 0%, #1F0E3A 100%)'
-      }}/>
-      {/* brick wall */}
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', opacity: 0.3, backgroundImage:
-        "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='40'><rect width='80' height='40' fill='%2329183D'/><rect x='0' y='0' width='40' height='20' stroke='%23120822' stroke-width='2' fill='none'/><rect x='40' y='0' width='40' height='20' stroke='%23120822' stroke-width='2' fill='none'/><rect x='-20' y='20' width='40' height='20' stroke='%23120822' stroke-width='2' fill='none'/><rect x='20' y='20' width='40' height='20' stroke='%23120822' stroke-width='2' fill='none'/><rect x='60' y='20' width='40' height='20' stroke='%23120822' stroke-width='2' fill='none'/></svg>\")",
-        backgroundSize: '80px 40px' }}/>
-      <div className="em-grain" aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}/>
-      {/* low light vignette */}
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%)' }}/>
-
-      <div style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, zIndex: 5 }}>
-        {/* Kelly Tier-2 audit (2026-05-02): unified district + subtitle to
-            "Letter Workshop" — previous "Underpass" subtitle conflicted with
-            the "Letter Workshop" district name, splitting the theme. */}
+    <div className="em-shell wa-board wa-forge" tabIndex={0} aria-label="Letter Forge anagram game"
+      onKeyDown={e => {
+        if (forcedState || won || (e.target as HTMLElement).matches('input,textarea')) return;
+        if (/^[a-z]$/i.test(e.key)) {
+          const tile = tiles.find(t => t.letter.toUpperCase() === e.key.toUpperCase() && !inSlots.has(t.id));
+          if (tile) { e.preventDefault(); placeTile(tile.id); }
+        } else if (e.key === 'Backspace') { e.preventDefault(); removeAt(slots.length - 1); }
+      }}>
+      <header>
         <AmbientAudioPlayer shellSlug="anagram" />
-        <Nameplate district="The Letter Workshop" subtitle="Anagram · Anagramy · arrange the letters" accent={accent}
-          icon={<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 18 L11 4 L18 18" stroke={accent} strokeWidth="1.6"/></svg>}/>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* TODO (EM-041 follow-up): SkipButton calls `next` which advances puzzleIdx,
-              so the counter does move on Skip — but it conflates skipped with solved.
-              Add `solvedCount` (incremented only when the player completes the anagram
-              correctly), then pass current={solvedCount} seen={puzzleIdx} to <Progress>.
-              — Builder 7, 2026-04-30 */}
-          <Progress current={puzzleIdx + 1} total={puzzleDeck.length} accent={accent}/>
-          <SkipButton onClick={next} />
-          <HintButton onClick={useHint} used={hintsUsed} total={3} />
+        <Nameplate district="The Letter Workshop" subtitle="Letter Forge · Kuźnia liter" accent={accent} />
+        <div><Progress current={puzzleIdx + 1} total={puzzleDeck.length} accent={accent}/><SkipButton onClick={next}/><HintButton onClick={useHint} used={hintsUsed} total={3}/></div>
+      </header>
+      <WordMission kind="forge" current={visitedIds.size} total={puzzleDeck.length} chain={arcade.chain} reaction={arcade.reaction}/>
+      <main className="wa-forge-core">
+        <div className="wa-clue"><small>BLUEPRINT {String(puzzleIdx+1).padStart(2,'0')} / {String(puzzleDeck.length).padStart(2,'0')}</small><h3>{safeClue}</h3><p>{puzzle.clue_pl.toLowerCase().includes(puzzle.word.toLowerCase()) ? `${targetLen} liter` : puzzle.clue_pl}</p></div>
+        <div className="wa-slot-rack" role="region" aria-label="Spelling slots" style={{animation:shake ? 'wa-shake .3s' : undefined}}>
+          {Array.from({length:targetLen},(_,i) => {const tile=tiles.find(t=>t.id===slots[i]); return <button key={i} className={`wa-letter ${tile?'is-filled':''}`} disabled={!tile || won} onClick={()=>removeAt(i)} aria-label={tile ? `Slot ${i+1}: ${tile.letter}. Remove letter` : `Slot ${i+1}: empty`}><small>{i+1}</small>{tile?.letter??'·'}</button>;})}
         </div>
-      </div>
-
-      {/* Goal slots */}
-      <div style={{ position: 'absolute', top: '32%', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 8 }} role="region" aria-label="Spelling slots">
-        {Array.from({ length: targetLen }).map((_, i) => {
-          const tileId = slots[i];
-          const tile = tileId !== undefined ? tiles.find(t => t.id === tileId) ?? null : null;
-          return (
-            <button key={i}
-              type="button"
-              tabIndex={tile ? 0 : -1}
-              disabled={!tile}
-              aria-label={tile ? `Slot ${i + 1}: ${tile.letter}. Press Enter to remove.` : `Slot ${i + 1}: empty.`}
-              onClick={() => tile && removeAt(i)}
-              onKeyDown={(e) => { if (tile && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); removeAt(i); } }}
-              style={{
-                // Kelly Tier-2 (2026-05-02): native <button> reset.
-                font: 'inherit',
-                margin: 0,
-                padding: 0,
-                WebkitAppearance: 'none',
-                appearance: 'none',
-                width: 56, height: 64,
-                background: tile ? `${tile.color}22` : 'rgba(0,0,0,0.4)',
-                border: `2px ${tile ? 'solid' : 'dashed'} ${tile ? tile.color : 'rgba(255,255,255,0.2)'}`,
-                borderRadius: 6,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'var(--em-decor)', fontSize: 32,
-                color: tile ? tile.color : 'rgba(255,255,255,0.15)',
-                textShadow: tile ? `0 0 16px ${tile.color}` : 'none',
-                transform: `rotate(${(i % 2 === 0 ? -1 : 1) * 1}deg)`,
-                cursor: tile ? 'pointer' : 'default',
-                transition: 'all 220ms var(--em-ease)',
-                animation: shake ? 'em-shake 0.4s var(--em-ease)' : 'none',
-              }}>
-              {tile ? tile.letter : '?'}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Built status indicator */}
-      <div style={{ position: 'absolute', top: 'calc(32% + 80px)', left: 0, right: 0, textAlign: 'center', fontFamily: 'var(--em-mono)', fontSize: 11, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.18em' }}>
-        {built.length}/{targetLen} · "{built || '...'}"
-      </div>
-
-      {/* Hint reveal — appears just below the slot row, fades in */}
-      {hintReveal && (
-        <div
-          role="status"
-          aria-live="polite"
-          style={{
-            position: 'absolute',
-            top: 'calc(32% + 110px)',
-            left: 0,
-            right: 0,
-            textAlign: 'center',
-            animation: 'em-tip-fade 220ms var(--em-ease) both',
-            zIndex: 5,
-          }}
-        >
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            padding: '8px 14px',
-            background: 'rgba(190,242,100,0.12)',
-            border: `1px solid ${accent}66`,
-            borderRadius: 999,
-            fontFamily: 'var(--em-mono)', fontSize: 11, color: 'var(--em-text)',
-            letterSpacing: '0.12em',
-          }}>
-            <span className="em-eyebrow" style={{ color: accent }}>HINT</span>
-            <span>Slot {hintReveal.slotIdx + 1} → <strong style={{ color: accent, fontFamily: 'var(--em-decor)', fontSize: 16 }}>{hintReveal.letter}</strong></span>
-            <span className="em-hint-pl" style={{ marginLeft: 4 }}>🇵🇱 następna litera</span>
-          </div>
-        </div>
-      )}
-
-      {/* Tile pool */}
-      <div style={{ position: 'absolute', bottom: 130, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 14, flexWrap: 'wrap', maxWidth: 600, margin: '0 auto', padding: '0 24px' }} role="region" aria-label="Letter tiles">
-        {tiles.map(t => {
-          const used = inSlots.has(t.id);
-          return (
-            <button key={t.id}
-              type="button"
-              onClick={() => placeTile(t.id)}
-              disabled={used || slots.length >= targetLen}
-              aria-label={`Letter ${t.letter}${used ? ', already placed' : ''}`}
-              tabIndex={used ? -1 : 0}
-              style={{
-                width: 58, height: 68,
-                background: used ? 'rgba(0,0,0,0.5)' : `linear-gradient(180deg, ${t.color}, ${t.color}99)`,
-                color: used ? 'rgba(255,255,255,0.2)' : '#0E0A1A',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'var(--em-decor)', fontSize: 36,
-                border: used ? `2px dashed ${t.color}55` : 'none',
-                transform: `rotate(${t.rot}deg)`,
-                boxShadow: used ? 'none' : `0 8px 20px ${t.color}66, inset 0 -4px 0 rgba(0,0,0,0.2)`,
-                cursor: used ? 'default' : 'pointer',
-                transition: 'all 220ms var(--em-ease)',
-                opacity: used ? 0.4 : 1,
-                padding: 0,
-              }}>{t.letter}</button>
-          );
-        })}
-      </div>
-
-      {/* Clue spray-painted on the wall */}
-      {(() => {
-        // Kelly Tier-2 audit (2026-05-02): belt-and-suspenders answer-leak
-        // guard. The PL-hint-leak filter agent is fixing the upstream lib/
-        // generator, but this per-shell substitution catches anything that
-        // slips through. If either the EN clue or the PL hint contains the
-        // answer (case-insensitive substring), we substitute a generic clue.
-        const word = puzzle.word.toLowerCase();
-        const clueLeak = puzzle.clue.toLowerCase().includes(word);
-        const clueLengthFallback = `Słowo o ${puzzle.word.length} literach.`;
-        const safeClue = clueLeak
-          ? `${puzzle.word.length}-letter word — arrange the tiles.`
-          : puzzle.clue;
-        const plHintLeak = puzzle.clue_pl.toLowerCase().includes(word);
-        const safePlClue = plHintLeak
-          ? clueLengthFallback
-          : puzzle.clue_pl;
-        return (
-        <div style={{ position: 'absolute', bottom: 24, left: 24, right: 220 }}>
-          <div style={{
-            padding: '14px 18px',
-            background: 'rgba(190,242,100,0.08)',
-            border: `1px dashed ${accent}66`,
-            borderRadius: 8,
-            maxWidth: 500,
-          }}>
-            <div className="em-eyebrow" style={{ color: accent, marginBottom: 4 }}>The clue · podpowiedź</div>
-            <div className="em-decor" style={{ fontSize: 20, color: 'var(--em-text)' }}>"{safeClue}"</div>
-            <div className="em-hint-pl">🇵🇱 {safePlClue}</div>
-          </div>
-        </div>
-        );
-      })()}
-
-      {/* Controls */}
-      <div style={{ position: 'absolute', bottom: 24, right: 24, display: 'flex', gap: 8, alignItems: 'center', zIndex: 5 }}>
-        <button className="em-btn" onClick={clear} aria-label="Clear letters">↻ Clear</button>
-      </div>
-
-      {/* Live region for assistive tech */}
-      <div aria-live="polite" aria-atomic="true" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>
-        {announcement}
-      </div>
-
-      {won && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: `radial-gradient(ellipse at center, ${accent}33, rgba(7,4,26,0.92))`,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, backdropFilter: 'blur(2px)',
-          animation: 'em-rise 0.5s var(--em-ease)', zIndex: 10,
-        }} role="dialog" aria-modal="true" aria-label="Word complete">
-          <Bajla size={84} mood="cheer" decorative/>
-          <div className="em-decor" style={{ fontSize: 40, color: 'var(--em-text)', textShadow: `0 0 20px ${accent}` }}>"{puzzle.word}"</div>
-          <div style={{ color: 'var(--em-text-muted)', fontFamily: 'var(--em-mono)', fontSize: 11, letterSpacing: '0.2em' }}>WALL DECODED · ŚCIANA ROZSZYFROWANA</div>
-          <button ref={findAnotherBtnRef} className="em-btn em-btn-primary" onClick={next} style={{ marginTop: 8 }} aria-label="Find another wall">Find another wall →</button>
-        </div>
-      )}
+        <div className={`wa-forge-readout ${shake?'is-wrong':''}`} role="status">{hintReveal ? `Letter ${hintReveal.slotIdx+1}: ${hintReveal.letter}` : announcement || `${slots.length} / ${targetLen} letters loaded · tap a placed tile to remove it`}</div>
+        <div className="wa-tile-rack" role="region" aria-label="Letter tiles">{tiles.map(t=><button key={t.id} className="wa-letter is-tile" disabled={inSlots.has(t.id)||slots.length>=targetLen||won} onClick={()=>placeTile(t.id)} aria-label={`Letter ${t.letter}${inSlots.has(t.id)?', already placed':''}`}>{t.letter}</button>)}</div>
+        <div className="wa-forge-tools"><button className="em-btn em-btn-ghost" onClick={()=>{setMix(v=>v+1);setAnnouncement('Tiles remixed. Your placed letters stay in place.');}}>Remix tiles ↻</button><button className="em-btn em-btn-ghost" onClick={()=>removeAt(slots.length-1)} disabled={!slots.length}>Undo ←</button><button className="em-btn em-btn-ghost" onClick={clear} disabled={!slots.length}>Clear</button></div>
+        <p className="wa-forge-readout">Tap letters or type on your keyboard · Backspace to undo</p>
+      </main>
+      {won && !(onSessionComplete && completedFired) && <div className="wa-dialog" role="dialog" aria-modal="true" aria-label="Word complete"><Bajla size={84} mood="cheer" decorative/><h3>{puzzle.word}</h3><p>Blueprint forged · Słowo gotowe</p><button ref={findAnotherBtnRef} className="em-btn em-btn-primary" onClick={next}>Next blueprint →</button></div>}
     </div>
   );
 };

@@ -20,6 +20,7 @@
 // 26 letters tile in 4 rows (7+7+7+5) and the keypad never overflows 375px.
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
+import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import type { ShellHangmanPuzzle } from '../lib/adapters';
 import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, Suspense } from 'react';
@@ -288,6 +289,7 @@ export function renderHangmanReviewItem(
 }
 
 export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state: forcedState = null, puzzle, onWrongAnswer, onSessionComplete }) => {
+  const arcade = useWordArcade();
   const accent = '#FBBF24';
   const cyan = '#22D3EE';
   // Persisted progress (skipped when forcedState is set for design-canvas demos).
@@ -312,6 +314,9 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
 
   const [puzzleIdx, setPuzzleIdx] = useState(0);
   const [guessed, setGuessed] = useState<string[]>([]);
+  const [rescueWord, setRescueWord] = useState('');
+  const [rescueMisses, setRescueMisses] = useState(0);
+  const [rescueMessage, setRescueMessage] = useState('');
   const [shake, setShake] = useState(false);
   const [pulseLetter, setPulseLetter] = useState<string | null>(null);
   const [hintsUsed, setHintsUsed] = useState(0);
@@ -356,7 +361,7 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
   const current = puzzleArr[puzzleIdx] ?? puzzleArr[0];
   const word = current.word;
   const wrongLetters = guessed.filter((l) => !word.includes(l));
-  const wrongCount = wrongLetters.length;
+  const wrongCount = Math.min(MAX_WRONG,wrongLetters.length + rescueMisses*2);
   const display = word.split('').map((l) => (guessed.includes(l) ? l : '_'));
   const won = display.every((c) => c !== '_');
   const lost = wrongCount >= MAX_WRONG;
@@ -405,9 +410,11 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
     if (forcedState) return;
     const total = word.length;
     const revealed = display.filter(c => c !== '_').length;
-    persisted.save({ progress: revealed / total });
+    const coveredBefore = played.filter(result=>result.word!==word).length;
+    const sessionDone = coveredBefore + (won||lost?1:0) >= puzzleArr.length;
+    const progress = Math.min(1,(coveredBefore + (won||lost?1:revealed/Math.max(1,total))) / puzzleArr.length);
+    persisted.save({ progress, completed:sessionDone, lastState:sessionDone?'complete':'active' });
     if (won) {
-      persisted.save({ progress: 1, completed: true, lastState: 'complete' });
       setPlayed((p) => p.find(r => r.word === word) ? p : [...p, {
         word, outcome: 'won',
         guesses: [...guessed],
@@ -417,7 +424,6 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
       }]);
     }
     if (lost) {
-      persisted.save({ progress: revealed / total, completed: true, lastState: 'wrong' });
       setPlayed((p) => p.find(r => r.word === word) ? p : [...p, {
         word, outcome: 'lost',
         guesses: [...guessed],
@@ -449,7 +455,7 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [guessed.length, forcedState]);
+  }, [guessed.length, rescueMisses, puzzleIdx, forcedState]);
 
   useEffect(() => {
     if (forcedState === 'empty') {
@@ -482,6 +488,7 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
     (letter: string) => {
       if (won || lost) return;
       if (guessed.includes(letter)) return;
+      arcade.answer(word.includes(letter),35);
       setGuessed((g) => [...g, letter]);
       if (!word.includes(letter)) {
         setShake(true);
@@ -508,7 +515,7 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
         setCorrectTick((t) => t + 1);
       }
     },
-    [guessed, won, lost, word, wrongCount],
+    [guessed, won, lost, word, wrongCount, arcade.answer],
   );
 
   // Cyan trail key→slot — fires on every successful guess. Measured *after*
@@ -600,6 +607,13 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
   }, [won, lost]);
 
   const next = () => {
+    if (forcedState) return;
+    if (!won && !lost && !played.some(result=>result.word===word)) {
+      arcade.answer(false);
+      setPlayed(previous=>[...previous,{word,outcome:'lost',guesses:[...guessed],livesUsed:wrongCount,exerciseId:current.exerciseId,cluePL:maskAnswerInHint(current.clue_pl,current.word)}]);
+      wrongAttemptsRef.current.push({questionId:word,studentAnswer:display.join(''),correctAnswer:word,explanationPL:current.clue_pl,exerciseId:current.exerciseId});
+    }
+    setRescueWord(''); setRescueMisses(0); setRescueMessage('');
     setPuzzleIdx((i) => (i + 1) % puzzleArr.length);
     setGuessed([]);
     setHintsUsed(0);
@@ -621,6 +635,7 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
     if (!coveredAll) return;
     sessionFiredRef.current = true;
     const correctCount = played.filter((r) => r.outcome === 'won').length;
+    arcade.complete();
     onSessionComplete({
       correctCount,
       totalQuestions: puzzleArr.length,
@@ -639,6 +654,15 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
     setHintsUsed((h) => h + 1);
     setPulseLetter(letter);
     setTimeout(() => setPulseLetter(null), 800);
+  };
+
+  const rescue = () => {
+    if(forcedState || won || lost || !rescueWord.trim()) return;
+    const correct=rescueWord.trim().toUpperCase()===word.toUpperCase();
+    arcade.answer(correct,200);
+    if(correct){setGuessed([...new Set(word.split(''))]);setCorrectTick(t=>t+1);setRescueMessage('Word rescued!');}
+    else{setRescueMisses(n=>n+1);setWrongTick(t=>t+1);setShake(true);setTimeout(()=>setShake(false),400);setRescueMessage('Not this word — two lanterns lost.');}
+    setRescueWord('');
   };
 
   const bajlaMood: BajlaMood =
@@ -842,9 +866,9 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
           with no max-width and no wrap. Constrain to viewport, allow wrap,
           and bump zIndex above the lantern row so skip/hint can never visually
           collide with the lanterns below them. */}
-      <div style={{
+      <div className="wa-hangman-header" style={{
         position: 'absolute', top: 24, left: 24, right: 24,
-        maxWidth: 'calc(100vw - 48px)',
+        maxWidth: 'calc(100% - 48px)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         flexWrap: 'wrap', zIndex: 6, gap: 12,
         overflowX: 'hidden',
@@ -866,7 +890,7 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
             }
           />
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', flex: '0 0 auto' }}>
+        <div className="wa-hangman-controls" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', flex: '0 1 auto', minWidth: 0, maxWidth: '100%' }}>
           <Progress current={puzzleIdx + 1} total={puzzleArr.length} accent={accent} />
           <SkipButton onClick={next} />
           <HintButton onClick={useHint} used={hintsUsed} total={2} />
@@ -1169,6 +1193,7 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
             })}
           </div>
 
+          <div className="wa-hangman-rescue"><div className="wa-inline-tools"><input value={rescueWord} onChange={e=>setRescueWord(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();rescue();}}} aria-label="Rescue the whole word" placeholder="Know the whole word?" disabled={won||lost}/><button onClick={rescue} disabled={won||lost||!rescueWord.trim()}>Rescue word +200</button></div><p className="wa-forge-readout" role="status">{rescueMessage||'Optional rescue: a wrong full word costs 2 lanterns.'}</p></div>
           {/* CYAN TRAIL OVERLAY — absolute SVG sized to the play column.
               Strokes fade out 450ms; pointer-events:none so it never
               intercepts clicks on slots or keys below it. */}

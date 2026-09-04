@@ -1,3 +1,8 @@
+import { useActionCompletion } from './action-arcade-completion';
+import { snakeStep } from './action-arcade-logic.mjs';
+import { useArcadeEvents } from '../lib/arcade-events';
+import { useActionTimers } from './action-arcade-timers';
+import './action-arcade.css';
 // Snake — "The Park Path" district.
 //
 // A dusk park scene: cobblestone path, hedges, lampposts, drifting leaves.
@@ -47,70 +52,42 @@ import type { FullInstructions } from '../components';
 
 // Park Path · Snake — full bilingual instruction copy.
 const SNAKE_INSTRUCTIONS: FullInstructions = {
-  whatYouDo: {
-    en: [
-      'A prompt sentence with a gap appears at the top of the park-path grid.',
-      'You control a snake on the cobblestone path; pellets are scattered, each labelled with a candidate word (nameplate-callout beside the pellet so labels never truncate).',
-      'Use the arrow keys (or on-screen pad on touch) to steer the snake to the pellet whose word fits the gap.',
-      'Eat the right pellet → snake grows + +1 to your score; eat a wrong pellet → snake shrinks + miss counter +1.',
+  "whatYouDo": {
+    "en": [
+      "Read the clue, choose the matching word and guide your snake to its fruit. The trail grows across rounds."
     ],
-    pl: [
-      'Zdanie z luką pojawia się u góry parkowej siatki.',
-      'Sterujesz wężem na brukowanej ścieżce; rozsypane są pellety, każdy z proponowanym słowem (etykieta-podpis obok pelletu, więc nigdy się nie ucinają).',
-      'Strzałkami (lub padem dotykowym) prowadź węża do pelletu ze słowem pasującym do luki.',
-      'Zjedz poprawny pellet → wąż rośnie + +1 do wyniku; zjedz błędny → wąż się skraca + licznik pomyłek +1.',
+    "pl": [
+      "Przeczytaj wskazówkę i doprowadź węża do owocu z właściwym słowem. Wąż rośnie między rundami."
+    ]
+  },
+  "controls": {
+    "en": [
+      "Use arrows, WASD or the pad. Press Resume to move and Space to pause. Cruise is slower; Sprint rewards faster play. Edges wrap."
     ],
+    "pl": [
+      "Używaj strzałek, WASD lub pada. Resume uruchamia ruch, spacja go wstrzymuje. Cruise jest wolniejszy; Sprint daje więcej punktów. Krawędzie łączą się."
+    ]
   },
-  controls: {
-    en: [
-      'Arrow keys (← ↑ → ↓): steer the snake. Touch users get an on-screen D-pad.',
-      'Snake: segmented chain (head + body) on the path; grows on correct pellet, shrinks on wrong.',
-      'Pellets: illustrated picnic items (sandwiches, fruit) with adjacent dark pill nameplates carrying the word.',
-      'HUD top-left: SCORE / LENGTH / TARGET counters update live.',
-      'Halo: subtle pulsing yellow ring on the correct pellet so you can spot it at a glance.',
-      'Skip + Hint buttons: Skip jumps round, Hint highlights the correct pellet for 1 second.',
+  "rightWrongSkip": {
+    "en": [
+      "Correct fruit grows your tail. Wrong words shrink it. Crossing your tail resets your position, without recording a language mistake. Skip revisits another unsolved clue."
     ],
-    pl: [
-      'Strzałki (← ↑ → ↓): sterują wężem. Na dotyku jest pad D-Pad.',
-      'Wąż: członowy łańcuch (głowa + tułów) na ścieżce; rośnie po poprawnym pellecie, kurczy się po błędnym.',
-      'Pellety: ilustrowane przekąski piknikowe (kanapki, owoce) z ciemnymi kapsułkami-podpisami obok, z napisem słowa.',
-      'HUD u góry z lewej: liczniki SCORE / LENGTH / TARGET aktualizują się na żywo.',
-      'Aureola: delikatna pulsująca żółta obwódka na właściwym pellecie, dzięki czemu widać go na pierwszy rzut oka.',
-      'Przyciski Pomiń i Podpowiedź: Pomiń przeskakuje rundę, Podpowiedź podświetla właściwy pellet na 1 sekundę.',
-    ],
+    "pl": [
+      "Dobry owoc wydłuża ogon. Złe słowo go skraca. Wejście na ogon cofa pozycję bez błędu językowego. Pomiń przenosi do innej nierozwiązanej wskazówki."
+    ]
   },
-  rightWrongSkip: {
-    en: [
-      'Right pellet: ✓ green flash, snake grows by one segment, +1 to your tally, next round queues.',
-      'Wrong pellet: ✗ rose flash, snake shrinks by one segment, miss counter +1; correct pellet briefly highlights so you see what you missed.',
-      'Skip: counts as wrong — moves to the next round without eating any pellet.',
-      'Snake hitting itself or a wall: round ends, miss counter +1, snake resets to 3 segments for the next round.',
-    ],
-    pl: [
-      'Poprawny pellet: ✓ zielony błysk, wąż wydłuża się o jeden człon, +1 do wyniku, następna runda w kolejce.',
-      'Błędny pellet: ✗ różowy błysk, wąż skraca się o jeden człon, licznik pomyłek +1; właściwy pellet na chwilę się podświetla, abyś zobaczył, co Ci umknęło.',
-      'Pomiń: liczy się jako błąd — przeskok do następnej rundy bez zjedzenia żadnego pelletu.',
-      'Wąż uderzający w siebie lub ścianę: runda kończy się, licznik pomyłek +1, wąż resetuje się do 3 członów na następną rundę.',
-    ],
+  "hintMechanic": {
+    "en": "Use the limited Hint button for help with the current clue.",
+    "pl": "Użyj ograniczonej liczby podpowiedzi do aktualnej wskazówki."
   },
-  hintMechanic: {
-    en:
-      'You have 3 hints per session. Each tap pulses the correct pellet brightly for ~1 second so you can navigate to it. Save them for crowded grids where multiple distractor pellets sit close together.',
-    pl:
-      'Masz 3 podpowiedzi na sesję. Każde stuknięcie mocno pulsuje właściwym pelletem przez ok. 1 sekundę, abyś mógł do niego dojechać. Zachowaj je na zatłoczone siatki, w których wiele pelletów-pułapek leży blisko siebie.',
+  "scoring": {
+    "en": "100 arcade points in Cruise, 140 in Sprint. Finish every clue.",
+    "pl": "100 punktów w Cruise, 140 w Sprint. Rozwiąż każdą wskazówkę."
   },
-  scoring: {
-    en:
-      'Skip counts as wrong. Each correct pellet adds to your session streak + grows the snake. Eating every round\'s correct pellet unlocks the post-shell review with explanations.',
-    pl:
-      'Pomiń liczy się jako błąd. Każdy poprawny pellet buduje serię + wydłuża węża. Zjedzenie poprawnych pelletów we wszystkich rundach odblokowuje przegląd po sesji z wyjaśnieniami.',
-  },
-  l1Pattern: {
-    en:
-      'Vocab + spatial-coordination drill. Polish learners often misread English vowel clusters under time pressure ("through" vs "thorough"); navigating the snake to the right pellet trains both word recognition and motor planning.',
-    pl:
-      'Trening słownictwa + koordynacji przestrzennej. Polscy uczniowie pod presją czasu mylą angielskie zlepki samogłosek („through" vs „thorough"); prowadzenie węża do właściwego pelletu trenuje rozpoznawanie słowa i planowanie ruchu.',
-  },
+  "l1Pattern": {
+    "en": "Practise English meaning and sentence context before you make your move.",
+    "pl": "Ćwicz angielskie znaczenie i kontekst zdania przed wykonaniem ruchu."
+  }
 };
 
 export type ArcadeForcedState = 'empty' | 'active' | 'wrong' | 'correct' | 'complete' | null;
@@ -349,6 +326,9 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
 }) => {
   const activePuzzle: ArcadePuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : DEMO_PUZZLE;
   const persisted = useShellProgress('snake');
+  const arcadeEvent = useArcadeEvents();
+  const interactionRef = useRef<HTMLDivElement>(null);
+  const { later, cancel: cancelActionTimers } = useActionTimers();
   const reduce = usePrefersReducedMotion();
 
   const [roundIdx, setRoundIdx] = useState(0);
@@ -367,7 +347,11 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
   const [hintActive, setHintActive] = useState(false);
   const [missCount, setMissCount] = useState(0);
   const [score, setScore] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [paused, setPaused] = useState(true);
+  const [pace, setPace] = useState<'cruise' | 'sprint'>('cruise');
+  const snakeRef = useRef<Cell[]>([]);
+  const lengthRef = useRef(5);
+  const roundLocked = useRef(false);
   const tickRef = useRef<number | null>(null);
   const [tickN, setTickN] = useState(0); // drives slither wave
 
@@ -377,6 +361,7 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
 
   const cur = activePuzzle.rounds[roundIdx];
   const completed = solved.every(Boolean);
+  useActionCompletion(completed, Boolean(forcedState), arcadeEvent);
   const correctCount = solved.filter(Boolean).length;
   const tip = useEndOfShellTip({
     onWrongAnswer,
@@ -410,10 +395,10 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'snake',
-      brief: 'Steer the snake with arrow keys to the pellet that fits the gap.',
-      brief_pl: 'Strzałkami prowadź węża do pelletu pasującego do luki.',
-      detail: 'You drive a snake across a clearing of falling leaves. Arrow keys (or swipe on touch) change direction. Each round drops several pellets — one carries the right answer, the others are distractors. Eat the right pellet to grow and advance; wrong pellets cost a life.',
-      detail_pl: 'Prowadzisz węża po polanie pełnej spadających liści. Strzałki (lub przesunięcia na dotyku) zmieniają kierunek. W każdej rundzie spada kilka pelletów — jeden ma poprawną odpowiedź, reszta to pułapki. Zjedz właściwy, aby rosnąć i iść dalej; błędny kosztuje życie.',
+      brief: SNAKE_INSTRUCTIONS.whatYouDo.en[0],
+      brief_pl: SNAKE_INSTRUCTIONS.whatYouDo.pl[0],
+      detail: SNAKE_INSTRUCTIONS.controls.en.join(' ') + ' ' + SNAKE_INSTRUCTIONS.rightWrongSkip.en.join(' '),
+      detail_pl: SNAKE_INSTRUCTIONS.controls.pl.join(' ') + ' ' + SNAKE_INSTRUCTIONS.rightWrongSkip.pl.join(' '),
       fullInstructions: SNAKE_INSTRUCTIONS,
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
@@ -428,14 +413,11 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
     if (!cur) return;
     // Wave C (Ricky CC-3, 2026-05-02): boosted initial length 3→5 so the
     // segmented ribbon reads obviously as a snake, not floating dots.
-    const startSnake: Cell[] = [
-      { r: Math.floor(ROWS / 2), c: 6 },
-      { r: Math.floor(ROWS / 2), c: 5 },
-      { r: Math.floor(ROWS / 2), c: 4 },
-      { r: Math.floor(ROWS / 2), c: 3 },
-      { r: Math.floor(ROWS / 2), c: 2 },
-    ];
+    const startSnake: Cell[] = Array.from({ length: Math.min(lengthRef.current, COLS - 3) }, (_, i) => ({ r: Math.floor(ROWS / 2), c: (6 - i + COLS) % COLS }));
     setSnake(startSnake);
+    snakeRef.current = startSnake;
+    roundLocked.current = false;
+    setPaused(true);
     setDir('right');
     dirRef.current = 'right';
     queuedDirRef.current = null;
@@ -481,7 +463,7 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
     setPellets(placed);
     pelletsRef.current = placed;
     setFeedback(null);
-    setMissCount(0);
+    // Keep total mistakes throughout the route.
     // Ricky CD-fix (2026-05-03 hotfix): dep is cur?.id (stable string), NOT
     // cur (object). Parent re-renders can hand us a NEW puzzle.rounds[i]
     // object reference even when the round content is unchanged; depending
@@ -501,71 +483,43 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
     if (forcedState) return;
     if (paused || completed) return;
     const tick = () => {
-      setTickN(n => (n + 1) % 1024);
-      setSnake(prev => {
-        if (prev.length === 0) return prev;
-        // Apply queued dir if not opposite.
-        const queued = queuedDirRef.current;
-        if (queued) {
-          const opp: Record<Dir, Dir> = { up: 'down', down: 'up', left: 'right', right: 'left' };
-          if (opp[queued] !== dirRef.current) {
-            dirRef.current = queued;
-            setDir(queued);
-          }
-          queuedDirRef.current = null;
+      const prev = snakeRef.current;
+      if (!prev.length || roundLocked.current) return;
+      const queued = queuedDirRef.current;
+      const opposite: Record<Dir, Dir> = { up: 'down', down: 'up', left: 'right', right: 'left' };
+      if (queued && opposite[queued] !== dirRef.current) { dirRef.current = queued; setDir(queued); }
+      queuedDirRef.current = null;
+      const step = snakeStep(prev, dirRef.current, ROWS, COLS);
+      const eaten = pelletsRef.current.find(p => p.cell.r === step.head.r && p.cell.c === step.head.c);
+      if (step.collided) {
+        setFeedback('wrong'); setMissCount(n => n + 1); setPaused(true);
+        lengthRef.current = Math.max(5, lengthRef.current - 1);
+        const resetBody = Array.from({ length: lengthRef.current }, (_, i) => ({ r: 6, c: (6 - i + COLS) % COLS }));
+        snakeRef.current = resetBody; setSnake(resetBody); dirRef.current = 'right'; setDir('right');
+        // A steering collision affects the trail, never the learner's English accuracy.
+        return;
+      }
+      let moved = step.body;
+      if (eaten) {
+        pelletsRef.current = pelletsRef.current.filter(p => p !== eaten); setPellets(pelletsRef.current);
+        if (eaten.isAnswer) {
+          roundLocked.current = true; setFeedback('correct');
+          arcadeEvent({ type: 'correct', points: pace === 'sprint' ? 140 : 100 });
+          setScore(n => n + (pace === 'sprint' ? 140 : 100));
+          lengthRef.current = Math.min(COLS - 3, prev.length + 1);
+          moved = [step.head, ...prev];
+          setSolved(v => v.map((value, i) => i === roundIdx ? true : value));
+          later(() => { const nextRound = solved.findIndex((done, i) => !done && i !== roundIdx); if (nextRound >= 0) setRoundIdx(nextRound); }, 1000);
+        } else {
+          setFeedback('wrong'); setMissCount(n => n + 1); arcadeEvent({ type: 'incorrect' });
+          lengthRef.current = Math.max(3, prev.length - 1); moved = moved.slice(0, lengthRef.current);
+          tip.recordWrong({ questionId: cur.id, studentAnswer: eaten.word, correctAnswer: cur.options[cur.answerIndex], explanationPL: cur.hint_pl, exerciseId: cur.exerciseId });
+          later(() => setFeedback(null), 700);
         }
-        const head = prev[0];
-        const d = dirRef.current;
-        const nextHead: Cell = { r: head.r, c: head.c };
-        if (d === 'up') nextHead.r -= 1;
-        if (d === 'down') nextHead.r += 1;
-        if (d === 'left') nextHead.c -= 1;
-        if (d === 'right') nextHead.c += 1;
-        // Wrap edges instead of game over (kinder UX for practice).
-        nextHead.r = (nextHead.r + ROWS) % ROWS;
-        nextHead.c = (nextHead.c + COLS) % COLS;
-
-        // Check pellet at new head.
-        const idx = pelletsRef.current.findIndex(p => p.cell.r === nextHead.r && p.cell.c === nextHead.c);
-        const pelletEaten: Pellet | null = idx >= 0 ? pelletsRef.current[idx] : null;
-
-        if (pelletEaten) {
-          if ((pelletEaten as Pellet).isAnswer) {
-            // Grow + mark solved.
-            setFeedback('correct');
-            setScore(s => s + 10);
-            setSolved(p => p.map((v, i) => i === roundIdx ? true : v));
-            setPellets(p => p.filter(x => x !== pelletEaten));
-            pelletsRef.current = pelletsRef.current.filter(x => x !== pelletEaten);
-            window.setTimeout(() => {
-              if (roundIdx + 1 < activePuzzle.rounds.length) setRoundIdx(i => i + 1);
-            }, 1100);
-            return [nextHead, ...prev]; // don't drop tail = grow
-          } else {
-            // Wrong — shrink tail.
-            setFeedback('wrong');
-            setMissCount(c => c + 1);
-            const p = pelletEaten as Pellet;
-            tip.recordWrong({
-              questionId: cur.id,
-              studentAnswer: p.word,
-              correctAnswer: cur.options[cur.answerIndex],
-              explanationPL: cur.hint_pl,
-              exerciseId: cur.exerciseId,
-            });
-            setPellets(prevPels => prevPels.filter(x => x !== pelletEaten));
-            pelletsRef.current = pelletsRef.current.filter(x => x !== pelletEaten);
-            window.setTimeout(() => setFeedback(null), 700);
-            const shrunk = [nextHead, ...prev.slice(0, Math.max(2, prev.length - 1))];
-            return shrunk;
-          }
-        }
-
-        const moved = [nextHead, ...prev.slice(0, prev.length - 1)];
-        return moved;
-      });
+      }
+      snakeRef.current = moved; setSnake(moved); setTickN(n => (n + 1) % 1024);
     };
-    tickRef.current = window.setInterval(tick, TICK_MS);
+    tickRef.current = window.setInterval(tick, pace === 'sprint' ? 150 : 260);
     return () => { if (tickRef.current) window.clearInterval(tickRef.current); };
     // Ricky CD-fix (2026-05-03 hotfix): dep is cur?.id (stable string), NOT
     // cur (object). When the parent re-renders the puzzle prop, cur's object
@@ -573,7 +527,7 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
     // elapsed — snake never advanced. The closure still reads the latest cur
     // via the render scope; cur.id stability is enough for correctness.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paused, completed, forcedState, roundIdx, cur?.id, activePuzzle.rounds.length]);
+  }, [paused, pace, completed, forcedState, roundIdx, cur?.id, activePuzzle.rounds.length]);
 
   useEffect(() => {
     if (forcedState === 'empty') { setSolved(activePuzzle.rounds.map(() => false)); setSnake([]); setPellets([]); pelletsRef.current = []; }
@@ -586,31 +540,38 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
   useEffect(() => {
     if (forcedState) return;
     const handler = (e: KeyboardEvent) => {
+      if (!interactionRef.current?.contains(e.target as Node)) return;
       const map: Record<string, Dir | undefined> = {
         ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
         w: 'up', s: 'down', a: 'left', d: 'right',
         W: 'up', S: 'down', A: 'left', D: 'right',
       };
+      if ((e.target as HTMLElement)?.closest('input,textarea,select')) return;
       const next = map[e.key];
       if (next) { e.preventDefault(); queuedDirRef.current = next; }
-      if (e.key === ' ') { setPaused(p => !p); }
+      if (e.key === ' ' && !(e.target as HTMLElement).closest('button,a')) { e.preventDefault(); setPaused(p => !p); }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    const suspend = () => { if (document.hidden) setPaused(true); };
+    const blur = () => setPaused(true);
+    window.addEventListener('keydown', handler); document.addEventListener('visibilitychange', suspend); window.addEventListener('blur', blur);
+    return () => { window.removeEventListener('keydown', handler); document.removeEventListener('visibilitychange', suspend); window.removeEventListener('blur', blur); };
   }, [forcedState]);
 
   const useHint = (): void => {
     if (hintsUsed >= 3) return;
     setHintActive(true);
     setHintsUsed(h => h + 1);
-    window.setTimeout(() => setHintActive(false), 3000);
+    later(() => setHintActive(false), 3000);
   };
 
   const skipRound = (): void => {
-    if (roundIdx + 1 < activePuzzle.rounds.length) setRoundIdx(i => i + 1);
+    const nextRound = solved.findIndex((done, i) => !done && i !== roundIdx); if (nextRound >= 0) setRoundIdx(nextRound);
   };
 
   const reset = (): void => {
+    cancelActionTimers();
+    arcadeEvent({ type: 'reset' });
+    lengthRef.current = 5; roundLocked.current = false; setPaused(true); setupRound();
     setRoundIdx(0);
     setSolved(activePuzzle.rounds.map(() => false));
     setFeedback(null);
@@ -691,11 +652,14 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
         ? 'Wrong pellet. Tail shrunk.'
         : '';
 
-  const targetWord = cur ? cur.options[cur.answerIndex] : '';
+  const targetWord = `${roundIdx + 1} / ${activePuzzle.rounds.length}`;
 
   return (
     <div
       className="em-shell em-shell-snake"
+      ref={interactionRef}
+      tabIndex={0}
+      onPointerDown={event => { if (!(event.target as HTMLElement).closest('button,a,input,textarea,select')) interactionRef.current?.focus({ preventScroll: true }); }}
       role="application"
       aria-label="Snake practice, the Park Path"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -848,7 +812,7 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
           </div>
 
           {/* Game board */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, position: 'relative' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'flex-start', padding: 16, position: 'relative', minWidth: 0 }}>
             <div style={{
               width: '100%', maxWidth: W * 1.4, aspectRatio: `${W} / ${H}`,
               position: 'relative',
@@ -999,7 +963,7 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
                 {pellets.map((p, i) => {
                   const cx = p.cell.c * CELL + CELL / 2;
                   const cy = p.cell.r * CELL + CELL / 2;
-                  const isAns = p.isAnswer;
+                  const isAns = p.isAnswer && hintActive;
                   return (
                     <g key={`pel-${i}`}>
                       {/* Pulsing halo on the correct pellet — affordance per audit §5.5 */}
@@ -1124,7 +1088,7 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
                   // Position nameplate ~30px below the pellet (or above if near bottom edge).
                   const below = cy < H - 60;
                   const ny = below ? cy + 30 : cy - 30;
-                  const isAns = p.isAnswer;
+                  const isAns = p.isAnswer && hintActive;
                   // Auto-fit nameplate: estimate width from char count (mono ~7px per char).
                   const padX = 10;
                   const nw = Math.max(40, p.word.length * 7 + padX * 2);
@@ -1169,7 +1133,7 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
                 {paused && (
                   <g>
                     <rect width={W} height={H} fill="rgba(0,0,0,0.6)" />
-                    <text x={W / 2} y={H / 2} textAnchor="middle" fontFamily="var(--em-decor)" fontSize="32" fill={ACCENT}>PAUSED</text>
+                    <text x={W / 2} y={H / 2} textAnchor="middle" fontFamily="var(--em-decor)" fontSize="32" fill={ACCENT}>{feedback === 'wrong' ? 'TRAIL RESET · RESUME' : 'READY? PRESS RESUME'}</text>
                   </g>
                 )}
               </svg>
@@ -1190,12 +1154,13 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
                   <span style={hudValueStyle()}>{snake.length}</span>
                 </div>
                 <div style={{ ...hudPillStyle(), borderColor: `${HALO}99` }}>
-                  <span style={{ ...hudLabelStyle(), color: HALO }}>TARGET · CEL</span>
+                  <span style={{ ...hudLabelStyle(), color: HALO }}>ROUND · RUNDA</span>
                   <span style={{ ...hudValueStyle(), color: HALO }}>{targetWord}</span>
                 </div>
               </div>
             </div>
 
+            <div className="action-arcade-hud"><div><strong>{snake.length} segments</strong><small>Choose the word, then steer to its fruit. Edges wrap. Crossing your tail resets your position. Each answer grows the next route.</small></div><button aria-pressed={pace === 'sprint'} onClick={() => { setPaused(true); setPace(p => p === 'cruise' ? 'sprint' : 'cruise'); }}>{pace === 'sprint' ? 'Sprint · 140 pts' : 'Cruise · 100 pts'}</button></div>
             {/* DPad on touch */}
             <div className="em-snake-dpad" style={{
               position: 'absolute', bottom: 16, right: 16,
@@ -1246,8 +1211,8 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
               <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa`, textAlign: 'center', padding: '0 16px' }}>The path ends at the gate.</div>
               <div className="em-eyebrow">PARK CLOSING · PARK ZAMYKA</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-                <button className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
+                <button className="em-btn em-btn-ghost" onClick={reset}>Restart run</button>
+                <button className="em-btn em-btn-primary" onClick={reset}>Play again →</button>
               </div>
             </div>
           )}
@@ -1258,7 +1223,7 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Progress current={solved.filter(Boolean).length} total={activePuzzle.rounds.length} accent={ACCENT} />
             <div style={{ display: 'flex', gap: 6 }}>
-              <SkipButton onClick={skipRound} />
+              <SkipButton onClick={() => { if (completed || roundLocked.current) return; const next = solved.findIndex((done, i) => !done && i !== roundIdx); if (next >= 0) setRoundIdx(next); }} />
               <HintButton onClick={useHint} used={hintsUsed} total={3} />
             </div>
           </div>

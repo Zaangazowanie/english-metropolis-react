@@ -1,3 +1,8 @@
+import { useActionCompletion } from './action-arcade-completion';
+import { nextMazeStep } from './action-arcade-logic.mjs';
+import { useArcadeEvents } from '../lib/arcade-events';
+import { useActionTimers } from './action-arcade-timers';
+import './action-arcade.css';
 // Maze Chase — "The Backstreets" district.
 //
 // Cobbled backstreets at night — pools of lamplight on the corners. The
@@ -29,70 +34,42 @@ import type { FullInstructions } from '../components';
 
 // Backstreets · Maze Chase — full bilingual instruction copy.
 const MAZECHASE_INSTRUCTIONS: FullInstructions = {
-  whatYouDo: {
-    en: [
-      'A prompt sentence with a gap appears at the top above the cobbled backstreets maze.',
-      'You move a small lantern-bearer (a glowing dot) through the maze using arrow keys.',
-      'Tokens sit in some cells — CYAN means a CORRECT-answer token, ROSE means a WRONG-answer distractor.',
-      'Reach a CYAN token to score; bumping a ROSE token dims your lantern (miss counter +1) but the round continues.',
+  "whatYouDo": {
+    "en": [
+      "Read the numbered word list and navigate to the token that answers the clue."
     ],
-    pl: [
-      'Zdanie z luką pojawia się u góry nad uliczkowym labiryntem.',
-      'Strzałkami prowadzisz małego latarnika (świecącą kropkę) przez labirynt.',
-      'W niektórych komórkach są żetony — CYJAN = poprawna odpowiedź, RÓŻOWY = pułapka błędnej odpowiedzi.',
-      'Dotrzyj do żetonu CYJAN, aby zdobyć punkt; uderzenie w RÓŻOWY przygasza Twoją latarnię (pomyłka +1), ale runda trwa.',
+    "pl": [
+      "Przeczytaj ponumerowane słowa i dotrzyj do żetonu pasującego do wskazówki."
+    ]
+  },
+  "controls": {
+    "en": [
+      "Arrows, WASD or the pad move one square. The shadow follows every second step. A streetlamp freezes it for eight steps, so plan a safe route."
     ],
+    "pl": [
+      "Strzałki, WASD lub pad przesuwają o jedno pole. Cień rusza co drugi krok. Latarnia zatrzymuje go na osiem kroków — zaplanuj trasę."
+    ]
   },
-  controls: {
-    en: [
-      'Arrow keys (← ↑ → ↓): move the lantern-bearer one cell at a time.',
-      'Cobbled backstreets maze: dotted-purple walls block movement; pools of lamplight on corners are decorative.',
-      'CYAN tokens: correct-answer pickups (each round has exactly one CYAN target).',
-      'ROSE tokens: distractor-word pickups — bumping costs you a miss but the round continues.',
-      'Color legend (bottom): CYAN = CORRECT / ROSE = WRONG bilingual reminder.',
-      'Skip + Hint buttons: Skip jumps round, Hint pulses the CYAN token for ~1 second.',
+  "rightWrongSkip": {
+    "en": [
+      "Correct tokens clear the clue. Wrong words are logged for review. The shadow sends you back to the entrance without a language penalty. Skip switches to another unsolved clue."
     ],
-    pl: [
-      'Strzałki (← ↑ → ↓): przesuwają latarnika o jedną komórkę naraz.',
-      'Brukowany labirynt zaułków: kropkowane fioletowe ściany blokują ruch; światła latarń w narożnikach są dekoracyjne.',
-      'Żetony CYJAN: poprawna odpowiedź (każda runda ma dokładnie jeden cel CYJAN).',
-      'Żetony RÓŻOWE: słowa-pułapki — uderzenie kosztuje pomyłkę, ale runda trwa.',
-      'Legenda kolorów (na dole): CYJAN = POPRAWNE / RÓŻOWY = BŁĘDNE — dwujęzyczne przypomnienie.',
-      'Przyciski Pomiń i Podpowiedź: Pomiń przeskakuje rundę, Podpowiedź pulsuje żetonem CYJAN przez ok. 1 sekundę.',
-    ],
+    "pl": [
+      "Dobry żeton zalicza wskazówkę. Błędne słowa trafiają do powtórki. Cień cofa do wejścia bez błędu językowego. Pomiń zmienia nierozwiązane pytanie."
+    ]
   },
-  rightWrongSkip: {
-    en: [
-      'CYAN token reached: ✓ green flash, +1 to your tally, next round queues with a fresh maze layout.',
-      'ROSE token bumped: ✗ rose flash, lantern dims, miss counter +1; the round continues — keep hunting for CYAN.',
-      'Skip: counts as wrong — moves to the next round without finding a CYAN.',
-      'You cannot get "stuck" — backtracking through the maze is always allowed; the round only advances on CYAN reach or Skip.',
-    ],
-    pl: [
-      'Dotarcie do CYJAN: ✓ zielony błysk, +1 do wyniku, następna runda ze świeżym układem labiryntu.',
-      'Uderzenie w RÓŻOWY: ✗ różowy błysk, latarnia przygasa, pomyłka +1; runda trwa — szukaj CYJAN dalej.',
-      'Pomiń: liczy się jako błąd — przeskok do następnej rundy bez znalezienia CYJAN.',
-      'Nie możesz „utknąć" — cofanie się po labiryncie jest zawsze dozwolone; runda kończy się tylko po dotarciu do CYJAN lub po Pomiń.',
-    ],
+  "hintMechanic": {
+    "en": "Use the limited Hint button for help with the current clue.",
+    "pl": "Użyj ograniczonej liczby podpowiedzi do aktualnej wskazówki."
   },
-  hintMechanic: {
-    en:
-      'You have 3 hints per session. Each tap pulses the CYAN target for ~1 second so you can plan a path. Save them for mazes with many ROSE distractors near the right answer.',
-    pl:
-      'Masz 3 podpowiedzi na sesję. Każde stuknięcie pulsuje celem CYJAN przez ok. 1 sekundę, abyś mógł zaplanować trasę. Zachowaj je na labirynty z wieloma RÓŻOWYMI pułapkami przy poprawnej odpowiedzi.',
+  "scoring": {
+    "en": "Shorter routes earn up to 200 arcade points; every solved route earns at least 100.",
+    "pl": "Krótsze trasy dają do 200 punktów; każda rozwiązana trasa daje co najmniej 100."
   },
-  scoring: {
-    en:
-      'Skip counts as wrong. Each CYAN reach builds your session streak. Reaching CYAN in every round unlocks the post-shell review with explanations of any ROSE bumps.',
-    pl:
-      'Pomiń liczy się jako błąd. Każde dotarcie do CYJAN buduje serię w sesji. Dotarcie do CYJAN we wszystkich rundach odblokowuje przegląd po sesji z wyjaśnieniami uderzeń w RÓŻOWE.',
-  },
-  l1Pattern: {
-    en:
-      'Vocab-speed under spatial pressure. Polish learners often slow on multi-syllable Latin-root distractors that look like Polish cognates ("eventual" vs "ostateczny"); navigating past ROSE tokens trains fast rejection of false friends.',
-    pl:
-      'Szybkość słownictwa pod presją przestrzeni. Polscy uczniowie zwalniają na wielosylabowych pułapkach łacińskich, podobnych do polskich („eventual" vs „ostateczny"); omijanie RÓŻOWYCH żetonów uczy szybkiego odrzucania fałszywych przyjaciół.',
-  },
+  "l1Pattern": {
+    "en": "Practise English meaning and sentence context before you make your move.",
+    "pl": "Ćwicz angielskie znaczenie i kontekst zdania przed wykonaniem ruchu."
+  }
 };
 
 export type ArcadeForcedState = 'empty' | 'active' | 'wrong' | 'correct' | 'complete' | null;
@@ -279,6 +256,9 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
 }) => {
   const activePuzzle: ArcadePuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : DEMO_PUZZLE;
   const persisted = useShellProgress('mazechase');
+  const arcadeEvent = useArcadeEvents();
+  const interactionRef = useRef<HTMLDivElement>(null);
+  const { later, cancel: cancelActionTimers } = useActionTimers();
 
   const [roundIdx, setRoundIdx] = useState(0);
   const [solved, setSolved] = useState<boolean[]>(() => activePuzzle.rounds.map(() => false));
@@ -290,6 +270,14 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
   const [missCount, setMissCount] = useState(0);
   const [trail, setTrail] = useState<Cell[]>([]);
   const moveRef = useRef<Cell>({ r: 1, c: 1 });
+  const [shadow, setShadow] = useState<Cell>({ r: 9, c: 11 });
+  const shadowRef = useRef<Cell>({ r: 9, c: 11 });
+  const [steps, setSteps] = useState(0);
+  const stepsRef = useRef(0);
+  const [shield, setShield] = useState(0);
+  const shieldRef = useRef(0);
+  const [lamps, setLamps] = useState<Cell[]>([]);
+  const roundLocked = useRef(false);
 
   const cur = activePuzzle.rounds[roundIdx];
   // Belt-and-suspenders gap-mask: if the prompt sentence literally contains
@@ -299,6 +287,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
   // can never reach the learner. See lib/exercise-adapters.ts → maskAnswerInPrompt.
   const safePrompt = cur ? maskAnswerInPrompt(cur.prompt, cur.options[cur.answerIndex]) : '';
   const completed = solved.every(Boolean);
+  useActionCompletion(completed, Boolean(forcedState), arcadeEvent);
   const correctCount = solved.filter(Boolean).length;
   const tip = useEndOfShellTip({
     onWrongAnswer,
@@ -327,10 +316,10 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'mazechase',
-      brief: 'Steer the lantern with arrow keys. Reach the cyan token, dodge the rose ones.',
-      brief_pl: 'Strzałkami prowadź latarnię. Dotrzyj do cyjanowego żetonu, omijaj różowe.',
-      detail: 'You drive a lantern through cobbled backstreets. Use the arrow keys (or swipe on touch). Each round drops one cyan token (the right answer) and several rose tokens (distractors). Touching cyan solves the round; rose costs a life.',
-      detail_pl: 'Prowadzisz latarnię przez brukowane uliczki. Używaj strzałek (lub przesunięć na dotyku). W każdej rundzie pojawia się jeden cyjanowy żeton (poprawna odpowiedź) i kilka różowych (pułapki). Dotknięcie cyjanowego rozwiązuje rundę; różowy kosztuje życie.',
+      brief: MAZECHASE_INSTRUCTIONS.whatYouDo.en[0],
+      brief_pl: MAZECHASE_INSTRUCTIONS.whatYouDo.pl[0],
+      detail: MAZECHASE_INSTRUCTIONS.controls.en.join(' ') + ' ' + MAZECHASE_INSTRUCTIONS.rightWrongSkip.en.join(' '),
+      detail_pl: MAZECHASE_INSTRUCTIONS.controls.pl.join(' ') + ' ' + MAZECHASE_INSTRUCTIONS.rightWrongSkip.pl.join(' '),
       fullInstructions: MAZECHASE_INSTRUCTIONS,
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
@@ -351,7 +340,9 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
     if (!cur) return;
     setPos({ r: 1, c: 1 });
     moveRef.current = { r: 1, c: 1 };
-    setTrail([]);
+    setTrail([]); setSteps(0); stepsRef.current = 0; setShield(0); shieldRef.current = 0;
+    shadowRef.current = { r: 9, c: 11 }; setShadow(shadowRef.current); roundLocked.current = false;
+    setLamps([{ r: 5, c: 1 }, { r: 2, c: 7 }, { r: 8, c: 9 }]);
     const all = openCells();
     // Pick token cells that are far from start.
     const farFromStart = all.filter(c => Math.abs(c.r - 1) + Math.abs(c.c - 1) >= 4);
@@ -402,7 +393,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
 
   // Move + collect.
   const moveOne = useCallback((d: Dir) => {
-    if (forcedState || completed) return;
+    if (forcedState || completed || roundLocked.current) return;
     const cur2 = moveRef.current;
     const next: Cell = { r: cur2.r, c: cur2.c };
     if (d === 'up') next.r -= 1;
@@ -413,19 +404,34 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
     moveRef.current = next;
     setPos(next);
     setTrail(prev => [next, ...prev.slice(0, 7)]);
+    stepsRef.current += 1; setSteps(stepsRef.current);
+    const collectedLamp = lamps.some(p => p.r === next.r && p.c === next.c);
+    if (collectedLamp) { shieldRef.current = 8; setLamps(prev => prev.filter(p => p.r !== next.r || p.c !== next.c)); }
+    else shieldRef.current = Math.max(0, shieldRef.current - 1);
+    setShield(shieldRef.current);
+    const enemy = stepsRef.current % 2 === 0 && shieldRef.current === 0
+      ? nextMazeStep(MAZE, shadowRef.current, next) : shadowRef.current;
+    shadowRef.current = enemy; setShadow(enemy);
+    if (enemy.r === next.r && enemy.c === next.c && shieldRef.current === 0) {
+      setMissCount(n => n + 1); setFeedback('wrong'); moveRef.current = { r: 1, c: 1 }; setPos(moveRef.current);
+      shadowRef.current = { r: 9, c: 11 }; setShadow(shadowRef.current); setTrail([]);
+      later(() => setFeedback(null), 800); return;
+    }
     // Check token at next.
     const t = tokens.find(t => t.cell.r === next.r && t.cell.c === next.c);
     if (!t) return;
     if (t.isAnswer) {
+      roundLocked.current = true; arcadeEvent({ type: 'correct', points: Math.max(100, 200 - stepsRef.current) });
       setFeedback('correct');
       setSolved(prev => prev.map((v, i) => i === roundIdx ? true : v));
       setTokens(prev => prev.filter(x => x !== t));
-      window.setTimeout(() => {
-        if (roundIdx + 1 < activePuzzle.rounds.length) setRoundIdx(i => i + 1);
+      later(() => {
+        const nextRound = solved.findIndex((done, i) => !done && i !== roundIdx); if (nextRound >= 0) setRoundIdx(nextRound);
       }, 1100);
     } else {
       setFeedback('wrong');
       setMissCount(c => c + 1);
+      arcadeEvent({ type: 'incorrect' });
       tip.recordWrong({
         questionId: cur.id,
         studentAnswer: t.word,
@@ -434,7 +440,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
         exerciseId: cur.exerciseId,
       });
       setTokens(prev => prev.filter(x => x !== t));
-      window.setTimeout(() => setFeedback(null), 700);
+      later(() => setFeedback(null), 700);
     }
     // Ricky CD-fix (2026-05-03 hotfix): dep is cur?.id (stable string), NOT
     // cur (object). When cur's object identity churned across parent
@@ -444,17 +450,19 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
     // the listener attached and the closure reads the latest tokens/cur from
     // the render scope.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tokens, roundIdx, cur?.id, activePuzzle.rounds.length, completed, forcedState]);
+  }, [tokens, lamps, roundIdx, cur?.id, activePuzzle.rounds.length, completed, forcedState]);
 
   // Keyboard.
   useEffect(() => {
     if (forcedState) return;
     const handler = (e: KeyboardEvent) => {
+      if (!interactionRef.current?.contains(e.target as Node)) return;
       const map: Record<string, Dir | undefined> = {
         ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
         w: 'up', s: 'down', a: 'left', d: 'right',
         W: 'up', S: 'down', A: 'left', D: 'right',
       };
+      if ((e.target as HTMLElement)?.closest('input,textarea,select')) return;
       const next = map[e.key];
       if (next) { e.preventDefault(); moveOne(next); }
     };
@@ -466,14 +474,17 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
     if (hintsUsed >= 3) return;
     setHintActive(true);
     setHintsUsed(h => h + 1);
-    window.setTimeout(() => setHintActive(false), 3000);
+    later(() => setHintActive(false), 3000);
   };
 
   const skipRound = (): void => {
-    if (roundIdx + 1 < activePuzzle.rounds.length) setRoundIdx(i => i + 1);
+    const nextRound = solved.findIndex((done, i) => !done && i !== roundIdx); if (nextRound >= 0) setRoundIdx(nextRound);
   };
 
   const reset = (): void => {
+    cancelActionTimers();
+    arcadeEvent({ type: 'reset' });
+    roundLocked.current = false; setupRound();
     setRoundIdx(0);
     setSolved(activePuzzle.rounds.map(() => false));
     setFeedback(null);
@@ -502,6 +513,9 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
   return (
     <div
       className="em-shell em-shell-mazechase"
+      ref={interactionRef}
+      tabIndex={0}
+      onPointerDown={event => { if (!(event.target as HTMLElement).closest('button,a,input,textarea,select')) interactionRef.current?.focus({ preventScroll: true }); }}
       role="application"
       aria-label="Maze chase practice, the Backstreets"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -581,7 +595,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
             <div className="em-decor" style={{ fontSize: 18, color: 'var(--em-text)', flex: 1, lineHeight: 1.3 }}>{safePrompt}</div>
           </div>
 
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, position: 'relative' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'flex-start', padding: 16, position: 'relative', minWidth: 0 }}>
             <div style={{ width: '100%', maxWidth: W, aspectRatio: `${W} / ${H}`, position: 'relative' }}>
               <svg viewBox={`0 0 ${W} ${H}`} style={{
                 width: '100%', height: '100%',
@@ -654,7 +668,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
                   const cx = t.cell.c * CELL + CELL / 2;
                   const cy = t.cell.r * CELL + CELL / 2;
                   const showHint = hintActive && t.isAnswer;
-                  const labelColor = t.isAnswer ? ACCENT : '#FB7185';
+                  const labelColor = hintActive && t.isAnswer ? '#FBBF24' : ACCENT;
                   // Choose connector direction. Prefer DOWN, then UP, then
                   // RIGHT, then LEFT — but only pick a direction that fits
                   // entirely inside the maze SVG.
@@ -675,10 +689,6 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
                   };
                   return (
                     <g key={`tok-${i}`}>
-                      {/* Dotted connector token → label (subtle, low-alpha) */}
-                      <line x1={lineFrom.x} y1={lineFrom.y} x2={lineTo.x} y2={lineTo.y}
-                        stroke={labelColor} strokeWidth="0.8"
-                        strokeDasharray="1.5 2" opacity="0.55" />
                       {/* Token icon inside the cell */}
                       <g style={{
                         transformOrigin: `${cx}px ${cy}px`,
@@ -687,13 +697,14 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
                         {showHint && (
                           <circle cx={cx} cy={cy} r={CELL * 0.5} fill="none" stroke="#FBBF24" strokeWidth="1.6" />
                         )}
-                        <circle cx={cx} cy={cy} r={CELL * 0.22} fill={labelColor} />
-                        <circle cx={cx} cy={cy} r={CELL * 0.1} fill="#0E0A1A" opacity="0.55" />
+                        <circle cx={cx} cy={cy} r={CELL * 0.3} fill={labelColor} /><text x={cx} y={cy + 4} textAnchor="middle" fontSize="13" fontWeight="800" fill="#091426">{t.optionIdx + 1}</text>
                       </g>
                     </g>
                   );
                 })}
 
+                {lamps.map(l => <g key={`${l.r}-${l.c}`} transform={`translate(${l.c * CELL + CELL / 2} ${l.r * CELL + CELL / 2})`}><circle r="14" fill="#fbbf241b" stroke="#fbbf24" strokeDasharray="3 3"/><path d="M-4-7H4L6 5H-6Z" fill="#ffe89a"/><path d="M0 5V11M-5 11H5" stroke="#fbbf24" strokeWidth="2"/></g>)}
+                <g transform={`translate(${shadow.c * CELL + CELL / 2} ${shadow.r * CELL + CELL / 2})`} style={{ opacity: shield ? .3 : 1 }}><circle r="18" fill="#fb71851b"/><path d="M-11 10V-2A11 11 0 0 1 11-2V10L6 6L0 11L-5 6Z" fill="#f472b6" stroke="#ffbfdf"/><circle cx="-4" cy="-1" r="3" fill="#fff"/><circle cx="4" cy="-1" r="3" fill="#fff"/><circle cx="-3" cy="0" r="1.5" fill="#20102b"/><circle cx="5" cy="0" r="1.5" fill="#20102b"/></g>
                 {/* Player lantern — halo radius reduced from 0.95 to 0.55 so
                     it no longer blooms across neighbouring cells (same bloom
                     bug class as the removed lamplight pools). */}
@@ -723,57 +734,9 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
                 </g>
               </svg>
 
-              {/* Floating nameplate callouts — HTML overlay on top of the SVG.
-                  Each nameplate is positioned in % of the maze viewBox so it
-                  scales with the responsive grid. Width auto-fits content,
-                  whiteSpace:nowrap, no truncation. (#20 Orchard-Square pattern.)
-                  SMART POSITIONING (Ricky 2026-05-03 Mike playtest fix):
-                  the label direction matches the connector direction chosen
-                  in the SVG above. Labels for tokens in bottom rows now go
-                  ABOVE; right-edge tokens go LEFT; etc. — guarantees the
-                  pill stays inside the maze container. */}
-              {tokens.map((t, i) => {
-                const cxPx = (t.cell.c + 0.5) * CELL;
-                const cyPx = (t.cell.r + 0.5) * CELL;
-                const NEED = CELL * 1.55;
-                const downOk = cyPx + NEED < H - 4;
-                const upOk = cyPx - NEED > 4;
-                const rightOk = cxPx + NEED < W - 4;
-                const leftOk = cxPx - NEED > 4;
-                const dir: 'down' | 'up' | 'right' | 'left' =
-                  downOk ? 'down' : upOk ? 'up' : rightOk ? 'right' : leftOk ? 'left' : 'down';
-                const labelXPx = cxPx + (dir === 'right' ? NEED : dir === 'left' ? -NEED : 0);
-                const labelYPx = cyPx + (dir === 'down' ? NEED : dir === 'up' ? -NEED : 0);
-                const cxPct = (labelXPx / W) * 100;
-                const cyPct = (labelYPx / H) * 100;
-                const labelColor = t.isAnswer ? ACCENT : '#FB7185';
-                return (
-                  <div
-                    key={`np-${i}`}
-                    style={{
-                      position: 'absolute',
-                      left: `${cxPct}%`,
-                      top: `${cyPct}%`,
-                      transform: 'translate(-50%, -50%)',
-                      padding: '3px 8px',
-                      background: 'rgba(14,10,26,0.92)',
-                      color: '#F4EFEF',
-                      fontFamily: 'var(--em-mono)',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      border: `1px solid ${labelColor}aa`,
-                      borderRadius: 6,
-                      whiteSpace: 'nowrap',
-                      pointerEvents: 'none',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.55)',
-                      userSelect: 'none',
-                    }}
-                  >{t.word}</div>
-                );
-              })}
             </div>
-
+            <div className="action-arcade-option-list" aria-label="Token words">{cur.options.map((word, i) => <span key={i} style={{ opacity: tokens.some(t => t.optionIdx === i) ? 1 : .45 }}><b>{i + 1}</b>{word}</span>)}</div>
+            <div className="action-arcade-hud"><div><strong>{shield ? `LANTERN SHIELD · ${shield}` : `SHADOW CHASE · ${steps} steps`}</strong><small>The shadow moves once for every two steps you take. Collect a streetlamp to freeze it for 8 steps. Read the numbered words, then plan your route.</small></div><span>{missCount} setbacks</span></div>
             {/* DPad on touch */}
             <div className="em-mz-dpad" style={{
               position: 'absolute', bottom: 16, right: 16,
@@ -824,8 +787,8 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
               <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa`, textAlign: 'center', padding: '0 16px' }}>You found the way out.</div>
               <div className="em-eyebrow">BACKSTREETS MAPPED · ZAUŁKI POZNANE</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-                <button className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
+                <button className="em-btn em-btn-ghost" onClick={reset}>Restart run</button>
+                <button className="em-btn em-btn-primary" onClick={reset}>Play again →</button>
               </div>
             </div>
           )}
@@ -836,7 +799,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Progress current={solved.filter(Boolean).length} total={activePuzzle.rounds.length} accent={ACCENT} />
             <div style={{ display: 'flex', gap: 6 }}>
-              <SkipButton onClick={skipRound} />
+              <SkipButton onClick={() => { if (roundLocked.current) return; const next = solved.findIndex((done, i) => !done && i !== roundIdx); if (next >= 0) setRoundIdx(next); }} />
               <HintButton onClick={useHint} used={hintsUsed} total={3} />
             </div>
           </div>
@@ -892,7 +855,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
                 background: ACCENT, color: '#0E0A1A',
                 fontSize: 10, fontWeight: 900, lineHeight: 1,
               }}>✓</span>
-              <span style={{ color: ACCENT }}>CYAN = CORRECT</span>
+              <span style={{ color: ACCENT }}>NUMBER = WORD</span>
             </span>
             <span style={{ opacity: 0.5 }}>·</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -902,7 +865,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
                 background: '#FB7185', color: '#0E0A1A',
                 fontSize: 10, fontWeight: 900, lineHeight: 1,
               }}>✗</span>
-              <span style={{ color: '#FB7185' }}>ROSE = WRONG</span>
+              <span style={{ color: '#FB7185' }}>PINK = SHADOW</span>
             </span>
           </div>
         </div>

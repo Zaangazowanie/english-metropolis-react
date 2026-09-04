@@ -6,10 +6,11 @@
 // The cork-board-with-paper visual IS Café Spółdzielnia, not a library tower.
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
+import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import type { ShellFlashcardsPuzzle } from '../lib/adapters';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Bajla,
   BajlaMood,
@@ -232,12 +233,17 @@ type Pulse = 'flip' | 'known' | 'review' | null;
 // Component
 // ─────────────────────────────────────────────────────────────
 export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk', state: forcedState = null, puzzle, onWrongAnswer, onSessionComplete }) => {
+  const arcade = useWordArcade();
   const accent = '#FBBF24';
   const activeDeck: FlashCard[] = puzzle && puzzle.cards.length > 0 ? puzzle.cards : FC_DECK;
   // Persisted progress (skipped when forcedState is set for design-canvas demos).
   const persisted = useShellProgress('flashcards');
   const [idx, setIdx] = useState<number>(0);
   const [flipped, setFlipped] = useState<boolean>(false);
+  const [recallMode, setRecallMode] = useState(false);
+  const [recall, setRecall] = useState('');
+  const [recallResult, setRecallResult] = useState<'right'|'wrong'|null>(null);
+  const advancingRef = useRef(false);
   const [marks, setMarks] = useState<MarkMap>({});
 
   // Auto-save progress when cards are marked.
@@ -287,6 +293,7 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
         exerciseId: x.c.exerciseId,
       }));
     const knownN = activeDeck.reduce((acc, _c, i) => acc + (marks[i] === 'known' ? 1 : 0), 0);
+    arcade.complete();
     onSessionComplete({
       correctCount: knownN,
       totalQuestions: activeDeck.length,
@@ -346,7 +353,10 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
   const hasImage = !!(card?.image_url && card.image_url.trim());
 
   const advance = (mark: Mark | null): void => {
-    if (forcedState) return;
+    if (forcedState || advancingRef.current || completed) return;
+    advancingRef.current = true;
+    if (!marks[idx]) arcade.answer(mark === 'known');
+    setRecall(''); setRecallResult(null);
     // D3 Wave-5: skip path now marks the card as 'skipped' so completion
     // fires on a fully-skipped deck. Pulse stays nil for skipped to not
     // overload the visual signal.
@@ -368,7 +378,7 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
       }
     }
     setFlipped(false);
-    setTimeout(() => setIdx(i => (i + 1) % activeDeck.length), 220);
+    setTimeout(() => { setIdx(i => (i + 1) % activeDeck.length); advancingRef.current = false; }, 220);
   };
 
   const back = (): void => {
@@ -385,7 +395,15 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
     setTimeout(() => setPulse(null), 600);
   };
 
-  const reshuffle = (): void => { setMarks({}); setIdx(0); };
+  const reshuffle = (): void => { arcade.restart(); setMarks({}); setIdx(0); setFlipped(false); setRecall(''); setRecallResult(null); setCompletedFired(false); };
+  const checkRecall = () => {
+    if (!recall.trim() || recallResult === 'right') return;
+    const normaliseRecall = (value: string) => value.toLocaleLowerCase().trim().replace(/[.!?]+$/, '').replace(/\s+/g, ' ');
+    const right = normaliseRecall(recall) === normaliseRecall(card.en);
+    setRecallResult(right ? 'right' : 'wrong');
+    setAnnouncement(right ? 'Recall verified! Reveal the card to check the example.' : 'Keep going, or reveal the answer and mark it for review.');
+    if (right) setFlipped(true);
+  };
 
   // CD audit fix (Ricky 2026-05-02): adjacent peek cards removed.
   // The previous 3-card fan rendered left/right neighbors at 0.55 opacity,
@@ -423,7 +441,7 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
     'idle';
 
   return (
-    <div className="em-shell" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div className="em-shell wa-flashcards" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       {/* cork board */}
       <div style={{ position: 'absolute', inset: 0, background: corkByTime[time] }} />
       <div style={{ position: 'absolute', inset: 0, backgroundImage:
@@ -463,6 +481,10 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
         </div>
       </div>
 
+      <div className="wa-memory-console">
+        <WordMission kind="memory" current={Object.keys(marks).length} total={activeDeck.length} chain={arcade.chain} reaction={arcade.reaction}/>
+        <div className="wa-inline-tools"><button aria-pressed={recallMode} onClick={()=>{setRecallMode(v=>!v);setFlipped(false);setRecall('');setRecallResult(null);}}>Recall challenge {recallMode?'on':'off'}</button><span>{recallMode?'Translate the Polish prompt from memory.':'Think of the meaning before you reveal.'}</span></div>
+      </div>
       {/* The fan of cards */}
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', perspective: 1200, zIndex: 3 }} role="region" aria-label="Flashcard deck">
         {fanCards.map(({ offset, idx: ci, rot, x, scale, opacity, z }) => {
@@ -474,7 +496,7 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
             <div key={offset}
               role={isFront ? 'button' : undefined}
               tabIndex={isFront ? 0 : -1}
-              aria-label={isFront ? `Flashcard: ${c.en}. Tap to flip.` : undefined}
+              aria-label={isFront ? `Flashcard: ${recallMode && !flipped ? c.pl : c.en}. Tap to flip.` : undefined}
               onClick={() => isFront && !forcedState && setFlipped(f => !f)}
               onKeyDown={(e) => { if (isFront && !forcedState && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setFlipped(f => !f); } }}
               style={{
@@ -551,7 +573,7 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
                         overflowWrap: 'anywhere',
                         hyphens: 'auto',
                       }}>
-                        "{c.en}"
+                        "{recallMode ? c.pl : c.en}"
                       </div>
                       <div style={{ fontFamily: 'var(--em-body)', fontSize: 11, color: '#876543', textAlign: 'center', marginTop: 6, fontStyle: 'italic' }}>
                         {isFront && !forcedState ? 'tap to flip · stuknij' : ''}
@@ -568,10 +590,10 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
                   transform: 'rotateY(180deg)',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12,
                 }}>
-                  <div className="em-eyebrow" style={{ color: '#876543' }}>POLISH · PO POLSKU</div>
+                  <div className="em-eyebrow" style={{ color: '#876543' }}>{recallMode?'ENGLISH · ANSWER':'POLISH · PO POLSKU'}</div>
                   <div style={{
                     fontFamily: 'var(--em-decor)',
-                    fontSize: 'clamp(28px, 8vw, 56px)',
+                    fontSize: 'clamp(22px, 4vw, 38px)',
                     lineHeight: 1.1,
                     color: '#3F2510',
                     textAlign: 'center',
@@ -580,7 +602,7 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
                     overflowWrap: 'anywhere',
                     hyphens: 'auto',
                     padding: '0 8px',
-                  }}>{c.pl}</div>
+                  }}>{recallMode?c.en:c.pl}</div>
                   <div style={{ width: 40, height: 1, background: '#876543', opacity: 0.5 }}/>
                   <div style={{ padding: '0 16px', textAlign: 'center' }}>
                     <div style={{ fontFamily: 'var(--em-decor)', fontSize: 16, color: '#3F2510' }}>{c.ex}</div>
@@ -666,11 +688,12 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
         {announcement}
       </div>
 
+      {recallMode && <div className="wa-recall-controls"><div className="wa-inline-tools"><input aria-label="Your English recall answer" value={recall} onChange={e=>{setRecall(e.target.value);setRecallResult(null);}} onKeyDown={e=>{if(e.key==='Enter')checkRecall();}} disabled={recallResult==='right'} placeholder="Type the English word or phrase…"/><button onClick={checkRecall} disabled={!recall.trim()||recallResult==='right'}>Check recall ↵</button></div><p role="status" className="wa-forge-readout">{recallResult==='right'?'Recall verified. Now rate your memory.':recallResult==='wrong'?'Not quite — try again or flip to learn it.':'Recall it before you turn the card.'}</p></div>}
       {/* Controls */}
       <div style={{ position: 'absolute', bottom: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 6 }}>
         <button className="em-btn" onClick={back} disabled={!!forcedState} aria-label="Previous card">← Previous</button>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={() => advance('review')} disabled={!!forcedState}
+          <button onClick={() => advance('review')} disabled={!!forcedState || !flipped}
             aria-label="Mark for review"
             style={{
               padding: '12px 22px', borderRadius: 999,
@@ -679,7 +702,7 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
               fontFamily: 'var(--em-display)', fontWeight: 600, fontSize: 14,
               cursor: forcedState ? 'default' : 'pointer', boxShadow: '0 8px 20px rgba(251,113,133,0.35)',
             }}>↻ Review again</button>
-          <button onClick={() => advance('known')} disabled={!!forcedState}
+          <button onClick={() => advance('known')} disabled={!!forcedState || !flipped}
             aria-label="I know this"
             style={{
               padding: '12px 22px', borderRadius: 999,
@@ -694,7 +717,7 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
 
       <Confetti show={completed} />
 
-      {completed && (
+      {completed && !onSessionComplete && (
         <div style={{
           position: 'absolute', inset: 0,
           background: 'radial-gradient(ellipse at center, rgba(251,191,36,0.18), rgba(63,37,16,0.9))',

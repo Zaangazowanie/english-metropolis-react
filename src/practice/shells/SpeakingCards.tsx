@@ -1,3 +1,4 @@
+import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Speaking Cards shell — "The Speakeasy" district.
 // A brass-plated speakeasy at dusk: velvet curtain, a vintage tube
 // microphone on a brass stand, a flickering EXIT sign. Each card prompts
@@ -253,6 +254,7 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useChallengeArcade();
   const activePuzzle = puzzle && puzzle.cards.length > 0 ? puzzle : SC_PUZZLE;
   const persisted = useShellProgress('speakingcards');
   // D3 Wave-5 (Ricky 2026-05-02): per-card self-rating log + wrong attempts.
@@ -280,6 +282,7 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
   const total = activePuzzle.cards.length;
   const cur = activePuzzle.cards[idx];
   const completed = seen >= total && !forcedState;
+  useEffect(() => { if (completed && !forcedState) arcade.finish(); }, [completed, forcedState]);
 
   useEffect(() => {
     if (forcedState) return;
@@ -402,7 +405,8 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
 
   // Self-rate handlers.
   const rateWell = () => {
-    if (forcedState) return;
+    if (forcedState || cardFinalised) return;
+    arcade.decide(true, cur.id);
     if (!cardFinalised) {
       setSeen((s) => Math.min(s + 1, total));
       setWellSaid((s) => Math.min(s + 1, total));
@@ -415,7 +419,8 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
   };
 
   const rateRetry = () => {
-    if (forcedState) return;
+    if (forcedState || cardFinalised) return;
+    arcade.decide(false, cur.id);
     if (!cardFinalised) {
       setSeen((s) => Math.min(s + 1, total));
       setCardFinalised(true);
@@ -490,6 +495,9 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
   }, [completed, completedFired, onSessionComplete, wellSaid, total, allWrongAttempts, activePuzzle, selfRatings, forcedState]);
 
   const reset = () => {
+    setSelfRatings({}); setAllWrongAttempts([]); setCompletedFired(false);
+    if (recordedUrl) URL.revokeObjectURL(recordedUrl);
+    arcade.reset();
     setIdx(0); setSeen(0); setWellSaid(0); setRecordState('idle');
     setRecordedUrl(null); setShowTargets(false); setHintsUsed(0);
     setHintShown(false); setCardFinalised(false); setRecordSeconds(0);
@@ -510,7 +518,7 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
 
   return (
     <div
-      className="em-shell em-shell-speakingcards"
+      className="em-shell em-shell-speakingcards challenge-enhanced"
       role="application"
       aria-label="Speaking cards, The Speakeasy"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -622,7 +630,7 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
       <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }} aria-hidden="true" />
 
       {/* Top bar */}
-      <div
+      <div className="challenge-enhanced-toolbar"
         style={{
           position: 'relative',
           padding: '20px 28px 10px',
@@ -669,6 +677,7 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
           alignItems: 'center',
         }}
       >
+        <ChallengeMission title="Take the mic. Make the scene your own." detail="Use the target phrases in a natural answer, then listen back and self-rate. · Mów, odsłuchaj, oceń." current={seen} total={total} />
         {/* PROMPT CARD */}
         <div
           key={cur.id}
@@ -1002,6 +1011,7 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
             </div>
           )}
 
+          <SpeakingMission key={cur.id} phrases={cur.target_phrases} recording={recordState === 'recording'} seconds={recordSeconds} />
           {/* Self-rate buttons — always available, even with no mic */}
           <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
             <button

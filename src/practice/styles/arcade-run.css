@@ -1,0 +1,27 @@
+/* Run feedback is driven by decisions, never by decorative animation. */
+.em-arcade-cabinet:fullscreen{width:100%;height:100%;overflow:auto;background:#0b0d1b;border-radius:0!important}
+.em-arcade-tools{display:flex;align-items:center;gap:8px}
+.em-arcade-expand{display:grid;place-items:center;min-width:38px;min-height:38px;border:1px solid #b9a6d340;background:#121526;color:#d9d0ed;border-radius:8px;cursor:pointer}
+.em-run-hud{position:relative;z-index:2;display:grid;grid-template-columns:1fr 1fr 1fr minmax(160px,1.2fr);align-items:center;gap:22px;padding:18px 26px;border-top:1px solid #ffffff0c;border-bottom:1px solid #a48bcd40;background:linear-gradient(180deg,#121829,#0b101e);font-family:var(--em-display,'Space Grotesk',sans-serif);color:#e8e8ff;box-shadow:inset 0 1px #ffffff0a}
+.em-run-score>span,.em-run-best>span{display:block;color:#939eb6;text-transform:uppercase;font-size:9px;letter-spacing:.13em;margin-bottom:4px}
+.em-run-score>strong{font:600 26px/1.2 var(--em-mono,'JetBrains Mono',monospace);color:#f0e9ce;letter-spacing:.09em;display:block;animation:em-score-tick .25s ease both;text-shadow:0 0 24px #fbd78028}
+.em-run-best>strong{font:500 19px var(--em-mono,'JetBrains Mono',monospace);color:#a8b4c7;letter-spacing:.1em}
+.em-run-combo{display:flex;align-items:center;gap:12px}
+.em-run-combo>strong{display:grid;place-items:center;width:47px;height:47px;border-radius:12px;border:1px solid #545171;background:#23213b;font-size:25px;color:#b6afd0;box-shadow:inset 0 1px #ffffff12;transition:background .3s,color .3s,box-shadow .3s}
+.em-run-combo[data-hot=true]>strong{color:#18121c;background:#f4cf72;border-color:#fff0b1;box-shadow:0 0 25px #f4cf7233,inset 0 1px #ffffff60}
+.em-run-combo>div>span{font-size:10px;color:#a1adc2}.em-run-combo b{color:#e6e3f4;font-size:14px;margin-left:5px}
+.em-run-energy{display:flex;gap:4px;margin-top:7px}.em-run-energy i{width:17px;height:4px;background:#34374b;border-radius:2px;transition:background .2s,box-shadow .2s}.em-run-energy i[data-lit=true]{background:#f7d478;box-shadow:0 0 8px #f7d47844}
+.em-run-feedback{display:flex;align-items:center;gap:9px;color:#8e9cb6;font-size:11px;line-height:1.5;min-height:34px}
+.em-run-feedback[data-kind=correct]{animation:em-score-tick .35s ease both;color:#b7efda}
+.em-run-feedback[data-kind=incorrect]{animation:em-run-reset .25s ease both;color:#f2b6b1}
+.em-run-feedback b{font:600 22px var(--em-display,'Space Grotesk',sans-serif);color:#f8df99}
+.em-run-result{display:flex;justify-content:center;gap:18px;align-items:center;padding:22px;background:linear-gradient(100deg,#292438,#233635);border-top:1px solid #79b7a850;animation:em-score-tick .4s ease both;color:#edf4e9}
+.em-run-result>.material-symbols-outlined{font-size:40px;color:#f7d478}.em-run-result strong{font:600 20px var(--em-display,'Space Grotesk',sans-serif);display:block;margin-bottom:7px}.em-run-result div>span{font-size:12px;color:#b6cac7}
+@keyframes em-score-tick{from{opacity:.4;transform:translateY(5px)}to{opacity:1;transform:none}}
+@keyframes em-run-reset{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+@media(max-width:800px){.em-run-hud{grid-template-columns:1fr 1fr 1fr;gap:13px;padding:14px 16px}.em-run-feedback{grid-column:1/-1;min-height:20px;border-top:1px solid #ffffff10;padding-top:10px}.em-run-score>strong{font-size:23px}.em-run-best>strong{font-size:16px}.em-run-best>span{font-size:8px;letter-spacing:.04em}.em-run-combo{gap:7px}.em-run-combo>strong{height:39px;width:39px;font-size:21px}.em-run-combo>div>span{font-size:9px}.em-run-energy i{width:12px}.em-arcade-tools{gap:5px}.em-run-result{justify-content:flex-start;padding:18px}.em-run-result strong{font-size:17px}}
+@media(max-width:480px){.em-arcade-tools .em-arcade-sound>span:last-child{display:none}.em-arcade-tools .em-arcade-sound{padding:9px!important}.em-run-score>span{font-size:8px;letter-spacing:.03em}.em-run-hud{gap:8px;padding:12px}.em-run-score>strong{font-size:19px}.em-run-best>strong{font-size:14px}.em-run-combo>strong{width:33px;height:36px}.em-run-combo{gap:6px}.em-run-feedback{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.em-run-hud *,.em-run-result{animation:none!important;transition:none!important}}
+
+/* Taller arenas remain reachable on short desktop windows as well as phones. */
+.em-practice-root .em-arcade-screen .em-shell-host{overflow-y:auto;overflow-x:hidden}

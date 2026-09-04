@@ -8,6 +8,7 @@
 // keep the key word, change the form.
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
+import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
@@ -298,6 +299,7 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useWordArcade();
   const activePuzzle: ShellSentenceTransformPuzzle =
     puzzle && puzzle.items.length > 0 ? puzzle : ST_PUZZLE;
   const total = activePuzzle.items.length;
@@ -323,7 +325,8 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
     completed,
     forcedState,
     onSessionComplete: onSessionComplete ? ({ wrongAttempts }) => {
-      onSessionComplete({
+      arcade.complete();
+    onSessionComplete({
         correctCount: score,
         totalQuestions: total,
         wrongAttempts,
@@ -371,13 +374,14 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
   }, [forcedState, total]);
 
   const submit = (): void => {
-    if (forcedState || !cur) return;
+    if (forcedState || !cur || verdict === 'right' || completed) return;
     const candidate = normalise(draft);
     if (!candidate) return;
     const accepted = [normalise(cur.target_form), ...(cur.acceptedAnswers ?? []).map(normalise)];
     const usesKeyWord = containsKeyword(draft, cur.key_word);
     const correct = usesKeyWord && accepted.includes(candidate);
     setVerdict(correct ? 'right' : 'wrong');
+    arcade.answer(correct);
     if (correct) {
       setScore((s) => s + 1);
       setAnnouncement('Translation accepted.');
@@ -421,6 +425,7 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
   };
 
   const reset = (): void => {
+    arcade.restart();
     setIdx(0); setDraft(''); setVerdict(null); setScore(0);
     setQuestionsSeen(0); setHintsUsed(0); setHintRevealed(false);
     tip.reset();
@@ -431,7 +436,7 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
 
   return (
     <div
-      className="em-shell em-shell-sentencetransform"
+      className="em-shell wa-form-game em-shell-sentencetransform"
       role="application"
       aria-label="Sentence Transformation, The Translator's Booth"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -538,6 +543,8 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
             zIndex: 4,
           }}
         >
+          <WordMission kind="translation" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+          <div className="wa-checklist"><span className={containsKeyword(draft,cur.key_word)?'is-ready':''}>Key word: {cur.key_word} {containsKeyword(draft,cur.key_word)?'✓':'○'}</span><span className={draft.trim()?'is-ready':''}>{draft.trim()?draft.trim().split(/\s+/).length:0} words written</span><span className={verdict==='right'?'is-ready':''}>Same meaning {verdict==='right'?'✓':'○'}</span></div>
           {/* Source screen */}
           <div
             key={`src-${cur.id}`}

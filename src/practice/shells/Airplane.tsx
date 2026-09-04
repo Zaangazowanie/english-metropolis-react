@@ -1,3 +1,7 @@
+import { useActionCompletion } from './action-arcade-completion';
+import { useArcadeEvents } from '../lib/arcade-events';
+import { useActionTimers } from './action-arcade-timers';
+import './action-arcade.css';
 // Airplane — "The Aerodrome" district.
 // Twilight sky over the city. A small biplane flies left across the screen,
 // trailing a contrail. Four clouds drift in from the right, each marked with
@@ -44,68 +48,42 @@ import type { FullInstructions } from '../components';
 
 // Aerodrome · Airplane — full bilingual instruction copy.
 const AIRPLANE_INSTRUCTIONS: FullInstructions = {
-  whatYouDo: {
-    en: [
-      'A biplane flies steady on the left while clouds drift in from the right, each with a word on its underside.',
-      'Read the gap-fill prompt at the top of the sky.',
-      'Tap (or click) the cloud whose word fits the gap before it drifts past the plane.',
-      'Right cloud — confetti and the plane banks; wrong cloud — vapor puff and a miss tally.',
+  "whatYouDo": {
+    "en": [
+      "Launch the plane and fly through the gate carrying the word that fits the clue."
     ],
-    pl: [
-      'Dwupłatowiec leci stabilnie po lewej, a chmury dryfują z prawej — na każdej widać jedno słowo.',
-      'Przeczytaj zdanie z luką u góry nieba.',
-      'Stuknij chmurę ze słowem pasującym do luki, zanim odpłynie za samolot.',
-      'Trafna chmura — konfetti i przechylenie samolotu; błędna — kłęby pary i punkt do pomyłek.',
+    "pl": [
+      "Wystartuj i przeleć przez bramkę ze słowem pasującym do wskazówki."
+    ]
+  },
+  "controls": {
+    "en": [
+      "Up/Down, W/S, on-screen buttons or tapping a gate change altitude. Crossing the gate commits your lane. Pause any flight. Reduced motion uses a static gate-confirm button."
     ],
+    "pl": [
+      "Strzałki góra/dół, W/S, przyciski lub stuknięcie bramki zmieniają wysokość. Przelot zatwierdza pas. Lot można wstrzymać. Przy ograniczonym ruchu zatwierdź nieruchomą bramkę."
+    ]
   },
-  controls: {
-    en: [
-      'Prompt strip: gap-fill sentence above the horizon.',
-      'Biplane: anchored on the left — your viewpoint, no controls.',
-      'Drifting clouds: word-bearing targets moving right-to-left.',
-      'Hit / Miss / Q counters: top-corner tally for this round.',
-      'Skip + Hint buttons: Skip jumps the round, Hint dims one wrong cloud.',
+  "rightWrongSkip": {
+    "en": [
+      "The gate crossing records your answer and moves to the next flight. Wrong answers and skipped flights appear in review."
     ],
-    pl: [
-      'Pasek pytania: zdanie z luką nad horyzontem.',
-      'Dwupłatowiec: zakotwiczony po lewej — twoja perspektywa, bez sterowania.',
-      'Dryfujące chmury: cele z napisami przesuwające się z prawej na lewą.',
-      'Liczniki trafień / pomyłek / Q: ranga rundy w rogu ekranu.',
-      'Przyciski Pomiń i Podpowiedź: Pomiń przeskakuje rundę, Podpowiedź wygasza jedną błędną chmurę.',
-    ],
+    "pl": [
+      "Przelot zapisuje odpowiedź i przechodzi do kolejnego lotu. Błędy i pominięcia trafiają do powtórki."
+    ]
   },
-  rightWrongSkip: {
-    en: [
-      'Right pick: ✓ confetti burst, plane banks gently, +1 hit, next round queues.',
-      'Wrong pick: ✗ vapor puff on the cloud, miss counter +1; the right cloud flashes so you see what you missed.',
-      'Skip: counts as wrong — moves to next round.',
-      'If a cloud drifts off the left edge before you tap, it counts as a miss and the round retries with a fresh cloud bank.',
-    ],
-    pl: [
-      'Trafienie: ✓ konfetti, samolot lekko się przechyla, +1 do trafień, następna runda w kolejce.',
-      'Błąd: ✗ kłąb pary na chmurze, licznik pomyłek +1; poprawna chmura mignie, abyś zobaczył, co Ci umknęło.',
-      'Pomiń: liczy się jako błąd — przejście do następnej rundy.',
-      'Jeśli chmura zniknie z lewej krawędzi, zanim klikniesz, liczy się to jako pudło, a runda startuje na nowo.',
-    ],
+  "hintMechanic": {
+    "en": "Use the limited Hint button for help with the current clue.",
+    "pl": "Użyj ograniczonej liczby podpowiedzi do aktualnej wskazówki."
   },
-  hintMechanic: {
-    en:
-      'You have 3 hints per session. Each tap dims one wrong cloud at the start of the next pass — fewer choices, faster decision. Save them for fast prompts where the clouds drift quickly.',
-    pl:
-      'Masz 3 podpowiedzi na sesję. Każde stuknięcie wygasza jedną błędną chmurę na początku następnego przelotu — mniej opcji, szybsza decyzja. Zachowaj je na szybkie rundy.',
+  "scoring": {
+    "en": "Cruise earns 100 arcade points, Jet earns 150 for a correct gate.",
+    "pl": "Cruise daje 100 punktów, Jet 150 za dobrą bramkę."
   },
-  scoring: {
-    en:
-      'Skip counts as wrong. Each correct cloud adds to your session streak. Tagging every cloud in the deck unlocks the post-shell review with explanations of any wrong picks.',
-    pl:
-      'Pomiń liczy się jako błąd. Każda trafiona chmura buduje serię w sesji. Trafienie wszystkich rund odblokowuje przegląd z wyjaśnieniami błędów.',
-  },
-  l1Pattern: {
-    en:
-      'Vocab + quick decision under motion. Polish learners often pause to translate before choosing; the moving-cloud pressure trains direct EN-to-meaning recall without the L1 round-trip.',
-    pl:
-      'Słownictwo + szybka decyzja w ruchu. Polscy uczniowie często pauzują, żeby przetłumaczyć w głowie; presja ruchomych chmur uczy bezpośredniego rozumienia EN bez obejścia przez polski.',
-  },
+  "l1Pattern": {
+    "en": "Practise English meaning and sentence context before you make your move.",
+    "pl": "Ćwicz angielskie znaczenie i kontekst zdania przed wykonaniem ruchu."
+  }
 };
 
 export interface WrapperRound {
@@ -277,6 +255,9 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
 }) => {
   const active: WrapperPuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : AP_DEMO;
   const persisted = useShellProgress('airplane');
+  const arcadeEvent = useArcadeEvents();
+  const interactionRef = useRef<HTMLDivElement>(null);
+  const { later, cancel: cancelActionTimers } = useActionTimers();
   // D3 Wave-5 (Ricky 2026-05-02): per-round student-pick log so the review
   // shows what the student tapped per cloud (last-pick semantics).
   const [studentPicks, setStudentPicks] = useState<Record<string, string>>({});
@@ -288,6 +269,13 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
   const [hintsUsed, setHintsUsed] = useState<number>(0);
   const [revealedHint, setRevealedHint] = useState<boolean>(false);
   const [announcement, setAnnouncement] = useState<string>('');
+  const [lane, setLane] = useState(0);
+  const laneRef = useRef(0);
+  const [flying, setFlying] = useState(false);
+  const [gateX, setGateX] = useState(82);
+  const gateRef = useRef(82);
+  const flightResolved = useRef(false);
+  const [flightPace, setFlightPace] = useState<'cruise' | 'jet'>('cruise');
   const [planeBob, setPlaneBob] = useState<number>(0); // for hit/miss reaction
   const [planeBank, setPlaneBank] = useState<number>(0); // banked-turn rotation degrees
   const [clouds, setClouds] = useState<CloudModel[]>([]);
@@ -302,6 +290,7 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
 
   const round = active.rounds[idx];
   const completed = !forcedState && idx >= active.rounds.length;
+  useActionCompletion(idx >= active.rounds.length, Boolean(forcedState), arcadeEvent);
   const tip = useEndOfShellTip({
     onWrongAnswer,
     completed,
@@ -324,10 +313,10 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'airplane',
-      brief: 'Tap the cloud whose word fits the gap before it drifts past the biplane.',
-      brief_pl: 'Stuknij chmurę ze słowem pasującym do luki, zanim odpłynie za samolot.',
-      detail: 'A biplane flies through clouds, each labelled with a word. Read the prompt at the top, then tap the cloud carrying the correct answer before it drifts off-screen. Right picks award points and the next round spawns; misses cost a point.',
-      detail_pl: 'Dwupłatowiec leci przez chmury, każda z innym słowem. Przeczytaj zdanie u góry, a potem stuknij chmurę z poprawną odpowiedzią, zanim odpłynie za horyzont. Trafione daje punkt, chybione odejmuje.',
+      brief: AIRPLANE_INSTRUCTIONS.whatYouDo.en[0],
+      brief_pl: AIRPLANE_INSTRUCTIONS.whatYouDo.pl[0],
+      detail: AIRPLANE_INSTRUCTIONS.controls.en.join(' ') + ' ' + AIRPLANE_INSTRUCTIONS.rightWrongSkip.en.join(' '),
+      detail_pl: AIRPLANE_INSTRUCTIONS.controls.pl.join(' ') + ' ' + AIRPLANE_INSTRUCTIONS.rightWrongSkip.pl.join(' '),
       fullInstructions: AIRPLANE_INSTRUCTIONS,
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
@@ -349,104 +338,43 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
     return () => ro.disconnect();
   }, [round]);
 
-  // Build clouds for the current round.
-  // Spawn-zone constraint (CD audit fix): each cloud's horizontal range must
-  // stay inside [SAFE_PAD_PCT, 100 - SAFE_PAD_PCT - cloudFootprint%]. We clamp
-  // both the initial xPct (reduced-motion case) and the recycle target on
-  // drift wrap so the nameplate never clips the viewport edge.
+  // Each cloud is a flight gate. Steering changes altitude; crossing a gate commits the answer.
+  const laneY = (i: number) => 14 + i * 70 / Math.max(1, (round?.options.length ?? 4) - 1);
   useEffect(() => {
     if (!round) return;
-    const rng = det(round.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) * 17 + 13);
-    const SAFE_PAD_PX = 100;
-    const safePadPct = (SAFE_PAD_PX / Math.max(skyWidth, 1)) * 100;
-    setClouds(round.options.map((opt, i) => {
-      const variant = CLOUD_VARIANTS[i % CLOUD_VARIANTS.length];
-      // Footprint = max(cloud body width, label width + 60 padding) translated
-      // to a percentage of sky width. This is what we keep inside the safe band.
-      const labelW = approxLabelWidthPx(opt) + 60;
-      const cloudW = 180; // visual cloud body width in px
-      const footprintPct = (Math.max(labelW, cloudW) / Math.max(skyWidth, 1)) * 100;
-      // Reduced-motion: clouds sit static, distributed evenly inside the safe
-      // band. With drift on: stagger off-screen right, but cap at 95 - footprint
-      // so even the right-most spawn doesn't clip on first appearance.
-      const halfFoot = footprintPct / 2;
-      const innerMin = safePadPct + halfFoot;
-      const innerMax = 100 - safePadPct - halfFoot;
-      const span = Math.max(innerMax - innerMin, 10);
-      const staticX = innerMin + (span / Math.max(round.options.length - 1, 1)) * i;
-      // Drift case: spawn just off the right edge with a tight stagger so the
-      // last cloud enters within ~2s rather than 30s+. Previous values
-      // (105 + i*22 → up to 171%) put the back of the fleet 71% beyond the
-      // viewport, so at the old 4-8 %/sec drift it took ~30s for the slowest
-      // cloud to even appear. New: 102 + i*7 → max ~123%, fully on-screen in
-      // a couple of seconds at the new ~16 %/sec drift.
-      const driftX = 102 + i * 7;
-      return {
-        optionIdx: i,
-        text: opt,
-        variant,
-        yPct: 22 + (i * 14) + (rng() - 0.5) * 6,
-        xPct: reduceMotion ? staticX : driftX,
-        // Parallax: slightly different speeds per variant so the sky feels alive.
-        // Tuned 2026-05-03 (Ricky) — previous 4-8.5 %/sec made a single cloud
-        // take 12-25s to cross the screen. New 14-20 %/sec gives ~5-7s
-        // crossings, matching the spec ("drift across in ~5-10s").
-        speedPct: variant === 'cirrus' ? 18 + rng() * 2 : variant === 'nimbus' ? 14 + rng() * 2 : 16 + rng() * 2,
-        scale: 0.85 + rng() * 0.25,
-        hue: 200 + Math.floor(rng() * 60),
-      };
-    }));
-  }, [round, reduceMotion, skyWidth]);
-
-  // Drift loop — clouds move from right to left. Skipped entirely when the
-  // user has prefers-reduced-motion: reduce.
+    setClouds(round.options.map((text, optionIdx) => ({ optionIdx, text, variant: CLOUD_VARIANTS[optionIdx % CLOUD_VARIANTS.length], yPct: laneY(optionIdx), xPct: 82, speedPct: 12, scale: 1, hue: 205 + optionIdx * 12 })));
+    setFlying(false); setGateX(82); gateRef.current = 82; flightResolved.current = false;
+    setLane(0); laneRef.current = 0;
+  }, [round?.id]);
+  const steer = (next: number) => {
+    if (!round || verdict !== null || forcedState || completed) return;
+    const bounded = Math.max(0, Math.min(round.options.length - 1, next));
+    setPlaneBank(bounded > laneRef.current ? 10 : -10); laneRef.current = bounded; setLane(bounded);
+    later(() => setPlaneBank(0), 240);
+  };
   useEffect(() => {
-    if (reduceMotion) return;
-    if (forcedState) return;
-    if (verdict !== null) return;
-    if (completed) return;
-    const SAFE_PAD_PX = 100;
-    const safePadPct = (SAFE_PAD_PX / Math.max(skyWidth, 1)) * 100;
-    const tick = (now: number): void => {
-      const last = lastFrameRef.current || now;
-      const dt = Math.min(0.06, (now - last) / 1000);
-      lastFrameRef.current = now;
-      setClouds((prev) => prev.map((c) => {
-        let nextX = c.xPct - c.speedPct * dt;
-        // If a cloud drifts past the left safe pad, recycle to the right —
-        // at the safe-band edge so labels never clip on respawn either.
-        if (nextX < safePadPct - 25) {
-          const labelW = approxLabelWidthPx(c.text) + 60;
-          const cloudW = 180;
-          const footprintPct = (Math.max(labelW, cloudW) / Math.max(skyWidth, 1)) * 100;
-          // Respawn just outside the right safe band so it slides in cleanly.
-          nextX = 100 - safePadPct + footprintPct / 2 + (c.optionIdx * 4);
-        }
-        return { ...c, xPct: nextX };
-      }));
-      rafRef.current = requestAnimationFrame(tick);
+    const key = (event: KeyboardEvent) => {
+      if (!interactionRef.current?.contains(event.target as Node)) return;
+      if ((event.target as HTMLElement)?.closest('input,textarea,select') || completed) return;
+      if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') { event.preventDefault(); steer(laneRef.current - 1); }
+      if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') { event.preventDefault(); steer(laneRef.current + 1); }
     };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); lastFrameRef.current = 0; };
-  }, [verdict, forcedState, completed, round, reduceMotion, skyWidth]);
-
-  // Banked-turn animation: when the answer cloud's vertical band changes
-  // round-to-round, the plane visibly leans toward the new altitude. 8-12°
-  // bank, eased back to level over ~600ms.
+    window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key);
+  }, [round?.id, verdict, completed]);
   useEffect(() => {
-    if (!round || reduceMotion) { setPlaneBank(0); return; }
-    const target = round.options[round.answerIndex];
-    if (!target) return;
-    // Use answer position relative to vertical centre (~45%) to pick a bank
-    // direction. Up-bank = negative; down-bank = positive.
-    const answerCloud = clouds.find((c) => c.optionIdx === round.answerIndex);
-    if (!answerCloud) return;
-    const delta = answerCloud.yPct - 45;
-    const bank = Math.max(-12, Math.min(12, delta * 0.4));
-    setPlaneBank(bank);
-    const t = setTimeout(() => setPlaneBank(0), 700);
-    return () => clearTimeout(t);
-  }, [round?.id, clouds.length, reduceMotion]);
+    if (!flying || verdict !== null || completed || forcedState || reduceMotion) return;
+    let previous = performance.now(); let raf = 0;
+    const frame = (now: number) => {
+      const dt = Math.min(.04, (now - previous) / 1000); previous = now;
+      gateRef.current -= dt * (flightPace === 'jet' ? 22 : 12);
+      setGateX(gateRef.current);
+      if (gateRef.current <= PLANE_X_PCT + 3 && !flightResolved.current) {
+        flightResolved.current = true; setFlying(false); onTapCloud(laneRef.current); return;
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame); return () => cancelAnimationFrame(raf);
+  }, [flying, verdict, completed, forcedState, reduceMotion, flightPace]);
 
   useEffect(() => {
     if (forcedState) return;
@@ -469,6 +397,7 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
     setPickedOption(optionIdx);
     const right = optionIdx === round.answerIndex;
     setVerdict(right ? 'right' : 'wrong');
+    arcadeEvent({ type: right ? 'correct' : 'incorrect', points: flightPace === 'jet' ? 150 : 100 });
     setPlaneBob(right ? -8 : 12);
     setAnnouncement(right ? 'Correct.' : `Wrong. The right one was ${round.options[round.answerIndex]}.`);
     // D3 Wave-5: log per-round pick so review can show last student pick.
@@ -489,7 +418,7 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
   // After verdict pause, advance to next round.
   useEffect(() => {
     if (verdict === null || forcedState) return;
-    const t = setTimeout(() => {
+    const t = later(() => {
       setIdx((i) => i + 1);
       setVerdict(null);
       setPickedOption(null);
@@ -506,6 +435,9 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
   };
 
   const reset = (): void => {
+    cancelActionTimers();
+    arcadeEvent({ type: 'reset' });
+    setFlying(false); setGateX(82); gateRef.current = 82; flightResolved.current = false; setStudentPicks({});
     setIdx(0); setVerdict(null); setPickedOption(null); setScore({ right: 0, wrong: 0 });
     setHintsUsed(0); setRevealedHint(false); tip.reset(); setPlaneBob(0);
   };
@@ -522,6 +454,9 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
   return (
     <div
       className="em-shell em-shell-airplane"
+      ref={interactionRef}
+      tabIndex={0}
+      onPointerDown={event => { if (!(event.target as HTMLElement).closest('button,a,input,textarea,select')) interactionRef.current?.focus({ preventScroll: true }); }}
       role="application"
       aria-label="Airplane, The Aerodrome"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: grad }}
@@ -601,7 +536,7 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
       {/* Top bar — single canonical Q N/M counter (CD audit #14 cleanup). */}
       {/* HIT/MISS tally moved to a small chip pair beside Progress; no longer */}
       {/* a redundant counter, and surfaces fully on the completion screen. */}
-      <div style={{ position: 'absolute', top: 28, left: 28, right: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 6, gap: 12, flexWrap: 'wrap' }}>
+      <div className="action-flying-header" style={{ position: 'absolute', top: 28, left: 28, right: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 6, gap: 12, flexWrap: 'wrap' }}>
         <AmbientAudioPlayer shellSlug="airplane" />
         <Nameplate
           district="The Aerodrome"
@@ -609,8 +544,8 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
           accent={ACCENT}
           icon={<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M2 12 L20 6 L18 12 L20 18 Z" stroke={ACCENT} strokeWidth="1.6" strokeLinejoin="round" /></svg>}
         />
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <Progress current={Math.min(idx, active.rounds.length)} total={active.rounds.length} accent={ACCENT} />
+        <div className="action-flying-toolbar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <Progress current={Math.min(idx + 1, active.rounds.length)} total={active.rounds.length} accent={ACCENT} />
           {/* Compact tally chip — single inline element, not a duplicate counter. */}
           <div
             aria-label={`Score: ${score.right} hit, ${score.wrong} miss`}
@@ -626,14 +561,14 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
             <span style={{ color: 'rgba(255,255,255,0.25)' }}>·</span>
             <span style={{ color: '#FB7185' }}>✗ {score.wrong}</span>
           </div>
-          <SkipButton onClick={() => { setIdx((i) => i + 1); setVerdict(null); setPickedOption(null); }} />
+          <SkipButton onClick={() => { if (verdict !== null || !round) return; setFlying(false); arcadeEvent({ type: 'incorrect' }); tip.recordWrong({ questionId: round.id, studentAnswer: 'Skipped', correctAnswer: round.options[round.answerIndex], explanationPL: round.hint_pl, exerciseId: round.exerciseId }); setIdx(i => i + 1); }} />
           <HintButton onClick={useHint} used={hintsUsed} total={2} />
         </div>
       </div>
 
       {/* Question prompt — pinned top-center */}
       {!completed && round && (
-        <div style={{
+        <div className="action-flying-question" style={{
           position: 'absolute', top: 96, left: '50%', transform: 'translateX(-50%)',
           maxWidth: 'min(620px, 80%)', padding: '12px 22px',
           background: 'linear-gradient(180deg, rgba(20,8,42,0.85) 0%, rgba(8,4,26,0.9) 100%)',
@@ -648,10 +583,11 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
       )}
 
       {/* Sky play area — clouds drift across, plane sits left */}
-      <div ref={skyRef} style={{ position: 'absolute', top: 200, left: 0, right: 0, bottom: 130, zIndex: 3 }}>
+      <div ref={skyRef} className="action-flight-sky" style={{ position: 'absolute', top: 200, left: 0, right: 0, bottom: 130, zIndex: 3 }}>
+        {round?.options.map((word, i) => <div key={i} className="action-flight-lane" style={{ top: `${laneY(i)}%` }}><span>{i + 1}</span></div>)}
         {/* Plane contrail — fixed strip behind plane */}
         <div aria-hidden="true" style={{
-          position: 'absolute', left: `${PLANE_X_PCT + 4}%`, right: 0, top: '50%', height: 6,
+          position: 'absolute', left: `${PLANE_X_PCT + 4}%`, right: 0, top: `${laneY(lane)}%`, height: 6,
           transform: 'translateY(-50%)',
           background: `linear-gradient(90deg, ${ACCENT}aa 0%, transparent 60%)`,
           filter: 'blur(2px)', opacity: 0.6,
@@ -662,14 +598,9 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
         {/* Banked-turn rotation set via planeBank state when answer-cloud */}
         {/* altitude changes round-to-round.                              */}
         <div aria-hidden="true" style={{
-          position: 'absolute', left: `${PLANE_X_PCT}%`, top: '50%',
+          position: 'absolute', left: `${PLANE_X_PCT}%`, top: `${laneY(lane)}%`,
           transform: `translate(-50%, calc(-50% + ${planeBob}px)) rotate(${planeBank}deg)`,
-          transition: 'transform 600ms var(--em-ease)',
-          animation: verdict === 'wrong'
-            ? 'em-ap-plane-dive 0.6s var(--em-ease)'
-            : verdict === 'right'
-              ? 'em-ap-plane-rise 0.6s var(--em-ease)'
-              : 'em-ap-plane-bob 3s ease-in-out infinite',
+          transition: reduceMotion ? 'none' : 'top 240ms ease, transform 240ms ease',
           zIndex: 5,
           transformOrigin: 'center center',
         }}>
@@ -813,12 +744,13 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
               key={c.optionIdx}
               type="button"
               className="em-ap-cloud-btn"
-              onClick={() => onTapCloud(c.optionIdx)}
+              onClick={() => steer(c.optionIdx)}
+              aria-pressed={lane === c.optionIdx}
               disabled={!!forcedState || verdict !== null || completed}
               aria-label={`Cloud labelled ${c.text}`}
               style={{
                 position: 'absolute',
-                left: `${c.xPct}%`, top: `${c.yPct + yOffset}%`,
+                left: `${gateX}%`, top: `${c.yPct}%`,
                 transform: `translate(-50%, -50%) scale(${c.scale})`,
                 background: 'transparent', border: 'none', padding: 0,
                 cursor: verdict !== null || completed ? 'default' : 'pointer',
@@ -924,14 +856,7 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
         })}
       </div>
 
-      {/* Instructions modal (full mechanic walkthrough). The centered HintCard
-          and decorative Bajla were removed 2026-05-03 — the chat-widget
-          speech bubble now carries the per-shell brief. */}
-      {!completed && (
-        <div style={{ position: 'absolute', bottom: 28, left: 28, maxWidth: 360, zIndex: 5 }}>
-        </div>
-      )}
-
+      {!completed && <div className="action-flight-control action-arcade-controls"><p>{flying ? 'STEER THROUGH THE RIGHT WORD · ↑ / ↓ or W / S' : 'Read the clue. Choose a lane, then launch.'}</p><button aria-label="Climb one lane" onClick={() => steer(laneRef.current - 1)}>↑ Climb</button><button aria-label="Descend one lane" onClick={() => steer(laneRef.current + 1)}>↓ Descend</button><button disabled={verdict !== null} onClick={() => { if (reduceMotion) onTapCloud(laneRef.current); else setFlying(v => !v); }}>{reduceMotion ? 'Fly through selected gate' : flying ? 'Pause flight' : gateX < 82 ? 'Resume flight' : 'Launch flight'}</button><button disabled={flying} onClick={() => setFlightPace(p => p === 'cruise' ? 'jet' : 'cruise')}>{flightPace === 'jet' ? 'Jet · 150 pts' : 'Cruise · 100 pts'}</button></div>}
       {/* Completion */}
       {completed && (
         <div
@@ -954,8 +879,8 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
             <div style={{ textAlign: 'center' }}><div className="em-decor" style={{ fontSize: 44, color: '#FB7185' }}>{score.wrong}</div><div className="em-eyebrow" style={{ color: '#FB7185' }}>MISS · CHYBIONE</div></div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button className="em-btn em-btn-ghost" onClick={reset}>Try another</button>
-            <button className="em-btn em-btn-primary" onClick={reset}>Next district →</button>
+            <button className="em-btn em-btn-ghost" onClick={reset}>Restart run</button>
+            <button className="em-btn em-btn-primary" onClick={reset}>Play again →</button>
           </div>
         </div>
       )}

@@ -1,3 +1,5 @@
+import { rankAssessment } from './challenge-arcade-logic';
+import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Rank Order shell — "The Election Hall" district.
 // A Senate-style civic hall at dusk: a rostrum and numbered brass voting
 // plinths line a podium ladder. Items arrive shuffled in a queue on the
@@ -226,7 +228,7 @@ const RO_PUZZLE: RankOrderPuzzle = {
     { id: 'ro-d-1', label: 'Wednesday', label_pl: 'środa',         correctRank: 3 },
     { id: 'ro-d-2', label: 'Friday',    label_pl: 'piątek',        correctRank: 5 },
     { id: 'ro-d-3', label: 'Monday',    label_pl: 'poniedziałek',  correctRank: 1 },
-    { id: 'ro-d-4', label: 'Sunday',    label_pl: 'niedziela',     correctRank: 7 },
+    { id: 'ro-d-4', label: 'Thursday', label_pl: 'czwartek', correctRank: 4 },
     { id: 'ro-d-5', label: 'Tuesday',   label_pl: 'wtorek',        correctRank: 2 },
   ],
 };
@@ -240,11 +242,14 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useChallengeArcade();
   const activePuzzle = puzzle && puzzle.items.length > 0 ? puzzle : RO_PUZZLE;
   const persisted = useShellProgress('rankorder');
 
   const N = activePuzzle.items.length;
   // Plinths are slots 1..N. State = array of itemId-or-null per slot.
+  const [skippedScore, setSkippedScore] = useState<number | null>(null);
+  const [checked, setChecked] = useState(false);
   const [plinths, setPlinths] = useState<(string | null)[]>(() => Array(N).fill(null));
   const [hoverSlot, setHoverSlot] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
@@ -261,21 +266,18 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
   // What's in the queue = items not yet placed on any plinth.
   const queue = activePuzzle.items.filter((it) => !plinths.includes(it.id));
 
-  const correctlyPlacedCount = plinths.reduce<number>((acc, itemId, slotIdx) => {
-    if (!itemId) return acc;
-    const item = activePuzzle.items.find((it) => it.id === itemId);
-    if (item && item.correctRank === slotIdx + 1) return acc + 1;
-    return acc;
-  }, 0);
+  const actualCorrectCount = rankAssessment(activePuzzle.items, plinths).filter(Boolean).length;
+  const correctlyPlacedCount = checked ? actualCorrectCount : 0;
   const allFilled = plinths.every((p) => p !== null);
   const completed = allFilled && correctlyPlacedCount === N && !forcedState;
+  useEffect(() => { if (completed && !forcedState) arcade.finish(); }, [completed, forcedState]);
   const tip = useEndOfShellTip({
     onWrongAnswer,
     completed,
     forcedState,
     onSessionComplete: onSessionComplete ? ({ wrongAttempts }) => {
       onSessionComplete({
-        correctCount: correctlyPlacedCount,
+        correctCount: skippedScore ?? correctlyPlacedCount,
         totalQuestions: N,
         wrongAttempts,
         puzzle: activePuzzle,
@@ -290,11 +292,11 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'rankorder',
-      brief: 'Drag each ballot onto the numbered plinth — rank 1 first.',
-      brief_pl: 'Przeciągnij każdy bilet na ponumerowaną mównicę — pierwsza ranga 1.',
-      detail: 'The election hall has numbered plinths and a stack of ballots, each with an item to rank. Read the criterion in the subtitle, then drag (or tap-and-place) each ballot onto the plinth where it belongs in order. Wrong drops bounce back; the vote closes when every plinth holds the right ballot.',
-      detail_pl: 'Sala wyborcza ma ponumerowane mównice i stos biletów do uszeregowania. Przeczytaj kryterium w podtytule, potem przeciągnij (lub stuknij i postaw) każdy bilet na właściwą mównicę. Błędne rzuty wracają; głosowanie zamyka się, gdy każda mównica ma właściwy bilet.',
-      fullInstructions: RANKORDER_INSTRUCTIONS,
+      brief: "Place every ballot in the order required by the criterion.",
+      brief_pl: "Ułóż wszystkie karty zgodnie z podanym kryterium.",
+      detail: "Place every ballot in the order required by the criterion. Choose Check order to submit your full arrangement. Tiles do not reveal their correctness while you are arranging them. Move any incorrect ballots and check again.",
+      detail_pl: "Ułóż wszystkie karty zgodnie z podanym kryterium. Wybierz Sprawdź kolejność, aby ocenić całe ułożenie. Podczas układania nie widzisz poprawności. Przenieś błędne karty i sprawdź ponownie.",
+      fullInstructions: { ...RANKORDER_INSTRUCTIONS, whatYouDo: {"en": ["Place every ballot in the order required by the criterion.", "Choose Check order to submit your full arrangement. Tiles do not reveal their correctness while you are arranging them.", "Move any incorrect ballots and check again."], "pl": ["Ułóż wszystkie karty zgodnie z podanym kryterium.", "Wybierz Sprawdź kolejność, aby ocenić całe ułożenie. Podczas układania nie widzisz poprawności.", "Przenieś błędne karty i sprawdź ponownie."]}, controls: {"en": ["Place every ballot in the order required by the criterion.", "Choose Check order to submit your full arrangement. Tiles do not reveal their correctness while you are arranging them.", "Move any incorrect ballots and check again."], "pl": ["Ułóż wszystkie karty zgodnie z podanym kryterium.", "Wybierz Sprawdź kolejność, aby ocenić całe ułożenie. Podczas układania nie widzisz poprawności.", "Przenieś błędne karty i sprawdź ponownie."]}, rightWrongSkip: {"en": ["Correct choices earn arcade points. Mistakes stay available in your session review. Skip moves on without points."], "pl": ["Poprawne wybory dają punkty arcade. Błędy zobaczysz w przeglądzie sesji. Pominięcie przechodzi dalej bez punktów."]} },
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
     return () => {
@@ -340,7 +342,7 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
     if (forcedState === 'complete') {
       const sample = Array<string | null>(N).fill(null);
       activePuzzle.items.forEach((it) => { sample[it.correctRank - 1] = it.id; });
-      setPlinths(sample);
+      setPlinths(sample); setChecked(true);
     }
   }, [forcedState, activePuzzle.items, N]);
 
@@ -362,27 +364,29 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
     });
     setSelectedItem(null);
     setHoverSlot(null);
-    const item = activePuzzle.items.find((it) => it.id === itemId);
-    const correct = item?.correctRank === slotIdx + 1;
-    setAnnouncement(
-      correct
-        ? `Correct rank for ${item?.label}.`
-        : `${item?.label} placed at rank ${slotIdx + 1}.`,
-    );
-    if (!correct && item) {
-      const correctOwner = activePuzzle.items.find((it) => it.correctRank === slotIdx + 1);
-      tip.recordWrong({
-        questionId: `slot-${slotIdx + 1}`,
-        studentAnswer: item.label,
-        correctAnswer: correctOwner?.label ?? `rank ${slotIdx + 1}`,
-        explanationPL: activePuzzle.criterion_pl,
-        exerciseId: correctOwner?.exerciseId,
-      });
-    }
+    setChecked(false);
+    setAnnouncement('Ballot placed. Check the full order when ready.');
+  };
+
+  const checkOrder = () => {
+    if (forcedState || !allFilled || checked) return;
+    plinths.forEach((id, slotIdx) => {
+      const item = activePuzzle.items.find(it => it.id === id);
+      if (!item) return;
+      const correct = item.correctRank === slotIdx + 1;
+      arcade.decide(correct, `rank-${item.id}`);
+      if (!correct) {
+        const owner = activePuzzle.items.find(it => it.correctRank === slotIdx + 1);
+        tip.recordWrong({questionId:`slot-${slotIdx+1}`,studentAnswer:item.label,correctAnswer:owner?.label ?? '',explanationPL:activePuzzle.criterion_pl,exerciseId:owner?.exerciseId});
+      }
+    });
+    setChecked(true);
+    setAnnouncement(`${actualCorrectCount} of ${N} ranks correct. Adjust the highlighted ballots and check again.`);
   };
 
   const removeFromSlot = (slotIdx: number) => {
     if (forcedState) return;
+    setChecked(false);
     setPlinths((prev) => {
       const next = [...prev];
       next[slotIdx] = null;
@@ -391,6 +395,7 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
   };
 
   const reset = () => {
+    arcade.reset(); setChecked(false); setSkippedScore(null);
     setPlinths(Array(N).fill(null));
     setSelectedItem(null);
     setHintsUsed(0);
@@ -402,10 +407,15 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
   // Skip = reveal correct order to teach + advance.
   const skip = () => {
     if (forcedState) return;
-    setRevealAll(true);
+    setSkippedScore(correctlyPlacedCount);
+    plinths.forEach((id, i) => {
+      const owner = activePuzzle.items.find(it => it.correctRank === i + 1);
+      if (owner && id !== owner.id) tip.recordWrong({questionId:`slot-${i+1}`,studentAnswer:'(skipped)',correctAnswer:owner.label,explanationPL:activePuzzle.criterion_pl,exerciseId:owner.exerciseId});
+    });
+    setRevealAll(true); setChecked(true);
     const correctOrder = Array<string | null>(N).fill(null);
     activePuzzle.items.forEach((it) => { correctOrder[it.correctRank - 1] = it.id; });
-    setTimeout(() => setPlinths(correctOrder), 200);
+    setPlinths(correctOrder);
   };
 
   const useHint = () => {
@@ -449,7 +459,7 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
 
   return (
     <div
-      className="em-shell em-shell-rankorder"
+      className="em-shell em-shell-rankorder challenge-enhanced"
       role="application"
       aria-label="Rank order, The Election Hall"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -495,7 +505,7 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
       <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} aria-hidden="true" />
 
       {/* Top bar */}
-      <div
+      <div className="challenge-enhanced-toolbar"
         style={{
           position: 'relative',
           padding: '20px 28px 10px',
@@ -540,6 +550,9 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
           zIndex: 3,
         }}
       >
+        <ChallengeMission title="Arrange the ballots. Commit your verdict." detail="Build the entire sequence before checking. Change any ballot and submit again. · Ułóż całość i sprawdź." current={checked ? correctlyPlacedCount : plinths.filter(Boolean).length} total={N}>
+          <button type="button" disabled={!allFilled || checked} onClick={checkOrder}>Check order · Sprawdź kolejność</button>
+        </ChallengeMission>
         {/* QUEUE — items waiting in the wings */}
         <div
           className="em-card"
@@ -657,16 +670,17 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
           <div className="em-scroll" style={{ display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', minHeight: 0, paddingRight: 4 }}>
             {plinths.map((itemId, slotIdx) => {
               const item = itemId ? activePuzzle.items.find((it) => it.id === itemId) : null;
-              const correct = item?.correctRank === slotIdx + 1;
+              const correct = checked && item?.correctRank === slotIdx + 1;
               const isHovered = hoverSlot === slotIdx;
               const isHinted = hintRevealSlot === slotIdx;
               const correctItem = activePuzzle.items.find((it) => it.correctRank === slotIdx + 1);
               return (
                 <div
                   key={slotIdx}
+                  className={!checked && item ? "challenge-rank-pending" : undefined}
                   {...dropZoneProps(`slot-${slotIdx}`)}
                   role="region"
-                  aria-label={`Plinth rank ${slotIdx + 1}${item ? `, holds ${item.label}, ${correct ? 'correct' : 'incorrect'}` : ', empty'}`}
+                  aria-label={`Plinth rank ${slotIdx + 1}${item ? `, holds ${item.label}, ${checked ? correct ? 'correct' : 'incorrect' : 'not checked'}` : ', empty'}`}
                   onDragOver={(e) => {
                     e.preventDefault();
                     setHoverSlot(slotIdx);

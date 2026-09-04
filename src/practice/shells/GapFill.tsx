@@ -1,3 +1,4 @@
+import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Gap-fill shell — "Construction Quarter".
 // Broken billboards / under-construction shop signs are missing words.
 // Players drag letter tiles (or word chips) into the gaps.
@@ -321,6 +322,7 @@ export function renderGapFillReviewItem(
 }
 
 export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state: forcedState = null, puzzle, onWrongAnswer, onSessionComplete }) => {
+  const arcade = useChallengeArcade();
   // Kelly Tier-2 (2026-05-02): defensive props guard.
   const propsInvalid = !forcedState && puzzle !== undefined && (!puzzle.scenes || puzzle.scenes.length === 0);
   const activePuzzle: GFPuzzle = puzzle && puzzle.scenes.length > 0 ? puzzle : GF_PUZZLE;
@@ -329,6 +331,8 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
   const persisted = useShellProgress('gapfill');
   const [picks, setPicks] = useState<GFPicks>({});
   const [feedback, setFeedback] = useState<GFFeedback>(null);
+  const completionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (completionTimer.current) clearTimeout(completionTimer.current); }, []);
   const [completed, setCompleted] = useState(false);
   const [draggedOption, setDraggedOption] = useState<string | null>(null);
   const [hintsUsed, setHintsUsed] = useState<number>(0);
@@ -373,10 +377,16 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
     };
   }, [forcedState]);
 
+  useEffect(() => {
+    if (forcedState) return;
+    persisted.save({progress:scenesSeen / activePuzzle.scenes.length,completed:scenesSeen >= activePuzzle.scenes.length,lastState:scenesSeen >= activePuzzle.scenes.length ? 'complete' : 'active'});
+  }, [scenesSeen, activePuzzle.scenes.length, forcedState]);
+
   // D3-GapFill (2026-05-02): fire onSessionComplete ONCE when every scene
   // has been seen (solved or skipped). Distinct from the per-scene `completed`
   // state which the in-shell "The sign is fixed." dialog already uses.
   const sessionComplete = scenesSeen >= activePuzzle.scenes.length;
+  useEffect(() => { if (sessionComplete && !forcedState) arcade.finish(); }, [sessionComplete, forcedState]);
   useEffect(() => {
     if (forcedState) return;
     if (!sessionComplete) return;
@@ -419,27 +429,21 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
   }, [forcedState, cur]);
 
   const place = (gapId: number, word: string) => {
+    if (forcedState || completed || sceneFinalised) return;
     const next: GFPicks = { ...picks, [gapId]: word };
     setPicks(next);
     if (cur.gaps.every((g) => next[g.id])) {
       const allRight = cur.gaps.every((g) => next[g.id] === g.answer);
       setFeedback(allRight ? 'correct' : 'wrong');
-      if (allRight) setTimeout(() => setCompleted(true), 900);
+      arcade.decide(allRight, cur.id, 150);
+      if (allRight) completionTimer.current = setTimeout(() => setCompleted(true), 900);
       // EM-041: count this scene as seen+solved exactly once.
       if (allRight && !forcedState && !sceneFinalised) {
         setScenesSeen((s) => Math.min(s + 1, activePuzzle.scenes.length));
         setScenesSolved((s) => Math.min(s + 1, activePuzzle.scenes.length));
         setSceneFinalised(true);
       }
-      if (!forcedState) persisted.save({ progress: 1, completed: true, lastState: 'complete' });
-      else setTimeout(() => setFeedback(null), 1400);
-      // EM-041 (existing): on a wrong scene fill, count it as seen but not
-      // solved so the progress counter still advances when the student moves
-      // on without retrying.
-      if (!allRight && !forcedState && !sceneFinalised) {
-        setScenesSeen((s) => Math.min(s + 1, activePuzzle.scenes.length));
-        setSceneFinalised(true);
-      }
+      // A wrong fill remains playable. Finalise only on a solved sign or explicit skip.
       // Layer-4 legacy: report the first wrong gap (most-relevant for the
       // single-tip InterferenceTip flow). Kept for any host that still wires
       // onWrongAnswer; the new review-screen flow uses onSessionComplete.
@@ -480,12 +484,17 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
     }
   };
 
-  const reset = () => {
+  const resetScene = () => {
+    if (completionTimer.current) clearTimeout(completionTimer.current);
     setPicks({});
     setFeedback(null);
     setCompleted(false);
     setHintReveal(null);
     setSceneFinalised(false);
+  };
+  const restart = () => {
+    resetScene(); arcade.reset(); setScene(0); setScenesSeen(0); setScenesSolved(0); setHintsUsed(0);
+    wrongAttemptsRef.current = []; skippedSceneIdsRef.current = []; sessionFiredRef.current = false;
   };
   // EM-041 (Builder 7): Skip path. If the current scene wasn't already
   // finalised (i.e. solved), bump `scenesSeen` so the counter visibly advances
@@ -499,14 +508,15 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
       skippedSceneIdsRef.current.push(cur.id);
     }
     setScene((s) => (s + 1) % activePuzzle.scenes.length);
-    reset();
+    resetScene();
     setHintsUsed(0);
   };
   // `next` (Next billboard button after solving) doesn't bump seen — `place`
   // already counted this scene when the player got it right.
   const next = () => {
+    if (sessionComplete) { restart(); return; }
     setScene((s) => (s + 1) % activePuzzle.scenes.length);
-    reset();
+    resetScene();
     setHintsUsed(0);
   };
 
@@ -545,7 +555,7 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
       }
       if (e.key === 'Escape') {
         e.preventDefault();
-        reset();
+        resetScene();
       }
     };
     document.addEventListener('keydown', trap);
@@ -574,7 +584,7 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
 
   return (
     <div
-      className="em-shell em-shell-gapfill"
+      className="em-shell em-shell-gapfill challenge-enhanced"
       role="application"
       aria-label="Gap fill exercise, Construction Quarter"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -626,8 +636,9 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
 
       <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
 
-      <div className="em-gap-layout" style={{ position: 'relative', display: 'grid', gridTemplateRows: 'auto 1fr auto', gap: 24, padding: '60px 32px 32px', height: '100%', boxSizing: 'border-box' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="em-gap-layout" style={{ position: 'relative', display: 'grid', gridTemplateRows: 'auto auto 1fr auto', gap: 24, padding: '60px 32px 32px', height: '100%', boxSizing: 'border-box' }}>
+        <ChallengeMission title="Repair the neon. Reopen the block." detail="Fit every missing word to restore this storefront. A fully repaired sign earns 150 base points." current={scenesSolved} total={activePuzzle.scenes.length} />
+        <div className="challenge-gap-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <AmbientAudioPlayer shellSlug="gapfill" />
           <Nameplate
             district="Construction Quarter"
@@ -635,7 +646,7 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
             accent={accent}
             icon={<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 19 L19 19 M5 19 L5 9 L11 5 L17 9 L17 19 M9 13 L13 13 M9 16 L13 16" stroke={accent} strokeWidth="1.5" strokeLinejoin="round" fill="none" /></svg>}
           />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="challenge-gap-controls" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {/* EM-041: pass `seen` so eyebrow shows Q seen/total · ✓ solved/total. */}
             <Progress current={scenesSolved} total={activePuzzle.scenes.length} seen={Math.min(scene + 1, activePuzzle.scenes.length)} accent={accent} />
             <SkipButton onClick={skip} />
@@ -685,10 +696,16 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
                   const placed = picks[g.id];
                   const right = placed === g.answer;
                   return (
-                    <span
+                    <button
+                      type="button"
                       key={i}
-                      role="region"
-                      aria-label={`Gap ${g.id + 1}${placed ? `, current answer ${placed}, ${right ? 'correct' : feedback === 'wrong' ? 'incorrect' : 'pending'}` : ', empty'}`}
+                      disabled={!!forcedState || completed || sceneFinalised}
+                      onClick={() => {
+                        if (forcedState || completed || sceneFinalised || !placed) return;
+                        setPicks(previous => { const next = { ...previous }; delete next[g.id]; return next; });
+                        setFeedback(null);
+                      }}
+                      aria-label={`Gap ${g.id + 1}${placed ? `, current answer ${placed}, ${right ? 'correct' : feedback === 'wrong' ? 'incorrect' : 'pending'}` : ', empty'}${placed && !completed && !sceneFinalised ? ', tap to remove and try another word' : ''}`}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
                         e.preventDefault();
@@ -703,12 +720,14 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
                         background: feedback === 'correct' && right ? 'rgba(52,211,153,0.18)' : feedback === 'wrong' && placed && !right ? 'rgba(251,113,133,0.18)' : placed ? `${accent}1c` : 'rgba(0,0,0,0.25)',
                         color: placed ? 'var(--em-text)' : 'rgba(255,255,255,0.3)',
                         fontStyle: placed ? 'normal' : 'italic',
+                        fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit',
+                        cursor: placed && !completed && !sceneFinalised ? 'pointer' : 'default',
                         animation: feedback === 'wrong' && placed && !right ? 'em-shake 0.4s' : 'none',
                         transition: 'all 220ms',
                       }}
                     >
                       {placed || '____'}
-                    </span>
+                    </button>
                   );
                 })}
               </div>
@@ -760,7 +779,7 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
             {cur.gaps
               .flatMap((g) => g.options.map((o) => ({ word: o, gid: g.id, key: `${g.id}-${o}` })))
               .map((opt) => {
-                const placedSomewhere = Object.values(picks).includes(opt.word);
+                const placedSomewhere = picks[opt.gid] === opt.word;
                 const isHinted = hintReveal === opt.gid && cur.gaps.find((g) => g.id === opt.gid)?.answer === opt.word;
                 return (
                   <button
@@ -808,7 +827,7 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
           </div>
         </div>
 
-        {completed && (
+        {(completed || sessionComplete) && (
           <div
             role="dialog"
             aria-modal="true"
@@ -821,10 +840,10 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
             style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse, rgba(251,191,36,0.18), rgba(14,10,26,0.62))', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, animation: 'em-rise 0.4s var(--em-ease)' }}
           >
             <Bajla size={84} mood="cheer" decorative />
-            <div className="em-decor" style={{ fontSize: 38, color: accent, textShadow: `0 0 20px ${accent}aa` }}>The sign is fixed.</div>
+            <div className="em-decor" style={{ fontSize: 38, color: accent, textShadow: `0 0 20px ${accent}aa` }}>{sessionComplete ? 'The whole block is open.' : 'The sign is fixed.'}</div>
             <div className="em-eyebrow">SHOP REOPENED · SKLEP OTWARTY</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button ref={tryAnotherBtnRef} className="em-btn em-btn-ghost" onClick={() => { reset(); }}>Try another</button>
+              <button ref={tryAnotherBtnRef} className="em-btn em-btn-ghost" onClick={restart}>Try another</button>
               {/* D3-GapFill (CD radar item #2, 2026-05-02): on the last scene
                   in a session-tracked deck, swap "Next billboard →" for
                   "See the board →" so the rhythm cues that the review screen

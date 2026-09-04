@@ -6,6 +6,7 @@
 // chips of stone fall when wrong.
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
+import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -292,6 +293,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
   onWrongAnswer,
   onSessionComplete,
 }) => {
+  const arcade = useWordArcade();
   const activePuzzle: ShellWordFormationPuzzle =
     puzzle && puzzle.items.length > 0 ? puzzle : WF_PUZZLE;
   const total = activePuzzle.items.length;
@@ -299,6 +301,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
 
   const [idx, setIdx] = useState(0);
   const [draft, setDraft] = useState('');
+  const [partsOpen, setPartsOpen] = useState(false);
   const [verdict, setVerdict] = useState<'right' | 'wrong' | null>(null);
   const [score, setScore] = useState(0);
   const [questionsSeen, setQuestionsSeen] = useState(0);
@@ -315,7 +318,8 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
     completed,
     forcedState,
     onSessionComplete: onSessionComplete ? ({ wrongAttempts }) => {
-      onSessionComplete({
+      arcade.complete();
+    onSessionComplete({
         correctCount: score,
         totalQuestions: total,
         wrongAttempts,
@@ -383,12 +387,13 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
   }, [forcedState, total]);
 
   const submit = (): void => {
-    if (forcedState || !cur) return;
+    if (forcedState || !cur || verdict === 'right' || completed) return;
     const candidate = normalise(draft);
     if (!candidate) return;
     const accepted = [normalise(cur.answer), ...(cur.acceptedAnswers ?? []).map(normalise)];
     const correct = accepted.includes(candidate);
     setVerdict(correct ? 'right' : 'wrong');
+    arcade.answer(correct);
     if (correct) {
       setScore((s) => s + 1);
       setAnnouncement(`Chiselled. ${cur.answer}.`);
@@ -428,6 +433,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
   };
 
   const reset = (): void => {
+    arcade.restart();
     setIdx(0); setDraft(''); setVerdict(null); setScore(0);
     setQuestionsSeen(0); setHintsUsed(0); setHintRevealed(false);
     tip.reset();
@@ -437,7 +443,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
 
   return (
     <div
-      className="em-shell em-shell-wordformation"
+      className="em-shell wa-form-game em-shell-wordformation"
       role="application"
       aria-label="Word Formation, The Mason's Yard"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -563,6 +569,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
           already IS a noun). Auto-advances after 1.4s via the effect above. */}
       {!completed && cur && basePosLooksIdentity && (
         <div className="wf-stage" style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, zIndex: 4 }}>
+          <WordMission kind="construction" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/><div className="wa-checklist"><span>BASE {cur.base_word}</span><span className={draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'is-ready':''}>New form {draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'✓':'○'}</span><span className={verdict==='right'?'is-ready':''}>Fits the sentence {verdict==='right'?'✓':'○'}</span></div>
           <div className="em-eyebrow" style={{ color: ACCENT, letterSpacing: '0.22em' }}>
             NO TRANSFORMATION NEEDED
           </div>
@@ -582,6 +589,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
       {/* Main work area */}
       {!completed && cur && !basePosLooksIdentity && (
         <div className="wf-stage" style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28, zIndex: 4 }}>
+          <WordMission kind="construction" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/><div className="wa-checklist"><span>BASE {cur.base_word}</span><span className={draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'is-ready':''}>New form {draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'✓':'○'}</span><span className={verdict==='right'?'is-ready':''}>Fits the sentence {verdict==='right'?'✓':'○'}</span></div>
           {/* Sentence carved on a stone slab */}
           <div
             key={`s-${cur.id}`}
@@ -724,6 +732,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
             </div>
           </div>
 
+          <div className="wa-word-parts"><div className="wa-inline-tools"><button aria-expanded={partsOpen} onClick={()=>setPartsOpen(v=>!v)}>Word-part workbench {partsOpen?'−':'+'}</button><span>Build a form, then adjust its spelling.</span></div>{partsOpen&&verdict!=='right'&&<div className="wa-affixes"><button onClick={()=>setDraft(cur.base_word.toLowerCase())}>BASE: {cur.base_word}</button>{['un','re','dis'].map(part=><button key={part} onClick={()=>setDraft(part+(draft||cur.base_word.toLowerCase()))}>{part}−</button>)}{['ly','ness','ment','tion','ity','ful','less','er'].map(part=><button key={part} onClick={()=>setDraft((draft||cur.base_word.toLowerCase())+part)}>−{part}</button>)}</div>}</div>
           {/* Action row */}
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
             {verdict !== 'right' && (

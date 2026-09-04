@@ -1,3 +1,4 @@
+import './action-arcade.css';
 // OpenTheBox3D — CSS-3D Vault Room scene.
 //
 // Pure-visual companion to OpenTheBox.tsx. Ricky 2026-05-03 — port of Mike's
@@ -113,6 +114,7 @@ const SafeDoor: React.FC<SafeDoorProps> = ({ index, state, dimmed, onClick }) =>
           <div className="em-otb-3d-box-label">BOX</div>
           <div className="em-otb-3d-box-num-stencil">{String(index + 1).padStart(2, '0')}</div>
         </div>
+        {(isOpen || sealed) && <div className="action-vault-loot" aria-hidden="true"><span>{sealed ? '✓' : 'EM'}</span></div>}
         {sealed && (
           <div className="em-otb-3d-seal-stamp">
             <div className="em-otb-3d-stamp-mark">SEALED</div>
@@ -137,7 +139,7 @@ const SafeDoor: React.FC<SafeDoorProps> = ({ index, state, dimmed, onClick }) =>
           </div>
           <div className="em-otb-3d-door-fan" />
           <div className="em-otb-3d-number-plate">№ {String(index + 1).padStart(2, '0')}</div>
-          <div className="em-otb-3d-dial" />
+          <div className="em-otb-3d-dial" style={{ transform: `rotate(${isOpen ? 135 : sealed ? 270 : 0}deg)`, transition: 'transform .65s cubic-bezier(.2,.7,.3,1)' }} />
           <div className="em-otb-3d-hinge top" />
           <div className="em-otb-3d-hinge bottom" />
         </div>

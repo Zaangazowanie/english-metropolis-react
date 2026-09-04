@@ -1567,6 +1567,9 @@ export function StudentPractice(): React.ReactElement {
   // Also tracks the prior session's questionIds so the puzzle generator
   // can EXCLUDE them from the next selection when the pool is large enough.
   const [freshnessToken, setFreshnessToken] = useState<number>(0);
+  // A new run needs a new cabinet AND shell. Keep this independent from the
+  // puzzle seed so "Try another" / "Repeat same" can replay the same questions.
+  const [arcadeRunEpoch, setArcadeRunEpoch] = useState(0);
   const [excludeQuestionIds, setExcludeQuestionIds] = useState<string[] | null>(null);
 
   // Mid-shell snapshot: subscribe to the same useShellProgress row the
@@ -1645,7 +1648,8 @@ export function StudentPractice(): React.ReactElement {
     setResumeHydration(r.state);
     setReuseQuestionIds(r.reuseQuestionIds);
     setExcludeQuestionIds(null);
-    // Don't bump freshnessToken — same questions, same seed → same puzzle.
+    // Same questions, same seed; remount the cabinet to clear gameplay and score.
+    setArcadeRunEpoch(epoch => epoch + 1);
   }, [shellSession]);
 
   // Reset resume hints when leaving the shell.
@@ -1672,7 +1676,9 @@ export function StudentPractice(): React.ReactElement {
   }, [activeShell, shellSession]);
   const reviewTryAnother = useCallback(() => {
     setReviewSession(null);
-    // staying on the same shell triggers a fresh session via the shell's reset
+    // The review is an overlay; hiding it alone leaves the finished shell and
+    // its completed score reducer alive. Remount both as one fresh run.
+    setArcadeRunEpoch(epoch => epoch + 1);
   }, []);
   const reviewNextDistrict = useCallback(() => {
     setReviewSession(null);
@@ -2083,7 +2089,7 @@ export function StudentPractice(): React.ReactElement {
           {import.meta.env.DEV && exercisePuzzle != null && exerciseState.status === 'ready' ? (
             <ModeBanner mode={exerciseState.mode} reasonString={exerciseState.reasonString} />
           ) : null}
-          <ArcadeCabinet key={activeShell} title={DISTRICTS[activeShell].name} accent={DISTRICTS[activeShell].accent} number={ALL_SHELLS.indexOf(activeShell) + 1} shellId={activeShell}>
+          <ArcadeCabinet key={`${activeShell}-${freshnessToken}-${arcadeRunEpoch}`} title={DISTRICTS[activeShell].name} accent={DISTRICTS[activeShell].accent} number={ALL_SHELLS.indexOf(activeShell) + 1} shellId={activeShell}>
           <div className="em-shell-host">
             {activeGroup ? (
               <GroupingPill currentShell={activeShell} />
