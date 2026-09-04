@@ -30,7 +30,8 @@
 // real students' state.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { ArcadeFeedbackContext } from './arcade-feedback';
 import { fetchWithTimeout } from './practice-cache';
 
 // ─── Shared types — mirror the Convex schema ─────────────────────────────────
@@ -202,6 +203,7 @@ async function mutateConvex<T>(path: string, args: Record<string, unknown>): Pro
 // `exerciseId` is optional. If supplied (e.g. `useShellProgress('crossword', vocabSetId)`),
 // progress is keyed per-exercise so swapping puzzles starts fresh.
 export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShellProgress {
+  const reportArcadeProgress = useContext(ArcadeFeedbackContext);
   const [state, setState] = useState<ShellProgress>(DEFAULT_PROGRESS);
   // Track whether we've hydrated from the backend yet. Until then we don't
   // want a save() call to collide with the in-flight read and reset values
@@ -262,6 +264,7 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
       const { exerciseId: nextExerciseId, ...progressFields } = next;
       const merged: ShellProgress = { ...stateRef.current, ...progressFields };
       setState(merged);
+      reportArcadeProgress?.(shellId, merged);
 
       // Fire-and-forget backend write. We send the *delta* fields so the
       // mutation can patch atomically rather than over-write neighbouring
@@ -275,11 +278,12 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
         // Non-fatal — see header comment.
       });
     },
-    [shellId, exerciseId, slug],
+    [shellId, exerciseId, slug, reportArcadeProgress],
   );
 
   const reset = useCallback(() => {
     setState(DEFAULT_PROGRESS);
+    reportArcadeProgress?.(shellId, DEFAULT_PROGRESS);
     void mutateConvex('practice:reset', {
       studentSlug: slug,
       shellId,
@@ -287,7 +291,7 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
     }).catch(() => {
       // Non-fatal.
     });
-  }, [shellId, exerciseId, slug]);
+  }, [shellId, exerciseId, slug, reportArcadeProgress]);
 
   return { ...state, save, reset };
 }

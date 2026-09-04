@@ -99,6 +99,8 @@ import type {
 import type { ShellSentenceCorrectionPuzzle, SCItem } from './shells/SentenceCorrection';
 import type { ShellSentenceTransformPuzzle, STItem } from './shells/SentenceTransform';
 import { PitchCard } from './components/PitchCard';
+import { DistrictArtwork } from './components/DistrictArtwork';
+import { ArcadeCabinet } from './components/ArcadeCabinet';
 import type { ShellKey } from './lib/shell-selector';
 import type { PickedShell } from './lib/shell-selector';
 import { ErrorBoundary, ShellSpinner } from './components/ErrorBoundary';
@@ -1169,7 +1171,7 @@ const HeroCard: React.FC<HeroCardProps> = ({ pick, index, onSelect }) => {
         )}
       </div>
 
-      <div className="em-hero-emoji" aria-hidden>{meta.emoji}</div>
+      <DistrictArtwork shell={pick.shell} accent={meta.accent} index={index} />
 
       <h3 className="em-district-name">{meta.name}</h3>
       <p className="em-district-sub">{meta.subtitle}</p>
@@ -1177,10 +1179,7 @@ const HeroCard: React.FC<HeroCardProps> = ({ pick, index, onSelect }) => {
 
       <div className="em-hero-foot">
         <div className="em-hero-reason">{pick.reason}</div>
-        <div className="em-hero-weight">
-          <strong>{pick.weight}</strong>
-          weight
-        </div>
+        <span className="em-hero-launch">Play <span aria-hidden>↗</span></span>
       </div>
     </button>
   );
@@ -1225,7 +1224,8 @@ const SecondaryCard: React.FC<SecondaryCardProps> = ({ shellKey, index, onSelect
         <div className="em-done-badge" aria-label="Completed">Done</div>
       )}
 
-      <div className="em-secondary-emoji" aria-hidden>{meta.emoji}</div>
+      <span className="em-district-code" aria-hidden>ARCADE / {String(ALL_SHELLS.indexOf(shellKey) + 1).padStart(2, '0')}</span>
+      <DistrictArtwork shell={shellKey} accent={meta.accent} index={index} />
 
       <h3 className="em-district-name">{meta.name}</h3>
       <p className="em-district-sub">{meta.subtitle}</p>
@@ -1334,6 +1334,7 @@ export function StudentPractice(): React.ReactElement {
   const session = usePracticeSession(routeSlug);
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeShell, setActiveShell] = useState<ShellKey | null>(null);
+  const [districtQuery, setDistrictQuery] = useState('');
   const [accuracySelection, setAccuracySelection] = useState<AccuracyRoundId | 'all' | null>(null);
   const [accuracyMode, setAccuracyMode] = useState<'choice' | 'speech' | null>(null);
   const accuracyProgress = useShellProgress(
@@ -2082,6 +2083,7 @@ export function StudentPractice(): React.ReactElement {
           {import.meta.env.DEV && exercisePuzzle != null && exerciseState.status === 'ready' ? (
             <ModeBanner mode={exerciseState.mode} reasonString={exerciseState.reasonString} />
           ) : null}
+          <ArcadeCabinet key={activeShell} title={DISTRICTS[activeShell].name} accent={DISTRICTS[activeShell].accent} number={ALL_SHELLS.indexOf(activeShell) + 1} shellId={activeShell}>
           <div className="em-shell-host">
             {activeGroup ? (
               <GroupingPill currentShell={activeShell} />
@@ -4484,6 +4486,7 @@ export function StudentPractice(): React.ReactElement {
               );
             })()}
           </div>
+          </ArcadeCabinet>
         </div>
       </div>
     );
@@ -4515,7 +4518,7 @@ export function StudentPractice(): React.ReactElement {
               </div>
               <h2 className="em-dash-title">
                 {session.picks.length === 0 ? (
-                  <>Ten <em>districts</em>, one city</>
+                  <>{ALL_SHELLS.length} <em>games</em>, one city</>
                 ) : (
                   <>Your three <em>districts</em></>
                 )}
@@ -4541,7 +4544,7 @@ export function StudentPractice(): React.ReactElement {
                   <strong>Sign in for personalised picks</strong>
                   <span style={{ opacity: 0.7 }}>{' '}· Zaloguj się po spersonalizowane ćwiczenia</span>
                   <p style={{ margin: '4px 0 0', fontSize: 13, opacity: 0.7 }}>
-                    Without a session we show all ten districts. With one, we pick the three that drill what your recent lessons surfaced.
+                    Without a session you can explore all 38 districts. With one, we pick the three that drill what your recent lessons surfaced.
                   </p>
                 </div>
               </div>
@@ -4590,8 +4593,13 @@ export function StudentPractice(): React.ReactElement {
               </div>
             </div>
 
+            <label className="em-arcade-search">
+              <span className="material-symbols-outlined" aria-hidden="true">search</span>
+              <input type="search" value={districtQuery} onChange={event => setDistrictQuery(event.target.value)} placeholder="Find a game · Znajdź grę" aria-label="Find a game · Znajdź grę" />
+            </label>
+            {districtQuery && !ALL_SHELLS.some(key => `${DISTRICTS[key].name} ${SHELL_LABEL[key]} ${DISTRICTS[key].subtitle_pl}`.toLowerCase().includes(districtQuery.trim().toLowerCase())) && <p role="status">No matching games. Try another name. · Spróbuj innej nazwy.</p>}
             <div className="em-secondary-grid">
-              {otherShells.map((shellKey, i) => (
+              {(districtQuery.trim() ? ALL_SHELLS.filter(key => `${DISTRICTS[key].name} ${SHELL_LABEL[key]} ${DISTRICTS[key].subtitle_pl}`.toLowerCase().includes(districtQuery.trim().toLowerCase())) : otherShells).map((shellKey, i) => (
                 <SecondaryCard
                   key={shellKey}
                   shellKey={shellKey}

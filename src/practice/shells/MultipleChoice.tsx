@@ -396,7 +396,6 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
   const [picked, setPicked] = useState<number | null>(null);
   const [revealed, setRevealed] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
-  const [questionsSeen, setQuestionsSeen] = useState<number>(0);
   const [hintsUsed, setHintsUsed] = useState<number>(0);
   const [hintRevealed, setHintRevealed] = useState<boolean>(false);
   const [shake, setShake] = useState<boolean>(false);
@@ -462,7 +461,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
   // Forced state — design canvas previews.
   useEffect(() => {
     if (!forcedState) return;
-    if (forcedState === 'empty') { setIdx(0); setPicked(null); setRevealed(false); setScore(0); setQuestionsSeen(0); }
+    if (forcedState === 'empty') { setIdx(0); setPicked(null); setRevealed(false); setScore(0); }
     if (forcedState === 'active') { setIdx(1); setPicked(null); setRevealed(false); }
     if (forcedState === 'correct') { setIdx(1); setPicked(activePuzzle.questions[1].answerIndex); setRevealed(true); }
     if (forcedState === 'wrong') {
@@ -500,7 +499,6 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
   };
 
   const advance = (): void => {
-    setQuestionsSeen((q) => q + 1);
     setIdx((i) => i + 1);
     setPicked(null);
     setRevealed(false);
@@ -509,7 +507,6 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
 
   const skip = (): void => {
     if (forcedState || completed) return;
-    setQuestionsSeen((q) => q + 1);
     setAnnouncement(`Skipped. The right poster would have been ${cur.options[cur.answerIndex]}.`);
     setIdx((i) => i + 1);
     setPicked(null);
@@ -525,7 +522,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
 
   const reset = (): void => {
     setIdx(0); setPicked(null); setRevealed(false); setScore(0);
-    setQuestionsSeen(0); setHintsUsed(0); setHintRevealed(false);
+    setHintsUsed(0); setHintRevealed(false);
     tip.reset();
   };
 
@@ -681,7 +678,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
       </div>
 
       {/* ─── Header bar ───────────────────────────────────────────────────── */}
-      <div style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, zIndex: 5, flexWrap: 'wrap' }}>
+      <div className="em-mc-toolbar" style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, zIndex: 5, flexWrap: 'wrap' }}>
         <AmbientAudioPlayer shellSlug="multiplechoice" />
         <Nameplate
           district="The Bulletin Board"
@@ -698,7 +695,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <Progress
             current={score}
-            seen={questionsSeen}
+            seen={Math.min(idx + 1, total)}
             total={total}
             accent={ACCENT}
           />
@@ -711,6 +708,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
       {!completed && cur && (
         <div
           key={cur.id}
+          className="em-mc-round"
           style={{
             position: 'absolute', inset: '110px 24px 220px',
             display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -722,6 +720,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
           <div
             role="region"
             aria-label="Question poster"
+            className="em-arcade-question"
             style={{
               position: 'relative',
               maxWidth: 560, width: '100%',
@@ -809,6 +808,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
                   key={i}
                   ref={(el) => { cardRefs.current[i] = el; }}
                   role="radio"
+                  className={`em-arcade-answer${showCorrect ? ' is-correct' : showWrong ? ' is-wrong' : ''}`}
                   aria-checked={isPicked}
                   aria-disabled={revealed}
                   aria-label={`Option ${String.fromCharCode(65 + i)}: ${opt}${showCorrect ? ', correct' : showWrong ? ', wrong' : ''}`}

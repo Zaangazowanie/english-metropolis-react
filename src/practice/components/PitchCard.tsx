@@ -15,20 +15,10 @@
 // not user-facing copy — drop confirmed per audit recommendation. Do not
 // reintroduce.
 
-import React, { useState } from 'react';
-import { Bajla } from './primitives';
+import React from 'react';
+import { ArcadeCity } from './DistrictArtwork';
 import type { ShellKey } from '../lib/shell-selector';
 import { CoverageWidget } from './CoverageWidget';
-
-// 2026-05-02 (Mike): on the landing page, only show the 3 test-english.com
-// equivalents (Multiple choice / Gap-fill / Open cloze) by default. The other
-// 35 districts collapse behind a "Show more" toggle so the hero stays focused
-// on the high-signal exam-prep shells. Same pattern is used in GroupDetail.tsx.
-const TEST_ENGLISH_EQUIVALENTS: ReadonlySet<ShellKey> = new Set<ShellKey>([
-  'multiplechoice',
-  'gapfill',
-  'opencloze',
-]);
 
 interface PitchCardProps {
   /** Day / dusk / night theme — matches the rest of the practice canvas. */
@@ -44,64 +34,7 @@ interface PitchCardProps {
   studentSlug?: string;
 }
 
-// Pairs of [user-facing label, ShellKey]. Labels match the city-district
-// naming convention; ShellKeys are the registry identifiers in
-// lib/shell-selector.ts.
-//
-// 2026-05-02 — expanded from 10 → 38 districts. Multiple Choice MUST be #1
-// per Mike: "make sure that multiple choice should always be number on the
-// list in practice for students to practice as it's the most popular".
-const DISTRICTS: ReadonlyArray<readonly [string, ShellKey]> = [
-  // ── #1 ─────────────────────────────────────────
-  ['Multiple choice', 'multiplechoice'],
-  // ── Original 10 (preserved order) ─────────────
-  ['Crossword', 'crossword'],
-  ['Wordsearch', 'wordsearch'],
-  ['Gap-fill', 'gapfill'],
-  ['Hangman', 'hangman'],
-  ['Matching', 'matching'],
-  ['Flashcards', 'flashcards'],
-  ['Drag-drop', 'dragdrop'],
-  ['Group sort', 'groupsort'],
-  ['True/False', 'truefalse'],
-  ['Anagram', 'anagram'],
-  // ── Selection / exam ──────────────────────────
-  ['Open cloze', 'opencloze'],
-  ['Sentence transformation', 'sentencetransform'],
-  ['Word formation', 'wordformation'],
-  ['Sentence correction', 'sentencecorrection'],
-  ['Spelling bee', 'spellingbee'],
-  ['Typing test', 'typingtest'],
-  // ── Arcade ─────────────────────────────────────
-  ['Open the box', 'openthebox'],
-  ['Spin the wheel', 'spinthewheel'],
-  ['Whack-a-mole', 'whackamole'],
-  ['Balloon pop', 'balloonpop'],
-  ['Snake', 'snake'],
-  ['Maze chase', 'mazechase'],
-  ['Battleship', 'battleship'],
-  // ── Reading / listening / ordering ────────────
-  ['Reading comprehension', 'readingcomp'],
-  ['Listening comprehension', 'listeningcomp'],
-  ['Picture quiz', 'picturequiz'],
-  ['Speaking cards', 'speakingcards'],
-  ['Labelled diagram', 'labelleddiagram'],
-  ['Rank order', 'rankorder'],
-  ['Unjumble', 'unjumble'],
-  // ── MCQ-wrappers ──────────────────────────────
-  ['Quiz show', 'quizshow'],
-  ['Concentration', 'concentration'],
-  ['Find the match', 'findthematch'],
-  ['Random cards', 'randomcards'],
-  ['Random wheel', 'randomwheel'],
-  ['Airplane', 'airplane'],
-  ['Flying fruit', 'flyingfruit'],
-];
-
 export const PitchCard: React.FC<PitchCardProps> = ({ time = 'dusk', onSelectShell, onBrowseByTopic, studentSlug }) => {
-  const [moreOpen, setMoreOpen] = useState(false);
-  const featured = DISTRICTS.filter(([, key]) => TEST_ENGLISH_EQUIVALENTS.has(key));
-  const extras = DISTRICTS.filter(([, key]) => !TEST_ENGLISH_EQUIVALENTS.has(key));
   const grad =
     time === 'day'
       ? 'linear-gradient(160deg, #4C2F7E 0%, #C58BD9 100%)'
@@ -111,40 +44,7 @@ export const PitchCard: React.FC<PitchCardProps> = ({ time = 'dusk', onSelectShe
 
   return (
     <div data-time={time} className="em-pitch-card em-grain" style={{ background: grad }}>
-      {/* Faux skyline silhouette — covers the bottom 60% of the card. */}
-      <svg
-        viewBox="0 0 1200 700"
-        preserveAspectRatio="none"
-        className="em-pitch-skyline"
-        aria-hidden
-      >
-        <defs>
-          <linearGradient id="em-pitch-sky-fade" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#000" stopOpacity="0" />
-            <stop offset="1" stopColor="#000" stopOpacity="0.7" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M0 700 L0 480 L60 480 L60 420 L120 420 L120 380 L180 380 L180 440 L240 440 L240 360 L260 360 L260 280 L320 280 L320 360 L380 360 L380 400 L440 400 L440 320 L500 320 L500 260 L520 260 L520 180 L560 180 L560 260 L600 260 L600 340 L660 340 L660 280 L720 280 L720 380 L780 380 L780 320 L840 320 L840 420 L900 420 L900 360 L960 360 L960 440 L1020 440 L1020 400 L1080 400 L1080 460 L1140 460 L1140 480 L1200 480 L1200 700 Z"
-          fill="url(#em-pitch-sky-fade)"
-        />
-        {/* Window dots — flickering yellow points to imply lit windows at dusk. */}
-        {Array.from({ length: 80 }).map((_, i) => {
-          const x = (i * 73 + 17) % 1200;
-          const y = 460 + ((i * 41) % 200);
-          return (
-            <rect
-              key={i}
-              x={x}
-              y={y}
-              width="3"
-              height="4"
-              fill="#FBBF24"
-              opacity={0.4 + (i % 3) * 0.2}
-            />
-          );
-        })}
-      </svg>
+      <ArcadeCity />
 
       {/* Decorative top-right Bajla removed 2026-05-04 per Mike — chat-widget
           Bajla is the canonical mascot presence on every page, so the standalone
@@ -226,7 +126,7 @@ export const PitchCard: React.FC<PitchCardProps> = ({ time = 'dusk', onSelectShe
 
       <div className="em-pitch-content">
         <div className="em-eyebrow em-pitch-eyebrow">
-          ENGLISH · METROPOLIS · ANGIELSKI
+          THE METRO ARCADE · TWOJE MIASTO GIER
         </div>
         {/* Compact coverage chip — visible <1280px (rail hidden there) so
             mobile + tablet learners still see their bank-coverage signal.
@@ -237,14 +137,11 @@ export const PitchCard: React.FC<PitchCardProps> = ({ time = 'dusk', onSelectShe
             <CoverageWidget studentSlug={studentSlug} variant="compact" />
           </div>
         )}
-        <h1 className="em-pitch-title" aria-label="Thirty-eight practice districts.">
-          Thirty-eight
-          <br />
-          practice districts.
+        <h1 className="em-pitch-title">
+          Your city.<br /><span>Your next challenge.</span>
         </h1>
         <p className="em-pitch-subtitle">
-          A city-shaped study app for adult Polish learners — where every game is a neighborhood and
-          Bajla the pigeon is your guide.
+          Step into a district. Take on a challenge. Build your English, one game at a time. Bajla will show you the way.
         </p>
 
         {onBrowseByTopic && (
@@ -256,7 +153,7 @@ export const PitchCard: React.FC<PitchCardProps> = ({ time = 'dusk', onSelectShe
               aria-label="Browse practice by topic · Przeglądaj ćwiczenia według tematu"
               style={{ background: 'rgba(232,121,249,0.18)', borderColor: 'rgba(232,121,249,0.55)' }}
             >
-              🗂 Browse by topic · Przeglądaj wg tematu
+              Browse by topic · Przeglądaj wg tematu
             </button>
           </div>
         )}
