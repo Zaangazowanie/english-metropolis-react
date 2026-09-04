@@ -1141,50 +1141,6 @@ export default function GameHome() {
           </Reveal>
         </section>
 
-        <section className="gh-city-loop gh-section">
-          <Reveal className="gh-city-copy">
-            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
-              textTransform: 'uppercase', color: T.emerald, marginBottom: 12 }}>{W.cityKicker}</div>
-            <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(32px, 4.7vw, 58px)',
-              lineHeight: 1.02, letterSpacing: '-0.04em', margin: '0 0 20px' }}>{W.cityTitle}</h2>
-            <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.35vw, 17px)', lineHeight: 1.7,
-              maxWidth: 560, margin: '0 0 24px' }}>{W.cityBody}</p>
-            <div className="gh-city-features">
-              {W.cityFeatures.map((feature, index) => (
-                <div className="gh-city-feature gh-glass gh-shader-surface" key={feature}
-                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
-                  <span className="material-symbols-outlined gh-city-feature-icon" aria-hidden>
-                    {['forum', 'style', 'view_in_ar'][index]}
-                  </span>
-                  <span>{feature}</span>
-                </div>
-              ))}
-            </div>
-            <div className="gh-city-actions">
-              <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward">
-                {W.cityCta}
-              </ActionLink>
-              <ActionLink href={WORLD_URL} variant="secondary" size="lg" trailingIcon="view_in_ar">
-                {W.navPlay}
-              </ActionLink>
-            </div>
-          </Reveal>
-
-          <Reveal className="gh-three-reveal" delay={100}>
-            <div className="gh-three-shell gh-glass-strong">
-              <DeferredMetroCity reduced={reduced} night={night} label={W.cityLabel}/>
-              <div className="gh-three-hud">
-                <span className="gh-three-hint" aria-label={W.cityHint}>
-                  <span className="material-symbols-outlined" aria-hidden>drag_pan</span>
-                </span>
-              </div>
-              <div className="gh-three-route" aria-hidden>
-                <span>LIVE 1:1</span><i/><span>FLASHCARDS</span><i/><span>WORLD 3D</span>
-              </div>
-            </div>
-          </Reveal>
-        </section>
-
         {/* ── Bajla on WhatsApp: the assistant, shown doing the job ── */}
         <section className="gh-section gh-bajla-section" aria-labelledby="gh-bajla-title">
           <Reveal className="gh-bajla-copy">
@@ -1436,6 +1392,53 @@ export default function GameHome() {
               ))}
             </LineSection>
           </div>
+        </section>
+
+        {/* ── One learning plan: the loop that ties lessons to practice. Moved here
+           2026-09-04 (Mike): it reads as the summary after the practice catalogue,
+           not as the opening pitch, and Bajla takes the slot it used to hold. ── */}
+        <section className="gh-city-loop gh-section">
+          <Reveal className="gh-city-copy">
+            <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.22em',
+              textTransform: 'uppercase', color: T.emerald, marginBottom: 12 }}>{W.cityKicker}</div>
+            <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(32px, 4.7vw, 58px)',
+              lineHeight: 1.02, letterSpacing: '-0.04em', margin: '0 0 20px' }}>{W.cityTitle}</h2>
+            <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.35vw, 17px)', lineHeight: 1.7,
+              maxWidth: 560, margin: '0 0 24px' }}>{W.cityBody}</p>
+            <div className="gh-city-features">
+              {W.cityFeatures.map((feature, index) => (
+                <div className="gh-city-feature gh-glass gh-shader-surface" key={feature}
+                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
+                  <span className="material-symbols-outlined gh-city-feature-icon" aria-hidden>
+                    {['forum', 'style', 'view_in_ar'][index]}
+                  </span>
+                  <span>{feature}</span>
+                </div>
+              ))}
+            </div>
+            <div className="gh-city-actions">
+              <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward">
+                {W.cityCta}
+              </ActionLink>
+              <ActionLink href={WORLD_URL} variant="secondary" size="lg" trailingIcon="view_in_ar">
+                {W.navPlay}
+              </ActionLink>
+            </div>
+          </Reveal>
+
+          <Reveal className="gh-three-reveal" delay={100}>
+            <div className="gh-three-shell gh-glass-strong">
+              <DeferredMetroCity reduced={reduced} night={night} label={W.cityLabel}/>
+              <div className="gh-three-hud">
+                <span className="gh-three-hint" aria-label={W.cityHint}>
+                  <span className="material-symbols-outlined" aria-hidden>drag_pan</span>
+                </span>
+              </div>
+              <div className="gh-three-route" aria-hidden>
+                <span>LIVE 1:1</span><i/><span>FLASHCARDS</span><i/><span>WORLD 3D</span>
+              </div>
+            </div>
+          </Reveal>
         </section>
 
         {/* ── Bottom CTA ── */}
