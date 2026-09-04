@@ -1798,22 +1798,21 @@
    2026-09-03 — hero skyline, "why students stay" moats, Bajla on WhatsApp,
    footer. Type floor: nothing on this page renders under 13px.
    ═══════════════════════════════════════════════════════════════════════ */
-/* The hero keeps a 210px band under the copy for the city; the tall far-row
-   towers rise behind the photo, the near rows and the train sit in the band,
-   and nothing stands behind the bullet list or the CTAs. */
-.gh-hero-grid { --gh-hero-pad-bottom: 230px; }
+/* Reserve space for the architecture below the copy and conversion links. */
+.gh-hero-grid { --gh-hero-pad-bottom: 280px; }
 .gh-hero-skyline {
   position: absolute;
-  left: -24px; right: -24px; bottom: -30px;
-  height: min(62%, 470px);
+  left: -24px; right: -24px; bottom: -16px;
+  height: clamp(280px, 20vw, 340px);
   z-index: 0;
   pointer-events: none;
   opacity: 0.96;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 90%, transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 90%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 12%, #000 82%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent, #000 12%, #000 82%, transparent 100%);
 }
 .gh-hero-skyline canvas { display: block; width: 100% !important; height: 100% !important; }
-.gh-day .gh-hero-skyline { opacity: 0.88; }
+.gh-day .gh-hero-skyline { opacity: 0.96; }
+.gh-hero-skyline[data-webgl="fallback"] canvas { visibility: hidden; }
 .gh-hero-skyline[data-webgl="fallback"] {
   background:
     linear-gradient(180deg, transparent 40%, rgba(139,92,246,0.10) 100%),
@@ -1828,8 +1827,9 @@
 }
 .gh-night .gh-hero-copy::before { --gh-hero-veil: rgba(6,4,16,0.78); }
 @media (max-width: 900px) {
-  .gh-hero-grid { --gh-hero-pad-bottom: 160px; }
-  .gh-hero-skyline { height: 34%; bottom: -16px; opacity: 0.85; }
+  /* The legacy motion sheet loads last and sets a 48px !important shorthand. */
+  .gh-hero-grid.em-hero-three-field { --gh-hero-pad-bottom: 220px; padding-bottom: var(--gh-hero-pad-bottom) !important; }
+  .gh-hero-skyline { height: 260px; bottom: -16px; opacity: 0.96; }
   .gh-hero-copy::before { inset: -20px -16px; }
 }
 
