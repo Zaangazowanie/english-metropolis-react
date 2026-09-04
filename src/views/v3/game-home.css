@@ -1896,3 +1896,20 @@
   .gh-chat-typing i, .gh-chat-owl { animation: none; }
   .gh-why-card, .gh-why-icon, .gh-chat { transition: none; }
 }
+
+/* Slide marks (Mike 2026-09-04): the site mark on every hero slide, and a smaller
+   AI-image declaration under it. 13px is the site-wide type floor, so "smaller" is
+   carried by weight and opacity, not by going under the floor. */
+.gh-hs-marks {
+  position: absolute; right: 16px; bottom: 14px; z-index: 2;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+  pointer-events: none; text-align: right;
+}
+.gh-hs-mark {
+  font-size: 14px; font-weight: 600; letter-spacing: 0.02em; color: rgba(255,255,255,0.88);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.55), 0 0 12px rgba(0,0,0,0.35);
+}
+.gh-hs-ai {
+  font-size: 13px; font-weight: 400; letter-spacing: 0.01em; color: rgba(255,255,255,0.66);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.55);
+}

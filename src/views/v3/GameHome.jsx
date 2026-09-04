@@ -752,7 +752,7 @@ function PlayOverlay({ game, onClose }) {
               background: 'linear-gradient(180deg, rgba(30,20,60,0.92) 0%, rgba(15,10,35,0.92) 100%)',
               border: '1px solid rgba(217,70,239,0.35)', borderRadius: 20, padding: '36px 32px',
               boxShadow: '0 30px 80px -20px rgba(0,0,0,0.7), 0 0 60px -20px rgba(217,70,239,0.3)' }}>
-              <img src="/bajla.png" alt="" width="72" height="72" style={{ objectFit: 'contain', marginBottom: 10 }}/>
+              <img src="/brand/em-bajla-icon.webp" alt="" width="72" height="72" style={{ objectFit: 'cover', borderRadius: 16, marginBottom: 10 }}/>
               <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 24, color: DUSK.text, marginBottom: 10 }}>
                 {doneOnce ? 'Round complete.' : 'Go full screen?'}
               </div>
@@ -1045,6 +1045,7 @@ export default function GameHome() {
               nextLabel={W.heroSliderNext}
               slides={HERO_MEDIA.map((media, i) => ({
                 ...media, ...W.heroSlides[i], alt: W.heroSlides[i].title,
+                aiNote: lang === 'pl' ? 'Obraz wygenerowany przez AI' : 'AI-generated image',
               }))}
             />
           </div>
@@ -1198,7 +1199,7 @@ export default function GameHome() {
             <div className="gh-chat gh-glass-strong" role="img" aria-label={W.bajlaTitle}
               onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <div className="gh-chat-head">
-                <img src="/bajla.png" alt="" width="44" height="44"/>
+                <img src="/brand/em-bajla-icon.webp" alt="" width="44" height="44" style={{ borderRadius: 12 }}/>
                 <div>
                   <strong>Bajla</strong>
                   <span>WhatsApp · English Metro</span>
@@ -1213,7 +1214,7 @@ export default function GameHome() {
                 ))}
                 <li className="gh-chat-typing" aria-hidden><i/><i/><i/></li>
               </ol>
-              <img className="gh-chat-owl" src="/bajla.png" alt="" width="120" height="120" aria-hidden/>
+              <img className="gh-chat-owl" src="/brand/em-bajla-icon.webp" alt="" width="120" height="120" style={{ borderRadius: 28 }} aria-hidden/>
             </div>
           </Reveal>
         </section>
@@ -1434,7 +1435,7 @@ export default function GameHome() {
           borderRadius: 26, border: `1px solid ${T.borderHi}`, position: 'relative', overflow: 'hidden' }}>
           <span className="gh-cta-orb gh-cta-orb--one" aria-hidden/>
           <span className="gh-cta-orb gh-cta-orb--two" aria-hidden/>
-          <img className="gh-bajla" src="/bajla.png" alt="Bajla, the English Metro owl" width="112" height="112"/>
+          <img className="gh-bajla" src="/brand/em-bajla-icon.webp" alt="Bajla, the English Metro owl" width="112" height="112" style={{ borderRadius: 26 }}/>
           <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(28px, 4vw, 46px)',
             letterSpacing: '-0.03em', margin: '0 0 12px' }}>
             {W.ctaTitle}

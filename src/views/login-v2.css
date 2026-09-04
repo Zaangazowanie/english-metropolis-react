@@ -287,6 +287,7 @@
   bottom: 0;
   z-index: 2;
   width: clamp(110px, 12vw, 170px);
+  border-radius: 22%;   /* the brand mark is a square tile, not a cutout */
   filter: drop-shadow(0 12px 24px rgba(23, 16, 46, 0.4));
   animation: emlRise 600ms cubic-bezier(0.23, 1, 0.32, 1) 350ms both;
 }

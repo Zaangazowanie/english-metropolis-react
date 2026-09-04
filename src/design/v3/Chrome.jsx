@@ -179,8 +179,8 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
               navbar permanently per Mike 2026-05-04. The original skyline
               still appears as the login-page silhouette + the Lessons-PDF
               wordmark chip; this swap is navbar-only. */}
-          <img src="/em-chubby-bajla.png" alt="" style={{
-            height: 28, width: 'auto', display: 'block',
+          <img src="/brand/em-bajla-icon.webp" alt="" style={{
+            height: 28, width: 28, borderRadius: 7, display: 'block',
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }}/>
           {/* Wordmark hides on mobile — the mascot alone carries the brand so the
               control cluster (lang / level / theme / avatar) fits without clipping. */}

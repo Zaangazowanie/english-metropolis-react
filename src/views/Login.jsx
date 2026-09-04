@@ -169,7 +169,7 @@ export default function Login() {
           <strong>{isPl ? 'Twoja trasa do płynnego angielskiego zaczyna się tutaj.' : 'Your route to fluent English starts here.'}</strong>
           <span>englishmetro.com</span>
         </div>
-        {showChubby && <img className="eml-chubby" src="/em-chubby-bajla.png" alt=""/>}
+        {showChubby && <img className="eml-chubby" src="/brand/em-bajla-icon.webp" alt=""/>}
       </aside>
     </div>
   )
