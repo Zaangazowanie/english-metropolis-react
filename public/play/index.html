@@ -202,7 +202,7 @@
        the minimap rides top-left instead (zone card is centered, so it's free). */
     body.touch #minimap { width: 92px; height: 92px; bottom: auto; top: 60px; left: 12px; }
     @media (max-width: 600px) {
-      body.touch #zone-card { top: 10px; left: 10px; transform: none; width: calc(100vw - 150px);
+      body.touch #zone-card { top: 10px; left: 10px; transform: none; width: calc(100vw - 172px);
         padding: 7px 10px 8px; border-radius: 8px; text-align: left; }
       body.touch #zone-card .line { font-size: 13px; letter-spacing: 0.08em; }
       body.touch #zone-card .name { font-size: 18px; line-height: 1.12; letter-spacing: 0; }
@@ -215,7 +215,8 @@
       body.touch #minimap { top: 128px; left: 10px; width: 86px; height: 86px; }
       body.touch #toast { top: 130px; left: 108px; transform: none; width: calc(100vw - 120px); align-items: stretch; }
       body.touch #toast .toast { padding: 8px 12px; border-radius: 8px; font-size: 13px; max-width: none; }
-      body.touch #prompt { bottom: 27%; font-size: 14px; }
+      /* left-anchored so it never crosses the action column on the right, above the stick */
+      body.touch #prompt { bottom: 27%; left: 12px; transform: none; max-width: calc(100vw - 92px); font-size: 14px; }
     }
     /* Landscape phone: the action column becomes a row along the bottom-right
        so it never climbs into the XP/rank chips; HUD chips shrink. */
@@ -229,7 +230,7 @@
       body.touch #zone-card { top: 8px; left: 12px; transform: none; padding: 5px 10px 6px; text-align: left; width: auto; max-width: 46vw; }
       body.touch #zone-card .name { font-size: 16px; }
       body.touch #zone-card .line { font-size: 13px; letter-spacing: 0.06em; }
-      body.touch #objective { top: 58px; font-size: 13px; padding: 5px 10px; }
+      body.touch #objective { top: 66px; font-size: 13px; padding: 5px 10px; }
       body.touch #minimap { top: auto; bottom: 14px; left: 128px; width: 72px; height: 72px; }
       body.touch #toast { top: 94px; }
       body.touch #prompt { bottom: 72px; }
