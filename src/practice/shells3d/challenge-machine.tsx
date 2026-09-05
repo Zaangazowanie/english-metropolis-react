@@ -41,7 +41,8 @@ function Camera({ rows, columns, kind, compact }:{rows:number;columns:number;kin
   useEffect(()=>{
     const aspect=size.width/Math.max(1,size.height);
     const junction=kind==='junction';
-    const width=junction&&compact?7:10.7;
+    const closeGrid=['target','dealer','memory','network','crane','freight','sentence'].includes(kind);
+    const width=compact&&(junction||closeGrid)?7:10.7;
     camera.position.set(0,junction?2.7:3.5,Math.max(junction?5.8:6.5,width/aspect,rows*2.1));
     camera.lookAt(0,junction?-.65:.1,0); camera.updateProjectionMatrix();
   },[camera,size.width,size.height,rows,columns,kind,compact]);
@@ -49,8 +50,9 @@ function Camera({ rows, columns, kind, compact }:{rows:number;columns:number;kin
 }
 /** Each mesh is the actual selectable answer/word/socket; the DOM label is
  * portalled OUTSIDE CityStage's aria-hidden canvas for the same keyboard path. */
-function ObjectControl({item,at,design,onClick,portal,width,selected,slot=false,disabled=false}:{item:MachineItem;at:[number,number,number];design:MachineDesign;onClick:()=>void;portal:RefObject<HTMLDivElement>;width:number;selected:boolean;slot?:boolean;disabled?:boolean}) {
+function ObjectControl({item,at,design,onClick,portal,width,compact,selected,slot=false,disabled=false}:{item:MachineItem;at:[number,number,number];design:MachineDesign;onClick:()=>void;portal:RefObject<HTMLDivElement>;width:number;compact:boolean;selected:boolean;slot?:boolean;disabled?:boolean}) {
   const group=useRef<Group>(null!);
+  const stageWidth=useThree(state=>state.size.width);
   const {reducedMotion}=useStageQuality();
   const right=item.state==='right', wrong=item.state==='wrong', hidden=item.state==='hidden';
   const color=right?'#00ff94':wrong?'#ff2359':selected?'#fff000':design.color;
@@ -72,7 +74,7 @@ function ObjectControl({item,at,design,onClick,portal,width,selected,slot=false,
       <MachineModel kind={design.kind} color={color} slot={slot} right={right} hidden={hidden}/>
     </group>
     <Html portal={portal} center position={[0,design.kind==='dealer' ? -.12 : -.58,.62]} zIndexRange={[12,5]}>
-      <button type="button" className={`cm-object ${item.state??'idle'} ${selected?'selected':''} ${slot?'cm-socket':''}`} style={{width}} disabled={disabled} aria-pressed={selected||right} onClick={onClick}>
+      <button type="button" className={`cm-object ${item.state??'idle'} ${selected?'selected':''} ${slot?'cm-socket':''}`} style={{width:compact?Math.min(width,stageWidth*.29):width}} disabled={disabled} aria-pressed={selected||right} onClick={onClick}>
         <span>{slot?'SOCKET · GNIAZDO':hidden?'SEALED · ZAKRYTE':({target:'VAULT · SEJF',junction:'ROUTE · TRASA',reactor:'ENERGY CELL · OGNIWO',dealer:'CARD · KARTA',memory:'MEMORY PANEL · PANEL',network:'DESTINATION · CEL',crane:'CARGO · ŁADUNEK',gallery:'CASE FILE · DOWÓD',radio:'FREQUENCY · CZĘSTOTLIWOŚĆ',museum:'EXHIBIT · EKSPONAT',studio:'STUDIO CONTROL',patch:'PLUG · WTYK',freight:'CARRIAGE · WAGON',sentence:'WORD WAGON · WAGON SŁOWO'}[design.kind])}</span>
         <strong>{item.label}</strong>
         {right&&<b aria-label="Correct">✓</b>}{wrong&&<b aria-label="Incorrect">×</b>}
@@ -122,7 +124,7 @@ export function ChallengeMachine({design,items=[],slots=[],roundKey,locked=false
   const canvasHeight=design.kind==='junction'?(narrow?320:360):narrow?Math.max(450,(rowCount+(slots.length?1:0))*155+150):Math.max(370,(rowCount+(slots.length?1:0))*130+130);
   const drawItem=(it:MachineItem,i:number,slot=false)=>{
     const pos=machinePosition(design.kind,i,slot?Math.min(columns,slots.length-slotPage*columns):stageItems.length,columns,slot);
-    return <ObjectControl key={it.id} item={it} at={pos} design={design} portal={portal} width={itemWidth} selected={!slot&&(design.mode==='direct'?it.state==='selected':it.id===selected)} slot={slot} disabled={locked||!!it.locked} onClick={()=>slot?attach(it.id):activate(it.id)}/>;
+    return <ObjectControl key={it.id} item={it} at={pos} design={design} portal={portal} width={itemWidth} compact={narrow} selected={!slot&&(design.mode==='direct'?it.state==='selected':it.id===selected)} slot={slot} disabled={locked||!!it.locked} onClick={()=>slot?attach(it.id):activate(it.id)}/>;
   };
   return <div className={`challenge-machine cm-${design.kind}`} style={{'--cm-accent':design.color} as CSSProperties} data-gameplay-3d={design.kind} onKeyDown={e=>{
     if((e.target as HTMLElement).matches('input,textarea,select'))return;
