@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { usePrefersReducedMotion } from '../../practice/lib/usePrefersReducedMotion'
+import { nextExample } from './bajla-tour.mjs'
 import './bajla-showcase.css'
 import BajlaWalkthrough from './BajlaWalkthrough.jsx'
 
@@ -18,24 +20,29 @@ const EXAMPLES = [
 function Icon({ name }) { return <span className="material-symbols-outlined" aria-hidden="true">{name}</span> }
 export default function BajlaShowcase({ lang }) {
   const pl = lang === 'pl'
+  const reduced = usePrefersReducedMotion()
   const [index, setIndex] = useState(0)
+  const [playing, setPlaying] = useState(!reduced)
+  const [currentStep, setCurrentStep] = useState(null)
   const example = EXAMPLES[index]
   const [eyebrow, title, description, query] = example[pl ? 'pl' : 'en']
   const wa = example.mode === 'whatsapp'
-  const move = amount => setIndex(current => (current + amount + EXAMPLES.length) % EXAMPLES.length)
+  const move = useCallback(amount => setIndex(current => nextExample(current, EXAMPLES.length, amount)), [])
+  const continueTour = useCallback(() => move(1), [move])
+  const stepCaption = currentStep?.id === example.id ? currentStep.caption : ''
   return <section id="bajla" className="gh-section bj-showcase" aria-labelledby="gh-bajla-title">
     <div className="bj-showcase-copy">
       <div className="gh-kicker">{pl ? 'Poznaj Bajlę · w aplikacji i na WhatsAppie' : 'Meet Bajla · in the app and on WhatsApp'}</div>
       <h2 id="gh-bajla-title">{pl ? <>Twoje lekcje.<br/>{' '}Jej dobra pamięć.</> : <>Your lessons.<br/>{' '}Her long memory.</>}</h2>
       <p className="bj-showcase-intro">{pl ? 'Bajla to Twoja asystentka w English Metro. Pamięta materiał z lekcji, pomaga ćwiczyć i ogarnia rezerwacje. Napisz po polsku lub po angielsku — w aplikacji albo na WhatsAppie.' : 'Bajla is your English Metro assistant. She remembers your lesson material, helps you practise and takes care of bookings. Write in Polish or English, in the app or on WhatsApp.'}</p>
       <Link className="bj-showcase-link" to="/pricing">{pl ? 'W dodatku z analizą lekcji AI' : 'Included with the AI lesson analysis add-on'}<Icon name="arrow_forward"/></Link>
-      <div className="bj-showcase-explanation" aria-live="polite" aria-atomic="true"><div key={`${index}-${lang}`} className="bj-showcase-explanation-content"><div className="bj-showcase-eyebrow"><span>{String(index + 1).padStart(2, '0')}</span>{eyebrow}</div><h3>{title}</h3><p>{description}</p><span className="bj-showcase-context"><Icon name={example.icon}/>{wa ? 'WhatsApp' : (pl ? 'Bajla w aplikacji' : 'Bajla in the app')}</span></div></div>
+      <div className="bj-showcase-explanation" aria-live={playing ? 'off' : 'polite'} aria-atomic="true"><div key={`${index}-${lang}`} className="bj-showcase-explanation-content"><div className="bj-showcase-eyebrow"><span>{String(index + 1).padStart(2, '0')}</span>{eyebrow}</div><h3>{title}</h3><p>{description}</p><span className="bj-showcase-context" key={`${example.id}-${stepCaption}`}><Icon name={example.icon}/><span>{stepCaption || (wa ? 'WhatsApp' : (pl ? 'Bajla w aplikacji' : 'Bajla in the app'))}</span></span></div></div>
     </div>
     <div className="bj-showcase-stage" role="region" aria-roledescription={pl ? 'karuzela' : 'carousel'} aria-label={pl ? 'Bajla w działaniu' : 'Bajla in action'} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === 'ArrowRight') { event.preventDefault(); move(1) } if (event.key === 'ArrowLeft') { event.preventDefault(); move(-1) } }} tabIndex={0}>
       <div className="bj-showcase-toolbar"><div className="bj-showcase-modes" role="group" aria-label={pl ? 'Wybierz interfejs' : 'Choose interface'}><button onClick={() => setIndex(0)} aria-pressed={!wa}><Icon name="desktop_windows"/>Web</button><button onClick={() => setIndex(3)} aria-pressed={wa}><Icon name="chat"/>WhatsApp</button></div><span className="bj-showcase-preview-label">{pl ? 'Podgląd' : 'Preview'}</span></div>
-      <BajlaWalkthrough key={`${index}-${lang}`} id={example.id} wa={wa} query={query} pl={pl}/>
+      <BajlaWalkthrough key={`${index}-${lang}`} id={example.id} wa={wa} query={query} pl={pl} auto={playing} setAuto={setPlaying} onComplete={continueTour} onStepChange={setCurrentStep}/>
       <div className="bj-showcase-controls"><span>{String(index + 1).padStart(2, '0')}<span> / {String(EXAMPLES.length).padStart(2, '0')}</span></span><div className="bj-showcase-steps">{EXAMPLES.map((item, i) => <button key={item.id} onClick={() => setIndex(i)} aria-label={`${pl ? 'Przykład' : 'Example'} ${i + 1}: ${item[pl ? 'pl' : 'en'][0]}`} aria-current={i === index ? 'true' : undefined}/>)}</div><div className="bj-showcase-arrows"><button onClick={() => move(-1)} aria-label={pl ? 'Poprzedni przykład Bajli' : 'Previous Bajla example'}><Icon name="arrow_back"/></button><button onClick={() => move(1)} aria-label={pl ? 'Następny przykład Bajli' : 'Next Bajla example'}><Icon name="arrow_forward"/></button></div></div>
-      <p className="bj-showcase-caption">{pl ? 'Animowane przykłady. Zatrzymaj, powtórz lub wybierz dowolną opcję.' : 'Animated sample conversations. Pause, replay or choose an option.'}</p>
+      <p className="bj-showcase-caption">{pl ? 'Web i WhatsApp w pętli. Zatrzymaj lub wybierz dowolną opcję.' : 'Web and WhatsApp, on a loop. Pause or try any option.'}</p>
     </div>
   </section>
 }
