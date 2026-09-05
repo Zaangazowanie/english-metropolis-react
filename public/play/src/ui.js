@@ -253,7 +253,9 @@ export class UI {
     if (after.index > before && after.index > (progress.state.rankSeen | 0)) {
       progress.state.rankSeen = after.index;
       progress.save();
-      this.celebrate({ kind: 'rank', rank: after });
+      // deferred a tick so a stamp / certificate earned by the same drill
+      // takes the stage first and the rank-up follows it in the queue
+      setTimeout(() => this.celebrate({ kind: 'rank', rank: after }), 60);
     }
   }
   renderXP(instant = false) {
