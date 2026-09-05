@@ -752,6 +752,8 @@ export class World {
     const lines = [Math.PI / 2, Math.PI / 2 + (2 * Math.PI) / 3, Math.PI / 2 - (2 * Math.PI) / 3];
     const local = new THREE.Vector3();
     const axis = new THREE.Vector3(0, 1, 0);
+    // grouped per line AND per 130 m stretch so the frustum (and the shadow
+    // frustum) can drop whole runs of trees instead of drawing the city's worth
     const bySpecies = new Map();
     let index = 0;
     for (let d = 41; d <= 377; d += 42) {
@@ -761,7 +763,7 @@ export class World {
         this.addBoxCollider(local.x, local.z, 0.28, 0.28, 'boulevard-tree');
         const region = this.zoneMgr?.regionAt(local.x, local.z);
         const species = region ? speciesFor(region.data) : ['plane', 'oak'];
-        const kind = species[index % species.length];
+        const kind = `${species[index % species.length]}|${li}|${Math.floor(d / 130)}`;
         if (!bySpecies.has(kind)) bySpecies.set(kind, []);
         bySpecies.get(kind).push({ x: local.x, z: local.z, s: 1.0 + (index % 3) * 0.1, rot: angle + (index % 5) * 0.12, variant: index % 3 });
         treePit(K, local.x, local.z, { r: 0.75, color: 0x26344a });
@@ -769,7 +771,7 @@ export class World {
         index++;
       }
     }
-    for (const [kind, list] of bySpecies) this.scene.add(treeInstances(kind, list));
+    for (const [kind, list] of bySpecies) this.scene.add(treeInstances(kind.split('|')[0], list));
   }
 
   buildParkland() {
@@ -1093,11 +1095,11 @@ export class World {
       const deg = ((Math.atan2(z, x) * 180 / Math.PI) + 360) % 360;
       const sector = deg > 210 && deg < 330 ? 0 : deg >= 90 && deg <= 210 ? 1 : 2;
       const list = sectorSpecies[sector];
-      const kind = list[(Math.random() * list.length) | 0];
+      const kind = `${list[(Math.random() * list.length) | 0]}|${sector}|${r < 130 ? 0 : 1}`;
       if (!bySpecies.has(kind)) bySpecies.set(kind, []);
       bySpecies.get(kind).push({ x, y: gy, z, s, sy: 0.9 + Math.random() * 0.3, rot: Math.random() * Math.PI * 2, variant: i % 3 });
     }
-    for (const [kind, list] of bySpecies) this.scene.add(treeInstances(kind, list));
+    for (const [kind, list] of bySpecies) this.scene.add(treeInstances(kind.split('|')[0], list));
   }
 
   update(t, dt, playerPos) {

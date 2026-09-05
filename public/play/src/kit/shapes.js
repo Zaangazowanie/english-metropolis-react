@@ -35,10 +35,30 @@ export function faceQuad(w, h, cx, cy, cz, F) {
 // A prism: 2D profile (array of [u, v] in the XY plane, counter-clockwise)
 // extruded `length` along Z and centred on the origin before translation.
 // Used for kerbs, pitched roofs, mansards, sawtooth roofs, awnings.
+// Every kit profile is convex, so the caps are fan-triangulated directly —
+// this used to go through ExtrudeGeometry's earcut and was the single largest
+// CPU cost in a district's ground pass (one call per kerb stone).
 export function prism(profile, length, x = 0, y = 0, z = 0, ry = 0) {
-  const shape = new THREE.Shape(profile.map(([u, v]) => new THREE.Vector2(u, v)));
-  const geo = new THREE.ExtrudeGeometry(shape, { depth: length, bevelEnabled: false, curveSegments: 1 });
-  geo.translate(0, 0, -length / 2);
+  const n = profile.length, hl = length / 2;
+  const pos = [], nrm = [];
+  const push = (px, py, pz, nx, ny, nz) => { pos.push(px, py, pz); nrm.push(nx, ny, nz); };
+  // caps (front +z, back -z) as fans; profile is counter-clockwise in XY
+  for (let i = 1; i + 1 < n; i++) {
+    const [a, b, c] = [profile[0], profile[i], profile[i + 1]];
+    push(a[0], a[1], hl, 0, 0, 1); push(b[0], b[1], hl, 0, 0, 1); push(c[0], c[1], hl, 0, 0, 1);
+    push(a[0], a[1], -hl, 0, 0, -1); push(c[0], c[1], -hl, 0, 0, -1); push(b[0], b[1], -hl, 0, 0, -1);
+  }
+  // sides
+  for (let i = 0; i < n; i++) {
+    const [ax, ay] = profile[i], [bx, by] = profile[(i + 1) % n];
+    const ex = bx - ax, ey = by - ay, len = Math.hypot(ex, ey) || 1;
+    const nx = ey / len, ny = -ex / len;               // outward for a CCW profile
+    push(ax, ay, hl, nx, ny, 0); push(bx, by, hl, nx, ny, 0); push(bx, by, -hl, nx, ny, 0);
+    push(ax, ay, hl, nx, ny, 0); push(bx, by, -hl, nx, ny, 0); push(ax, ay, -hl, nx, ny, 0);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
   if (ry) geo.rotateY(ry);
   return geo.translate(x, y, z);
 }

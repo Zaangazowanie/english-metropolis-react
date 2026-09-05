@@ -7,8 +7,8 @@
 // `architecture` text, so a Georgian terrace, a Kingston yard and a Cape Flats
 // street build from different rules — all into the same handful of buckets.
 import * as THREE from 'three';
-import { box, cyl, sphere, cone, prism, faceQuad, wallWithOpenings, orientFace, uvCell, jitterColor, bandColor, FACES } from './shapes.js';
-import { awning, fine, IRON, CHROME, BRASS, WOOD, STONE } from './street.js';
+import { box, cyl, sphere, cone, prism, faceQuad, wallWithOpenings, orientFace, uvCell, jitterColor, bandColor, mergeAll, FACES } from './shapes.js';
+import { awning, fine, mid, IRON, CHROME, BRASS, WOOD, STONE } from './street.js';
 
 // ------------------------------------------------------------ archetypes
 const ARCH_KEYWORDS = [
@@ -143,8 +143,16 @@ function balcony(B, T, F, cx, cz, u, v, ow) {
   for (const s of [-1, 1]) B.shell.add(at(box(0.05, 0.05, dep, s * (w / 2 - 0.03), 0.95, dep / 2)), T.iron);
   if (B.detail) {
     const n = Math.floor(w / 0.22);
-    for (let i = 1; i < n; i++) fine(B).add(at(box(0.03, 0.9, 0.03, -w / 2 + i * (w / n), 0.45, dep - 0.03)), T.iron);
+    for (let i = 1; i < n; i++) fine(B).add(at(baluster(0.9).translate(-w / 2 + i * (w / n), 0.45, dep - 0.03)), T.iron);
   }
+}
+
+// a railing bar as two crossed strips (4 triangles instead of a 12-triangle box)
+function baluster(h, w = 0.04) {
+  const a = new THREE.PlaneGeometry(w, h);
+  const b = new THREE.PlaneGeometry(w, h).rotateY(Math.PI / 2);
+  const geo = mergeAll([a, b]);
+  return geo;
 }
 
 function fireEscape(B, T, F, cx, cz, u, floors, floorH, yBase) {
@@ -154,7 +162,7 @@ function fireEscape(B, T, F, cx, cz, u, floors, floorH, yBase) {
     B.shell.add(at(box(2.8, 0.08, 1.0, 0, y, 0.5)), T.iron);
     B.shell.add(at(box(2.8, 0.05, 0.05, 0, y + 0.95, 0.98)), T.iron);
     for (const s of [-1, 1]) B.shell.add(at(box(0.05, 0.95, 0.05, s * 1.38, y + 0.47, 0.98)), T.iron);
-    if (B.detail) for (let i = 1; i < 8; i++) fine(B).add(at(box(0.025, 0.9, 0.025, -1.4 + i * 0.35, y + 0.45, 0.98)), T.iron);
+    if (B.detail) for (let i = 1; i < 8; i++) fine(B).add(at(baluster(0.9, 0.03).translate(-1.4 + i * 0.35, y + 0.45, 0.98)), T.iron);
     if (f < floors - 1) {
       // diagonal ladder up to the next platform (authored at origin, then tilted)
       const run = 0.9, hyp = Math.hypot(floorH, run);
@@ -272,25 +280,26 @@ function flatRoof(B, T, x, z, w, d, yTop, rng, opts = {}) {
   B.shell.add(box(w + 0.36, 0.1, d + 0.36, x, yTop + ph + 0.05, z), T.trim);
   if (!B.detail) return;
   const y = yTop + 0.22;
+  const MB = mid(B);
   if (opts.tank || rng() < 0.4) {                                                            // water tank on legs
     const tx = x + (rng() - 0.5) * w * 0.4, tz = z + (rng() - 0.5) * d * 0.4;
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.shell.add(box(0.1, 1.6, 0.1, tx + sx * 0.7, y + 0.8, tz + sz * 0.7), T.iron);
-    B.shell.add(cyl(0.95, 0.95, 1.7, 10, tx, y + 2.4, tz), WOOD);
-    B.shell.add(cone(1.02, 0.5, 10, tx, y + 3.5, tz), T.iron);
-    for (let i = 0; i < 2; i++) B.shell.add(new THREE.TorusGeometry(0.97, 0.03, 4, 12).rotateX(Math.PI / 2).translate(tx, y + 1.9 + i * 0.9, tz), T.iron);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) MB.add(box(0.1, 1.6, 0.1, tx + sx * 0.7, y + 0.8, tz + sz * 0.7), T.iron);
+    MB.add(cyl(0.95, 0.95, 1.7, 10, tx, y + 2.4, tz), WOOD);
+    MB.add(cone(1.02, 0.5, 10, tx, y + 3.5, tz), T.iron);
+    for (let i = 0; i < 2; i++) fine(B).add(new THREE.CylinderGeometry(0.99, 0.99, 0.06, 10, 1, true).translate(tx, y + 1.9 + i * 0.9, tz), T.iron);
   }
   const acN = 1 + ((rng() * 2) | 0);
   for (let i = 0; i < acN; i++) {                                                           // AC units
     const ax = x + (rng() - 0.5) * w * 0.6, az = z + (rng() - 0.5) * d * 0.6;
-    B.shell.add(box(1.0, 0.8, 0.9, ax, y + 0.4, az), 0xbfc7d2);
-    B.shell.add(cyl(0.3, 0.3, 0.06, 10, ax, y + 0.82, az), 0x2a3346);
+    MB.add(box(1.0, 0.8, 0.9, ax, y + 0.4, az), 0xbfc7d2);
+    fine(B).add(cyl(0.3, 0.3, 0.06, 10, ax, y + 0.82, az), 0x2a3346);
   }
   if (rng() < 0.6) {                                                                       // aerial
     const ax = x + (rng() - 0.5) * w * 0.5, az = z + (rng() - 0.5) * d * 0.5;
     fine(B).add(cyl(0.02, 0.03, 2.6, 4, ax, y + 1.3, az), T.iron);
     for (let i = 0; i < 3; i++) fine(B).add(box(0.9 - i * 0.2, 0.025, 0.025, ax, y + 1.6 + i * 0.45, az), T.iron);
   }
-  if (rng() < 0.5) B.shell.add(box(1.6, 1.1, 1.4, x + (rng() - 0.5) * w * 0.3, y + 0.55, z + (rng() - 0.5) * d * 0.3), T.wall);   // stair hut
+  if (rng() < 0.5) MB.add(box(1.6, 1.1, 1.4, x + (rng() - 0.5) * w * 0.3, y + 0.55, z + (rng() - 0.5) * d * 0.3), T.wall);   // stair hut
 }
 
 function pitchedRoof(B, T, x, z, w, d, yTop, rng, { rise = 1.9, chimneys = 1, colour = null, thatch = false } = {}) {
@@ -469,7 +478,7 @@ export function buildFacade(B, slot, kind, rng, T, signs, flags = {}, opts = {})
       fine(B).add(orientFace(box(0.22, 0.24, 0.18, s * (span / 2 - 0.25), 0.5 + wallH - 0.3, 0.1), cx, 0, cz, F), T.iron);
     }
     // quoins on georgian corners
-    if (B.detail && kind === 'georgian' && F.nx) {
+    if (B.detail && kind === 'georgian' && F.nx && frontage) {
       for (let q = 0; q < Math.floor(wallH / 0.6); q += 2) {
         for (const s of [-1, 1]) fine(B).add(orientFace(box(0.34, 0.3, 0.06, s * (slabSpan / 2 - 0.17), 0.5 + 0.15 + q * 0.6, 0.03), cx, 0, cz, F), T.trim);
       }
@@ -497,7 +506,7 @@ export function buildFacade(B, slot, kind, rng, T, signs, flags = {}, opts = {})
       if (i < postN - 1 && Math.abs(u + (span + 0.2) / (postN - 1) / 2 - doorU) > 1.0) {
         const pitch = (span + 0.2) / (postN - 1);
         B.shell.add(at(box(pitch - 0.14, 0.06, 0.06, u + pitch / 2, 1.45, depth + 0.1)), T.column);
-        if (B.detail) for (let k = 1; k < Math.floor(pitch / 0.3); k++) fine(B).add(at(box(0.035, 0.85, 0.035, u + k * 0.3, 1.0, depth + 0.1)), T.column);
+        if (B.detail) for (let k = 1; k < Math.floor(pitch / 0.3); k++) fine(B).add(at(baluster(0.85, 0.045).translate(u + k * 0.3, 1.0, depth + 0.1)), T.column);
       }
     }
     // posts are thin and players walk under the veranda roof, so the building

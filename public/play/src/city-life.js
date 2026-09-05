@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PALETTE, neonMat, toonMat, toonVertexMat, GeoBatch } from './materials.js';
 import { BOULEVARD } from './transit-layout.js';
 import { makeRoute } from './crowd.js';
-import { chromeToon, glassToon, emissiveMat, CHROME, IRON, cafeTable } from './kit/street.js';
+import { chromeToon, glassToon, emissiveMat, CHROME, IRON, cafeTable, mid } from './kit/street.js';
 
 const RADIALS = [
   { angle: Math.PI / 2, color: PALETTE.cyan },
@@ -412,25 +412,25 @@ function addParkedFleet(B, rng, { accent, secondary, code, lowPower, roadLayout 
     const baseColor = new THREE.Color(index ? secondary : accent)
       .offsetHSL((rng() - 0.5) * 0.18, 0.06, (rng() - 0.5) * 0.12);
     const darker = baseColor.clone().multiplyScalar(0.8);
-    addBox(B.shell, [width, 0.42, length], vehicle, [0, 0.54, 0], baseColor);
-    addBox(B.shell, [width - 0.08, 0.18, 0.86], vehicle, [0, 0.78, -length * 0.36], baseColor);
+    addBox(mid(B), [width, 0.42, length], vehicle, [0, 0.54, 0], baseColor);
+    addBox(mid(B), [width - 0.08, 0.18, 0.86], vehicle, [0, 0.78, -length * 0.36], baseColor);
     const cabinLength = style === 2 ? 1.78 : style === 3 ? 2.08 : 1.48;
     const cabinHeight = style === 3 ? 0.68 : 0.5;
     addBox(B.paneDark, [width - 0.28, cabinHeight, cabinLength], vehicle,
       [0, 1.02 + cabinHeight * 0.12, style === 2 ? 0.22 : 0.04], 0x16344d);
-    addBox(B.shell, [width - 0.16, 0.09, cabinLength + 0.04], vehicle,
+    addBox(mid(B), [width - 0.16, 0.09, cabinLength + 0.04], vehicle,
       [0, 1.3 + cabinHeight * 0.28, style === 2 ? 0.22 : 0.04], baseColor);
-    addBox(B.shell, [width + 0.04, 0.08, 0.1], vehicle, [0, 0.5, -length * 0.5], CHROME);       // bumpers
-    addBox(B.shell, [width + 0.04, 0.08, 0.1], vehicle, [0, 0.5, length * 0.5], CHROME);
+    addBox(mid(B), [width + 0.04, 0.08, 0.1], vehicle, [0, 0.5, -length * 0.5], CHROME);       // bumpers
+    addBox(mid(B), [width + 0.04, 0.08, 0.1], vehicle, [0, 0.5, length * 0.5], CHROME);
     if (style === 1) addBox(B.neon, [0.62, 0.2, 0.3], vehicle, [0, 1.58, 0.02], 0xffd45a);        // taxi sign
-    if (style === 0) addBox(B.shell, [width * 0.7, 0.08, 0.2], vehicle, [0, 0.89, length * 0.5], darker);
+    if (style === 0) addBox(mid(B), [width * 0.7, 0.08, 0.2], vehicle, [0, 0.89, length * 0.5], darker);
     for (const side of [-1, 1]) for (const axle of [-1, 1]) {
       const wheel = new THREE.CylinderGeometry(0.25, 0.25, 0.16, 10);
       wheel.rotateZ(Math.PI / 2);
-      B.shell.add(transform(wheel, vehicle.x, vehicle.z, vehicle.yaw, side * width * 0.5, 0.3, axle * length * 0.3), 0x0a101d);
+      mid(B).add(transform(wheel, vehicle.x, vehicle.z, vehicle.yaw, side * width * 0.5, 0.3, axle * length * 0.3), 0x0a101d);
       const hub = new THREE.CylinderGeometry(0.11, 0.11, 0.17, 8);
       hub.rotateZ(Math.PI / 2);
-      B.shell.add(transform(hub, vehicle.x, vehicle.z, vehicle.yaw, side * width * 0.5, 0.3, axle * length * 0.3), CHROME);
+      mid(B).add(transform(hub, vehicle.x, vehicle.z, vehicle.yaw, side * width * 0.5, 0.3, axle * length * 0.3), CHROME);
     }
     for (const side of [-1, 1]) {
       addBox(B.neon, [0.28, 0.14, 0.06], vehicle, [side * width * 0.3, 0.66, -length * 0.51], 0xcafff7);
@@ -465,22 +465,22 @@ export function buildDistrictLife(rng, {
     const z = nearEdge + 0.72;
     const yaw = Math.PI + (rng() - 0.5) * 0.12;
     colliderBoxes.push({ localX: x, localZ: z, hw: 0.92, hd: 0.62, source: `${code}-vendor-cart` });
-    B.shell.add(box(2.25, 1.08, 1.2, x, 0.72, z, yaw, 0.66), new THREE.Color(colors[(index + 1) % colors.length]).multiplyScalar(0.64));
-    B.shell.add(box(2.5, 0.12, 1.42, x, 1.11, z, yaw, 0.66), CHROME);
-    B.shell.add(box(2.55, 0.15, 1.55, x, 2.55, z, yaw, 0.66), new THREE.Color(colors[index % colors.length]));
+    mid(B).add(box(2.25, 1.08, 1.2, x, 0.72, z, yaw, 0.66), new THREE.Color(colors[(index + 1) % colors.length]).multiplyScalar(0.64));
+    mid(B).add(box(2.5, 0.12, 1.42, x, 1.11, z, yaw, 0.66), CHROME);
+    mid(B).add(box(2.55, 0.15, 1.55, x, 2.55, z, yaw, 0.66), new THREE.Color(colors[index % colors.length]));
     // scalloped canopy edge
     if (detail) for (let k = 0; k < 5; k++) {
-      B.shell.add(new THREE.SphereGeometry(0.11, 6, 4).scale(1, 0.7, 0.5).translate(x - 0.72 + k * 0.36, 2.48, z - 0.55), new THREE.Color(colors[index % colors.length]).multiplyScalar(0.9));
+      mid(B).add(new THREE.SphereGeometry(0.11, 6, 4).scale(1, 0.7, 0.5).translate(x - 0.72 + k * 0.36, 2.48, z - 0.55), new THREE.Color(colors[index % colors.length]).multiplyScalar(0.9));
     }
     B.neon.add(box(1.5, 0.48, 0.08, x, 2.05, z - 0.44, yaw, 0.66), accentHex);
     for (const px of [-0.72, 0.72]) for (const pz of [-0.38, 0.38]) {
-      B.shell.add(new THREE.CylinderGeometry(0.045, 0.055, 2.15, 6).scale(0.66, 0.66, 0.66).translate(x + px, 1.77, z + pz), 0x32425a);
+      mid(B).add(new THREE.CylinderGeometry(0.045, 0.055, 2.15, 6).scale(0.66, 0.66, 0.66).translate(x + px, 1.77, z + pz), 0x32425a);
     }
     for (const wx of [-0.72, 0.72]) {
-      B.shell.add(new THREE.CylinderGeometry(0.28, 0.28, 0.14, 10).rotateZ(Math.PI / 2).scale(0.66, 0.66, 0.66).translate(x + wx, 0.3, z + 0.42), 0x101522);
+      mid(B).add(new THREE.CylinderGeometry(0.28, 0.28, 0.14, 10).rotateZ(Math.PI / 2).scale(0.66, 0.66, 0.66).translate(x + wx, 0.3, z + 0.42), 0x101522);
     }
     for (let item = 0; item < 8; item++) {
-      B.shell.add(new THREE.IcosahedronGeometry(0.13, 0).scale(0.66, 0.66, 0.66)
+      mid(B).add(new THREE.IcosahedronGeometry(0.13, 0).scale(0.66, 0.66, 0.66)
         .translate(x - 0.65 + (item % 4) * 0.43, 1.22 + (item % 2) * 0.08, z - 0.25 + Math.floor(item / 4) * 0.38),
         goodsColors[(item + index * 2) % goodsColors.length]);
     }

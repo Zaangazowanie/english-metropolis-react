@@ -60,14 +60,16 @@ export function makeBuckets(tones = {}) {
     glass: new GeoBatch(),      // transparent glass (shelters, awnings, shop glass)
     cone: new GeoBatch(),       // additive light cones
     sign: new GeoBatch(),       // atlas-textured lettering
-    fine: new GeoBatch(),       // small dressing (frames, mullions, balusters, quoins): hidden past ~60 m
+    fine: new GeoBatch(),       // small dressing (frames, mullions, balusters, quoins): hidden past ~46 m
+    mid: new GeoBatch(),        // street furniture, roof furniture, parked cars: hidden past ~80 m
     tones,
     detail: true,
   };
 }
-// fine detail goes to its own bucket when one exists, so distant districts
-// can drop it without losing their silhouettes
+// fine / mid detail go to their own buckets when they exist, so distant
+// districts can drop them without losing their silhouettes
 export const fine = (B) => B.fine || B.shell;
+export const mid = (B) => B.mid || B.shell;
 
 // Build the buckets into meshes. Returns the meshes (in render order) plus the
 // materials so the caller can fade the chunk in and dispose it later.
@@ -121,6 +123,10 @@ export function buildBuckets(B, { atlas = null, wet = false, name = 'kit', litEm
   fineMat.name = 'kit-fine';
   const fineMesh = B.fine.build(fineMat, { name: `${name}-fine`, castShadow: false });
   if (fineMesh) { fineMesh.userData.fineDetail = true; meshes.push(fineMesh); }
+  const midMat = toonVertexMat();
+  midMat.name = 'kit-mid';
+  const midMesh = B.mid.build(midMat, { name: `${name}-mid` });
+  if (midMesh) { if (ao) ao(midMesh.geometry); midMesh.userData.midDetail = true; meshes.push(midMesh); }
   return meshes;
 }
 
@@ -133,11 +139,15 @@ export function paverField(B, x0, z0, x1, z1, y, { slab = 1.2, color, grout, wea
   const base = new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2);
   base.translate((x0 + x1) / 2, y, (z0 + z1) / 2);
   B.shell.add(base, grout || new THREE.Color(color).multiplyScalar(0.62));
+  // all slabs in ONE geometry with a per-slab colour: a district used to spend
+  // ~40 ms creating 1400 PlaneGeometry objects for this
   const nx = Math.max(1, Math.round(w / slab)), nz = Math.max(1, Math.round(d / slab));
   const sw = w / nx, sd = d / nz;
   const c = new THREE.Color();
-  const geos = [];
-  const cols = [];
+  const count = nx * nz;
+  const pos = new Float32Array(count * 12), nrm = new Float32Array(count * 12), col = new Float32Array(count * 12), idx = new Uint32Array(count * 6);
+  let v = 0, t = 0;
+  const yy = y + 0.01;
   for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) {
     const px = x0 + (i + 0.5) * sw, pz = z0 + (k + 0.5) * sd;
     const h = fract2(px * 12.9898 + pz * 78.233);
@@ -148,13 +158,41 @@ export function paverField(B, x0, z0, x1, z1, y, { slab = 1.2, color, grout, wea
       if (dist < wl.range) wearK *= 1 - wl.strength * (1 - dist / wl.range);
     }
     c.multiplyScalar(wearK);
-    const q = new THREE.PlaneGeometry(sw - 0.05, sd - 0.05).rotateX(-Math.PI / 2);
-    q.translate(px, y + 0.01, pz);
-    geos.push(q); cols.push(c.clone());
+    const hx = (sw - 0.05) / 2, hz = (sd - 0.05) / 2;
+    const corners = [[px - hx, pz - hz], [px + hx, pz - hz], [px + hx, pz + hz], [px - hx, pz + hz]];
+    const base4 = v / 3;
+    for (const [cx, cz] of corners) {
+      pos[v] = cx; pos[v + 1] = yy; pos[v + 2] = cz;
+      nrm[v] = 0; nrm[v + 1] = 1; nrm[v + 2] = 0;
+      col[v] = c.r; col[v + 1] = c.g; col[v + 2] = c.b;
+      v += 3;
+    }
+    idx[t++] = base4; idx[t++] = base4 + 2; idx[t++] = base4 + 1;
+    idx[t++] = base4; idx[t++] = base4 + 3; idx[t++] = base4 + 2;
   }
-  for (let i = 0; i < geos.length; i++) B.shell.add(geos[i], cols[i]);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.setIndex(new THREE.BufferAttribute(idx, 1));
+  addPreColored(B.shell, geo);
 }
 function fract2(x) { const s = Math.sin(x) * 43758.5453; return s - Math.floor(s); }
+
+// Push a geometry that already carries its own colour attribute into a batch
+// (GeoBatch.add would overwrite it with one flat colour).
+export function addPreColored(batch, geo) {
+  if (!geo.attributes.uv) geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(geo.attributes.position.count * 2), 2));
+  if (!geo.attributes.normal) geo.computeVertexNormals();
+  if (!geo.index) {
+    const count = geo.attributes.position.count;
+    const idx = count > 65535 ? new Uint32Array(count) : new Uint16Array(count);
+    for (let i = 0; i < count; i++) idx[i] = i;
+    geo.setIndex(new THREE.BufferAttribute(idx, 1));
+  }
+  batch.geos.push(geo);
+  return geo;
+}
 
 // Chamfered kerb stone run between two points (12 cm tall, 28 cm wide). The
 // profile is a box with the top outer edge cut, extruded along the run.
@@ -216,8 +254,8 @@ export function manhole(B, x, z, { y = 0.035, color = 0x27303f } = {}) {
 
 // ---------------------------------------------------------------- furniture
 export function bollard(B, x, z, { color = IRON, cap = null, h = 0.85 } = {}) {
-  B.shell.add(cyl(0.085, 0.11, h, 8, x, h / 2, z), color);
-  B.shell.add(cyl(0.11, 0.11, 0.05, 8, x, h + 0.02, z), color);
+  mid(B).add(cyl(0.085, 0.11, h, 8, x, h / 2, z), color);
+  mid(B).add(cyl(0.11, 0.11, 0.05, 8, x, h + 0.02, z), color);
   if (cap) B.neon.add(cyl(0.06, 0.06, 0.04, 8, x, h + 0.06, z), cap);
 }
 
@@ -236,23 +274,23 @@ export function bench(B, x, z, yaw, { wood = WOOD, iron = IRON, len = 1.8 } = {}
 
 // Lamp post: fluted column, ladder bar, lantern head (neon) + a soft cone.
 export function lamp(B, x, z, { style = 'classic', color = IRON, light = 0xffd9a0, h = 4.2, cone: withCone = true } = {}) {
-  B.shell.add(cyl(0.16, 0.2, 0.45, 8, x, 0.22, z), color);
-  B.shell.add(cyl(0.05, 0.08, h - 0.45, 7, x, 0.45 + (h - 0.45) / 2, z), color);
+  mid(B).add(cyl(0.16, 0.2, 0.45, 8, x, 0.22, z), color);
+  mid(B).add(cyl(0.05, 0.08, h - 0.45, 7, x, 0.45 + (h - 0.45) / 2, z), color);
   if (style === 'classic') {
-    B.shell.add(box(0.06, 0.06, 0.34, x, h - 0.3, z), color);                 // ladder bar
-    B.shell.add(box(0.4, 0.04, 0.4, x, h + 0.02, z), color);                  // lantern base
+    mid(B).add(box(0.06, 0.06, 0.34, x, h - 0.3, z), color);                 // ladder bar
+    mid(B).add(box(0.4, 0.04, 0.4, x, h + 0.02, z), color);                  // lantern base
     B.neon.add(box(0.3, 0.42, 0.3, x, h + 0.25, z), light);
-    B.shell.add(cone(0.3, 0.22, 4, x, h + 0.56, z), color);
+    mid(B).add(cone(0.3, 0.22, 4, x, h + 0.56, z), color);
     for (const s of [-1, 1]) {
       fine(B).add(box(0.03, 0.44, 0.03, x + s * 0.16, h + 0.25, z + 0.16), color);
       fine(B).add(box(0.03, 0.44, 0.03, x + s * 0.16, h + 0.25, z - 0.16), color);
     }
   } else if (style === 'modern') {
-    B.shell.add(box(0.06, 0.06, 1.1, x, h + 0.05, z + 0.45), color);          // arm
+    mid(B).add(box(0.06, 0.06, 1.1, x, h + 0.05, z + 0.45), color);          // arm
     B.neon.add(box(0.5, 0.08, 0.28, x, h + 0.02, z + 0.95), light);
   } else {                                                                   // globe
     B.neon.add(sphere(0.22, x, h + 0.2, z), light);
-    B.shell.add(cyl(0.12, 0.12, 0.05, 8, x, h, z), color);
+    mid(B).add(cyl(0.12, 0.12, 0.05, 8, x, h, z), color);
   }
   if (withCone && B.detail) {
     const lz = style === 'modern' ? z + 0.95 : z;
@@ -263,23 +301,23 @@ export function lamp(B, x, z, { style = 'classic', color = IRON, light = 0xffd9a
 }
 
 export function bin(B, x, z, { color = 0x2c3648, lid = null } = {}) {
-  B.shell.add(cyl(0.26, 0.24, 0.85, 10, x, 0.43, z), color);
-  B.shell.add(cyl(0.29, 0.29, 0.08, 10, x, 0.9, z), lid || new THREE.Color(color).multiplyScalar(0.7));
-  B.shell.add(box(0.36, 0.14, 0.05, x, 0.72, z + 0.25), new THREE.Color(color).multiplyScalar(0.55));
+  mid(B).add(cyl(0.26, 0.24, 0.85, 10, x, 0.43, z), color);
+  mid(B).add(cyl(0.29, 0.29, 0.08, 10, x, 0.9, z), lid || new THREE.Color(color).multiplyScalar(0.7));
+  mid(B).add(box(0.36, 0.14, 0.05, x, 0.72, z + 0.25), new THREE.Color(color).multiplyScalar(0.55));
 }
 
 export function hydrant(B, x, z, { color = 0xd94a3a } = {}) {
-  B.shell.add(cyl(0.12, 0.14, 0.62, 8, x, 0.31, z), color);
-  B.shell.add(sphere(0.13, x, 0.68, z), color);
+  mid(B).add(cyl(0.12, 0.14, 0.62, 8, x, 0.31, z), color);
+  mid(B).add(sphere(0.13, x, 0.68, z), color);
   const arm = box(0.4, 0.09, 0.09, x, 0.42, z);
-  B.shell.add(arm, new THREE.Color(color).multiplyScalar(0.8));
-  B.shell.add(cyl(0.07, 0.07, 0.06, 8, x, 0.85, z), CHROME);
+  mid(B).add(arm, new THREE.Color(color).multiplyScalar(0.8));
+  mid(B).add(cyl(0.07, 0.07, 0.06, 8, x, 0.85, z), CHROME);
 }
 
 // Tree pit: cast-iron grate ring flush with the pavement, kerb edging.
 export function treePit(B, x, z, { r = 0.8, y = 0.035, color = 0x2a3346 } = {}) {
-  B.shell.add(cyl(r, r, 0.015, 14, x, y, z), color);
-  B.shell.add(cyl(r * 0.45, r * 0.45, 0.02, 10, x, y + 0.01, z), 0x3b2c22);          // soil
+  mid(B).add(cyl(r, r, 0.015, 14, x, y, z), color);
+  mid(B).add(cyl(r * 0.45, r * 0.45, 0.02, 10, x, y + 0.01, z), 0x3b2c22);          // soil
   if (B.detail) {
     for (let i = 0; i < 4; i++) {
       const g = box(r * 1.7, 0.012, 0.03, x, y + 0.012, z);
@@ -504,7 +542,8 @@ export function awning(B, cx, cy, cz, F, { width = 3, depth = 1.1, color = 0xc04
 
 // ------------------------------------------------------------------ helpers
 // Author parts around the origin (facing +z), then yaw + translate into place.
-export function place(B, parts, x, z, yaw = 0, y = 0) { placeInto(B.shell, parts, x, z, yaw, y); }
+// furniture authored through place() lands in the mid bucket (dropped past ~80 m)
+export function place(B, parts, x, z, yaw = 0, y = 0) { placeInto(mid(B), parts, x, z, yaw, y); }
 export function placeInto(batch, parts, x, z, yaw = 0, y = 0) {
   for (const [g, c] of parts) {
     if (yaw) g.rotateY(yaw);

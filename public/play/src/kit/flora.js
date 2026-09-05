@@ -134,8 +134,8 @@ function buildSpecies(kind, variant) {
         const r0 = 0.2 - i * 0.015, r1 = 0.185 - i * 0.015;
         const g = new THREE.CylinderGeometry(r1, r0, H / n * 1.05, 7, 1).translate(x + lx * (i + 0.5), H / n * (i + 0.5), z + lz * (i + 0.5));
         batch.add(g, new THREE.Color(0x8b6a4e).offsetHSL(0, 0, (i % 2) * 0.025));
-        // trunk ring scars
-        if (i > 0) batch.add(new THREE.TorusGeometry(r0 + 0.01, 0.018, 4, 8).rotateX(Math.PI / 2).translate(x + lx * i, H / n * i, z + lz * i), 0x6d5138);
+        // trunk ring scars (a thin cylinder band, not a torus)
+        if (i > 0) batch.add(new THREE.CylinderGeometry(r0 + 0.012, r0 + 0.012, 0.05, 7, 1, true).translate(x + lx * i, H / n * i, z + lz * i), 0x6d5138);
       }
       const tx = lx * n, tz = lz * n;
       batch.add(sphere(0.3, tx, H + 0.05, tz, 7, 5), 0x4d7a3c);
@@ -150,7 +150,7 @@ function buildSpecies(kind, variant) {
           new THREE.Vector3(tx + dx * len, H - 0.55 - rng() * 0.5, tz + dz * len),
         );
         const serr = (t) => (0.34 * Math.sin(Math.PI * Math.min(1, t * 1.15)) + 0.04) * (1 - 0.18 * ((Math.floor(t * 9) % 2)));
-        batch.add(ribbon(curve, 9, serr), new THREE.Color([0x3e9a5a, 0x46a862, 0x358a4f][i % 3]));
+        batch.add(ribbon(curve, 7, serr), new THREE.Color([0x3e9a5a, 0x46a862, 0x358a4f][i % 3]));
       }
       for (let i = 0; i < 3; i++) {
         const a = rng() * Math.PI * 2;

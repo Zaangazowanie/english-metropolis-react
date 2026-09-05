@@ -27,7 +27,9 @@ export const LINES = {
 const FIRST_STOP = 62, STOP_SPACING = 42, LATERAL = 26;
 const R_BUILD = 105, R_DISPOSE = 145, R_INSIDE = 24;
 const CHUNK_FADE = 0.6;      // seconds a freshly streamed district takes to fade in
-const R_FINE = 64;           // metres within which a district shows its fine dressing
+const R_FINE = 46;           // metres within which a district shows its fine dressing
+const R_MID = 80;            // metres within which a district shows its street/roof furniture
+const BUILD_BUDGET_MS = 8;   // per tick, for the time-sliced chunk builder
 
 // deterministic per-zone rng so streaming rebuilds identical districts
 function mulberry32(seed) {
@@ -74,8 +76,8 @@ function addNpcSignature(wrap, seed, tint, bodyTop = 2.0) {
     mesh(new THREE.BoxGeometry(0.3, 0.42, 0.16), accentMat, 0.29, 1.16, 0.13, 0, 0, -0.08);
   } else if (style === 2) {
     mesh(new THREE.TorusGeometry(0.25, 0.035, 6, 18, Math.PI), darkMat, 0, 2.02, 0, 0, 0, Math.PI / 2);
-    mesh(new THREE.BoxGeometry(0.09, 0.2, 0.08), accentMat, -0.25, 2.0, 0);
-    mesh(new THREE.BoxGeometry(0.09, 0.2, 0.08), accentMat, 0.25, 2.0, 0);
+    mesh(new THREE.BoxGeometry(0.09, 0.2, 0.08), accentMat, -0.25, 1.88, 0);
+    mesh(new THREE.BoxGeometry(0.09, 0.2, 0.08), accentMat, 0.25, 1.88, 0);
   } else {
     mesh(new THREE.CylinderGeometry(0.2, 0.23, 0.16, 12), darkMat, 0, 2.15, 0);
     mesh(new THREE.BoxGeometry(0.28, 0.04, 0.22), accentMat, 0, 2.12, -0.2);
@@ -262,19 +264,35 @@ export class ZoneManager {
       if (!z.chunk) continue;
       const d = p.distanceTo(z.center);
       if (d > disposeRadius) { this.disposeChunk(z, colliders); continue; }
-      // fine dressing (frames, mullions, balusters) only within reading range
-      const fineOn = d < R_FINE;
+      // fine dressing (frames, mullions, balusters) only within reading range;
+      // street and roof furniture a little further out
+      const fineOn = d < R_FINE, midOn = d < R_MID;
       if (z.chunk.userData.fine && z.chunk.userData.fine.visible !== fineOn) z.chunk.userData.fine.visible = fineOn;
+      if (z.chunk.userData.mid && z.chunk.userData.mid.visible !== midOn) z.chunk.userData.mid.visible = midOn;
     }
+    // a build in progress whose zone left the build radius is abandoned
+    if (this._pending && p.distanceTo(this._pending.z.center) > buildRadius + 10) this._abandonPending();
     let nearest = null, nearestD = Infinity;
     for (const z of this.zones) {
-      if (z.chunk) continue;
+      if (z.chunk || z === this._pending?.z) continue;
       const d = p.distanceTo(z.center);
       if (d >= buildRadius) continue;
-      if (d < R_INSIDE + 6) { this.buildChunk(z, colliders, { fade: false }); continue; }
+      if (d < R_INSIDE + 6) { if (this._pending?.z === z) this._abandonPending(); this.buildChunk(z, colliders, { fade: false }); continue; }
       if (d < nearestD) { nearestD = d; nearest = z; }
     }
-    if (nearest) this.buildChunk(nearest, colliders);
+    // time-sliced: resume the pending build, or start the nearest one, and run
+    // its steps until this tick's budget is spent
+    if (!this._pending && nearest) this._pending = { z: nearest, gen: this._buildSteps(nearest, colliders, { fade: true }) };
+    if (this._pending) {
+      const t0 = performance.now();
+      let done = false;
+      do {
+        const r = this._pending.gen.next();
+        done = r.done;
+        if (r.value) this._pending.B = r.value;        // staged buckets, released if abandoned
+      } while (!done && performance.now() - t0 < BUILD_BUDGET_MS);
+      if (done) this._pending = null;
+    }
     this._tickFades(1 / 60);
     // the whole city is dialect turf: HUD names whichever region you stand in
     const inside = this.regionAt(playerPos.x, playerPos.z);
@@ -315,9 +333,30 @@ export class ZoneManager {
     if (mats.length) this._fading.push({ t: 0, mats });
   }
 
+  _abandonPending() {
+    const pend = this._pending;
+    this._pending = null;
+    if (!pend) return;
+    // nothing has reached the scene yet; release whatever geometry was staged
+    pend.gen.return();
+    const B = pend.B;
+    if (B) for (const k of ['shell', 'paneDark', 'paneLit', 'neon', 'glass', 'cone', 'sign', 'fine', 'mid']) { for (const g of B[k]?.geos || []) g.dispose(); }
+  }
+
   // ---------- district construction ----------
-  buildChunk(z, colliders, { fade = true } = {}) {
+  // Synchronous build (metro arrival, headless probes): runs every step now.
+  buildChunk(z, colliders, opts = {}) {
+    const gen = this._buildSteps(z, colliders, opts);
+    while (!gen.next().done) { /* run to completion */ }
+  }
+
+  // The build as a generator: each `yield` is a point where the streaming
+  // loop may stop for this tick. Nothing touches the scene, colliders or the
+  // crowd until the last steps, so an abandoned build leaves no trace.
+  *_buildSteps(z, colliders, { fade = true } = {}) {
     const t0 = performance.now();
+    const prof = {}; let tMark = t0;
+    const mark = (k) => { const now = performance.now(); prof[k] = +(now - tMark).toFixed(1); tMark = now; };
     const rng = mulberry32(hash(z.data.code));
     const g = new THREE.Group();
     g.name = `district-${z.data.code}`;
@@ -567,8 +606,12 @@ export class ZoneManager {
     const streetUV = atlas.streetPlate({ text: `${z.data.zoneName.split(' ').slice(-1)[0]} ${country === 'us' ? 'St' : country === 'ca' && /quebec/.test(z.data.code) ? 'Rue' : 'Street'}`,
       bg: country === 'us' ? '#1f6b3a' : '#f5f2ff', fg: country === 'us' ? '#f5f2ff' : '#10172b' });
 
-    // ---- facades
-    const zoneColliders = this.buildFacadeBlock(B, slots, rng, T, arch, signs, z);
+    mark('ground');
+    yield B;
+    // ---- facades, one building per step
+    const zoneColliders = [];
+    for (const step of this.facadeSteps(B, slots, rng, T, arch, signs, z)) { zoneColliders.push(...step); yield B; }
+    mark('facades');
 
     // ---- landmark: the vista at the far end of the centre street
     const lmKind = landmarkKindFor(z.data);
@@ -681,6 +724,8 @@ export class ZoneManager {
       if (inst) g.add(inst);
     }
 
+    mark('furniture');
+    yield B;
     // ---- build the buckets into ≤ 9 meshes
     const occluders = slots.map((s) => ({ x: s.x, z: s.z, hw: s.w / 2, hd: s.d / 2 }));
     const meshes = buildBuckets(B, {
@@ -691,8 +736,11 @@ export class ZoneManager {
     for (const m of meshes) {
       if (m.name.endsWith('-shell') && this.quality?.wetStreets) addWetStreets(m.material, { strength: 0.55 });
       if (m.userData.fineDetail) { g.userData.fine = m; m.visible = false; }
+      if (m.userData.midDetail) { g.userData.mid = m; }
       g.add(m);
     }
+    mark('merge+ao');
+    yield null;
 
     // orient district: face the boulevard
     const yaw = Math.atan2(z.perp.x * z.side, z.perp.y * z.side);
@@ -800,7 +848,9 @@ export class ZoneManager {
       this._prewarmed = true;
       try { this.renderer.compile(this.scene, this.camera); } catch (err) { console.warn('[EM] shader pre-warm failed:', err); }
     }
+    mark('people');
     this.lastBuildMs = performance.now() - t0;
+    this.lastBuildProfile = prof;
     this.buildCount = (this.buildCount || 0) + 1;
   }
 
@@ -893,10 +943,18 @@ export class ZoneManager {
   // archetype pool (read from its authored `architecture` text) and palette.
   // Frontage slots face the boulevard; inner slots face their nearest street.
   buildFacadeBlock(B, slots, rng, T, arch, signs, z) {
-    const zoneColliders = [];
+    const out = [];
+    for (const step of this.facadeSteps(B, slots, rng, T, arch, signs, z)) out.push(...step);
+    return out;
+  }
+
+  // one building per yielded step (its colliders), so the streaming loop can
+  // stop between buildings
+  *facadeSteps(B, slots, rng, T, arch, signs, z) {
     const nearEdge = BOULEVARD.tramLaneX + 4.2 - LATERAL;
     const roads = { xs: [-12.2, 0, 12.2], zs: [-2.8, 12.2, nearEdge - 3] };
-    slots.forEach((slot, i) => {
+    for (let i = 0; i < slots.length; i++) {
+      const slot = slots[i];
       const pool = slot.frontage ? arch.frontage : arch.inner;
       const kind = pool[(i + ((rng() * pool.length) | 0)) % pool.length];
       // face the nearest carriageway
@@ -913,9 +971,8 @@ export class ZoneManager {
       }
       const tones = buildingTones(T, i, rng, arch.flags);
       const flags = { ...arch.flags, fireEscapes: /fire escape|walk-up|brownstone|tenement|bodega/i.test(z.data.architecture || ''), flowerBoxes: /window box|flower|geranium|bougainvillea/i.test(z.data.architecture || ''), litRatio: 0.34 };
-      zoneColliders.push(...buildFacade(B, { ...slot, front }, kind, rng, tones, signs, flags));
-    });
-    return zoneColliders;
+      yield buildFacade(B, { ...slot, front }, kind, rng, tones, signs, flags);
+    }
   }
 
   // kept for API compatibility — landmarks now come from the kit
@@ -979,6 +1036,7 @@ export class ZoneManager {
   }
 
   disposeChunk(z, colliders) {
+    if (this._pending?.z === z) this._abandonPending();
     const kill = (root) => root.traverse((o) => {
       if (!o.isMesh) return;
       if (o.geometry && !o.geometry.userData?.shared) o.geometry.dispose();
