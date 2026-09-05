@@ -33,7 +33,7 @@ node scripts/check-convex-contract.mjs --strict --spec "$BACKUP/function-spec.js
 echo '== 3/6 run mechanics and regression tests on the commit being shipped'
 # The suites import the same TypeScript mechanics used by the game controllers.
 # The production Node runtime must support type stripping, as in local QA.
-node --test --test-isolation=none \
+node --test \
   tests/arcade-run.test.mjs \
   tests/arcade-entry.test.mjs \
   tests/arcade-demo-progress.test.mjs \
@@ -127,11 +127,12 @@ rollback() {
 }
 trap rollback ERR
 # Preserve hashed assets for existing tabs and the separately maintained PDF
-# catalogue. Nested static index pages are outside this frontend release.
+# catalogue. The separately maintained static World app is outside this
+# frontend release; preserve its HTML, JavaScript and assets together.
 # Explicit public permissions also prevent a restrictive inherited umask from
 # recreating the earlier origin 403 failure.
 rsync -a --chmod=D755,F644 --backup --backup-dir="$BACKUP/replaced" \
-  --exclude='index.html' --exclude='lesson-pdfs.json' --exclude='.vite/' \
+  --exclude='index.html' --exclude='lesson-pdfs.json' --exclude='.vite/' --exclude='/play/' \
   dist/ "$WEB/"
 install -m 644 dist/index.html "$WEB/.index-$STAMP.html"
 mv "$WEB/.index-$STAMP.html" "$WEB/index.html"

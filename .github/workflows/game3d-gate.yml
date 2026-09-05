@@ -40,6 +40,21 @@ jobs:
           cache: 'npm'
       - name: Install (lockfile-pinned)
         run: npm ci
+      - name: Mechanics regression tests
+        run: |
+          node --test \
+            tests/arcade-run.test.mjs \
+            tests/arcade-entry.test.mjs \
+            tests/arcade-demo-progress.test.mjs \
+            tests/action-arcade-logic.test.mjs \
+            tests/challenge-arcade.test.mjs \
+            tests/challenge-machine.test.mjs \
+            src/practice/shells/word-arcade-mechanics.test.mjs \
+            src/practice/shells/word-arcade-crossword.test.mjs \
+            src/practice/shells3d/word-kit/mechanics.test.mjs \
+            src/practice/shells3d/word-kit/demo-layout.test.mjs \
+            tests/lesson-metro-scene.test.mjs \
+            tests/bajla-tour.test.mjs
       - name: Build
         run: npm run build
       - name: Budget gate
