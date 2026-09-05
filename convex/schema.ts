@@ -1287,5 +1287,31 @@ export default defineSchema({
     .index("by_patternId", ["patternId"])
     .index("by_cefr", ["cefrLevel"])
     .index("by_strength", ["interferenceStrength"]),
+
+  // ═══════════════════════════════════════════════════════════
+  // WORLD PROGRESS — the open-world game at /play ("Metro Pass").
+  // One row per student. Until 2026-09-05 every number the game showed
+  // lived in the browser's localStorage, so a cleared cache or a second
+  // device reset a learner to zero and no ranking was possible. The
+  // client keeps localStorage as an offline cache and merges on load;
+  // this row is the truth that survives the browser. `state` is the
+  // game's own JSON (per-district rounds, mastery, street items, stamps,
+  // badges, streak) kept opaque here so the game can evolve it without a
+  // schema change; the columns beside it are what the leaderboard sorts on.
+  // ═══════════════════════════════════════════════════════════
+  worldProgress: defineTable({
+    studentId: v.id("students"),
+    xp: v.number(),                          // lifetime XP, monotonic (server keeps the max)
+    rank: v.string(),                        // rank name at last save, for the leaderboard row
+    stamps: v.number(),                      // districts stamped, secondary sort
+    weekKey: v.string(),                     // ISO week "2026-W36" the weekXp belongs to
+    weekXp: v.number(),                      // XP earned this ISO week (resets when weekKey rolls)
+    state: v.string(),                       // JSON, capped at 64 KB by the mutation
+    stateVersion: v.number(),                // client bumps on every save; stale writes are refused
+    updatedAt: v.number(),
+  })
+    .index("by_student", ["studentId"])
+    .index("by_xp", ["xp"])
+    .index("by_week", ["weekKey", "weekXp"]),
 });
 
