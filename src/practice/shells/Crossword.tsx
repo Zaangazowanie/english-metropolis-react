@@ -1,3 +1,4 @@
+import { acceptsWordShortcut, hasNativeActivation } from '../lib/word-keyboard';
 import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
 const WordScene3D = wordLazy(() => import('../shells3d/WordCrossword3D'));
 // Crossword shell — "The Grid District" — city blueprint metaphor.
@@ -644,7 +645,7 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
   // inputs would still steer the crossword cursor.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (forcedState) return;
+      if (forcedState || !acceptsWordShortcut(e) || !(e.target as HTMLElement | null)?.closest?.('.em-shell-crossword')) return;
       const t = e.target as HTMLElement | null;
       if (t && (
         t.tagName === 'INPUT' ||
@@ -676,13 +677,17 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
           if (cells[`${n.r},${n.c}`]) return n;
           return a;
         });
-      } else {
+      } else if (e.key === 'Enter' && !hasNativeActivation(e.target)) {
+        e.preventDefault();
+        checkWord();
+      } else if (e.key === 'Backspace' || /^[a-z]$/i.test(e.key)) {
+        e.preventDefault();
         handleType(e.key);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [cells, forcedState, handleType, cancelStreetAdvance]);
+  }, [cells, forcedState, handleType, cancelStreetAdvance, checkWord]);
 
   const onCell = (r: number, c: number) => {
     cancelStreetAdvance();

@@ -1,19 +1,19 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
-import { Stage, Box, Orb, Label, Instances, vividColor } from './action-arcade-scene-kit';
+import { HoverTarget, Stage, Box, Orb, Label, Instances, vividColor } from './action-arcade-scene-kit';
 import type { ActionActor, ActionSceneData, DetailBlock } from './action-arcade-scene-kit';
 function Balloon({a,p}:{a:ActionActor;p:ActionSceneData}){
   const ref=useRef<Group>(null),age=useRef(0);const popped=a.state==='popped',deflated=a.state==='deflated';
   const color=vividColor(a.color,a.id);
   useFrame((_,dt)=>{if(!ref.current)return;if(popped||deflated){age.current+=dt;ref.current.scale.setScalar(Math.max(.02,1-age.current*(popped?3:1.8)));}else{age.current=0;ref.current.scale.setScalar(1);}});
   return <group position={[(Math.max(8,Math.min(92,a.x))-50)*.081,.6+a.y*.053,0]}>
-    <group ref={ref} onPointerDown={e=>{e.stopPropagation();if(a.enabled!==false)p.onPick?.(a.id);}}>
+    <HoverTarget enabled={a.enabled!==false} reduced={p.reducedMotion} radius={.5} at={[0,0,.38]}><group ref={ref} onPointerDown={e=>{e.stopPropagation();if(a.enabled!==false)p.onPick?.(a.id);}}>
       <Orb radius={.37} scale={[1,1.2,.8]} color={color}/><Orb at={[-.12,.17,.26]} radius={.07} scale={[.6,1.5,.5]} color="#fff"/>
       <mesh position={[0,-.47,0]} rotation={[0,0,Math.PI]}><coneGeometry args={[.07,.14,6]}/><meshStandardMaterial color={color} toneMapped={false}/></mesh>
       <Box at={[0,-.78,0]} size={[.012,.52,.012]} color="#ffe100"/>
       <Label at={[0,0,.36]} text={a.label??''} selected={a.selected}/>
-    </group>
+    </group></HoverTarget>
     {popped&&Array.from({length:6},(_,i)=><Orb key={i} at={[Math.sin(i)*.5,Math.cos(i)*.5,.1]} radius={.055} color={color}/>)}
   </group>;
 }

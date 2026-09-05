@@ -1,3 +1,4 @@
+import { acceptsWordShortcut } from '../lib/word-keyboard';
 import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
 const WordScene3D = wordLazy(() => import('../shells3d/WordHangman3D'));
 // Canonical Hangman mechanics with the lantern rescue arcade presentation.
@@ -481,7 +482,7 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
   // on the page don't get reinterpreted as Hangman guesses.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (forcedState) return;
+      if (forcedState || !acceptsWordShortcut(e) || !(e.target as HTMLElement | null)?.closest?.('.em-shell-hangman')) return;
       const t = e.target as HTMLElement | null;
       if (t && (
         t.tagName === 'INPUT' ||
@@ -489,7 +490,12 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
         t.tagName === 'SELECT' ||
         t.isContentEditable
       )) return;
-      if (/^[a-zA-Z]$/.test(e.key)) guess(e.key.toUpperCase());
+      if (/^[a-zA-Z]$/.test(e.key)) {
+        e.preventDefault();
+        guess(e.key.toUpperCase());
+        // Keep successive typed guesses in the game when the guessed lantern disables.
+        t?.closest<HTMLElement>('.em-shell-hangman')?.focus({ preventScroll: true });
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -613,6 +619,7 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
   return (
     <div
       className="em-shell em-shell-hangman"
+      tabIndex={0}
       role="application"
       aria-label="Hangman game, Lantern Alley"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}

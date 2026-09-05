@@ -465,7 +465,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
             </div>
 
             {/* Wheel + marquee */}
-            <ActionPlayfield3D kind="spinthewheel" data={{reducedMotion:reduceMotion,angle, duration:SPIN_WAIT_MS,running:spinning,onSpin:spin,onPick:i=>{if(!completed&&feedback!=='correct'){setSelected(i);setFeedback(null);setLandedOn(null);}},actors:wedges.map(w=>({id:w.i,x:0,y:0,label:cur.options[w.i],color:w.color,selected:selected===w.i}))}} />
+            <ActionPlayfield3D kind="spinthewheel" onShortcut={key=>{if(forcedState||completed||spinning||feedback==='correct')return false;const option=key.length===1?key.charCodeAt(0)-97:-1;if(option>=0&&option<cur.options.length){setSelected(option);setFeedback(null);setLandedOn(null);return true;}if(key===' '){spin();return true;}return false;}} data={{reducedMotion:reduceMotion,angle, duration:SPIN_WAIT_MS,running:spinning,onSpin:!spinning&&!completed&&!forcedState&&selected!==null&&feedback!=='correct'?spin:undefined,onPick:i=>{if(!forcedState&&!spinning&&!completed&&feedback!=='correct'){setSelected(i);setFeedback(null);setLandedOn(null);}},actors:wedges.map(w=>({id:w.i,x:0,y:0,label:cur.options[w.i],color:w.color,selected:selected===w.i,enabled:!forcedState&&!spinning&&!completed&&feedback!=='correct'}))}} />
 
             {/* External nameplate-callout legend (CD audit Option A, #20).
                Wedges only carry single-letter markers — the full word labels

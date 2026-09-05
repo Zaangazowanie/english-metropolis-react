@@ -55,7 +55,7 @@ export function MachineModel({kind,color,slot=false,right=false,hidden=false}:{k
 
 function TargetVaultScene(p:SceneProps) {
   const beam=useRef<Mesh>(null!),turret=useRef<Group>(null!);const {reducedMotion}=useStageQuality();
-  useFrame((_,dt)=>{if(turret.current)turret.current.rotation.z=MathUtils.damp(turret.current.rotation.z,-(p.selected?.[0]??0)*.16,10,dt);if(beam.current){const t=timeProgress(p.move,850,reducedMotion);beam.current.visible=p.move?.type==='commit'&&t<1;beam.current.scale.y=Math.max(.02,Math.sin(t*Math.PI));}});
+  useFrame((_,dt)=>{if(turret.current){const angle=-(p.selected?.[0]??0)*.16;turret.current.rotation.z=reducedMotion?angle:MathUtils.damp(turret.current.rotation.z,angle,10,dt);}if(beam.current){const t=timeProgress(p.move,850,reducedMotion);beam.current.visible=p.move?.type==='commit'&&t<1;beam.current.scale.y=Math.max(.02,Math.sin(t*Math.PI));}});
   return <><Block p={[0,.3,-.8]} s={[7.8,4.5,.5]} c="#1c1063"/>{[-3.95,3.95].map(x=><Block key={x} p={[x,.25,-.4]} s={[.2,4.6,.35]} c={gold}/>)}<group ref={turret} position={[0,-2,1]}><Cylinder r={.43} h={.22} c={gold}/><Block p={[0,.33,0]} s={[.45,.62,.5]} c={steel}/><Cylinder p={[0,.7,0]} r={.15} h={.55} c={p.color}/><mesh ref={beam} position={[0,1.7,0]} visible={false}><cylinderGeometry args={[.025,.045,2.2,6]}/><meshBasicMaterial color="#00ffff" transparent opacity={.8}/></mesh></group></>;
 }
 function JunctionScene(p:SceneProps) {
@@ -93,7 +93,7 @@ function RailwayBackdrop({compact}:{compact:boolean}){
 }
 function ReactorScene(p:SceneProps) {
   const core=useRef<Group>(null!);const {reducedMotion}=useStageQuality();
-  useFrame((state,dt)=>{if(!core.current)return;core.current.rotation.y=reducedMotion?0:state.clock.elapsedTime*.2;const charged=p.move?.type==='commit'?1.15:1+Math.max(0,p.signal)*.15;const s=MathUtils.damp(core.current.scale.x,charged,5,dt);core.current.scale.setScalar(s);});
+  useFrame((state,dt)=>{if(!core.current)return;core.current.rotation.y=reducedMotion?0:state.clock.elapsedTime*.2;const charged=p.move?.type==='commit'?1.15:1+Math.max(0,p.signal)*.15;const s=reducedMotion?charged:MathUtils.damp(core.current.scale.x,charged,5,dt);core.current.scale.setScalar(s);});
   return <><Cylinder p={[0,-1.7,-.7]} r={1.1} h={.45} c={gold}/><group ref={core} position={[0,.35,-1]}><Orb r={.62} c={p.color}/>{[0,1,2].map(i=><Hoop key={i} r={.88+i*.06} c={i===1?gold:p.color} rotation={[i*Math.PI/3,Math.PI/5,0]}/>)}</group>{[-2.65,2.65].map(x=><Lead key={x} from={[x,-.9,-.2]} to={[0,-1.3,-.7]} color={p.color}/>)}<Cylinder p={[0,-.6,-1]} r={.13} h={1.2} c={gold}/></>;
 }
 function DealerScene(p:SceneProps) {
@@ -109,11 +109,11 @@ function MemoryScene(p:SceneProps) {
 function NetworkScene(p:SceneProps) {
   const van=useRef<Group>(null!);const {reducedMotion}=useStageQuality();
   useFrame(()=>{if(!van.current)return;const t=timeProgress(p.move,1000,reducedMotion);const from=p.move?.from??[0,-1.8,1],to=p.move?.to??from;van.current.position.set(MathUtils.lerp(from[0],to[0],t),-1.8,MathUtils.lerp(1,to[2],t));});
-  return <><Block p={[0,-2.1,0]} s={[8,.2,5]} c="#102762"/><Block p={[0,-1.97,0]} s={[7.5,.025,.9]} c="#070d30"/>{[-3,-2,-1,0,1,2,3].map(x=><Block key={x} p={[x,-1.95,0]} s={[.35,.01,.035]} c="#ffee00"/>)}<group ref={van}><Block s={[.7,.35,.4]} c={gold}/><Block p={[.23,.1,0]} s={[.3,.45,.42]} c={p.color}/></group>{p.items.filter(it=>it.state==='right').slice(0,6).map((it,i)=><Lead key={it.id} from={[i%3*2.25-2.25,.2,0]} to={[0,-1.7,0]} color="#00ffb7"/>)}</>;
+  return <><Block p={[0,-2.1,0]} s={[8,.2,5]} c="#102762"/><Block p={[0,-1.97,0]} s={[7.5,.025,.9]} c="#070d30"/>{[-3,-2,-1,0,1,2,3].map(x=><Block key={x} p={[x,-1.95,0]} s={[.35,.01,.035]} c="#ffee00"/>)}<group ref={van}><Block s={[.7,.35,.4]} c={gold}/><Block p={[.23,.1,0]} s={[.3,.45,.42]} c={p.color}/></group>{p.items.map((it,i)=>it.state==='right'?<Lead key={it.id} from={machinePosition('network',i,p.items.length,p.columns)} to={[0,-1.7,0]} color="#00ffb7"/>:null)}</>;
 }
 function CraneScene(p:SceneProps) {
   const carriage=useRef<Group>(null!),load=useRef<Group>(null!);const {reducedMotion}=useStageQuality();
-  useFrame((_,dt)=>{const t=timeProgress(p.move,1200,reducedMotion),moving=p.move?.type==='place';const target=moving?p.move!.to:p.selected??[0,-.9,.5];if(carriage.current)carriage.current.position.x=MathUtils.damp(carriage.current.position.x,target[0],8,dt);if(load.current){load.current.visible=!!p.selected||!!moving&&t<1;const from=p.move?.from??target;load.current.position.set(moving?MathUtils.lerp(from[0],target[0],t):target[0],moving?MathUtils.lerp(from[1],target[1],t)+Math.sin(t*Math.PI)*1.4:target[1]+.5,moving?MathUtils.lerp(from[2],target[2],t):target[2]+.25);}});
+  useFrame((_,dt)=>{const t=timeProgress(p.move,1200,reducedMotion),moving=p.move?.type==='place';const target=moving?p.move!.to:p.selected??[0,-.9,.5];if(carriage.current)carriage.current.position.x=reducedMotion?target[0]:MathUtils.damp(carriage.current.position.x,target[0],8,dt);if(load.current){load.current.visible=!!p.selected||!!moving&&t<1;const from=p.move?.from??target;load.current.position.set(moving?MathUtils.lerp(from[0],target[0],t):target[0],moving?MathUtils.lerp(from[1],target[1],t)+Math.sin(t*Math.PI)*1.4:target[1]+.5,moving?MathUtils.lerp(from[2],target[2],t):target[2]+.25);}});
   return <><Block p={[0,1.08,-1.3]} s={[7.5,2.1,.5]} c="#162275"/><Block p={[0,2.35,-.8]} s={[8,.3,.8]} c={gold}/>{[-3.8,3.8].map(x=><Block key={x} p={[x,.25,-.7]} s={[.23,4.5,.23]} c={gold}/>)}<group ref={carriage} position={[0,2.45,0]}><Block s={[.75,.36,.6]} c={p.color}/><Cylinder p={[0,-.65,0]} r={.025} h={1.25} c="#00daff"/><Hoop p={[0,-1.35,0]} r={.13} c={gold}/></group><group ref={load}><Block s={[.6,.46,.46]} c={gold}/><Block p={[0,0,.24]} s={[.5,.05,.025]} c={p.color}/></group><Block p={[0,-1.6,1]} s={[7.5,.2,1.8]} c="#251b68"/></>;
 }
 function GalleryScene(p:SceneProps) {
@@ -121,7 +121,7 @@ function GalleryScene(p:SceneProps) {
 }
 function RadioScene(p:SceneProps) {
   const dish=useRef<Group>(null!),dial=useRef<Group>(null!);const {reducedMotion}=useStageQuality();
-  useFrame((state,dt)=>{if(dish.current)dish.current.rotation.y=MathUtils.damp(dish.current.rotation.y,(p.selected?.[0]??0)*.22,8,dt);if(dial.current)dial.current.rotation.z=reducedMotion?0:p.signal>0?Math.sin(state.clock.elapsedTime*5)*.6:-.6;});
+  useFrame((state,dt)=>{if(dish.current){const angle=(p.selected?.[0]??0)*.22;dish.current.rotation.y=reducedMotion?angle:MathUtils.damp(dish.current.rotation.y,angle,8,dt);}if(dial.current)dial.current.rotation.z=reducedMotion?0:p.signal>0?Math.sin(state.clock.elapsedTime*5)*.6:-.6;});
   return <><Cylinder p={[0,.1,-1]} r={.1} h={2.7} c={gold}/><group ref={dish} position={[0,1.65,-1]}><mesh rotation={[Math.PI/2.5,0,0]}><sphereGeometry args={[1.05,24,12,0,Math.PI*2,0,Math.PI/2]}/><meshStandardMaterial color="#00afff" metalness={.25} roughness={.25} side={2}/></mesh><Cylinder p={[0,.3,.65]} r={.04} h={1.1} c={gold} rotation={[Math.PI/2.5,0,0]}/><Orb p={[0,.55,1.1]} r={.1} c={p.color}/></group><Block p={[0,-1.9,1]} s={[3,.5,.8]} c="#421292"/><group ref={dial} position={[0,-1.85,1.43]}><Hoop r={.3} c={p.color}/><Block p={[0,.12,0]} s={[.03,.3,.04]} c={gold}/></group>{[-1,1].map(x=><Hoop key={x} p={[x,-1.85,1.43]} r={.26} c={gold}/>)}</>;
 }
 function MuseumScene(p:SceneProps) {
@@ -135,7 +135,11 @@ function StudioScene(p:SceneProps) {
   return <><Block p={[0,-.65,-.4]} s={[.8,.15,.8]} c={gold}/><Cylinder p={[0,.03,-.4]} r={.06} h={1.3} c="#00b9ff"/><mesh position={[0,1,-.4]}><capsuleGeometry args={[.34,.62,6,16]}/><meshStandardMaterial color="#36ddff" metalness={.8} roughness={.25}/></mesh>{[-.3,-.15,0,.15,.3].map(y=><Hoop key={y} p={[0,1+y,-.4]} r={.35} rotation={[Math.PI/2,0,0]} c={ink}/>)}<Hoop p={[0,1,-.1]} r={.58} c={gold}/><Block p={[0,2.1,-.9]} s={[2,.55,.14]} c={p.signal>0?'#ff165d':ink} emissive={p.signal>0}/><group ref={needle} position={[1.2,.6,-.2]}><Block s={[.16,1.4,.2]} c={p.color} emissive/></group><Block p={[0,-2.35,.7]} s={[8,.2,2]} c="#300e70"/></>;
 }
 function PatchbayScene(p:SceneProps) {
-  return <><Block p={[0,.15,-.45]} s={[7.2,4.5,.35]} c="#0c275f"/>{[-3.5,3.5].map(x=><Block key={x} p={[x,.15,-.2]} s={[.15,4.4,.2]} c={gold}/>)}{p.selected&&<Lead from={p.selected} to={[.3,-.7,.4]} color={p.color}/>} {p.slots.slice(0,3).filter(s=>s.state==='right').map((s,i)=><Lead key={s.id} from={[-2.4,(1-i)*1.5,0]} to={[2.4,(1-i)*1.5,0]} color="#00ffb2"/>)}<Block p={[0,-2.25,.1]} s={[6,.15,.4]} c={gold}/></>;
+  return <><Block p={[0,.15,-.45]} s={[7.2,4.5,.35]} c="#0c275f"/>{[-3.5,3.5].map(x=><Block key={x} p={[x,.15,-.2]} s={[.15,4.4,.2]} c={gold}/>)}{p.selected&&<Lead from={p.selected} to={[.3,-.7,.4]} color={p.color}/>} {p.slots.map((s,i)=>{
+    if(s.state!=='right')return null;
+    const source=p.items.findIndex(it=>it.id===s.id);
+    return <Lead key={s.id} from={source<0?[0,-2.1,.3]:machinePosition('patch',source,p.items.length,p.columns)} to={machinePosition('patch',i,p.slots.length,p.columns,true)} color="#00ffb2"/>;
+  })}<Block p={[0,-2.25,.1]} s={[6,.15,.4]} c={gold}/></>;
 }
 function FreightScene(p:SceneProps) {
   const locomotive=useRef<Group>(null!);const {reducedMotion}=useStageQuality();

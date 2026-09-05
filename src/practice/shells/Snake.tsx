@@ -492,15 +492,16 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
     if (forcedState) return;
     const handler = (e: KeyboardEvent) => {
       if (!interactionRef.current?.contains(e.target as Node)) return;
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
       const map: Record<string, Dir | undefined> = {
         ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
         w: 'up', s: 'down', a: 'left', d: 'right',
         W: 'up', S: 'down', A: 'left', D: 'right',
       };
-      if ((e.target as HTMLElement)?.closest('input,textarea,select')) return;
+      if ((e.target as HTMLElement).isContentEditable || (e.target as HTMLElement)?.closest('input,textarea,select,[contenteditable="true"],[role="dialog"]')) return;
       const next = map[e.key];
       if (next) { e.preventDefault(); queuedDirRef.current = next; }
-      if (e.key === ' ' && !(e.target as HTMLElement).closest('button,a')) { e.preventDefault(); setPaused(p => !p); }
+      if (e.key === ' ' && !e.repeat && !(e.target as HTMLElement).closest('button,a')) { e.preventDefault(); setPaused(p => !p); }
     };
     const suspend = () => { if (document.hidden) setPaused(true); };
     const blur = () => setPaused(true);
@@ -624,15 +625,7 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
               width: '100%', maxWidth: W * 1.4, minHeight: 340,
               position: 'relative',
             }}>
-              <ActionPlayfield3D kind="snake" data={{grid:{rows:ROWS,cols:COLS},body:snake,direction:dir,reducedMotion:reduce,onMove:press,actors:pellets.map(p=>({id:p.optionIdx,x:p.cell.c,y:p.cell.r,label:p.word,selected:hintActive&&p.isAnswer}))}} controls={<div className="action-arcade-option-list" aria-label="Pickup words">{pellets.map(p=><span key={p.optionIdx}><b>{p.optionIdx+1}</b>{p.word}</span>)}</div>} />
-
-              {/* HUD overlay — top-left of the play grid */}
-              <div style={{
-                position: 'absolute', top: 8, left: 8,
-                display: 'flex', flexDirection: 'column', gap: 4,
-                pointerEvents: 'none',
-                zIndex: 2,
-              }}>
+              <ActionPlayfield3D kind="snake" hud={<div className="action-three-snake-hud">
                 <div style={hudPillStyle()}>
                   <span style={hudLabelStyle()}>SCORE · WYNIK</span>
                   <span style={hudValueStyle()}>{score}</span>
@@ -645,7 +638,9 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
                   <span style={{ ...hudLabelStyle(), color: HALO }}>ROUND · RUNDA</span>
                   <span style={{ ...hudValueStyle(), color: HALO }}>{targetWord}</span>
                 </div>
-              </div>
+              </div>} data={{grid:{rows:ROWS,cols:COLS},body:snake,direction:dir,reducedMotion:reduce,onMove:press,actors:pellets.map(p=>({id:p.optionIdx,x:p.cell.c,y:p.cell.r,label:p.word,selected:hintActive&&p.isAnswer}))}} controls={<div className="action-arcade-option-list" aria-label="Pickup words">{pellets.map(p=><span key={p.optionIdx}><b>{p.optionIdx+1}</b>{p.word}</span>)}</div>} />
+
+
             </div>
 
             <div className="action-arcade-hud"><div><strong>{snake.length} segments</strong><small>Choose the word, then steer to its fruit. Edges wrap. Crossing your tail resets your position. Each answer grows the next route.</small></div><button aria-pressed={pace === 'sprint'} onClick={() => { setPaused(true); setPace(p => p === 'cruise' ? 'sprint' : 'cruise'); }}>{pace === 'sprint' ? 'Sprint · 140 pts' : 'Cruise · 100 pts'}</button></div>

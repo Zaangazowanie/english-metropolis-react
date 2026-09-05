@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
-import { Stage, Box, Orb, Ring, Label, Smooth, Instances } from './action-arcade-scene-kit';
+import { HoverTarget, Stage, Box, Orb, Ring, Label, Smooth, Instances } from './action-arcade-scene-kit';
 import type { ActionSceneData, DetailBlock } from './action-arcade-scene-kit';
 function Plane({running,reduced}:{running?:boolean;reduced?:boolean}){
   const prop=useRef<Group>(null);useFrame((_,dt)=>{if(prop.current&&running&&!reduced)prop.current.rotation.x+=dt*28;});
@@ -40,12 +40,12 @@ export default function ActionAirplane3D(p:ActionSceneData){
   return <Stage width={9.6} onError={p.onError} reducedMotion={p.reducedMotion}>
     <Instances blocks={airport}/>
     {(p.actors??[]).map(a=><group key={a.id} position={[(a.x-50)*.09,altitude(a.y),0]} onPointerDown={e=>{e.stopPropagation();if(a.enabled!==false)p.onPick?.(a.id);}}>
-      <Ring radius={.48} color={a.selected?'#ffd000':'#00e4ff'} rotation={[0,Math.PI/3,0]}/>
+      <HoverTarget enabled={a.enabled!==false} reduced={p.reducedMotion} radius={.67} at={[0,0,.4]}><Ring radius={.48} color={a.selected?'#ffd000':'#00e4ff'} rotation={[0,Math.PI/3,0]}/>
       <Ring at={[-.1,0,0]} radius={.51} color={a.selected?'#ff6500':'#0058f5'} rotation={[0,Math.PI/3,0]}/>
       <mesh><sphereGeometry args={[.6,10,8]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>
       <Label at={[0,.69,0]} text={`${String.fromCharCode(65+a.id)} · ${a.label}`} selected={a.selected}/>
       <Instances blocks={[-1,1].flatMap(s=>[{at:[0,s*.61,0],size:[.16,.19,.23],color:a.selected?'#ffcf00':'#00d4ff'} as DetailBlock,{at:[0,s*.61,.13],size:[.05,.09,.025],color:'#fff'}])}/>
-    </group>)}
+    </HoverTarget></group>)}
     <Smooth at={[-2.88,altitude(selected?.y??14),0]} reduced={p.reducedMotion}><Plane running={p.running} reduced={p.reducedMotion}/></Smooth>
     {[-3,-1,1,3].map((x,i)=><group key={x} position={[x,3.8+(i%2)*.6,-3]}><Orb scale={[2,.45,1]} radius={.5} color="#3daeff"/><Orb at={[.5,.1,0]} scale={[1.5,.6,1]} radius={.4} color="#efffff"/></group>)}
   </Stage>;

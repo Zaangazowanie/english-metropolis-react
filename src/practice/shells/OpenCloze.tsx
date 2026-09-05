@@ -339,6 +339,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
   const persisted = useShellProgress('opencloze');
 
   const [values, setValues] = useState<Record<number, string>>({});
+  const pendingValuesRef = useRef<Record<number, string>>({});
   const [locked, setLocked] = useState<Record<number, 'right' | 'wrong'>>({});
   const [activeId, setActiveId] = useState<number>(activePuzzle.gaps[0]?.id ?? 1);
   const [hintsUsed, setHintsUsed] = useState<number>(0);
@@ -447,6 +448,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
   }, [forcedState, activePuzzle]);
 
   const setVal = (id: number, v: string): void => {
+    pendingValuesRef.current[id] = v;
     setValues((prev) => ({ ...prev, [id]: v }));
     if (locked[id] === 'wrong') {
       // Re-arm — let the player retry.
@@ -458,13 +460,18 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
     }
   };
 
-  const submit = (id: number): void => {
+  const submit = (id: number, inputValue?: string): void => {
     if (forcedState) return;
     const gap = activePuzzle.gaps.find((g) => g.id === id);
     if (!gap) return;
     if (locked[id] === 'right' || skippedIds.has(id)) return;
-    const candidate = normalise(values[id] ?? '');
+    // Enter can arrive before React renders the preceding input update. Grade
+    // the live field value; the lever uses the same synchronously updated draft.
+    const rawValue = inputValue ?? pendingValuesRef.current[id] ?? values[id] ?? '';
+    const candidate = normalise(rawValue);
     if (!claimClozeAttempt(submittedAttemptsRef.current, id, candidate)) return;
+    pendingValuesRef.current[id] = rawValue;
+    setValues((prev) => ({ ...prev, [id]: rawValue }));
     const accepted = [normalise(gap.answer), ...(gap.acceptedAnswers ?? []).map(normalise)];
     const correct = accepted.includes(candidate);
     setLocked((prev) => ({ ...prev, [id]: correct ? 'right' : 'wrong' }));
@@ -482,7 +489,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
       setAnnouncement(`Not quite. The ink ran. Try another word or use a hint.`);
       const wrongPayload = {
         questionId: `gap-${id}`,
-        studentAnswer: values[id] ?? '',
+        studentAnswer: rawValue,
         correctAnswer: gap.answer,
         explanationPL: gap.hint_pl,
         exerciseId: gap.exerciseId,
@@ -526,6 +533,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
   const reset = (): void => {
     arcade.restart(); setSkippedIds(new Set());
     setValues({}); setLocked({}); setActiveId(activePuzzle.gaps[0]?.id ?? 1);
+    pendingValuesRef.current = {};
     setHintsUsed(0); setRevealedHintFor(null); setAnnouncement('');
     tip.reset();
     // D3 Wave-5: clear per-deck log + re-arm the session-complete fire flag.
@@ -669,7 +677,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
                     value={value}
                     onChange={(e) => setVal(t.id, e.target.value)}
                     onFocus={() => setActiveId(t.id)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(t.id); } }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(t.id, e.currentTarget.value); } }}
                     aria-label={`Blank ${t.id}, ${gap.hint}`}
                     aria-invalid={status === 'wrong'}
                     disabled={status === 'right' || skippedIds.has(t.id) || !!forcedState}

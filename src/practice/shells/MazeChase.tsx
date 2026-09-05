@@ -458,12 +458,13 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
     if (forcedState) return;
     const handler = (e: KeyboardEvent) => {
       if (!interactionRef.current?.contains(e.target as Node)) return;
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
       const map: Record<string, Dir | undefined> = {
         ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
         w: 'up', s: 'down', a: 'left', d: 'right',
         W: 'up', S: 'down', A: 'left', D: 'right',
       };
-      if ((e.target as HTMLElement)?.closest('input,textarea,select')) return;
+      if ((e.target as HTMLElement).isContentEditable || (e.target as HTMLElement)?.closest('input,textarea,select,[contenteditable="true"],[role="dialog"]')) return;
       const next = map[e.key];
       if (next) { e.preventDefault(); moveOne(next); }
     };

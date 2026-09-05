@@ -25,3 +25,16 @@
 
 /* Taller arenas remain reachable on short desktop windows as well as phones. */
 .em-practice-root .em-arcade-screen .em-shell-host{overflow-y:auto;overflow-x:hidden}
+
+/* Each burst follows a scored decision; it never masks the next control. */
+.em-arcade-screen{position:relative;isolation:isolate}
+.em-arcade-hit-effects{position:absolute;inset:0;z-index:8;pointer-events:none;overflow:hidden;border-radius:inherit;animation:em-hit-rim .65s ease-out both;box-shadow:inset 0 0 0 2px #00ffc899,inset 0 0 40px #00cda322}
+.em-arcade-hit-effects i{position:absolute;left:50%;top:30%;width:5px;height:16px;border-radius:3px;background:#a1fff0;box-shadow:0 0 12px #00ffce;animation:em-hit-spark .65s var(--spark-delay) ease-out both;transform:rotate(var(--spark-angle)) translateY(-25px)}
+.em-arcade-hit-effects[data-complete=true]{animation-duration:1.2s;box-shadow:inset 0 0 0 3px #ffdb00,inset 0 0 55px #ffc80044}
+.em-arcade-hit-effects[data-complete=true] i{background:#ffe558;box-shadow:0 0 16px #ffce00}
+.em-arcade-screen button:focus-visible{outline:3px solid #9ffff1;outline-offset:3px}
+.em-arcade-tools button{transition:border-color .18s,box-shadow .18s,background .18s}
+.em-arcade-tools button:hover{border-color:#70e9ff;box-shadow:0 0 15px #00cfff33;background:#143474}
+@keyframes em-hit-rim{0%{opacity:1}100%{opacity:0}}
+@keyframes em-hit-spark{0%{opacity:0;transform:rotate(var(--spark-angle)) translateY(-25px) scale(.5)}20%{opacity:1}100%{opacity:0;transform:rotate(var(--spark-angle)) translateY(-125px) scale(.2)}}
+@media(prefers-reduced-motion:reduce){.em-arcade-hit-effects{display:none}.em-arcade-tools button{transition:none}}

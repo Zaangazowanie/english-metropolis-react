@@ -5,7 +5,7 @@ import { MathUtils, type Group } from 'three';
 import { CityStage, useStageQuality } from './kit/CityStage';
 import { Bajla } from './kit/Bajla';
 import { BespokeScene, MachineModel, machinePosition, type MachineMove } from './challenge-scenes';
-import { committedCandidate, placementCandidate } from './challenge-machine-logic';
+import { committedCandidate, placementCandidate, machineShortcut } from './challenge-machine-logic';
 import type { Game3DProps } from './types';
 import './challenge-machine.css';
 
@@ -50,31 +50,40 @@ function Camera({ rows, columns, kind, compact }:{rows:number;columns:number;kin
 }
 /** Each mesh is the actual selectable answer/word/socket; the DOM label is
  * portalled OUTSIDE CityStage's aria-hidden canvas for the same keyboard path. */
-function ObjectControl({item,at,design,onClick,portal,width,compact,selected,slot=false,disabled=false}:{item:MachineItem;at:[number,number,number];design:MachineDesign;onClick:()=>void;portal:RefObject<HTMLDivElement>;width:number;compact:boolean;selected:boolean;slot?:boolean;disabled?:boolean}) {
+function ObjectControl({item,at,design,onClick,portal,width,compact,selected,shortcut,slot=false,disabled=false}:{item:MachineItem;at:[number,number,number];design:MachineDesign;onClick:()=>void;portal:RefObject<HTMLDivElement>;width:number;compact:boolean;selected:boolean;shortcut:string;slot?:boolean;disabled?:boolean}) {
   const group=useRef<Group>(null!);
+  const [hovered,setHovered]=useState(false),[focused,setFocused]=useState(false);
   const stageWidth=useThree(state=>state.size.width);
   const {reducedMotion}=useStageQuality();
   const right=item.state==='right', wrong=item.state==='wrong', hidden=item.state==='hidden';
-  const color=right?'#00ff94':wrong?'#ff2359':selected?'#fff000':design.color;
+  const engaged=!disabled&&(hovered||focused),lit=engaged||selected||right;
+  const color=right?'#00ff94':wrong?'#ff2359':selected?'#fff000':engaged?'#7ff8ff':design.color;
   useFrame((_,dt)=>{
     if(!group.current)return;
-    const targetY=at[1]+(selected?.2:0);
+    const targetY=selected?.2:engaged?.1:0;
     group.current.position.y=reducedMotion?targetY:MathUtils.damp(group.current.position.y,targetY,12,dt);
-    const targetZ=at[2]+(right?-.18:selected?.28:0);
+    const targetZ=right?-.18:selected?.28:engaged?.14:0;
     group.current.position.z=reducedMotion?targetZ:MathUtils.damp(group.current.position.z,targetZ,9,dt);
-    const tilt=hidden?-.15:wrong?-.1:selected?.05:0;
+    const tilt=hidden?-.15:wrong?-.1:selected?.05:engaged?.035:0;
     group.current.rotation.x=reducedMotion?tilt:MathUtils.damp(group.current.rotation.x,tilt,10,dt);
     if(design.kind==='dealer') {
       const turn=hidden?Math.PI:0;
       group.current.rotation.y=reducedMotion?turn:MathUtils.damp(group.current.rotation.y,turn,9,dt);
     }
   });
-  return <group ref={group} position={at}>
-    <group onClick={e=>{e.stopPropagation();if(!disabled)onClick();}}>
+  return <group position={at}>
+    <group ref={group} onPointerOver={e=>{e.stopPropagation();setHovered(true);}} onPointerOut={()=>setHovered(false)} onClick={e=>{e.stopPropagation();if(!disabled)onClick();}}>
       <MachineModel kind={design.kind} color={color} slot={slot} right={right} hidden={hidden}/>
+      <mesh position={[0,design.kind==='dealer'?.86:.83,.24]} raycast={()=>{}}>
+        <boxGeometry args={[lit?.78:.38,.045,.035]}/><meshBasicMaterial color={lit?color:'#284687'} toneMapped={false}/>
+      </mesh>
+      <mesh position={[0,0,.58]} visible={lit} raycast={()=>{}}>
+        <ringGeometry args={[.75,.78,4,1,Math.PI/4]}/><meshBasicMaterial color={color} transparent opacity={.72} toneMapped={false}/>
+      </mesh>
     </group>
     <Html portal={portal} center position={[0,design.kind==='dealer' ? -.12 : -.58,.62]} zIndexRange={[12,5]}>
-      <button type="button" className={`cm-object ${item.state??'idle'} ${selected?'selected':''} ${slot?'cm-socket':''}`} style={{width:compact?Math.min(width,stageWidth*.29):width}} disabled={disabled} aria-pressed={selected||right} onClick={onClick}>
+      <button type="button" className={`cm-object ${item.state??'idle'} ${selected?'selected':''} ${slot?'cm-socket':''} ${engaged?'engaged':''}`} style={{width:compact?Math.min(width,stageWidth*.29):width}} disabled={disabled} aria-pressed={selected||right} aria-keyshortcuts={shortcut} onPointerEnter={()=>setHovered(true)} onPointerLeave={()=>setHovered(false)} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} onClick={onClick}>
+        <kbd className="cm-key" aria-hidden="true">{shortcut}</kbd>
         <span>{slot?'SOCKET · GNIAZDO':hidden?'SEALED · ZAKRYTE':({target:'VAULT · SEJF',junction:'ROUTE · TRASA',reactor:'ENERGY CELL · OGNIWO',dealer:'CARD · KARTA',memory:'MEMORY PANEL · PANEL',network:'DESTINATION · CEL',crane:'CARGO · ŁADUNEK',gallery:'CASE FILE · DOWÓD',radio:'FREQUENCY · CZĘSTOTLIWOŚĆ',museum:'EXHIBIT · EKSPONAT',studio:'STUDIO CONTROL',patch:'PLUG · WTYK',freight:'CARRIAGE · WAGON',sentence:'WORD WAGON · WAGON SŁOWO'}[design.kind])}</span>
         <strong>{item.label}</strong>
         {right&&<b aria-label="Correct">✓</b>}{wrong&&<b aria-label="Incorrect">×</b>}
@@ -89,6 +98,7 @@ export function ChallengeMachine({design,items=[],slots=[],roundKey,locked=false
   const submitted=useRef(false);
   const [fileOpen,setFileOpen]=useState(false),[evidenceIndex,setEvidenceIndex]=useState(0);
   const [narrow,setNarrow]=useState(false),[systemReduced,setSystemReduced]=useState(false);
+  const machine=useRef<HTMLDivElement>(null!);
   const portal=useRef<HTMLDivElement>(null!);
   useEffect(()=>{const mq=matchMedia('(max-width:600px)'),rm=matchMedia('(prefers-reduced-motion:reduce)');const update=()=>{setNarrow(mq.matches);setSystemReduced(rm.matches);};update();mq.addEventListener('change',update);rm.addEventListener('change',update);return()=>{mq.removeEventListener('change',update);rm.removeEventListener('change',update);};},[]);
   useEffect(()=>{setSelected(null);setPage(0);setMove(null);submitted.current=false;},[roundKey]);
@@ -101,6 +111,7 @@ export function ChallengeMachine({design,items=[],slots=[],roundKey,locked=false
   useEffect(()=>setPage(v=>Math.min(v,Math.max(0,Math.ceil(items.length/pageSize)-1))),[items.length,pageSize]);
   const safePage=Math.min(page,Math.max(0,Math.ceil(items.length/pageSize)-1));
   const visible=items.slice(safePage*pageSize,safePage*pageSize+pageSize);
+  const visibleSlots=slots.slice(slotPage*columns,slotPage*columns+columns);
   const rowCount=Math.ceil(visible.length/columns);
   const active=items.find(i=>i.id===selected);
   const positionFor=(id:string,slot=false)=>{
@@ -120,18 +131,41 @@ export function ChallengeMachine({design,items=[],slots=[],roundKey,locked=false
   const stageItems=ready?visible:[{id:'start',label:readyLabel??'Start round · Rozpocznij',state:'idle' as const}];
   const itemWidth=narrow?Math.min(design.kind==='junction'?110:142,(typeof window==='undefined'?390:window.innerWidth)/2-42):148;
   const activate=(id:string)=>{if(ready)pick(id);else{animate('ready',[0,.5,0]);onReady?.();}};
+  const runAction=()=>{if(locked||actionDisabled)return;if(design.kind==='gallery'&&evidence?.length){setFileOpen(v=>!v);return;}animate('action',[0,0,0]);onAction?.();};
+  const extraAction=design.kind==='gallery'&&!!evidence?.length||!!onAction;
   const success=items.length>0&&items.every(i=>i.state==='right');
   const canvasHeight=design.kind==='junction'?(narrow?320:360):narrow?Math.max(450,(rowCount+(slots.length?1:0))*155+150):Math.max(370,(rowCount+(slots.length?1:0))*130+130);
   const drawItem=(it:MachineItem,i:number,slot=false)=>{
     const pos=machinePosition(design.kind,i,slot?Math.min(columns,slots.length-slotPage*columns):stageItems.length,columns,slot);
-    return <ObjectControl key={it.id} item={it} at={pos} design={design} portal={portal} width={itemWidth} compact={narrow} selected={!slot&&(design.mode==='direct'?it.state==='selected':it.id===selected)} slot={slot} disabled={locked||!!it.locked} onClick={()=>slot?attach(it.id):activate(it.id)}/>;
+    return <ObjectControl key={it.id} item={it} at={pos} design={design} portal={portal} width={itemWidth} compact={narrow} shortcut={slot?String.fromCharCode(65+i):String(i+1)} selected={!slot&&(design.mode==='direct'?it.state==='selected':it.id===selected)} slot={slot} disabled={locked||!!it.locked} onClick={()=>slot?attach(it.id):activate(it.id)}/>;
   };
-  return <div className={`challenge-machine cm-${design.kind}`} style={{'--cm-accent':design.color} as CSSProperties} data-gameplay-3d={design.kind} onKeyDown={e=>{
-    if((e.target as HTMLElement).matches('input,textarea,select'))return;
-    const n=Number(e.key)-1;if(n>=0&&n<visible.length){e.preventDefault();e.stopPropagation();pick(visible[n].id);}
-    if(e.key==='Enter'&&e.target===e.currentTarget&&design.mode==='choice'){e.preventDefault();commit();}
+  return <div ref={machine} className={`challenge-machine cm-${design.kind} ${(reducedMotion??systemReduced)?'cm-reduced-motion':''}`} style={{'--cm-accent':design.color} as CSSProperties} data-gameplay-3d={design.kind} role="group" aria-label={`${design.title} play area`} onKeyDown={e=>{
+    if(e.defaultPrevented)return;
+    const target=e.target as HTMLElement;
+    // Enter confirms the already aimed object; unselected buttons retain their
+    // native Enter/Space activation. Number shortcuts focus this play area.
+    const aimedControl=design.mode==='choice'&&!!active&&!!target.closest('.cm-object[aria-pressed="true"]');
+    const command=machineShortcut({key:e.key,repeat:e.repeat,modified:e.ctrlKey||e.metaKey||e.altKey,shift:e.shiftKey,editing:target.isContentEditable||!!target.closest('input,textarea,select,[role="textbox"],[contenteditable="true"]'),nativeControl:!aimedControl&&!!target.closest('button,a,[role="button"]'),locked,ready,mode:design.mode,items:visible.length,slots:visibleSlots.length,hasAction:extraAction&&!actionDisabled});
+    if(!command)return;
+    if(command.type==='page'){
+      const current=command.slots?slotPage:safePage,total=Math.ceil((command.slots?slots.length:items.length)/(command.slots?columns:pageSize));
+      const next=current+command.delta;if(next<0||next>=total)return;
+      if(command.slots)setSlotPage(next);else setPage(next);
+    }else if(command.type==='pick')pick(visible[command.index].id);
+    else if(command.type==='place')attach(visibleSlots[command.index].id);
+    else if(command.type==='commit')commit();
+    else if(command.type==='ready')activate('start');
+    else if(command.type==='clear')setSelected(null);
+    else runAction();
+    e.preventDefault();e.stopPropagation();machine.current.focus({preventScroll:true});
   }} tabIndex={0}>
     <div className="cm-heading"><strong>{design.title}</strong><p>{design.instruction}</p>{prompt&&<h3>{prompt}</h3>}{hint&&<p className="cm-hint" role="status">Hint · Podpowiedź: {hint}</p>}</div>
+    <div className="cm-controls" aria-label="How to play">
+      <span className="cm-control-step"><b>01</b>{!ready?'Start the round':design.mode==='assembly'?'Choose a word or label':design.mode==='direct'?'Tap a lit control':'Choose your answer'}</span>
+      {ready&&design.mode!=='direct'&&<span className="cm-control-step"><b>02</b>{design.mode==='assembly'?'Place it in a socket':design.action}</span>}
+      <span className="cm-keyboard-help">{!ready?<><kbd>1</kbd> start</>:<>{visible.length>0&&<><kbd>{visible.length===1?'1':`1–${visible.length}`}</kbd> {design.mode==='direct'?'activate':'choose'}</>}{design.mode==='assembly'&&visibleSlots.length>0&&<> · <kbd>{visibleSlots.length===1?'A':`A–${String.fromCharCode(64+visibleSlots.length)}`}</kbd> place</>}{(design.mode==='choice'||design.mode==='assembly'&&onAction)&&<> · <kbd>Enter</kbd> {design.mode==='choice'?'confirm':'check'}</>}{design.mode!=='direct'&&<> · <kbd>Esc</kbd> clear</>}</>}</span>
+      {(items.length>pageSize||slots.length>columns)&&<span className="cm-keyboard-help"><kbd>PgUp / PgDn</kbd> shelf{slots.length>columns&&<> · <kbd>Shift</kbd> + keys: sockets</>}</span>}
+    </div>
     <div className="cm-stage" style={{height:canvasHeight}}>
       {!failed&&<CityStage arcade quality={quality} reducedMotion={reducedMotion??systemReduced} onError={()=>setFailed(true)} cameraPosition={[0,3.5,11]}>
         <color attach="background" args={['#080e32']}/>
@@ -139,13 +173,13 @@ export function ChallengeMachine({design,items=[],slots=[],roundKey,locked=false
         <BespokeScene kind={design.kind} color={design.color} selected={selected ? positionFor(selected) : null} move={move} success={success} signal={signal} items={visible} slots={slots.slice(slotPage*columns,slotPage*columns+columns)} columns={columns}/>
         <Bajla scale={.27} position={[3.75,-1.9,1]} reducedMotion={reducedMotion??systemReduced} variant={success?'celebrate':'idle'}/>
         {design.kind==='museum'&&imageSrc&&signal>0&&<Html portal={portal} center transform position={[0,.8,-.55]} distanceFactor={4} zIndexRange={[4,1]}><img className="cm-museum-photo" src={imageSrc} alt={imageAlt??'Photograph to identify'} /></Html>}
-        {design.kind==='gallery'&&evidence?.length&&<Html portal={portal} center position={[0,-1.55,1]} zIndexRange={[14,5]}><button className="cm-instrument" type="button" onClick={()=>setFileOpen(v=>!v)}>Inspect evidence file</button></Html>}
-        {design.kind==='radio'&&onAction&&<Html portal={portal} center position={[0,-1.8,1.6]} zIndexRange={[14,5]}><button className="cm-instrument" type="button" disabled={locked||actionDisabled} onClick={onAction}>{actionLabel ?? 'Tune in'}</button></Html>}
+        {design.kind==='gallery'&&evidence?.length&&<Html portal={portal} center position={[0,-1.55,1]} zIndexRange={[14,5]}><button className="cm-instrument" type="button" onClick={()=>setFileOpen(v=>!v)} aria-keyshortcuts="x"><kbd>X</kbd> Inspect evidence file</button></Html>}
+        {design.kind==='radio'&&onAction&&<Html portal={portal} center position={[0,-1.8,1.6]} zIndexRange={[14,5]}><button className="cm-instrument" type="button" disabled={locked||actionDisabled} onClick={runAction} aria-keyshortcuts="x"><kbd>X</kbd> {actionLabel ?? 'Tune in'}</button></Html>}
         {stageItems.map((it,i)=>drawItem(it,i))}
         {slots.slice(slotPage*columns,slotPage*columns+columns).map((it,i)=>drawItem(it,i,true))}
       </CityStage>}
       <div className="cm-label-layer" ref={portal}/>
-      {failed&&<div className="cm-fallback"><p>3D is unavailable. These controls play the same exercise.</p>{stageItems.map(it=><button key={it.id} disabled={locked||it.locked} onClick={()=>activate(it.id)} aria-pressed={selected===it.id}>{it.label}</button>)}</div>}
+      {failed&&<div className="cm-fallback"><p>3D is unavailable. These controls play the same exercise.</p>{stageItems.map((it,i)=><button key={it.id} disabled={locked||it.locked} onClick={()=>activate(it.id)} aria-pressed={selected===it.id}><kbd>{i+1}</kbd> {it.label}</button>)}</div>}
     </div>
     {design.kind==='gallery'&&fileOpen&&evidence?.length&&<div className="cm-evidence"><p>Case excerpt {evidenceIndex+1} / {evidence.length}</p><blockquote>{evidence[evidenceIndex]}</blockquote><div><button type="button" disabled={evidenceIndex===0} onClick={()=>setEvidenceIndex(v=>v-1)}>← Previous</button><button type="button" disabled={evidenceIndex>=evidence.length-1} onClick={()=>setEvidenceIndex(v=>v+1)}>Next excerpt →</button><button type="button" onClick={()=>{onEvidence?.();setFileOpen(false);}}>Mark this evidence ✓</button></div></div>}
     {design.kind==='radio'&&ready&&!locked&&<label className="cm-tuner">Answer frequency · {active?.label??'Turn the tuning dial'}<input type="range" min={0} max={Math.max(0,items.length-1)} step={1} value={Math.max(0,items.findIndex(it=>it.id===selected))} onChange={e=>pick(items[Number(e.target.value)].id)} aria-label="Tune answer frequency"/></label>}
@@ -153,7 +187,7 @@ export function ChallengeMachine({design,items=[],slots=[],roundKey,locked=false
     {slots.length>columns&&<nav className="cm-pages" aria-label="Socket shelves"><button disabled={slotPage===0} onClick={()=>setSlotPage(v=>v-1)}>← Previous sockets</button><span>{slotPage+1} / {Math.ceil(slots.length/columns)}</span><button disabled={(slotPage+1)*columns>=slots.length} onClick={()=>setSlotPage(v=>v+1)}>Next sockets →</button></nav>}
     {design.mode==='assembly'&&<div className="cm-dock"><p>{active?`Carrying “${active.label}”. Choose its socket below.`:'Pick a word or label above, then choose its socket. Tap a filled socket without a selection to remove it.'}</p><div>{slots.map((s,i)=><button type="button" key={s.id} disabled={locked||s.locked} className={s.state??'idle'} onClick={()=>attach(s.id)}><small>{i+1}</small>{s.label||'Empty socket'}</button>)}</div></div>}
     {design.mode==='choice'&&ready&&<div className="cm-commit"><p role="status">{locked?(status??'Answer locked. Read the feedback below.'):active?`Locked onto: ${active.label}`:'Choose a 3D terminal to aim. Your answer is submitted only when you activate it.'}</p><button type="button" onClick={commit} disabled={locked||!active}>{design.action} →</button></div>}
-    {onAction&&<button className="cm-action" type="button" disabled={locked||actionDisabled} onClick={()=>{animate('action',[0,0,0]);onAction();}}>{actionLabel??design.action} →</button>}
+    {onAction&&<button className="cm-action" type="button" disabled={locked||actionDisabled} onClick={runAction} aria-keyshortcuts="x"><kbd>X</kbd> {actionLabel??design.action} →</button>}
     {status&&design.mode!=='choice'&&<p className="cm-status" role="status">{status}</p>}
   </div>;
 }

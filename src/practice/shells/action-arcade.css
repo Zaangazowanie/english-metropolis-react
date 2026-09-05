@@ -5,8 +5,14 @@
 .action-arcade-controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.action-arcade-option-list{display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;color:#f4efff;font:12px var(--em-body)}.action-arcade-option-list span{border:1px solid #ffffff22;border-radius:8px;padding:8px;background:#100c25}.action-arcade-option-list b{color:#00cfff;margin-right:9px}
 .action-flight-control{position:absolute;z-index:7;bottom:18px;left:24px;right:24px;display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap}.action-flight-control p{margin:0;color:#f1efff;font:12px var(--em-body)}
 .action-wheel-choices button[aria-pressed=true]{outline:2px solid #ffce00;outline-offset:2px}.action-wheel-choices button{cursor:pointer;text-align:left}
+@media(hover:hover){
+ .action-arcade-hud button:not(:disabled):hover,.action-arcade-controls button:not(:disabled):hover{border-color:#00e5ff;background:#123da5;box-shadow:0 5px 0 #04132f,0 0 20px #008cff66;transform:translateY(-2px)}
+ .action-wheel-choices button:not(:disabled):hover,.em-snake-dpad button:not(:disabled):hover,.em-mz-dpad button:not(:disabled):hover{outline:2px solid #00e5ff;outline-offset:2px;filter:brightness(1.18);box-shadow:0 0 20px #00cfff44}
+}
+.action-arcade-hud button:disabled,.action-arcade-controls button:disabled{opacity:.45;cursor:default}
+.action-arcade-hud button:not(:disabled):active,.action-arcade-controls button:not(:disabled):active{transform:translateY(2px);box-shadow:0 1px 0 #04132f}
 @media(max-width:620px){.action-arcade-hud{font-size:11px;padding:10px;gap:8px}.action-flight-control{left:8px;right:8px;bottom:12px;gap:7px}.action-flight-control p{flex-basis:100%;text-align:center}.action-wheel-choices{grid-template-columns:repeat(2,minmax(0,1fr))!important}.em-snake-dpad,.em-mz-dpad{position:relative!important;bottom:auto!important;right:auto!important;margin:12px auto;display:grid!important}.em-snake-play,.em-mz-play{overflow:visible!important}.action-arcade-option-list{grid-template-columns:1fr 1fr}}
-@media(prefers-reduced-motion:reduce){.action-arcade-hud button,.action-arcade-controls button{transition:none}}
+@media(prefers-reduced-motion:reduce){.action-arcade-hud button,.action-arcade-controls button{transition:none}.action-arcade-hud button:not(:disabled):hover,.action-arcade-controls button:not(:disabled):hover,.action-arcade-hud button:not(:disabled):active,.action-arcade-controls button:not(:disabled):active{transform:none}}
 
 .action-arcade-hud{box-sizing:border-box;width:100%;min-width:0}.em-shell-snake:focus-visible,.em-shell-mazechase:focus-visible,.em-shell-airplane:focus-visible,.em-shell-whackamole:focus-visible{outline:2px solid #00cfff;outline-offset:-4px}
 /* Flight and harvest headers wrap in their own rows; their game fields never sit underneath them. */

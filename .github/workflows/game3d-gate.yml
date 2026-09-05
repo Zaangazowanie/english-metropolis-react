@@ -10,7 +10,9 @@ name: game3d-gate
 on:
   pull_request:
     paths:
-      - 'src/practice/shells3d/**'
+      - 'src/practice/**'
+      - 'tests/**'
+      - 'deploy/**'
       - 'src/world/**'
       - 'public/games/**'
       - 'public/world/**'
@@ -49,6 +51,9 @@ jobs:
             tests/action-arcade-logic.test.mjs \
             tests/challenge-arcade.test.mjs \
             tests/challenge-machine.test.mjs \
+            tests/wordsearch-trail.test.mjs \
+            tests/word-keyboard.test.mjs \
+            tests/word-scene-input.test.mjs \
             src/practice/shells/word-arcade-mechanics.test.mjs \
             src/practice/shells/word-arcade-crossword.test.mjs \
             src/practice/shells3d/word-kit/mechanics.test.mjs \
@@ -132,4 +137,3 @@ jobs:
             const mine = comments.find((c) => c.body && c.body.includes('Gameplay capture (auto)'))
             if (mine) await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body })
             else await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body })
-

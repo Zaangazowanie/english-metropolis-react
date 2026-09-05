@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Stage, Box, Orb, Ring, Label, Instances, Smooth } from './action-arcade-scene-kit';
+import { AimPlane, Stage, Box, Orb, Ring, Label, Instances, Smooth } from './action-arcade-scene-kit';
 import type { ActionSceneData, DetailBlock } from './action-arcade-scene-kit';
 
 /** The train carriages and pickups are the canonical collision grid in world space. */
@@ -18,7 +18,7 @@ export default function ActionSnake3D(p: ActionSceneData) {
   const head=p.body?.[0];
   return <Stage width={cols*cell+1} board theme="garden" onError={p.onError} reducedMotion={p.reducedMotion}>
     <Instances blocks={tiles}/>
-    <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.06,0]} onPointerDown={e=>{e.stopPropagation();if(!head)return;const dx=e.point.x-x(head.c),dz=e.point.z-z(head.r);p.onMove?.(Math.abs(dx)>Math.abs(dz)?dx>0?'right':'left':dz>0?'down':'up');}}><planeGeometry args={[cols*cell,rows*cell]}/><meshBasicMaterial transparent opacity={0}/></mesh>
+    <AimPlane cols={cols} rows={rows} cell={cell} y={-.06} player={head} onMove={p.onMove} />
     {(p.body??[]).map((s,i)=>{const next=i===0?p.direction:null;const yaw=next==='right'?Math.PI/2:next==='left'?-Math.PI/2:next==='up'?Math.PI:0;return <Smooth key={i} at={[x(s.c),.13,z(s.r)]} yaw={yaw} reduced={p.reducedMotion}>
       <Instances blocks={[
         {at:[0,0,0],size:[.43,.3,.48],color:i===0?'#00e39a':'#00a3cb'},

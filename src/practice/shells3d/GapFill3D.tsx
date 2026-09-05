@@ -4,7 +4,7 @@ import { adaptGapFill, type ShellGapFillPuzzle } from '../lib/adapters';
 import { Challenge3DPreferences } from '../shells/challenge-3d-preferences';
 import CanonicalShell from '../shells/GapFill';
 import { ChallengeMachine, type MachineProps } from './challenge-machine';
-const design = { kind: 'crane', title: 'The Word Crane', instruction: 'Lift a word crate from the upper gantry, then install it in a numbered sign socket. Filled sockets can be cleared and rebuilt.', action: 'Install word', color: '#ff8c00', mode: 'assembly' } as const;
+const design = { kind: 'crane', title: 'The Word Crane', instruction: 'Choose a word crate, then the numbered gap it completes. Fill every gap; clear a filled socket to try another word.', action: 'Install word', color: '#ff8c00', mode: 'assembly' } as const;
 /** Canonical handlers own grading; this chunk owns the spatial interaction. */
 export default function GapFill3D(props: MachineProps) {
   const puzzle = useMemo(() => {

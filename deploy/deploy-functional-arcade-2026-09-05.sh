@@ -40,6 +40,9 @@ node --test \
   tests/action-arcade-logic.test.mjs \
   tests/challenge-arcade.test.mjs \
   tests/challenge-machine.test.mjs \
+  tests/wordsearch-trail.test.mjs \
+  tests/word-keyboard.test.mjs \
+  tests/word-scene-input.test.mjs \
   src/practice/shells/word-arcade-mechanics.test.mjs \
   src/practice/shells/word-arcade-crossword.test.mjs \
   src/practice/shells3d/word-kit/mechanics.test.mjs \

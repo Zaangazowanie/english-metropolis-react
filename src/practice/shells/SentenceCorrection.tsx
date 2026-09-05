@@ -459,7 +459,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
     if (!t || t.kind !== 'word') return;
     setSelection(previous => expandErrorSelection(previous,[t.start,t.end],extendSelection));
     setVerdict(null);
-    setTimeout(() => inputRef.current?.focus(), 60);
+    if (!extendSelection || selection) setTimeout(() => inputRef.current?.focus(), 60);
   };
 
   // Kelly Tier-2 audit (2026-05-02): one-tap "No errors / Bez błędów" path.

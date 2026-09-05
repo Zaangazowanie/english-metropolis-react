@@ -1,3 +1,4 @@
+import { acceptsWordShortcut, hasNativeActivation } from '../lib/word-keyboard';
 import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
 const WordScene3D = wordLazy(() => import('../shells3d/WordAnagram3D'));
 import { anagramCleanCount } from './word-arcade-mechanics';
@@ -522,11 +523,11 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
   return (
     <div className="em-shell wa-board wa-forge" tabIndex={0} aria-label="Letter Forge anagram game"
       onKeyDown={e => {
-        if (forcedState || won || (e.target as HTMLElement).matches('input,textarea')) return;
+        if (forcedState || won || !acceptsWordShortcut(e)) return;
         if (/^[a-z]$/i.test(e.key)) {
           const tile = tiles.find(t => t.letter.toUpperCase() === e.key.toUpperCase() && !inSlots.has(t.id));
-          if (tile) { e.preventDefault(); placeTile(tile.id); }
-        } else if (e.key === 'Backspace') { e.preventDefault(); removeAt(slots.length - 1); } else if(e.key==='Enter'){e.preventDefault();commitTiles();}
+          if (tile) { e.preventDefault(); placeTile(tile.id); e.currentTarget?.focus({ preventScroll: true }); }
+        } else if (e.key === 'Backspace') { e.preventDefault(); removeAt(slots.length - 1); } else if(e.key==='Enter'&&!hasNativeActivation(e.target)){e.preventDefault();commitTiles();}
       }}>
       <header>
         <AmbientAudioPlayer shellSlug="anagram" />
@@ -543,7 +544,7 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
         <div className={`wa-forge-readout ${shake?'is-wrong':''}`} role="status">{hintReveal ? `Letter ${hintReveal.slotIdx+1}: ${hintReveal.letter}` : announcement || `${slots.length} / ${targetLen} letters loaded · tap a placed tile to remove it`}</div>
         <div className="wa-tile-rack" role="region" aria-label="Letter tiles">{tiles.map(t=><button key={t.id} className="wa-letter is-tile" disabled={inSlots.has(t.id)||slots.length>=targetLen||won} onClick={()=>placeTile(t.id)} aria-label={`Letter ${t.letter}${inSlots.has(t.id)?', already placed':''}`}>{t.letter}</button>)}</div>
         <button className="em-btn em-btn-primary" onClick={commitTiles} disabled={slots.length!==targetLen||won}>Press the word ↵</button></details><div className="wa-forge-tools"><button className="em-btn em-btn-ghost" onClick={()=>{setMix(v=>v+1);setAnnouncement('Tiles remixed. Your placed letters stay in place.');}}>Remix tiles ↻</button><button className="em-btn em-btn-ghost" onClick={()=>removeAt(slots.length-1)} disabled={!slots.length}>Undo ←</button><button className="em-btn em-btn-ghost" onClick={clear} disabled={!slots.length}>Clear</button></div>
-        <p className="wa-forge-readout">Lift letters into the forge · Enter to press · Backspace to undo</p>
+        <p className="wa-forge-readout">Type letters to load · Backspace to undo · Tab to Forge word, then Enter to press</p>
       </main>
       {won && !(onSessionComplete && completedFired) && <div className="wa-dialog" role="dialog" aria-modal="true" aria-label="Word complete"><Bajla size={84} mood="cheer" decorative/><h3>{puzzle.word}</h3><p>Blueprint forged · Słowo gotowe</p><button ref={findAnotherBtnRef} className="em-btn em-btn-primary" onClick={next}>Next blueprint →</button></div>}
     </div>
