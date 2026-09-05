@@ -39,7 +39,7 @@ import { maskAnswerInPrompt } from '../lib/exercise-adapters';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bajla,
-  HintCard,
+
   Progress,
   Nameplate,
   SkipButton,
@@ -142,10 +142,10 @@ const RW_DEMO: WrapperPuzzle = {
   ],
 };
 
-const ACCENT = '#FBBF24';
+const ACCENT = '#ffce00';
 // 6 vivid wedge colours — drawn from the brand palette so the wheel feels
 // part of the city even though it's louder than most shells.
-const WEDGE_PALETTE = ['#FBBF24', '#FB7185', '#A78BFA', '#7DD3FC', '#34D399', '#E879F9'];
+const WEDGE_PALETTE = ['#ffcf00', '#ff174f', '#7628ff', '#00cdff', '#00e875', '#ed00ff'];
 const SPIN_DURATION_MS = 3200;
 const MIN_FULL_TURNS = 4;
 
@@ -185,7 +185,7 @@ type Phase = 'idle' | 'spinning' | 'reveal' | 'verdict';
 // Carnival roulette scoreboard row: round number + tier + question +
 // student's pick + correct answer.
 // ─────────────────────────────────────────────────────────────────────────
-const RW_REVIEW_ACCENT = '#FBBF24';
+const RW_REVIEW_ACCENT = '#ffce00';
 export function renderRandomWheelReviewItem(
   round: WrapperRound,
   roundNumber: number,
@@ -219,7 +219,7 @@ export function renderRandomWheelReviewItem(
           fontFamily: 'var(--em-mono)', fontSize: 9, letterSpacing: '0.18em',
           padding: '2px 8px', borderRadius: 999, fontWeight: 700,
           background: isWrong ? 'rgba(251,113,133,0.18)' : 'rgba(52,211,153,0.18)',
-          color: isWrong ? '#FB7185' : '#34D399',
+          color: isWrong ? '#ff3871' : '#00eb91',
         }}>
           {isWrong ? '✗ MISSED · POMINIĘTE' : '✓ POINTS · PUNKTY'}
         </span>
@@ -242,8 +242,8 @@ export function renderRandomWheelReviewItem(
                 : showWrong
                   ? 'rgba(251,113,133,0.18)'
                   : 'rgba(245,239,255,0.04)',
-              border: `1px solid ${showCorrect ? '#34D39988' : showWrong ? '#FB718588' : 'rgba(245,239,255,0.1)'}`,
-              color: showCorrect ? '#34D399' : showWrong ? '#FB7185' : 'var(--em-text, #EDE6FF)',
+              border: `1px solid ${showCorrect ? '#00eb9188' : showWrong ? '#ff387188' : 'rgba(245,239,255,0.1)'}`,
+              color: showCorrect ? '#00eb91' : showWrong ? '#ff3871' : 'var(--em-text, #EDE6FF)',
               fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{ flex: 1 }}>{opt}</span>
@@ -444,46 +444,9 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
     setHintsUsed(0); setRevealedHint(false); tip.reset();
   };
 
-  const grad = time === 'day'
-    ? 'linear-gradient(180deg, #4C2F7E 0%, #C58BD9 100%)'
-    : 'linear-gradient(180deg, #1F1240 0%, #4B1E78 100%)';
+  const grad = time === 'day' ? 'linear-gradient(180deg,#241094,#0a0d30)' : 'linear-gradient(180deg,#10082d,#280a56)';
 
-  // Pre-compute wedge SVG paths so React doesn't re-do the trig every render.
-  // Wedge labels live INSIDE the wheel (small round number — Q1..Q6) AND
-  // also outside the rim as upright tier nameplates (EASY / MEDIUM / HARD /
-  // BONUS / WILD / LIGHTNING). The outside nameplates are not rotated with
-  // the wheel — they're attached to the static stand rim — so labels stay
-  // upright at rest and never go upside-down (#20 truncation/rotation fix).
-  const wedges = useMemo(() => {
-    const cx = 200, cy = 200, r = 180;
-    return active.rounds.map((round, i) => {
-      const a0 = (i * wedgeAngle - 90) * Math.PI / 180;
-      const a1 = ((i + 1) * wedgeAngle - 90) * Math.PI / 180;
-      const x0 = cx + r * Math.cos(a0);
-      const y0 = cy + r * Math.sin(a0);
-      const x1 = cx + r * Math.cos(a1);
-      const y1 = cy + r * Math.sin(a1);
-      const large = wedgeAngle > 180 ? 1 : 0;
-      const path = `M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`;
-      const mid = (a0 + a1) / 2;
-      const labelX = cx + (r * 0.55) * Math.cos(mid);
-      const labelY = cy + (r * 0.55) * Math.sin(mid);
-      return {
-        path,
-        color: WEDGE_PALETTE[i % WEDGE_PALETTE.length],
-        labelX,
-        labelY,
-        // The number inside the wheel still rotates with it; labels are tiny
-        // circles so any orientation is readable.
-        labelRotate: ((i + 0.5) * wedgeAngle),
-        // Tier assignment for this wedge (cycle through the 6 canonical tiers
-        // if N != 6, so a 4-wedge wheel uses Easy/Medium/Hard/Bonus).
-        tier: TIERS[i % TIERS.length],
-        roundId: round.id,
-        idx: i,
-      };
-    });
-  }, [active.rounds, wedgeAngle]);
+  const wedges = useMemo(() => active.rounds.map((round, i) => ({ color: WEDGE_PALETTE[i % WEDGE_PALETTE.length], tier: TIERS[i % TIERS.length], roundId: round.id, idx: i })), [active.rounds]);
 
   const round = activeRound !== null ? active.rounds[activeRound] : null;
   const activeTier = activeRound !== null ? TIERS[activeRound % TIERS.length] : null;
@@ -501,14 +464,7 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: grad }}
     >
       <style>{`
-        @keyframes em-rw-bunting { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-3px) rotate(2deg); } }
-        @keyframes em-rw-arrow-tap { 0%, 100% { transform: translateY(0) rotate(180deg); } 50% { transform: translateY(3px) rotate(180deg); } }
-        @keyframes em-rw-card-up { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes em-rw-bulb-flicker { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
-        @keyframes em-rw-spinhint-pulse { 0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.85; } 50% { transform: translateX(-50%) scale(1.05); opacity: 1; } }
-        /* On narrow viewports the right-side categories panel would overlap
-           the wheel — hide it (the tier nameplates outside the wheel rim still
-           communicate the tier mechanic). On ≥1024px both render. */
+@keyframes em-rw-card-up { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
         @media (max-width: 1023px) {
           .em-rw-categories-panel { display: none !important; }
         }
@@ -518,22 +474,6 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
         {announcement}
       </div>
 
-      {/* Bunting strung across the top — small triangular flags */}
-      <svg aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 70, width: '100%', pointerEvents: 'none' }}>
-        <path d="M 0 12 Q 200 50 400 12 Q 600 50 800 12 Q 1000 50 1200 12" stroke={ACCENT} strokeWidth="1.5" fill="none" opacity="0.6" />
-        {Array.from({ length: 16 }).map((_, i) => {
-          const x = 40 + i * 75;
-          const y = 12 + Math.sin(i * 0.5) * 14;
-          const c = WEDGE_PALETTE[i % WEDGE_PALETTE.length];
-          return (
-            <polygon key={i} points={`${x},${y} ${x + 14},${y} ${x + 7},${y + 24}`}
-              fill={c} opacity="0.85"
-              style={{ transformOrigin: `${x + 7}px ${y}px`, animation: `em-rw-bunting ${1.6 + (i % 3) * 0.4}s ease-in-out ${i * 0.08}s infinite` }} />
-          );
-        })}
-      </svg>
-
-      {/* Top bar */}
       <div className="action-random-header" style={{ position: 'absolute', top: 28, left: 28, right: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 6, gap: 12, flexWrap: 'wrap' }}>
         <AmbientAudioPlayer shellSlug="randomwheel" />
         <Nameplate
@@ -558,153 +498,7 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
           align in a balanced two-column composition. The wheel sits on a
           stand-leg pedestal (carnival-stand aesthetic vs Carnival Wheel's
           flat roulette table). */}
-      <div className="action-three-random-slot"><ActionPlayfield3D kind="randomwheel" data={{reducedMotion:reduceMotion,angle:wheelRotation,duration:SPIN_WAIT_MS,running:phase==='spinning',onSpin:spin,actors:wedges.map((w,i)=>({id:i,x:0,y:0,label:w.tier.labelEN,color:w.color,state:completedRounds.has(i)?'done':retryRounds.has(i)?'retry':'ready',selected:activeRound===i}))}} controls={<button disabled={phase!=='idle'||completed||!!forcedState} onClick={spin}>Spin the challenge wheel</button>}><div className="action-random-wheel" style={{ position: 'relative', top: 0, left: '50%', transform:'translateX(-50%)', width: 420, height: 420, zIndex: 4 }}>
-        {/* Stand pedestal — visible carnival-stand structure under the wheel.
-            Two angled legs + brass plate plinth, anchoring the wheel visually
-            so it doesn't float. */}
-        <svg aria-hidden="true" style={{ position: 'absolute', left: -10, top: 380, width: 440, height: 110, pointerEvents: 'none' }}>
-          <polygon points="120,8 200,8 230,92 90,92" fill="#3B1F62" stroke={ACCENT} strokeWidth="1.5" opacity="0.9" />
-          <polygon points="220,8 300,8 330,92 190,92" fill="#3B1F62" stroke={ACCENT} strokeWidth="1.5" opacity="0.9" />
-          <rect x="60" y="86" width="320" height="16" rx="3" fill={ACCENT} opacity="0.85" />
-          <rect x="60" y="100" width="320" height="6" rx="2" fill="#0E0A1A" opacity="0.6" />
-        </svg>
-
-        {/* Pointer arrow (fixed, points down at the top of the wheel) */}
-        <div aria-hidden="true" style={{
-          position: 'absolute', top: -22, left: '50%', transform: 'translateX(-50%) rotate(180deg)',
-          width: 0, height: 0,
-          borderLeft: '14px solid transparent', borderRight: '14px solid transparent',
-          borderTop: `28px solid ${ACCENT}`,
-          filter: `drop-shadow(0 0 8px ${ACCENT})`,
-          animation: phase === 'spinning' ? 'em-rw-arrow-tap 0.18s ease-in-out infinite' : 'none',
-          zIndex: 8,
-        }} />
-
-        {/* Bulb ring */}
-        <div aria-hidden="true" style={{ position: 'absolute', inset: -14, borderRadius: '50%', pointerEvents: 'none' }}>
-          {Array.from({ length: 24 }).map((_, i) => {
-            const a = (i / 24) * 2 * Math.PI - Math.PI / 2;
-            const x = 210 + 220 * Math.cos(a);
-            const y = 210 + 220 * Math.sin(a);
-            return (
-              <div key={i} style={{
-                position: 'absolute', left: x - 4, top: y - 4,
-                width: 8, height: 8, borderRadius: '50%',
-                background: i % 2 === 0 ? ACCENT : '#FFE9A8',
-                boxShadow: `0 0 8px ${ACCENT}cc`,
-                animation: `em-rw-bulb-flicker ${1.4 + (i % 4) * 0.3}s ease-in-out ${i * 0.05}s infinite`,
-              }} />
-            );
-          })}
-        </div>
-
-        {/* The wheel SVG */}
-        <svg width="420" height="420" viewBox="0 0 400 400" style={{
-          transform: `rotate(${wheelRotation}deg)`,
-          transition: phase === 'spinning'
-            ? `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.18, 0.85, 0.18, 1)`
-            : phase === 'idle' && wheelRotation === 0 ? 'none' : 'transform 220ms var(--em-ease)',
-          transformOrigin: '200px 200px',
-          filter: 'drop-shadow(0 12px 28px rgba(0,0,0,0.5))',
-        }}>
-          {wedges.map((w, i) => {
-            const isDone = completedRounds.has(i);
-            return (
-              <g key={i}>
-                <path d={w.path} fill={w.color} stroke="#0E0A1A" strokeWidth="2" opacity={isDone ? 0.35 : 1} />
-                {/* Numbered hub — small circle with the wedge number. The
-                    circle is rotation-invariant (any orientation reads the
-                    same), so we can keep it inside the spinning frame
-                    without the upside-down-Q3/Q5 problem flagged in #20.
-                    Tier-letter labels live OUTSIDE the rim in a separate
-                    non-rotating SVG below — those stay upright. */}
-                <circle cx={w.labelX} cy={w.labelY} r="14" fill="#0E0A1A" stroke="#FFFFFF" strokeWidth="1.5" opacity={isDone ? 0.5 : 0.92} />
-                <text
-                  x={w.labelX} y={w.labelY}
-                  textAnchor="middle" dominantBaseline="central"
-                  fontFamily="Caprasimo, Georgia, serif"
-                  fontSize="13" fill="#FFFFFF" fontWeight="700"
-                >{i + 1}</text>
-                {isDone && (
-                  <text x={w.labelX} y={w.labelY + 22} textAnchor="middle" dominantBaseline="central" fontSize="14" fill="#0E0A1A" fontWeight="700">✓</text>
-                )}
-              </g>
-            );
-          })}
-          {/* Center hub */}
-          <circle cx="200" cy="200" r="36" fill="#0E0A1A" stroke={ACCENT} strokeWidth="3" />
-          <circle cx="200" cy="200" r="10" fill={ACCENT} />
-        </svg>
-
-        {/* Static tier nameplates — sit OUTSIDE the wheel rim, attached to the
-            stand frame, NOT rotated with the wheel. So labels stay upright at
-            rest (the #20 truncation/rotation fix). Each plate has the wedge
-            colour as its left bar + the EN tier label + tiny PL gloss + a
-            thin connector line back to the rim. */}
-        <svg className="action-random-tier-labels" aria-hidden="true" width="420" height="420" viewBox="0 0 400 400" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }}>
-          {wedges.map((w, i) => {
-            // Place nameplate at the OUTSIDE midpoint of each wedge.
-            // Use the wedge's centre angle (in the static frame, since
-            // these nameplates don't rotate with the wheel).
-            const a = ((i + 0.5) * wedgeAngle - 90) * Math.PI / 180;
-            const cx = 200, cy = 200;
-            const innerX = cx + 192 * Math.cos(a);
-            const innerY = cy + 192 * Math.sin(a);
-            const outerX = cx + 220 * Math.cos(a);
-            const outerY = cy + 220 * Math.sin(a);
-            // Tier nameplate sits at the outer endpoint, with anchor / x-shift
-            // computed so the plate hugs the rim without jumping off-screen.
-            const onRight = outerX >= cx;
-            const plateW = 78, plateH = 24;
-            const plateX = onRight ? outerX + 4 : outerX - plateW - 4;
-            const plateY = outerY - plateH / 2;
-            const isDone = completedRounds.has(i);
-            return (
-              <g key={`np-${i}`} opacity={isDone ? 0.5 : 1}>
-                {/* Connector line from rim to plate */}
-                <line x1={innerX} y1={innerY} x2={onRight ? plateX : plateX + plateW} y2={outerY} stroke={w.color} strokeWidth="1.5" opacity="0.85" />
-                {/* Plate background */}
-                <rect x={plateX} y={plateY} width={plateW} height={plateH} rx="4" fill="#0E0A1A" stroke={w.color} strokeWidth="1.5" />
-                {/* Colour bar on the rim-side edge */}
-                <rect x={onRight ? plateX : plateX + plateW - 4} y={plateY} width="4" height={plateH} fill={w.color} />
-                {/* Tier label — upright, never rotates */}
-                <text
-                  x={plateX + plateW / 2}
-                  y={plateY + plateH / 2}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontFamily="Inconsolata, monospace"
-                  fontSize="10"
-                  fontWeight="700"
-                  fill={w.color}
-                  letterSpacing="0.06em"
-                >{w.tier.labelEN}</text>
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Spin button — large, in the middle of the hub */}
-        {phase === 'idle' && !completed && (
-
-          <button
-            type="button"
-            onClick={spin}
-            disabled={!!forcedState}
-            aria-label="Spin the wheel"
-            style={{
-              position: 'absolute', top: 178, left: '50%', transform: 'translateX(-50%)',
-              width: 84, height: 84, borderRadius: '50%',
-              background: `radial-gradient(circle, ${ACCENT} 0%, #B8851A 100%)`,
-              border: '3px solid #0E0A1A', color: '#0E0A1A',
-              fontFamily: 'var(--em-decor)', fontSize: 18, cursor: 'pointer',
-              boxShadow: `0 6px 14px rgba(0,0,0,0.5), 0 0 18px ${ACCENT}88`,
-              animation: 'em-rw-spinhint-pulse 1.8s ease-in-out infinite',
-              zIndex: 7,
-            }}
-          >SPIN</button>
-        )}
-      </div></ActionPlayfield3D></div>
+      <div className="action-three-random-slot"><ActionPlayfield3D kind="randomwheel" data={{reducedMotion:reduceMotion,angle:wheelRotation,duration:SPIN_WAIT_MS,running:phase==='spinning',onSpin:spin,actors:wedges.map((w,i)=>({id:i,x:0,y:0,label:w.tier.labelEN,color:w.color,state:completedRounds.has(i)?'done':retryRounds.has(i)?'retry':'ready',selected:activeRound===i}))}} controls={<button disabled={phase!=='idle'||completed||!!forcedState} onClick={spin}>Spin the challenge wheel</button>} /></div>
 
       <div className="action-random-tier-legend" aria-label="Wheel prize tiers">{TIERS.map(t => <span key={t.id}>{t.labelEN} · ×{t.mult}</span>)}</div>
           <div className="action-arcade-hud action-random-hud" style={{ position: 'absolute', bottom: 16, left: 24, right: 24, zIndex: 7 }}><div><strong>{points} PRIZE POINTS</strong><small>{retryRounds.size ? `${retryRounds.size} recovery question${retryRounds.size === 1 ? '' : 's'} still on the wheel.` : 'Clear every wedge. Each tier carries a different prize.'} A wrong answer stays in play until you solve it.</small></div><button disabled={phase !== 'reveal' || rerolls === 0} onClick={() => { rerollExcluded.current = activeRound; setRerolls(n => n - 1); setPhase('idle'); setActiveRound(null); setRevealedHint(false); setAnnouncement('Reroll ready. Spin for a new challenge.'); }}>Reroll · {rerolls} left</button></div>
@@ -756,8 +550,8 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
                   aria-pressed={isPicked}
                   style={{
                     minHeight: 44, padding: '12px 14px', textAlign: 'left',
-                    background: showRight ? '#34D39933' : showWrong ? '#FB718533' : isPicked ? `${ACCENT}33` : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${showRight ? '#34D399' : showWrong ? '#FB7185' : isPicked ? ACCENT : 'rgba(255,255,255,0.18)'}`,
+                    background: showRight ? '#00eb9133' : showWrong ? '#ff387133' : isPicked ? `${ACCENT}33` : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${showRight ? '#00eb91' : showWrong ? '#ff3871' : isPicked ? ACCENT : 'rgba(255,255,255,0.18)'}`,
                     borderRadius: 10, color: 'var(--em-text)',
                     cursor: phase === 'reveal' ? 'pointer' : 'default',
                     fontFamily: 'var(--em-body)', fontSize: 14,
@@ -766,8 +560,8 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
                 >
                   <span style={{ color: ACCENT, marginRight: 8, fontFamily: 'var(--em-mono)', fontSize: 11 }}>{String.fromCharCode(65 + i)}</span>
                   {opt}
-                  {showRight && <span style={{ float: 'right', color: '#34D399' }}>✓</span>}
-                  {showWrong && <span style={{ float: 'right', color: '#FB7185' }}>✗</span>}
+                  {showRight && <span style={{ float: 'right', color: '#00eb91' }}>✓</span>}
+                  {showWrong && <span style={{ float: 'right', color: '#ff3871' }}>✗</span>}
                 </button>
               );
             })}
@@ -875,13 +669,7 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
             }}>ADMIT 1</div>
           ))}
           {/* Popcorn bucket */}
-          <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-            <path d="M5 9 L23 9 L21 25 L7 25 Z" fill="#FB7185" stroke="#0E0A1A" strokeWidth="1.5" />
-            <path d="M5 9 L23 9 L21 25 L7 25 Z" fill="none" stroke="#FFFFFF" strokeWidth="0.8" strokeDasharray="2 1.5" opacity="0.7" />
-            <circle cx="9" cy="6" r="3" fill="#FFFFFF" />
-            <circle cx="14" cy="4" r="3.5" fill="#FFE9A8" />
-            <circle cx="19" cy="6" r="3" fill="#FFFFFF" />
-          </svg>
+
         </div>
       </div>
 

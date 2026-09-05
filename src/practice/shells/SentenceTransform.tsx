@@ -448,32 +448,6 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
         {liveStatus}
       </div>
 
-      {/* Booth scene */}
-      <div style={{
-        position: 'absolute', inset: 0, background:
-          time === 'day'
-            ? 'linear-gradient(180deg, #4F3E78 0%, #8E73C7 100%)'
-            : time === 'dusk'
-              ? 'linear-gradient(180deg, #1B0F38 0%, #3E2278 60%, #1F0F40 100%)'
-              : 'linear-gradient(180deg, #07041A 0%, #190B36 60%, #0E0628 100%)',
-      }} />
-      {/* Booth wall — diagonal acoustic-foam rib */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: `repeating-linear-gradient(45deg, transparent 0 18px, rgba(167,139,250,0.05) 18px 19px)`,
-        opacity: 0.6,
-      }} />
-      {/* Far-side window suggestion */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', top: '14%', left: '50%', transform: 'translateX(-50%)',
-        width: '60%', height: '24%',
-        background: 'linear-gradient(180deg, rgba(167,139,250,0.12), rgba(0,0,0,0.45))',
-        border: '1px solid rgba(255,255,255,0.06)', borderRadius: 6,
-        boxShadow: 'inset 0 0 80px rgba(167,139,250,0.18)',
-      }} />
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
-
       {/* Header */}
       <div style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, zIndex: 5, flexWrap: 'wrap' }}>
         <AmbientAudioPlayer shellSlug="sentencetransform" />
@@ -496,43 +470,6 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
         </div>
       </div>
 
-      {/* Ricky · 2026-05-02 · audit §4 #8 right-rail: Transformation Tips.
-          Closes the bottom-half rectangular void at desktop ≥1280px. Surfaces
-          the 5 most common Cambridge key-word transformation patterns so the
-          student has a quick-reference cheat sheet beside the input. */}
-      <aside className="st-rail" aria-label="Transformation patterns reference">
-        <div className="em-eyebrow" style={{ color: ACCENT, marginBottom: 12, letterSpacing: '0.22em', fontSize: 10 }}>
-          WSKAZÓWKI · TRANSFORMATION TIPS
-        </div>
-        <ul className="st-rail-list">
-          {[
-            { from: 'Active voice', to: 'Passive voice', pl: 'Strona czynna → bierna', ex: 'X wrote Y → Y was written by X', kw: 'was / been' },
-            { from: 'Direct speech', to: 'Indirect speech', pl: 'Mowa zależna', ex: '"I am tired" → He said he was tired', kw: 'said / told' },
-            { from: 'Comparative', to: 'Equative', pl: 'Porównanie równe', ex: 'A is taller than B → B is not as tall as A', kw: 'as ... as' },
-            { from: 'Modal swap', to: 'Modal swap', pl: 'Wymiana modalu', ex: 'must → should / have to / ought to', kw: 'should / must' },
-            { from: 'Conditional', to: 'Inverted form', pl: 'Inwersja warunku', ex: 'If I had known → Had I known', kw: 'had / were' },
-          ].map((t, i) => (
-            <li key={i} className="st-rail-item">
-              <span className="st-rail-flow">
-                <span className="st-rail-from">{t.from}</span>
-                <span className="st-rail-arrow">→</span>
-                <span className="st-rail-to">{t.to}</span>
-              </span>
-              <span className="st-rail-pl">{t.pl}</span>
-              <span className="st-rail-ex">{t.ex}</span>
-              <span className="st-rail-kw">key word: <strong>{t.kw}</strong></span>
-            </li>
-          ))}
-        </ul>
-        <div className="st-rail-foot">
-          <span style={{ color: SUCCESS, fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.18em' }}>
-            INTERPRETER&apos;S RULE
-          </span>
-          <span style={{ color: 'var(--em-text-muted)', fontSize: 11, lineHeight: 1.4, marginTop: 4, display: 'block' }}>
-            Same meaning · same key word · different grammar. Don&apos;t change the key word&apos;s form.
-          </span>
-        </div>
-      </aside>
 
       {/* Two-screen booth */}
       {!completed && cur && (
@@ -765,10 +702,9 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
             inset: 110px 16px 230px !important;
           }
         }
-        /* Right-rail (Ricky · 2026-05-02 · audit §4 #8). */
-        .em-shell-sentencetransform .st-rail { display: none; }
+         { display: none; }
         @media (min-width: 1280px) {
-          .em-shell-sentencetransform .st-rail {
+           {
             display: flex;
             flex-direction: column;
             position: absolute;
@@ -788,10 +724,10 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
             font-family: var(--em-body);
             overflow-y: auto;
           }
-          .em-shell-sentencetransform .st-stage {
+           {
             inset: 110px 346px 220px 24px !important;
           }
-          .em-shell-sentencetransform .st-rail-list {
+           {
             list-style: none;
             margin: 0;
             padding: 0;
@@ -800,7 +736,7 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
             gap: 8px;
             flex: 1;
           }
-          .em-shell-sentencetransform .st-rail-item {
+           {
             display: flex;
             flex-direction: column;
             gap: 3px;
@@ -809,42 +745,41 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
             background: rgba(0, 0, 0, 0.32);
             border: 1px solid rgba(167, 139, 250, 0.18);
           }
-          .em-shell-sentencetransform .st-rail-flow {
+           {
             display: flex;
             align-items: center;
             gap: 6px;
             flex-wrap: wrap;
           }
-          .em-shell-sentencetransform .st-rail-from,
-          .em-shell-sentencetransform .st-rail-to {
+           {
             font-family: var(--em-display);
             font-size: 12px;
             color: #F5EFFF;
             letter-spacing: 0.02em;
           }
-          .em-shell-sentencetransform .st-rail-arrow {
+           {
             color: #A78BFA;
             font-family: var(--em-mono);
             font-weight: 700;
           }
-          .em-shell-sentencetransform .st-rail-pl {
+           {
             font-size: 10px;
             color: rgba(255,255,255,0.5);
             font-style: italic;
           }
-          .em-shell-sentencetransform .st-rail-ex {
+           {
             font-family: 'Georgia', serif;
             font-size: 11px;
             color: #FBBF24;
             line-height: 1.4;
           }
-          .em-shell-sentencetransform .st-rail-kw {
+           {
             font-family: var(--em-mono);
             font-size: 9px;
             letter-spacing: 0.12em;
             color: rgba(255,255,255,0.55);
           }
-          .em-shell-sentencetransform .st-rail-foot {
+           {
             margin-top: 12px;
             padding-top: 10px;
             border-top: 1px dashed rgba(255, 255, 255, 0.14);

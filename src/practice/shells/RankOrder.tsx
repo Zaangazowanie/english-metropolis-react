@@ -1,6 +1,6 @@
 import { Challenge3D } from './challenge-3d';
 import { rankAssessment } from './challenge-arcade-logic';
-import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
+import { ChallengeMission, useChallengeArcade } from './challenge-arcade';
 // Rank Order shell — "The Election Hall" district.
 // A Senate-style civic hall at dusk: a rostrum and numbered brass voting
 // plinths line a podium ladder. Items arrive shuffled in a queue on the
@@ -12,18 +12,9 @@ import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade 
 import { useShellProgress } from '../lib/convex-stubs';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Bajla,
-  HintCard,
-  Progress,
-  Nameplate,
-  SkipButton,
-  HintButton,
-  Confetti,
-  useEndOfShellTip,
-} from '../components/primitives';
+import { Bajla, Progress, Nameplate, SkipButton, HintButton, Confetti, useEndOfShellTip } from '../components/primitives';
 import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
-import { useTouchDragDrop, dropZoneProps } from './useTouchDragDrop';
+
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components';
 
@@ -252,11 +243,10 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
   const [skippedScore, setSkippedScore] = useState<number | null>(null);
   const [checked, setChecked] = useState(false);
   const [plinths, setPlinths] = useState<(string | null)[]>(() => Array(N).fill(null));
-  const [hoverSlot, setHoverSlot] = useState<number | null>(null);
-  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+
   const [hintsUsed, setHintsUsed] = useState(0);
   const [hintRevealSlot, setHintRevealSlot] = useState<number | null>(null);
-  const [revealAll, setRevealAll] = useState(false);
+
   const [announcement, setAnnouncement] = useState('');
 
   // When the puzzle changes, re-initialise plinths.
@@ -265,7 +255,6 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
   }, [N]);
 
   // What's in the queue = items not yet placed on any plinth.
-  const queue = activePuzzle.items.filter((it) => !plinths.includes(it.id));
 
   const actualCorrectCount = rankAssessment(activePuzzle.items, plinths).filter(Boolean).length;
   const correctlyPlacedCount = checked ? actualCorrectCount : 0;
@@ -363,8 +352,7 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
       next[slotIdx] = itemId;
       return next;
     });
-    setSelectedItem(null);
-    setHoverSlot(null);
+
     setChecked(false);
     setAnnouncement('Ballot placed. Check the full order when ready.');
   };
@@ -398,10 +386,10 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
   const reset = () => {
     arcade.reset(); setChecked(false); setSkippedScore(null);
     setPlinths(Array(N).fill(null));
-    setSelectedItem(null);
+
     setHintsUsed(0);
     setHintRevealSlot(null);
-    setRevealAll(false);
+
     tip.reset();
   };
 
@@ -413,7 +401,7 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
       const owner = activePuzzle.items.find(it => it.correctRank === i + 1);
       if (owner && id !== owner.id) tip.recordWrong({questionId:`slot-${i+1}`,studentAnswer:'(skipped)',correctAnswer:owner.label,explanationPL:activePuzzle.criterion_pl,exerciseId:owner.exerciseId});
     });
-    setRevealAll(true); setChecked(true);
+     setChecked(true);
     const correctOrder = Array<string | null>(N).fill(null);
     activePuzzle.items.forEach((it) => { correctOrder[it.correctRank - 1] = it.id; });
     setPlinths(correctOrder);
@@ -433,24 +421,6 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
     setTimeout(() => setHintRevealSlot(null), 3500);
   };
 
-  const getTouchHandlers = useTouchDragDrop({
-    onDragStart: (sourceId) => setSelectedItem(sourceId),
-    onHoverChange: (zoneId) => {
-      if (zoneId && zoneId.startsWith('slot-')) {
-        setHoverSlot(Number(zoneId.slice(5)));
-      } else {
-        setHoverSlot(null);
-      }
-    },
-    onDragEnd: () => setHoverSlot(null),
-    onDrop: (zoneId, sourceId) => {
-      if (zoneId.startsWith('slot-')) {
-        const slot = Number(zoneId.slice(5));
-        placeItem(slot, sourceId);
-      }
-    },
-  });
-
   const grad =
     time === 'day'
       ? 'linear-gradient(180deg, #B49AE0 0%, #6E4FB7 100%)'
@@ -468,22 +438,6 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
         {announcement}
       </div>
-
-      <style>{`
-        @keyframes em-ro-led-glow {
-          0%, 100% { opacity: 0.7; box-shadow: 0 0 6px ${ACCENT}66; }
-          50%      { opacity: 1;   box-shadow: 0 0 14px ${ACCENT}, 0 0 24px ${ACCENT}88; }
-        }
-        @keyframes em-ro-card-rise {
-          from { transform: translateY(8px) scale(0.96); opacity: 0; }
-          to   { transform: translateY(0)   scale(1);    opacity: 1; }
-        }
-        @keyframes em-ro-stamp {
-          0%   { transform: scale(0.6) rotate(-8deg); opacity: 0; }
-          60%  { transform: scale(1.1) rotate(-4deg); opacity: 1; }
-          100% { transform: scale(1)   rotate(-4deg); opacity: 0.85; }
-        }
-      `}</style>
 
       {/* Ricky 2026-05-02 (#15 audit pass): zIndex:0 + pointerEvents:none on the
           background gradient — main grid is zIndex:3, top bar zIndex:4. */}
@@ -561,291 +515,9 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
           locked={completed || !!forcedState} status={announcement} />
 
         {/* QUEUE — items waiting in the wings */}
-        <div
-          className="em-card"
-          style={{
-            background: 'linear-gradient(180deg, #14082A 0%, #08041A 100%)',
-            border: `1px solid ${ACCENT}55`,
-            borderRadius: 14,
-            padding: 16,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            animation: 'em-rise 540ms var(--em-ease) both',
-            minHeight: 0,
-            overflow: 'hidden',
-          }}
-        >
-          <div className="em-eyebrow" style={{ color: ACCENT }}>
-            BALLOT QUEUE · KOLEJKA
-          </div>
-          <div className="em-scroll" style={{ display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', minHeight: 0, paddingRight: 4 }}>
-            {queue.length === 0 && (
-              <div
-                style={{
-                  padding: '10px 12px',
-                  fontFamily: 'var(--em-mono)',
-                  fontSize: 11,
-                  color: 'var(--em-text-muted)',
-                  fontStyle: 'italic',
-                }}
-              >
-                All ballots cast. Check the plinths.
-              </div>
-            )}
-            {queue.map((it) => {
-              const isSelected = selectedItem === it.id;
-              return (
-                <div
-                  key={it.id}
-                  role="button"
-                  tabIndex={0}
-                  draggable
-                  {...getTouchHandlers(it.id)}
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('text/plain', it.id);
-                    setSelectedItem(it.id);
-                  }}
-                  onClick={() => setSelectedItem((prev) => (prev === it.id ? null : it.id))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setSelectedItem((prev) => (prev === it.id ? null : it.id));
-                    }
-                  }}
-                  aria-label={`Ballot: ${it.label} (${it.label_pl}). ${isSelected ? 'Selected — tap a plinth to place.' : 'Tap or drag to place.'}`}
-                  aria-pressed={isSelected}
-                  style={{
-                    cursor: 'grab',
-                    userSelect: 'none',
-                    padding: '12px 14px',
-                    background: isSelected
-                      ? `linear-gradient(180deg, ${ACCENT}, #6E8A2F)`
-                      : 'linear-gradient(180deg, #F5EBD8 0%, #E0D3B5 100%)',
-                    color: '#1A0F08',
-                    borderRadius: 4,
-                    border: '1px solid #5A4220',
-                    boxShadow: isSelected
-                      ? `0 0 14px ${ACCENT}aa, 0 4px 8px rgba(0,0,0,0.4)`
-                      : '0 4px 8px rgba(0,0,0,0.4)',
-                    fontFamily: 'var(--em-display)',
-                    fontWeight: 700,
-                    fontSize: 14,
-                    animation: 'em-ro-card-rise 320ms var(--em-ease) both',
-                    minHeight: 44,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 6,
-                  }}
-                >
-                  <span>{it.label}</span>
-                  <span style={{ fontFamily: 'var(--em-mono)', fontSize: 10, opacity: 0.55 }}>
-                    {it.label_pl}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
         {/* PLINTHS */}
-        <div
-          className="em-card"
-          style={{
-            background: 'linear-gradient(180deg, #14082A 0%, #08041A 100%)',
-            border: `1px solid ${ACCENT}55`,
-            borderRadius: 14,
-            padding: 16,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            animation: 'em-rise 620ms var(--em-ease) both',
-            minHeight: 0,
-            overflow: 'hidden',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <div className="em-eyebrow" style={{ color: ACCENT }}>
-              PODIUM PLINTHS · MÓWNICE
-            </div>
-            <div style={{ fontFamily: 'var(--em-mono)', fontSize: 10, color: 'var(--em-text-muted)', letterSpacing: '0.08em' }}>
-              criterion: {activePuzzle.criterion_pl}
-            </div>
-          </div>
 
-          <div className="em-scroll" style={{ display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', minHeight: 0, paddingRight: 4 }}>
-            {plinths.map((itemId, slotIdx) => {
-              const item = itemId ? activePuzzle.items.find((it) => it.id === itemId) : null;
-              const correct = checked && item?.correctRank === slotIdx + 1;
-              const isHovered = hoverSlot === slotIdx;
-              const isHinted = hintRevealSlot === slotIdx;
-              const correctItem = activePuzzle.items.find((it) => it.correctRank === slotIdx + 1);
-              return (
-                <div
-                  key={slotIdx}
-                  className={!checked && item ? "challenge-rank-pending" : undefined}
-                  {...dropZoneProps(`slot-${slotIdx}`)}
-                  role="region"
-                  aria-label={`Plinth rank ${slotIdx + 1}${item ? `, holds ${item.label}, ${checked ? correct ? 'correct' : 'incorrect' : 'not checked'}` : ', empty'}`}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setHoverSlot(slotIdx);
-                  }}
-                  onDragLeave={() => setHoverSlot((h) => (h === slotIdx ? null : h))}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const labelId = e.dataTransfer.getData('text/plain');
-                    if (labelId) placeItem(slotIdx, labelId);
-                    setHoverSlot(null);
-                  }}
-                  onClick={() => {
-                    if (selectedItem) placeItem(slotIdx, selectedItem);
-                    else if (item) removeFromSlot(slotIdx);
-                  }}
-                  style={{
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '10px 14px',
-                    minHeight: 56,
-                    borderRadius: 6,
-                    background: item
-                      ? correct
-                        ? 'linear-gradient(180deg, rgba(190,242,100,0.16), rgba(190,242,100,0.04))'
-                        : 'linear-gradient(180deg, rgba(251,113,133,0.12), rgba(251,113,133,0.04))'
-                      : isHovered
-                      ? 'rgba(190,242,100,0.12)'
-                      : 'rgba(255,255,255,0.04)',
-                    border: isHinted
-                      ? `2px dashed ${ACCENT}`
-                      : item
-                      ? correct
-                        ? `1.5px solid ${ACCENT}`
-                        : '1.5px solid #FB7185'
-                      : `1px dashed ${ACCENT}55`,
-                    transition: 'all 220ms var(--em-ease)',
-                    cursor: selectedItem ? 'crosshair' : item ? 'pointer' : 'default',
-                  }}
-                >
-                  {/* LED */}
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      width: 10, height: 10, borderRadius: '50%',
-                      background: correct ? ACCENT : 'rgba(255,255,255,0.18)',
-                      boxShadow: correct ? `0 0 14px ${ACCENT}aa` : 'none',
-                      animation: correct ? 'em-ro-led-glow 1.6s var(--em-ease) infinite' : 'none',
-                      flexShrink: 0,
-                    }}
-                  />
-                  {/* Rank number */}
-                  <div
-                    style={{
-                      width: 32, height: 32, borderRadius: '50%',
-                      background: 'linear-gradient(180deg, #E0A33F, #876543)',
-                      color: '#1A0F08',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontFamily: 'var(--em-decor)', fontSize: 16, fontWeight: 700,
-                      boxShadow: '0 4px 8px rgba(0,0,0,0.35), inset 0 -2px 0 rgba(0,0,0,0.2)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {slotIdx + 1}
-                  </div>
-                  {/* Item or placeholder */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {item ? (
-                      <>
-                        <div
-                          style={{
-                            fontFamily: 'var(--em-decor)',
-                            fontSize: 16,
-                            color: 'var(--em-text)',
-                          }}
-                        >
-                          {item.label}
-                        </div>
-                        <div className="em-eyebrow" style={{ color: 'var(--em-text-muted)' }}>
-                          {item.label_pl}
-                        </div>
-                      </>
-                    ) : (
-                      <div
-                        style={{
-                          fontFamily: 'var(--em-mono)',
-                          fontSize: 11,
-                          color: 'var(--em-text-muted)',
-                          fontStyle: 'italic',
-                          letterSpacing: '0.08em',
-                        }}
-                      >
-                        Drop a ballot here · {selectedItem ? 'tap to place' : 'rank ' + (slotIdx + 1)}
-                      </div>
-                    )}
-                  </div>
-                  {/* Stamp on correct */}
-                  {item && correct && (
-                    <div
-                      aria-hidden="true"
-                      style={{
-                        fontFamily: 'var(--em-mono)',
-                        fontSize: 10,
-                        color: ACCENT,
-                        letterSpacing: '0.18em',
-                        animation: 'em-ro-stamp 0.45s var(--em-ease) both',
-                      }}
-                    >
-                      ✓ FILED
-                    </div>
-                  )}
-                  {/* Hint reveal */}
-                  {isHinted && correctItem && (
-                    <div
-                      role="status"
-                      style={{
-                        position: 'absolute',
-                        right: 8,
-                        bottom: -22,
-                        padding: '4px 8px',
-                        background: `${ACCENT}22`,
-                        border: `1px dashed ${ACCENT}`,
-                        borderRadius: 4,
-                        fontFamily: 'var(--em-mono)',
-                        fontSize: 10,
-                        color: 'var(--em-text)',
-                        animation: 'em-tip-fade 220ms var(--em-ease) both',
-                        zIndex: 5,
-                      }}
-                    >
-                      Should be: <span style={{ color: ACCENT }}>{correctItem.label}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {revealAll && !completed && (
-            <div
-              role="status"
-              style={{
-                padding: '8px 10px',
-                background: `${ACCENT}14`,
-                border: `1px dashed ${ACCENT}aa`,
-                borderRadius: 6,
-                fontFamily: 'var(--em-mono)',
-                fontSize: 10,
-                color: 'var(--em-text)',
-                letterSpacing: '0.04em',
-                animation: 'em-tip-fade 220ms var(--em-ease) both',
-              }}
-            >
-              Order revealed. Try again to memorise.
-            </div>
-          )}
-        </div>
       </div>
 
       <div style={{ position: 'absolute', bottom: 24, left: 28, right: 28, display: 'flex', gap: 16, alignItems: 'flex-end', justifyContent: 'space-between', zIndex: 4 }}>

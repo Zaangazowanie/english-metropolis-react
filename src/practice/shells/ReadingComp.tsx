@@ -1,5 +1,5 @@
 import { Challenge3D } from './challenge-3d';
-import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
+import { ChallengeMission, EvidenceScanner, useChallengeArcade } from './challenge-arcade';
 // Reading Comprehension shell — "The Reading Room" district.
 // A library reading nook at dusk: a parchment passage glows under a brass
 // reading lamp; the student answers comprehension MCQs underneath. The
@@ -9,16 +9,8 @@ import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade 
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
 import { useShellProgress } from '../lib/convex-stubs';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Bajla,
-  HintCard,
-  Progress,
-  Nameplate,
-  SkipButton,
-  HintButton,
-  Confetti,
-} from '../components/primitives';
+import React, { useState, useEffect } from 'react';
+import { Bajla, Progress, Nameplate, SkipButton, HintButton, Confetti } from '../components/primitives';
 import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components';
@@ -846,95 +838,6 @@ export const ReadingCompShell: React.FC<ReadingCompShellProps> = ({
             </div>
 
             <Challenge3D game="ReadingComp" evidence={activePuzzle.passage.split(/(?<=[.!?])\s+/).filter(Boolean)} onEvidence={() => setEvidenceMarked(true)} items={cur.options.map((label,i)=>({id:String(i),label,state:revealed && i===cur.answerIndex?'right':revealed && i===picked?'wrong':'idle'}))} roundKey={cur.id} locked={revealed || completed || !!forcedState} onPick={id=>choose(Number(id))} />
-            <div className="cm-legacy-answers" role="radiogroup" aria-label={cur.prompt} style={{ display: 'grid', gap: 8 }}>
-              {cur.options.map((opt, oi) => {
-                const isPicked = picked === oi;
-                const isCorrect = oi === cur.answerIndex;
-                const showCorrect = revealed && isCorrect;
-                const showWrong = revealed && isPicked && !isCorrect;
-                return (
-                  <button
-                    key={oi}
-                    type="button"
-                    role="radio"
-                    aria-checked={isPicked}
-                    onClick={() => choose(oi)}
-                    disabled={revealed}
-                    aria-label={`Option ${oi + 1}: ${opt}${
-                      revealed
-                        ? isCorrect
-                          ? ', correct answer'
-                          : isPicked
-                          ? ', your answer (incorrect)'
-                          : ''
-                        : ''
-                    }`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '14px 16px',
-                      borderRadius: 10,
-                      background: showCorrect
-                        ? `${ACCENT}22`
-                        : showWrong
-                        ? 'rgba(251,113,133,0.18)'
-                        : isPicked
-                        ? `${ACCENT}11`
-                        : 'rgba(255,255,255,0.04)',
-                      border: showCorrect
-                        ? `2px solid ${ACCENT}`
-                        : showWrong
-                        ? '2px solid #FB7185'
-                        : isPicked
-                        ? `1px solid ${ACCENT}88`
-                        : '1px solid rgba(255,255,255,0.1)',
-                      color: 'var(--em-text)',
-                      fontFamily: 'var(--em-display)',
-                      fontSize: 15,
-                      cursor: revealed ? 'default' : 'pointer',
-                      transition: 'all 220ms var(--em-ease)',
-                      animation: showCorrect
-                        ? 'em-rc-correct 0.6s var(--em-ease) both'
-                        : showWrong
-                        ? 'em-shake 0.4s'
-                        : 'none',
-                      textAlign: 'left',
-                      minHeight: 48,
-                    }}
-                  >
-                    <span
-                      aria-hidden="true"
-                      style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: '50%',
-                        border: `1.5px solid ${showCorrect ? ACCENT : showWrong ? '#FB7185' : 'rgba(255,255,255,0.25)'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontFamily: 'var(--em-mono)',
-                        fontSize: 11,
-                        color: showCorrect ? ACCENT : showWrong ? '#FB7185' : 'rgba(255,255,255,0.6)',
-                      }}
-                    >
-                      {String.fromCharCode(65 + oi)}
-                    </span>
-                    <span style={{ flex: 1 }}>{opt}</span>
-                    {showCorrect && (
-                      <span aria-hidden="true" style={{ color: ACCENT, fontSize: 18 }}>
-                        ✓
-                      </span>
-                    )}
-                    {showWrong && (
-                      <span aria-hidden="true" style={{ color: '#FB7185', fontSize: 18 }}>
-                        ✕
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
 
             {hintShown && !revealed && (
               <div

@@ -39,31 +39,14 @@ export function useChallengeArcade() {
 type Run = ReturnType<typeof useChallengeArcade>;
 type Variant = 'bulletin' | 'verdict' | 'quiz' | 'dealer';
 
-export function ChallengeCity({ lit, total, variant = 'bulletin' }: { lit: number; total: number; variant?: Variant }) {
-  const progress = Math.min(1, lit / Math.max(total, 1));
-  return <svg className={`challenge-city challenge-city--${variant}`} viewBox="0 0 680 230" aria-hidden="true">
-    <defs><linearGradient id={`ca-sky-${variant}`} x2="0" y2="1"><stop stopColor="#26305e"/><stop offset="1" stopColor="#111525"/></linearGradient></defs>
-    <rect width="680" height="230" fill={`url(#ca-sky-${variant})`}/>
-    {Array.from({ length: 38 }, (_, i) => <circle key={`s${i}`} cx={(i * 79 + 21) % 680} cy={(i * 29 + 13) % 120} r={i % 4 === 0 ? 1.3 : .6} fill="#d3d9ff" opacity=".45"/>)}
-    {Array.from({ length: 17 }, (_, i) => {
-      const h = 40 + ((i * 29) % 100), active = i / 17 < progress;
-      return <g key={i} className={active ? 'challenge-building is-lit' : 'challenge-building'}>
-        <path d={`M${i * 40} 210V${210 - h}h13v-8h10v8h15v${h}`} fill={active ? '#30436d' : '#1b2543'} stroke="#596a9538"/>
-        {Array.from({ length: Math.floor(h / 12) * 3 }, (_, k) => <rect key={k} x={i * 40 + 5 + k % 3 * 10} y={218 - h + Math.floor(k / 3) * 11} width="3" height="4" rx=".5" fill={active ? (k % 3 ? '#f7dca5' : '#82dfdb') : '#546185'} opacity={active ? .9 : .26}/>)}</g>;
-    })}
-    <path d="M0 213H680M0 222H680" stroke="#bd9ff7" strokeWidth="1.5" opacity=".6"/>
-    {variant === 'verdict' && <g stroke="#a9ddc9" fill="none" opacity=".6"><path d="M80 208V107M600 208V107M80 120Q340 295 600 120M80 114Q340 10 600 114"/>{Array.from({ length: 12 },(_,i)=><path key={i} d={`M${100+i*43} 180V210`}/>)}</g>}
-    <g className="challenge-train" style={{ transform: `translateX(${20 + progress * 550}px)` }}><rect x="0" y="201" width="72" height="15" rx="5" fill="#d5c5ff"/><path d="M9 205H57" stroke="#152040" strokeWidth="5" strokeDasharray="8 3"/><circle cx="63" cy="209" r="2" fill="#fff3cb"/></g>
-  </svg>;
-}
-
-export function ChallengeArena({ variant, title, mission, prompt, translation, options, picked, answerIndex, revealed, round, total, score, completed, onPick, onNext, onSkip, onReset, hint, onHint, hintDisabled, run, children, ready = true, onReady, seconds, timeFraction }: {
-  variant: Variant; title: string; mission: string; prompt?: string; translation?: string; options: string[]; picked: number | null; answerIndex: number; revealed: boolean; round: number; total: number; score: number; completed: boolean; onPick: (i: number) => void; onNext: () => void; onSkip: () => void; onReset: () => void; hint?: string; onHint?: () => void; hintDisabled?: boolean; run: Run; children?: React.ReactNode; ready?: boolean; onReady?: () => void; seconds?: string; timeFraction?: number;
+export function ChallengeArena({ variant, title, announcement, prompt, translation, options, picked, answerIndex, revealed, round, total, score, completed, onPick, onNext, onSkip, onReset, hint, onHint, hintDisabled, run, children, ready = true, onReady, seconds, timeFraction }: {
+  variant: Variant; title: string; announcement?: string; prompt?: string; translation?: string; options: string[]; picked: number | null; answerIndex: number; revealed: boolean; round: number; total: number; score: number; completed: boolean; onPick: (i: number) => void; onNext: () => void; onSkip: () => void; onReset: () => void; hint?: string; onHint?: () => void; hintDisabled?: boolean; run: Run; children?: React.ReactNode; ready?: boolean; onReady?: () => void; seconds?: string; timeFraction?: number;
 }) {
-  const names = { bulletin: 'POWER THE DISTRICT', verdict: 'OPEN THE CROSSING', quiz: 'TAKE THE SPOTLIGHT', dealer: 'BUILD YOUR WINNING HAND' };
+
   const game = ({bulletin:'MultipleChoice',verdict:'TrueFalse',quiz:'QuizShow',dealer:'RandomCards'} as const)[variant];
   const machineItems = options.map((label,i) => ({id:String(i),label,state:revealed && i===answerIndex ? 'right' as const : revealed && i===picked ? 'wrong' as const : 'idle' as const}));
   return <section className={`em-shell challenge-arena challenge-arena--${variant}`} aria-label={title}>
+    <span className="challenge-sr" role="status" aria-live="polite">{announcement}</span>
     {completed ? <div className="challenge-finish"><span className="challenge-kicker">DISTRICT COMPLETE · UKOŃCZONO</span><h3>{score === total ? 'A perfect run.' : 'Your city keeps growing.'}</h3><p>{score} / {total} correct · poprawnych odpowiedzi</p><button type="button" onClick={onReset}>Play again · Zagraj ponownie ↻</button></div> : <>
       <div className="challenge-missionbar"><span>{variant === 'verdict' ? 'Read the evidence. Deliver your verdict.' : variant === 'dealer' ? 'Draw. Read. Choose. Collect the card.' : variant === 'quiz' ? 'Choose your answer before the spotlight fades.' : 'Choose the right answer to restore the city lights.'}</span>{seconds && <strong className={(timeFraction ?? 1) < .25 ? 'is-urgent' : ''}>{seconds}s</strong>}</div>
       {timeFraction !== undefined && <div className="challenge-timer" aria-hidden="true"><i style={{ width: `${Math.max(0, timeFraction) * 100}%` }}/></div>}
@@ -95,11 +78,12 @@ export function SpeakingMission({ phrases, recording, seconds }: { phrases: stri
   return <div className="challenge-speaking"><div className={`challenge-wave ${recording ? 'is-playing' : ''}`} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{height: `${14+(i*17%36)}px`,animationDelay:`${i*-.11}s`}}/>)}</div><div><strong>{recording ? `On air · Nagrywanie ${seconds}s` : 'Your mission: use these phrases naturally.'}</strong><p>After speaking, tick the phrases you used. This is your own check, not an automatic score.</p><div className="challenge-targets">{phrases.map(phrase=><button type="button" key={phrase} aria-pressed={used.includes(phrase)} onClick={()=>setUsed(v=>v.includes(phrase)?v.filter(p=>p!==phrase):[...v,phrase])}>{used.includes(phrase)?'✓':'+'} {phrase}</button>)}</div></div></div>;
 }
 
-export function PairArena({ title, memory, cards, matched, flipped, selected, wrong, hintGlow, onPick, onHint, hintDisabled, onReset, scouting, onScout, scoutUsed, priority }: {
-  title: string; memory: boolean; cards: Array<{ key: string; pairId: string; side: 'prompt'|'answer'; text: string }>; matched: string[]; flipped?: string[]; selected?: string | null; wrong: string[]; hintGlow?: string | null; onPick: (key: string) => void; onHint: () => void; hintDisabled: boolean; onReset: () => void; scouting?: boolean; onScout?: () => void; scoutUsed?: boolean; priority?: string;
+export function PairArena({ title, announcement, memory, cards, matched, flipped, selected, wrong, hintGlow, onPick, onHint, hintDisabled, onReset, scouting, onScout, scoutUsed, priority }: {
+  title: string; announcement?: string; memory: boolean; cards: Array<{ key: string; pairId: string; side: 'prompt'|'answer'; text: string }>; matched: string[]; flipped?: string[]; selected?: string | null; wrong: string[]; hintGlow?: string | null; onPick: (key: string) => void; onHint: () => void; hintDisabled: boolean; onReset: () => void; scouting?: boolean; onScout?: () => void; scoutUsed?: boolean; priority?: string;
 }) {
   const total = cards.length / 2, done = matched.length >= total;
   return <section className={`em-shell challenge-pairs ${memory ? 'is-memory' : 'is-dispatch'}`} aria-label={title}>
+    <span className="challenge-sr" role="status" aria-live="polite">{announcement}</span>
     <header className="challenge-head"><div><span className="challenge-kicker">{memory ? 'MEMORY GRID · SIATKA PAMIĘCI' : 'DISPATCH DESK · BIURO ZGUB'}</span><h2>{title}</h2></div><span className="challenge-pair-badge">{memory ? '◇' : '↗'}</span></header>
     <ChallengeMission title={memory ? 'Restore every memory circuit.' : 'Return every item to its owner.'} detail={memory ? 'Scout the board once, then match each clue with its word. · Znajdź wszystkie pary.' : 'Select a clue and its matching word. Priority deliveries earn 150 base points.'} current={matched.length} total={total}>
       {memory && <button type="button" onClick={onScout} disabled={scoutUsed || done}>{scouting ? 'Scanning… · Skanowanie…' : scoutUsed ? 'Scout used · Skan użyty' : 'Scout board · Skanuj (3s)'}</button>}
@@ -107,8 +91,8 @@ export function PairArena({ title, memory, cards, matched, flipped, selected, wr
     </ChallengeMission>
     {!memory && priority && !done && <div className="challenge-priority"><span>PRIORITY DELIVERY · PRIORYTET</span><strong>{priority}</strong></div>}
     <Challenge3D game={memory?'Concentration':'FindTheMatch'} items={cards.map((card,i)=>{
-      const paired=matched.includes(card.pairId),faceUp=!memory||paired||scouting||flipped?.includes(card.key);
-      return {id:card.key,pairId:card.pairId,side:card.side,label:faceUp?card.text:`Panel ${i+1}`,state:paired?'right':wrong.includes(card.key)?'wrong':selected===card.key||flipped?.includes(card.key)?'selected':faceUp?'idle':'hidden',locked:paired||!!scouting};
+      const paired=matched.includes(card.pairId),faceUp=!memory||paired||scouting||flipped?.includes(card.key)||hintGlow===card.pairId;
+      return {id:card.key,pairId:card.pairId,side:card.side,label:faceUp?card.text:`Panel ${i+1}`,state:paired?'right':wrong.includes(card.key)?'wrong':selected===card.key||flipped?.includes(card.key)||hintGlow===card.pairId?'selected':faceUp?'idle':'hidden',locked:paired||!!scouting};
     })} onPick={onPick} locked={done} status={scouting?'Scout scan active. Remember these panels.':memory?'Open two panels to complete a circuit.':'Choose a clue and its matching destination.'}/>
     {done && <div className="challenge-finish"><span className="challenge-kicker">{memory?'ALL CIRCUITS RESTORED':'ALL DELIVERIES COMPLETE'}</span><h3>{memory?'Every pair remembered.':'Every owner found.'}</h3><button type="button" onClick={onReset}>Play again · Zagraj ponownie ↻</button></div>}
   </section>;

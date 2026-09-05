@@ -1,5 +1,5 @@
 import { Challenge3D } from './challenge-3d';
-import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
+import { ChallengeMission, useChallengeArcade } from './challenge-arcade';
 // Labelled Diagram shell — "The Atrium Schematic" district.
 // A blueprint chamber: an architectural drafting paper grid with the
 // atrium silhouette laid over it. Hotspots are pinpoints (small cyan
@@ -11,16 +11,7 @@ import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade 
 import { useShellProgress } from '../lib/convex-stubs';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Bajla,
-  HintCard,
-  Progress,
-  Nameplate,
-  SkipButton,
-  HintButton,
-  Confetti,
-  useEndOfShellTip,
-} from '../components/primitives';
+import { Bajla, Progress, Nameplate, SkipButton, HintButton, Confetti, useEndOfShellTip } from '../components/primitives';
 import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
 import { useTouchDragDrop, dropZoneProps } from './useTouchDragDrop';
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.

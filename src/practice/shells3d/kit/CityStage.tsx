@@ -1,6 +1,7 @@
 import { Component, createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ErrorInfo, ReactNode } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { ACESFilmicToneMapping, NeutralToneMapping } from 'three'
 import type { QualityTier } from '../types'
 import { palette, duskSkyStops } from './palette'
 
@@ -110,15 +111,15 @@ class StageErrorBoundary extends Component<BoundaryProps, BoundaryState> {
 // Default lights — warm dusk rig. Vertex/standard lighting; at most one cheap
 // directional shadow (high tier only). Games may add their own.
 // ─────────────────────────────────────────────────────────────────────
-function StageLights({ settings }: { settings: QualitySettings }) {
+function StageLights({ settings, arcade }: { settings: QualitySettings; arcade: boolean }) {
   return (
     <>
-      <hemisphereLight args={['#d5e4ff', '#78648e', 1.4]} />
-      <ambientLight intensity={0.9} color="#f3efff" />
+      <hemisphereLight args={arcade ? ['#ffffff', '#112451', 1.05] : ['#d5e4ff', '#78648e', 1.4]} />
+      <ambientLight intensity={arcade ? 0.35 : 0.9} color={arcade ? '#ffffff' : '#f3efff'} />
       <directionalLight
         position={[4, 6, 3]}
-        intensity={2.6}
-        color={palette.lanternCore}
+        intensity={arcade ? 2 : 2.6}
+        color={arcade ? '#ffffff' : palette.lanternCore}
         castShadow={settings.shadows}
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
@@ -174,6 +175,8 @@ export interface CityStageProps {
   /** Embedded boards can choose their dimensions without global CSS overrides. */
   style?: CSSProperties
   minHeight?: number
+  /** Neutral product lighting preserves the saturated enamel arcade materials. */
+  arcade?: boolean
   fallback?: ReactNode
 }
 
@@ -196,6 +199,7 @@ export function CityStage({
   className,
   style,
   minHeight = 320,
+  arcade = false,
   fallback,
 }: CityStageProps) {
   const settings = useMemo(() => resolveQuality(quality), [quality])
@@ -225,7 +229,7 @@ export function CityStage({
     [settings, reducedMotion],
   )
 
-  const gradient = `linear-gradient(180deg, ${duskSkyStops.join(', ')})`
+  const gradient = arcade ? 'linear-gradient(180deg, #060b29, #132c70 70%, #072e52)' : `linear-gradient(180deg, ${duskSkyStops.join(', ')})`
 
   const wrapperStyle: CSSProperties = fullscreen
     ? { position: 'fixed', inset: 0, width: '100vw', height: '100vh', overflow: 'hidden' }
@@ -253,13 +257,13 @@ export function CityStage({
               shadows={settings.shadows}
               frameloop={visible && pageVisible ? 'always' : 'never'}
               camera={{ position: cameraPosition, fov: cameraFov }}
-              gl={{ alpha: true, antialias: settings.antialias, powerPreference: 'high-performance' }}
+              gl={{ alpha: true, antialias: settings.antialias, powerPreference: 'high-performance', toneMapping: arcade ? NeutralToneMapping : ACESFilmicToneMapping, toneMappingExposure: 1 }}
               style={{ width: '100%', height: '100%' }}
             >
               <StageQualityContext.Provider value={quality3d}>
                 <ContextLifecycle onLost={onLost} />
                 {(import.meta as ImportMeta & { env: { DEV: boolean } }).env.DEV && <RenderMeasurements />}
-                <StageLights settings={settings} />
+                <StageLights settings={settings} arcade={arcade} />
                 {children}
               </StageQualityContext.Provider>
             </Canvas>

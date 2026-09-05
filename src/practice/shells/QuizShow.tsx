@@ -72,18 +72,8 @@ const QUIZSHOW_INSTRUCTIONS: FullInstructions = {
     pl: 'Polacy pod presją czasu często wybierają najbardziej znajomo wyglądającą opcję. Ten shell uczy zdecydowanego wyboru słownictwa/gramatyki bez nadmiernego myślenia.',
   },
 };
-import {
-  Bajla,
-  HintCard,
-  Progress,
-  Nameplate,
-  SkipButton,
-  HintButton,
-  Confetti,
-  useEndOfShellTip,
-} from '../components/primitives';
+import { useEndOfShellTip } from '../components/primitives';
 
-import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
 // ─────────────────────────────────────────────────────────────
 // Types — local mirror of WrapperPuzzle (no adapters.ts changes per agent contract)
 // ─────────────────────────────────────────────────────────────
@@ -143,7 +133,6 @@ const QS_DEMO: WrapperPuzzle = {
   ],
 };
 
-const ACCENT = '#FBBF24';
 const ROUND_TIME_MS = 18_000;
 
 type Verdict = 'right' | 'wrong' | null;
@@ -232,7 +221,7 @@ export function renderQuizShowReviewItem(
 // Component
 // ─────────────────────────────────────────────────────────────
 export const QuizShowShell: React.FC<QuizShowShellProps> = ({
-  time = 'night',
+
   state: forcedState = null,
   puzzle,
   onWrongAnswer,
@@ -282,9 +271,6 @@ export const QuizShowShell: React.FC<QuizShowShellProps> = ({
   const [announcement, setAnnouncement] = useState<string>('');
   const tickRef = useRef<number | null>(null);
   // Kelly Tier-2 (2026-05-02): focus-trap refs for the completion overlay.
-  const tryAnotherBtnRef = useRef<HTMLButtonElement | null>(null);
-  const nextDistrictBtnRef = useRef<HTMLButtonElement | null>(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   const q = active.rounds[idx];
   const completed = !forcedState && idx >= active.rounds.length;
@@ -418,23 +404,13 @@ export const QuizShowShell: React.FC<QuizShowShellProps> = ({
     setHintsUsed(0); setRevealedHint(false); tip.reset();
   };
 
-
-
-  const timerPct = useMemo(() => Math.max(0, Math.min(100, (timeLeft / ROUND_TIME_MS) * 100)), [timeLeft]);
-  const timerColor = timerPct > 50 ? ACCENT : timerPct > 20 ? '#FB7185' : '#FF4D6D';
-
   // Page background — the auditorium house lights are dimmed to dusk.
-  const grad = time === 'day'
-    ? 'linear-gradient(180deg, #4C2F7E 0%, #220F4D 100%)'
-    : time === 'dusk'
-      ? 'linear-gradient(180deg, #2A0E36 0%, #100726 100%)'
-      : 'linear-gradient(180deg, #11041A 0%, #02010A 100%)';
 
   if (propsInvalid) {
     return <div className="em-shell-host-error">No puzzle data available · Brak danych ćwiczenia</div>;
   }
 
-  return <ChallengeArena variant="quiz" title="The Auditorium" mission="Win the spotlight. Fast, accurate answers earn bonus points." prompt={q?.prompt} options={q?.options ?? []} picked={picked} answerIndex={q?.answerIndex ?? -1} revealed={verdict !== null} round={idx} total={active.rounds.length} score={score.right} completed={completed} onPick={onPick} onNext={advanceRound} onSkip={skipRound} onReset={reset} onHint={useHint} hintDisabled={hintsUsed >= 2 || revealedHint} hint={verdict !== null ? q?.hint_pl || q?.hint : revealedHint ? q?.hint : undefined} run={arcade} ready={roundStarted || verdict !== null} onReady={() => setRoundStarted(true)} seconds={relaxed ? undefined : String(Math.ceil(timeLeft / 1000))} timeFraction={relaxed ? undefined : timeLeft / ROUND_TIME_MS}>
+  return <ChallengeArena announcement={announcement} variant="quiz" title="The Auditorium" prompt={q?.prompt} options={q?.options ?? []} picked={picked} answerIndex={q?.answerIndex ?? -1} revealed={verdict !== null} round={idx} total={active.rounds.length} score={score.right} completed={completed} onPick={onPick} onNext={advanceRound} onSkip={skipRound} onReset={reset} onHint={useHint} hintDisabled={hintsUsed >= 2 || revealedHint} hint={verdict !== null ? q?.hint_pl || q?.hint : revealedHint ? q?.hint : undefined} run={arcade} ready={roundStarted || verdict !== null} onReady={() => setRoundStarted(true)} seconds={relaxed ? undefined : String(Math.ceil(timeLeft / 1000))} timeFraction={relaxed ? undefined : timeLeft / ROUND_TIME_MS}>
     {!roundStarted && !completed && <label className="challenge-relaxed"><input type="checkbox" checked={relaxed} onChange={e => setRelaxed(e.target.checked)} /> Relaxed mode · Bez limitu czasu</label>}
   </ChallengeArena>;
 };

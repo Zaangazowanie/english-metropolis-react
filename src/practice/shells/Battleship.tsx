@@ -23,7 +23,7 @@ import '../styles/shells/battleship.css';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Bajla,
-  HintCard,
+
   Progress,
   Nameplate,
   SkipButton,
@@ -137,7 +137,7 @@ const DEMO_PUZZLE: ArcadePuzzle = {
   ],
 };
 
-const ACCENT = '#7DD3FC';
+const ACCENT = '#00cfff';
 const COLS = 8;   // A-H
 const ROWS = 8;   // 1-8
 
@@ -201,7 +201,7 @@ function buildShips(rounds: number): ShipCell[] {
 // Harbour-grid scoreboard: ship number + question + 4 cell-options with
 // student's pick + correct option highlighted.
 // ─────────────────────────────────────────────────────────────────────────
-const BS_REVIEW_ACCENT = '#7DD3FC';
+const BS_REVIEW_ACCENT = '#00cfff';
 export function renderBattleshipReviewItem(
   round: ArcadeRound,
   shipNumber: number,
@@ -233,7 +233,7 @@ export function renderBattleshipReviewItem(
           fontFamily: 'var(--em-mono)', fontSize: 9, letterSpacing: '0.18em',
           padding: '2px 8px', borderRadius: 999, fontWeight: 700,
           background: isWrong ? 'rgba(251,113,133,0.18)' : 'rgba(125,211,252,0.22)',
-          color: isWrong ? '#FB7185' : '#7DD3FC',
+          color: isWrong ? '#ff3871' : '#00cfff',
         }}>
           {isWrong ? '✗ MISS · CHYBIONY' : '✓ SUNK · ZATOPIONY'}
         </span>
@@ -256,8 +256,8 @@ export function renderBattleshipReviewItem(
                 : showWrong
                   ? 'rgba(251,113,133,0.18)'
                   : 'rgba(245,239,255,0.04)',
-              border: `1px solid ${showCorrect ? '#7DD3FC88' : showWrong ? '#FB718588' : 'rgba(245,239,255,0.1)'}`,
-              color: showCorrect ? '#7DD3FC' : showWrong ? '#FB7185' : 'var(--em-text, #EDE6FF)',
+              border: `1px solid ${showCorrect ? '#00cfff88' : showWrong ? '#ff387188' : 'rgba(245,239,255,0.1)'}`,
+              color: showCorrect ? '#00cfff' : showWrong ? '#ff3871' : 'var(--em-text, #EDE6FF)',
               fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{
@@ -276,7 +276,6 @@ export function renderBattleshipReviewItem(
 }
 
 export const BattleshipShell: React.FC<BattleshipShellProps> = ({
-  time = 'night',
   state: forcedState = null,
   puzzle,
   onWrongAnswer,
@@ -454,10 +453,6 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
     tip.reset();
   };
 
-  const grad = time === 'day'
-    ? 'linear-gradient(180deg, #2A1450 0%, #4F2A6F 100%)'
-    : 'linear-gradient(180deg, #02010C 0%, #0F0824 50%, #1B2A4A 100%)';
-
   // Active question round.
   const activeRound = activeCell ? activePuzzle.rounds[cellShip(activeCell.r, activeCell.c)!.roundIdx] : null;
 
@@ -531,26 +526,6 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
 
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{liveStatus}</div>
 
-      {/* Harbour scene */}
-      <div style={{ position: 'absolute', inset: 0, background: grad }} />
-      {/* Distant ship silhouettes */}
-      <svg viewBox="0 0 1200 200" preserveAspectRatio="none" style={{ position: 'absolute', bottom: '12%', left: 0, width: '100%', height: '20%', opacity: 0.35 }}>
-        <path d="M120 140 L 130 110 L 200 110 L 220 90 L 280 90 L 290 110 L 360 110 L 370 140 Z" fill="#0E0A1A" />
-        <path d="M150 110 L 160 90 L 170 90 L 175 110 Z M250 110 L 255 70 L 265 70 L 270 110 Z" fill="#0E0A1A" />
-        <path d="M700 150 L 710 130 L 800 130 L 815 110 L 880 110 L 890 130 L 950 130 L 960 150 Z" fill="#0E0A1A" />
-        <circle cx="180" cy="100" r="2" fill="#FBBF24" />
-        <circle cx="270" cy="80" r="2" fill="#FBBF24" />
-        <circle cx="820" cy="120" r="2" fill="#FBBF24" />
-      </svg>
-      {/* Fog roll */}
-      <div style={{
-        position: 'absolute', bottom: 0, left: '-100%', width: '300%', height: '40%',
-        background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.05) 0%, transparent 60%)',
-        animation: 'em-bs-fog-roll 32s linear infinite',
-        pointerEvents: 'none',
-      }} />
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
-
       <div className="em-bs-layout" style={{
         position: 'relative', display: 'grid',
         gridTemplateColumns: '1.4fr 1fr', gap: 24, padding: 32,
@@ -598,86 +573,7 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, position: 'relative' }}
           >
             <div className="action-bs-board" style={{ position: 'relative', width: '100%' }}>
-              <ActionPlayfield3D kind="battleship" data={{player:cursor,reducedMotion:actionReducedMotion,onPick:id=>{const r=Math.floor(id/8),c=id%8;setCursor({r,c});fireAt(r,c);},actors:fired.map(f=>({id:f.r*8+f.c,x:f.c,y:f.r,state:f.result,value:sonarCount(ships,f.r,f.c)}))}} controls={<><button onClick={()=>canvasRef.current?.focus()}>Keyboard: arrows + Enter</button><button disabled={!!activeCell||completed} onClick={()=>fireAt(cursor.r,cursor.c)}>Ping {String.fromCharCode(65+cursor.c)}{cursor.r+1}</button></>}><div><div className="action-sonar-sweep" aria-hidden="true" />
-              {/* Column headers (A-H) */}
-              <div className="action-bs-row" style={{ display: 'grid', gridTemplateColumns: `28px repeat(${COLS}, 44px)`, gap: 2, marginBottom: 4 }}>
-                <div />
-                {Array.from({ length: COLS }).map((_, c) => (
-                  <div key={c} style={{
-                    fontFamily: 'var(--em-mono)', fontSize: 11,
-                    color: ACCENT, opacity: 0.7,
-                    textAlign: 'center', letterSpacing: '0.1em',
-                  }}>{String.fromCharCode(65 + c)}</div>
-                ))}
-              </div>
-              {Array.from({ length: ROWS }).map((_, r) => (
-                <div key={r} className="action-bs-row" style={{ display: 'grid', gridTemplateColumns: `28px repeat(${COLS}, 44px)`, gap: 2, marginBottom: 2 }}>
-                  <div style={{
-                    fontFamily: 'var(--em-mono)', fontSize: 11,
-                    color: ACCENT, opacity: 0.7,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>{r + 1}</div>
-                  {Array.from({ length: COLS }).map((_, c) => {
-                    const f = cellFired(r, c);
-                    const ship = cellShip(r, c);
-                    const isOpen = activeCell?.r === r && activeCell?.c === c;
-                    const isHinted = hintShipRound !== null && ship?.roundIdx === hintShipRound && !ship?.isHit;
-                    const sunk = ship && (shipsByRound[ship.roundIdx]?.every(s => s.isHit));
-                    const isCursor = cursor.r === r && cursor.c === c;
-                    return (
-                      <button
-                        key={c}
-                        type="button"
-                        className="em-bs-cell"
-                        onClick={() => { setCursor({ r, c }); fireAt(r, c); }}
-                        disabled={!!f || !!isOpen || !!activeCell}
-                        aria-label={`Coordinate ${String.fromCharCode(65 + c)}${r + 1}${f ? `, ${f.result}` : ''}${isCursor ? ', cursor here' : ''}`}
-                        style={{
-                          minWidth: 44, minHeight: 44, width: 44, height: 44,
-                          border: `1px solid ${isCursor ? '#E879F9' : isHinted ? `${ACCENT}cc` : isOpen ? ACCENT : f?.result === 'hit' ? '#FB718566' : 'rgba(125,211,252,0.2)'}`,
-                          boxShadow: isCursor ? '0 0 0 1px #E879F988, 0 0 12px #E879F955' : undefined,
-                          background: f?.result === 'hit'
-                            ? sunk ? 'rgba(251,113,133,0.4)' : 'rgba(251,113,133,0.22)'
-                            : f?.result === 'miss'
-                              ? 'rgba(0,0,0,0.4)'
-                              : isOpen
-                                ? `${ACCENT}33`
-                                : isHinted
-                                  ? `${ACCENT}1c`
-                                  : 'rgba(125,211,252,0.06)',
-                          borderRadius: 4,
-                          cursor: f || isOpen || activeCell ? 'default' : 'pointer',
-                          padding: 0,
-                          position: 'relative',
-                          transition: 'all 220ms var(--em-ease)',
-                          animation: isOpen
-                            ? 'em-bs-cell-pulse 0.8s var(--em-ease) infinite'
-                            : f?.result === 'hit'
-                              ? 'em-bs-hit-flash 1.2s var(--em-ease) infinite'
-                              : 'none',
-                        }}
-                      >
-                        {f?.result === 'hit' && (
-                          <svg viewBox="0 0 24 24" width="24" height="24" style={{ display: 'block', margin: 'auto' }}>
-                            <path d="M 12 4 L 18 12 L 12 20 L 6 12 Z" fill="#FB7185" stroke="#0E0A1A" strokeWidth="1.5" />
-                          </svg>
-                        )}
-                        {f?.result === 'miss' && (
-                          <div title="Adjacent unhit hull squares" style={{
-                            width: 24, height: 24, borderRadius: '50%', color: '#bdeeff', fontSize: 13,
-                            background: 'transparent',
-                            border: `1.5px solid ${ACCENT}88`,
-                            margin: 'auto',
-                            animation: 'em-bs-splash 600ms var(--em-ease)',
-                          }}>{sonarCount(ships, r, c) || '·'}</div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-
-              </div></ActionPlayfield3D>
+              <ActionPlayfield3D kind="battleship" data={{player:cursor,lamps:hintShipRound===null?[]:ships.filter(s=>s.roundIdx===hintShipRound),reducedMotion:actionReducedMotion,onPick:id=>{const r=Math.floor(id/8),c=id%8;setCursor({r,c});fireAt(r,c);},actors:fired.map(f=>({id:f.r*8+f.c,x:f.c,y:f.r,state:f.result,value:sonarCount(ships,f.r,f.c)}))}} controls={<><button onClick={()=>canvasRef.current?.focus()}>Keyboard: arrows + Enter</button><button disabled={!!activeCell||completed} onClick={()=>fireAt(cursor.r,cursor.c)}>Ping {String.fromCharCode(65+cursor.c)}{cursor.r+1}</button>{hintShipRound!==null&&<span role="status">Search column {String.fromCharCode(65+(ships.find(s=>s.roundIdx===hintShipRound)?.c??0))}</span>}</>} />
               {/* Question modal — appears anchored above grid */}
               {activeCell && activeRound && (
                 <div
@@ -773,13 +669,13 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
                     display: 'flex', alignItems: 'center', gap: 10,
                     padding: '8px 12px', borderRadius: 8,
                     background: sunk ? 'rgba(251,113,133,0.08)' : 'rgba(125,211,252,0.04)',
-                    border: `1px solid ${sunk ? '#FB718555' : `${ACCENT}33`}`,
+                    border: `1px solid ${sunk ? '#ff387155' : `${ACCENT}33`}`,
                   }}>
                     <div style={{ display: 'flex', gap: 2 }}>
                       {Array.from({ length: 3 }).map((_, k) => (
                         <div key={k} style={{
                           width: 10, height: 10, borderRadius: 2,
-                          background: k < hits ? '#FB7185' : ACCENT,
+                          background: k < hits ? '#ff3871' : ACCENT,
                           opacity: k < hits ? 1 : 0.3,
                         }} />
                       ))}
@@ -788,7 +684,7 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
                       fontFamily: 'var(--em-body)', fontSize: 12, color: 'var(--em-text)', flex: 1,
                       opacity: sunk ? 0.7 : 1,
                     }}>{r.prompt.length > 32 ? r.prompt.slice(0, 31) + '…' : r.prompt}</div>
-                    {sunk && <div style={{ color: '#FB7185', fontFamily: 'var(--em-mono)', fontSize: 10 }}>SUNK</div>}
+                    {sunk && <div style={{ color: '#ff3871', fontFamily: 'var(--em-mono)', fontSize: 10 }}>SUNK</div>}
                   </div>
                 );
               })}

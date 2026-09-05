@@ -588,45 +588,6 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
         {liveStatus}
       </div>
 
-      {/* ─── Atelier scene ───────────────────────────────────────────────
-          Ricky 2026-05-02 (#15 audit pass): explicit zIndex:0 + pointerEvents:none
-          on the background gradient so it stays below the parchment (z:4) and
-          top-bar (z:5) at all viewports. */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background:
-          time === 'day'
-            ? 'linear-gradient(180deg, #3D2E5A 0%, #6E5A82 60%, #2A1450 100%)'
-            : time === 'dusk'
-              ? 'linear-gradient(180deg, #1A0F2E 0%, #3D1F4A 55%, #1A0628 100%)'
-              : 'linear-gradient(180deg, #07041A 0%, #110828 60%, #02010C 100%)',
-      }} />
-      {/* Candle glow */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', top: '8%', right: '14%', width: 220, height: 220,
-        background: `radial-gradient(circle, ${ACCENT}33 0%, transparent 70%)`,
-        animation: 'oc-candle 4s ease-in-out infinite',
-        pointerEvents: 'none',
-      }} />
-      {/* Bookshelf silhouette behind */}
-      <svg viewBox="0 0 1200 600" preserveAspectRatio="none" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.18, pointerEvents: 'none' }}>
-        {Array.from({ length: 14 }).map((_, i) => {
-          const x = i * 90 + 20;
-          return (
-            <g key={i}>
-              <rect x={x} y={120} width="80" height="380" fill="#2A1830" stroke="#4A2C50" strokeWidth="1" />
-              {Array.from({ length: 4 }).map((_, r) => (
-                <line key={r} x1={x} y1={200 + r * 80} x2={x + 80} y2={200 + r * 80} stroke="#1A0E22" strokeWidth="3" />
-              ))}
-              {Array.from({ length: 6 }).map((_, b) => (
-                <rect key={b} x={x + 6 + b * 12} y={210 + (i % 4) * 80} width="10" height={50 + ((i + b) % 3) * 8} fill={['#5A3F1A', '#7A2A38', '#3A2A5A', '#2A4A38'][b % 4]} opacity="0.7" />
-              ))}
-            </g>
-          );
-        })}
-      </svg>
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 60%, transparent 30%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
-
       {/* ─── Header ─── */}
       <div style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, zIndex: 5, flexWrap: 'wrap' }}>
         <AmbientAudioPlayer shellSlug="opencloze" />

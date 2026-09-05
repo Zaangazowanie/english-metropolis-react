@@ -332,7 +332,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
   const [announcement, setAnnouncement] = useState('');
   // Ricky · 2026-05-02 · audit §4 #8 right-rail: running list of words this
   // session, with verdict per word. Drives the desktop-only sidebar.
-  const [history, setHistory] = useState<{ word: string; verdict: 'right' | 'wrong' | 'skip' }[]>([]);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -453,10 +453,10 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
     if (correct) {
       setScore((s) => s + 1);
       persisted.save({ progress: Math.min(total, idx + 1) / Math.max(1, total), completed: false, lastState: 'active' });
-      setHistory((h) => [...h, { word: cur.word, verdict: 'right' }]);
+
       setAnnouncement(`Spelled ${cur.word}. Bravo.`);
     } else {
-      setHistory((h) => [...h, { word: cur.word, verdict: 'wrong' }]);
+
       setAnnouncement(`Almost. The right spelling is "${cur.word}".`);
       tip.recordWrong({
           questionId: cur.id,
@@ -478,7 +478,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
   const skip = (): void => {
     if (forcedState || completed || !cur) return;
     if (verdict === 'right') { advance(); return; }
-    setHistory((h) => [...h, { word: cur.word, verdict: 'skip' }]);
+
     setAnnouncement(`Skipped. The word was "${cur.word}".`);
     setIdx((i) => i + 1);
     setDraft(''); setVerdict(null); setHintRevealed(false); setRevealedFirst('');
@@ -503,7 +503,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
     arcade.restart();
     setIdx(0); setDraft(''); setVerdict(null); setScore(0);
     setHintsUsed(0); setHintRevealed(false); setRevealedFirst('');
-    setHistory([]);
+
     tip.reset();
   };
 
@@ -519,42 +519,6 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
         {liveStatus}
       </div>
-
-      {/* Stage scene */}
-      <div style={{
-        position: 'absolute', inset: 0, background:
-          time === 'day'
-            ? 'linear-gradient(180deg, #2D1F4A 0%, #110A22 100%)'
-            : 'linear-gradient(180deg, #02010C 0%, #110828 60%, #1F0F40 100%)',
-      }} />
-      {/* Stage curtain — heavy red drapes either side */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', top: 0, bottom: 0, left: 0, width: '14%',
-        background: `linear-gradient(90deg, ${ACCENT_DEEP} 0%, #5C0A1A 60%, transparent 100%)`,
-        backgroundImage: `repeating-linear-gradient(90deg, transparent 0 22px, rgba(0,0,0,0.30) 22px 24px), linear-gradient(90deg, ${ACCENT_DEEP}, #5C0A1A)`,
-        opacity: 0.85,
-      }} />
-      <div aria-hidden="true" style={{
-        position: 'absolute', top: 0, bottom: 0, right: 0, width: '14%',
-        background: `linear-gradient(270deg, ${ACCENT_DEEP} 0%, #5C0A1A 60%, transparent 100%)`,
-        backgroundImage: `repeating-linear-gradient(90deg, transparent 0 22px, rgba(0,0,0,0.30) 22px 24px), linear-gradient(270deg, ${ACCENT_DEEP}, #5C0A1A)`,
-        opacity: 0.85,
-      }} />
-      {/* Spotlight */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', top: '-10%', left: '50%', transform: 'translateX(-50%)',
-        width: 600, height: 480,
-        background: `radial-gradient(ellipse at center, ${ACCENT}55 0%, ${ACCENT}22 30%, transparent 70%)`,
-        animation: 'sb-spotlight 6s ease-in-out infinite',
-        pointerEvents: 'none',
-      }} />
-      {/* Floor reflection */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, height: '20%',
-        background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.65))',
-        pointerEvents: 'none',
-      }} />
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
 
       {/* Header */}
       <div style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, zIndex: 5, flexWrap: 'wrap' }}>
@@ -579,43 +543,6 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
         </div>
       </div>
 
-      {/* Ricky · 2026-05-02 · audit §4 #8 right-rail: Words Dictated panel.
-          Closes the vertical/right dead space at desktop ≥1280px. Surfaces a
-          running list of words attempted this session, color-coded by verdict.
-          Hidden under 1280px via the scoped CSS at the bottom. */}
-      <aside className="sb-rail" aria-label="Words dictated this session">
-        <div className="em-eyebrow" style={{ color: ACCENT, marginBottom: 12, letterSpacing: '0.22em', fontSize: 10 }}>
-          DYKTOWANE SŁOWA · DICTATED
-        </div>
-        {history.length === 0 ? (
-          <div style={{ fontSize: 12, color: 'var(--em-text-muted)', fontStyle: 'italic', lineHeight: 1.5 }}>
-            Słowa pojawią się tutaj po każdej próbie.<br />
-            <span style={{ opacity: 0.7 }}>Words appear here after each attempt.</span>
-          </div>
-        ) : (
-          <ol className="sb-rail-list">
-            {history.map((h, i) => {
-              const tone = h.verdict === 'right' ? ACCENT : h.verdict === 'wrong' ? '#FB7185' : 'rgba(255,255,255,0.4)';
-              const mark = h.verdict === 'right' ? '✓' : h.verdict === 'wrong' ? '✗' : '–';
-              return (
-                <li key={i} className="sb-rail-item">
-                  <span className="sb-rail-num">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="sb-rail-word" style={{ color: tone }}>{h.word}</span>
-                  <span className="sb-rail-mark" style={{ color: tone, borderColor: `${tone}55` }}>{mark}</span>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-        <div className="sb-rail-foot">
-          <span style={{ color: ACCENT, fontFamily: 'var(--em-mono)', fontSize: 11, letterSpacing: '0.18em' }}>
-            CHÓR · CHORUS
-          </span>
-          <span style={{ color: 'var(--em-text-muted)', fontSize: 10, letterSpacing: '0.06em', marginTop: 4, display: 'block' }}>
-            5 chars = 1 word · standard typing convention
-          </span>
-        </div>
-      </aside>
 
       {/* Stage centrepiece */}
       {!completed && cur && (
@@ -623,40 +550,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
           <WordMission kind="stage" current={resolvedQuestions} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
           <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={cur.id} length={cur.word.length} draft={draft} done={verdict==='right'} onChange={text=>{if(!forcedState&&verdict!=='right'){setDraft(text);setVerdict(null);}}} onHear={replay} onSubmit={submit}/></WordSuspense><div className="wa-inline-tools"><button aria-pressed={slowPlayback} onClick={()=>{setSlowPlayback(v=>!v);if(audioRef.current)audioRef.current.playbackRate=slowPlayback?1:.75;}}>Slow listening {slowPlayback?'on · 0.75×':'off · 1×'}</button><span>Listen as often as you need. No points lost.</span></div>
           {/* Microphone */}
-          <div
-            key={`m-${cur.id}`}
-            aria-hidden="true"
-            role="presentation"
-            style={{
-              position: 'relative',
-              width: 76, height: 110,
-              animation: 'sb-mic-rise 540ms var(--em-ease) both, sb-mic-bob 3.2s ease-in-out 0.6s infinite',
-            }}
-          >
-            <div style={{
-              position: 'absolute', top: 0, left: 12, width: 52, height: 64,
-              background: `linear-gradient(180deg, #E5E7EB, #6B7280)`,
-              borderRadius: '26px 26px 14px 14px',
-              boxShadow: `0 0 30px ${ACCENT}66, inset 0 -8px 0 rgba(0,0,0,0.4)`,
-              border: '1px solid rgba(255,255,255,0.32)',
-            }}>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} style={{ position: 'absolute', left: 8, right: 8, top: 10 + i * 10, height: 2, background: 'rgba(0,0,0,0.45)', borderRadius: 1 }} />
-              ))}
-            </div>
-            <div style={{
-              position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)',
-              width: 4, height: 48,
-              background: 'linear-gradient(180deg, #C0C0C0, #4A4A4A)',
-              borderRadius: 2,
-            }} />
-            <div style={{
-              position: 'absolute', bottom: -6, left: '50%', transform: 'translateX(-50%)',
-              width: 50, height: 12,
-              background: 'radial-gradient(ellipse, #2A2A2A, #0F0F0F)',
-              borderRadius: '50%',
-            }} />
-          </div>
+
 
           {/* Replay + clue card */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -830,27 +724,14 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
       <Confetti show={completed} />
 
       <style>{`
-        @keyframes sb-spotlight {
-          0%, 100% { opacity: 0.9; transform: translateX(-50%) scale(1); }
-          50%      { opacity: 1; transform: translateX(-50%) scale(1.08); }
-        }
-        @keyframes sb-mic-rise {
-          0%   { opacity: 0; transform: translateY(28px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes sb-mic-bob {
-          0%, 100% { transform: translateY(0) rotate(-1deg); }
-          50%      { transform: translateY(-3px) rotate(1deg); }
-        }
         @keyframes sb-tile-pop {
           0%   { transform: scale(0.85); }
           50%  { transform: scale(1.06); }
           100% { transform: scale(1); }
         }
-        /* Right-rail (Ricky · 2026-05-02 · audit §4 #8). Hidden by default. */
-        .em-shell-spellingbee .sb-rail { display: none; }
+         { display: none; }
         @media (min-width: 1280px) {
-          .em-shell-spellingbee .sb-rail {
+           {
             display: block;
             position: absolute;
             top: 110px;
@@ -871,10 +752,10 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
             display: flex;
             flex-direction: column;
           }
-          .em-shell-spellingbee .sb-stage {
+           {
             inset: 110px 326px 220px 24px !important;
           }
-          .em-shell-spellingbee .sb-rail-list {
+           {
             list-style: none;
             margin: 0;
             padding: 0;
@@ -884,7 +765,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
             flex: 1;
             overflow-y: auto;
           }
-          .em-shell-spellingbee .sb-rail-item {
+           {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -893,20 +774,20 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
             background: rgba(0, 0, 0, 0.32);
             border: 1px solid rgba(255, 255, 255, 0.06);
           }
-          .em-shell-spellingbee .sb-rail-num {
+           {
             font-family: var(--em-mono);
             font-size: 10px;
             color: rgba(255,255,255,0.4);
             letter-spacing: 0.08em;
             min-width: 22px;
           }
-          .em-shell-spellingbee .sb-rail-word {
+           {
             flex: 1;
             font-family: 'Georgia', serif;
             font-size: 14px;
             letter-spacing: 0.02em;
           }
-          .em-shell-spellingbee .sb-rail-mark {
+           {
             font-family: var(--em-mono);
             font-size: 12px;
             font-weight: 700;
@@ -916,7 +797,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
             min-width: 24px;
             text-align: center;
           }
-          .em-shell-spellingbee .sb-rail-foot {
+           {
             margin-top: 14px;
             padding-top: 12px;
             border-top: 1px dashed rgba(255, 255, 255, 0.14);

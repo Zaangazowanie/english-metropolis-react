@@ -1,4 +1,51 @@
-.word3d-stage{position:relative;width:100%;max-width:1000px;flex-shrink:0;min-width:0;border:1px solid #7895bc55;border-radius:18px;overflow:hidden;background:#0e1727;box-shadow:0 18px 40px #0004;color:#edf3ff;box-sizing:border-box}.word3d-stage>header{display:flex;flex-wrap:wrap;gap:6px 20px;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #8aa5c633;background:linear-gradient(110deg,#22354f,#251f39)}.word3d-stage>header strong{font:700 12px var(--em-mono);text-transform:uppercase;letter-spacing:.1em}.word3d-stage>header span{font:12px/1.5 var(--em-body);color:#c4d2e5}.word3d-viewport{height:440px;width:100%;position:relative}.word3d-label{min-height:40px;border:0;border-radius:5px;background:#102137d9;color:#fff4dc;text-shadow:0 1px #000;font:600 13px/1.25 var(--em-body);padding:5px 7px;cursor:pointer;white-space:normal;overflow-wrap:anywhere;box-sizing:border-box;touch-action:manipulation}.word3d-label.is-letter{font:700 20px var(--em-mono);background:transparent;text-shadow:0 1px 2px #000;min-width:40px}.word3d-label.is-active{outline:2px solid #ffe09a}.word3d-label:focus-visible{outline:3px solid #fff;outline-offset:3px}.word3d-label:disabled{cursor:default;color:#e5edf8;opacity:.9}.word3d-loading,.word3d-fallback{padding:20px;font:13px var(--em-body);color:#c9d8e6}.word3d-stage button{pointer-events:auto}.word3d-stage canvas{touch-action:manipulation}.word3d-stage+details{width:100%;font-size:13px}.word3d-stage+details>summary{cursor:pointer;padding:12px;color:#c8b8e2}@media(max-width:700px){.word3d-viewport{height:380px}.word3d-stage>header{padding:10px 12px}.word3d-stage>header strong{font-size:11px}.word3d-stage>header span{font-size:11px}.word3d-label{font-size:11px}.word3d-label.is-letter{font-size:16px;min-height:36px}}.word3d-camera{display:flex;justify-content:center;align-items:center;gap:7px;padding:10px;flex-wrap:wrap;background:#142134}.word3d-camera button{min-width:34px;min-height:34px;border:1px solid #94adcc55;background:#22324c;color:#f2e9ff;border-radius:6px;padding:5px 9px;cursor:pointer}.word3d-camera span{font:11px var(--em-mono);color:#c0cce0}.word3d-grid-letter{border:0;background:transparent;color:#fff4d8;text-shadow:0 1px 3px #081423,0 0 3px #081423;font-family:var(--em-mono);font-weight:700;line-height:1;padding:0;cursor:pointer;touch-action:manipulation}.word3d-grid-letter.is-active{background:#162739bb;border:1px solid #ffe2aa;border-radius:4px}.word3d-grid-letter:focus-visible{outline:2px solid #fff;border-radius:4px}.word3d-label{min-height:32px;max-height:64px;overflow:auto;padding:4px 6px}.word3d-label.is-letter{min-height:28px;min-width:0;padding:2px}.word3d-stage{isolation:isolate}
+.word3d-stage {
+  --word-accent:#00d9ff;
+  --word-secondary:#8a2bff;
+  position:relative;width:100%;max-width:1000px;flex-shrink:0;min-width:0;
+  border:1px solid color-mix(in srgb,var(--word-accent) 55%,#17123b);
+  border-radius:18px;overflow:hidden;background:#090b25;color:#f5f6ff;
+  box-shadow:0 20px 42px #02021580,inset 0 0 0 3px #070a22,0 0 22px color-mix(in srgb,var(--word-secondary) 13%,transparent);
+  box-sizing:border-box;isolation:isolate;
+}
+.word3d-stage>header {
+  display:flex;flex-wrap:wrap;gap:3px 14px;justify-content:space-between;padding:8px 12px;
+  border-bottom:1px solid color-mix(in srgb,var(--word-accent) 50%,#161043);
+  background:linear-gradient(110deg,color-mix(in srgb,var(--word-secondary) 40%,#090a2b),#11113b 60%,color-mix(in srgb,var(--word-accent) 18%,#0a102b));
+}
+.word3d-stage>header strong {font:800 12px var(--em-mono);text-transform:uppercase;letter-spacing:.1em;color:#fff}
+.word3d-stage>header span {font:11px/1.5 var(--em-body);color:#dce5ff}
+.word3d-viewport {height:440px;width:100%;position:relative}
+.word3d-label {
+  min-height:32px;max-height:64px;overflow:auto;border:1px solid #e2f5ff30;border-radius:6px;
+  background:linear-gradient(150deg,#17104ff2,#070e30ed);color:#fff;
+  text-shadow:0 1px #000;font:700 13px/1.25 var(--em-body);padding:4px 6px;cursor:pointer;
+  white-space:normal;overflow-wrap:anywhere;box-sizing:border-box;touch-action:manipulation;
+  box-shadow:0 2px 5px #03061670,inset 0 1px #eefaff12;
+}
+.word3d-label.is-letter {font:800 20px var(--em-mono);background:transparent;border:0;text-shadow:0 1px 2px #020423,0 0 4px #020423;min-height:28px;min-width:0;padding:2px;box-shadow:none}
+.word3d-label.is-active {outline:2px solid #ffdd00;box-shadow:0 0 12px #ffc80055}
+.word3d-label:focus-visible {outline:3px solid #fff;outline-offset:3px}
+.word3d-label:disabled {cursor:default;color:#f1f6ff}
+.word3d-loading,.word3d-fallback {padding:20px;font:13px var(--em-body);color:#e2eaff}
+.word3d-stage button {pointer-events:auto}
+.word3d-stage canvas {touch-action:manipulation}
+.word3d-stage+details {width:100%;font-size:13px}
+.word3d-stage+details>summary {cursor:pointer;padding:12px;color:#c8b8e2}
+.word3d-camera {display:flex;justify-content:center;align-items:center;gap:7px;padding:6px;flex-wrap:wrap;background:linear-gradient(100deg,#131047,#072c52)}
+.word3d-camera button {min-width:34px;min-height:34px;border:1px solid #5587df;background:linear-gradient(135deg,#252594,#173978);color:#fff;border-radius:6px;padding:5px 9px;cursor:pointer;font-weight:700;box-shadow:inset 0 1px #99eaff40}
+.word3d-camera button:hover {border-color:var(--word-accent);background:#3545b6}
+.word3d-camera button:focus-visible {outline:2px solid #fff;outline-offset:2px}
+.word3d-camera span {font:11px var(--em-mono);color:#dce7ff}
+.word3d-grid-letter {border:0;background:transparent;color:#fff;text-shadow:0 1px 3px #030a2d,0 0 3px #030a2d;font-family:var(--em-mono);font-weight:800;line-height:1;padding:0;cursor:pointer;touch-action:manipulation}
+.word3d-grid-letter.is-active {background:#171951c9;border:1px solid #ffee44;border-radius:4px}
+.word3d-grid-letter:focus-visible {outline:2px solid #fff;border-radius:4px}
 /* Projected controls share the canvas origin but live outside its aria-hidden layer. */
-.word3d-label-layer{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}.word3d-label-layer button{pointer-events:auto}
-.word3d-stage>header{padding:8px 12px;gap:3px 14px}.word3d-stage>header span{font-size:11px}.word3d-camera{padding:6px}
+.word3d-label-layer {position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+.word3d-label-layer button {pointer-events:auto}
+@media(max-width:700px) {
+  .word3d-viewport {height:380px}
+  .word3d-stage>header {padding:8px 12px}
+  .word3d-stage>header strong {font-size:11px}
+  .word3d-stage>header span,.word3d-label {font-size:11px}
+  .word3d-label.is-letter {font-size:16px}
+}

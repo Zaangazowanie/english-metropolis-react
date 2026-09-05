@@ -8,8 +8,7 @@ import { useShellProgress } from '../lib/convex-stubs';
 import type { ShellTrueFalsePuzzle } from '../lib/adapters';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Bajla, HintButton, HintCard, Nameplate, Progress, SkipButton } from '../components/primitives';
-import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
+
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components/ExpandableInstructions';
 
@@ -219,7 +218,7 @@ export function renderTrueFalseReviewItem(
 // ─────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────
-export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ time = 'dusk', state: forcedState = null, puzzle, onWrongAnswer, onSessionComplete }) => {
+export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ state: forcedState = null, puzzle, onWrongAnswer, onSessionComplete }) => {
   const arcade = useChallengeArcade();
   // Use the supplied puzzle (when StudentPractice mounts the shell with vocab-
   // generated questions); otherwise fall back to the built-in demo set.
@@ -269,7 +268,7 @@ export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ time = 'dusk', s
       window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail: null }));
     };
   }, [forcedState]);
-  const [streak, setStreak] = useState<number>(0);
+
   const [score, setScore] = useState<Score>({ right: 0, wrong: 0 });
   const [verdict, setVerdict] = useState<Verdict>(null);
   const [answered, setAnswered] = useState<boolean>(false);
@@ -285,23 +284,23 @@ export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ time = 'dusk', s
     if (!forcedState) return;
     if (forcedState === 'empty') {
       setIdx(0); setVerdict(null); setAnswered(false);
-      setScore({ right: 0, wrong: 0 }); setStreak(0); setQuestionsSeen(0);
+      setScore({ right: 0, wrong: 0 });  setQuestionsSeen(0);
     }
     if (forcedState === 'active') {
       setIdx(2); setVerdict(null); setAnswered(false);
-      setScore({ right: 2, wrong: 0 }); setStreak(2); setQuestionsSeen(2);
+      setScore({ right: 2, wrong: 0 });  setQuestionsSeen(2);
     }
     if (forcedState === 'correct') {
       setIdx(2); setVerdict('right'); setAnswered(true);
-      setScore({ right: 3, wrong: 0 }); setStreak(3); setQuestionsSeen(3);
+      setScore({ right: 3, wrong: 0 });  setQuestionsSeen(3);
     }
     if (forcedState === 'wrong') {
       setIdx(2); setVerdict('wrong'); setAnswered(true);
-      setScore({ right: 2, wrong: 1 }); setStreak(0); setQuestionsSeen(3);
+      setScore({ right: 2, wrong: 1 });  setQuestionsSeen(3);
     }
     if (forcedState === 'complete') {
       setIdx(activeQuestions.length - 1); setVerdict('right'); setAnswered(true);
-      setScore({ right: activeQuestions.length, wrong: 0 }); setStreak(activeQuestions.length);
+      setScore({ right: activeQuestions.length, wrong: 0 });
       setQuestionsSeen(activeQuestions.length);
     }
   }, [forcedState]);
@@ -342,7 +341,7 @@ export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ time = 'dusk', s
 
     setVerdict(correct ? 'right' : 'wrong');
     setScore(s => ({ right: s.right + (correct ? 1 : 0), wrong: s.wrong + (correct ? 0 : 1) }));
-    setStreak(st => correct ? st + 1 : 0);
+
     setAnswered(true);
     // EM-041: bump seen counter exactly once per question regardless of right/wrong.
     setQuestionsSeen(s => Math.min(s + 1, activeQuestions.length));
@@ -399,7 +398,7 @@ export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ time = 'dusk', s
     arcade.reset();
     setIdx(0);
     setScore({ right: 0, wrong: 0 });
-    setStreak(0);
+
     setAnswered(false);
     setVerdict(null);
     setAnnouncement('');
@@ -421,9 +420,7 @@ export const TrueFalseShell: React.FC<TrueFalseShellProps> = ({ time = 'dusk', s
     setAnnouncement(`Hint: the answer is ${q.ans ? 'TRUE · prawda' : 'FALSE · fałsz'}.`);
   };
 
-  const isDone = idx === activeQuestions.length - 1 && answered;
-
-  return <ChallengeArena variant="verdict" title="The Courthouse" mission="Light every crossing with a sound verdict." prompt={q.q} translation={q.q_pl} options={['TRUE · PRAWDA', 'FALSE · FAŁSZ']} picked={answered ? (verdict === 'right' ? (q.ans ? 0 : 1) : (q.ans ? 1 : 0)) : null} answerIndex={q.ans ? 0 : 1} revealed={answered} round={idx} total={activeQuestions.length} score={score.right} completed={sessionComplete} onPick={i => answer(i === 0)} onNext={next} onSkip={skip} onReset={reset} hint={answered ? q.fact : undefined} run={arcade} />;
+  return <ChallengeArena announcement={announcement} variant="verdict" title="The Courthouse" prompt={q.q} translation={q.q_pl} options={['TRUE · PRAWDA', 'FALSE · FAŁSZ']} picked={answered ? (verdict === 'right' ? (q.ans ? 0 : 1) : (q.ans ? 1 : 0)) : null} answerIndex={q.ans ? 0 : 1} revealed={answered} round={idx} total={activeQuestions.length} score={score.right} completed={sessionComplete} onPick={i => answer(i === 0)} onNext={next} onSkip={skip} onReset={reset} onHint={useHint} hintDisabled={hintsUsed >= 3 || showHint} hint={answered ? q.fact : showHint ? `The answer is ${q.ans ? 'TRUE · PRAWDA' : 'FALSE · FAŁSZ'}.` : undefined} run={arcade} />;
 };
 
 export default TrueFalseShell;

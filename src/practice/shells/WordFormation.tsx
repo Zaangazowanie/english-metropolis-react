@@ -454,44 +454,6 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
         {liveStatus}
       </div>
 
-      {/* Yard scene */}
-      <div style={{
-        position: 'absolute', inset: 0, background:
-          time === 'day'
-            ? 'linear-gradient(180deg, #6E5A82 0%, #B58F5A 60%, #5C4D3A 100%)'
-            : time === 'dusk'
-              ? 'linear-gradient(180deg, #1F1240 0%, #5C3F1A 70%, #2A1810 100%)'
-              : 'linear-gradient(180deg, #07041A 0%, #2A1810 70%, #0E0A1A 100%)',
-      }} />
-      {/* Clip the perspective floor locally so it cannot enlarge the scrollable game. */}
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-      <div style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.20) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.20) 1px, transparent 1px)`,
-        backgroundSize: '110px 110px',
-        opacity: 0.4,
-        transform: 'perspective(800px) rotateX(58deg) translateY(20vh) scale(2.4)',
-        transformOrigin: 'top',
-      }} />
-      </div>
-      {/* Scaffolding silhouette */}
-      <svg viewBox="0 0 1200 600" preserveAspectRatio="none" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.22, pointerEvents: 'none' }}>
-        {Array.from({ length: 8 }).map((_, i) => {
-          const x = i * 160 + 40;
-          return (
-            <g key={i} stroke="#3A2C1F" strokeWidth="3" fill="none">
-              <line x1={x} y1={520} x2={x} y2={120} />
-              <line x1={x + 60} y1={520} x2={x + 60} y2={120} />
-              {Array.from({ length: 6 }).map((_, r) => (
-                <line key={r} x1={x} y1={150 + r * 70} x2={x + 60} y2={150 + r * 70} />
-              ))}
-            </g>
-          );
-        })}
-      </svg>
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 60%, transparent 35%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
-
       {/* Header */}
       <div style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, zIndex: 5, flexWrap: 'wrap' }}>
         <AmbientAudioPlayer shellSlug="wordformation" />
@@ -514,59 +476,6 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
         </div>
       </div>
 
-      {/* Ricky · 2026-05-02 · audit §4 #8 right-rail: Today's Formations panel.
-          Closes universal #0 + #9 (vertical/right dead space) at desktop ≥1280px.
-          Surfaces the queue of 6 base words + their POS targets so the student
-          sees what's coming. Hidden under 1280px via the scoped CSS at bottom. */}
-      <aside className="wf-rail" aria-label="Today's formations queue">
-        <div className="em-eyebrow" style={{ color: ACCENT, marginBottom: 12, letterSpacing: '0.22em', fontSize: 10 }}>
-          DZIŚ PRZEKSZTAŁCAMY · TODAY&apos;S FORMATIONS
-        </div>
-        <ol className="wf-rail-list">
-          {activePuzzle.items.map((it, i) => {
-            const isCur = i === idx;
-            const isPast = i < idx;
-            const pos = POS_LABEL[it.target_pos];
-            // CD audit 2026-05-02: previously a local heuristic that defaulted
-            // to NOUN, producing "BRAVE NOUN → NOUN (identity!)" cosmetic bugs.
-            // Now uses the shared posFromBaseWord lookup (KNOWN_BASE_POS table
-            // + posFromSuffix). For the rare 'unknown' case we render an em-dash
-            // so we never falsely advertise an identity transform.
-            const fromPosTag = posFromBaseWord(it.base_word);
-            const FROM_LABEL: Record<string, string> = {
-              noun: 'NOUN', verb: 'VERB', adj: 'ADJ', adv: 'ADV', unknown: '—',
-            };
-            const fromPos = FROM_LABEL[fromPosTag] ?? '—';
-            return (
-              <li key={it.id} className={`wf-rail-item${isCur ? ' wf-rail-item-cur' : ''}${isPast ? ' wf-rail-item-past' : ''}`}>
-                <span className="wf-rail-num">{String(i + 1).padStart(2, '0')}</span>
-                <span className="wf-rail-body">
-                  <span className="wf-rail-base">{it.base_word}</span>
-                  <span className="wf-rail-arrow">{fromPos} → {pos.en}</span>
-                  <span className="wf-rail-pl">{pos.pl}</span>
-                </span>
-                {isCur && <span className="wf-rail-pin" aria-label="current">●</span>}
-                {isPast && <span className="wf-rail-pin wf-rail-pin-done" aria-label="done">✓</span>}
-              </li>
-            );
-          })}
-        </ol>
-        <div className="wf-rail-foot">
-          <span className="wf-rail-foot-icon" aria-hidden>
-            {/* Tiny chisel + stone block */}
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <rect x="4" y="12" width="11" height="6" stroke={ACCENT} strokeWidth="1.4" fill="rgba(200,182,152,0.2)" />
-              <path d="M14 11 L18 5 L20 7 L16 13 Z" stroke={ACCENT} strokeWidth="1.4" fill="rgba(192,152,77,0.4)" />
-            </svg>
-          </span>
-          <span style={{ color: 'var(--em-text-muted)', fontSize: 10, letterSpacing: '0.04em', lineHeight: 1.4 }}>
-            <span style={{ color: ACCENT, fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.18em' }}>SUFFIX TIPS</span><br />
-            -tion / -ment / -ness → noun<br />
-            -ful / -ous / -ive → adjective<br />
-            -ly → adverb
-          </span>
-        </div>
-      </aside>
 
       {/* Kelly Tier-2 audit (2026-05-02): defensive empty-state for identity
           transformations (e.g. base RESILIENCE → target NOUN where the word
@@ -844,10 +753,9 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
           0%   { transform: translate(0, 0) scale(1); opacity: 1; }
           100% { transform: translate(${(Math.random() * 60 - 30) | 0}px, -40px) scale(0.4); opacity: 0; }
         }
-        /* Right-rail (Ricky · 2026-05-02 · audit §4 #8). */
-        .em-shell-wordformation .wf-rail { display: none; }
+         { display: none; }
         @media (min-width: 1280px) {
-          .em-shell-wordformation .wf-rail {
+           {
             display: flex;
             flex-direction: column;
             position: absolute;
@@ -867,10 +775,10 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
             font-family: var(--em-body);
             overflow-y: auto;
           }
-          .em-shell-wordformation .wf-stage {
+           {
             inset: 110px 326px 220px 24px !important;
           }
-          .em-shell-wordformation .wf-rail-list {
+           {
             list-style: none;
             margin: 0;
             padding: 0;
@@ -879,7 +787,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
             gap: 6px;
             flex: 1;
           }
-          .em-shell-wordformation .wf-rail-item {
+           {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -890,55 +798,55 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
             position: relative;
             transition: background 140ms;
           }
-          .em-shell-wordformation .wf-rail-item-cur {
+           {
             background: rgba(251, 191, 36, 0.14);
             border-color: rgba(251, 191, 36, 0.55);
             box-shadow: 0 0 14px rgba(251, 191, 36, 0.18);
           }
-          .em-shell-wordformation .wf-rail-item-past {
+           {
             opacity: 0.55;
           }
-          .em-shell-wordformation .wf-rail-num {
+           {
             font-family: var(--em-mono);
             font-size: 10px;
             color: rgba(255,255,255,0.4);
             letter-spacing: 0.08em;
             min-width: 18px;
           }
-          .em-shell-wordformation .wf-rail-body {
+           {
             display: flex;
             flex-direction: column;
             flex: 1;
             min-width: 0;
             gap: 2px;
           }
-          .em-shell-wordformation .wf-rail-base {
+           {
             font-family: var(--em-decor);
             font-size: 14px;
             letter-spacing: 0.04em;
             color: #C8B698;
           }
-          .em-shell-wordformation .wf-rail-arrow {
+           {
             font-family: var(--em-mono);
             font-size: 10px;
             letter-spacing: 0.18em;
             color: #FBBF24;
           }
-          .em-shell-wordformation .wf-rail-pl {
+           {
             font-size: 10px;
             color: rgba(255,255,255,0.45);
             font-style: italic;
           }
-          .em-shell-wordformation .wf-rail-pin {
+           {
             font-size: 10px;
             color: #FBBF24;
             min-width: 14px;
             text-align: right;
           }
-          .em-shell-wordformation .wf-rail-pin-done {
+           {
             color: #34D399;
           }
-          .em-shell-wordformation .wf-rail-foot {
+           {
             display: flex;
             align-items: flex-start;
             gap: 8px;
@@ -946,7 +854,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
             padding-top: 12px;
             border-top: 1px dashed rgba(255, 255, 255, 0.14);
           }
-          .em-shell-wordformation .wf-rail-foot-icon {
+           {
             flex-shrink: 0;
           }
         }

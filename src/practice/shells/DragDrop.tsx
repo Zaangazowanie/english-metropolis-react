@@ -616,28 +616,7 @@ export const DragDropShell: React.FC<DragDropShellProps> = ({ time = 'dusk', sta
 
   return (
     <div className="em-shell em-shell-dragdrop" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', inset: 0, background:
-        time === 'day'
-          ? 'linear-gradient(180deg, #4C2F7E 0%, #C58BD9 60%, #8FB5D9 100%)'
-          : time === 'night'
-            ? 'linear-gradient(180deg, #06031A 0%, #1F0E3A 60%, #2A1B45 100%)'
-            : 'linear-gradient(180deg, #1F1240 0%, #4C2570 60%, #2C1450 100%)'
-      }}/>
-      <div className="em-grain" style={{ position: 'absolute', inset: 0 }}/>
 
-      {/* Cranes & dock silhouette */}
-      <svg viewBox="0 0 800 500" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '55%', opacity: 0.7 }}>
-        <path d="M0 500 L0 320 L100 320 L100 270 L200 270 L200 340 L350 340 L350 300 L500 300 L500 260 L650 260 L650 320 L800 320 L800 500 Z" fill="#0E0A1A"/>
-        {/* Container crane */}
-        <g stroke="#FBBF24" strokeWidth="2" fill="none" opacity="0.6">
-          <line x1="120" y1="320" x2="120" y2="100"/>
-          <line x1="120" y1="100" x2="320" y2="100"/>
-          <line x1="240" y1="100" x2="240" y2="160"/>
-          <rect x="220" y="155" width="40" height="30" fill="#FBBF24" opacity="0.4"/>
-        </g>
-        {/* water reflection */}
-        <rect x="0" y="450" width="800" height="50" fill="#7DD3FC" opacity="0.08"/>
-      </svg>
 
       <div className="em-shell-header" style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 5 }}>
         {/* Ricky 2026-05-02: theme unification — drop "The Docks" split,

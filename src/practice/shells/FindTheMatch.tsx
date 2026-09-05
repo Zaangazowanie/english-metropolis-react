@@ -14,17 +14,8 @@ import { PairArena, useChallengeArcade } from './challenge-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import { maskAnswerInPrompt } from '../lib/exercise-adapters';
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Bajla,
-  HintCard,
-  Progress,
-  Nameplate,
-  SkipButton,
-  HintButton,
-  Confetti,
-  useEndOfShellTip,
-} from '../components/primitives';
-import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
+import { useEndOfShellTip } from '../components/primitives';
+
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components';
 
@@ -170,8 +161,6 @@ const FM_DEMO: WrapperPuzzle = {
   ],
 };
 
-const ACCENT = '#7DD3FC';
-
 interface FMCard {
   key: string;
   pairId: string;
@@ -257,7 +246,7 @@ export function renderFindTheMatchReviewItem(
 }
 
 export const FindTheMatchShell: React.FC<FindTheMatchShellProps> = ({
-  time = 'dusk',
+
   state: forcedState = null,
   puzzle,
   onWrongAnswer,
@@ -405,14 +394,8 @@ export const FindTheMatchShell: React.FC<FindTheMatchShellProps> = ({
     setHintsUsed(0); setHintGlow(null); tip.reset();
   };
 
-  const grad = time === 'day'
-    ? 'linear-gradient(180deg, #4C2F7E 0%, #B0A3D8 100%)'
-    : time === 'dusk'
-      ? 'linear-gradient(180deg, #1F1240 0%, #1B3A5C 100%)'
-      : 'linear-gradient(180deg, #06031A 0%, #08222F 100%)';
-
   const priorityId = active.rounds.find(r => !matched.includes(r.id))?.id;
-  return <PairArena title="The Lost & Found" memory={false} cards={cards} matched={matched} selected={selected} wrong={wrongFlash} hintGlow={hintGlow} onPick={onTap} onHint={useHint} hintDisabled={hintsUsed >= 2} onReset={reset} priority={cards.find(c => c.pairId === priorityId && c.side === 'prompt')?.text} />;
+  return <PairArena announcement={announcement} title="The Lost & Found" memory={false} cards={cards} matched={matched} selected={selected} wrong={wrongFlash} hintGlow={hintGlow} onPick={onTap} onHint={useHint} hintDisabled={hintsUsed >= 2} onReset={reset} priority={cards.find(c => c.pairId === priorityId && c.side === 'prompt')?.text} />;
 };
 
 export default FindTheMatchShell;

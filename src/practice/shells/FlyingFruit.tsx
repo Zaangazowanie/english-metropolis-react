@@ -22,7 +22,7 @@ import { maskAnswerInPrompt } from '../lib/exercise-adapters';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bajla,
-  HintCard,
+
   Progress,
   Nameplate,
   SkipButton,
@@ -117,7 +117,7 @@ export interface FlyingFruitShellProps {
 // renderFlyingFruitReviewItem — per-fruit locked render for PracticeReview.
 // Orchard scoreboard: prompt + 4 options + ✓ CAUGHT · ✗ MISSED chip.
 // ─────────────────────────────────────────────────────────────────────────
-const FF_REVIEW_ACCENT = '#34D399';
+const FF_REVIEW_ACCENT = '#00eb91';
 export function renderFlyingFruitReviewItem(
   round: WrapperRound,
   number: number,
@@ -149,7 +149,7 @@ export function renderFlyingFruitReviewItem(
           fontFamily: 'var(--em-mono)', fontSize: 9, letterSpacing: '0.18em',
           padding: '2px 8px', borderRadius: 999, fontWeight: 700,
           background: isWrong ? 'rgba(251,113,133,0.18)' : 'rgba(52,211,153,0.22)',
-          color: isWrong ? '#FB7185' : FF_REVIEW_ACCENT,
+          color: isWrong ? '#ff3871' : FF_REVIEW_ACCENT,
         }}>
           {isWrong ? '✗ MISSED · NIE ZŁAPANE' : '✓ CAUGHT · ZŁAPANE'}
         </span>
@@ -170,8 +170,8 @@ export function renderFlyingFruitReviewItem(
                 : showWrong
                   ? 'rgba(251,113,133,0.18)'
                   : 'rgba(245,239,255,0.04)',
-              border: `1px solid ${showCorrect ? '#34D39988' : showWrong ? '#FB718588' : 'rgba(245,239,255,0.1)'}`,
-              color: showCorrect ? FF_REVIEW_ACCENT : showWrong ? '#FB7185' : 'var(--em-text, #EDE6FF)',
+              border: `1px solid ${showCorrect ? '#00eb9188' : showWrong ? '#ff387188' : 'rgba(245,239,255,0.1)'}`,
+              color: showCorrect ? FF_REVIEW_ACCENT : showWrong ? '#ff3871' : 'var(--em-text, #EDE6FF)',
               fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{ fontFamily: 'var(--em-mono)', fontSize: 9, color: FF_REVIEW_ACCENT, opacity: 0.7, minWidth: 14 }}>{String.fromCharCode(65 + oi)}</span>
@@ -199,15 +199,15 @@ const FF_DEMO: WrapperPuzzle = {
   ],
 };
 
-const ACCENT = '#34D399';
+const ACCENT = '#00eb91';
 // Fruit colour palette by position for the SVG fill — drawn from English
 // metropolis brand colours so the orchard feels part of the city even though
 // the subject matter is rural.
 const FRUIT_PALETTES = [
-  { fill: '#FB7185', leaf: '#34D399' },  // rose-red apple
-  { fill: '#FBBF24', leaf: '#34D399' },  // gold lemon
-  { fill: '#A78BFA', leaf: '#34D399' },  // violet plum
-  { fill: '#E879F9', leaf: '#34D399' },  // magenta cherry
+  { fill: '#ff3871', leaf: '#00eb91' },  // rose-red apple
+  { fill: '#ffce00', leaf: '#00eb91' },  // gold lemon
+  { fill: '#952fff', leaf: '#00eb91' },  // violet plum
+  { fill: '#ef22ff', leaf: '#00eb91' },  // magenta cherry
 ];
 
 interface FruitModel {
@@ -263,8 +263,7 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
   const [bladeMode, setBladeMode] = useState(false);
   const [harvestPoints, setHarvestPoints] = useState(0);
   const [harvestNotice, setHarvestNotice] = useState('Slice the matching word. A cut at the top of its arc earns +50.');
-  const [bladeTrail, setBladeTrail] = useState<{ x: number; y: number }[]>([]);
-  const swiping = useRef(false);
+
   const fruitLocked = useRef(false);
   const elapsedRef = useRef(0);
   const [tElapsed, setTElapsed] = useState<number>(0); // seconds since round started
@@ -274,8 +273,7 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
   const [hintsUsed, setHintsUsed] = useState<number>(0);
   const [revealedHint, setRevealedHint] = useState<boolean>(false);
   const [announcement, setAnnouncement] = useState<string>('');
-  const rafRef = useRef<number | null>(null);
-  const startedAtRef = useRef<number>(0);
+
   // Kelly Tier-2 (2026-05-02): JS-driven arc motion respects reduced-motion.
   // When true, we skip the rAF loop and freeze each fruit at its arc apex
   // (delay+duration/2) so options are visible, static, and tappable.
@@ -441,7 +439,7 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
     };
   }, [forcedState]);
 
-  useEffect(() => { setHarvesting(false); elapsedRef.current = 0; setTElapsed(0); setBladeTrail([]); swiping.current = false; fruitLocked.current = false; }, [round?.id]);
+  useEffect(() => { setHarvesting(false); elapsedRef.current = 0; setTElapsed(0);   fruitLocked.current = false; }, [round?.id]);
   useEffect(() => {
     if (forcedState || verdict !== null || completed || reduceMotion || !harvesting) return;
     let previous = performance.now(); let raf = 0;
@@ -511,16 +509,12 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
   const reset = (): void => {
     cancelActionTimers();
     arcadeEvent({ type: 'reset' });
-    setHarvesting(false); setHarvestPoints(0); setBladeTrail([]); setStudentPicks({}); fruitLocked.current = false; elapsedRef.current = 0;
+    setHarvesting(false); setHarvestPoints(0);  setStudentPicks({}); fruitLocked.current = false; elapsedRef.current = 0;
     setIdx(0); setVerdict(null); setPickedOption(null); setScore({ right: 0, wrong: 0 });
     setHintsUsed(0); setRevealedHint(false); tip.reset();
   };
 
-  const grad = time === 'day'
-    ? 'linear-gradient(180deg, #6E4FB7 0%, #FBBF24 70%, #34D399 100%)'
-    : time === 'dusk'
-      ? 'linear-gradient(180deg, #1F1240 0%, #B85A88 50%, #FBBF24 85%, #34D399 100%)'
-      : 'linear-gradient(180deg, #02010C 0%, #2A1450 60%, #34D39933 100%)';
+  const grad = time === 'day' ? 'linear-gradient(180deg,#03584e,#081c35)' : 'linear-gradient(180deg,#071332,#033c3e)';
 
   return (
     <div
@@ -529,144 +523,11 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
       aria-label="Flying Fruit, The Orchard Square"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: grad }}
     >
-      <style>{`
-        @keyframes em-ff-basket-sit { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
-        @keyframes em-ff-pop { 0% { transform: translate(-50%, -50%) scale(1); } 60% { transform: translate(-50%, -50%) scale(1.4); } 100% { transform: translate(-50%, -50%) scale(0); opacity: 0; } }
-        @keyframes em-ff-splat { 0% { transform: translate(-50%, -50%) scale(1) rotate(0); } 30% { transform: translate(-50%, -50%) scale(1.2) rotate(-12deg); } 100% { transform: translate(-50%, -50%) scale(0.8) rotate(8deg); opacity: 0.5; } }
-        @keyframes em-ff-leaf-rustle { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
-        @keyframes em-ff-tree-sway { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1deg); } }
-        /* Sunset polish (2026-05-02): orchard ambience — falling leaves drift
-           from above the play area down past the baskets, with gentle
-           horizontal drift. Each leaf gets its own duration / delay / sway. */
-        @keyframes em-ff-fall {
-          0%   { transform: translate(0, -10vh) rotate(0deg); opacity: 0; }
-          10%  { opacity: 0.7; }
-          50%  { transform: translate(-30px, 55vh) rotate(180deg); opacity: 0.7; }
-          90%  { opacity: 0.55; }
-          100% { transform: translate(20px, 110vh) rotate(360deg); opacity: 0; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .em-ff-falling-leaf { animation: none !important; opacity: 0.4; }
-          .em-ff-tree-sway-static { animation: none !important; }
-        }
-      `}</style>
 
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
         {announcement}
       </div>
 
-      {/* Distant farmhouse silhouette — sunset polish (2026-05-02). Sits on
-          the horizon line, behind the orchard trees, anchored to the right
-          third of the canvas so the left side stays clean for the prompt. */}
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 400 160"
-        preserveAspectRatio="xMaxYMax meet"
-        style={{
-          position: 'absolute', bottom: '32%', right: 0,
-          width: 'min(360px, 32%)', height: '18%',
-          pointerEvents: 'none', opacity: 0.55,
-        }}
-      >
-        {/* hill mound */}
-        <ellipse cx="200" cy="170" rx="280" ry="60" fill="#1A0F2E" />
-        {/* farmhouse body */}
-        <rect x="240" y="100" width="90" height="55" fill="#2A1638" />
-        {/* roof */}
-        <polygon points="232,100 285,68 338,100" fill="#0E0820" />
-        {/* chimney */}
-        <rect x="305" y="74" width="10" height="22" fill="#0E0820" />
-        {/* warm window glow */}
-        <rect x="252" y="118" width="14" height="14" fill="#FBBF24" opacity="0.85" />
-        <rect x="278" y="118" width="14" height="14" fill="#FBBF24" opacity="0.7" />
-        <rect x="304" y="118" width="14" height="14" fill="#FBBF24" opacity="0.85" />
-        {/* fence posts */}
-        {Array.from({ length: 5 }).map((_, i) => (
-          <rect key={i} x={150 + i * 18} y="148" width="2" height="14" fill="#0E0820" />
-        ))}
-        <line x1="150" y1="152" x2="232" y2="152" stroke="#0E0820" strokeWidth="1.4" />
-      </svg>
-
-      {/* Falling leaves layer — orchard ambience. 8 leaves with varied
-          duration / delay / hue. Pointer-events:none so they never intercept
-          fruit taps. prefers-reduced-motion freezes them in place. */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 1,
-      }}>
-        {Array.from({ length: 8 }).map((_, i) => {
-          const leafColors = ['#FBBF24', '#FB7185', '#A78BFA', '#34D399', '#F97316', '#FCD34D'];
-          const colour = leafColors[i % leafColors.length];
-          const leftPct = (i * 13 + 7) % 95;
-          const dur = 9 + (i % 4) * 2.5;
-          const delay = -((i * 1.7) % 9);
-          const size = 12 + (i % 3) * 4;
-          return (
-            <div
-              key={i}
-              className="em-ff-falling-leaf"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: `${leftPct}%`,
-                width: size,
-                height: size,
-                animation: `em-ff-fall ${dur}s linear ${delay}s infinite`,
-                opacity: 0,
-              }}
-            >
-              <svg viewBox="0 0 16 16" width={size} height={size}>
-                <path
-                  d="M 8 1 Q 14 4 14 8 Q 14 14 8 15 Q 2 14 2 8 Q 2 4 8 1 Z"
-                  fill={colour}
-                  opacity="0.8"
-                />
-                <line x1="8" y1="2" x2="8" y2="14" stroke="#3A2410" strokeWidth="0.6" opacity="0.5" />
-              </svg>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Distant orchard tree silhouettes */}
-      <svg aria-hidden="true" viewBox="0 0 1200 200" preserveAspectRatio="none" style={{ position: 'absolute', bottom: '18%', left: 0, width: '100%', height: '30%', pointerEvents: 'none', opacity: 0.45 }}>
-        {Array.from({ length: 8 }).map((_, i) => {
-          const x = 60 + i * 150;
-          return (
-            <g key={i} style={{ transformOrigin: `${x}px 200px`, animation: `em-ff-tree-sway ${4 + (i % 3)}s ease-in-out ${i * 0.4}s infinite` }}>
-              <rect x={x - 6} y="120" width="12" height="80" fill="#3A2410" />
-              <ellipse cx={x} cy="100" rx="55" ry="48" fill="#0E2A1F" />
-              <ellipse cx={x - 22} cy="112" rx="32" ry="28" fill="#0E2A1F" />
-              <ellipse cx={x + 22} cy="112" rx="32" ry="28" fill="#0E2A1F" />
-            </g>
-          );
-        })}
-      </svg>
-
-      {/* Wooden baskets along the bottom — receiving the fruit */}
-      <div aria-hidden="true" style={{ position: 'absolute', bottom: 30, left: 0, right: 0, height: 90, display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', pointerEvents: 'none', zIndex: 2 }}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} style={{
-            width: 110, height: 64, position: 'relative',
-            animation: `em-ff-basket-sit ${2 + (i % 3) * 0.4}s ease-in-out ${i * 0.2}s infinite`,
-          }}>
-            <svg viewBox="0 0 110 64" width="110" height="64">
-              {/* basket body */}
-              <path d="M 8 10 L 102 10 L 92 60 L 18 60 Z" fill="#7A5A2A" stroke="#3A2410" strokeWidth="1.5" />
-              {/* weave pattern */}
-              {Array.from({ length: 6 }).map((_, j) => (
-                <line key={j} x1={12 + j * 16} y1="12" x2={12 + j * 16 - 4} y2="58" stroke="#3A2410" strokeWidth="1" opacity="0.6" />
-              ))}
-              {Array.from({ length: 4 }).map((_, j) => (
-                <line key={`h-${j}`} x1="10" y1={20 + j * 11} x2="100" y2={20 + j * 11} stroke="#3A2410" strokeWidth="1" opacity="0.5" />
-              ))}
-              {/* basket lip */}
-              <ellipse cx="55" cy="10" rx="48" ry="6" fill="#A07840" stroke="#3A2410" strokeWidth="1.5" />
-            </svg>
-          </div>
-        ))}
-      </div>
-
-      {/* Top bar */}
       <div className="action-flying-header" style={{ position: 'absolute', top: 28, left: 28, right: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 6, gap: 12, flexWrap: 'wrap' }}>
         <AmbientAudioPlayer shellSlug="flyingfruit" />
         <Nameplate
@@ -695,9 +556,9 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
               letterSpacing: '0.06em',
             }}
           >
-            <span style={{ color: '#34D399' }}>✓ {score.right}</span>
+            <span style={{ color: '#00eb91' }}>✓ {score.right}</span>
             <span style={{ opacity: 0.35 }}>·</span>
-            <span style={{ color: '#FB7185' }}>✗ {score.wrong}</span>
+            <span style={{ color: '#ff3871' }}>✗ {score.wrong}</span>
           </div>
           <SkipButton onClick={() => { if (verdict !== null || !round) return; arcadeEvent({ type: 'incorrect' }); tip.recordWrong({ questionId: round.id, studentAnswer: 'Skipped', correctAnswer: round.options[round.answerIndex], explanationPL: round.hint_pl, exerciseId: round.exerciseId }); setIdx(i => i + 1); }} />
           <HintButton onClick={useHint} used={hintsUsed} total={2} />
@@ -728,117 +589,9 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
 
       {/* Only the fruit art rotates: its circular tap target and separate
           word label stay centered on the same live arc position. */}
-      <div className="action-three-fruit-slot"><ActionPlayfield3D kind="flyingfruit" data={{reducedMotion:reduceMotion,running:harvesting,blade:bladeMode,onPick:onTapFruit,actors:fruits.map(f=>{const phase=(tElapsed-f.delay)/f.duration;const t=reduceMotion||!harvesting?.5:phase<0?0:phase>1?phase-Math.floor(phase):phase;const visible=reduceMotion||!harvesting||phase>=0;const word=f.text.toLowerCase();const color=/^lemon/.test(word)?'#facc15':/^lime/.test(word)?'#84cc16':/^apple/.test(word)?'#ef4444':/^pear/.test(word)?'#a3cc40':/^orange/.test(word)?'#fb923c':/^cherr/.test(word)?'#e11d48':FRUIT_PALETTES[f.paletteIdx].fill;return {id:f.optionIdx,x:reduceMotion||!harvesting?18+f.optionIdx*64/Math.max(1,fruits.length-1):bezier(t,f.startX,f.peakX,f.endX),y:reduceMotion||!harvesting?25+(f.optionIdx%2)*34:bezier(t,f.baseY,f.peakY,f.baseY),label:f.text,color,rotation:reduceMotion?0:f.rot0+tElapsed*f.spin,selected:!reduceMotion&&harvesting&&t>=.35&&t<=.65,state:pickedOption===f.optionIdx?verdict??undefined:undefined,hidden:!visible,enabled:visible&&!forcedState&&verdict===null&&!completed&&(harvesting||reduceMotion)};})}} controls={<>{fruits.map(f=><button key={f.optionIdx} disabled={verdict!==null||completed||(!harvesting&&!reduceMotion)} onClick={()=>onTapFruit(f.optionIdx)}>{f.text}</button>)}</>}><div className="action-harvest-field" onPointerDown={e => { if (!bladeMode || (e.target as HTMLElement).closest('button')) return; swiping.current = true; e.currentTarget.setPointerCapture(e.pointerId); }} onPointerUp={() => { swiping.current = false; setBladeTrail([]); }} onPointerCancel={() => { swiping.current = false; setBladeTrail([]); }} onPointerMove={e => {
-        if (!bladeMode || !swiping.current || !harvesting || fruitLocked.current) return;
-        const bounds = e.currentTarget.getBoundingClientRect();
-        setBladeTrail(points => [...points.slice(-7), { x: e.clientX - bounds.left, y: e.clientY - bounds.top }]);
-        for (const target of e.currentTarget.querySelectorAll<HTMLElement>('[data-fruit]')) {
-          const rect = target.getBoundingClientRect(); const dx = e.clientX - rect.left - rect.width / 2; const dy = e.clientY - rect.top - rect.height / 2;
-          if (dx * dx + dy * dy < Math.pow(rect.width * .43, 2)) { onTapFruit(Number(target.dataset.fruit)); break; }
-        }
-      }} style={{ position: 'relative', height: 390, top: 0, left: 0, right: 0, bottom: 0, zIndex: 4, touchAction: 'none' }}>
-        <svg aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 8 }}><polyline points={bladeTrail.map(p => `${p.x},${p.y}`).join(' ')} stroke="#fff3b2" strokeWidth="5" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 6px #fbbf24)' }} /></svg>
+      <div className="action-three-fruit-slot"><ActionPlayfield3D kind="flyingfruit" data={{reducedMotion:reduceMotion,running:harvesting,blade:bladeMode,onPick:onTapFruit,actors:fruits.map(f=>{const phase=(tElapsed-f.delay)/f.duration;const t=reduceMotion||!harvesting?.5:phase<0?0:phase>1?phase-Math.floor(phase):phase;const visible=reduceMotion||!harvesting||phase>=0;const word=f.text.toLowerCase();const color=/^lemon/.test(word)?'#facc15':/^lime/.test(word)?'#84cc16':/^apple/.test(word)?'#ef4444':/^pear/.test(word)?'#a3cc40':/^orange/.test(word)?'#fb923c':/^cherr/.test(word)?'#e11d48':FRUIT_PALETTES[f.paletteIdx].fill;return {id:f.optionIdx,x:reduceMotion||!harvesting?18+f.optionIdx*64/Math.max(1,fruits.length-1):bezier(t,f.startX,f.peakX,f.endX),y:reduceMotion||!harvesting?25+(f.optionIdx%2)*34:bezier(t,f.baseY,f.peakY,f.baseY),label:f.text,color,rotation:reduceMotion?0:f.rot0+tElapsed*f.spin,selected:!reduceMotion&&harvesting&&t>=.35&&t<=.65,state:pickedOption===f.optionIdx?verdict??undefined:undefined,hidden:!visible,enabled:visible&&!forcedState&&verdict===null&&!completed&&(harvesting||reduceMotion)};})}} controls={<>{fruits.map(f=><button key={f.optionIdx} disabled={verdict!==null||completed||(!harvesting&&!reduceMotion)} onClick={()=>onTapFruit(f.optionIdx)}>{f.text}</button>)}</>} /></div>
 
-        {fruits.map((f) => {
-          // Compute current position from arc parameters + elapsed time.
-          const phase = ((tElapsed - f.delay) / f.duration);
-          // If pre-delay or post-arc, hide.
-          const t = reduceMotion || !harvesting ? .5 : phase < 0 ? 0 : phase > 1 ? phase - Math.floor(phase) : phase;
-          const visible = reduceMotion || !harvesting || phase >= 0;
-          const x = reduceMotion || !harvesting ? 18 + f.optionIdx * 64 / Math.max(1, fruits.length - 1) : bezier(t, f.startX, f.peakX, f.endX);
-          const y = reduceMotion || !harvesting ? 25 + (f.optionIdx % 2) * 34 : bezier(t, f.baseY, f.peakY, f.baseY);
-          const rot = reduceMotion ? 0 : f.rot0 + tElapsed * f.spin;
-          const isAnswer = f.optionIdx === round?.answerIndex;
-          const isPicked = pickedOption === f.optionIdx;
-          const showRight = verdict === 'right' && isPicked;
-          const showWrong = verdict === 'wrong' && isPicked;
-          const dim = verdict !== null && !isAnswer && !isPicked;
-          const fruitWord = f.text.toLowerCase().trim();
-          const fruitKind = /^(lemon|lime)s?$/.test(fruitWord) ? 'citrus' : /^pears?$/.test(fruitWord) ? 'pear' : /^(cherry|cherries)$/.test(fruitWord) ? 'cherry' : 'round';
-          const fruitFill = /^lemons?$/.test(fruitWord) ? '#facc15' : /^limes?$/.test(fruitWord) ? '#84cc16' : /^oranges?$/.test(fruitWord) ? '#fb923c' : /^apples?$/.test(fruitWord) ? '#ef4444' : /^pears?$/.test(fruitWord) ? '#a3cc40' : /^plums?$/.test(fruitWord) ? '#8b5cf6' : /^(cherry|cherries)$/.test(fruitWord) ? '#e11d48' : FRUIT_PALETTES[f.paletteIdx].fill;
-          const palette = { fill: fruitFill, leaf: '#4ade80' };
-          // Mobile CSS uses 74px, with the same circular target as the artwork.
-          const SPRITE = 84;
-          return (
-            <React.Fragment key={f.optionIdx}>
-              <button
-                type="button"
-                data-fruit={visible ? f.optionIdx : undefined}
-                onPointerDown={event => { if (bladeMode) return; event.stopPropagation(); swiping.current = false; onTapFruit(f.optionIdx); }}
-                onClick={event => { if (event.detail === 0) onTapFruit(f.optionIdx); }}
-                disabled={!visible || !!forcedState || verdict !== null || completed || (!harvesting && !reduceMotion)}
-                aria-label={`Fruit labelled ${f.text}`}
-                style={{
-                  position: 'absolute',
-                  left: `${x}%`, top: `${y}%`,
-                  transform: 'translate(-50%, -50%)',
-                  clipPath: 'circle(50%)',
-                  pointerEvents: visible ? 'auto' : 'none',
-                  background: 'transparent', border: 'none', padding: 0,
-                  cursor: verdict !== null || completed ? 'default' : 'pointer',
-                  opacity: visible ? (dim ? 0.35 : 1) : 0,
-                  animation: showRight ? 'em-ff-pop 0.55s var(--em-ease) forwards' : showWrong ? 'em-ff-splat 0.55s var(--em-ease) forwards' : 'none',
-                  transition: 'opacity 240ms',
-                  width: SPRITE, height: SPRITE,
-                  minWidth: 44, minHeight: 44,
-                }}
-              >
-                <svg width={SPRITE} height={SPRITE} viewBox="0 0 76 76" style={{ transform: `rotate(${rot}deg)`, pointerEvents: 'none' }}>
-                  <defs>
-                    <radialGradient id={`fr-grad-${f.optionIdx}`} cx="40%" cy="35%">
-                      <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.6" />
-                      <stop offset="40%" stopColor={palette.fill} />
-                      <stop offset="100%" stopColor={palette.fill} stopOpacity="0.85" />
-                    </radialGradient>
-                  </defs>
-                  {/* shadow */}
-                  <ellipse cx="40" cy="42" rx="28" ry="26" fill="rgba(0,0,0,0.25)" />
-                  {!reduceMotion && harvesting && t >= .35 && t <= .65 && <circle cx="38" cy="40" r="35" fill="none" stroke="#fef3c7" strokeWidth="2" strokeDasharray="4 4" />}
-                  {/* fruit body */}
-                  {fruitKind === 'citrus' ? <path d="M6 40Q10 14 38 16Q65 15 70 40Q64 65 38 65Q11 66 6 40Z" fill={`url(#fr-grad-${f.optionIdx})`} stroke="#805c0b" strokeWidth="1.2"/> : fruitKind === 'pear' ? <path d="M29 18Q38 11 46 20L49 31Q73 56 52 65Q28 75 15 56Q10 42 26 31Z" fill={`url(#fr-grad-${f.optionIdx})`} stroke="#3d6217" strokeWidth="1.2"/> : fruitKind === 'cherry' ? <g><path d="M25 42Q33 18 44 15Q39 35 53 47" fill="none" stroke="#4ade80" strokeWidth="2"/><circle cx="25" cy="47" r="18" fill={`url(#fr-grad-${f.optionIdx})`}/><circle cx="52" cy="49" r="19" fill={`url(#fr-grad-${f.optionIdx})`}/></g> : <ellipse cx="38" cy="40" rx="28" ry="26" fill={`url(#fr-grad-${f.optionIdx})`} stroke="#0E0A1A" strokeWidth="1.2"/>}
-                  {f.paletteIdx % 3 === 1 && <path d="M19 38Q38 15 57 38M16 47Q38 24 59 47M22 57Q38 41 53 57" fill="none" stroke="#ffe69b" strokeWidth="2" opacity=".5"/>}
-                  {f.paletteIdx % 3 === 2 && <path d="M38 15Q28 40 38 63" fill="none" stroke="#4c1d95" strokeWidth="2" opacity=".45"/>}
-                  {/* highlight */}
-                  <ellipse cx="30" cy="32" rx="6" ry="8" fill="#FFFFFF" opacity="0.4" />
-                  {/* leaf */}
-                  <g style={{ transformOrigin: '38px 14px', animation: 'em-ff-leaf-rustle 1.6s ease-in-out infinite' }}>
-                    <path d="M 38 14 Q 50 6 56 14 Q 50 16 38 18 Z" fill={palette.leaf} stroke="#0E0A1A" strokeWidth="1" />
-                  </g>
-                  {/* state ring */}
-                  {(showRight || showWrong) && (
-                    <circle cx="38" cy="40" r="34" fill="none"
-                      stroke={showRight ? '#34D399' : '#FB7185'} strokeWidth="3"
-                      style={{ filter: `drop-shadow(0 0 12px ${showRight ? '#34D399' : '#FB7185'})` }} />
-                  )}
-                </svg>
-              </button>
-              {/* The label follows the fruit center without rotating or
-                  creating an extra transparent hit area. */}
-              <div
-                aria-hidden="true"
-                style={{
-                  position: 'absolute',
-                  left: `${x}%`, top: `${y}%`,
-                  transform: `translate(-50%, calc(${SPRITE / 2}px + 8px))`,
-                  padding: '4px 10px', borderRadius: 10,
-                  background: 'rgba(14,10,26,0.85)', color: '#F4EFEF',
-                  fontFamily: 'var(--em-mono)', fontSize: 11, fontWeight: 700,
-                  border: `1px solid ${palette.fill}88`,
-                  boxShadow: `0 4px 8px rgba(0,0,0,0.5)`,
-                  whiteSpace: 'nowrap', pointerEvents: 'none',
-                  letterSpacing: '0.06em',
-                  opacity: visible ? (dim ? 0.35 : 1) : 0,
-                  transition: 'opacity 240ms',
-                }}
-              >
-                {f.text}
-              </div>
-            </React.Fragment>
-          );
-        })}
-      </div></ActionPlayfield3D></div>
-
-      {!completed && <div className="action-flight-control action-arcade-controls"><p><strong>{harvestPoints} POINTS</strong> · {harvestNotice}</p><button disabled={verdict !== null} onClick={() => setHarvesting(v => !v)}>{harvesting ? 'Pause harvest' : 'Launch harvest'}</button><button disabled={verdict !== null} aria-pressed={bladeMode} onClick={() => { swiping.current = false; setBladeTrail([]); setBladeMode(v => !v); }}>{bladeMode ? 'Blade mode' : 'Tap mode'}</button><span style={{ color: '#e8dfbd', font: '11px var(--em-body)' }}>{bladeMode ? 'Start a swipe on empty ground, then slice through a fruit.' : 'Tap a fruit to catch it. Keyboard: Tab + Enter.'}</span></div>}
+      {!completed && <div className="action-flight-control action-arcade-controls"><p><strong>{harvestPoints} POINTS</strong> · {harvestNotice}</p><button disabled={verdict !== null} onClick={() => setHarvesting(v => !v)}>{harvesting ? 'Pause harvest' : 'Launch harvest'}</button><button disabled={verdict !== null} aria-pressed={bladeMode} onClick={() => {   setBladeMode(v => !v); }}>{bladeMode ? 'Blade mode' : 'Tap mode'}</button><span style={{ color: '#e8dfbd', font: '11px var(--em-body)' }}>{bladeMode ? 'Start a swipe on empty ground, then slice through a fruit.' : 'Tap a fruit to catch it. Keyboard: Tab + Enter.'}</span></div>}
       {/* Completion */}
       {completed && (
         <div
@@ -857,8 +610,8 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
           <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa` }}>The harvest is in.</div>
           <div className="em-eyebrow">BASKETS FULL · KOSZE PEŁNE</div>
           <div style={{ display: 'flex', gap: 28, alignItems: 'baseline' }}>
-            <div style={{ textAlign: 'center' }}><div className="em-decor" style={{ fontSize: 44, color: '#34D399' }}>{score.right}</div><div className="em-eyebrow" style={{ color: '#34D399' }}>CAUGHT · ZŁAPANE</div></div>
-            <div style={{ textAlign: 'center' }}><div className="em-decor" style={{ fontSize: 44, color: '#FB7185' }}>{score.wrong}</div><div className="em-eyebrow" style={{ color: '#FB7185' }}>MISSED · ZGUBIONE</div></div>
+            <div style={{ textAlign: 'center' }}><div className="em-decor" style={{ fontSize: 44, color: '#00eb91' }}>{score.right}</div><div className="em-eyebrow" style={{ color: '#00eb91' }}>CAUGHT · ZŁAPANE</div></div>
+            <div style={{ textAlign: 'center' }}><div className="em-decor" style={{ fontSize: 44, color: '#ff3871' }}>{score.wrong}</div><div className="em-eyebrow" style={{ color: '#ff3871' }}>MISSED · ZGUBIONE</div></div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button className="em-btn em-btn-ghost" onClick={reset}>Restart run</button>

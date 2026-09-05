@@ -467,8 +467,8 @@ export const MatchingShell: React.FC<MatchingShellProps> = ({ time = 'night', st
     }
   };
 
-  const lines: LineColor[] = ['magenta', 'violet', 'amber'];
-  const lineY: Record<LineColor, number> = { magenta: 110, violet: 240, amber: 370 };
+
+
 
   const shuffledPL = useMemo(() => shuffledTranslations(activePairs), [activePairs]);
 
@@ -552,7 +552,7 @@ export const MatchingShell: React.FC<MatchingShellProps> = ({ time = 'night', st
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allMatched]);
 
-  const stationX = (idx: number, total: number) => 110 + (idx + 1) * (700 / (total + 1));
+
 
   const liveStatus = allMatched
     ? 'All matches complete. Every train is running.'
@@ -575,7 +575,7 @@ export const MatchingShell: React.FC<MatchingShellProps> = ({ time = 'night', st
     <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={currentLine} pairs={activePairs} translations={shuffledPL[currentLine]??[]} matches={matches} selected={selected} onPick={onPick} hidden={memoryMode&&!scanning} wrong={wrong?.en&&wrong?.pl?{en:wrong.en,pl:wrong.pl}:null}/></WordSuspense>
     <details><summary>Accessible signal controls</summary><div className="wa-switchboard">
       <div className="wa-signal-column"><small>ENGLISH · DEPARTURES</small>{activePairs.map((p,i)=><button key={p.en} disabled={!!matches[p.en]} aria-pressed={selected?.type==='en'&&selected.value===p.en} className={`wa-signal ${matches[p.en]?'is-matched':''} ${selected?.type==='en'&&selected.value===p.en?'is-selected':''} ${wrong?.en===p.en?'is-wrong':''} ${hintPair?.en===p.en?'is-hint':''}`} onClick={()=>onPick('en',p.en)}><i/><span>{p.en}</span>{matches[p.en]&&<span aria-label="matched">✓</span>}</button>)}</div>
-      <div className="wa-signal-wires" aria-hidden="true"><span>{allMatched?'✓':'↔'}</span></div>
+
       <div className="wa-signal-column"><small>POLSKI · ARRIVALS</small>{(shuffledPL[currentLine]??[]).map((pl,i)=>{const matched=Object.values(matches).includes(pl);const revealed=!memoryMode||scanning||matched||selected?.type==='pl'&&selected.value===pl||hintPair?.pl===pl;return <button key={pl} disabled={matched} aria-label={revealed?pl:`Hidden translation ${i+1}. Select to reveal.`} aria-pressed={selected?.type==='pl'&&selected.value===pl} className={`wa-signal ${matched?'is-matched':''} ${selected?.type==='pl'&&selected.value===pl?'is-selected':''} ${wrong?.pl===pl?'is-wrong':''} ${hintPair?.pl===pl?'is-hint':''}`} onClick={()=>onPick('pl',pl)}><i/><span>{revealed?pl:`Signal ${String(i+1).padStart(2,'0')} · ?`}</span>{matched&&<span aria-label="matched">✓</span>}</button>;})}</div>
     </div>
     </details><p className="wa-forge-readout" role="status">{allMatched ? stageIdx+1<totalStages?'Line clear. Dispatching the next train…':'Every signal connected. All trains can depart.' : liveStatus || 'Connect every signal on this line to dispatch the train.'}</p>

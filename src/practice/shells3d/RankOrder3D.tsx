@@ -4,7 +4,7 @@ import { Challenge3DPreferences } from '../shells/challenge-3d-preferences';
 import CanonicalShell, { type RankOrderPuzzle, type RankOrderShellProps } from '../shells/RankOrder';
 import { ChallengeMachine, type MachineProps } from './challenge-machine';
 import type { Game3DProps } from './types';
-const design = { kind: 'freight', title: 'The Freight Marshalling Yard', instruction: 'Load each item wagon into the ranked track sockets. Dispatch the entire train to check its order.', action: 'Dispatch train', color: '#b7c89b', mode: 'assembly' } as const;
+const design = { kind: 'freight', title: 'The Freight Marshalling Yard', instruction: 'Load each item wagon into the ranked track sockets. Dispatch the entire train to check its order.', action: 'Dispatch train', color: '#b7f900', mode: 'assembly' } as const;
 
 /** Older registry hosts can supply a deck. Keep each canonical ranking result,
  * and emit the advertised session result only once the full deck is complete. */
@@ -34,6 +34,6 @@ function LegacyRankDeck({puzzles,onSessionComplete}:{puzzles:RankOrderPuzzle[];o
 /** Canonical handlers own grading; this chunk owns the spatial interaction. */
 export default function RankOrder3D(props: MachineProps) {
   const deck = Array.isArray(props.puzzle) ? (props.puzzle as RankOrderPuzzle[]).filter(p=>p?.items?.length) : null;
-  if (props.items === undefined) return <Challenge3DPreferences value={{quality:props.quality,reducedMotion:props.reducedMotion}}><div style={props.fullscreen?{position:"fixed",inset:0,zIndex:900,overflow:"auto",background:"#14222d"}:undefined}>{deck?.length ? <LegacyRankDeck key={JSON.stringify(deck)} puzzles={deck} onSessionComplete={props.onSessionComplete}/> : <CanonicalShell puzzle={Array.isArray(props.puzzle)?undefined:props.puzzle as never} onSessionComplete={props.onSessionComplete ? r => props.onSessionComplete?.({...r,shellKey:'rankorder'}) : undefined} />}</div></Challenge3DPreferences>;
+  if (props.items === undefined) return <Challenge3DPreferences value={{quality:props.quality,reducedMotion:props.reducedMotion}}><div style={props.fullscreen?{position:"fixed",inset:0,zIndex:900,overflow:"auto",background:"#090d38"}:undefined}>{deck?.length ? <LegacyRankDeck key={JSON.stringify(deck)} puzzles={deck} onSessionComplete={props.onSessionComplete}/> : <CanonicalShell puzzle={Array.isArray(props.puzzle)?undefined:props.puzzle as never} onSessionComplete={props.onSessionComplete ? r => props.onSessionComplete?.({...r,shellKey:'rankorder'}) : undefined} />}</div></Challenge3DPreferences>;
   return <ChallengeMachine {...props} design={design} />;
 }

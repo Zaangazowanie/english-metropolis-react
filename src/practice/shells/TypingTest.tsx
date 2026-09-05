@@ -181,7 +181,7 @@ export const TT_PUZZLE: ShellTypingTestPuzzle = {
 
 const ACCENT = '#7DD3FC';
 const ACCENT_DEEP = '#1F73A6';
-const BRASS = '#C49A4D';
+
 
 
 
@@ -443,8 +443,8 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
   };
 
   // Ricky · 2026-05-02 · audit §4 #8 right-rail: derived session aggregates.
-  const bestWpm = phraseLog.length ? Math.max(...phraseLog.map((p) => p.wpm)) : 0;
-  const bestAcc = phraseLog.length ? Math.max(...phraseLog.map((p) => p.acc)) : 0;
+
+
   const avgWpm = phraseLog.length ? Math.round(phraseLog.reduce((s, p) => s + p.wpm, 0) / phraseLog.length) : 0;
   const avgAcc = phraseLog.length ? Math.round(phraseLog.reduce((s, p) => s + p.acc, 0) / phraseLog.length) : 0;
 
@@ -492,41 +492,6 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
         {liveStatus}
       </div>
 
-      {/* Office scene */}
-      <div style={{
-        position: 'absolute', inset: 0, background:
-          time === 'day'
-            ? 'linear-gradient(180deg, #2D1F4A 0%, #5C4A8A 60%, #1F1240 100%)'
-            : time === 'dusk'
-              ? 'linear-gradient(180deg, #1A0F2E 0%, #2A1450 60%, #0F1F30 100%)'
-              : 'linear-gradient(180deg, #02010C 0%, #110828 60%, #07041A 100%)',
-      }} />
-      {/* Wires across the ceiling */}
-      <svg viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 120, opacity: 0.45, pointerEvents: 'none' }}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <path
-            key={i}
-            d={`M -20 ${20 + i * 18} Q 600 ${50 + i * 14} 1220 ${20 + i * 18}`}
-            stroke={ACCENT}
-            strokeWidth="0.6"
-            fill="none"
-            opacity={0.5 + (i % 3) * 0.15}
-          />
-        ))}
-        {Array.from({ length: 6 }).map((_, i) => (
-          <circle key={`s-${i}`} cx={120 + i * 200} cy={80} r="2" fill={ACCENT} opacity="0.7">
-            <animate attributeName="opacity" values="0.2;1;0.2" dur={`${2 + (i % 3)}s`} repeatCount="indefinite" begin={`${i * 0.3}s`} />
-          </circle>
-        ))}
-      </svg>
-      {/* Wood-panel skirting */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, height: '32%',
-        background: 'linear-gradient(180deg, transparent, rgba(58,38,18,0.55) 40%, rgba(28,18,8,0.85) 100%)',
-        backgroundImage: `repeating-linear-gradient(90deg, transparent 0 60px, rgba(0,0,0,0.16) 60px 62px)`,
-      }} />
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
-
       {/* Header */}
       <div style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, zIndex: 5, flexWrap: 'wrap' }}>
         <AmbientAudioPlayer shellSlug="typingtest" />
@@ -550,63 +515,6 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
         </div>
       </div>
 
-      {/* Ricky · 2026-05-02 · audit §4 #8 right-rail: Typing Stats panel.
-          Closes vertical/right dead space at desktop ≥1280px. Surfaces
-          best/avg WPM + accuracy this session, plus a per-phrase mini-log. */}
-      <aside className="tt-rail" aria-label="Typing stats this session">
-        <div className="em-eyebrow" style={{ color: ACCENT, marginBottom: 12, letterSpacing: '0.22em', fontSize: 10 }}>
-          STATYSTYKI · TYPING STATS
-        </div>
-        <div className="tt-rail-grid">
-          <div className="tt-rail-cell">
-            <span className="tt-rail-cell-num" style={{ color: ACCENT }}>{bestWpm || '—'}</span>
-            <span className="tt-rail-cell-lbl">BEST WPM</span>
-            <span className="tt-rail-cell-pl">najlepsze tempo</span>
-          </div>
-          <div className="tt-rail-cell">
-            <span className="tt-rail-cell-num" style={{ color: '#34D399' }}>{bestAcc ? `${bestAcc}%` : '—'}</span>
-            <span className="tt-rail-cell-lbl">BEST ACC</span>
-            <span className="tt-rail-cell-pl">najlepsza dokładność</span>
-          </div>
-          <div className="tt-rail-cell">
-            <span className="tt-rail-cell-num" style={{ color: ACCENT }}>{avgWpm || '—'}</span>
-            <span className="tt-rail-cell-lbl">AVG WPM</span>
-            <span className="tt-rail-cell-pl">średnie tempo</span>
-          </div>
-          <div className="tt-rail-cell">
-            <span className="tt-rail-cell-num" style={{ color: '#34D399' }}>{avgAcc ? `${avgAcc}%` : '—'}</span>
-            <span className="tt-rail-cell-lbl">AVG ACC</span>
-            <span className="tt-rail-cell-pl">średnia dokładność</span>
-          </div>
-        </div>
-        <div className="tt-rail-log">
-          <span className="em-eyebrow" style={{ color: BRASS, fontSize: 9, letterSpacing: '0.22em', display: 'block', marginBottom: 8 }}>
-            DZIENNIK · DISPATCH LOG
-          </span>
-          {phraseLog.length === 0 ? (
-            <span style={{ fontSize: 11, color: 'var(--em-text-muted)', fontStyle: 'italic' }}>
-              Wyniki pojawią się po pierwszej depeszy.
-            </span>
-          ) : (
-            <ol className="tt-rail-log-list">
-              {phraseLog.map((p, i) => (
-                <li key={i} className="tt-rail-log-row">
-                  <span className="tt-rail-log-num">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="tt-rail-log-mark" style={{ color: p.ok ? '#34D399' : '#FB7185' }}>{p.ok ? '✓' : '✗'}</span>
-                  <span className="tt-rail-log-stat" style={{ color: ACCENT }}>{p.wpm} WPM</span>
-                  <span className="tt-rail-log-stat" style={{ color: '#34D399' }}>{p.acc}%</span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
-        <div className="tt-rail-foot">
-          <span style={{ color: 'var(--em-text-muted)', fontSize: 10, lineHeight: 1.4 }}>
-            <span style={{ color: BRASS, fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.18em' }}>OPERATOR&apos;S TIP</span><br />
-            Aim for 95%+ accuracy first; speed follows.
-          </span>
-        </div>
-      </aside>
 
       {/* Main: paper tape + brass desk */}
       {!completed && cur && (
@@ -615,12 +523,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
           <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D progress={charsCorrect/Math.max(1,target.length)} ghost={elapsed/60000*paceWpm*5/Math.max(1,target.length)} ready={draft.length>=target.length} done={verdict==='right'} onDispatch={dispatch} onBackspace={()=>onChange(draft.slice(0,-1))} onNext={advance}/></WordSuspense>
           <div className="wa-typing-track">
             <header><span>DISPATCH {idx+1} / {total}</span><span>{Math.round(charsCorrect/Math.max(1,target.length)*100)}% delivered</span></header>
-            <svg viewBox="0 0 600 74" aria-label="Dispatch train progress">
-              <path d="M12 29H588M12 57H588" stroke="#31506b" strokeWidth="2" strokeDasharray="7 5"/>
-              {[0,1,2,3,4].map(i=><path key={i} d={`M${20+i*140} 17v48`} stroke="#5a83a433"/>)}
-              <g className="wa-player" style={{transform:`translateX(${Math.min(1,charsCorrect/Math.max(1,target.length))*535}px)`}}><rect x="10" y="13" width="44" height="21" rx="6" fill="#a6e6ff"/><path d="M17 20h6m4 0h6m4 0h9" stroke="#11273d" strokeWidth="5"/><circle cx="20" cy="35" r="3" fill="#a6e6ff"/><circle cx="44" cy="35" r="3" fill="#a6e6ff"/></g>
-              <g style={{transform:`translateX(${Math.min(1,elapsed/60000*paceWpm*5/Math.max(1,target.length))*535}px)`,opacity:.5}}><rect x="10" y="46" width="44" height="15" rx="5" fill="#c4a1ff"/><path d="M17 51h28" stroke="#17202f" strokeWidth="3"/></g>
-            </svg>
+
             <div className="wa-inline-tools"><span>Pace train</span>{[15,25,40].map(p=><button key={p} aria-pressed={paceWpm===p} onClick={()=>setPaceWpm(p)}>{p} WPM</button>)}<span>No time limit. Accuracy comes first.</span></div>
           </div>
 
@@ -675,20 +578,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
           {/* Telegraph key + dials */}
           <div style={{ display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
             {/* Brass key */}
-            <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-              <div style={{
-                position: 'relative',
-                width: 110, height: 56,
-                background: `linear-gradient(180deg, ${BRASS}, #6E4F1D 80%, #3A2710 100%)`,
-                borderRadius: '50px 50px 6px 6px',
-                boxShadow: shake ? `0 0 12px #FB7185aa, inset 0 -6px 0 rgba(0,0,0,0.4)` : `0 6px 14px rgba(0,0,0,0.5), inset 0 -6px 0 rgba(0,0,0,0.4)`,
-                animation: shake ? 'em-shake 0.22s var(--em-ease)' : draft && verdict !== 'right' ? 'tt-key-press 0.18s var(--em-ease)' : 'none',
-              }}>
-                <div style={{ position: 'absolute', left: '50%', top: 8, transform: 'translateX(-50%)', width: 60, height: 30, borderRadius: '30px 30px 4px 4px', background: `radial-gradient(circle at 50% 30%, #F3D78D, ${BRASS})`, border: '2px solid #6E4F1D' }} />
-                <div style={{ position: 'absolute', left: '50%', bottom: 6, transform: 'translateX(-50%)', width: 70, height: 4, background: 'rgba(0,0,0,0.4)', borderRadius: 2 }} />
-              </div>
-              <div className="em-eyebrow" style={{ color: BRASS, fontSize: 9, letterSpacing: '0.22em' }}>BRASS KEY</div>
-            </div>
+
 
             {/* WPM dial */}
             <Dial size={80} label="WPM · TEMPO" value={liveWpm} max={Math.max(60, cur.target_wpm + 30)} target={cur.target_wpm} accent={ACCENT} />
@@ -805,14 +695,9 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
           0%   { opacity: 0; transform: translateY(-12px); }
           100% { opacity: 1; transform: translateY(0); }
         }
-        @keyframes tt-key-press {
-          0%, 100% { transform: translateY(0); }
-          50%      { transform: translateY(2px); }
-        }
-        /* Right-rail (Ricky · 2026-05-02 · audit §4 #8). */
-        .em-shell-typingtest .tt-rail { display: none; }
+         { display: none; }
         @media (min-width: 1280px) {
-          .em-shell-typingtest .tt-rail {
+           {
             display: flex;
             flex-direction: column;
             position: absolute;
@@ -832,16 +717,16 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
             font-family: var(--em-body);
             overflow-y: auto;
           }
-          .em-shell-typingtest .tt-stage {
+           {
             inset: 110px 326px 220px 24px !important;
           }
-          .em-shell-typingtest .tt-rail-grid {
+           {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 6px;
             margin-bottom: 14px;
           }
-          .em-shell-typingtest .tt-rail-cell {
+           {
             display: flex;
             flex-direction: column;
             padding: 10px;
@@ -849,25 +734,25 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
             background: rgba(0, 0, 0, 0.32);
             border: 1px solid rgba(255, 255, 255, 0.06);
           }
-          .em-shell-typingtest .tt-rail-cell-num {
+           {
             font-family: var(--em-decor);
             font-size: 22px;
             line-height: 1;
           }
-          .em-shell-typingtest .tt-rail-cell-lbl {
+           {
             font-family: var(--em-mono);
             font-size: 9px;
             letter-spacing: 0.18em;
             color: rgba(255,255,255,0.65);
             margin-top: 4px;
           }
-          .em-shell-typingtest .tt-rail-cell-pl {
+           {
             font-size: 9px;
             color: rgba(255,255,255,0.4);
             font-style: italic;
             margin-top: 2px;
           }
-          .em-shell-typingtest .tt-rail-log {
+           {
             flex: 1;
             min-height: 0;
             overflow-y: auto;
@@ -876,7 +761,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
             background: rgba(0, 0, 0, 0.28);
             border: 1px solid rgba(255, 255, 255, 0.06);
           }
-          .em-shell-typingtest .tt-rail-log-list {
+           {
             list-style: none;
             margin: 0;
             padding: 0;
@@ -884,7 +769,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
             flex-direction: column;
             gap: 4px;
           }
-          .em-shell-typingtest .tt-rail-log-row {
+           {
             display: grid;
             grid-template-columns: 22px 16px 1fr auto;
             align-items: center;
@@ -896,16 +781,16 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
             border-radius: 4px;
             background: rgba(0, 0, 0, 0.32);
           }
-          .em-shell-typingtest .tt-rail-log-num {
+           {
             color: rgba(255,255,255,0.4);
           }
-          .em-shell-typingtest .tt-rail-log-mark {
+           {
             font-weight: 700;
           }
-          .em-shell-typingtest .tt-rail-log-stat {
+           {
             font-size: 10px;
           }
-          .em-shell-typingtest .tt-rail-foot {
+           {
             margin-top: 12px;
             padding-top: 10px;
             border-top: 1px dashed rgba(255, 255, 255, 0.14);

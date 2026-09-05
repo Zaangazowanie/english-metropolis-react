@@ -717,12 +717,7 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
         {liveStatus}
       </div>
-      <div style={{
-        position: 'absolute', inset: 0, background: time === 'day'
-          ? 'linear-gradient(180deg, #C58BD9 0%, #4F2A6F 60%, #1F1240 100%)'
-          : 'linear-gradient(180deg, #07041A 0%, #190B36 50%, #2C145A 100%)',
-        zIndex: 0,
-      }} />
+
       {/* Decorative neon corner-signs.
           Ricky 2026-05-02 (#15 fix): "24h" was at left:78%/top:8% — directly under the
           right column's HintCard area at every common viewport (375/414/768/1280/1920),
@@ -731,72 +726,14 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
           column's padding. Also: explicit zIndex:0 on this layer + pointerEvents:none
           on each sign (parent already has it, but belt-and-braces) + zIndex:3 on the
           functional layout container below — guarantees taps always hit cards/grid. */}
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.5, zIndex: 0, userSelect: 'none' }} aria-hidden="true">
-        {[
-          { l: '4%', t: '12%', c: '#FBBF24', txt: 'OPEN' },
-          { l: '92%', t: '2%', c: '#FB7185', txt: '24h', size: 28 },
-          { l: '6%', t: '74%', c: '#34D399', txt: 'KAWA' },
-          { l: '88%', t: '78%', c: '#7DD3FC', txt: 'HOTEL' },
-        ].map((s, i) => (
-          <div key={i} style={{
-            position: 'absolute', left: s.l, top: s.t,
-            fontFamily: 'var(--em-decor)', fontSize: s.size ?? 36, color: s.c,
-            textShadow: `0 0 12px ${s.c}, 0 0 28px ${s.c}88`,
-            letterSpacing: '0.1em',
-            animation: 'em-flicker 4s infinite',
-            pointerEvents: 'none',
-          }}>{s.txt}</div>
-        ))}
-      </div>
+
       {/* Idle ambient layer (Ricky 2026-05-02, audit #9 right-side dead-space win):
           distant cityscape silhouette + 3 flickering background micro-signs. Pure
           decoration — pointer-events:none, zIndex:0, behind the functional layout. */}
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 100 30"
-        preserveAspectRatio="none"
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, width: '100%', height: '22%', opacity: 0.32, pointerEvents: 'none', zIndex: 0 }}
-      >
-        <path
-          d="M0,30 L0,18 L4,18 L4,12 L8,12 L8,16 L12,16 L12,9 L16,9 L16,14 L20,14 L20,7 L24,7 L24,13 L28,13 L28,17 L33,17 L33,11 L38,11 L38,5 L42,5 L42,12 L47,12 L47,15 L52,15 L52,8 L57,8 L57,14 L62,14 L62,10 L66,10 L66,18 L71,18 L71,12 L76,12 L76,6 L80,6 L80,15 L85,15 L85,11 L90,11 L90,17 L95,17 L95,13 L100,13 L100,30 Z"
-          fill="#1a0d36"
-        />
-        <path
-          d="M0,30 L0,22 L6,22 L6,16 L11,16 L11,20 L17,20 L17,14 L22,14 L22,21 L28,21 L28,17 L34,17 L34,23 L40,23 L40,18 L46,18 L46,22 L52,22 L52,15 L58,15 L58,21 L64,21 L64,17 L70,17 L70,23 L76,23 L76,18 L82,18 L82,22 L88,22 L88,16 L94,16 L94,21 L100,21 L100,30 Z"
-          fill="#0a0520"
-          opacity="0.85"
-        />
-      </svg>
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, opacity: 0.45 }} aria-hidden="true">
-        {[
-          { l: '64%', t: '22%', c: '#A78BFA', txt: 'BAR', size: 18, dur: 5 },
-          { l: '70%', t: '46%', c: '#34D399', txt: 'TAXI', size: 16, dur: 7 },
-          { l: '60%', t: '62%', c: '#FBBF24', txt: 'METRO', size: 17, dur: 6 },
-        ].map((s, i) => (
-          <div key={`bg-${i}`} style={{
-            position: 'absolute', left: s.l, top: s.t,
-            fontFamily: 'var(--em-decor)', fontSize: s.size, color: s.c,
-            textShadow: `0 0 6px ${s.c}, 0 0 14px ${s.c}66`,
-            letterSpacing: '0.08em',
-            animation: `em-flicker ${s.dur}s ${i * 0.7}s infinite`,
-            pointerEvents: 'none',
-          }}>{s.txt}</div>
-        ))}
-      </div>
-      <svg style={{ position: 'absolute', inset: 0, opacity: 0.18, pointerEvents: 'none', zIndex: 0 }}>
-        {Array.from({ length: 40 }).map((_, i) => (
-          <line
-            key={i}
-            x1={`${(i * 7.13) % 100}%`}
-            y1={`-5%`}
-            x2={`${((i * 7.13) % 100) - 4}%`}
-            y2={`105%`}
-            stroke="#7DD3FC"
-            strokeWidth="1"
-          />
-        ))}
-      </svg>
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }} />
+
+
+
+
 
       <div className="em-shell-ws-layout" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 24, padding: 32, height: '100%', boxSizing: 'border-box', zIndex: 3 }}>
 

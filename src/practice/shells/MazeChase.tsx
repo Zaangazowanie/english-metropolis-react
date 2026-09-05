@@ -17,12 +17,11 @@ import './action-arcade.css';
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
 import { useShellProgress } from '../lib/convex-stubs';
 import { maskAnswerInPrompt } from '../lib/exercise-adapters';
-import { buildSafeHint } from '../lib/safeHint';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Bajla,
-  HintCard,
+
   Progress,
   Nameplate,
   SkipButton,
@@ -142,7 +141,7 @@ const DEMO_PUZZLE: ArcadePuzzle = {
   ],
 };
 
-const ACCENT = '#7DD3FC';
+const ACCENT = '#00cfff';
 const COLS = 13;
 const ROWS = 11;
 
@@ -179,7 +178,7 @@ const isOpen = (r: number, c: number): boolean => r >= 0 && r < ROWS && c >= 0 &
 // Maze-chase scoreboard: round number + question + token options with
 // student's catch + correct token highlighted.
 // ─────────────────────────────────────────────────────────────────────────
-const MZ_REVIEW_ACCENT = '#7DD3FC';
+const MZ_REVIEW_ACCENT = '#00cfff';
 export function renderMazeChaseReviewItem(
   round: ArcadeRound,
   roundNumber: number,
@@ -211,7 +210,7 @@ export function renderMazeChaseReviewItem(
           fontFamily: 'var(--em-mono)', fontSize: 9, letterSpacing: '0.18em',
           padding: '2px 8px', borderRadius: 999, fontWeight: 700,
           background: isWrong ? 'rgba(251,113,133,0.18)' : 'rgba(125,211,252,0.22)',
-          color: isWrong ? '#FB7185' : '#7DD3FC',
+          color: isWrong ? '#ff3871' : '#00cfff',
         }}>
           {isWrong ? '✗ LOST · ZGUBIONE' : '✓ CAUGHT · ZŁAPANE'}
         </span>
@@ -234,8 +233,8 @@ export function renderMazeChaseReviewItem(
                 : showWrong
                   ? 'rgba(251,113,133,0.18)'
                   : 'rgba(245,239,255,0.04)',
-              border: `1px solid ${showCorrect ? '#7DD3FC88' : showWrong ? '#FB718588' : 'rgba(245,239,255,0.1)'}`,
-              color: showCorrect ? '#7DD3FC' : showWrong ? '#FB7185' : 'var(--em-text, #EDE6FF)',
+              border: `1px solid ${showCorrect ? '#00cfff88' : showWrong ? '#ff387188' : 'rgba(245,239,255,0.1)'}`,
+              color: showCorrect ? '#00cfff' : showWrong ? '#ff3871' : 'var(--em-text, #EDE6FF)',
               fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{ flex: 1 }}>{opt}</span>
@@ -250,7 +249,6 @@ export function renderMazeChaseReviewItem(
 }
 
 export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
-  time = 'night',
   state: forcedState = null,
   puzzle,
   onWrongAnswer,
@@ -271,7 +269,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
   const [hintsUsed, setHintsUsed] = useState(0);
   const [hintActive, setHintActive] = useState(false);
   const [missCount, setMissCount] = useState(0);
-  const [trail, setTrail] = useState<Cell[]>([]);
+
   const moveRef = useRef<Cell>({ r: 1, c: 1 });
   const [shadow, setShadow] = useState<Cell>({ r: 9, c: 11 });
   const shadowRef = useRef<Cell>({ r: 9, c: 11 });
@@ -343,7 +341,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
     if (!cur) return;
     setPos({ r: 1, c: 1 });
     moveRef.current = { r: 1, c: 1 };
-    setTrail([]); setSteps(0); stepsRef.current = 0; setShield(0); shieldRef.current = 0;
+     setSteps(0); stepsRef.current = 0; setShield(0); shieldRef.current = 0;
     shadowRef.current = { r: 9, c: 11 }; setShadow(shadowRef.current); roundLocked.current = false;
     setLamps([{ r: 5, c: 1 }, { r: 2, c: 7 }, { r: 8, c: 9 }]);
     const all = openCells();
@@ -406,7 +404,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
     if (!isOpen(next.r, next.c)) return;
     moveRef.current = next;
     setPos(next);
-    setTrail(prev => [next, ...prev.slice(0, 7)]);
+
     stepsRef.current += 1; setSteps(stepsRef.current);
     const collectedLamp = lamps.some(p => p.r === next.r && p.c === next.c);
     if (collectedLamp) { shieldRef.current = 8; setLamps(prev => prev.filter(p => p.r !== next.r || p.c !== next.c)); }
@@ -417,7 +415,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
     shadowRef.current = enemy; setShadow(enemy);
     if (enemy.r === next.r && enemy.c === next.c && shieldRef.current === 0) {
       setMissCount(n => n + 1); setFeedback('wrong'); moveRef.current = { r: 1, c: 1 }; setPos(moveRef.current);
-      shadowRef.current = { r: 9, c: 11 }; setShadow(shadowRef.current); setTrail([]);
+      shadowRef.current = { r: 9, c: 11 }; setShadow(shadowRef.current);
       later(() => setFeedback(null), 800); return;
     }
     // Check token at next.
@@ -480,10 +478,6 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
     later(() => setHintActive(false), 3000);
   };
 
-  const skipRound = (): void => {
-    const nextRound = solved.findIndex((done, i) => !done && i !== roundIdx); if (nextRound >= 0) setRoundIdx(nextRound);
-  };
-
   const reset = (): void => {
     cancelActionTimers();
     arcadeEvent({ type: 'reset' });
@@ -494,16 +488,11 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
     setHintsUsed(0);
     setMissCount(0);
     tip.reset();
-    setTrail([]);
-  };
 
-  const grad = time === 'day'
-    ? 'linear-gradient(180deg, #2A1450 0%, #5B2480 100%)'
-    : 'linear-gradient(180deg, #02010C 0%, #0F0824 60%, #1F0E3A 100%)';
+  };
 
   const CELL = 38;
   const W = COLS * CELL;
-  const H = ROWS * CELL;
 
   const liveStatus = completed
     ? 'You found the way out. Backstreets complete.'
@@ -524,21 +513,9 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
     >
       <style>{`
-        @keyframes em-mz-glow {
-          0%, 100% { filter: drop-shadow(0 0 6px ${ACCENT}); }
-          50% { filter: drop-shadow(0 0 16px ${ACCENT}) drop-shadow(0 0 4px #FBBF24); }
-        }
-        @keyframes em-mz-token-pulse {
-          0%, 100% { transform: scale(1); opacity: 0.85; }
-          50% { transform: scale(1.12); opacity: 1; }
-        }
-        @keyframes em-mz-rise {
+@keyframes em-mz-rise {
           from { opacity: 0; transform: translateY(12px); }
           to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes em-mz-collected {
-          0% { transform: scale(1); opacity: 1; }
-          100% { transform: scale(2); opacity: 0; }
         }
         @media (max-width: 768px) {
           .em-mz-side { display: none !important; }
@@ -549,17 +526,6 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
       `}</style>
 
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{liveStatus}</div>
-
-      {/* Backstreet scene */}
-      <div style={{ position: 'absolute', inset: 0, background: grad }} />
-      {/* Old building silhouettes */}
-      <svg viewBox="0 0 1200 400" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '60%', opacity: 0.45 }}>
-        <path d="M0 400 L0 220 L60 220 L60 180 L120 180 L120 240 L180 240 L180 200 L260 200 L260 160 L320 160 L320 220 L380 220 L380 180 L440 180 L440 250 L520 250 L520 200 L580 200 L580 240 L640 240 L640 180 L720 180 L720 220 L800 220 L800 250 L880 250 L880 200 L940 200 L940 240 L1020 240 L1020 200 L1100 200 L1100 240 L1200 240 L1200 400 Z" fill="#0E0A1A" />
-        {Array.from({ length: 30 }).map((_, i) => (
-          <rect key={i} x={50 + i * 38} y={170 + (i % 3) * 30} width="6" height="8" fill="#FBBF24" opacity={0.5 + (i % 3) * 0.15} />
-        ))}
-      </svg>
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
 
       <div className="em-mz-layout" style={{
         position: 'relative', display: 'grid',
@@ -600,142 +566,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'flex-start', padding: 16, position: 'relative', minWidth: 0 }}>
             <div style={{ width: '100%', maxWidth: W, minHeight: 340, position: 'relative' }}>
-              <ActionPlayfield3D kind="mazechase" data={{grid:{rows:ROWS,cols:COLS,walls:MAZE},player:pos,shadow,lamps,shield,reducedMotion:actionReducedMotion,onMove:moveOne,actors:tokens.map(t=>({id:t.optionIdx,x:t.cell.c,y:t.cell.r,label:t.word,selected:hintActive&&t.isAnswer}))}}><svg viewBox={`0 0 ${W} ${H}`} style={{
-                width: '100%', height: '100%',
-                background: '#0A0518',
-                borderRadius: 8,
-                border: `1px solid ${ACCENT}33`,
-                boxShadow: 'inset 0 0 32px rgba(0,0,0,0.85)',
-              }}>
-                {/* Cobblestones for paths — single subtle dot per cell so the
-                    grid stays readable. Previous 4-dot-per-cell pattern read as
-                    "dotted purple noise" at viewport scale (CD audit #20). */}
-                <defs>
-                  <pattern id="mz-cobble" width="38" height="38" patternUnits="userSpaceOnUse">
-                    <rect width="38" height="38" fill="#1A1430" />
-                    <circle cx="19" cy="19" r="2" fill="#2A1F4A" />
-                  </pattern>
-                </defs>
-                {/* Walls (buildings) — high-contrast outline so the corridor
-                    structure is obvious at a glance. Previous stroke
-                    rgba(125,211,252,0.06) was effectively invisible. */}
-                {MAZE.map((row, r) => row.map((v, c) => (
-                  v === 1 ? (
-                    <rect
-                      key={`${r},${c}`}
-                      x={c * CELL} y={r * CELL}
-                      width={CELL} height={CELL}
-                      fill="#1B0F36"
-                      stroke="rgba(125,211,252,0.32)"
-                      strokeWidth="1"
-                    />
-                  ) : (
-                    <rect
-                      key={`${r},${c}`}
-                      x={c * CELL} y={r * CELL}
-                      width={CELL} height={CELL}
-                      fill="url(#mz-cobble)"
-                    />
-                  )
-                )))}
-
-                {/* Lamplight pools — REMOVED.
-                    Previous implementation: 4 yellow circles (#FBBF24) at
-                    r=CELL*0.9 (~34px) with mix-blend-mode:screen pulsing to
-                    opacity 0.85. Over the dark maze, screen-blend caused them
-                    to bloom into the translucent yellow blob artefacts Mike
-                    flagged ("looks bad and looks like its glitching"). The
-                    art-direction pass (#0) will add proper themed lamp-post
-                    sprites; until then the pools are off so the grid reads. */}
-
-                {/* Trail behind player */}
-                {trail.map((t, i) => (
-                  <circle key={i}
-                    cx={t.c * CELL + CELL / 2}
-                    cy={t.r * CELL + CELL / 2}
-                    r={CELL * 0.18}
-                    fill={ACCENT}
-                    opacity={(7 - i) * 0.06}
-                  />
-                ))}
-
-                {/* Tokens — icon-only inside maze cell, label rendered as
-                    floating HTML nameplate beside (Orchard-Square pattern, #20).
-                    SMART POSITIONING (Ricky 2026-05-03 fix for Mike playtest):
-                    label direction (above/below/left/right) is chosen per-token
-                    based on which side has at least 1.6 cells of breathing
-                    room. Previous implementation always pushed labels DOWN by
-                    CELL*1.55, which for tokens in the bottom rows produced
-                    nameplates clipped at or pushed below the maze grid. */}
-                {tokens.map((t, i) => {
-                  const cx = t.cell.c * CELL + CELL / 2;
-                  const cy = t.cell.r * CELL + CELL / 2;
-                  const showHint = hintActive && t.isAnswer;
-                  const labelColor = hintActive && t.isAnswer ? '#FBBF24' : ACCENT;
-                  // Choose connector direction. Prefer DOWN, then UP, then
-                  // RIGHT, then LEFT — but only pick a direction that fits
-                  // entirely inside the maze SVG.
-                  const NEED = CELL * 1.55;
-                  const downOk = cy + NEED < H - 4;
-                  const upOk = cy - NEED > 4;
-                  const rightOk = cx + NEED < W - 4;
-                  const leftOk = cx - NEED > 4;
-                  const dir: 'down' | 'up' | 'right' | 'left' =
-                    downOk ? 'down' : upOk ? 'up' : rightOk ? 'right' : leftOk ? 'left' : 'down';
-                  const lineFrom = {
-                    x: cx + (dir === 'right' ? CELL * 0.32 : dir === 'left' ? -CELL * 0.32 : 0),
-                    y: cy + (dir === 'down' ? CELL * 0.32 : dir === 'up' ? -CELL * 0.32 : 0),
-                  };
-                  const lineTo = {
-                    x: cx + (dir === 'right' ? NEED - 2 : dir === 'left' ? -(NEED - 2) : 0),
-                    y: cy + (dir === 'down' ? NEED - 2 : dir === 'up' ? -(NEED - 2) : 0),
-                  };
-                  return (
-                    <g key={`tok-${i}`}>
-                      {/* Token icon inside the cell */}
-                      <g style={{
-                        transformOrigin: `${cx}px ${cy}px`,
-                        animation: 'em-mz-token-pulse 1.6s var(--em-ease) infinite',
-                      }}>
-                        {showHint && (
-                          <circle cx={cx} cy={cy} r={CELL * 0.5} fill="none" stroke="#FBBF24" strokeWidth="1.6" />
-                        )}
-                        <circle cx={cx} cy={cy} r={CELL * 0.3} fill={labelColor} /><text x={cx} y={cy + 4} textAnchor="middle" fontSize="13" fontWeight="800" fill="#091426">{t.optionIdx + 1}</text>
-                      </g>
-                    </g>
-                  );
-                })}
-
-                {lamps.map(l => <g key={`${l.r}-${l.c}`} transform={`translate(${l.c * CELL + CELL / 2} ${l.r * CELL + CELL / 2})`}><circle r="14" fill="#fbbf241b" stroke="#fbbf24" strokeDasharray="3 3"/><path d="M-4-7H4L6 5H-6Z" fill="#ffe89a"/><path d="M0 5V11M-5 11H5" stroke="#fbbf24" strokeWidth="2"/></g>)}
-                <g transform={`translate(${shadow.c * CELL + CELL / 2} ${shadow.r * CELL + CELL / 2})`} style={{ opacity: shield ? .3 : 1 }}><circle r="18" fill="#fb71851b"/><path d="M-11 10V-2A11 11 0 0 1 11-2V10L6 6L0 11L-5 6Z" fill="#f472b6" stroke="#ffbfdf"/><circle cx="-4" cy="-1" r="3" fill="#fff"/><circle cx="4" cy="-1" r="3" fill="#fff"/><circle cx="-3" cy="0" r="1.5" fill="#20102b"/><circle cx="5" cy="0" r="1.5" fill="#20102b"/></g>
-                {/* Player lantern — halo radius reduced from 0.95 to 0.55 so
-                    it no longer blooms across neighbouring cells (same bloom
-                    bug class as the removed lamplight pools). */}
-                <g style={{ animation: 'em-mz-glow 1.8s var(--em-ease) infinite' }}>
-                  <circle
-                    cx={pos.c * CELL + CELL / 2}
-                    cy={pos.r * CELL + CELL / 2}
-                    r={CELL * 0.55}
-                    fill={ACCENT}
-                    opacity={0.16}
-                    style={{ transition: 'cx 200ms var(--em-ease), cy 200ms var(--em-ease)' }}
-                  />
-                  <circle
-                    cx={pos.c * CELL + CELL / 2}
-                    cy={pos.r * CELL + CELL / 2}
-                    r={CELL * 0.3}
-                    fill="#FBBF24"
-                    style={{ transition: 'cx 200ms var(--em-ease), cy 200ms var(--em-ease)' }}
-                  />
-                  <circle
-                    cx={pos.c * CELL + CELL / 2}
-                    cy={pos.r * CELL + CELL / 2}
-                    r={CELL * 0.14}
-                    fill="#FFF8E5"
-                    style={{ transition: 'cx 200ms var(--em-ease), cy 200ms var(--em-ease)' }}
-                  />
-                </g>
-              </svg></ActionPlayfield3D>
+              <ActionPlayfield3D kind="mazechase" data={{grid:{rows:ROWS,cols:COLS,walls:MAZE},player:pos,shadow,lamps,shield,reducedMotion:actionReducedMotion,onMove:moveOne,actors:tokens.map(t=>({id:t.optionIdx,x:t.cell.c,y:t.cell.r,label:t.word,selected:hintActive&&t.isAnswer}))}} />
 
             </div>
             <div className="action-arcade-option-list" aria-label="Token words">{cur.options.map((word, i) => <span key={i} style={{ opacity: tokens.some(t => t.optionIdx === i) ? 1 : .45 }}><b>{i + 1}</b>{word}</span>)}</div>
@@ -761,11 +592,11 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
             {missCount > 0 && (
               <div style={{
                 position: 'absolute', top: 8, left: 24,
-                fontFamily: 'var(--em-mono)', fontSize: 10, color: '#FB7185',
+                fontFamily: 'var(--em-mono)', fontSize: 10, color: '#ff3871',
                 letterSpacing: '0.16em',
                 padding: '4px 8px',
                 background: 'rgba(251,113,133,0.1)',
-                border: '1px solid #FB718555',
+                border: '1px solid #ff387155',
                 borderRadius: 4,
               }}>{missCount} WRONG TURN{missCount === 1 ? '' : 'S'}</div>
             )}
@@ -865,10 +696,10 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
               <span aria-hidden="true" style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 14, height: 14, borderRadius: '50%',
-                background: '#FB7185', color: '#0E0A1A',
+                background: '#ff3871', color: '#0E0A1A',
                 fontSize: 10, fontWeight: 900, lineHeight: 1,
               }}>✗</span>
-              <span style={{ color: '#FB7185' }}>PINK = SHADOW</span>
+              <span style={{ color: '#ff3871' }}>PINK = SHADOW</span>
             </span>
           </div>
         </div>

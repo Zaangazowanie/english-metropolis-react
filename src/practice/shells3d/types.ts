@@ -1,15 +1,14 @@
-// Fluent City 3D game shells — the binding contract (2026-06-12).
-// Every game in src/practice/shells3d/ MUST implement Game3DProps and respect
-// the budgets in docs/game3d/CONTRACT.md. CI (game3d-gate) enforces them.
+// City host and registry contracts. Practice scenes consume their canonical
+// controller's typed state and callbacks; registry adapters implement
+// Game3DProps. All scenes respect docs/game3d/CONTRACT.md budgets.
 //
 // A 3D game is a *presentation* of an existing practice shell: same puzzle in,
-// same session result out. The 2D shell in src/practice/shells/ remains the
-// canonical mechanic and the automatic fallback (WebGL unavailable, reduced
-// motion, low-end device). Never fork the pedagogy — only the stagecraft.
+// same session result out. Controllers in src/practice/shells/ retain the
+// canonical mechanics and compact playable WebGL fallbacks.
 
 import type { ComponentType } from 'react'
 
-/** Same VocabItem the 2D shells consume (src/practice/lib/useStudentVocab). */
+/** Vocabulary consumed by practice controllers (lib/useStudentVocab). */
 export interface Vocab3DItem {
   word: string
   word_pl?: string
@@ -19,7 +18,7 @@ export interface Vocab3DItem {
   topic?: string
 }
 
-/** Mirrors the 2D shells' onSessionComplete payload — do not extend casually:
+/** Normalized practice onSessionComplete payload — do not extend casually:
  *  practiceProgress/Convex and the scheduler consume this shape. */
 export interface SessionResult {
   correctCount: number
@@ -51,12 +50,12 @@ export interface Game3DProps {
 
 export type Game3DComponent = ComponentType<Game3DProps>
 
-/** Per-game registry entry. The host (StudentPractice / playable home) lazy-
- *  loads the 3D variant and falls back to the 2D shell on failure. */
+/** City registry entry. Practice entries lazy-load the canonical controller
+ *  through the local-demo adapter; World entries load their own scenes. */
 export interface Game3DRegistryEntry {
-  /** Must equal the 2D shell's route key (e.g. 'snake', 'mazechase'). */
+  /** Must equal the canonical route key (e.g. 'snake', 'mazechase'). */
   shellKey: string
-  /** Storybook display name, e.g. 'Metro Snake'. */
+  /** Current catalogue display name. */
   title: string
   /** Fluent City district the game lives in (see docs/game3d/CONTRACT.md). */
   district: string

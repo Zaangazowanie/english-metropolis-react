@@ -8,19 +8,10 @@ import { ChallengeArena, useChallengeArcade } from './challenge-arcade';
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
 import { useShellProgress } from '../lib/convex-stubs';
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/shells/multiplechoice.css';
-import {
-  Bajla,
-  HintCard,
-  Progress,
-  Nameplate,
-  SkipButton,
-  HintButton,
-  Confetti,
-  useEndOfShellTip,
-} from '../components/primitives';
-import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
+import { useEndOfShellTip } from '../components/primitives';
+
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components/ExpandableInstructions';
 
@@ -222,11 +213,6 @@ const POSTER_HUES = ['#FBBF24', '#7DD3FC', '#BEF264', '#E879F9']; // option-card
 
 // Stable rotation for poster jitter — a tiny per-id pseudo-hash so the
 // board feels hand-pinned, not algorithmic.
-function jitter(seed: string, range = 3): number {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
-  return (((h % (range * 200)) / 100) - range);
-}
 
 // ─────────────────────────────────────────────────────────────
 // MCPoster — single answer-poster card. Used both in live play AND inside
@@ -378,7 +364,7 @@ export function renderMCReviewItem(
 // Component
 // ─────────────────────────────────────────────────────────────
 export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
-  time = 'dusk',
+
   state: forcedState = null,
   puzzle,
   onWrongAnswer,
@@ -400,13 +386,10 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
   const [score, setScore] = useState<number>(0);
   const [hintsUsed, setHintsUsed] = useState<number>(0);
   const [hintRevealed, setHintRevealed] = useState<boolean>(false);
-  const [shake, setShake] = useState<boolean>(false);
+
   const [announcement, setAnnouncement] = useState<string>('');
-  const cardRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
   // Kelly Tier-2 (2026-05-02): focus-trap refs for the board-full dialog.
-  const tryAnotherBtnRef = useRef<HTMLButtonElement | null>(null);
-  const nextDistrictBtnRef = useRef<HTMLButtonElement | null>(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   // Layer-4 (EM-040): accumulate wrong attempts for an end-of-shell summary
   // so the InterferenceTip doesn't interrupt the per-question rhythm.
@@ -483,9 +466,9 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
       setScore((s) => s + 1);
       setAnnouncement(`Correct. The right poster was ${cur.options[i]}.`);
     } else {
-      setShake(true);
+
       setAnnouncement(`Not quite. The correct answer was ${cur.options[cur.answerIndex]}.`);
-      setTimeout(() => setShake(false), 480);
+
       tip.recordWrong({
           questionId: cur.id,
           studentAnswer: cur.options[i],
@@ -533,14 +516,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
     tip.reset();
   };
 
-
-
   // Memoised poster rotations so they don't re-jitter on every render.
-  const rotations = useMemo(
-    () => cur ? cur.options.map((opt, i) => jitter(`${cur.id}:${i}:${opt}`, 2.4)) : [],
-    [cur],
-  );
-  const posterRot = useMemo(() => cur ? jitter(cur.id, 1.6) : 0, [cur]);
 
   const liveStatus = completed
     ? `All posters answered. Score ${score} of ${total}.`
@@ -550,7 +526,7 @@ export const MultipleChoiceShell: React.FC<MultipleChoiceShellProps> = ({
     return <div className="em-shell-host-error">No puzzle data available · Brak danych ćwiczenia</div>;
   }
 
-  return <ChallengeArena variant="bulletin" title="The Bulletin Board" mission="Restore power, one correct poster at a time." prompt={cur?.prompt} translation={cur?.prompt_pl} options={cur?.options ?? []} picked={picked} answerIndex={cur?.answerIndex ?? -1} revealed={revealed} round={idx} total={total} score={score} completed={completed} onPick={pick} onNext={advance} onSkip={skip} onReset={reset} onHint={useHint} hintDisabled={hintsUsed >= 3 || hintRevealed} hint={revealed ? cur?.hint_pl || cur?.hint : hintRevealed ? cur?.hint : undefined} run={arcade} />;
+  return <ChallengeArena announcement={liveStatus} variant="bulletin" title="The Bulletin Board" prompt={cur?.prompt} translation={cur?.prompt_pl} options={cur?.options ?? []} picked={picked} answerIndex={cur?.answerIndex ?? -1} revealed={revealed} round={idx} total={total} score={score} completed={completed} onPick={pick} onNext={advance} onSkip={skip} onReset={reset} onHint={useHint} hintDisabled={hintsUsed >= 3 || hintRevealed} hint={revealed ? cur?.hint_pl || cur?.hint : hintRevealed ? cur?.hint : undefined} run={arcade} />;
 };
 
 export default MultipleChoiceShell;

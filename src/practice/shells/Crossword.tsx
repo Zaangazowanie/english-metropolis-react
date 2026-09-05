@@ -7,7 +7,6 @@ import { createStreetAdvance } from './word-arcade-crossword';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Bajla,
-  SkylineBackdrop,
   HintCard,
   Progress,
   Nameplate,
@@ -789,8 +788,8 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
         {liveStatus}
       </div>
-      <SkylineBackdrop hue={290} time={time} />
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 40%, rgba(232,121,249,0.08), transparent 60%), radial-gradient(ellipse at 70% 70%, rgba(125,211,252,0.06), transparent 65%)', pointerEvents: 'none' }} />
+
+
 
       <div className="em-shell-crossword-grid" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 24, padding: 32, height: '100%', boxSizing: 'border-box' }}>
 

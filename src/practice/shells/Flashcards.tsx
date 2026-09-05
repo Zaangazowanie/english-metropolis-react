@@ -1,13 +1,6 @@
 import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
 const WordScene3D = wordLazy(() => import('../shells3d/WordFlashcards3D'));
-// Flashcards — Café Spółdzielnia (cork board) district.
-// Paper notes pinned by masking tape to the cork board. Tap to flip.
-// Mark known/review. Swipe through the deck.
-// Theme unified to Café Spółdzielnia 2026-05-02 (Ricky) — was previously
-// split with "Library Tower" as district + "Café Spółdzielnia" as subtitle.
-// The cork-board-with-paper visual IS Café Spółdzielnia, not a library tower.
-//
-// Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
+// Flashcards — memory recall, archive grading and a semantic text fallback.
 import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import type { ShellFlashcardsPuzzle } from '../lib/adapters';
@@ -15,7 +8,6 @@ import type { ShellFlashcardsPuzzle } from '../lib/adapters';
 import React, { useEffect, useState, useRef } from 'react';
 import {
   Bajla,
-  BajlaMood,
   Confetti,
   HintButton,
   HintCard,
@@ -27,36 +19,36 @@ import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
 // Mike #7 — expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components/ExpandableInstructions';
 
-// Café Spółdzielnia · Flashcards — full bilingual instruction copy.
+// Memory Vault — full bilingual instruction copy.
 const FLASHCARDS_INSTRUCTIONS: FullInstructions = {
   whatYouDo: {
     en: [
-      'Paper notes are pinned to the cork board — each card holds an English word or prompt.',
+      'Each vault card holds an English word or prompt. Recall its meaning before opening it.',
       'Look at the front, say the answer aloud (or think it), then tap to flip and reveal the Polish.',
       'After flipping, mark the card "Known" if you recalled it, or "Review" if you need it again.',
-      'Swipe (or tap arrows) to move through the deck — review cards loop back later.',
+      'Route the opened card to Mastered or Review. Use Previous to revisit a card.',
     ],
     pl: [
-      'Papierowe notatki są przypięte do tablicy korkowej — każda karta zawiera angielskie słowo lub polecenie.',
+      'Każda karta w sejfie zawiera angielskie słowo lub polecenie. Przypomnij sobie znaczenie, zanim ją otworzysz.',
       'Spójrz na przód, powiedz odpowiedź na głos (lub pomyśl), potem stuknij, aby odwrócić i pokazać polski.',
       'Po odwróceniu zaznacz kartę „Znam", jeśli przypomniałeś sobie, lub „Powtórz", jeśli potrzebujesz jeszcze raz.',
-      'Przesuń (lub strzałki), aby poruszać się po talii — karty „Powtórz" wrócą później.',
+      'Wyślij otwartą kartę do archiwum Znam lub Powtórz. Przycisk Previous wraca do poprzedniej karty.',
     ],
   },
   controls: {
     en: [
-      'Active card: the centred paper note pinned with masking tape.',
+      'Active card: the word capsule in the centre of the vault.',
       'Tap card: flips between English (front) and Polish (back).',
       '"Known" button: marks the card as remembered and removes it from review.',
       '"Review" button: keeps the card in the active queue for another pass.',
-      'Skip / Hint buttons: 3 hints — reveals a one-letter clue without flipping.',
+      'Hint opens the card. Two hints are available. Skip moves on without marking it Known.',
     ],
     pl: [
-      'Aktywna karta: wyśrodkowana papierowa notatka przypięta taśmą.',
+      'Aktywna karta: kapsuła ze słowem w środku sejfu.',
       'Stuknij kartę: odwraca między angielskim (przód) a polskim (tył).',
       'Przycisk „Znam": oznacza kartę jako zapamiętaną i usuwa z powtórek.',
       'Przycisk „Powtórz": utrzymuje kartę w aktywnej kolejce na kolejną rundę.',
-      'Pomiń / Podpowiedź: 3 sztuki — odkrywa wskazówkę jednoliterową bez odwracania.',
+      'Podpowiedź otwiera kartę. Masz dwie podpowiedzi. Pomiń przechodzi dalej bez oznaczania jako Znam.',
     ],
   },
   rightWrongSkip: {
@@ -75,9 +67,9 @@ const FLASHCARDS_INSTRUCTIONS: FullInstructions = {
   },
   hintMechanic: {
     en:
-      'You have 3 hints per session. Each hint reveals the first letter (and image, if available) without flipping the card. Save them when the prompt is opaque and you need a foothold.',
+      'You have two hints per session. A hint opens the card so you can study the answer. The text controls also include its example sentence and image when available.',
     pl:
-      'Masz 3 podpowiedzi na sesję. Każda odkrywa pierwszą literę (i obrazek, jeśli jest) bez odwracania karty. Zachowaj je, gdy polecenie jest niejasne i potrzebujesz punktu zaczepienia.',
+      'Masz dwie podpowiedzi na sesję. Podpowiedź otwiera kartę i pokazuje odpowiedź. W widoku tekstowym znajdziesz też przykładowe zdanie i obrazek, jeśli jest dostępny.',
   },
   scoring: {
     en:
@@ -229,7 +221,7 @@ export type { FlashCard as ShellFlashcardsCard };
 
 type Mark = 'known' | 'review' | 'skipped';
 type MarkMap = Record<number, Mark>;
-type Pulse = 'flip' | 'known' | 'review' | null;
+
 
 // ─────────────────────────────────────────────────────────────
 // Component
@@ -305,41 +297,21 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
     });
   }, [marks, completedFired, onSessionComplete, activeDeck, forcedState]);
   const [hintsUsed, setHintsUsed] = useState<number>(0);
-  const [pulse, setPulse] = useState<Pulse>(null);
+
   const [announcement, setAnnouncement] = useState<string>('');
 
-  // CD audit fix (Ricky 2026-05-02): right-side feature card visibility.
-  // Only render the WORDS LEARNED panel at desktop ≥1280px so it doesn't
-  // crowd the active card on tablet/mobile.
-  const [isDesktop, setIsDesktop] = useState<boolean>(() =>
-    typeof window !== 'undefined' && window.matchMedia
-      ? window.matchMedia('(min-width: 1280px)').matches
-      : false
-  );
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-    const mq = window.matchMedia('(min-width: 1280px)');
-    const onChange = (e: MediaQueryListEvent): void => setIsDesktop(e.matches);
-    if (mq.addEventListener) mq.addEventListener('change', onChange);
-    else mq.addListener(onChange); // older Safari
-    return () => {
-      if (mq.removeEventListener) mq.removeEventListener('change', onChange);
-      else mq.removeListener(onChange);
-    };
-  }, []);
+
+
 
   // Forced state for canvas state sequence — matches Crossword vocab.
   useEffect(() => {
     if (forcedState === 'empty')   { setIdx(0); setFlipped(false); setMarks({}); setHintsUsed(0); }
     if (forcedState === 'active')  { setIdx(1); setFlipped(false); setMarks({ 0: 'known' }); setHintsUsed(0); }
-    if (forcedState === 'wrong')   { setIdx(2); setFlipped(true);  setMarks({ 0: 'known', 1: 'review' }); setHintsUsed(0); setPulse('review'); }
-    if (forcedState === 'correct') { setIdx(3); setFlipped(true);  setMarks({ 0: 'known', 1: 'review', 2: 'known' }); setHintsUsed(0); setPulse('known'); }
+    if (forcedState === 'wrong')   { setIdx(2); setFlipped(true);  setMarks({ 0: 'known', 1: 'review' }); setHintsUsed(0);  }
+    if (forcedState === 'correct') { setIdx(3); setFlipped(true);  setMarks({ 0: 'known', 1: 'review', 2: 'known' }); setHintsUsed(0);  }
     if (forcedState === 'complete'){ setIdx(activeDeck.length - 1); setFlipped(false);
       setMarks({ 0: 'known', 1: 'review', 2: 'known', 3: 'known', 4: 'review', 5: 'known' }); setHintsUsed(0); }
-    if (forcedState && (forcedState === 'wrong' || forcedState === 'correct')) {
-      const t = setTimeout(() => setPulse(null), 800);
-      return () => clearTimeout(t);
-    }
+
     return undefined;
   }, [forcedState]);
 
@@ -352,7 +324,7 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
   // Drives both the image-slot reflow on the front of the card AND the
   // Bajla copy gating so we don't tell the student "look at the photo"
   // when there is no photo.
-  const hasImage = !!(card?.image_url && card.image_url.trim());
+
 
   const advance = (mark: Mark | null): void => {
     if (forcedState || advancingRef.current || completed) return;
@@ -365,9 +337,9 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
     const effective: Mark = mark ?? 'skipped';
     setMarks(m => ({ ...m, [idx]: effective }));
     if (mark) {
-      setPulse(mark === 'known' || mark === 'review' ? mark : null);
+
       setAnnouncement(mark === 'known' ? `Marked ${card.en} known. Znane.` : `Marked ${card.en} for review. Do powtórzenia.`);
-      setTimeout(() => setPulse(null), 600);
+
       // Layer-4: a "review" mark = student admits this one tripped them up.
       if (mark === 'review' && onWrongAnswer) {
         onWrongAnswer({
@@ -393,8 +365,8 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
     if (forcedState || hintsUsed >= 2) return;
     setFlipped(true);
     setHintsUsed(h => h + 1);
-    setPulse('flip');
-    setTimeout(() => setPulse(null), 600);
+
+
   };
 
   const reshuffle = (): void => { arcade.restart(); setMarks({}); setIdx(0); setFlipped(false); setRecall(''); setRecallResult(null); setCompletedFired(false); };
@@ -407,72 +379,14 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
     if (right) setFlipped(true);
   };
 
-  // CD audit fix (Ricky 2026-05-02): adjacent peek cards removed.
-  // The previous 3-card fan rendered left/right neighbors at 0.55 opacity,
-  // which sliced the FRONT text of those cards into mid-word fragments
-  // ("nikoden hasn't/hav... ___" / "they have ...cently ___ (...ind)") —
-  // CD's audit flagged this as reading like a bug, not a stack-peek.
-  // Option A chosen: show only the active card centered.
-  interface FanEntry {
-    offset: 0;
-    idx: number;
-    rot: number;
-    x: number;
-    scale: number;
-    opacity: number;
-    z: number;
-  }
-  const fanCards: FanEntry[] = [
-    { offset: 0, idx, rot: -2, x: 0, scale: 1, opacity: 1, z: 3 },
-  ];
 
-  // Time-of-day cork board palette
-  const corkByTime: Record<ShellTime, string> = {
-    day:   'radial-gradient(ellipse at center, #8E5A2C 0%, #4F2F18 100%)',
-    dusk:  'radial-gradient(ellipse at center, #6E4520 0%, #3F2510 100%)',
-    night: 'radial-gradient(ellipse at center, #3A2410 0%, #1A0E06 100%)',
-  };
-
-  // Bajla mood — react inline
-  const bajlaMood: BajlaMood =
-    pulse === 'known' ? 'cheer' :
-    pulse === 'review' ? 'think' :
-    pulse === 'flip' ? 'wave' :
-    flipped ? 'wave' :
-    knownCount > reviewCount ? 'cheer' :
-    'idle';
 
   return (
     <div className="em-shell wa-flashcards" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-      {/* cork board */}
-      <div style={{ position: 'absolute', inset: 0, background: corkByTime[time] }} />
-      <div style={{ position: 'absolute', inset: 0, backgroundImage:
-        "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><filter id='c'><feTurbulence baseFrequency='0.7' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.25 0 0 0 0 0.1 0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23c)' opacity='0.4'/></svg>\")",
-        opacity: 0.7 }} />
-
-      {/* Pinned previous-cards (already-marked cards on the board) */}
-      <div style={{ position: 'absolute', top: 90, left: 28, display: 'flex', gap: 8, opacity: 0.7, zIndex: 1 }} aria-hidden="true">
-        {Object.entries(marks).slice(0, 4).map(([k, v]) => (
-          <div key={k} style={{
-            width: 38, height: 48, borderRadius: 2,
-            background: v === 'known' ? '#F5EBD8' : '#E8DCC0',
-            transform: `rotate(${(parseInt(k) % 2 ? -1 : 1) * 4}deg)`,
-            boxShadow: '0 4px 8px rgba(0,0,0,0.4)',
-            border: `2px solid ${v === 'known' ? '#34D39966' : '#FB718566'}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'var(--em-decor)', fontSize: 9, color: '#3F2510',
-          }}>{activeDeck[parseInt(k)]?.en.slice(0, 4)}</div>
-        ))}
-      </div>
-
       {/* Top bar */}
       <div style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', zIndex: 5 }}>
-        {/* CD audit fix (Ricky 2026-05-02): theme unified to Café Spółdzielnia.
-            Cork board with paper notes pinned by tape IS the cooperative-café
-            visual — "Library Tower" implied photographs/polaroids and conflicted
-            with the visual. Subtitle stack now Option-C 4-line. */}
         <AmbientAudioPlayer shellSlug="flashcards" />
-        <Nameplate district="Café Spółdzielnia" subtitle="Flashcards · Karty · pinned to the cork board · przyczepione do tablicy korkowej" accent={accent}
+        <Nameplate district="The Memory Vault" subtitle="Flashcards · Fiszki · recall, reveal, remember" accent={accent}
           icon={<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="5" width="16" height="12" rx="1.5" stroke={accent} strokeWidth="1.6" transform="rotate(-3 11 11)"/></svg>}/>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {/* CD audit fix (Ricky 2026-05-02): triple-counter (KNOWN/REVIEW/Q)
@@ -488,203 +402,11 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
         <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={idx} front={recallMode?card.pl:card.en} back={recallMode?card.en:card.pl} flipped={flipped} onFlip={()=>!forcedState&&setFlipped(v=>!v)} onMark={mark=>flipped&&advance(mark)}/></WordSuspense>
         <div className="wa-inline-tools"><button aria-pressed={recallMode} onClick={()=>{setRecallMode(v=>!v);setFlipped(false);setRecall('');setRecallResult(null);}}>Recall challenge {recallMode?'on':'off'}</button><span>{recallMode?'Translate the Polish prompt from memory.':'Think of the meaning before you reveal.'}</span></div>
       </div>
-      {/* The fan of cards */}
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', perspective: 1200, zIndex: 3 }} role="region" aria-label="Flashcard deck">
-        {fanCards.map(({ offset, idx: ci, rot, x, scale, opacity, z }) => {
-          const c = activeDeck[ci];
-          const isFront = offset === 0;
-          const mark = marks[ci];
-          const showPulse = isFront && (pulse === 'known' || pulse === 'review');
-          return (
-            <div key={offset}
-              role={isFront ? 'button' : undefined}
-              tabIndex={isFront ? 0 : -1}
-              aria-label={isFront ? `Flashcard: ${recallMode && !flipped ? c.pl : c.en}. Tap to flip.` : undefined}
-              onClick={() => isFront && !forcedState && setFlipped(f => !f)}
-              onKeyDown={(e) => { if (isFront && !forcedState && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setFlipped(f => !f); } }}
-              style={{
-                position: 'absolute',
-                width: 280, height: 360,
-                transform: `translateX(${x}px) rotate(${rot}deg) scale(${scale})`,
-                opacity,
-                zIndex: z,
-                cursor: isFront ? 'pointer' : 'default',
-                transition: 'all 320ms var(--em-ease)',
-                transformStyle: 'preserve-3d',
-                filter: showPulse
-                  ? pulse === 'known' ? 'drop-shadow(0 0 24px #34D39988)' : 'drop-shadow(0 0 24px #FB718588)'
-                  : 'none',
-              }}>
-              {/* masking-tape pin */}
-              <div style={{
-                position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
-                width: 50, height: 18,
-                background: mark === 'known'
-                  ? 'linear-gradient(180deg, #34D399cc, #34D39988)'
-                  : mark === 'review'
-                  ? 'linear-gradient(180deg, #FB7185cc, #FB718588)'
-                  : 'linear-gradient(180deg, #FBBF24cc, #FBBF2488)',
-                opacity: 0.85,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                zIndex: 5,
-              }} />
-              {/* card flip wrapper */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                transformStyle: 'preserve-3d',
-                transform: isFront && flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-                transition: 'transform 600ms var(--em-ease)',
-              }}>
-                {/* FRONT — image slot only renders when the card actually
-                    has an image_url. Otherwise the prompt fills the card and
-                    the layout reflows gracefully (no "PHOTO · X" fake band). */}
-                {(() => {
-                  const cardHasImage = !!(c.image_url && c.image_url.trim());
-                  return (
-                    <div style={{
-                      position: 'absolute', inset: 0, padding: 16,
-                      background: '#F5EBD8',
-                      boxShadow: '0 14px 28px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3)',
-                      backfaceVisibility: 'hidden',
-                      display: 'flex', flexDirection: 'column',
-                      // Center the prompt vertically when no image is present.
-                      justifyContent: cardHasImage ? 'flex-start' : 'center',
-                      gap: cardHasImage ? 0 : 12,
-                    }}>
-                      {cardHasImage && (
-                        <div
-                          className="em-photo"
-                          style={{
-                            position: 'relative',
-                            height: 220,
-                            ['--hue' as string]: c.hue,
-                            marginBottom: 12,
-                            backgroundImage: `url("${c.image_url}")`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                          } as React.CSSProperties}
-                        />
-                      )}
-                      <div style={{
-                        fontFamily: 'var(--em-decor)',
-                        fontSize: 'clamp(18px, 4.5vw, 32px)',
-                        lineHeight: 1.15,
-                        color: '#3F2510',
-                        textAlign: 'center',
-                        maxWidth: '100%',
-                        wordBreak: 'break-word',
-                        overflowWrap: 'anywhere',
-                        hyphens: 'auto',
-                      }}>
-                        "{recallMode ? c.pl : c.en}"
-                      </div>
-                      <div style={{ fontFamily: 'var(--em-body)', fontSize: 11, color: '#876543', textAlign: 'center', marginTop: 6, fontStyle: 'italic' }}>
-                        {isFront && !forcedState ? 'tap to flip · stuknij' : ''}
-                      </div>
-                    </div>
-                  );
-                })()}
-                {/* BACK */}
-                <div style={{
-                  position: 'absolute', inset: 0, padding: 16,
-                  background: '#F5EBD8',
-                  boxShadow: '0 14px 28px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3)',
-                  backfaceVisibility: 'hidden',
-                  transform: 'rotateY(180deg)',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12,
-                }}>
-                  <div className="em-eyebrow" style={{ color: '#876543' }}>{recallMode?'ENGLISH · ANSWER':'POLISH · PO POLSKU'}</div>
-                  <div style={{
-                    fontFamily: 'var(--em-decor)',
-                    fontSize: 'clamp(22px, 4vw, 38px)',
-                    lineHeight: 1.1,
-                    color: '#3F2510',
-                    textAlign: 'center',
-                    maxWidth: '100%',
-                    wordBreak: 'break-word',
-                    overflowWrap: 'anywhere',
-                    hyphens: 'auto',
-                    padding: '0 8px',
-                  }}>{recallMode?c.en:c.pl}</div>
-                  <div style={{ width: 40, height: 1, background: '#876543', opacity: 0.5 }}/>
-                  <div style={{ padding: '0 16px', textAlign: 'center' }}>
-                    <div style={{ fontFamily: 'var(--em-decor)', fontSize: 16, color: '#3F2510' }}>{c.ex}</div>
-                    <div style={{ fontFamily: 'var(--em-body)', fontSize: 13, color: '#876543', fontStyle: 'italic', marginTop: 4 }}>🇵🇱 {c.ex_pl}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
 
-      {/* Centered HintCard + standalone Bajla removed 2026-05-03 — chat-widget
-          speech bubble carries the brief; ExpandableInstructions stays for
-          full mechanic walkthrough. */}
-      <div style={{ position: 'absolute', bottom: 90, left: 24, maxWidth: 320, zIndex: 4 }}>
-      </div>
+      <details className="wa-memory-fallback"><summary>Card text and keyboard controls</summary><button className="wa-memory-flip" onClick={()=>!forcedState&&setFlipped(value=>!value)} disabled={!!forcedState} aria-label="Flip memory card">{flipped?(recallMode?card.en:card.pl):(recallMode?card.pl:card.en)}<small>{flipped?"Tap to see the prompt":"Tap to reveal the answer"}</small></button>{card.image_url&&<img src={card.image_url} alt={card.en} loading="lazy"/>}{flipped&&<div className="wa-memory-example"><p>{card.ex}</p><p lang="pl">{card.ex_pl}</p></div>}</details>
 
-      {/* CD audit fix (Ricky 2026-05-02): right-side feature card.
-          "WORDS LEARNED · POZNANE SŁOWA" running list of words flipped to KNOWN
-          this session. Cork-board styled paper note with red push-pin. Hidden
-          below 1280px so it doesn't crowd the active card on tablet/mobile. */}
-      {isDesktop && (
-      <div
-        className="em-flashcards-feature-card"
-        style={{
-          position: 'absolute',
-          top: 180,
-          right: 32,
-          width: 220,
-          maxHeight: 360,
-          zIndex: 4,
-          padding: '34px 18px 18px',
-          background: 'linear-gradient(180deg, #F5EBD8 0%, #ECDFC4 100%)',
-          boxShadow: '0 12px 26px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.25)',
-          transform: 'rotate(2deg)',
-          fontFamily: 'var(--em-body)',
-          color: '#3F2510',
-          overflow: 'hidden',
-        }}
-        aria-label="Words learned this session"
-      >
-        {/* push-pin */}
-        <div style={{
-          position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
-          width: 18, height: 18, borderRadius: '50%',
-          background: 'radial-gradient(circle at 35% 30%, #FCA5A5 0%, #DC2626 60%, #7F1D1D 100%)',
-          boxShadow: '0 3px 5px rgba(0,0,0,0.4)',
-        }} />
-        <div className="em-eyebrow" style={{ color: '#876543', textAlign: 'center', marginBottom: 10, fontSize: 10, letterSpacing: '0.12em' }}>
-          WORDS LEARNED · POZNANE SŁOWA
-        </div>
-        {knownCount === 0 ? (
-          <div style={{ fontSize: 12, color: '#876543', fontStyle: 'italic', textAlign: 'center', padding: '12px 4px' }}>
-            Mark a card "I know this" to pin it here.<br/>
-            <span style={{ fontSize: 11 }}>Oznacz kartę "Znam to", aby ją tu przypiąć.</span>
-          </div>
-        ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
-            {Object.entries(marks)
-              .filter(([, v]) => v === 'known')
-              .map(([k]) => activeDeck[parseInt(k, 10)])
-              .filter(Boolean)
-              .map((c, i) => (
-                <li key={i} style={{
-                  display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-                  gap: 8, padding: '4px 8px',
-                  borderLeft: '3px solid #34D399',
-                  background: 'rgba(52,211,153,0.08)',
-                  fontSize: 13,
-                }}>
-                  <span style={{ fontFamily: 'var(--em-decor)', color: '#1B8060', fontWeight: 600 }}>{c.en}</span>
-                  <span style={{ color: '#876543', fontSize: 11, fontStyle: 'italic' }}>{c.pl}</span>
-                </li>
-              ))}
-          </ul>
-        )}
-      </div>
-      )}
+
+
 
       {/* Live region for assistive tech */}
       <div aria-live="polite" aria-atomic="true" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>

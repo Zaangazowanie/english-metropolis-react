@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei/web/Html';
 import { MathUtils, type Group } from 'three';
@@ -53,9 +53,7 @@ function ObjectControl({item,at,design,onClick,portal,width,selected,slot=false,
   const group=useRef<Group>(null!);
   const {reducedMotion}=useStageQuality();
   const right=item.state==='right', wrong=item.state==='wrong', hidden=item.state==='hidden';
-  const color=right?'#8ce5bc':wrong?'#ec8396':selected?'#fff1b3':design.color;
-  const train=design.kind==='freight'||design.kind==='sentence'||design.kind==='junction';
-  const circular=['target','reactor','radio','patch','network'].includes(design.kind);
+  const color=right?'#00ff94':wrong?'#ff2359':selected?'#fff000':design.color;
   useFrame((_,dt)=>{
     if(!group.current)return;
     const targetY=at[1]+(selected?.2:0);
@@ -120,22 +118,21 @@ export function ChallengeMachine({design,items=[],slots=[],roundKey,locked=false
   const stageItems=ready?visible:[{id:'start',label:readyLabel??'Start round · Rozpocznij',state:'idle' as const}];
   const itemWidth=narrow?Math.min(design.kind==='junction'?110:142,(typeof window==='undefined'?390:window.innerWidth)/2-42):148;
   const activate=(id:string)=>{if(ready)pick(id);else{animate('ready',[0,.5,0]);onReady?.();}};
-  const selectedIndex=items.findIndex(i=>i.id===selected);
   const success=items.length>0&&items.every(i=>i.state==='right');
   const canvasHeight=design.kind==='junction'?(narrow?320:360):narrow?Math.max(450,(rowCount+(slots.length?1:0))*155+150):Math.max(370,(rowCount+(slots.length?1:0))*130+130);
   const drawItem=(it:MachineItem,i:number,slot=false)=>{
     const pos=machinePosition(design.kind,i,slot?Math.min(columns,slots.length-slotPage*columns):stageItems.length,columns,slot);
     return <ObjectControl key={it.id} item={it} at={pos} design={design} portal={portal} width={itemWidth} selected={!slot&&(design.mode==='direct'?it.state==='selected':it.id===selected)} slot={slot} disabled={locked||!!it.locked} onClick={()=>slot?attach(it.id):activate(it.id)}/>;
   };
-  return <div className={`challenge-machine cm-${design.kind}`} data-gameplay-3d={design.kind} onKeyDown={e=>{
+  return <div className={`challenge-machine cm-${design.kind}`} style={{'--cm-accent':design.color} as CSSProperties} data-gameplay-3d={design.kind} onKeyDown={e=>{
     if((e.target as HTMLElement).matches('input,textarea,select'))return;
     const n=Number(e.key)-1;if(n>=0&&n<visible.length){e.preventDefault();e.stopPropagation();pick(visible[n].id);}
     if(e.key==='Enter'&&e.target===e.currentTarget&&design.mode==='choice'){e.preventDefault();commit();}
   }} tabIndex={0}>
     <div className="cm-heading"><strong>{design.title}</strong><p>{design.instruction}</p>{prompt&&<h3>{prompt}</h3>}{hint&&<p className="cm-hint" role="status">Hint · Podpowiedź: {hint}</p>}</div>
     <div className="cm-stage" style={{height:canvasHeight}}>
-      {!failed&&<CityStage quality={quality} reducedMotion={reducedMotion??systemReduced} onError={()=>setFailed(true)} cameraPosition={[0,3.5,11]}>
-        <color attach="background" args={['#21394e']}/>
+      {!failed&&<CityStage arcade quality={quality} reducedMotion={reducedMotion??systemReduced} onError={()=>setFailed(true)} cameraPosition={[0,3.5,11]}>
+        <color attach="background" args={['#080e32']}/>
         <Camera rows={rowCount+(slots.length?1:0)} columns={columns} kind={design.kind} compact={narrow}/>
         <BespokeScene kind={design.kind} color={design.color} selected={selected ? positionFor(selected) : null} move={move} success={success} signal={signal} items={visible} slots={slots.slice(slotPage*columns,slotPage*columns+columns)} columns={columns}/>
         <Bajla scale={.27} position={[3.75,-1.9,1]} reducedMotion={reducedMotion??systemReduced} variant={success?'celebrate':'idle'}/>

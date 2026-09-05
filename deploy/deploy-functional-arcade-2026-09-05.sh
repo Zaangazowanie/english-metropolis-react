@@ -35,6 +35,8 @@ echo '== 3/6 run mechanics and regression tests on the commit being shipped'
 # The production Node runtime must support type stripping, as in local QA.
 node --test --test-isolation=none \
   tests/arcade-run.test.mjs \
+  tests/arcade-entry.test.mjs \
+  tests/arcade-demo-progress.test.mjs \
   tests/action-arcade-logic.test.mjs \
   tests/challenge-arcade.test.mjs \
   tests/challenge-machine.test.mjs \
@@ -65,8 +67,8 @@ const chunks = files.filter(file => /^(game3d-|vendor-three|world-)/.test(file))
 const games = chunks.filter(chunk => chunk.file.startsWith('game3d-'));
 const vendors = chunks.filter(chunk => chunk.file.startsWith('vendor-three'));
 const violations = chunks.filter(chunk => chunk.gzipBytes > chunk.limitBytes);
-// Historical scene exports may also be emitted. Every current game still needs
-// its own lazy scene; never accept a build that silently drops the scene layer.
+// Every current game needs its own lazy scene; the extra city hub may also be
+// emitted. Superseded game implementations have been removed.
 if (games.length < 38 || vendors.length === 0) throw new Error('Expected at least 38 game scenes and a shared Three runtime.');
 if (vendors.reduce((sum, chunk) => sum + chunk.gzipBytes, 0) > 350 * 1024) {
   throw new Error('Combined shared Three runtime exceeds 350 KiB gzip.');

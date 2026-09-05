@@ -1,6 +1,6 @@
 import { Challenge3D } from './challenge-3d';
 import { sentenceIsCorrect } from './challenge-arcade-logic';
-import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
+import { ChallengeMission, useChallengeArcade } from './challenge-arcade';
 // Unjumble shell — "The Puzzle Workshop" district.
 // A typesetter's workshop at dusk: wood-block letter blocks scattered on a
 // workbench, brass lining gauge across the top of the composing tray, ink
@@ -13,18 +13,9 @@ import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade 
 import { useShellProgress } from '../lib/convex-stubs';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Bajla,
-  HintCard,
-  Progress,
-  Nameplate,
-  SkipButton,
-  HintButton,
-  Confetti,
-  useEndOfShellTip,
-} from '../components/primitives';
+import { Bajla, Progress, Nameplate, SkipButton, HintButton, Confetti, useEndOfShellTip } from '../components/primitives';
 import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
-import { useTouchDragDrop, dropZoneProps } from './useTouchDragDrop';
+
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components';
 
@@ -282,8 +273,7 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
   const [idx, setIdx] = useState(0);
   // gauge[k] = original word-index placed in slot k, or null.
   const [gauge, setGauge] = useState<(number | null)[]>([]);
-  const [hoverSlot, setHoverSlot] = useState<number | null>(null);
-  const [selectedWordIdx, setSelectedWordIdx] = useState<number | null>(null);
+
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [showTranslation, setShowTranslation] = useState(false);
   const [hintsUsed, setHintsUsed] = useState(0);
@@ -318,7 +308,7 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
     setFeedback(null);
     setShowTranslation(false);
     setHintShown(false);
-    setSelectedWordIdx(null);
+
   }, [idx, cur?.words.length]);
 
   useEffect(() => {
@@ -401,8 +391,7 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
       next[slotIdx] = wordIdx;
       return next;
     });
-    setSelectedWordIdx(null);
-    setHoverSlot(null);
+
     setAnnouncement(`Placed ${cur.words[wordIdx]} at position ${slotIdx + 1}.`);
   };
 
@@ -454,7 +443,6 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
     }
   };
 
-
   const next = () => {
     if (forcedState) return;
     if (idx < total - 1) {
@@ -495,30 +483,7 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
     setHintsUsed((h) => h + 1);
   };
 
-  const getTouchHandlers = useTouchDragDrop({
-    onDragStart: (sourceId) => {
-      const wi = Number(sourceId.replace('w-', ''));
-      setSelectedWordIdx(wi);
-    },
-    onHoverChange: (zoneId) => {
-      if (zoneId && zoneId.startsWith('uj-slot-')) {
-        setHoverSlot(Number(zoneId.slice(8)));
-      } else {
-        setHoverSlot(null);
-      }
-    },
-    onDragEnd: () => setHoverSlot(null),
-    onDrop: (zoneId, sourceId) => {
-      if (zoneId.startsWith('uj-slot-')) {
-        const slot = Number(zoneId.slice(8));
-        const wi = Number(sourceId.replace('w-', ''));
-        placeWord(slot, wi);
-      }
-    },
-  });
-
   // Words still in the tray (not on the gauge).
-  const trayWordIndices = cur.words.map((_, wi) => wi).filter((wi) => !gauge.includes(wi));
 
   const grad =
     time === 'day'
@@ -537,23 +502,6 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
         {announcement}
       </div>
-
-      <style>{`
-        @keyframes em-uj-block-snap {
-          0%   { transform: translateY(-12px) scale(0.94); }
-          60%  { transform: translateY(2px)   scale(1.04); }
-          100% { transform: translateY(0)     scale(1); }
-        }
-        @keyframes em-uj-grain {
-          from { background-position: 0 0; }
-          to   { background-position: 12px 12px; }
-        }
-        @keyframes em-uj-stamp {
-          0%   { transform: scale(0.6) rotate(-6deg); opacity: 0; }
-          60%  { transform: scale(1.05) rotate(-2deg); opacity: 1; }
-          100% { transform: scale(1)   rotate(-2deg); opacity: 0.95; }
-        }
-      `}</style>
 
       {/* Ricky 2026-05-02 (#15 audit pass): zIndex:0 + pointerEvents:none on the
           background gradient — workshop content is zIndex:3, top bar zIndex:4. */}
@@ -698,228 +646,8 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
         )}
 
         {/* The lining gauge — drop targets */}
-        <div
-          className="em-card cm-legacy-answers"
-          style={{
-            padding: 18,
-            background:
-              'linear-gradient(180deg, #6E4520 0%, #3F2510 100%)',
-            border: `2px solid #1A0F08`,
-            borderRadius: 8,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            flexWrap: 'wrap',
-            minHeight: 100,
-            position: 'relative',
-            boxShadow: 'inset 0 0 30px rgba(0,0,0,0.4), 0 18px 30px rgba(0,0,0,0.5)',
-            animation: 'em-rise 620ms var(--em-ease) both',
-          }}
-          role="group"
-          aria-label="Lining gauge"
-        >
-          {/* brass rail above */}
-          <div
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 12,
-              right: 12,
-              height: 4,
-              background: 'linear-gradient(180deg, #FBBF24, #876543)',
-              borderRadius: 2,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
-            }}
-          />
-          {gauge.map((wordIdx, slotIdx) => {
-            const isOccupied = wordIdx !== null;
-            const isHovered = hoverSlot === slotIdx;
-            const word = isOccupied && wordIdx !== null ? cur.words[wordIdx] : null;
-            const isCorrectHere = isOccupied && wordIdx !== null && cur.words[wordIdx] === cur.words[cur.correct_order[slotIdx]];
-            return (
-              <div
-                key={slotIdx}
-                {...dropZoneProps(`uj-slot-${slotIdx}`)}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setHoverSlot(slotIdx);
-                }}
-                onDragLeave={() => setHoverSlot((h) => (h === slotIdx ? null : h))}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const sid = e.dataTransfer.getData('text/plain');
-                  const wi = Number(sid.replace('w-', ''));
-                  if (!Number.isNaN(wi)) placeWord(slotIdx, wi);
-                  setHoverSlot(null);
-                }}
-                onClick={() => {
-                  if (selectedWordIdx !== null) placeWord(slotIdx, selectedWordIdx);
-                  else if (isOccupied) removeFromSlot(slotIdx);
-                }}
-                role="region"
-                aria-label={`Slot ${slotIdx + 1}${word ? `, contains "${word}"` : ', empty'}`}
-                style={{
-                  minWidth: 82,
-                  minHeight: 60,
-                  padding: '8px 12px',
-                  borderRadius: 4,
-                  background: isOccupied
-                    ? feedback === 'correct' && isCorrectHere
-                      ? 'linear-gradient(180deg, #F5EBD8 0%, #D4C190 100%)'
-                      : feedback === 'wrong' && !isCorrectHere
-                      ? 'linear-gradient(180deg, #F5C2C2 0%, #BE7878 100%)'
-                      : 'linear-gradient(180deg, #F5EBD8 0%, #D4C190 100%)'
-                    : isHovered
-                    ? 'rgba(232,121,249,0.22)'
-                    : 'rgba(0,0,0,0.35)',
-                  border: isOccupied
-                    ? '2px solid #5A4220'
-                    : `2px dashed ${ACCENT}66`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontFamily: 'var(--em-decor)',
-                  fontSize: 18,
-                  color: '#1A0F08',
-                  cursor: selectedWordIdx !== null ? 'crosshair' : isOccupied ? 'pointer' : 'default',
-                  transition: 'all 220ms var(--em-ease)',
-                  animation:
-                    feedback === 'wrong' && isOccupied && !isCorrectHere
-                      ? 'em-shake 0.4s'
-                      : isOccupied
-                      ? 'em-uj-block-snap 0.32s var(--em-ease) both'
-                      : 'none',
-                  boxShadow: isOccupied ? '0 6px 0 #5A4220, 0 12px 14px rgba(0,0,0,0.5)' : 'none',
-                  position: 'relative',
-                }}
-              >
-                {word ?? (
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      fontFamily: 'var(--em-mono)',
-                      fontSize: 11,
-                      color: 'rgba(245,239,255,0.55)',
-                      letterSpacing: '0.1em',
-                    }}
-                  >
-                    {slotIdx + 1}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-          {feedback === 'correct' && (
-            <div
-              aria-hidden="true"
-              style={{
-                position: 'absolute',
-                top: 8,
-                right: 12,
-                fontFamily: 'var(--em-mono)',
-                fontSize: 12,
-                color: '#34D399',
-                letterSpacing: '0.18em',
-                animation: 'em-uj-stamp 0.5s var(--em-ease) both',
-                background: '#34D39922',
-                padding: '4px 10px',
-                border: '1px solid #34D399',
-                borderRadius: 4,
-              }}
-            >
-              ✓ SET
-            </div>
-          )}
-        </div>
 
         {/* The tray of wood blocks */}
-        <div className="cm-legacy-answers"
-          style={{
-            padding: 14,
-            background:
-              'repeating-linear-gradient(45deg, rgba(58,37,16,0.6) 0 14px, rgba(83,52,22,0.6) 14px 28px)',
-            border: '2px solid #1A0F08',
-            borderRadius: 6,
-            display: 'flex',
-            gap: 10,
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: 80,
-            animation: 'em-uj-grain 8s linear infinite',
-            boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5)',
-          }}
-          role="list"
-          aria-label="Tray of wood blocks"
-        >
-          {trayWordIndices.length === 0 && (
-            <div
-              style={{
-                fontFamily: 'var(--em-mono)',
-                fontSize: 11,
-                color: 'rgba(245,239,255,0.6)',
-                fontStyle: 'italic',
-                letterSpacing: '0.08em',
-              }}
-            >
-              Tray empty — all blocks on the gauge.
-            </div>
-          )}
-          {trayWordIndices.map((wi) => {
-            const w = cur.words[wi];
-            const isSelected = selectedWordIdx === wi;
-            return (
-              <div
-                key={wi}
-                role="listitem"
-                tabIndex={0}
-                draggable
-                {...getTouchHandlers(`w-${wi}`)}
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('text/plain', `w-${wi}`);
-                  setSelectedWordIdx(wi);
-                }}
-                onClick={() => setSelectedWordIdx((prev) => (prev === wi ? null : wi))}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSelectedWordIdx((prev) => (prev === wi ? null : wi));
-                  }
-                }}
-                aria-label={`Wood block: ${w}. ${isSelected ? 'Selected — tap a slot to place.' : 'Tap to select, or drag to a slot.'}`}
-                aria-pressed={isSelected}
-                style={{
-                  cursor: 'grab',
-                  userSelect: 'none',
-                  padding: '12px 16px',
-                  minHeight: 48,
-                  background: isSelected
-                    ? `linear-gradient(180deg, ${ACCENT}, #8E3FA8)`
-                    : 'linear-gradient(180deg, #F5EBD8 0%, #D4C190 100%)',
-                  color: isSelected ? '#fff' : '#1A0F08',
-                  border: '2px solid #5A4220',
-                  borderRadius: 4,
-                  fontFamily: 'var(--em-decor)',
-                  fontSize: 18,
-                  fontWeight: 700,
-                  boxShadow: isSelected
-                    ? `0 0 16px ${ACCENT}aa, 0 6px 0 #5A4220, 0 12px 14px rgba(0,0,0,0.5)`
-                    : '0 6px 0 #5A4220, 0 12px 14px rgba(0,0,0,0.5)',
-                  transition: 'all 220ms var(--em-ease)',
-                  animation: 'em-uj-block-snap 0.34s var(--em-ease) both',
-                  letterSpacing: '0.04em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <span aria-hidden="true" style={{ fontFamily: 'var(--em-mono)', fontSize: 9, color: '#876543', opacity: 0.5 }}>◆</span>
-                {w}
-              </div>
-            );
-          })}
-        </div>
 
         {hintShown && (
           <div

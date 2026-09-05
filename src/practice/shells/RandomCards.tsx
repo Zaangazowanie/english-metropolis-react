@@ -14,18 +14,9 @@ import { ChallengeArena, useChallengeArcade } from './challenge-arcade';
 // Persisted progress — Convex-backed.
 import { useShellProgress } from '../lib/convex-stubs';
 import '../styles/shells/randomcards.css';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Bajla,
-  HintCard,
-  Progress,
-  Nameplate,
-  SkipButton,
-  HintButton,
-  Confetti,
-  useEndOfShellTip,
-} from '../components/primitives';
-import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
+import React, { useEffect, useRef, useState } from 'react';
+import { useEndOfShellTip } from '../components/primitives';
+
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components';
 
@@ -143,8 +134,6 @@ const RC_DEMO: WrapperPuzzle = {
   ],
 };
 
-const ACCENT = '#FB7185';
-
 // ─────────────────────────────────────────────────────────────────────────
 // renderRandomCardsReviewItem — per-card locked render for PracticeReview.
 // Dealer-style scoreboard row: card number + question + dealt options +
@@ -223,7 +212,7 @@ export function renderRandomCardsReviewItem(
 type Phase = 'shoe' | 'reveal' | 'verdict';
 
 export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
-  time = 'night',
+
   state: forcedState = null,
   puzzle,
   onWrongAnswer,
@@ -268,7 +257,7 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
   const [idx, setIdx] = useState<number>(0);
   const [phase, setPhase] = useState<Phase>('shoe');
   const [picked, setPicked] = useState<number | null>(null);
-  const [verdict, setVerdict] = useState<'right' | 'wrong' | null>(null);
+
   const [score, setScore] = useState<{ right: number; wrong: number }>({ right: 0, wrong: 0 });
   const [hintsUsed, setHintsUsed] = useState<number>(0);
   const [revealedHint, setRevealedHint] = useState<boolean>(false);
@@ -276,9 +265,6 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
   // Reshuffle visual flag — drives the brief fan-then-snap animation between rounds.
   const [shuffling, setShuffling] = useState<boolean>(false);
   // Kelly Tier-2 (2026-05-02): focus-trap refs for the completion overlay.
-  const tryAnotherBtnRef = useRef<HTMLButtonElement | null>(null);
-  const nextDistrictBtnRef = useRef<HTMLButtonElement | null>(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   const completed = !forcedState && idx >= active.rounds.length;
   useEffect(() => { if (completed && !forcedState) arcade.finish(); }, [completed, forcedState]);
@@ -307,10 +293,10 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
 
   useEffect(() => {
     if (!forcedState) return;
-    if (forcedState === 'empty')   { setIdx(0); setPhase('shoe'); setPicked(null); setVerdict(null); setScore({ right: 0, wrong: 0 }); }
-    if (forcedState === 'active')  { setIdx(0); setPhase('reveal'); setPicked(null); setVerdict(null); }
-    if (forcedState === 'correct') { setIdx(1); setPhase('verdict'); setPicked(active.rounds[1].answerIndex); setVerdict('right'); }
-    if (forcedState === 'wrong')   { setIdx(1); setPhase('verdict'); setPicked((active.rounds[1].answerIndex + 1) % active.rounds[1].options.length); setVerdict('wrong'); }
+    if (forcedState === 'empty')   { setIdx(0); setPhase('shoe'); setPicked(null);  setScore({ right: 0, wrong: 0 }); }
+    if (forcedState === 'active')  { setIdx(0); setPhase('reveal'); setPicked(null);  }
+    if (forcedState === 'correct') { setIdx(1); setPhase('verdict'); setPicked(active.rounds[1].answerIndex);  }
+    if (forcedState === 'wrong')   { setIdx(1); setPhase('verdict'); setPicked((active.rounds[1].answerIndex + 1) % active.rounds[1].options.length);  }
     if (forcedState === 'complete'){ setIdx(active.rounds.length); }
   }, [forcedState, active.rounds]);
 
@@ -334,7 +320,7 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
     setPhase('verdict');
     const right = i === round.answerIndex;
     arcade.decide(right, round.id);
-    setVerdict(right ? 'right' : 'wrong');
+
     setAnnouncement(right ? 'Correct.' : `Wrong. The card was ${round.options[round.answerIndex]}.`);
     if (right) setScore((s) => ({ ...s, right: s.right + 1 }));
     else {
@@ -351,7 +337,7 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
 
   // A real hand ends on the player's choice, leaving time to read feedback.
   const advanceCard = () => {
-    setIdx(i => i + 1); setPicked(null); setVerdict(null);
+    setIdx(i => i + 1); setPicked(null);
     setRevealedHint(false); setPhase('shoe');
   };
   const skipCard = () => {
@@ -368,25 +354,18 @@ export const RandomCardsShell: React.FC<RandomCardsShellProps> = ({
 
   const reset = (): void => {
     arcade.reset();
-    setIdx(0); setPhase('shoe'); setPicked(null); setVerdict(null);
+    setIdx(0); setPhase('shoe'); setPicked(null);
     setScore({ right: 0, wrong: 0 }); setHintsUsed(0); setRevealedHint(false);
     tip.reset();
   };
 
-
-
-  const grad = time === 'day'
-    ? 'radial-gradient(ellipse at 50% 60%, #2D6A4F 0%, #14342B 60%, #08160F 100%)'
-    : 'radial-gradient(ellipse at 50% 60%, #1F4836 0%, #0E251A 60%, #02080A 100%)';
-
   // Stack of cards for the deck — purely cosmetic, count fixed visually.
-  const deckStack = useMemo(() => Array.from({ length: 5 }, (_, i) => i), []);
 
   if (propsInvalid) {
     return <div className="em-shell-host-error">No puzzle data available · Brak danych ćwiczenia</div>;
   }
 
-  return <ChallengeArena variant="dealer" title="The Dealer’s Table" mission="Collect the winning cards. Play your two boosts wisely." prompt={round?.prompt} options={round?.options ?? []} picked={picked} answerIndex={round?.answerIndex ?? -1} revealed={phase === 'verdict'} round={idx} total={active.rounds.length} score={score.right} completed={completed} onPick={onPick} onNext={advanceCard} onSkip={skipCard} onReset={reset} onHint={useHint} hintDisabled={hintsUsed >= 2 || revealedHint || phase !== 'reveal'} hint={phase === 'verdict' ? round?.hint_pl || round?.hint : revealedHint ? round?.hint : undefined} run={arcade} ready={phase !== 'shoe'} onReady={drawCard} />;
+  return <ChallengeArena announcement={announcement} variant="dealer" title="The Dealer’s Table" prompt={round?.prompt} options={round?.options ?? []} picked={picked} answerIndex={round?.answerIndex ?? -1} revealed={phase === 'verdict'} round={idx} total={active.rounds.length} score={score.right} completed={completed} onPick={onPick} onNext={advanceCard} onSkip={skipCard} onReset={reset} onHint={useHint} hintDisabled={hintsUsed >= 2 || revealedHint || phase !== 'reveal'} hint={phase === 'verdict' ? round?.hint_pl || round?.hint : revealedHint ? round?.hint : undefined} run={arcade} ready={phase !== 'shoe'} onReady={drawCard} />;
 };
 
 export default RandomCardsShell;
