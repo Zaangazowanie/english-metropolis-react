@@ -1099,7 +1099,9 @@ export class World {
       if (!bySpecies.has(kind)) bySpecies.set(kind, []);
       bySpecies.get(kind).push({ x, y: gy, z, s, sy: 0.9 + Math.random() * 0.3, rot: Math.random() * Math.PI * 2, variant: i % 3 });
     }
-    for (const [kind, list] of bySpecies) this.scene.add(treeInstances(kind.split('|')[0], list));
+    // park trees sit beyond the boulevards; their shadows never reach a street
+    // the player stands on, and an InstancedMesh casts all instances or none
+    for (const [kind, list] of bySpecies) this.scene.add(treeInstances(kind.split('|')[0], list, { castShadow: false }));
   }
 
   update(t, dt, playerPos) {

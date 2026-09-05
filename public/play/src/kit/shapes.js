@@ -156,7 +156,7 @@ export function uvCell(geo, u0, v0, u1, v1) {
 export function lobeCanopy(lobes, centre) {
   const geos = [];
   for (const l of lobes) {
-    const g = new THREE.SphereGeometry(l.r, 8, 5).translate(l.x, l.y, l.z);
+    const g = new THREE.SphereGeometry(l.r, 7, 4).translate(l.x, l.y, l.z);
     geos.push(g);
   }
   const merged = mergeAll(geos);
