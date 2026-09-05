@@ -1,7 +1,14 @@
 // Batched boulevard traffic. Five silhouette fleets keep every vehicle distinct
 // without turning each car into a separate draw-call tree.
+//
+// Each fleet is ONE InstancedMesh: body, glass, chrome, wheels and lights are
+// merged into a single geometry whose vertices carry a role — body vertices
+// take the per-instance paint colour, fixed parts keep their vertex colour, and
+// light vertices skip lighting and glow. That is 5 draw calls and one shader
+// program for the whole fleet (it used to be 30 meshes over 6 materials).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { toonRamp } from './materials.js';
 import { LINES } from './zones.js';
 import { BOULEVARD } from './transit-layout.js';
 
@@ -12,6 +19,8 @@ const BODY_COLORS = [
 ];
 const unitBox = new THREE.BoxGeometry(1, 1, 1);
 const unitWheel = new THREE.CylinderGeometry(0.29, 0.29, 0.2, 10);
+const ROLE_BODY = 0, ROLE_FIXED = 1, ROLE_LIGHT = 2;
+const CHROME = 0xcfd9e6, GLASS = 0x16344d, DARK = 0x090f1d, HEAD = 0xcafff7, TAIL = 0xff4f74;
 
 function geometryAt(geometry, position, rotation = [0, 0, 0], scale = [1, 1, 1]) {
   const matrix = new THREE.Matrix4().compose(
@@ -26,7 +35,18 @@ function boxAt(scale, position) {
   return geometryAt(unitBox, position, [0, 0, 0], scale);
 }
 
-function mergeParts(parts) {
+// tag every vertex of a part with a colour and a role, then merge the lot
+function tag(geometry, colorHex, role) {
+  const n = geometry.attributes.position.count;
+  const c = new THREE.Color(colorHex);
+  const col = new Float32Array(n * 3), roles = new Float32Array(n);
+  for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; roles[i] = role; }
+  geometry.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geometry.setAttribute('aRole', new THREE.BufferAttribute(roles, 1));
+  geometry.deleteAttribute('uv');
+  return geometry;
+}
+function mergeTagged(parts) {
   const merged = mergeGeometries(parts, false);
   parts.forEach((part) => part.dispose());
   merged.computeBoundingSphere();
@@ -45,39 +65,64 @@ function makeVehicleGeometry(spec) {
   const halfLength = spec.length / 2;
   const halfWidth = spec.width / 2;
   const hoodLength = spec.van ? 0.72 : Math.max(0.76, (spec.length - spec.cabin) * 0.5);
-  const bodyParts = [
-    boxAt([spec.width, 0.44, spec.length], [0, 0.58, 0]),
-    boxAt([spec.width - 0.1, 0.2, hoodLength], [0, 0.83, -halfLength + hoodLength / 2]),
-    boxAt([spec.width - 0.12, spec.van ? 0.52 : 0.18, spec.van ? 1.15 : hoodLength * 0.72],
-      [0, spec.van ? 1.03 : 0.79, halfLength - (spec.van ? 0.58 : hoodLength * 0.36)]),
+  const parts = [
+    tag(boxAt([spec.width, 0.44, spec.length], [0, 0.58, 0]), 0xffffff, ROLE_BODY),
+    tag(boxAt([spec.width - 0.1, 0.2, hoodLength], [0, 0.83, -halfLength + hoodLength / 2]), 0xffffff, ROLE_BODY),
+    tag(boxAt([spec.width - 0.12, spec.van ? 0.52 : 0.18, spec.van ? 1.15 : hoodLength * 0.72],
+      [0, spec.van ? 1.03 : 0.79, halfLength - (spec.van ? 0.58 : hoodLength * 0.36)]), 0xffffff, ROLE_BODY),
+    // cabin glass + roof
+    tag(boxAt([spec.width - 0.32, spec.cabinH, spec.cabin], [0, 1.08 + (spec.cabinH - 0.54) * 0.5, spec.cabinZ]), GLASS, ROLE_FIXED),
+    tag(boxAt([spec.width - 0.3, 0.08, spec.cabin + 0.06], [0, 1.37 + (spec.cabinH - 0.54), spec.cabinZ]), 0xffffff, ROLE_BODY),
+    // pillars keep the glass box from reading as a solid block
+    ...[-1, 1].flatMap((x) => [-1, 1].map((z) => tag(boxAt([0.07, spec.cabinH, 0.07],
+      [x * (spec.width / 2 - 0.19), 1.08 + (spec.cabinH - 0.54) * 0.5, spec.cabinZ + z * (spec.cabin / 2 - 0.04)]), 0xffffff, ROLE_BODY))),
+    // chrome bumpers + sills
+    tag(boxAt([spec.width + 0.04, 0.09, 0.12], [0, 0.48, -halfLength]), CHROME, ROLE_FIXED),
+    tag(boxAt([spec.width + 0.04, 0.09, 0.12], [0, 0.48, halfLength]), CHROME, ROLE_FIXED),
+    tag(boxAt([0.07, 0.1, Math.max(2.8, spec.length - 0.5)], [-halfWidth - 0.03, 0.7, 0]), CHROME, ROLE_FIXED),
+    tag(boxAt([0.07, 0.1, Math.max(2.8, spec.length - 0.5)], [halfWidth + 0.03, 0.7, 0]), CHROME, ROLE_FIXED),
+    // underbody + wheels
+    tag(boxAt([spec.width - 0.28, 0.22, spec.length - 0.7], [0, 0.31, 0]), DARK, ROLE_FIXED),
+    ...[-1, 1].flatMap((x) => [-spec.wheelbase, spec.wheelbase].map((z) => tag(geometryAt(
+      unitWheel, [x * halfWidth, 0.34, z], [0, 0, Math.PI / 2], [1, 1, 1],
+    ), DARK, ROLE_FIXED))),
+    ...[-1, 1].flatMap((x) => [-spec.wheelbase, spec.wheelbase].map((z) => tag(geometryAt(
+      new THREE.CylinderGeometry(0.13, 0.13, 0.22, 8), [x * halfWidth, 0.34, z], [0, 0, Math.PI / 2], [1, 1, 1],
+    ), CHROME, ROLE_FIXED))),
+    // lights
+    ...[-0.58, 0.58].map((x) => tag(boxAt([0.3, 0.16, 0.06], [x * spec.width / 1.88, 0.69, -halfLength - 0.03]), HEAD, ROLE_LIGHT)),
+    ...[-0.58, 0.58].map((x) => tag(boxAt([0.28, 0.15, 0.06], [x * spec.width / 1.88, 0.69, halfLength + 0.03]), TAIL, ROLE_LIGHT)),
   ];
-  if (spec.roofSign) bodyParts.push(boxAt([0.68, 0.22, 0.28], [0, 1.66, 0.08]));
-  const sideRailLength = Math.max(2.8, spec.length - 0.5);
-  return {
-    body: mergeParts(bodyParts),
-    glass: mergeParts([
-      boxAt([spec.width - 0.32, spec.cabinH, spec.cabin], [0, 1.08 + (spec.cabinH - 0.54) * 0.5, spec.cabinZ]),
-      boxAt([spec.width - 0.3, 0.08, spec.cabin + 0.06], [0, 1.37 + (spec.cabinH - 0.54), spec.cabinZ]),
-    ]),
-    chrome: mergeParts([
-      boxAt([spec.width + 0.04, 0.09, 0.12], [0, 0.48, -halfLength]),
-      boxAt([spec.width + 0.04, 0.09, 0.12], [0, 0.48, halfLength]),
-      boxAt([0.07, 0.1, sideRailLength], [-halfWidth - 0.03, 0.7, 0]),
-      boxAt([0.07, 0.1, sideRailLength], [halfWidth + 0.03, 0.7, 0]),
-    ]),
-    underbody: mergeParts([
-      boxAt([spec.width - 0.28, 0.22, spec.length - 0.7], [0, 0.31, 0]),
-      ...[-1, 1].flatMap((x) => [-spec.wheelbase, spec.wheelbase].map((z) => geometryAt(
-        unitWheel, [x * halfWidth, 0.34, z], [0, 0, Math.PI / 2], [1, 1, 1],
-      ))),
-    ]),
-    headlights: mergeParts([-0.58, 0.58].map((x) => boxAt(
-      [0.3, 0.16, 0.06], [x * spec.width / 1.88, 0.69, -halfLength - 0.03],
-    ))),
-    tailLights: mergeParts([-0.58, 0.58].map((x) => boxAt(
-      [0.28, 0.15, 0.06], [x * spec.width / 1.88, 0.69, halfLength + 0.03],
-    ))),
+  if (spec.roofSign) {
+    parts.push(tag(boxAt([0.68, 0.22, 0.28], [0, 1.66, 0.08]), 0xffd45a, ROLE_LIGHT));
+  }
+  return mergeTagged(parts);
+}
+
+// One toon material for every fleet: paint via instanceColor on body vertices,
+// vertex colour elsewhere, unlit glow on light vertices.
+function fleetMaterial() {
+  const mat = new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: toonRamp() });
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uLightGain = { value: 1.7 };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute float aRole;\nvarying float vRole;')
+      .replace('#include <color_vertex>', /* glsl */`
+        vRole = aRole;
+        vColor = vec4(color, 1.0);
+        #ifdef USE_INSTANCING_COLOR
+          if (aRole < 0.5) vColor.rgb *= instanceColor.rgb;
+        #endif
+      `);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vRole;\nuniform float uLightGain;')
+      .replace('#include <opaque_fragment>', /* glsl */`
+        if (vRole > 1.5) outgoingLight = vColor.rgb * uLightGain;
+        #include <opaque_fragment>
+      `);
   };
+  mat.customProgramCacheKey = () => 'em-traffic-v1';
+  return mat;
 }
 
 const vehicleGeometry = VEHICLE_SPECS.map(makeVehicleGeometry);
@@ -100,9 +145,10 @@ export class Traffic {
         const span = BOULEVARD.carEndD - BOULEVARD.carStartD;
         const phase = (slot + lineIndex / lines.length) / perLine;
         const vehicleIndex = this.vehicles.length;
+        const variant = (slot * 2 + lineIndex) % VEHICLE_SPECS.length;
         this.vehicles.push({
-          dir, perp, lane, direction, lineIndex,
-          variant: (slot * 2 + lineIndex) % VEHICLE_SPECS.length,
+          dir, perp, lane, direction, lineIndex, variant,
+          spec: VEHICLE_SPECS[variant],
           color: new THREE.Color(BODY_COLORS[vehicleIndex % BODY_COLORS.length]),
           scaleX: 0.94 + ((vehicleIndex * 7) % 9) * 0.012,
           scaleY: 0.95 + ((vehicleIndex * 5) % 7) * 0.014,
@@ -116,36 +162,19 @@ export class Traffic {
     }
 
     const capacity = this.vehicles.length;
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.54, roughness: 0.32 });
-    const glassMat = new THREE.MeshStandardMaterial({
-      color: 0x102340, emissive: 0x194d66, emissiveIntensity: 0.7,
-      metalness: 0.66, roughness: 0.18,
-    });
-    const chromeMat = new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.88, roughness: 0.2 });
-    const darkMat = new THREE.MeshToonMaterial({ color: 0x090f1d });
-    const headMat = new THREE.MeshBasicMaterial({ color: 0xcafff7, toneMapped: false });
-    const tailMat = new THREE.MeshBasicMaterial({ color: 0xff4f74, toneMapped: false });
+    this.material = fleetMaterial();
     this.fleets = vehicleGeometry.map((geometry, variant) => {
-      const meshes = [
-        new THREE.InstancedMesh(geometry.body, bodyMat, capacity),
-        new THREE.InstancedMesh(geometry.glass, glassMat, capacity),
-        new THREE.InstancedMesh(geometry.chrome, chromeMat, capacity),
-        new THREE.InstancedMesh(geometry.underbody, darkMat, capacity),
-        new THREE.InstancedMesh(geometry.headlights, headMat, capacity),
-        new THREE.InstancedMesh(geometry.tailLights, tailMat, capacity),
-      ];
-      meshes.forEach((mesh, partIndex) => {
-        mesh.name = `${VEHICLE_SPECS[variant].name}-${partIndex}`;
-        mesh.count = 0;
-        mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        mesh.frustumCulled = false;
-        this.root.add(mesh);
-      });
-      meshes[0].castShadow = !lowPower;
-      meshes[0].receiveShadow = true;
-      return { meshes, count: 0 };
+      const mesh = new THREE.InstancedMesh(geometry, this.material, capacity);
+      mesh.name = `${VEHICLE_SPECS[variant].name}-fleet`;
+      mesh.count = 0;
+      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      mesh.frustumCulled = false;
+      mesh.castShadow = !lowPower;
+      mesh.receiveShadow = true;
+      this.root.add(mesh);
+      return { mesh, count: 0 };
     });
-    this.meshes = this.fleets.flatMap((fleet) => fleet.meshes);
+    this.meshes = this.fleets.map((fleet) => fleet.mesh);
     this.activeCount = capacity;
     this.matrixDummy = new THREE.Object3D();
     this.updateMatrices();
@@ -157,6 +186,8 @@ export class Traffic {
     this.updateMatrices();
   }
 
+  // Cars brake for the player; the player also cannot stand inside one — a 2D
+  // oriented-box test pushes them out along the shallow axis (walkthrough-23).
   update(dt, playerPos) {
     const positions = this.vehicles.map((vehicle) => vehicle.d);
     const routeSpan = BOULEVARD.carEndD - BOULEVARD.carStartD;
@@ -186,6 +217,21 @@ export class Traffic {
       vehicle.d += vehicle.direction * vehicle.currentSpeed * dt;
       if (vehicle.d > BOULEVARD.carEndD) vehicle.d = BOULEVARD.carStartD;
       if (vehicle.d < BOULEVARD.carStartD) vehicle.d = BOULEVARD.carEndD;
+
+      // push the player out of the car's footprint
+      const along = playerD - vehicle.d;
+      const lateral = playerLane - vehicle.lane;
+      const halfL = vehicle.spec.length * vehicle.scaleZ / 2 + 0.42;
+      const halfW = vehicle.spec.width * vehicle.scaleX / 2 + 0.42;
+      if (Math.abs(along) < halfL && Math.abs(lateral) < halfW) {
+        const pushAlong = (halfL - Math.abs(along)) * Math.sign(along || 1);
+        const pushLat = (halfW - Math.abs(lateral)) * Math.sign(lateral || 1);
+        if (Math.abs(pushLat) <= Math.abs(pushAlong)) {
+          playerPos.x += vehicle.perp.x * pushLat; playerPos.z += vehicle.perp.y * pushLat;
+        } else {
+          playerPos.x += vehicle.dir.x * pushAlong; playerPos.z += vehicle.dir.y * pushAlong;
+        }
+      }
     }
     this.updateMatrices();
   }
@@ -204,15 +250,13 @@ export class Traffic {
       this.matrixDummy.rotation.set(0, vehicle.yaw, 0);
       this.matrixDummy.scale.set(vehicle.scaleX, vehicle.scaleY, vehicle.scaleZ);
       this.matrixDummy.updateMatrix();
-      fleet.meshes.forEach((mesh) => mesh.setMatrixAt(fleetIndex, this.matrixDummy.matrix));
-      fleet.meshes[0].setColorAt(fleetIndex, vehicle.color);
+      fleet.mesh.setMatrixAt(fleetIndex, this.matrixDummy.matrix);
+      fleet.mesh.setColorAt(fleetIndex, vehicle.color);
     }
     this.fleets.forEach((fleet) => {
-      fleet.meshes.forEach((mesh) => {
-        mesh.count = fleet.count;
-        mesh.instanceMatrix.needsUpdate = true;
-      });
-      if (fleet.meshes[0].instanceColor) fleet.meshes[0].instanceColor.needsUpdate = true;
+      fleet.mesh.count = fleet.count;
+      fleet.mesh.instanceMatrix.needsUpdate = true;
+      if (fleet.mesh.instanceColor) fleet.mesh.instanceColor.needsUpdate = true;
     });
   }
 }

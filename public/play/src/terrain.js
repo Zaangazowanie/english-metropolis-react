@@ -43,30 +43,47 @@ export function heightAt(x, z) {
 }
 
 export function makeTerrain() {
-  const SIZE = 1000, SEG = 220;
+  const SIZE = 1000, SEG = 160;
   const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
-  const grass = new THREE.Color(0x1f6762);
-  const lush = new THREE.Color(0x2c8b78);
-  const dry = new THREE.Color(0x405d70);
+  const grass = new THREE.Color(0x2f8a5a);
+  const lush = new THREE.Color(0x3f9c63);
+  const meadow = new THREE.Color(0x6f9a4a);  // sun-dried upper slopes
+  const dirt = new THREE.Color(0x6b5a44);    // worn earth along paths and kerbs
+  const sand = new THREE.Color(0xc9b58a);    // the far shore beyond the last stops
   const paveA = new THREE.Color(0x39445d);   // cool civic stone
   const paveB = new THREE.Color(0x46536d);   // subtle slab variation
   const c = new THREE.Color(), p = new THREE.Color();
+  const hash = (a, b) => { const v = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return v - Math.floor(v); };
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), z = pos.getZ(i);
     const h = heightAt(x, z);
     pos.setY(i, h);
     const urban = 1 - hillFactor(x, z);      // 1 = flat city fabric, 0 = open country
-    // countryside: valley grass → lush mid → sun-dried tops
+    // countryside: valley grass → lush mid → meadow tops, with gentle noise so
+    // the parkland is not one flat green
     const t = Math.min(1, h / AMP);
+    const n = noise(x * 2.3 + 40, z * 2.3 - 17);
     if (t < 0.45) c.copy(grass).lerp(lush, t / 0.45);
-    else c.copy(lush).lerp(dry, (t - 0.45) / 0.55);
+    else c.copy(lush).lerp(meadow, (t - 0.45) / 0.55);
+    c.lerp(dirt, Math.max(0, n - 0.72) * 1.4);            // bare patches
+    c.offsetHSL(0, 0, (n - 0.5) * 0.06);
+    const r = Math.hypot(x, z);
+    if (r > 440) c.lerp(sand, Math.min(1, (r - 440) / 40));  // beach at the edge of the world
     if (urban > 0) {
-      // city: concrete pavement with slab-to-slab variation
+      // city: concrete pavement with slab-to-slab variation, worn toward the kerbs
       const tile = 0.5 + 0.5 * Math.sin(Math.floor(x / 7) * 12.9898 + Math.floor(z / 7) * 78.233);
       p.copy(paveA).lerp(paveB, tile);
+      let wear = 0;
+      for (const a of LINE_ANGLES) {
+        const dx = Math.cos(a), dz = -Math.sin(a);
+        const along = x * dx + z * dz;
+        const lat = Math.abs(x * -dz + z * dx);
+        if (along > 10 && along < 420 && lat > 7.2 && lat < 9.5) wear = Math.max(wear, 1 - (lat - 7.2) / 2.3);
+      }
+      p.lerp(dirt, wear * 0.22 + hash(Math.floor(x / 7), Math.floor(z / 7)) * 0.05);
       c.lerp(p, urban);
     }
     colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;

@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PALETTE, neonMat, toonMat, toonVertexMat, GeoBatch } from './materials.js';
 import { BOULEVARD } from './transit-layout.js';
 import { makeRoute } from './crowd.js';
+import { chromeToon, glassToon, emissiveMat, CHROME, IRON, cafeTable } from './kit/street.js';
 
 const RADIALS = [
   { angle: Math.PI / 2, color: PALETTE.cyan },
@@ -37,7 +38,7 @@ function addSign(group, title, subtitle, accent, width = 4.8) {
   const texture = signTexture(title, subtitle, accent);
   const panel = new THREE.Mesh(
     new THREE.PlaneGeometry(width, width * 0.375),
-    new THREE.MeshBasicMaterial({ map: texture, side: THREE.FrontSide, toneMapped: false }),
+    emissiveMat(0xffffff, 1.35, { map: texture, side: THREE.FrontSide }),
   );
   panel.userData.signTexture = texture;
   const back = panel.clone();
@@ -45,7 +46,7 @@ function addSign(group, title, subtitle, accent, width = 4.8) {
   back.position.z = -0.15;
   const frame = new THREE.Mesh(
     new THREE.BoxGeometry(width + 0.18, width * 0.375 + 0.18, 0.12),
-    new THREE.MeshStandardMaterial({ color: 0xb9c9d8, metalness: 0.88, roughness: 0.2 }),
+    chromeToon(),
   );
   frame.position.z = -0.08;
   group.add(frame, panel, back);
@@ -85,10 +86,7 @@ function buildCafeVenue({ title, subtitle, accent, kind = 'cafe' }) {
   }
   g.add(shell.build(toonVertexMat(), { name: `${kind}-venue-shell` }));
 
-  const glazing = new THREE.Mesh(box(7.45, 2.25, 0.12, 0, 1.85, -2.25), new THREE.MeshStandardMaterial({
-    color: 0x74d7dc, emissive: 0x14354b, emissiveIntensity: 0.88,
-    metalness: 0.46, roughness: 0.19, transparent: true, opacity: 0.82,
-  }));
+  const glazing = new THREE.Mesh(box(7.45, 2.25, 0.12, 0, 1.85, -2.25), glassToon(0x74d7dc, 0.72, { emissive: 0x14354b, emissiveIntensity: 0.88 }));
   g.add(glazing);
 
   const sign = new THREE.Group();
@@ -139,8 +137,7 @@ function buildVendor(kind, accent) {
     g.add(menu);
   }
   g.add(shell.build(toonVertexMat(), { name: `${kind}-vendor-shell` }));
-  const chromeMesh = new THREE.Mesh(mergeGeometries(chromeParts, false),
-    new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.86, roughness: 0.22 }));
+  const chromeMesh = new THREE.Mesh(mergeGeometries(chromeParts, false), chromeToon());
   chromeParts.forEach((c) => c.dispose());
   chromeMesh.castShadow = true;
   g.add(chromeMesh);
@@ -152,13 +149,10 @@ function buildHubActivity(group, lowPower, animated) {
   group.userData.colliderBoxes = [];
   const beacon = new THREE.Group();
   beacon.name = 'central-language-beacon';
-  const beaconChrome = new THREE.MeshStandardMaterial({ color: 0xb9c9d8, metalness: 0.9, roughness: 0.17 });
+  const beaconChrome = chromeToon();
   const beaconBody = new THREE.Mesh(
     new THREE.CylinderGeometry(0.48, 0.72, 5.25, 8),
-    new THREE.MeshStandardMaterial({
-      color: 0x1b5966, emissive: 0x0b4354, emissiveIntensity: 0.92,
-      metalness: 0.76, roughness: 0.2,
-    }),
+    toonMat(0x1b5966, { emissive: 0x0b4354, emissiveIntensity: 0.92 }),
   );
   beaconBody.position.y = 2.82;
   beaconBody.rotation.y = Math.PI / 8;
@@ -196,12 +190,24 @@ function buildHubActivity(group, lowPower, animated) {
   group.add(beacon);
   group.userData.colliderObjects.push(beacon);
 
-  for (let i = 0; i < 6; i++) {
-    const angle = (i / 6) * Math.PI * 2 + Math.PI / 6;
+  // Six benches used to ring the beacon at 5.25 m, one of them squarely across
+  // the spawn's first step (walkthrough-04: holding W moved 1.9 m and stopped).
+  // The ring now leaves the spawn radial (+z) and the radial toward Conductor
+  // Clara open, so the plaza reads as a forecourt, not a pen.
+  const spawnAngle = Math.PI / 2;                        // (0, +z)
+  const claraAngle = Math.atan2(-9, -3.5);               // toward Clara at (-3.5, -9)
+  const benchAngles = [];
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 + Math.PI / 8;
+    const gap = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+    if (gap(angle, spawnAngle) < 0.55 || gap(angle, claraAngle) < 0.55) continue;
+    benchAngles.push(angle);
+  }
+  for (const angle of benchAngles) {
     const bench = new THREE.Group();
     addBox(bench, [2.1, 0.16, 0.58], [0, 0.62, 0], beaconChrome);
     addBox(bench, [2.1, 0.4, 0.1], [0, 0.82, 0.29], toonMat(0x40536d));
-    bench.position.set(Math.cos(angle) * 5.25, 0, Math.sin(angle) * 5.25);
+    bench.position.set(Math.cos(angle) * 6.1, 0, Math.sin(angle) * 6.1);
     bench.rotation.y = -angle + Math.PI / 2;
     group.add(bench);
     group.userData.colliderObjects.push(bench);
@@ -237,7 +243,7 @@ function buildHubActivity(group, lowPower, animated) {
     group.userData.colliderObjects.push(vendor);
   }
 
-  const bollardMat = new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.84, roughness: 0.25 });
+  const bollardMat = toonMat(IRON);
   const glowMat = neonMat(PALETTE.cyan, 0.85);
   const bollards = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.12, 0.15, 0.78, 8), bollardMat, 24);
   const caps = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.14, 0.14, 0.08, 8), glowMat, 24);
@@ -373,9 +379,11 @@ export class CityLife {
   }
 }
 
-function addParkedFleet(group, rng, { accent, secondary, code, lowPower, roadLayout }) {
+// Parked cars along the outer streets: bodies, glass, wheels and lights all
+// go into the district buckets (vertex-coloured bodies, emissive lights) so a
+// parked fleet costs no draw calls of its own.
+function addParkedFleet(B, rng, { accent, secondary, code, lowPower, roadLayout }, colliderBoxes) {
   const count = lowPower ? 1 : 2;
-  const bodyParts = [], glassParts = [], wheelParts = [], headParts = [], tailParts = [];
   const axis = new THREE.Vector3(0, 1, 0);
   const transform = (geometry, x, z, yaw, localX = 0, localY = 0, localZ = 0) => {
     geometry.translate(localX, localY, localZ);
@@ -386,19 +394,8 @@ function addParkedFleet(group, rng, { accent, secondary, code, lowPower, roadLay
     ));
     return geometry;
   };
-  const tint = (geometry, color) => {
-    const values = new Float32Array(geometry.attributes.position.count * 3);
-    const c = new THREE.Color(color);
-    for (let i = 0; i < values.length; i += 3) {
-      values[i] = c.r; values[i + 1] = c.g; values[i + 2] = c.b;
-    }
-    geometry.setAttribute('color', new THREE.BufferAttribute(values, 3));
-    return geometry;
-  };
-  const addBox = (bucket, size, vehicle, local, color = null) => {
-    let geometry = transform(new THREE.BoxGeometry(...size), vehicle.x, vehicle.z, vehicle.yaw, ...local);
-    if (color !== null) geometry = tint(geometry, color);
-    bucket.push(geometry);
+  const addBox = (bucket, size, vehicle, local, color) => {
+    bucket.add(transform(new THREE.BoxGeometry(...size), vehicle.x, vehicle.z, vehicle.yaw, ...local), color);
   };
 
   for (let index = 0; index < count; index++) {
@@ -414,65 +411,47 @@ function addParkedFleet(group, rng, { accent, secondary, code, lowPower, roadLay
     const style = (rng() * 4) | 0;
     const baseColor = new THREE.Color(index ? secondary : accent)
       .offsetHSL((rng() - 0.5) * 0.18, 0.06, (rng() - 0.5) * 0.12);
-    addBox(bodyParts, [width, 0.42, length], vehicle, [0, 0.54, 0], baseColor);
-    addBox(bodyParts, [width - 0.08, 0.18, 0.86], vehicle, [0, 0.78, -length * 0.36], baseColor);
+    const darker = baseColor.clone().multiplyScalar(0.8);
+    addBox(B.shell, [width, 0.42, length], vehicle, [0, 0.54, 0], baseColor);
+    addBox(B.shell, [width - 0.08, 0.18, 0.86], vehicle, [0, 0.78, -length * 0.36], baseColor);
     const cabinLength = style === 2 ? 1.78 : style === 3 ? 2.08 : 1.48;
     const cabinHeight = style === 3 ? 0.68 : 0.5;
-    addBox(glassParts, [width - 0.28, cabinHeight, cabinLength], vehicle,
-      [0, 1.02 + cabinHeight * 0.12, style === 2 ? 0.22 : 0.04]);
-    addBox(bodyParts, [width - 0.16, 0.09, cabinLength + 0.04], vehicle,
+    addBox(B.paneDark, [width - 0.28, cabinHeight, cabinLength], vehicle,
+      [0, 1.02 + cabinHeight * 0.12, style === 2 ? 0.22 : 0.04], 0x16344d);
+    addBox(B.shell, [width - 0.16, 0.09, cabinLength + 0.04], vehicle,
       [0, 1.3 + cabinHeight * 0.28, style === 2 ? 0.22 : 0.04], baseColor);
-    if (style === 1) addBox(bodyParts, [0.62, 0.2, 0.3], vehicle, [0, 1.58, 0.02], 0xffd45a);
-    if (style === 0) addBox(bodyParts, [width * 0.7, 0.08, 0.2], vehicle, [0, 0.89, length * 0.5], baseColor);
-
+    addBox(B.shell, [width + 0.04, 0.08, 0.1], vehicle, [0, 0.5, -length * 0.5], CHROME);       // bumpers
+    addBox(B.shell, [width + 0.04, 0.08, 0.1], vehicle, [0, 0.5, length * 0.5], CHROME);
+    if (style === 1) addBox(B.neon, [0.62, 0.2, 0.3], vehicle, [0, 1.58, 0.02], 0xffd45a);        // taxi sign
+    if (style === 0) addBox(B.shell, [width * 0.7, 0.08, 0.2], vehicle, [0, 0.89, length * 0.5], darker);
     for (const side of [-1, 1]) for (const axle of [-1, 1]) {
       const wheel = new THREE.CylinderGeometry(0.25, 0.25, 0.16, 10);
       wheel.rotateZ(Math.PI / 2);
-      wheelParts.push(transform(wheel, vehicle.x, vehicle.z, vehicle.yaw,
-        side * width * 0.5, 0.3, axle * length * 0.3));
+      B.shell.add(transform(wheel, vehicle.x, vehicle.z, vehicle.yaw, side * width * 0.5, 0.3, axle * length * 0.3), 0x0a101d);
+      const hub = new THREE.CylinderGeometry(0.11, 0.11, 0.17, 8);
+      hub.rotateZ(Math.PI / 2);
+      B.shell.add(transform(hub, vehicle.x, vehicle.z, vehicle.yaw, side * width * 0.5, 0.3, axle * length * 0.3), CHROME);
     }
     for (const side of [-1, 1]) {
-      addBox(headParts, [0.28, 0.14, 0.06], vehicle, [side * width * 0.3, 0.66, -length * 0.51]);
-      addBox(tailParts, [0.27, 0.14, 0.06], vehicle, [side * width * 0.3, 0.66, length * 0.51]);
+      addBox(B.neon, [0.28, 0.14, 0.06], vehicle, [side * width * 0.3, 0.66, -length * 0.51], 0xcafff7);
+      addBox(B.neon, [0.27, 0.14, 0.06], vehicle, [side * width * 0.3, 0.66, length * 0.51], 0xff4f74);
     }
-    group.userData.colliderBoxes.push({
+    colliderBoxes.push({
       localX: vehicle.x, localZ: vehicle.z, hw: width * 0.58, hd: length * 0.55,
       source: `${code}-parked-car-${index}`,
     });
   }
-
-  const addMerged = (parts, material, name, castShadow = false) => {
-    if (!parts.length) return;
-    const geometry = mergeGeometries(parts, false);
-    parts.forEach((part) => part.dispose());
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.name = name;
-    mesh.castShadow = castShadow;
-    mesh.receiveShadow = castShadow;
-    group.add(mesh);
-  };
-  addMerged(bodyParts, new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.5, roughness: 0.32 }), 'parked-car-bodies', true);
-  addMerged(glassParts, new THREE.MeshStandardMaterial({ color: 0x16344d, metalness: 0.58, roughness: 0.16 }), 'parked-car-glass');
-  addMerged(wheelParts, toonMat(0x0a101d), 'parked-car-wheels', true);
-  addMerged(headParts, new THREE.MeshBasicMaterial({ color: 0xcafff7, toneMapped: false }), 'parked-car-headlights');
-  addMerged(tailParts, new THREE.MeshBasicMaterial({ color: 0xff4f74, toneMapped: false }), 'parked-car-taillights');
 }
 
+// District street life: vendor carts, a café terrace and parked cars, all
+// added to the district's buckets. Returns collider footprints and the patron
+// slots the shared GPU crowd fills (a busy terrace costs no draw calls).
 export function buildDistrictLife(rng, {
-  accent, secondary, nearEdge, code = 'metro', lowPower = false, roadLayout = null,
-}) {
-  const g = new THREE.Group();
-  g.name = 'district-street-life';
-  g.userData.colliderBoxes = [];
+  accent, secondary, nearEdge, code = 'metro', lowPower = false, roadLayout = null, detail = true,
+}, B) {
+  const colliderBoxes = [];
   const accentHex = accent instanceof THREE.Color ? accent.getHex() : accent;
   const secondaryHex = secondary instanceof THREE.Color ? secondary.getHex() : secondary;
-  // Every cart, table, chair and parasol on this block merges into two meshes.
-  // These were eleven InstancedMesh objects holding two to twelve instances
-  // each, which is the worst of both worlds: instancing overhead with none of
-  // the amortisation.
-  const props = new GeoBatch();
-  const chrome = [];
-  const neonBits = new GeoBatch();
   const box = (w, h, d, x, y, z, yaw = 0, s = 1) => {
     const geo = new THREE.BoxGeometry(w * s, h * s, d * s);
     if (yaw) geo.rotateY(yaw);
@@ -485,69 +464,45 @@ export function buildDistrictLife(rng, {
     const x = slot + (rng() - 0.5) * 0.9;
     const z = nearEdge + 0.72;
     const yaw = Math.PI + (rng() - 0.5) * 0.12;
-    g.userData.colliderBoxes.push({
-      localX: x, localZ: z, hw: 0.92, hd: 0.62, source: `${code}-vendor-cart`,
-    });
-    props.add(box(2.25, 1.08, 1.2, x, 0.72, z, yaw, 0.66),
-      new THREE.Color(colors[(index + 1) % colors.length]).multiplyScalar(0.64));
-    chrome.push(box(2.5, 0.12, 1.42, x, 1.11, z, yaw, 0.66));
-    props.add(box(2.55, 0.15, 1.55, x, 2.55, z, yaw, 0.66),
-      new THREE.Color(colors[index % colors.length]));
-    neonBits.add(box(1.5, 0.48, 0.08, x, 2.05, z - 0.44, yaw, 0.66), accentHex);
+    colliderBoxes.push({ localX: x, localZ: z, hw: 0.92, hd: 0.62, source: `${code}-vendor-cart` });
+    B.shell.add(box(2.25, 1.08, 1.2, x, 0.72, z, yaw, 0.66), new THREE.Color(colors[(index + 1) % colors.length]).multiplyScalar(0.64));
+    B.shell.add(box(2.5, 0.12, 1.42, x, 1.11, z, yaw, 0.66), CHROME);
+    B.shell.add(box(2.55, 0.15, 1.55, x, 2.55, z, yaw, 0.66), new THREE.Color(colors[index % colors.length]));
+    // scalloped canopy edge
+    if (detail) for (let k = 0; k < 5; k++) {
+      B.shell.add(new THREE.SphereGeometry(0.11, 6, 4).scale(1, 0.7, 0.5).translate(x - 0.72 + k * 0.36, 2.48, z - 0.55), new THREE.Color(colors[index % colors.length]).multiplyScalar(0.9));
+    }
+    B.neon.add(box(1.5, 0.48, 0.08, x, 2.05, z - 0.44, yaw, 0.66), accentHex);
     for (const px of [-0.72, 0.72]) for (const pz of [-0.38, 0.38]) {
-      props.add(new THREE.CylinderGeometry(0.045, 0.055, 2.15, 6)
-        .scale(0.66, 0.66, 0.66).translate(x + px, 1.77, z + pz), 0x32425a);
+      B.shell.add(new THREE.CylinderGeometry(0.045, 0.055, 2.15, 6).scale(0.66, 0.66, 0.66).translate(x + px, 1.77, z + pz), 0x32425a);
     }
     for (const wx of [-0.72, 0.72]) {
-      props.add(new THREE.CylinderGeometry(0.28, 0.28, 0.14, 10)
-        .rotateZ(Math.PI / 2).scale(0.66, 0.66, 0.66)
-        .translate(x + wx, 0.3, z + 0.42), 0x101522);
+      B.shell.add(new THREE.CylinderGeometry(0.28, 0.28, 0.14, 10).rotateZ(Math.PI / 2).scale(0.66, 0.66, 0.66).translate(x + wx, 0.3, z + 0.42), 0x101522);
     }
     for (let item = 0; item < 8; item++) {
-      props.add(new THREE.IcosahedronGeometry(0.13, 0).scale(0.66, 0.66, 0.66)
-        .translate(x - 0.65 + (item % 4) * 0.43, 1.22 + (item % 2) * 0.08,
-          z - 0.25 + Math.floor(item / 4) * 0.38),
+      B.shell.add(new THREE.IcosahedronGeometry(0.13, 0).scale(0.66, 0.66, 0.66)
+        .translate(x - 0.65 + (item % 4) * 0.43, 1.22 + (item % 2) * 0.08, z - 0.25 + Math.floor(item / 4) * 0.38),
         goodsColors[(item + index * 2) % goodsColors.length]);
     }
   });
   const tableSlots = lowPower ? [7.2] : [-7.5, 7.5];
-  tableSlots.forEach((x, index) => {
+  tableSlots.forEach((x) => {
     const z = nearEdge + 2.45;
-    g.userData.colliderBoxes.push({
-      localX: x, localZ: z, hw: 1.12, hd: 0.68, source: `${code}-cafe-table`,
-    });
-    props.add(new THREE.CylinderGeometry(0.48, 0.48, 0.1, 10).translate(x, 0.75, z), 0xbecbd6);
-    props.add(new THREE.CylinderGeometry(0.035, 0.045, 2.1, 6).translate(x, 1.43, z), 0x1b2941);
-    props.add(new THREE.ConeGeometry(0.92, 0.38, 10).rotateX(Math.PI).translate(x, 2.42, z), accentHex);
-    for (const side of [-1, 1]) props.add(box(0.46, 0.5, 0.45, x + side * 0.72, 0.25, z), 0x1b2941);
+    colliderBoxes.push({ localX: x, localZ: z, hw: 1.12, hd: 0.68, source: `${code}-cafe-table` });
+    cafeTable(B, x, z, 0, { canvas: accentHex, iron: 0x1b2941 });
+    if (detail) cafeTable(B, x + (x > 0 ? 2.3 : -2.3), z + 0.3, 0.4, { canvas: secondaryHex, iron: 0x1b2941 });
   });
-  const propMesh = props.build(toonVertexMat(), { name: `${code}-street-props` });
-  if (propMesh) g.add(propMesh);
-  const neonMesh = neonBits.build(new THREE.MeshBasicMaterial({
-    vertexColors: true, transparent: true, opacity: 0.88, toneMapped: false,
-  }), { castShadow: false, receiveShadow: false, name: `${code}-street-neon` });
-  if (neonMesh) g.add(neonMesh);
-  if (chrome.length) {
-    const chromeMesh = new THREE.Mesh(
-      mergeGeometries(chrome, false),
-      new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.84, roughness: 0.24 }),
-    );
-    chrome.forEach((c) => c.dispose());
-    chromeMesh.castShadow = true;
-    g.add(chromeMesh);
-  }
 
   // Patrons used to be 27 InstancedMesh objects PER DISTRICT posed on the CPU.
   // The district now just publishes where people should stand; the shared GPU
   // crowd fills those spots, so a busy cafe terrace costs no extra draw calls.
-  g.userData.patronSlots = (lowPower ? [-7.5, 7.5] : [-17, -9, -4, 4, 9, 17])
+  const patronSlots = (lowPower ? [-7.5, 7.5] : [-17, -9, -4, 4, 9, 17])
     .map((x, index) => ({
       x, z: nearEdge + 3.1 + (index % 2) * 0.55,
       heading: index % 2 ? -0.5 : 0.5,
     }));
-  addParkedFleet(g, rng, {
+  addParkedFleet(B, rng, {
     accent: accentHex, secondary: secondaryHex, code, lowPower, roadLayout,
-  });
-  g.userData.venueCode = code;
-  return g;
+  }, colliderBoxes);
+  return { colliderBoxes, patronSlots, venueCode: code };
 }
