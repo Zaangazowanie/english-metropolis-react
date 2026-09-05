@@ -112,7 +112,7 @@ function UpcomingCard({ item, slug, earliestDate, now }) {
   return (
     <Glass padding={18} hover style={{
       position: 'relative',
-      borderColor: isLive ? T.emerald : undefined,
+      ...(isLive ? { border: `1px solid ${T.emerald}` } : {}),
       boxShadow: isLive ? `0 0 0 2px ${T.emerald}, 0 0 40px -8px ${T.emerald}` : undefined,
     }}>
       {isLive && (
@@ -362,7 +362,7 @@ export default function Calendar({ data }) {
       <div style={container}>
         <Glass padding={isMobile ? 24 : 36} style={{
           background: `${G.brandSoft}, ${T.bg1}`,
-          borderColor: 'rgba(217,70,239,0.25)',
+          border: '1px solid rgba(217,70,239,0.25)',
         }}>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 10 }}>
@@ -392,7 +392,7 @@ export default function Calendar({ data }) {
         marginBottom: 22,
         borderRadius: 28,
         background: `${G.brandSoft}, ${T.bg1}`,
-        borderColor: 'rgba(217,70,239,0.24)',
+        border: '1px solid rgba(217,70,239,0.24)',
         overflow: 'hidden',
       }}>
         <div style={{
