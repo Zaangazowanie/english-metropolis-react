@@ -30,6 +30,9 @@ function segmentBoxEntry(start, end, box, padding = 0.34) {
 }
 
 function keepCameraOnSidewalk(desired, playerPos) {
+  // a camera well above tram height (the arrival dolly's wide shot) may cross
+  // the reservation; only a street-level camera has to stay on the pavement
+  if (desired.y - (playerPos.y || 0) > 5.0) return;
   const safeLateral = BOULEVARD.tramLaneX + 1.75;
   for (const angle of TRANSIT_ANGLES) {
     const dirX = Math.cos(angle);
@@ -68,10 +71,12 @@ export class Player {
     this.root.add(blobShadow(0.62));
     scene.add(this.root);
 
-    this.pos = new THREE.Vector3(0, 0, 8);
+    // Spawn on the plaza ring, ~9 m out, facing Conductor Clara (-3.5, -9)
+    // across open paving — the first thing a new player does is walk to her.
+    this.pos = new THREE.Vector3(-10, 0, 3);
     this.pos.collisionRadius = PLAYER_R;
     this.vel = new THREE.Vector3();
-    this.heading = Math.PI;                 // model facing
+    this.heading = Math.atan2(-3.5 - this.pos.x, -9 - this.pos.z);   // model facing
     this.grounded = true;
     this.animT = 0;
     this.speedFrac = 0;
@@ -221,14 +226,22 @@ export class Player {
   }
 }
 
+// People and poles are never camera walls: a 0.8 m NPC box or a lamp post
+// pulling the spring arm in produces the "back of Wren's head" conversation
+// shot. Anything narrower than this on both axes is skipped by the occlusion pass.
+const CAMERA_MIN_OCCLUDER = 1.3;
+const PITCH_MIN = -0.75, PITCH_MAX = 1.15;
+const IDLE_TILT_AFTER = 3.0;      // seconds standing still before the camera drifts up
+
 export class FollowCamera {
   constructor(camera) {
     this.camera = camera;
-    this.yaw = 0;                // camera south of spawn, looking at the station
-    this.pitch = 0.32;
+    this.yaw = -0.5;             // behind the spawn point, looking across the plaza at Clara
+    this.pitch = 0.3;
     this.dist = 5.4;
     this.armLength = this.dist;
     this.freeLookTimer = 0;
+    this.idleTimer = 0;
     this.cur = new THREE.Vector3(0, 3, 14);
     this.curTarget = new THREE.Vector3();
     this.lead = new THREE.Vector3();
@@ -237,24 +250,56 @@ export class FollowCamera {
     this.desired = new THREE.Vector3();
     this.offset = new THREE.Vector3();
     this.forceSnap = false;
+    // conversation two-shot: 0 = follow cam, 1 = over-the-shoulder framing
+    this.convo = 0;
+    this.convoPos = new THREE.Vector3();
+    this.convoTarget = new THREE.Vector3();
+    this.convoSide = 1;
+    this._a = new THREE.Vector3();
+    this._b = new THREE.Vector3();
+    this._lookPos = new THREE.Vector3();
+    this._lookTarget = new THREE.Vector3();
+    // scripted dolly (metro arrival): pitch/dist glide from a wide shot
+    this.dolly = null;
     this.camera.userData.cameraMode = 'gta-follow';
   }
 
   snap() {
     this.forceSnap = true;
     this.freeLookTimer = 0;
+    this.idleTimer = 0;
   }
 
-  update(dt, player, mouse, colliders = []) {
+  // Glide pitch + distance from a wide establishing shot into the follow cam.
+  startDolly({ fromPitch = 0.9, fromDist = 14, toPitch = 0.22, toDist = 5.4, duration = 1.8, fromYaw = null, toYaw = null } = {}) {
+    this.dolly = { t: 0, fromPitch, fromDist, toPitch, toDist, duration, fromYaw, toYaw };
+    this.pitch = fromPitch;
+    this.dist = fromDist;
+    if (fromYaw !== null) this.yaw = fromYaw;
+  }
+
+  // partner: an object with .position (Object3D) or {x, z} — the local the
+  // player is talking to; null restores the follow cam over ~0.4 s.
+  update(dt, player, mouse, colliders = [], partner = null) {
     const playerPos = player.pos || player;
     const velocity = player.vel || this.leadGoal.set(0, 0, 0);
     const planarSpeed = Math.hypot(velocity.x, velocity.z);
     const speedFrac = player.speedFrac ?? Math.min(1, planarSpeed / SPRINT);
     const hasLookDelta = Math.abs(mouse.dx) + Math.abs(mouse.dy) > 0.01;
 
-    this.yaw -= mouse.dx * 0.0026;
-    this.pitch = THREE.MathUtils.clamp(this.pitch + mouse.dy * 0.0022, -0.15, 1.15);
-    this.dist = THREE.MathUtils.clamp(this.dist + mouse.wheel * 0.6, 2.6, 10);
+    if (this.dolly) {
+      const d = this.dolly;
+      d.t = Math.min(1, d.t + dt / d.duration);
+      const k = 1 - Math.pow(1 - d.t, 3);          // ease-out cubic
+      this.pitch = THREE.MathUtils.lerp(d.fromPitch, d.toPitch, k);
+      this.dist = THREE.MathUtils.lerp(d.fromDist, d.toDist, k);
+      if (d.fromYaw !== null && d.toYaw !== null) this.yaw = d.fromYaw + wrapAngle(d.toYaw - d.fromYaw) * k;
+      if (d.t >= 1 || hasLookDelta) this.dolly = null;
+    } else {
+      this.yaw -= mouse.dx * 0.0026;
+      this.pitch = THREE.MathUtils.clamp(this.pitch + mouse.dy * 0.0022, PITCH_MIN, PITCH_MAX);
+      this.dist = THREE.MathUtils.clamp(this.dist + mouse.wheel * 0.6, 2.6, 10);
+    }
     this.yaw = wrapAngle(this.yaw);
 
     if (hasLookDelta) this.freeLookTimer = 1.35;
@@ -263,11 +308,22 @@ export class FollowCamera {
 
     // Free-look always wins. Once the player releases it, trail actual motion
     // after a grace period rather than reacting directly to a key or joystick.
-    if (planarSpeed > 0.85 && this.freeLookTimer <= 0) {
+    if (planarSpeed > 0.85 && this.freeLookTimer <= 0 && !this.dolly) {
       const movementHeading = Math.atan2(velocity.x, velocity.z);
       const behindMovement = movementHeading + Math.PI;
       this.yaw = dampAngle(this.yaw, behindMovement, 1.35 + speedFrac * 1.75, dt);
       this.pitch = THREE.MathUtils.lerp(this.pitch, 0.3, 1 - Math.exp(-dt * 0.55));
+    }
+
+    // Standing still with no look input: after a few seconds the camera eases
+    // up a little so the skyline, rooftops and sky get into the frame.
+    if (planarSpeed < 0.2 && !hasLookDelta && !mouse.looking && !partner && !this.dolly) {
+      this.idleTimer += dt;
+      if (this.idleTimer > IDLE_TILT_AFTER && this.pitch > 0.06) {
+        this.pitch = THREE.MathUtils.lerp(this.pitch, 0.06, 1 - Math.exp(-dt * 0.35));
+      }
+    } else {
+      this.idleTimer = 0;
     }
 
     if (planarSpeed > 0.2) {
@@ -293,7 +349,10 @@ export class FollowCamera {
     if (snapNow) this.curTarget.copy(this.target);
     else this.curTarget.lerp(this.target, 1 - Math.exp(-dt * 10.5));
 
-    const requestedArm = this.dist + speedFrac * 0.52;
+    // the arm shortens as the camera drops below eye level so a low angle
+    // looks up at the hero from the pavement instead of from under it
+    const lowAngle = THREE.MathUtils.smoothstep(-this.pitch, 0.0, -PITCH_MIN);
+    const requestedArm = (this.dist + speedFrac * 0.52) * (1 - 0.45 * lowAngle);
     this.offset.set(
       Math.sin(this.yaw) * Math.cos(this.pitch),
       Math.sin(this.pitch),
@@ -305,6 +364,8 @@ export class FollowCamera {
 
     let clearFraction = 1;
     for (const box of colliders) {
+      if (box.person) continue;
+      if (box.maxX - box.minX < CAMERA_MIN_OCCLUDER && box.maxZ - box.minZ < CAMERA_MIN_OCCLUDER) continue;
       if (this.curTarget.x > box.minX && this.curTarget.x < box.maxX && this.curTarget.z > box.minZ && this.curTarget.z < box.maxZ) continue;
       const entry = segmentBoxEntry(this.curTarget, this.desired, box);
       if (entry !== null) clearFraction = Math.min(clearFraction, Math.max(0.2, entry - 0.045));
@@ -344,6 +405,52 @@ export class FollowCamera {
     } else {
       const followRate = mouse.looking || hasLookDelta ? 15 : 8.5 + speedFrac * 2.5;
       this.cur.lerp(this.desired, 1 - Math.exp(-dt * followRate));
+    }
+
+    // Conversation two-shot: behind-and-beside Wren, aimed at the midpoint of
+    // the two heads, so the local is in frame while they speak. Blends in and
+    // out over ~0.4 s and never fights the follow cam's own state.
+    const wantConvo = partner ? 1 : 0;
+    if (this.convo !== wantConvo) {
+      this.convo = wantConvo > this.convo
+        ? Math.min(1, this.convo + dt / 0.4)
+        : Math.max(0, this.convo - dt / 0.4);
+    }
+    if (partner) {
+      const pp = partner.obj?.position || partner.position || partner;
+      const headP = playerPos.y + 1.52;
+      const headN = (pp.y || 0) + (partner.headHeight ?? 1.55);
+      // player → local direction and its right-hand perpendicular
+      this._a.set(pp.x - playerPos.x, 0, pp.z - playerPos.z);
+      const dist = Math.max(0.8, this._a.length());
+      this._a.divideScalar(dist);
+      this._b.set(-this._a.z, 0, this._a.x);
+      // pick the side that keeps the camera closest to where it already is
+      if (this.convo < 0.05) {
+        const dot = (this.cur.x - playerPos.x) * this._b.x + (this.cur.z - playerPos.z) * this._b.z;
+        this.convoSide = dot >= 0 ? 1 : -1;
+      }
+      this.convoTarget.set(
+        (playerPos.x + pp.x) * 0.5,
+        (headP + headN) * 0.5 - 0.1,
+        (playerPos.z + pp.z) * 0.5,
+      );
+      const arm = 3.2;
+      this.convoPos.set(
+        playerPos.x - this._a.x * arm * 0.72 + this._b.x * this.convoSide * arm * 0.55,
+        headP + Math.sin(0.12) * arm + 0.25,
+        playerPos.z - this._a.z * arm * 0.72 + this._b.z * this.convoSide * arm * 0.55,
+      );
+      const floor = heightAt(this.convoPos.x, this.convoPos.z) + 0.5;
+      if (this.convoPos.y < floor) this.convoPos.y = floor;
+    }
+    if (this.convo > 0) {
+      const k = this.convo * this.convo * (3 - 2 * this.convo);
+      this._lookPos.copy(this.cur).lerp(this.convoPos, k);
+      this._lookTarget.copy(this.curTarget).lerp(this.convoTarget, k);
+      this.camera.position.copy(this._lookPos);
+      this.camera.lookAt(this._lookTarget);
+      return;
     }
     this.camera.position.copy(this.cur);
     this.camera.lookAt(this.curTarget);
