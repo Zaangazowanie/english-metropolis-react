@@ -122,7 +122,7 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
   const location = useLocation()
   const navigate = useNavigate()
   const isDay = mode === 'day'
-  const { studentLogout } = useStudentAuth()
+  const { studentLogout, isAdminStudentView } = useStudentAuth()
   const { t } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
@@ -327,14 +327,14 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
                   its location to be disclosed — the checkout consent text and the
                   legal pages do the disclosing. It does not have to sit next to
                   Log out on every screen. */}
-              <button onClick={() => { studentLogout(); window.location.href = '/login' }} className="em-press em-focus"
+              <button onClick={() => { studentLogout(); if (!isAdminStudentView) window.location.href = '/login' }} className="em-press em-focus"
                 style={{ width: '100%', padding: '12px 10px', minHeight: 44, border: 'none',
                   cursor: 'pointer', background: 'transparent',
                   color: T.textSoft, fontFamily: FONT.body, fontSize: 13,
                   textAlign: 'left', borderRadius: 8,
                   display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>logout</span>
-                {t('chrome.menu.logout')}
+                  {isAdminStudentView ? 'End student view' : t('chrome.menu.logout')}
               </button>
             </div>
           )}

@@ -14,6 +14,7 @@
 // toggle in the header — golden-hour by day, neon London by night.
 import { Suspense, lazy, useMemo, useRef, useState, useEffect, Component } from 'react'
 import { Link } from 'react-router-dom'
+import { readStudentSession } from '../../lib/student-session.js'
 import { FONT, G, EASE } from '../../design/v3/tokens.js'
 import { Skyline } from '../../design/v3/primitives.jsx'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
@@ -847,9 +848,7 @@ export default function GameHome() {
   const { lang, setLang } = useI18n()
   const W = GH[lang === 'pl' ? 'pl' : 'en']
   // Signed-in students see "My dashboard" instead of another Sign in.
-  const studentSession = (() => {
-    try { return JSON.parse(window.localStorage.getItem('em-student-session') || 'null') } catch { return null }
-  })()
+  const studentSession = readStudentSession()
   const { T, mode, setMode } = useV3Theme()
   const night = mode !== 'day'
   const reduced = usePrefersReducedMotion()

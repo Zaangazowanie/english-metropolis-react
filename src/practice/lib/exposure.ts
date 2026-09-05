@@ -33,6 +33,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchWithTimeout } from './practice-cache';
+import { readStudentSession, isStudentView } from '../../lib/student-session.js';
 import {
   isEligibleByExposureBudget,
   leitnerEligibility,
@@ -76,20 +77,13 @@ export interface UseStudentExposure {
 }
 
 // ─── Local state ──────────────────────────────────────────────────────
-const STUDENT_SESSION_KEY = 'em-student-session';
 const LEGACY_SLUG_KEY = 'studentSlug';
 
 function readStudentSlug(): string | undefined {
+  const student = readStudentSession();
+  if (student?.slug) return student.slug;
+  if (isStudentView()) return undefined;
   if (typeof window === 'undefined') return undefined;
-  try {
-    const raw = window.localStorage.getItem(STUDENT_SESSION_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as { slug?: string };
-      if (parsed?.slug) return parsed.slug;
-    }
-  } catch {
-    /* fall through */
-  }
   try {
     return window.localStorage.getItem(LEGACY_SLUG_KEY) || undefined;
   } catch {
@@ -142,6 +136,7 @@ async function queryConvex<T>(path: string, args: Record<string, unknown>): Prom
  */
 export function useStudentExposure(): UseStudentExposure {
   const slug = readStudentSlug();
+  const studentView = isStudentView();
   // De-dupe ring: avoid spamming the backend with the exact same
   // (itemId, shellKey) within a few seconds. Lots of shells re-render
   // during a single session and we don't want each render to re-log.
@@ -175,7 +170,7 @@ export function useStudentExposure(): UseStudentExposure {
 
   const recordExposure = useCallback(
     (item: ExposureItem, shellKey: string) => {
-      if (!slug) return;
+      if (!slug || studentView || isStudentView()) return;
       const k = `${shellKey}::${item.itemId}`;
       const now = Date.now();
       const last = sentRecentlyRef.current.get(k);
@@ -192,12 +187,12 @@ export function useStudentExposure(): UseStudentExposure {
         // signal next time.
       });
     },
-    [slug],
+    [slug, studentView],
   );
 
   const recordExposureBatch = useCallback(
     (items: ExposureItem[], shellKey: string) => {
-      if (!slug || items.length === 0) return;
+      if (!slug || studentView || isStudentView() || items.length === 0) return;
       const now = Date.now();
       // Filter out anything we logged for this shell in the last
       // DEDUPE_WINDOW_MS — the same puzzle re-mounting shouldn't
@@ -219,7 +214,7 @@ export function useStudentExposure(): UseStudentExposure {
         // Non-fatal.
       });
     },
-    [slug],
+    [slug, studentView],
   );
 
   return useMemo(
@@ -412,6 +407,7 @@ export interface UseSessionShellHistory {
  */
 export function useSessionShellHistory(): UseSessionShellHistory {
   const slug = readStudentSlug() ?? '__anon__';
+  const studentView = isStudentView();
   const [state, setState] = useState<SessionShellsState>(() => {
     const stored = readSessionShells(slug);
     const now = Date.now();
@@ -448,15 +444,15 @@ export function useSessionShellHistory(): UseSessionShellHistory {
         // Cap session history to the last 10 shells — anything older
         // is rarely a useful "this session" signal and bloats storage.
         const capped = next.length > 10 ? next.slice(next.length - 10) : next;
-        writeSessionShells(slug, capped, now);
+        if (!studentView && !isStudentView()) writeSessionShells(slug, capped, now);
         return { shells: capped, lastTouchedAt: now };
       });
     },
-    [slug],
+    [slug, studentView],
   );
 
   const clearSession = useCallback(() => {
-    if (typeof window !== 'undefined') {
+    if (!studentView && !isStudentView() && typeof window !== 'undefined') {
       try {
         window.localStorage.removeItem(SESSION_SHELLS_KEY_PREFIX + slug);
         window.localStorage.removeItem(SESSION_SHELLS_TS_KEY_PREFIX + slug);
@@ -465,7 +461,7 @@ export function useSessionShellHistory(): UseSessionShellHistory {
       }
     }
     setState({ shells: [], lastTouchedAt: Date.now() });
-  }, [slug]);
+  }, [slug, studentView]);
 
   return useMemo(
     () => ({

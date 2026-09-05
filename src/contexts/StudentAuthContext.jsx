@@ -9,6 +9,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { fetchWithTimeout } from '../practice/lib/practice-cache'
+export { getStudentSessionToken } from '../lib/student-session.js'
 
 const STUDENT_SESSION_KEY = 'em-student-session'   // real auth session
 const LEGACY_SLUG_KEY = 'studentSlug'               // old link-based fallback
@@ -27,17 +28,6 @@ function readStoredStudentUser() {
 
 // Module-level token accessor — usable outside React (e.g. booking views
 // that call Convex directly). Returns the raw student session token or null.
-export function getStudentSessionToken() {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = window.localStorage.getItem(STUDENT_SESSION_KEY)
-    const parsed = raw ? JSON.parse(raw) : null
-    return parsed?.sessionToken || null
-  } catch {
-    return null
-  }
-}
-
 // Call the Convex HTTP API directly (same pattern as AdminAuthContext)
 async function mutateConvex(path, args) {
   // 30s AbortController-backed timeout — see practice-cache.ts.
@@ -133,4 +123,19 @@ export function useStudentAuth() {
     throw new Error('useStudentAuth must be used within StudentAuthProvider')
   }
   return context
+}
+
+// The live app gets the selected student's server-issued session. This nested
+// provider has no persistence effect, so ending a view restores the outer login.
+export function StudentViewAuthProvider({ studentUser, onExit, children }) {
+  const value = {
+    studentUser,
+    studentLogin: async () => ({ success: false, error: 'End student view before signing in.' }),
+    studentLogout: onExit,
+    isStudentAuthenticated: true,
+    hasStudentAccess: true,
+    resolvedSlug: studentUser.slug,
+    isAdminStudentView: true,
+  }
+  return <StudentAuthContext.Provider value={value}>{children}</StudentAuthContext.Provider>
 }

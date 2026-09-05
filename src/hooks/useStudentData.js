@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLocation, useParams } from 'react-router-dom'
 import {
   ANALYSES_LIMIT,
   CONVEX_URL,
   STUDENT_FIRST_NAME,
-  STUDENT_ID,
   STUDENT_INITIALS,
   STUDENT_LEVEL,
   STUDENT_NAME,
 } from '../data/studentConfig.js'
 import { fetchWithTimeout } from '../practice/lib/practice-cache'
 import { getStudentSessionToken } from '../contexts/StudentAuthContext.jsx'
+import { createStudentDataRefresh, refreshedValue } from './studentDataRefresh.js'
 
 function normalizeDateKey(value) {
   return String(value || '').trim().slice(0, 10)
@@ -205,15 +205,6 @@ async function queryConvex(path, args) {
   return payload.value
 }
 
-const initialProfile = {
-  id: STUDENT_ID,
-  firstName: STUDENT_FIRST_NAME,
-  name: STUDENT_NAME,
-  initials: STUDENT_INITIALS,
-  slug: 'szymon-karpinski',
-  level: STUDENT_LEVEL,
-}
-
 // Build a lessons.json-compatible shape from Convex queries for non-Szymon students
 function buildLessonsFromConvex(convexLessons, convexKeywords) {
   const keywordsByLesson = {}
@@ -314,44 +305,41 @@ function pickNextUpcomingLesson(lessons, bookings) {
 }
 
 
-export default function useStudentData() {
-  const params = useParams()
-  const urlSlug = params.slug || 'szymon-karpinski'
-  const [state, setState] = useState({
+function emptyStudentState(slug) {
+  return {
+    studentSlug: slug,
     loading: true,
     lessonsError: '',
     convexError: '',
-    profile: initialProfile,
+    profile: { id: null, slug, name: '', firstName: '', initials: '', level: '' },
     lessons: [],
     bookings: [],
     keywords: [],
+    convexKeywords: [],
     analyses: [],
     convexLessonsById: {},
-  })
+    refreshedAt: 0,
+  }
+}
+
+export default function useStudentData() {
+  const params = useParams()
+  const { pathname } = useLocation()
+  const urlSlug = params.slug || 'szymon-karpinski'
+  const [storedState, setState] = useState(() => emptyStudentState(urlSlug))
+  const refreshController = useRef(null)
+  const refresh = useCallback(() => refreshController.current?.refresh(), [])
+  // A route can switch students before the old effect is cleaned up. Never
+  // render the previous student's profile or materials during that hand-off.
+  const state = storedState.studentSlug === urlSlug ? storedState : emptyStudentState(urlSlug)
 
   useEffect(() => {
-    let cancelled = false
+    setState(emptyStudentState(urlSlug))
 
     async function loadStudentData() {
-      setState((current) => ({
-        ...current,
-        loading: true,
-        lessonsError: '',
-        convexError: '',
-      }))
-
       // First resolve student from slug
-      let student = null
-      try {
-        student = await queryConvex('students:getStudentBySlug', { slug: urlSlug })
-      } catch (err) {
-        if (!cancelled) setState(s => ({ ...s, loading: false, convexError: `Student "${urlSlug}" not found.` }))
-        return
-      }
-      if (!student) {
-        if (!cancelled) setState(s => ({ ...s, loading: false, convexError: `Student "${urlSlug}" not found.` }))
-        return
-      }
+      const student = await queryConvex('students:getStudentBySlug', { slug: urlSlug })
+      if (!student) throw new Error(`Student "${urlSlug}" not found.`)
 
       const studentId = String(student._id)
 
@@ -363,59 +351,63 @@ export default function useStudentData() {
       ]
       const [convexLessonsResult, analysesResult, keywordsResult, bookingsResult] =
         await Promise.allSettled(fetches)
-      const lessonsResult = convexLessonsResult
-
-      if (cancelled) return
-
-      const convexLessons = convexLessonsResult.status === 'fulfilled' ? convexLessonsResult.value : []
-      const convexKeywords = keywordsResult.status === 'fulfilled' ? keywordsResult.value : []
-      const bookings = bookingsResult.status === 'fulfilled' ? bookingsResult.value : []
-      const lessonsPayload = buildLessonsFromConvex(convexLessons, convexKeywords)
-      const convexLessonsById = normalizeConvexLessons(
-        convexLessonsResult.status === 'fulfilled' ? convexLessonsResult.value : [],
-      )
-      const lessons = normalizeLessons(lessonsPayload)
-      const analyses = normalizeAnalyses(
-        analysesResult.status === 'fulfilled' ? analysesResult.value : [],
-        convexLessonsById,
-      )
-      const mergedLessons = lessons.map((lesson) => ({
-        ...lesson,
-        analysis: getAnalysisForLesson(lesson, analyses),
-      }))
-
-      const profileFromStudent = {
-        id: studentId,
-        name: student.name || STUDENT_NAME,
-        firstName: String(student.name || '').split(' ')[0] || STUDENT_FIRST_NAME,
-        initials: String(student.name || '').split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase() || STUDENT_INITIALS,
-        slug: student.slug || urlSlug,
-        level: student.level || STUDENT_LEVEL,
-        targetLevel: student.targetLevel,
-      }
-
-      setState({
-        loading: false,
-        lessonsError: lessonsResult.status === 'rejected' ? lessonsResult.reason?.message || 'Failed to load lessons.' : '',
-        convexError:
-          convexLessonsResult.status === 'rejected' || analysesResult.status === 'rejected'
-            ? 'Convex progress data is unavailable right now.'
-            : '',
-        profile: profileFromStudent,
-        lessons: mergedLessons,
-        bookings,
-        keywords: flattenKeywords(mergedLessons),
-        analyses,
-        convexLessonsById,
-      })
+      return { student, studentId, convexLessonsResult, analysesResult, keywordsResult, bookingsResult }
     }
 
-    loadStudentData()
-
+    const controller = createStudentDataRefresh({
+      load: loadStudentData,
+      onData({ student, studentId, convexLessonsResult, analysesResult, keywordsResult, bookingsResult }) {
+        setState(current => {
+          const previous = current.studentSlug === urlSlug ? current : emptyStudentState(urlSlug)
+          const convexLessons = refreshedValue(convexLessonsResult, Object.values(previous.convexLessonsById))
+          const convexKeywords = refreshedValue(keywordsResult, previous.convexKeywords)
+          const bookings = refreshedValue(bookingsResult, previous.bookings)
+          const convexLessonsById = normalizeConvexLessons(convexLessons)
+          const lessons = normalizeLessons(buildLessonsFromConvex(convexLessons, convexKeywords))
+          const analyses = normalizeAnalyses(refreshedValue(analysesResult, previous.analyses), convexLessonsById)
+          const mergedLessons = lessons.map(lesson => ({ ...lesson, analysis: getAnalysisForLesson(lesson, analyses) }))
+          return {
+            studentSlug: urlSlug,
+            loading: false,
+            lessonsError: convexLessonsResult.status === 'rejected'
+              ? 'Lessons could not be refreshed. Please try again.' : '',
+            convexError: [convexLessonsResult, analysesResult, keywordsResult].some(result => result.status === 'rejected')
+              ? 'Some learning data is temporarily unavailable. Please try again.' : '',
+            profile: {
+              id: studentId,
+              name: student.name || STUDENT_NAME,
+              firstName: String(student.name || '').split(' ')[0] || STUDENT_FIRST_NAME,
+              initials: String(student.name || '').split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase() || STUDENT_INITIALS,
+              slug: student.slug || urlSlug,
+              level: student.level || STUDENT_LEVEL,
+              targetLevel: student.targetLevel,
+            },
+            lessons: mergedLessons,
+            bookings,
+            keywords: flattenKeywords(mergedLessons),
+            convexKeywords,
+            analyses,
+            convexLessonsById,
+            refreshedAt: Date.now(),
+          }
+        })
+      },
+      onError() {
+        setState(current => ({ ...current, loading: false,
+          lessonsError: 'Lessons could not be refreshed. Please try again.',
+          convexError: 'Learning data is temporarily unavailable. Please try again.' }))
+      },
+    })
+    refreshController.current = controller
     return () => {
-      cancelled = true
+      controller.dispose()
+      if (refreshController.current === controller) refreshController.current = null
     }
   }, [urlSlug])
+
+  // App owns this hook above its nested routes; switching tabs does not remount
+  // it. A visit to Lessons must therefore explicitly fetch current materials.
+  useEffect(() => { refresh() }, [pathname, refresh])
 
   // Lessons-on-file count should reflect *completed* lessons only — planned
   // lessons are upcoming, not on file yet. lessonCountTotal is the raw size.
@@ -430,6 +422,7 @@ export default function useStudentData() {
 
   return {
     ...state,
+    refresh,
     lessonCount,
     keywordCount,
     latestAnalysis,

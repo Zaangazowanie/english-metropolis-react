@@ -20,13 +20,9 @@ import { FONT, G, EASE } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn } from '../../design/v3/primitives.jsx'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
+import { getStudentSessionToken, isStudentView } from '../../lib/student-session.js'
 
-function readSessionToken() {
-  try {
-    const raw = window.localStorage.getItem('em-student-session')
-    return raw ? (JSON.parse(raw)?.sessionToken || null) : null
-  } catch { return null }
-}
+const STUDENT_VIEW_PURCHASE_MESSAGE = 'Use the admin billing controls to make account purchases.'
 
 async function callConvex(kind, path, args) {
   const response = await fetchWithTimeout(`/api/${kind}`, {
@@ -65,9 +61,10 @@ export default function AnalysisUpgradeCTA({ lessonId: rawLessonId, compact = fa
   const [offer, setOffer] = useState(null)      // null = unknown, false = not offered
   const [busy, setBusy] = useState(null)        // 'lesson' | 'account'
   const [error, setError] = useState('')
+  const studentView = isStudentView()
 
   useEffect(() => {
-    const sessionToken = readSessionToken()
+    const sessionToken = getStudentSessionToken()
     // No student session at all: a teacher or admin looking at the page, or a
     // signed-out visitor. Neither is someone to sell to.
     if (!sessionToken) { setOffer(false); return }
@@ -83,7 +80,11 @@ export default function AnalysisUpgradeCTA({ lessonId: rawLessonId, compact = fa
   }, [lessonId])
 
   const buy = useCallback(async (scope) => {
-    const sessionToken = readSessionToken()
+    if (studentView || isStudentView()) {
+      setError(STUDENT_VIEW_PURCHASE_MESSAGE)
+      return
+    }
+    const sessionToken = getStudentSessionToken()
     if (!sessionToken || busy) return
     setBusy(scope)
     setError('')
@@ -101,7 +102,7 @@ export default function AnalysisUpgradeCTA({ lessonId: rawLessonId, compact = fa
       setError(t('We could not open that offer. Please try again.',
         'Nie udało się otworzyć tej oferty. Spróbuj ponownie.'))
     }
-  }, [busy, isPl, lessonId, t])
+  }, [busy, isPl, lessonId, t, studentView])
 
   if (!offer) return null
 
@@ -165,9 +166,10 @@ export default function AnalysisUpgradeCTA({ lessonId: rawLessonId, compact = fa
         </ul>
       )}
 
+      {studentView && <p role="status" style={{ margin: '12px 0 0', fontSize: 13, color: T.textSoft }}>{STUDENT_VIEW_PURCHASE_MESSAGE}</p>}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
         {single.available && (
-          <Btn variant="secondary" size="sm" disabled={!!busy}
+          <Btn variant="secondary" size="sm" disabled={!!busy || studentView}
             onClick={() => buy('lesson')}>
             {busy === 'lesson'
               ? t('Opening…', 'Otwieramy…')
@@ -175,7 +177,7 @@ export default function AnalysisUpgradeCTA({ lessonId: rawLessonId, compact = fa
           </Btn>
         )}
         {bulk.available && (
-          <Btn variant="primary" size="sm" disabled={!!busy}
+          <Btn variant="primary" size="sm" disabled={!!busy || studentView}
             onClick={() => buy('account')}>
             {busy === 'account'
               ? t('Opening…', 'Otwieramy…')

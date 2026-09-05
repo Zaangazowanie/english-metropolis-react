@@ -214,8 +214,10 @@ export default function ConsoleSchoolStudents() {
                     )}
                   </div>
                   <div className="sa3-actions">
-                    <Link className="sa-btn sa-btn-primary sa-btn-sm" to={`/admin/superadmin/school/preview?student=${encodeURIComponent(s.slug)}`}>
-                      <span className="material-symbols-outlined" aria-hidden="true">visibility</span>View as student
+                    <Link className="sa-btn sa-btn-primary sa-btn-sm" to={s.status === 'active'
+                      ? `/admin/student-view/${encodeURIComponent(s.slug)}/lessons`
+                      : `/admin/superadmin/school/preview?student=${encodeURIComponent(s.slug)}`}>
+                      <span className="material-symbols-outlined" aria-hidden="true">visibility</span>{s.status === 'active' ? 'Open student app' : 'View archive'}
                     </Link>
                     <button type="button" className="sa-btn sa-btn-ghost sa-btn-sm" onClick={() => { setNote(null); if (allMode && s.organizationId) select(s.organizationId); setDraft(toDraft(s)) }}>
                       <span className="material-symbols-outlined" aria-hidden="true">edit</span>Edit

@@ -6,13 +6,7 @@
 // and must not flash its content at an unconfirmed one either.
 import { useCallback, useEffect, useState } from 'react'
 import { fetchWithTimeout } from '../practice/lib/practice-cache'
-
-function readSessionToken() {
-  try {
-    const raw = window.localStorage.getItem('em-student-session')
-    return raw ? (JSON.parse(raw)?.sessionToken || null) : null
-  } catch { return null }
-}
+import { getStudentSessionToken } from '../lib/student-session.js'
 
 export function useEmailVerified() {
   const [verified, setVerified] = useState(null)   // null | true | false
@@ -29,12 +23,12 @@ export function useEmailVerified() {
   // never gates someone who simply has no account yet on the grounds that
   // their address is unconfirmed. A surface that must tell "sign up" from
   // "confirm your address" needs both flags.
-  const [signedIn, setSignedIn] = useState(() => !!readSessionToken())
+  const [signedIn, setSignedIn] = useState(() => !!getStudentSessionToken())
   const [email, setEmail] = useState(null)
   const [resent, setResent] = useState('')         // '' | 'sending' | 'sent' | 'error'
 
   const load = useCallback(async () => {
-    const sessionToken = readSessionToken()
+    const sessionToken = getStudentSessionToken()
     setSignedIn(!!sessionToken)
     // signed out
     if (!sessionToken) {
@@ -68,7 +62,7 @@ export function useEmailVerified() {
   useEffect(() => { load() }, [load])
 
   const resend = useCallback(async () => {
-    const sessionToken = readSessionToken()
+    const sessionToken = getStudentSessionToken()
     if (!sessionToken) return
     setResent('sending')
     try {

@@ -10,6 +10,7 @@ import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Glass, Btn, Pill, Skeleton } from '../../design/v3/primitives.jsx'
 import { useReveal } from '../../design/v3/motion/index.js'
 import { useI18n } from '../../i18n'
+import { isStudentView } from '../../lib/student-session.js'
 import LessonBooking from './LessonBooking.jsx'
 import Curriculum from './Curriculum.jsx'
 
@@ -237,7 +238,8 @@ function MonthGrid({ cursor, setCursor, lessonItems, slug, earliestDate, todaySt
                 if (isUpcoming) {
                   return <div key={l._id} style={cellStyle} title={l.title}>{label}</div>
                 }
-                const path = `/app/${slug}/lessons?openLesson=${l._id}`
+                const basePath = isStudentView() ? '/admin/student-view' : '/app'
+                const path = `${basePath}/${slug}/lessons?openLesson=${l._id}`
                 return (
                   <Link key={l._id} to={path} title={l.title} className="em-focus"
                     style={{ ...cellStyle, cursor: 'pointer' }}>

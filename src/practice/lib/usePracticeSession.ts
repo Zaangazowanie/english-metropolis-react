@@ -17,6 +17,7 @@ import { useEffect, useState } from 'react';
 import { readKB, type NormalisedKB } from './kb-reader';
 import { pickShellsForStudent, type PickedShell } from './shell-selector';
 import { fetchJSONCached } from './practice-cache';
+import { readStudentSession as readEffectiveStudentSession, isStudentView } from '../../lib/student-session.js';
 
 export interface PracticeSession {
   studentSlug?: string;
@@ -33,21 +34,14 @@ interface SessionData {
   name?: string;
 }
 
-const STUDENT_SESSION_KEY = 'em-student-session';
 const LEGACY_SLUG_KEY = 'studentSlug';
 const KB_BASE_URL = ''; // same-origin: /knowledge-base/<slug>.json
 
 function readStudentSession(): SessionData {
+  const student = readEffectiveStudentSession();
+  if (student?.slug) return student;
+  if (isStudentView()) return {};
   if (typeof window === 'undefined') return {};
-  try {
-    const raw = window.localStorage.getItem(STUDENT_SESSION_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as SessionData;
-      if (parsed?.slug) return parsed;
-    }
-  } catch {
-    // swallow & try legacy
-  }
   try {
     const legacy = window.localStorage.getItem(LEGACY_SLUG_KEY);
     if (legacy) return { slug: legacy };

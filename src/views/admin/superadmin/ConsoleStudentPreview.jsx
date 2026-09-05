@@ -17,7 +17,7 @@
 // not shown, and the panel says so rather than faking it.
 
 import { useCallback, useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ConsoleEmpty, ConsoleErrorPanel, ConsoleSkeleton, LevelBadge } from './ConsoleStates.jsx'
 import { Field } from './CommsShared.jsx'
 import { consoleGet, consolePost } from './consoleApi.js'
@@ -195,6 +195,12 @@ export default function ConsoleStudentPreview() {
       </div>
 
       {note && <p className={note.ok ? 'sa-note is-ok' : 'sa-note is-bad'} role="status">{note.text}</p>}
+
+      {student?.status === 'active' && (
+        <p><Link className="sa-btn sa-btn-primary" to={`/admin/student-view/${encodeURIComponent(student.slug)}/lessons`}>
+          Open student app
+        </Link></p>
+      )}
 
       {!slug ? (
         <ConsoleEmpty icon="visibility" title="Pick a student to preview"
