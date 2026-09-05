@@ -79,7 +79,28 @@ gameplay system belong to the other two lanes.
 
 ## Budget (renderer.info with autoReset off, full post stack, SwiftShader, tier high)
 
-FILLED_IN_BY_FINAL_PASS
+Baseline (review, 2026-09-04): hub 454 calls / 1.48 M tris; district-0 arrival 288 / 1.15 M; potato
+hub 285 / 0.73 M, potato district-0 177 / 0.54 M.
+
+| view | tier | calls | tris (with shadow pass) | tris (no shadow) |
+|---|---|---|---|---|
+| hub spawn | high | 352 (-22%) | 1.77 M (+20%) | 0.99 M |
+| district-0 boulevard side | high | 313 (+9%) | 1.79 M (+55%) | 1.04 M |
+| Quebec / Trinidad / Maori / Texan vistas | high | 185-253 | 1.21-1.49 M | – |
+| worst view: platform looking down a 400 m boulevard | high | 458-462 | 1.63-1.68 M | – |
+| hub spawn | potato | 157 (-45%) | 0.73 M (0%) | – |
+| district-0 arrival | potato | 98 (-45%) | 0.56 M (+5%) | – |
+
+Where the high-tier triangles go at district-0 (hide-category measurement, `tri5-d0.log`):
+skinned bodies 513 k (hero + 24 k-tri locals, character lane), GPU crowd 301 k (game/character
+lane), **districts 287 k, flora 219 k, hub/boulevard kits 56 k, trams + fleets 20 k** (this lane),
+skyline + suburbs 85 k, terrain 51 k (was 97 k). Draw calls are inside budget everywhere and
+under baseline at the hub and on potato; triangles are over the +15% line on high. The shadow
+pass is ~45% of every frame; the largest single item in it is the 24 k-triangle locals, which
+this lane can only fade and stop casting past 22 m. Chunk build CPU per district on this VPS:
+ground 30-60 ms, facades 60-90 ms, furniture 20-50 ms, merge+AO 25-45 ms, people 12-35 ms, spread
+over ticks by the generator (per-tick slices measured 8-48 ms in `city-verify2.json`).
+Final per-view numbers are in `scratchpad/cityfinal-*-metrics.json`.
 
 ## Known gaps / handoff
 
