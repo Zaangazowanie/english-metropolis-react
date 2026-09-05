@@ -369,7 +369,7 @@ export class ZoneManager {
       crossZs: [-2.8, 12.2],
       diagonalWidth: 6.4,
       laneWidth: 3.2,
-      markingClearance: 0.015,
+      markingClearance: 0.017,
       oneWayDirection: hash(z.data.code) % 2 ? 1 : -1,
     };
     const roadColor = new THREE.Color(0x1b2434).lerp(cPrimary, 0.06);
@@ -394,7 +394,7 @@ export class ZoneManager {
         const geo = new THREE.PlaneGeometry(0.9, length * 0.96).rotateX(-Math.PI / 2);
         geo.translate(lx, 0, 0);
         if (yaw) geo.rotateY(yaw);
-        geo.translate(x, ROAD_Y + 0.002, zz);
+        geo.translate(x, ROAD_Y + 0.008, zz);          // >= 8 mm above the asphalt: no z-fight at range
         B.shell.add(geo, roadColor.clone().multiplyScalar(0.86));
       }
     };
@@ -450,7 +450,7 @@ export class ZoneManager {
       arrowGeometry.translate(roadLayout.centreX, MARKING_Y + 0.003, districtMid + localZ);
       B.shell.add(arrowGeometry, oneWayColor);
     }
-    for (const [mx, mz] of [[-12.2 + 1.4, 6], [0.9, -8], [12.2 - 1.6, 20]]) manhole(B, mx, mz, { y: ROAD_Y + 0.004 });
+    for (const [mx, mz] of [[-12.2 + 1.4, 6], [0.9, -8], [12.2 - 1.6, 20]]) manhole(B, mx, mz, { y: ROAD_Y + 0.017 });
 
     const distanceToDiagonal = (x, zz) => {
       const px = x - diagonalStart.x;
@@ -492,8 +492,8 @@ export class ZoneManager {
               color: kerbColor, y: kerbY, dropped: [{ at: 0.45, half: 0.45 }, { at: end - open - 0.45, half: 0.45 }],
             });
             if (B.detail) {
-              tactilePatch(B, x0 + dx * (open + 0.5) - dz * 0.0, z0 + dz * (open + 0.5), Math.atan2(dx, dz), { y: 0.04 });
-              tactilePatch(B, x0 + dx * (end - 0.5), z0 + dz * (end - 0.5), Math.atan2(dx, dz), { y: 0.04 });
+              tactilePatch(B, x0 + dx * (open + 0.5), z0 + dz * (open + 0.5), Math.atan2(dx, dz), { y: 0.05 });
+              tactilePatch(B, x0 + dx * (end - 0.5), z0 + dz * (end - 0.5), Math.atan2(dx, dz), { y: 0.05 });
             }
           }
           open = null;
@@ -661,10 +661,10 @@ export class ZoneManager {
 
     // ---- flora: species from climate keywords, one InstancedMesh per species
     const species = speciesFor(z.data);
-    const treeSpots = [[-19, nearEdge - 1.0], [-9.5, nearEdge - 1.0], [19.2, nearEdge - 1.0],
+    const treeSpots = [[-19, nearEdge - 1.0], [19.2, nearEdge - 1.0],
       [-21.6, -12], [21.6, -12], [-21.6, 3.5], [21.6, 3.5], [-21.6, 18], [21.6, 18],
       [-18.5, farEdge + 1.4], [18.5, farEdge + 1.4], [-6.5, farEdge + 1.4], [6.5, farEdge + 1.4],
-      [-3.0, -7.3], [4.5, -7.3], [-14.5, 1.3], [15.5, 1.3], [-14.6, 16.4], [15.5, 16.4]];
+      [-3.0, -7.3], [15.5, 1.3], [-14.6, 16.4]];
     const bySpecies = new Map();
     treeSpots.forEach(([x, zz], i) => {
       if (!free(x, zz, 0.7) || furniture.some(([fx, fz, fr]) => Math.hypot(fx - x, fz - zz) < fr + 1.2)) return;
@@ -685,7 +685,7 @@ export class ZoneManager {
     const occluders = slots.map((s) => ({ x: s.x, z: s.z, hw: s.w / 2, hd: s.d / 2 }));
     const meshes = buildBuckets(B, {
       atlas: atlas.texture(), name: z.data.code,
-      litEmissive: cLine.clone().lerp(new THREE.Color(0xffc98a), 0.55),
+      litEmissive: new THREE.Color(0xffa050).lerp(cLine, 0.18),
       ao: this.vertexAO ? (geo) => bakeDistrictAO(geo, occluders) : null,
     });
     for (const m of meshes) {

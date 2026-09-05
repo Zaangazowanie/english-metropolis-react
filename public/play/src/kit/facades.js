@@ -597,7 +597,7 @@ export function toneTable({ cPrimary, cSecondary, cAccent, cLine, cRoof }, flags
     roof: cRoof.clone().lerp(CREAM, 0.12), roofFlat: cRoof.clone().lerp(ink, 0.35), slate: new THREE.Color(0x3a3f52).lerp(cRoof, 0.2),
     tin: new THREE.Color(0xb8c1c8).lerp(cRoof, 0.25), chimney: cSecondary.clone().lerp(ink, 0.4),
     frame: flags.bright ? CREAM.clone() : CREAM.clone().lerp(cPrimary, 0.15),
-    glass: new THREE.Color(0x0f1c33).lerp(cLine, 0.08), glassTower: new THREE.Color(0x152a48).lerp(cLine, 0.15),
+    glass: new THREE.Color(0x0a1424).lerp(cLine, 0.06), glassTower: new THREE.Color(0x0f2038).lerp(cLine, 0.12),
     iron: new THREE.Color(0x1f2536), column: CREAM.clone(), shutter: cAccent.clone().lerp(ink, 0.2),
     door: cAccent.clone(), shopFrame: cRoof.clone().lerp(ink, 0.55), fascia: ink.clone().lerp(cAccent, 0.2),
     awning: cAccent.clone(), accent: cAccent.clone(), line: cLine.clone(), lineHex: cLine.getHex(),

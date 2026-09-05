@@ -109,15 +109,15 @@ function fleetMaterial() {
       .replace('#include <common>', '#include <common>\nattribute float aRole;\nvarying float vRole;')
       .replace('#include <color_vertex>', /* glsl */`
         vRole = aRole;
-        vColor = vec4(color, 1.0);
+        vColor = color;                       // vec3: no vertex alpha on this material
         #ifdef USE_INSTANCING_COLOR
-          if (aRole < 0.5) vColor.rgb *= instanceColor.rgb;
+          if (aRole < 0.5) vColor *= instanceColor.rgb;
         #endif
       `);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\nvarying float vRole;\nuniform float uLightGain;')
       .replace('#include <opaque_fragment>', /* glsl */`
-        if (vRole > 1.5) outgoingLight = vColor.rgb * uLightGain;
+        if (vRole > 1.5) outgoingLight = vColor * uLightGain;
         #include <opaque_fragment>
       `);
   };

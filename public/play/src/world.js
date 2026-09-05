@@ -163,10 +163,14 @@ export class World {
     this.colliders = [];
     this.npcs = [];       // { obj, name, role, greeting, exercise, done, baseY }
     this.animated = [];   // objects with userData.update(t)
-    // hub statics: ground (wet-street capable) and furniture buckets
+    // hub statics: ground (wet-street capable) and furniture buckets. The
+    // boulevards get their own bucket sets so each 400 m run is frustum-culled
+    // on its own instead of riding along in one city-wide mesh.
     this.hubGround = makeBuckets();
     this.hubKit = makeBuckets();
+    this.lineKits = HUB_LINES.map(() => ({ ground: makeBuckets(), kit: makeBuckets() }));
     this.hubGround.detail = this.hubKit.detail = !lowPower;
+    for (const lk of this.lineKits) lk.ground.detail = lk.kit.detail = !lowPower;
   }
 
   async build() {
@@ -201,17 +205,24 @@ export class World {
   // meshes here. The ground batch carries the wet-street shader; its strength
   // is a uniform so the quality tier can switch it without a rebuild.
   finishHubBatches() {
-    const groundMeshes = buildBuckets(this.hubGround, { name: 'hub-ground' });
-    for (const m of groundMeshes) {
-      if (m.name === 'hub-ground-shell') {
-        addWetStreets(m.material, { strength: 0.75 });
-        const inner = m.material.onBeforeCompile;
-        m.material.onBeforeCompile = (shader, renderer) => { inner(shader, renderer); this._wetUniform = shader.uniforms.uWet; };
-        m.castShadow = false;
+    this._wetUniforms = [];
+    const ground = (B, name) => {
+      for (const m of buildBuckets(B, { name })) {
+        if (m.name === `${name}-shell`) {
+          addWetStreets(m.material, { strength: 0.75 });
+          const inner = m.material.onBeforeCompile;
+          m.material.onBeforeCompile = (shader, renderer) => { inner(shader, renderer); this._wetUniforms.push(shader.uniforms.uWet); if (this._wetWanted !== undefined) shader.uniforms.uWet.value = this._wetWanted; };
+          m.castShadow = false;
+        }
+        this.scene.add(m);
       }
-      this.scene.add(m);
-    }
+    };
+    ground(this.hubGround, 'hub-ground');
     for (const m of buildBuckets(this.hubKit, { name: 'hub-kit', litEmissive: new THREE.Color(0xffc98a) })) this.scene.add(m);
+    this.lineKits.forEach((lk, i) => {
+      ground(lk.ground, `${HUB_LINES[i].key}-ground`);
+      for (const m of buildBuckets(lk.kit, { name: `${HUB_LINES[i].key}-kit`, litEmissive: new THREE.Color(0xffc98a) })) this.scene.add(m);
+    });
   }
 
   setNPCBases(bases) {
@@ -225,8 +236,8 @@ export class World {
   // districts get the rest as they build.
   setDetail(s) {
     this.cityLife?.setDensity(Math.round(s.crowd * 0.42));
-    if (this._wetUniform) this._wetUniform.value = s.wetStreets ? 0.75 : 0;
     this._wetWanted = s.wetStreets ? 0.75 : 0;
+    for (const u of this._wetUniforms || []) u.value = this._wetWanted;
     if (this.tufts) this.tufts.visible = !!s.detailProps;
   }
 
@@ -380,9 +391,10 @@ export class World {
         G.shell.add(new THREE.RingGeometry(r + 0.03, r + 1.37, 2, 1, a0, a1 - a0).rotateX(-Math.PI / 2).translate(0, 0.03, 0), c);
       }
     }
-    G.shell.add(new THREE.RingGeometry(19.9, 21.2, 48).rotateX(-Math.PI / 2).translate(0, 0.031, 0), PALETTE.terracotta);
+    // every layer sits >= 8 mm above the one under it (graphics-25)
+    G.shell.add(new THREE.RingGeometry(19.9, 21.2, 48).rotateX(-Math.PI / 2).translate(0, 0.041, 0), PALETTE.terracotta);
     G.shell.add(new THREE.CircleGeometry(6.1, 32).rotateX(-Math.PI / 2).translate(0, 0.03, 0), 0x273754);
-    G.shell.add(new THREE.RingGeometry(5.9, 6.25, 32).rotateX(-Math.PI / 2).translate(0, 0.036, 0), PALETTE.curb);
+    G.shell.add(new THREE.RingGeometry(5.9, 6.25, 32).rotateX(-Math.PI / 2).translate(0, 0.042, 0), PALETTE.curb);
     const inlay = [PALETTE.coral, PALETTE.cyan, 0xffb84d];
     for (let i = 0; i < 12; i++) {
       const angle = (i / 12) * Math.PI * 2;
@@ -406,13 +418,14 @@ export class World {
     const roadColor = new THREE.Color(PALETTE.road);
     const walkColor = new THREE.Color(PALETTE.sidewalk);
     const laneDividerX = (BOULEVARD.carLanes[0] + BOULEVARD.carLanes[1]) / 2;
-    for (const L of HUB_LINES) {
+    HUB_LINES.forEach((L, li) => {
+      const G = this.lineKits[li].ground;
       const yaw = L.angle - Math.PI / 2;
       const M = new THREE.Matrix4().makeRotationY(yaw);
       const add = (bucket, geo, color) => bucket.add(geo.applyMatrix4(M), color);
       add(G.shell, new THREE.PlaneGeometry(9, BOULEVARD.length).rotateX(-Math.PI / 2).translate(0, 0.02, BOULEVARD.midZ), roadColor);
       for (const lane of BOULEVARD.carLanes) {
-        add(G.shell, new THREE.PlaneGeometry(0.9, BOULEVARD.length * 0.98).rotateX(-Math.PI / 2).translate(lane, 0.023, BOULEVARD.midZ), roadColor.clone().multiplyScalar(0.84));
+        add(G.shell, new THREE.PlaneGeometry(0.9, BOULEVARD.length * 0.98).rotateX(-Math.PI / 2).translate(lane, 0.029, BOULEVARD.midZ), roadColor.clone().multiplyScalar(0.84));
       }
       for (const side of [-1, 1]) {
         // sidewalk as a paver strip: slabs 1.6 m along, tinted per slab
@@ -429,19 +442,19 @@ export class World {
         // outer edging stone between sidewalk and the city fabric
         add(G.shell, new THREE.BoxGeometry(0.28, 0.07, BOULEVARD.length).translate(side * 7.05, 0.05, BOULEVARD.midZ), L.curb);
       }
-      for (let d = 0; d < 40; d++) add(G.shell, new THREE.BoxGeometry(0.35, 0.012, 3.4).translate(laneDividerX, 0.03, -32 - d * 9.3), 0xe8dcbb);
+      for (let d = 0; d < 40; d++) add(G.shell, new THREE.BoxGeometry(0.35, 0.012, 3.4).translate(laneDividerX, 0.038, -32 - d * 9.3), 0xe8dcbb);
       for (let s = 0; s < 7; s++) add(G.shell, new THREE.BoxGeometry(1.05, 0.012, 2.2).translate(-3.9 + s * 1.3, 0.03, -24.6), 0xe8dcbb);
       add(G.shell, new THREE.BoxGeometry(6.1, 0.012, 0.36).translate(-1.36, 0.03, -28.2), 0xe8dcbb);
       for (const [lane, heading] of [[BOULEVARD.carLanes[0], -1], [BOULEVARD.carLanes[1], 1]]) {
-        add(G.shell, new THREE.BoxGeometry(0.16, 0.014, 1.35).translate(lane, 0.032, -42), 0xe8dcbb);
+        add(G.shell, new THREE.BoxGeometry(0.16, 0.014, 1.35).translate(lane, 0.04, -42), 0xe8dcbb);
         for (const side of [-1, 1]) {
-          const g = new THREE.BoxGeometry(0.16, 0.014, 1.0).rotateY(side * heading * 0.58).translate(lane + side * 0.38, 0.032, -42 + heading * 0.9);
+          const g = new THREE.BoxGeometry(0.16, 0.014, 1.0).rotateY(side * heading * 0.58).translate(lane + side * 0.38, 0.04, -42 + heading * 0.9);
           add(G.shell, g, 0xe8dcbb);
         }
       }
-      for (const z of [-60, -150, -240, -330]) add(G.shell, cyl(0.36, 0.36, 0.012, 12, laneDividerX + 1.2, 0.033, z), 0x27303f);
+      for (const z of [-60, -150, -240, -330]) add(G.shell, cyl(0.36, 0.36, 0.012, 12, laneDividerX + 1.2, 0.038, z), 0x27303f);
       if (this.hubKit.detail) for (const side of [-1, 1]) tactilePatch(G, ...rot(yaw, side * 5.7, -23.2), yaw, { y: 0.04 });
-    }
+    });
     function rot(yaw, x, z) { return [x * Math.cos(yaw) + z * Math.sin(yaw), -x * Math.sin(yaw) + z * Math.cos(yaw)]; }
   }
 
@@ -578,9 +591,9 @@ export class World {
   // catenary, lamps with light cones, platform, canopy, buffer stop,
   // emergency cabinet, signal. Colliders as before.
   buildBoulevardDetail() {
-    const K = this.hubKit, G = this.hubGround;
     const bedColor = 0x202940, sleeper = 0x3e4960, pole = 0x16223a;
-    for (const line of HUB_LINES) {
+    HUB_LINES.forEach((line, li) => {
+      const K = this.lineKits[li].kit, G = this.lineKits[li].ground;
       const infrastructureYaw = line.angle - Math.PI / 2;
       const M = new THREE.Matrix4().makeRotationY(infrastructureYaw);
       const add = (bucket, geo, color) => bucket.add(geo.applyMatrix4(M), color);
@@ -653,7 +666,7 @@ export class World {
         add(K.neon, sphere(0.115, -4.05, 3.34 - index * 0.32, -28.79, 8, 6), index === 0 ? color : new THREE.Color(color).multiplyScalar(0.3));
       });
       this.addLocalRotatedCollider(-4.05, -28.6, 0.17, 0.17, infrastructureYaw, `${line.key}-road-signal`);
-    }
+    });
   }
 
   buildSkyline() {
@@ -736,14 +749,14 @@ export class World {
   // Boulevard street trees: kit species chosen from the district each tree
   // stands beside, in tree pits, with an uplight. One InstancedMesh per species.
   buildStreetTrees() {
-    const K = this.hubKit;
     const lines = [Math.PI / 2, Math.PI / 2 + (2 * Math.PI) / 3, Math.PI / 2 - (2 * Math.PI) / 3];
     const local = new THREE.Vector3();
     const axis = new THREE.Vector3(0, 1, 0);
     const bySpecies = new Map();
     let index = 0;
     for (let d = 41; d <= 377; d += 42) {
-      for (const angle of lines) for (const side of [-1, 1]) {
+      for (const [li, angle] of lines.entries()) for (const side of [-1, 1]) {
+        const K = this.lineKits[li].kit;
         local.set(side * 8.25, 0, -d).applyAxisAngle(axis, angle - Math.PI / 2);
         this.addBoxCollider(local.x, local.z, 0.28, 0.28, 'boulevard-tree');
         const region = this.zoneMgr?.regionAt(local.x, local.z);
@@ -849,7 +862,7 @@ export class World {
 
     // grass tufts: thousands of two-quad instances over the open parkland,
     // clear of paths, roads and districts. One draw call, wind-swayed.
-    const tuftCount = this.lowPower ? 1400 : 4000;
+    const tuftCount = this.lowPower ? 1200 : 3000;
     const tufts = [];
     const rng = mulberry(0x6a55);
     let tries = 0;
@@ -1106,6 +1119,13 @@ export class World {
       const d2 = dx * dx + dz * dz;
       const dist = Math.sqrt(d2);
       const fade = dist <= FADE_NEAR ? 1 : dist >= FADE_FAR ? 0 : 1 - (dist - FADE_NEAR) / (FADE_FAR - FADE_NEAR);
+      // a 24k-triangle body only casts a shadow while it is close enough for
+      // that shadow to read; past 22 m it would double its cost for nothing
+      const castNear = d2 < 22 * 22;
+      if (n.model && n.castNear !== castNear) {
+        n.castNear = castNear;
+        n.model.traverse((o) => { if (o.isMesh && !o.userData.disposeWithNpc) o.castShadow = castNear; });
+      }
       if (n.model && n.fade !== fade) {
         n.fade = fade;
         const visible = fade > 0;

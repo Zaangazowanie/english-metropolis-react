@@ -78,15 +78,18 @@ export function buildBuckets(B, { atlas = null, wet = false, name = 'kit', litEm
   const shell = B.shell.build(shellMat, { name: `${name}-shell` });
   if (shell) { if (ao) ao(shell.geometry); meshes.push(shell); }
 
-  const darkMat = toonVertexMat({ emissive: 0x0a1626, emissiveIntensity: 0.55 });
+  const darkMat = toonVertexMat({ emissive: 0x06101c, emissiveIntensity: 0.35 });
   darkMat.name = 'paneDark';
   const dark = B.paneDark.build(darkMat, { name: `${name}-panes-dark`, castShadow: false });
   if (dark) meshes.push(dark);
 
-  const litMat = toonMat(0x2a2418);
+  // Lit panes: a dark warm glass with a warm emissive so a lit room reads as
+  // amber behind the frame, not as a blank white card (the render lane's dusk
+  // hook scales this by material name).
+  const litMat = toonMat(0x1a140c);
   litMat.name = 'paneLit';
-  litMat.emissive = litEmissive ? litEmissive.clone() : new THREE.Color(0xffc98a);
-  litMat.emissiveIntensity = 0.62;
+  litMat.emissive = litEmissive ? litEmissive.clone() : new THREE.Color(0xffa050);
+  litMat.emissiveIntensity = 0.5;
   const lit = B.paneLit.build(litMat, { name: `${name}-panes-lit`, castShadow: false });
   if (lit) meshes.push(lit);
 
