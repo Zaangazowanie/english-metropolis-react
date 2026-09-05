@@ -1,3 +1,5 @@
+import { ActionPlayfield3D } from './action-arcade-three';
+import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
 import { useActionCompletion } from './action-arcade-completion';
 import { nextMazeStep } from './action-arcade-logic.mjs';
 import { useArcadeEvents } from '../lib/arcade-events';
@@ -257,6 +259,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
   const activePuzzle: ArcadePuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : DEMO_PUZZLE;
   const persisted = useShellProgress('mazechase');
   const arcadeEvent = useArcadeEvents();
+  const actionReducedMotion = usePrefersReducedMotion();
   const interactionRef = useRef<HTMLDivElement>(null);
   const { later, cancel: cancelActionTimers } = useActionTimers();
 
@@ -596,8 +599,8 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
           </div>
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'flex-start', padding: 16, position: 'relative', minWidth: 0 }}>
-            <div style={{ width: '100%', maxWidth: W, aspectRatio: `${W} / ${H}`, position: 'relative' }}>
-              <svg viewBox={`0 0 ${W} ${H}`} style={{
+            <div style={{ width: '100%', maxWidth: W, minHeight: 340, position: 'relative' }}>
+              <ActionPlayfield3D kind="mazechase" data={{grid:{rows:ROWS,cols:COLS,walls:MAZE},player:pos,shadow,lamps,shield,reducedMotion:actionReducedMotion,onMove:moveOne,actors:tokens.map(t=>({id:t.optionIdx,x:t.cell.c,y:t.cell.r,label:t.word,selected:hintActive&&t.isAnswer}))}}><svg viewBox={`0 0 ${W} ${H}`} style={{
                 width: '100%', height: '100%',
                 background: '#0A0518',
                 borderRadius: 8,
@@ -732,7 +735,7 @@ export const MazeChaseShell: React.FC<MazeChaseShellProps> = ({
                     style={{ transition: 'cx 200ms var(--em-ease), cy 200ms var(--em-ease)' }}
                   />
                 </g>
-              </svg>
+              </svg></ActionPlayfield3D>
 
             </div>
             <div className="action-arcade-option-list" aria-label="Token words">{cur.options.map((word, i) => <span key={i} style={{ opacity: tokens.some(t => t.optionIdx === i) ? 1 : .45 }}><b>{i + 1}</b>{word}</span>)}</div>

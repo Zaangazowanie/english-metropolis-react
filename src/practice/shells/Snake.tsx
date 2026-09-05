@@ -1,3 +1,4 @@
+import { ActionPlayfield3D } from './action-arcade-three';
 import { useActionCompletion } from './action-arcade-completion';
 import { snakeStep } from './action-arcade-logic.mjs';
 import { useArcadeEvents } from '../lib/arcade-events';
@@ -814,10 +815,10 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
           {/* Game board */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'flex-start', padding: 16, position: 'relative', minWidth: 0 }}>
             <div style={{
-              width: '100%', maxWidth: W * 1.4, aspectRatio: `${W} / ${H}`,
+              width: '100%', maxWidth: W * 1.4, minHeight: 340,
               position: 'relative',
             }}>
-              <svg viewBox={`0 0 ${W} ${H}`} style={{
+              <ActionPlayfield3D kind="snake" data={{grid:{rows:ROWS,cols:COLS},body:snake,direction:dir,reducedMotion:reduce,onMove:press,actors:pellets.map(p=>({id:p.optionIdx,x:p.cell.c,y:p.cell.r,label:p.word,selected:hintActive&&p.isAnswer}))}} controls={<div className="action-arcade-option-list" aria-label="Pickup words">{pellets.map(p=><span key={p.optionIdx}><b>{p.optionIdx+1}</b>{p.word}</span>)}</div>}><svg viewBox={`0 0 ${W} ${H}`} style={{
                 width: '100%', height: '100%',
                 background: 'linear-gradient(180deg, #1F1240 0%, #2C1A4A 50%, #382458 100%)',
                 borderRadius: 8,
@@ -1136,7 +1137,7 @@ export const SnakeShell: React.FC<SnakeShellProps> = ({
                     <text x={W / 2} y={H / 2} textAnchor="middle" fontFamily="var(--em-decor)" fontSize="32" fill={ACCENT}>{feedback === 'wrong' ? 'TRAIL RESET · RESUME' : 'READY? PRESS RESUME'}</text>
                   </g>
                 )}
-              </svg>
+              </svg></ActionPlayfield3D>
 
               {/* HUD overlay — top-left of the play grid */}
               <div style={{

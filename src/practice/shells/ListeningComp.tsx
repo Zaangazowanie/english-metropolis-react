@@ -1,3 +1,4 @@
+import { Challenge3D } from './challenge-3d';
 import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Listening Comprehension shell — "The Listening Booth" district.
 // A vintage glass-fronted recording cabin: a vinyl spins on the turntable,
@@ -948,7 +949,8 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
               {cur.prompt}
             </div>
 
-            <div role="radiogroup" aria-label={cur.prompt} style={{ display: 'grid', gap: 8 }}>
+            <Challenge3D game="ListeningComp" items={cur.options.map((label,i)=>({id:String(i),label,state:revealed && i===cur.answerIndex?'right':revealed && i===picked?'wrong':'idle'}))} roundKey={cur.id} locked={revealed || completed || !!forcedState} onPick={id=>choose(Number(id))} signal={isPlaying ? audioPosition : 0} onAction={playAudio} actionLabel={audioFailed ? "Read transcript" : "Tune in · Play recording"} actionDisabled={playsRemaining <= 0 || isPlaying} />
+            <div className="cm-legacy-answers" role="radiogroup" aria-label={cur.prompt} style={{ display: 'grid', gap: 8 }}>
               {cur.options.map((opt, oi) => {
                 const isPicked = picked === oi;
                 const isCorrect = oi === cur.answerIndex;

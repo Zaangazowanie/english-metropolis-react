@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordHangman3D'));
 // Hangman — The Lantern Alley.
 //
 // Theme unified (Kelly audit, CC-6, 2026-05-02): we previously dual-named this
@@ -23,14 +25,13 @@
 import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import type { ShellHangmanPuzzle } from '../lib/adapters';
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 
 // 3D pilot (Ricky, 2026-05-03 — CD audit). Lazy-loaded so the r3f bundle
 // (~150KB gz) only ships when a student opens this shell, and only when
 // the feature flag below is on. The 2D lantern row stays as the immediate
 // fallback while the 3D chunk is downloading + as the always-on a11y
 // canonical (the Canvas itself is aria-hidden).
-const Hangman3D = React.lazy(() => import('./Hangman3D'));
 
 /**
  * Feature flag for the 3D Lantern Alley pilot.
@@ -932,33 +933,7 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
               Lazy-loaded, aria-hidden (the lives row below is the a11y
               canonical). Suspense fallback is a slim placeholder so the
               shell layout doesn't jump while the r3f chunk downloads. */}
-          {is3DEnabled && (
-            <Suspense
-              fallback={
-                <div
-                  aria-hidden="true"
-                  style={{
-                    width: '100%',
-                    height: '40vh',
-                    maxHeight: 320,
-                    minHeight: 180,
-                    borderRadius: 12,
-                    background: 'radial-gradient(ellipse at center, rgba(167,139,250,0.12), rgba(14,10,26,0.6))',
-                    border: '1px solid rgba(251,191,36,0.18)',
-                  }}
-                />
-              }
-            >
-              <Hangman3D
-                wrongCount={wrongCount}
-                maxWrong={MAX_WRONG}
-                won={won}
-                lost={lost}
-                wrongTick={wrongTick}
-                correctTick={correctTick}
-              />
-            </Suspense>
-          )}
+          <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D guessed={guessed} display={display} lives={MAX_WRONG-wrongCount} onGuess={guess} done={won||lost}/></WordSuspense>
 
           {/* LIVES ROW — only renders when 3D is OFF. The 3D lantern alley
               IS the canonical lives indicator when 3D is on; rendering both

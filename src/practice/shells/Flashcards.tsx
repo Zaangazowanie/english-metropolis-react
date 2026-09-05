@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordFlashcards3D'));
 // Flashcards — Café Spółdzielnia (cork board) district.
 // Paper notes pinned by masking tape to the cork board. Tap to flip.
 // Mark known/review. Swipe through the deck.
@@ -483,6 +485,7 @@ export const FlashcardsShell: React.FC<FlashcardsShellProps> = ({ time = 'dusk',
 
       <div className="wa-memory-console">
         <WordMission kind="memory" current={Object.keys(marks).length} total={activeDeck.length} chain={arcade.chain} reaction={arcade.reaction}/>
+        <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={idx} front={recallMode?card.pl:card.en} back={recallMode?card.en:card.pl} flipped={flipped} onFlip={()=>!forcedState&&setFlipped(v=>!v)} onMark={mark=>flipped&&advance(mark)}/></WordSuspense>
         <div className="wa-inline-tools"><button aria-pressed={recallMode} onClick={()=>{setRecallMode(v=>!v);setFlipped(false);setRecall('');setRecallResult(null);}}>Recall challenge {recallMode?'on':'off'}</button><span>{recallMode?'Translate the Polish prompt from memory.':'Think of the meaning before you reveal.'}</span></div>
       </div>
       {/* The fan of cards */}

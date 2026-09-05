@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sentenceIsCorrect, rankAssessment, challengeReward } from '../src/practice/shells/challenge-arcade-logic.ts';
+import { sentenceIsCorrect, rankAssessment, challengeReward, consumeChallengeBoost } from '../src/practice/shells/challenge-arcade-logic.ts';
 
 test('sentence launch accepts interchangeable duplicate words without accepting reused tiles', () => {
   const words = ['the', 'cat', 'the', 'window', 'passed'];
@@ -24,4 +24,17 @@ test('boosts double real successful decisions, never award for misses or repeate
   assert.equal(challengeReward(true,false,false,100),100);
   assert.equal(challengeReward(false,false,true,100),0);
   assert.equal(challengeReward(true,true,true,100),null);
+});
+
+test('one armed boost is consumed once across a synchronous multi-slot dispatch', () => {
+  const boost = { armed:true, remaining:2 };
+  const points = [true,true,true,true,true].map(right => challengeReward(right,false,consumeChallengeBoost(boost),100));
+  assert.deepEqual(points,[200,100,100,100,100]);
+  assert.deepEqual(boost,{armed:false,remaining:1});
+  boost.armed = true;
+  assert.equal(challengeReward(false,false,consumeChallengeBoost(boost),100),0);
+  assert.deepEqual(boost,{armed:false,remaining:0});
+  boost.armed = true;
+  assert.equal(consumeChallengeBoost(boost),false);
+  assert.equal(boost.remaining,0);
 });

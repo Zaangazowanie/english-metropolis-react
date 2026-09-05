@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordWordFormation3D'));
 // Word Formation — The Mason's Yard district.
 // A stonemason's yard at dusk. A great stone slab waits to be chiselled into
 // the right form (noun, verb, adjective, adverb). The base word is stamped
@@ -304,7 +306,6 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
   const [partsOpen, setPartsOpen] = useState(false);
   const [verdict, setVerdict] = useState<'right' | 'wrong' | null>(null);
   const [score, setScore] = useState(0);
-  const [questionsSeen, setQuestionsSeen] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [hintRevealed, setHintRevealed] = useState(false);
   const [chipFlash, setChipFlash] = useState(false);
@@ -313,6 +314,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
 
   const cur = activePuzzle.items[idx % total];
   const completed = idx >= total;
+  const resolvedQuestions = Math.min(total, idx + (verdict === 'right' ? 1 : 0));
   const tip = useEndOfShellTip({
     onWrongAnswer,
     completed,
@@ -342,7 +344,6 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
   useEffect(() => {
     if (!basePosLooksIdentity) return;
     const t = window.setTimeout(() => {
-      setQuestionsSeen((q) => q + 1);
       setIdx((i) => i + 1);
       setDraft(''); setVerdict(null); setHintRevealed(false);
     }, 1400);
@@ -352,10 +353,10 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
   useEffect(() => {
     if (forcedState) return;
     persisted.save({
-      progress: idx / Math.max(1, total),
+      progress: Math.min(idx, total) / Math.max(1, total),
+      completed,
       lastState: completed ? 'complete' : 'active',
     });
-    if (completed) persisted.save({ progress: 1, completed: true, lastState: 'complete' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, total, forcedState]);
 
@@ -396,6 +397,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
     arcade.answer(correct);
     if (correct) {
       setScore((s) => s + 1);
+      persisted.save({ progress: Math.min(total, idx + 1) / Math.max(1, total), completed: false, lastState: 'active' });
       setAnnouncement(`Chiselled. ${cur.answer}.`);
     } else {
       setChipFlash(true);
@@ -412,7 +414,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
   };
 
   const advance = (): void => {
-    setQuestionsSeen((q) => q + 1);
+    if (forcedState || completed || verdict !== 'right') return;
     setIdx((i) => i + 1);
     setDraft(''); setVerdict(null); setHintRevealed(false);
     setTimeout(() => inputRef.current?.focus(), 80);
@@ -420,7 +422,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
 
   const skip = (): void => {
     if (forcedState || completed || !cur) return;
-    setQuestionsSeen((q) => q + 1);
+    if (verdict === 'right') { advance(); return; }
     setAnnouncement(`Skipped. The right form was "${cur.answer}".`);
     setIdx((i) => i + 1);
     setDraft(''); setVerdict(null); setHintRevealed(false);
@@ -435,7 +437,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
   const reset = (): void => {
     arcade.restart();
     setIdx(0); setDraft(''); setVerdict(null); setScore(0);
-    setQuestionsSeen(0); setHintsUsed(0); setHintRevealed(false);
+    setHintsUsed(0); setHintRevealed(false);
     tip.reset();
   };
 
@@ -461,8 +463,9 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
               ? 'linear-gradient(180deg, #1F1240 0%, #5C3F1A 70%, #2A1810 100%)'
               : 'linear-gradient(180deg, #07041A 0%, #2A1810 70%, #0E0A1A 100%)',
       }} />
-      {/* Workshop floor pavers */}
-      <div aria-hidden="true" style={{
+      {/* Clip the perspective floor locally so it cannot enlarge the scrollable game. */}
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+      <div style={{
         position: 'absolute', inset: 0,
         backgroundImage: `linear-gradient(rgba(0,0,0,0.20) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.20) 1px, transparent 1px)`,
         backgroundSize: '110px 110px',
@@ -470,6 +473,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
         transform: 'perspective(800px) rotateX(58deg) translateY(20vh) scale(2.4)',
         transformOrigin: 'top',
       }} />
+      </div>
       {/* Scaffolding silhouette */}
       <svg viewBox="0 0 1200 600" preserveAspectRatio="none" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.22, pointerEvents: 'none' }}>
         {Array.from({ length: 8 }).map((_, i) => {
@@ -504,7 +508,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
           }
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <Progress current={score} seen={questionsSeen} total={total} accent={ACCENT} />
+          <Progress current={score} seen={Math.min(total, idx + 1)} total={total} accent={ACCENT} />
           <SkipButton onClick={skip} />
           <HintButton onClick={useHint} used={hintsUsed} total={3} />
         </div>
@@ -569,7 +573,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
           already IS a noun). Auto-advances after 1.4s via the effect above. */}
       {!completed && cur && basePosLooksIdentity && (
         <div className="wf-stage" style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, zIndex: 4 }}>
-          <WordMission kind="construction" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/><div className="wa-checklist"><span>BASE {cur.base_word}</span><span className={draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'is-ready':''}>New form {draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'✓':'○'}</span><span className={verdict==='right'?'is-ready':''}>Fits the sentence {verdict==='right'?'✓':'○'}</span></div>
+          <WordMission kind="construction" current={resolvedQuestions} total={total} chain={arcade.chain} reaction={arcade.reaction}/><div className="wa-checklist"><span>BASE {cur.base_word}</span><span className={draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'is-ready':''}>New form {draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'✓':'○'}</span><span className={verdict==='right'?'is-ready':''}>Fits the sentence {verdict==='right'?'✓':'○'}</span></div>
           <div className="em-eyebrow" style={{ color: ACCENT, letterSpacing: '0.22em' }}>
             NO TRANSFORMATION NEEDED
           </div>
@@ -589,7 +593,8 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
       {/* Main work area */}
       {!completed && cur && !basePosLooksIdentity && (
         <div className="wf-stage" style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28, zIndex: 4 }}>
-          <WordMission kind="construction" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/><div className="wa-checklist"><span>BASE {cur.base_word}</span><span className={draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'is-ready':''}>New form {draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'✓':'○'}</span><span className={verdict==='right'?'is-ready':''}>Fits the sentence {verdict==='right'?'✓':'○'}</span></div>
+          <WordMission kind="construction" current={resolvedQuestions} total={total} chain={arcade.chain} reaction={arcade.reaction}/><div className="wa-checklist"><span>BASE {cur.base_word}</span><span className={draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'is-ready':''}>New form {draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'✓':'○'}</span><span className={verdict==='right'?'is-ready':''}>Fits the sentence {verdict==='right'?'✓':'○'}</span></div>
+          <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={cur.id} base={cur.base_word} draft={draft} done={verdict==='right'} onBuild={word=>{if(!forcedState&&verdict!=='right'){setDraft(word);setVerdict(null);}}} onSubmit={submit}/></WordSuspense>
           {/* Sentence carved on a stone slab */}
           <div
             key={`s-${cur.id}`}
@@ -683,7 +688,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
             </div>
 
             {/* Carved input */}
-            <div style={{ position: 'relative', minWidth: 220 }}>
+            <div style={{ position: 'relative', minWidth: 0, width: 280, maxWidth: '100%' }}>
               <input
                 ref={inputRef}
                 type="text"
@@ -708,7 +713,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
                       : `inset 0 0 30px rgba(0,0,0,0.35)`,
                   outline: 'none',
                   textAlign: 'center',
-                  width: '100%', minWidth: 220,
+                  width: '100%', minWidth: 0,
                   letterSpacing: '0.03em',
                   transition: 'all 220ms var(--em-ease)',
                   animation: verdict === 'right' ? 'wf-spark 0.6s var(--em-ease)' : 'none',

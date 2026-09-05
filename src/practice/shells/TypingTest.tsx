@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordTypingTest3D'));
 import { typingDispatchStats } from './word-arcade-mechanics';
 // Typing Test — The Telegraph Office district.
 // A brass-key telegraph at dusk. Paper tape spools out of the receiver as the
@@ -301,7 +303,6 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState<number>(Date.now());
   const [score, setScore] = useState(0);
-  const [questionsSeen, setQuestionsSeen] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [hintRevealed, setHintRevealed] = useState(false);
   const [verdict, setVerdict] = useState<'right' | 'wrong' | null>(null);
@@ -315,6 +316,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
 
   const cur = activePuzzle.phrases[idx % total];
   const completed = idx >= total;
+  const resolvedQuestions = Math.min(total, idx + (verdict === 'right' ? 1 : 0));
   const tip = useEndOfShellTip({
     onWrongAnswer,
     completed,
@@ -346,10 +348,10 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
   useEffect(() => {
     if (forcedState) return;
     persisted.save({
-      progress: idx / Math.max(1, total),
+      progress: Math.min(idx, total) / Math.max(1, total),
+      completed,
       lastState: completed ? 'complete' : 'active',
     });
-    if (completed) persisted.save({ progress: 1, completed: true, lastState: 'complete' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, total, forcedState]);
 
@@ -401,7 +403,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
     }
     setDraft(v);
     setNow(Date.now());
-    if (v.length < target.length) setVerdict(null);
+    setVerdict(null);
     // Per-keystroke jam: if the student types a wrong char where correct is
     // expected, briefly shake the input but keep the character so they see
     // the mismatch and can backspace.
@@ -410,14 +412,20 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
       setShake(true);
       setTimeout(() => setShake(false), 220);
     }
-    if (v.length === target.length) {
-      // End of phrase — evaluate.
+  };
+
+  const dispatch = (): void => {
+    if (forcedState || verdict === 'right' || completed || draft.length < target.length) return;
+    const v = draft;
+    {
+      // Commit the full dispatch through the physical lever or Enter.
       const ok = v === target;
       setVerdict(ok ? 'right' : 'wrong');
       arcade.answer(ok, 150);
       const {accuracy:finalAcc,wpm:finalWpm} = typingDispatchStats(v,target,Date.now()-(startedAt??Date.now()));
       if (ok) {
         setScore((s) => s + 1);
+      persisted.save({ progress: Math.min(total, idx + 1) / Math.max(1, total), completed: false, lastState: 'active' });
         setPhraseLog((log) => [...log, { id: cur?.id ?? `phrase-${idx}`, wpm: finalWpm, acc: finalAcc, ok: true, typed: v }]);
         setAnnouncement(`Sent. ${finalWpm} WPM. ${finalAcc}% accuracy.`);
       } else {
@@ -441,7 +449,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
   const avgAcc = phraseLog.length ? Math.round(phraseLog.reduce((s, p) => s + p.acc, 0) / phraseLog.length) : 0;
 
   const advance = (): void => {
-    setQuestionsSeen((q) => q + 1);
+    if (forcedState || completed || verdict !== 'right') return;
     setIdx((i) => i + 1);
     setDraft(''); setVerdict(null); setStartedAt(null); setHintRevealed(false);
     setTimeout(() => inputRef.current?.focus(), 80);
@@ -449,7 +457,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
 
   const skip = (): void => {
     if (forcedState || completed) return;
-    setQuestionsSeen((q) => q + 1);
+    if (verdict === 'right') { advance(); return; }
     setAnnouncement('Skipped to the next dispatch.');
     setIdx((i) => i + 1);
     setDraft(''); setVerdict(null); setStartedAt(null); setHintRevealed(false);
@@ -464,7 +472,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
   const reset = (): void => {
     arcade.restart();
     setIdx(0); setDraft(''); setVerdict(null); setScore(0); setStartedAt(null);
-    setQuestionsSeen(0); setHintsUsed(0); setHintRevealed(false);
+    setHintsUsed(0); setHintRevealed(false);
     setPhraseLog([]);
     tip.reset();
   };
@@ -536,7 +544,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
           }
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <Progress current={score} seen={questionsSeen} total={total} accent={ACCENT} />
+          <Progress current={score} seen={Math.min(total, idx + 1)} total={total} accent={ACCENT} />
           <SkipButton onClick={skip} />
           <HintButton onClick={useHint} used={hintsUsed} total={3} />
         </div>
@@ -603,7 +611,8 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
       {/* Main: paper tape + brass desk */}
       {!completed && cur && (
         <div className="tt-stage" style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, zIndex: 4 }}>
-          <WordMission kind="dispatch" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+          <WordMission kind="dispatch" current={resolvedQuestions} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+          <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D progress={charsCorrect/Math.max(1,target.length)} ghost={elapsed/60000*paceWpm*5/Math.max(1,target.length)} ready={draft.length>=target.length} done={verdict==='right'} onDispatch={dispatch} onBackspace={()=>onChange(draft.slice(0,-1))} onNext={advance}/></WordSuspense>
           <div className="wa-typing-track">
             <header><span>DISPATCH {idx+1} / {total}</span><span>{Math.round(charsCorrect/Math.max(1,target.length)*100)}% delivered</span></header>
             <svg viewBox="0 0 600 74" aria-label="Dispatch train progress">
@@ -692,6 +701,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
             ref={inputRef}
             value={draft}
             onChange={(e) => onChange(e.target.value)}
+            onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();dispatch();}}}
             placeholder={startedAt ? '' : 'click here, then type the dispatch above…'}
             aria-label="Type the dispatch verbatim"
             disabled={!!forcedState || verdict === 'right'}
@@ -713,6 +723,7 @@ export const TypingTestShell: React.FC<TypingTestShellProps> = ({
             }}
           />
 
+          {verdict !== 'right' && <button className="em-btn em-btn-primary" onClick={dispatch} disabled={draft.length<target.length}>Pull dispatch lever ↵</button>}
           {verdict === 'right' && (
             <button
               className="em-btn em-btn-primary"

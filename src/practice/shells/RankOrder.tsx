@@ -1,3 +1,4 @@
+import { Challenge3D } from './challenge-3d';
 import { rankAssessment } from './challenge-arcade-logic';
 import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Rank Order shell — "The Election Hall" district.
@@ -551,8 +552,14 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
         }}
       >
         <ChallengeMission title="Arrange the ballots. Commit your verdict." detail="Build the entire sequence before checking. Change any ballot and submit again. · Ułóż całość i sprawdź." current={checked ? correctlyPlacedCount : plinths.filter(Boolean).length} total={N}>
-          <button type="button" disabled={!allFilled || checked} onClick={checkOrder}>Check order · Sprawdź kolejność</button>
         </ChallengeMission>
+        <Challenge3D game="RankOrder" hint={hintRevealSlot===null?undefined:`Rank ${hintRevealSlot+1}: ${activePuzzle.items.find(it=>it.correctRank===hintRevealSlot+1)?.label}`} prompt={activePuzzle.criterion}
+          items={activePuzzle.items.map(it=>({id:it.id,label:it.label}))}
+          slots={plinths.map((id,i)=>{const item=activePuzzle.items.find(it=>it.id===id);return {id:String(i),label:item?.label||`Rank ${i+1}`,state:checked && item ? item.correctRank===i+1?'right':'wrong':'idle'};})}
+          onPlace={(slot,id)=>placeItem(Number(slot),id)} onRemove={slot=>removeFromSlot(Number(slot))}
+          onAction={checkOrder} actionLabel="Dispatch train · Sprawdź kolejność" actionDisabled={!allFilled || checked}
+          locked={completed || !!forcedState} status={announcement} />
+
         {/* QUEUE — items waiting in the wings */}
         <div
           className="em-card"

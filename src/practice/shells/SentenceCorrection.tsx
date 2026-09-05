@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordSentenceCorrection3D'));
 import { expandErrorSelection, insertionPointMatches } from './word-arcade-mechanics';
 // Sentence Correction — The Editor's Office district.
 // A newspaper editor's room at midnight. Each sentence comes off the wire
@@ -362,7 +364,6 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
   const [extendSelection, setExtendSelection] = useState(false);
   const [verdict, setVerdict] = useState<'right' | 'wrong' | null>(null);
   const [score, setScore] = useState(0);
-  const [questionsSeen, setQuestionsSeen] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [hintRevealed, setHintRevealed] = useState(false);
   const [announcement, setAnnouncement] = useState('');
@@ -370,6 +371,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
 
   const cur = activePuzzle.items[idx % total];
   const completed = idx >= total;
+  const resolvedQuestions = Math.min(total, idx + (verdict === 'right' ? 1 : 0));
   // D3-SC Wave-2 (2026-05-02): track skipped item ids so the review can
   // surface SKIPPED chips. wrongAttempts come back from useEndOfShellTip via
   // its onSessionComplete callback (richer than the legacy onWrongAnswer).
@@ -407,10 +409,10 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
   useEffect(() => {
     if (forcedState) return;
     persisted.save({
-      progress: idx / Math.max(1, total),
+      progress: Math.min(idx, total) / Math.max(1, total),
+      completed,
       lastState: completed ? 'complete' : 'active',
     });
-    if (completed) persisted.save({ progress: 1, completed: true, lastState: 'complete' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, total, forcedState]);
 
@@ -470,6 +472,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
     arcade.answer(isNoErrorSentence);
     if (isNoErrorSentence) {
       setScore((s) => s + 1);
+      persisted.save({ progress: Math.min(total, idx + 1) / Math.max(1, total), completed: false, lastState: 'active' });
       setAnnouncement('Filed. Correctly identified as error-free.');
     } else {
       setAnnouncement(`Not quite — there is an error. Look for "${cur.correction}".`);
@@ -498,6 +501,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
     arcade.answer(correct);
     if (correct) {
       setScore((s) => s + 1);
+      persisted.save({ progress: Math.min(total, idx + 1) / Math.max(1, total), completed: false, lastState: 'active' });
       setAnnouncement('Filed. Correction stands.');
     } else {
       setAnnouncement(spanRight
@@ -514,14 +518,14 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
   };
 
   const advance = (): void => {
-    setQuestionsSeen((q) => q + 1);
+    if (forcedState || completed || verdict !== 'right') return;
     setIdx((i) => i + 1);
     setSelection(null); setDraft(''); setVerdict(null); setHintRevealed(false);
   };
 
   const skip = (): void => {
     if (forcedState || completed || !cur) return;
-    setQuestionsSeen((q) => q + 1);
+    if (verdict === 'right') { advance(); return; }
     setAnnouncement(`Skipped. The fix was "${cur.correction}".`);
     // D3 Wave-2: log the skip so the review can render the muted SKIPPED chip.
     if (onSessionComplete && !skippedItemIdsRef.current.includes(cur.id)) {
@@ -540,7 +544,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
   const reset = (): void => {
     arcade.restart();
     setIdx(0); setSelection(null); setDraft(''); setVerdict(null); setScore(0);
-    setQuestionsSeen(0); setHintsUsed(0); setHintRevealed(false);
+    setHintsUsed(0); setHintRevealed(false);
     tip.reset();
     skippedItemIdsRef.current = [];
   };
@@ -598,7 +602,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
           }
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <Progress current={score} seen={questionsSeen} total={total} accent={ACCENT} />
+          <Progress current={score} seen={Math.min(total, idx + 1)} total={total} accent={ACCENT} />
           <SkipButton onClick={skip} />
           <HintButton onClick={useHint} used={hintsUsed} total={3} />
         </div>
@@ -642,7 +646,8 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
         const isNoError = errType === 'no-error';
         return (
         <div className="sc-stage" style={{ position: 'absolute', inset: '124px 24px 220px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, zIndex: 4, overflowY: 'auto' }}>
-          <WordMission kind="scanner" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+          <WordMission kind="scanner" current={resolvedQuestions} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+          <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={cur.id} tokens={tokens.map((t,index)=>({...t,index})).filter(t=>t.kind==='word')} selection={selection} missing={isMissingWord} onPick={pickToken} onInsert={at=>{if(!forcedState&&verdict!=='right'){setSelection([at,at]);setVerdict(null);inputRef.current?.focus();}}} onSubmit={submit} onNoError={submitNoError} end={cur.sentence_with_error.length} done={verdict==='right'}/></WordSuspense>
 
           <div className="wa-inline-tools"><button aria-pressed={extendSelection} onClick={()=>setExtendSelection(v=>!v)}>Select phrase {extendSelection?'on':'off'}</button><button onClick={()=>setSelection(null)}>Clear selection</button><span>{extendSelection?'Tap the first and last words in the phrase.':'Tap the word that needs repairing.'}</span></div>
           {/* Kelly Tier-2 audit (2026-05-02): error-type chip — tells the

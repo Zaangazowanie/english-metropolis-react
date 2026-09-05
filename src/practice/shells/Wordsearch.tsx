@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordWordsearch3D'));
 // Wordsearch shell — "Neon Market" district.
 // Players drag across glowing neon signs to find words hidden in the marquee.
 //
@@ -242,7 +244,7 @@ const WS_PUZZLE: WSPuzzle = {
     { word: 'NIGHT', clue: 'Dark hours', clue_pl: 'noc', start: [0, 6], end: [4, 6] },
     { word: 'DUMPLING', clue: 'Filled dough pocket', clue_pl: 'pieróg', start: [5, 2], end: [5, 9] },
     { word: 'STREET', clue: 'A road through town', clue_pl: 'ulica', start: [7, 3], end: [7, 8] },
-    { word: 'GLOW', clue: 'Soft light', clue_pl: 'blask', start: [2, 8], end: [5, 8] },
+    { word: 'GLOW', clue: 'Soft light', clue_pl: 'blask', start: [2, 0], end: [5, 0] },
     { word: 'VENDOR', clue: 'Person who sells', clue_pl: 'sprzedawca', start: [9, 1], end: [9, 6] },
     { word: 'SIGN', clue: 'A board with letters', clue_pl: 'znak', start: [0, 9], end: [3, 9] },
   ],
@@ -520,10 +522,10 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
     }
     setDrag({ ...drag, current: snapped });
   };
-  const onUp = () => {
-    if (!drag) return;
-    const [r1, c1] = drag.start;
-    const [r2, c2] = drag.current;
+  const finishSelection = (selection: WSDrag | null) => {
+    if (!selection || forcedState) return;
+    const [r1, c1] = selection.start;
+    const [r2, c2] = selection.current;
     const matchIdx = activePuzzle.words.findIndex(
       (w) =>
         (w.start[0] === r1 && w.start[1] === c1 && w.end[0] === r2 && w.end[1] === c2) ||
@@ -565,6 +567,8 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
     setDrag(null);
   };
 
+  const onUp = () => finishSelection(drag);
+
   // Kelly Tier 1 (2026-05-02): keyboard handler. Reuses onUp's match logic
   // by building the same `drag` shape from anchor + cursor and calling onUp().
   const onGridKeyDown = (e: React.KeyboardEvent) => {
@@ -591,7 +595,7 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
         setDrag({ start: kbCursor, current: kbCursor });
       } else {
         // Commit using existing match logic.
-        onUp();
+        finishSelection({start:kbAnchor,current:kbCursor});
         setKbAnchor(null);
       }
       return;
@@ -812,7 +816,8 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
             </div>
           </div>
 
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, position: 'relative' }}>
+          <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D grid={grid} routes={found.map(i=>activePuzzle.words[i])} onTrail={(start,end)=>finishSelection({start,current:end})}/></WordSuspense>
+          <details><summary>Flat grid and keyboard route controls</summary>          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, position: 'relative' }}>
             <div
               ref={gridRef}
               role="grid"
@@ -922,7 +927,7 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
             </div>
           </div>
 
-          {completed && !onSessionComplete && (
+          </details>{completed && !onSessionComplete && (
             <div
               role="dialog"
               aria-modal="true"

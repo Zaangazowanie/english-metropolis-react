@@ -1,3 +1,4 @@
+import { Challenge3D } from './challenge-3d';
 import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Speaking Cards shell — "The Speakeasy" district.
 // A brass-plated speakeasy at dusk: velvet curtain, a vintage tube
@@ -678,6 +679,16 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
         }}
       >
         <ChallengeMission title="Take the mic. Make the scene your own." detail="Use the target phrases in a natural answer, then listen back and self-rate. · Mów, odsłuchaj, oceń." current={seen} total={total} />
+        <Challenge3D game="SpeakingCards" roundKey={cur.id} prompt={cur.prompt} signal={recordState==='recording'?recordSeconds/20:0}
+          items={[
+            {id:'mic',label:recordState==='recording'?`Stop recording · ${recordSeconds}s`:'Record my response',state:recordState==='recording'?'selected':'idle'},
+            {id:'targets',label:showTargets?'Hide phrase cues':'Reveal phrase cues'},
+            {id:'well',label:'I said it well · Self-rating',locked:recordState==='recording'},
+            {id:'retry',label:'Keep this for practice · Self-rating',locked:recordState==='recording'}
+          ]} locked={completed || !!forcedState}
+          onPick={id=>{if(id==='mic'){if(recordState==='recording')stopRecording();else void startRecording();}else if(id==='targets')setShowTargets(v=>!v);else if(id==='well')rateWell();else rateRetry();}}
+          status={recordState==='denied'?'Mic denied. Speak aloud and use honest self-rating.':recordState==='unavailable'?'Recording unavailable. Speak aloud and self-rate.':announcement} />
+
         {/* PROMPT CARD */}
         <div
           key={cur.id}
@@ -793,7 +804,7 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
         </div>
 
         {/* MIC + CONTROLS */}
-        <div
+        <div className="cm-recording-playback"
           style={{
             display: 'flex',
             flexDirection: 'column',

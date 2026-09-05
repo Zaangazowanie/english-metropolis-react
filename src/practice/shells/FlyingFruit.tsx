@@ -1,3 +1,4 @@
+import { ActionPlayfield3D } from './action-arcade-three';
 import { useActionCompletion } from './action-arcade-completion';
 import { useArcadeEvents } from '../lib/arcade-events';
 import { useActionTimers } from './action-arcade-timers';
@@ -727,7 +728,7 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
 
       {/* Only the fruit art rotates: its circular tap target and separate
           word label stay centered on the same live arc position. */}
-      <div className="action-harvest-field" onPointerDown={e => { if (!bladeMode || (e.target as HTMLElement).closest('button')) return; swiping.current = true; e.currentTarget.setPointerCapture(e.pointerId); }} onPointerUp={() => { swiping.current = false; setBladeTrail([]); }} onPointerCancel={() => { swiping.current = false; setBladeTrail([]); }} onPointerMove={e => {
+      <div className="action-three-fruit-slot"><ActionPlayfield3D kind="flyingfruit" data={{reducedMotion:reduceMotion,running:harvesting,blade:bladeMode,onPick:onTapFruit,actors:fruits.map(f=>{const phase=(tElapsed-f.delay)/f.duration;const t=reduceMotion||!harvesting?.5:phase<0?0:phase>1?phase-Math.floor(phase):phase;const visible=reduceMotion||!harvesting||phase>=0;const word=f.text.toLowerCase();const color=/^lemon/.test(word)?'#facc15':/^lime/.test(word)?'#84cc16':/^apple/.test(word)?'#ef4444':/^pear/.test(word)?'#a3cc40':/^orange/.test(word)?'#fb923c':/^cherr/.test(word)?'#e11d48':FRUIT_PALETTES[f.paletteIdx].fill;return {id:f.optionIdx,x:reduceMotion||!harvesting?18+f.optionIdx*64/Math.max(1,fruits.length-1):bezier(t,f.startX,f.peakX,f.endX),y:reduceMotion||!harvesting?25+(f.optionIdx%2)*34:bezier(t,f.baseY,f.peakY,f.baseY),label:f.text,color,rotation:reduceMotion?0:f.rot0+tElapsed*f.spin,selected:!reduceMotion&&harvesting&&t>=.35&&t<=.65,state:pickedOption===f.optionIdx?verdict??undefined:undefined,hidden:!visible,enabled:visible&&!forcedState&&verdict===null&&!completed&&(harvesting||reduceMotion)};})}} controls={<>{fruits.map(f=><button key={f.optionIdx} disabled={verdict!==null||completed||(!harvesting&&!reduceMotion)} onClick={()=>onTapFruit(f.optionIdx)}>{f.text}</button>)}</>}><div className="action-harvest-field" onPointerDown={e => { if (!bladeMode || (e.target as HTMLElement).closest('button')) return; swiping.current = true; e.currentTarget.setPointerCapture(e.pointerId); }} onPointerUp={() => { swiping.current = false; setBladeTrail([]); }} onPointerCancel={() => { swiping.current = false; setBladeTrail([]); }} onPointerMove={e => {
         if (!bladeMode || !swiping.current || !harvesting || fruitLocked.current) return;
         const bounds = e.currentTarget.getBoundingClientRect();
         setBladeTrail(points => [...points.slice(-7), { x: e.clientX - bounds.left, y: e.clientY - bounds.top }]);
@@ -735,7 +736,7 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
           const rect = target.getBoundingClientRect(); const dx = e.clientX - rect.left - rect.width / 2; const dy = e.clientY - rect.top - rect.height / 2;
           if (dx * dx + dy * dy < Math.pow(rect.width * .43, 2)) { onTapFruit(Number(target.dataset.fruit)); break; }
         }
-      }} style={{ position: 'absolute', top: 180, left: 0, right: 0, bottom: 130, zIndex: 4, touchAction: 'none' }}>
+      }} style={{ position: 'relative', height: 390, top: 0, left: 0, right: 0, bottom: 0, zIndex: 4, touchAction: 'none' }}>
         <svg aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 8 }}><polyline points={bladeTrail.map(p => `${p.x},${p.y}`).join(' ')} stroke="#fff3b2" strokeWidth="5" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 6px #fbbf24)' }} /></svg>
 
         {fruits.map((f) => {
@@ -835,7 +836,7 @@ export const FlyingFruitShell: React.FC<FlyingFruitShellProps> = ({
             </React.Fragment>
           );
         })}
-      </div>
+      </div></ActionPlayfield3D></div>
 
       {!completed && <div className="action-flight-control action-arcade-controls"><p><strong>{harvestPoints} POINTS</strong> · {harvestNotice}</p><button disabled={verdict !== null} onClick={() => setHarvesting(v => !v)}>{harvesting ? 'Pause harvest' : 'Launch harvest'}</button><button disabled={verdict !== null} aria-pressed={bladeMode} onClick={() => { swiping.current = false; setBladeTrail([]); setBladeMode(v => !v); }}>{bladeMode ? 'Blade mode' : 'Tap mode'}</button><span style={{ color: '#e8dfbd', font: '11px var(--em-body)' }}>{bladeMode ? 'Start a swipe on empty ground, then slice through a fruit.' : 'Tap a fruit to catch it. Keyboard: Tab + Enter.'}</span></div>}
       {/* Completion */}

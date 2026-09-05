@@ -1,6 +1,9 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordCrossword3D'));
 // Crossword shell — "The Grid District" — city blueprint metaphor.
 // Streets are words. Intersections are clue crossings.
 import { WordMission, useWordArcade } from './word-arcade';
+import { createStreetAdvance } from './word-arcade-crossword';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Bajla,
@@ -181,14 +184,14 @@ const CW_PUZZLE: CWPuzzle = {
   size: 12,
   words: [
     { id: 1, dir: 'across', row: 1, col: 1, answer: 'METRO', clue: 'Underground city train', clue_pl: 'kolej podziemna' },
-    { id: 2, dir: 'down', row: 1, col: 3, answer: 'TRAM', clue: 'Vehicle on rails along the street', clue_pl: 'pojazd szynowy' },
-    { id: 3, dir: 'across', row: 3, col: 2, answer: 'BRIDGE', clue: 'Crosses a river', clue_pl: 'most' },
-    { id: 4, dir: 'down', row: 3, col: 6, answer: 'GATE', clue: 'Entrance, often grand', clue_pl: 'brama' },
-    { id: 5, dir: 'across', row: 5, col: 1, answer: 'AVENUE', clue: 'A wide tree-lined street', clue_pl: 'aleja' },
-    { id: 6, dir: 'down', row: 5, col: 4, answer: 'NIGHT', clue: 'When the city glows', clue_pl: 'noc' },
-    { id: 7, dir: 'across', row: 7, col: 3, answer: 'PLAZA', clue: 'Open public square', clue_pl: 'plac' },
-    { id: 8, dir: 'down', row: 7, col: 8, answer: 'TOWER', clue: 'Tall structure on the skyline', clue_pl: 'wieża' },
-    { id: 9, dir: 'across', row: 9, col: 5, answer: 'MARKET', clue: 'Where vendors sell', clue_pl: 'targ, rynek' },
+    { id: 2, dir: 'down', row: 8, col: 6, answer: 'TRAM', clue: 'Vehicle on rails along the street', clue_pl: 'pojazd szynowy' },
+    { id: 3, dir: 'across', row: 5, col: 2, answer: 'BRIDGE', clue: 'Crosses a river', clue_pl: 'most' },
+    { id: 4, dir: 'across', row: 8, col: 4, answer: 'GATE', clue: 'Entrance, often grand', clue_pl: 'brama' },
+    { id: 5, dir: 'down', row: 3, col: 7, answer: 'AVENUE', clue: 'A wide tree-lined street', clue_pl: 'aleja' },
+    { id: 6, dir: 'across', row: 6, col: 7, answer: 'NIGHT', clue: 'When the city glows', clue_pl: 'noc' },
+    { id: 7, dir: 'across', row: 3, col: 5, answer: 'PLAZA', clue: 'Open public square', clue_pl: 'plac' },
+    { id: 8, dir: 'down', row: 1, col: 3, answer: 'TOWER', clue: 'Tall structure on the skyline', clue_pl: 'wieża' },
+    { id: 9, dir: 'down', row: 1, col: 11, answer: 'MARKET', clue: 'Where vendors sell', clue_pl: 'targ, rynek' },
   ],
 };
 
@@ -362,6 +365,10 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
     c: firstWord?.col ?? 1,
     dir: firstWord?.dir ?? 'across',
   });
+  const streetAdvance = useRef<ReturnType<typeof createStreetAdvance> | null>(null);
+  if (streetAdvance.current === null) streetAdvance.current = createStreetAdvance(setActive);
+  const cancelStreetAdvance = useCallback(() => streetAdvance.current?.cancel(), []);
+  useEffect(() => cancelStreetAdvance, [cancelStreetAdvance, forcedState, activePuzzle]);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [feedback, setFeedback] = useState<CWFeedback>(null);
   const [completed, setCompleted] = useState(false);
@@ -389,6 +396,7 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
   // canvas's state showcase doesn't write bogus rows. The same wiring is
   // mirrored in every other shell (`useShellProgress(<shellId>)`).
   const persisted = useShellProgress('crossword');
+
 
   // Force-state controls (for canvas state showcase)
   // v10 instructional speech-bubble broadcast (Mike directive 2026-05-03).
@@ -491,10 +499,14 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
   const handleType = useCallback(
     (key: string) => {
       if (completed) return;
+      if (key === 'Backspace' || /^[a-zA-Z]$/.test(key)) cancelStreetAdvance();
       if (/^[a-zA-Z]$/.test(key)) {
         const k = `${active.r},${active.c}`;
         if (!cells[k]) return;
-        setEntries((prev) => ({ ...prev, [k]: key.toUpperCase() }));
+        // Solved streets are physical, locked roads; crossing edits cannot undo them.
+        if (!cells[k].words.some(word => solvedWordIds.has(word.id))) {
+          setEntries((prev) => ({ ...prev, [k]: key.toUpperCase() }));
+        }
         const w = activeWord;
         if (!w) return;
         const idx = w.dir === 'across' ? active.c - w.col : active.r - w.row;
@@ -509,7 +521,7 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
         const k = `${active.r},${active.c}`;
         setEntries((prev) => {
           const n = { ...prev };
-          delete n[k];
+          if (!cells[k]?.words.some(word => solvedWordIds.has(word.id))) delete n[k];
           return n;
         });
         const w = activeWord;
@@ -521,10 +533,11 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
           );
       }
     },
-    [active, cells, activeWord, entries, completed, checkCompletion],
+    [active, cells, activeWord, completed, solvedWordIds, cancelStreetAdvance],
   );
 
   const checkWord = () => {
+    cancelStreetAdvance();
     if (!activeWord || forcedState || solvedWordIds.has(activeWord.id)) return;
     const w = activeWord;
     const typedWord = Array.from({ length: w.answer.length })
@@ -541,11 +554,14 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
     setTimeout(() => setFeedback(null), 1600);
     if (correct) {
       if (solvedWordIds.size + 1 === activePuzzle.words.length) checkCompletion(entries);
+      // Report in the answer event so the cabinet and city counters advance together.
+      const nextSeen = new Set(seenWordIds).add(w.id);
+      persisted.save({ progress: nextSeen.size / activePuzzle.words.length, completed: nextSeen.size >= activePuzzle.words.length, lastState: nextSeen.size >= activePuzzle.words.length ? 'complete' : 'active' });
       // EM-041: mark this word as both seen and solved.
-      setSeenWordIds((s) => new Set(s).add(w.id));
+      setSeenWordIds(nextSeen);
       setSolvedWordIds((s) => new Set(s).add(w.id));
       const nextStreet = activePuzzle.words.find(street => street.id !== w.id && !solvedWordIds.has(street.id) && !skippedWordIdsRef.current.includes(street.id));
-      if(nextStreet) setTimeout(()=>setActive({r:nextStreet.row,c:nextStreet.col,dir:nextStreet.dir}),550);
+      if (nextStreet) streetAdvance.current?.schedule({ r: nextStreet.row, c: nextStreet.col, dir: nextStreet.dir });
     }
     // Layer-4: fire wrong-answer callback so the host can show an
     // InterferenceTip overlay. Skip for forced-state demos.
@@ -580,6 +596,7 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
   // counter advances) without marking it solved, and jumps focus to the next
   // unseen word in the puzzle so the player keeps making forward progress.
   const skip = () => {
+    cancelStreetAdvance();
     if (!activeWord || forcedState) return;
     const w = activeWord;
     setSeenWordIds((s) => new Set(s).add(w.id));
@@ -591,6 +608,7 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
     // Find the next word that hasn't been seen yet.
     const idx = activePuzzle.words.findIndex((x) => x.id === w.id);
     const nextSeen = new Set(seenWordIds).add(w.id);
+    persisted.save({ progress: nextSeen.size / activePuzzle.words.length, completed: nextSeen.size >= activePuzzle.words.length, lastState: nextSeen.size >= activePuzzle.words.length ? 'complete' : 'active' });
     const nextWord =
       activePuzzle.words.slice(idx + 1).find((x) => !nextSeen.has(x.id)) ??
       activePuzzle.words.find((x) => !nextSeen.has(x.id));
@@ -600,6 +618,7 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
   };
 
   const useHint = () => {
+    cancelStreetAdvance();
     if (!activeWord || hintsUsed >= 3) return;
     const w = activeWord;
     for (let i = 0; i < w.answer.length; i++) {
@@ -636,6 +655,7 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
       )) return;
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
+        cancelStreetAdvance();
         setActive((a) => {
           const n = { ...a };
           if (e.key === 'ArrowUp') {
@@ -663,9 +683,10 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [cells, forcedState, handleType]);
+  }, [cells, forcedState, handleType, cancelStreetAdvance]);
 
   const onCell = (r: number, c: number) => {
+    cancelStreetAdvance();
     if (!cells[`${r},${c}`]) return;
     setActive((a) => {
       if (a.r === r && a.c === c) {
@@ -673,7 +694,8 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
         const otherDir: 'across' | 'down' = a.dir === 'across' ? 'down' : 'across';
         if (cell.words.some((w) => w.dir === otherDir)) return { r, c, dir: otherDir };
       }
-      return { r, c, dir: a.dir };
+      const directions = cells[`${r},${c}`].words;
+      return { r, c, dir: directions.some(word => word.dir === a.dir) ? a.dir : directions[0].dir };
     });
   };
 
@@ -778,7 +800,8 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
             backgroundImage: `linear-gradient(${blueprintColor}22 1px, transparent 1px), linear-gradient(90deg, ${blueprintColor}22 1px, transparent 1px)`,
             backgroundSize: '24px 24px',
             opacity: 0.55,
-          }} />
+            pointerEvents: 'none',
+          }} aria-hidden="true" />
 
           <div style={{ position: 'relative', padding: '20px 24px', borderBottom: '1px solid var(--em-line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <AmbientAudioPlayer shellSlug="crossword" />
@@ -791,7 +814,8 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
             <div className="em-eyebrow" style={{ color: blueprintColor }}>SHEET 03 · CITY PLAN</div>
           </div>
 
-          <div ref={gridStageRef} style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, minHeight: 0 }}>
+          <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D size={N} cells={Object.entries(cells).map(([key,cell])=>{const [r,c]=key.split(',').map(Number);return {r,c,label:entries[key]??'',route:isInActiveWord(r,c),ariaLabel:`Row ${r+1}, column ${c+1}: ${entries[key]||'empty'}. ${active.dir}. ${isInActiveWord(r,c)&&activeWord?sanitiseHintAgainstAnswer(activeWord.clue,activeWord.answer):'Select this city block'}`,active:active.r===r&&active.c===c,done:cell.words.some(w=>solvedWordIds.has(w.id)),wrong:feedback==='wrong'&&isInActiveWord(r,c)};})} active={[active.r,active.c]} onPick={onCell} onType={handleType} onCheck={checkWord}/></WordSuspense>
+          <details><summary>Flat grid and keyboard controls</summary><div ref={gridStageRef} style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, minHeight: 0 }}>
             <div
               ref={gridRef}
               role="grid"
@@ -911,7 +935,7 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
             </div>
           </div>
 
-          {/* Ricky CC-CRIT (2026-05-02): keyboard prompt pill. Tells the user
+          </details>{/* Ricky CC-CRIT (2026-05-02): keyboard prompt pill. Tells the user
               the grid takes typed letters AND lands the system soft-keyboard
               on mobile by surfacing a focused hidden input. */}
           <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', padding: '8px 16px 18px' }}>
@@ -1069,7 +1093,7 @@ export const CrosswordShell: React.FC<CrosswordShellProps> = ({ time = 'dusk', s
                     role="listitem"
                     aria-label={`${w.id} ${w.dir}, clue: ${displayClue}${filled ? ', filled' : ''}${isCurrent ? ', currently selected' : isLinked ? ', crosses the active cell' : ''}`}
                     aria-current={isCurrent ? 'true' : undefined}
-                    onClick={() => setActive({ r: w.row, c: w.col, dir: w.dir })}
+                    onClick={() => { cancelStreetAdvance(); setActive({ r: w.row, c: w.col, dir: w.dir }); }}
                     style={{
                       width: '100%', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 12,
                       // Active word (clicked by the user) gets the brand-magenta

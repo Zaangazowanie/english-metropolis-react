@@ -1,3 +1,4 @@
+import { Challenge3D } from './challenge-3d';
 import { sentenceIsCorrect } from './challenge-arcade-logic';
 import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Unjumble shell — "The Puzzle Workshop" district.
@@ -620,8 +621,14 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
         }}
       >
         <ChallengeMission title="Assemble the message. Launch the signal." detail="Build your sentence on the rail, then launch it. Adjust any misplaced words and try again. · Ułóż i wyślij." current={gauge.filter(v => v !== null).length} total={cur.words.length}>
-          <button type="button" disabled={questionFinalised || gauge.some(v => v === null)} onClick={launchSentence}>Launch sentence · Wyślij zdanie →</button>
         </ChallengeMission>
+        <Challenge3D game="Unjumble" roundKey={cur.id} prompt={cur.translation_pl || 'Build a complete English sentence.'}
+          items={cur.words.map((label,i)=>({id:String(i),label,locked:gauge.includes(i)}))}
+          slots={gauge.map((wi,i)=>({id:String(i),label:wi===null?`Position ${i+1}`:cur.words[wi],state:feedback==='correct'?'right':feedback==='wrong'?'wrong':'idle'}))}
+          onPlace={(slot,id)=>placeWord(Number(slot),Number(id))} onRemove={slot=>removeFromSlot(Number(slot))}
+          onAction={launchSentence} actionLabel="Launch sentence · Wyślij" actionDisabled={gauge.some(v=>v===null)}
+          locked={questionFinalised || completed || !!forcedState} status={announcement} />
+
         {/* Sentence info */}
         <div
           className="em-card"
@@ -692,7 +699,7 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
 
         {/* The lining gauge — drop targets */}
         <div
-          className="em-card"
+          className="em-card cm-legacy-answers"
           style={{
             padding: 18,
             background:
@@ -827,7 +834,7 @@ export const UnjumbleShell: React.FC<UnjumbleShellProps> = ({
         </div>
 
         {/* The tray of wood blocks */}
-        <div
+        <div className="cm-legacy-answers"
           style={{
             padding: 14,
             background:

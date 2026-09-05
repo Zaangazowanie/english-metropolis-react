@@ -1,3 +1,4 @@
+import { Challenge3D } from './challenge-3d';
 import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Labelled Diagram shell — "The Atrium Schematic" district.
 // A blueprint chamber: an architectural drafting paper grid with the
@@ -570,6 +571,11 @@ export const LabelledDiagramShell: React.FC<LabelledDiagramShellProps> = ({
         }}
       >
         <ChallengeMission title="Bring the schematic online." detail="Connect each label to the right location. Correct connections illuminate the network; wrong labels return to the tray." current={solved} total={total} />
+        <Challenge3D game="LabelledDiagram" prompt={`${activePuzzle.title} — connect labels to the diagram's numbered points.`}
+          items={activePuzzle.hotspots.map(h=>({id:h.id,label:h.label,locked:placement[h.id]===h.id}))}
+          slots={activePuzzle.hotspots.map((h,i)=>({id:h.id,label:placement[h.id]===h.id?h.label:`Diagram point ${i+1}`,state:placement[h.id]===h.id?'right':feedback?.id===h.id&&!feedback.ok?'wrong':'idle',locked:placement[h.id]===h.id}))}
+          onPlace={placeLabel} locked={completed || !!forcedState} status={announcement} />
+
         {/* DIAGRAM PANE */}
         <div
           className="em-card"

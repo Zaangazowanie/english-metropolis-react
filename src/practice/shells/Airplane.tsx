@@ -1,3 +1,4 @@
+import { ActionPlayfield3D } from './action-arcade-three';
 import { useActionCompletion } from './action-arcade-completion';
 import { useArcadeEvents } from '../lib/arcade-events';
 import { useActionTimers } from './action-arcade-timers';
@@ -583,7 +584,7 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
       )}
 
       {/* Sky play area — clouds drift across, plane sits left */}
-      <div ref={skyRef} className="action-flight-sky" style={{ position: 'absolute', top: 200, left: 0, right: 0, bottom: 130, zIndex: 3 }}>
+      <div className="action-three-flight-slot"><ActionPlayfield3D kind="airplane" data={{reducedMotion:reduceMotion,running:flying,selected:lane,onPick:steer,actors:clouds.map(c=>({id:c.optionIdx,x:gateX,y:c.yPct,label:c.text,selected:c.optionIdx===lane,enabled:!forcedState&&verdict===null&&!completed}))}}><div ref={skyRef} className="action-flight-sky" style={{ position: 'relative', height: 390, top: 0, left: 0, right: 0, bottom: 0, zIndex: 3 }}>
         {round?.options.map((word, i) => <div key={i} className="action-flight-lane" style={{ top: `${laneY(i)}%` }}><span>{i + 1}</span></div>)}
         {/* Plane contrail — fixed strip behind plane */}
         <div aria-hidden="true" style={{
@@ -854,9 +855,9 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
             </button>
           );
         })}
-      </div>
+      </div></ActionPlayfield3D></div>
 
-      {!completed && <div className="action-flight-control action-arcade-controls"><p>{flying ? 'STEER THROUGH THE RIGHT WORD · ↑ / ↓ or W / S' : 'Read the clue. Choose a lane, then launch.'}</p><button aria-label="Climb one lane" onClick={() => steer(laneRef.current - 1)}>↑ Climb</button><button aria-label="Descend one lane" onClick={() => steer(laneRef.current + 1)}>↓ Descend</button><button disabled={verdict !== null} onClick={() => { if (reduceMotion) onTapCloud(laneRef.current); else setFlying(v => !v); }}>{reduceMotion ? 'Fly through selected gate' : flying ? 'Pause flight' : gateX < 82 ? 'Resume flight' : 'Launch flight'}</button><button disabled={flying} onClick={() => setFlightPace(p => p === 'cruise' ? 'jet' : 'cruise')}>{flightPace === 'jet' ? 'Jet · 150 pts' : 'Cruise · 100 pts'}</button></div>}
+      {!completed && <div className="action-flight-control action-arcade-controls"><p>{flying ? 'STEER THROUGH THE RIGHT WORD · ↑ / ↓ or W / S' : gateX < 82 ? 'Flight paused. Choose a lane, then resume.' : 'Read the clue. Choose a lane, then launch.'}</p><span role="status" aria-live="polite">Selected gate {String.fromCharCode(65 + lane)}: {round?.options[lane]}</span><button aria-label="Climb one lane" onClick={() => steer(laneRef.current - 1)}>↑ Climb</button><button aria-label="Descend one lane" onClick={() => steer(laneRef.current + 1)}>↓ Descend</button><button disabled={verdict !== null} onClick={() => { if (reduceMotion) onTapCloud(laneRef.current); else setFlying(v => !v); }}>{reduceMotion ? 'Fly through selected gate' : flying ? 'Pause flight' : gateX < 82 ? 'Resume flight' : 'Launch flight'}</button><button disabled={flying} onClick={() => setFlightPace(p => p === 'cruise' ? 'jet' : 'cruise')}>{flightPace === 'jet' ? 'Jet · 150 pts' : 'Cruise · 100 pts'}</button></div>}
       {/* Completion */}
       {completed && (
         <div

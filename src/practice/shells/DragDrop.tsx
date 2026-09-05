@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordDragDrop3D'));
 // Drag-drop — The Docks district.
 // Drag cargo containers (words) into sentence drop zones.
 // Wrong drops bounce back; correct drops latch in place.
@@ -657,6 +659,7 @@ export const DragDropShell: React.FC<DragDropShellProps> = ({ time = 'dusk', sta
 
       <div className="em-shell-body" style={{ position: 'absolute', inset: '108px 32px 28px', display: 'flex', flexDirection: 'column', gap: 14, zIndex: 4 }}>
         <WordMission kind="cargo" current={Object.keys(filled).length} total={puzzle.answers.length} chain={arcade.chain} reaction={arcade.reaction}/>
+        <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={puzzleIdx} pool={puzzle.pool} filled={filled} count={puzzle.answers.length} selected={dragging} onSelect={setDragging} onPlace={tryPlace} onRemove={removeFromGap}/></WordSuspense>
         {/* Ricky 2026-05-02 layout restructure:
             1. Sticky tense/grammar chip ABOVE the sentence (was floating bin label
                mid-canvas at "Present Perfect · czas Present Perfect")

@@ -1,3 +1,4 @@
+import { ActionPlayfield3D } from './action-arcade-three';
 import { useActionCompletion } from './action-arcade-completion';
 import { selectedWheelRotation } from './action-arcade-logic.mjs';
 import { useArcadeEvents } from '../lib/arcade-events';
@@ -559,7 +560,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
             </div>
 
             {/* Wheel + marquee */}
-            <div style={{ position: 'relative', width: 360, height: 360 }}>
+            <ActionPlayfield3D kind="spinthewheel" data={{reducedMotion:reduceMotion,angle, duration:SPIN_WAIT_MS,running:spinning,onSpin:spin,onPick:i=>{if(!completed&&feedback!=='correct'){setSelected(i);setFeedback(null);setLandedOn(null);}},actors:wedges.map(w=>({id:w.i,x:0,y:0,label:cur.options[w.i],color:w.color,selected:selected===w.i}))}}><div style={{ position: 'relative', width: 360, height: 360 }}>
               {/* Marquee bulbs ring */}
               {Array.from({ length: 24 }).map((_, i) => {
                 const a = (i / 24) * Math.PI * 2;
@@ -670,7 +671,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
                   pointerEvents: 'none',
                 }}>×</div>
               )}
-            </div>
+            </div></ActionPlayfield3D>
 
             {/* External nameplate-callout legend (CD audit Option A, #20).
                Wedges only carry single-letter markers — the full word labels

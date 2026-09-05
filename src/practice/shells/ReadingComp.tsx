@@ -1,3 +1,4 @@
+import { Challenge3D } from './challenge-3d';
 import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Reading Comprehension shell — "The Reading Room" district.
 // A library reading nook at dusk: a parchment passage glows under a brass
@@ -844,7 +845,8 @@ export const ReadingCompShell: React.FC<ReadingCompShellProps> = ({
               {cur.prompt}
             </div>
 
-            <div role="radiogroup" aria-label={cur.prompt} style={{ display: 'grid', gap: 8 }}>
+            <Challenge3D game="ReadingComp" evidence={activePuzzle.passage.split(/(?<=[.!?])\s+/).filter(Boolean)} onEvidence={() => setEvidenceMarked(true)} items={cur.options.map((label,i)=>({id:String(i),label,state:revealed && i===cur.answerIndex?'right':revealed && i===picked?'wrong':'idle'}))} roundKey={cur.id} locked={revealed || completed || !!forcedState} onPick={id=>choose(Number(id))} />
+            <div className="cm-legacy-answers" role="radiogroup" aria-label={cur.prompt} style={{ display: 'grid', gap: 8 }}>
               {cur.options.map((opt, oi) => {
                 const isPicked = picked === oi;
                 const isCorrect = oi === cur.answerIndex;

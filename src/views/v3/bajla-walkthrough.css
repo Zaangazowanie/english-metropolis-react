@@ -49,3 +49,10 @@
    effects resolve to their readable final state, including manual navigation. */
 .bj-walkthrough[data-running=false] :is(.bj-walk-avatar img,.bj-walk-avatar i,.bj-stream-caret,.bj-walk-typing i,.bj-walk-intro img,.bj-walk-timeline .current,.bj-walk-wave i,.bj-walk-mic-ring,.bj-walk-loading>span){animation-play-state:paused!important}
 .bj-walkthrough[data-running=false] :is(.bj-demo-query,.bj-demo-reply,.bj-demo-track span,.bj-walk-action--selected,.bj-walk-message,.bj-walk-feature,.bj-demo-card,.bj-demo-booking,.bj-demo-choice-list,.bj-demo-choice-list button,.bj-walk-intro,.bj-walk-typing,.bj-walk-selection,.bj-walk-selection>.material-symbols-outlined,.bj-walk-feedback,.bj-walk-pdf,.bj-walk-flash,.bj-walk-clip,.bj-walk-options button,.bj-walk-slots button,.bj-walk-transport strong){animation:none!important}
+.bj-walk-guide{position:absolute;z-index:9;width:24px;height:30px;pointer-events:none;opacity:0;color:#f9f7ff;filter:drop-shadow(0 2px 2px #23112e99)}
+.bj-walk-guide>.material-symbols-outlined{font-variation-settings:'FILL' 1;font-size:27px;transform:rotate(-30deg);display:block;text-shadow:0 0 2px #45265a}
+.bj-walk-guide>i{position:absolute;left:-12px;top:-12px;width:36px;height:36px;border:2px solid #b97cf2;background:#b97cf222;border-radius:50%;opacity:0}
+.bj-walkthrough[data-running=false] .bj-walk-guide{display:none}
+.bj-showcase-context>span{display:block;min-width:0}
+.bj-showcase-context strong{display:block;margin-top:5px;font-weight:500;color:var(--gh-text-soft);font-size:12px;line-height:1.5}
+@media(prefers-reduced-motion:reduce){.bj-walk-guide{display:none}}

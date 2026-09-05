@@ -1,3 +1,4 @@
+import { ActionPlayfield3D } from './action-arcade-three';
 import { useActionCompletion } from './action-arcade-completion';
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
 import { useArcadeEvents } from '../lib/arcade-events';
@@ -701,7 +702,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
 
           <div className="action-arcade-hud" style={{ margin: '12px 24px 0' }}><div><strong>{points} POINTS</strong><small>{reaction !== null ? `Caught in ${(reaction / 1000).toFixed(2)}s. ${reaction < 1100 && !precision && !reduceMotion ? 'Quick catch +50 bonus!' : 'Station cleared.'}` : 'Catch the correct conductor. Quick catches earn 50 bonus points. Press 1–6 or tap a mole.'}</small></div><button disabled={roundLocked} aria-pressed={precision} onClick={() => setPrecision(v => !v)}>{precision || reduceMotion ? 'Focus · steady targets' : 'Arcade · moving targets'}</button></div>
           {/* Platform with mole holes */}
-          <div style={{ flex: 1, position: 'relative', margin: '20px 24px', overflow: 'hidden' }}>
+          <ActionPlayfield3D kind="whackamole" data={{reducedMotion:reduceMotion,running:started,selected:moles.find(m=>m.state==='whacked')?.holeIdx,onPick:hole=>{const i=moles.findIndex(m=>m.holeIdx===hole);if(i>=0)whack(i);},actors:moles.map(m=>({id:m.holeIdx,x:0,y:0,label:m.word,state:m.state,selected:hintHole===m.holeIdx,enabled:started&&!roundLocked&&(m.state==='up'||m.state==='rising')}))}} controls={<>{moles.map((m,i)=><button key={m.holeIdx} disabled={!started||roundLocked||(m.state!=='up'&&m.state!=='rising')} onClick={()=>whack(i)}>{m.holeIdx+1} · {m.word}</button>)}</>}><div style={{ flex: 1, position: 'relative', margin: '20px 24px', overflow: 'hidden' }}>
             {/* Tile floor (lighter band at bottom) */}
             <div style={{
               position: 'absolute', bottom: 0, left: 0, right: 0, height: '40%',
@@ -805,7 +806,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
                 Q N/M counter via the shared Progress primitive in the sidebar,
                 with a small ✓/✗ tally chip beside it. The play-area MISS chip
                 duplicated that tally and crowded the scene. */}
-          </div>
+          </div></ActionPlayfield3D>
 
           {/* START · ROZPOCZNIJ overlay (Ricky 2026-05-02, CD audit §5.5
               Whack-a-Mole first-impression fix). The shell spawns moles on a

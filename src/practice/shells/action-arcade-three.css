@@ -1,0 +1,27 @@
+.action-three-playfield{position:relative;width:100%;height:clamp(340px,45vw,490px);min-height:340px;overflow:hidden;border-radius:14px;border:1px solid #ddbe7733;background:#191226;isolation:isolate;touch-action:none}
+.action-three-playfield>div{min-height:0!important}
+.action-three-loading{height:100%;display:grid;place-items:center;color:#ffe8a3;font:14px var(--em-body);background:radial-gradient(ellipse at 50% 100%,#45335c,#151023)}
+.action-three-controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;position:relative;padding:10px 0;z-index:4;width:100%}
+.action-three-controls button{border:1px solid #f7dc8a55;background:#251c37;color:#f9f2df;min-height:42px;min-width:42px;border-radius:8px;padding:8px 12px;font:12px var(--em-body);cursor:pointer}
+.action-three-controls button:hover,.action-three-controls button[aria-pressed=true]{background:#4b3762;border-color:#ffe49a}
+.action-three-controls button:disabled{opacity:.45;cursor:default}
+.action-three-label{display:block;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis;border:1px solid #ffe3a855;border-radius:6px;background:#171123ed;padding:4px 7px;color:#fff4da;font:600 11px var(--em-body);text-align:center;box-shadow:0 3px 10px #0005;pointer-events:none;user-select:none}
+.action-three-label[data-active=true]{background:#3d294b;border-color:#ffe290;color:#ffe290}
+.action-three-label[data-number=true]{font:700 12px var(--em-mono);padding:3px 6px;min-width:19px;border-radius:50%}
+.action-three-replaced{position:relative;min-width:0;width:100%}
+.action-three-replaced>.action-three-playfield{height:100%;min-height:340px}
+.action-three-flight-slot{position:absolute;top:195px;left:16px;right:16px;bottom:140px;z-index:5}
+.action-three-fruit-slot{position:absolute;top:180px;left:16px;right:16px;bottom:145px;z-index:5}
+.action-three-random-slot{position:relative;margin:100px 20px 160px;width:calc(100% - 40px);z-index:4}
+.action-three-vault-slot{width:100%;position:relative;z-index:2}
+.em-shell-host:has(.action-three-playfield){height:auto!important;min-height:0!important}
+.em-shell:has(.action-three-playfield){height:auto!important;min-height:850px;overflow:visible!important}
+.em-shell:has(.action-three-playfield) .em-snake-dpad,.em-shell:has(.action-three-playfield) .em-mz-dpad{display:grid!important;position:relative!important;inset:auto!important}
+@media(max-width:760px){
+ .action-three-playfield{height:370px;min-height:370px}
+ .action-three-label{font-size:10px;max-width:110px;padding:3px 5px}
+ .action-three-flight-slot,.action-three-fruit-slot{position:relative;inset:auto;margin:0;width:100%;flex:none}
+ .action-three-random-slot{margin:16px 0;width:100%}
+ .em-shell:has(.action-three-playfield){min-height:0}
+ .action-three-playfield canvas{touch-action:none}
+}

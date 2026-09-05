@@ -1,3 +1,4 @@
+import { Challenge3D } from './challenge-3d';
 import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Gap-fill shell — "Construction Quarter".
 // Broken billboards / under-construction shop signs are missing words.
@@ -638,6 +639,14 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
 
       <div className="em-gap-layout" style={{ position: 'relative', display: 'grid', gridTemplateRows: 'auto auto 1fr auto', gap: 24, padding: '60px 32px 32px', height: '100%', boxSizing: 'border-box' }}>
         <ChallengeMission title="Repair the neon. Reopen the block." detail="Fit every missing word to restore this storefront. A fully repaired sign earns 150 base points." current={scenesSolved} total={activePuzzle.scenes.length} />
+        <Challenge3D game="GapFill" hint={hintReveal===null?undefined:`Gap ${hintReveal+1}: ${cur.gaps.find(g=>g.id===hintReveal)?.answer}`} roundKey={cur.id} prompt={cur.sign.map(part=>typeof part==='string'?part:`[${part.gap+1}]`).join(' ')}
+          items={cur.gaps.flatMap(g=>g.options.map(word=>({id:`${g.id}:${word}`,label:word})))}
+          slots={cur.gaps.map(g=>({id:String(g.id),label:picks[g.id]||`Gap ${g.id+1}`,state:feedback==='correct'?'right':feedback==='wrong' && picks[g.id] && picks[g.id]!==g.answer?'wrong':'idle'}))}
+          locked={completed || sceneFinalised || sessionComplete || !!forcedState}
+          onPlace={(slot,id)=>place(Number(slot),id.slice(id.indexOf(':')+1))}
+          onRemove={id=>{setPicks(prev=>{const next={...prev};delete next[Number(id)];return next;});setFeedback(null);}}
+          status={feedback==='wrong'?'A word is in the wrong socket. Clear it and rebuild.':feedback==='correct'?'The sign is repaired.':'Lift a crate, then select its numbered gap.'} />
+
         <div className="challenge-gap-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <AmbientAudioPlayer shellSlug="gapfill" />
           <Nameplate
@@ -655,7 +664,7 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-          <div className="em-gap-sign" style={{ position: 'relative', width: '78%', maxWidth: 760 }}>
+          <div className="em-gap-sign cm-legacy-answers" style={{ position: 'relative', width: '78%', maxWidth: 760 }}>
             <div style={{
               position: 'relative',
               background: 'linear-gradient(180deg, #2A1B45 0%, #1A1030 100%)',
@@ -747,7 +756,7 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
           </div>
         </div>
 
-        <div className="em-card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="em-card cm-legacy-answers" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div className="em-eyebrow">Letter blocks · klocki · drag to fix the sign</div>
             <div className="em-eyebrow" style={{ color: accent }}>{cur.gaps[0].clue}</div>

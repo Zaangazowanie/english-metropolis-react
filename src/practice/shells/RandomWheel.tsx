@@ -1,3 +1,4 @@
+import { ActionPlayfield3D } from './action-arcade-three';
 import { useActionCompletion } from './action-arcade-completion';
 import { useArcadeEvents } from '../lib/arcade-events';
 import { useActionTimers } from './action-arcade-timers';
@@ -557,7 +558,7 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
           align in a balanced two-column composition. The wheel sits on a
           stand-leg pedestal (carnival-stand aesthetic vs Carnival Wheel's
           flat roulette table). */}
-      <div className="action-random-wheel" style={{ position: 'absolute', top: 100, left: 'min(20%, 240px)', width: 420, height: 420, zIndex: 4 }}>
+      <div className="action-three-random-slot"><ActionPlayfield3D kind="randomwheel" data={{reducedMotion:reduceMotion,angle:wheelRotation,duration:SPIN_WAIT_MS,running:phase==='spinning',onSpin:spin,actors:wedges.map((w,i)=>({id:i,x:0,y:0,label:w.tier.labelEN,color:w.color,state:completedRounds.has(i)?'done':retryRounds.has(i)?'retry':'ready',selected:activeRound===i}))}} controls={<button disabled={phase!=='idle'||completed||!!forcedState} onClick={spin}>Spin the challenge wheel</button>}><div className="action-random-wheel" style={{ position: 'relative', top: 0, left: '50%', transform:'translateX(-50%)', width: 420, height: 420, zIndex: 4 }}>
         {/* Stand pedestal — visible carnival-stand structure under the wheel.
             Two angled legs + brass plate plinth, anchoring the wheel visually
             so it doesn't float. */}
@@ -703,7 +704,7 @@ export const RandomWheelShell: React.FC<RandomWheelShellProps> = ({
             }}
           >SPIN</button>
         )}
-      </div>
+      </div></ActionPlayfield3D></div>
 
       <div className="action-random-tier-legend" aria-label="Wheel prize tiers">{TIERS.map(t => <span key={t.id}>{t.labelEN} · ×{t.mult}</span>)}</div>
           <div className="action-arcade-hud action-random-hud" style={{ position: 'absolute', bottom: 16, left: 24, right: 24, zIndex: 7 }}><div><strong>{points} PRIZE POINTS</strong><small>{retryRounds.size ? `${retryRounds.size} recovery question${retryRounds.size === 1 ? '' : 's'} still on the wheel.` : 'Clear every wedge. Each tier carries a different prize.'} A wrong answer stays in play until you solve it.</small></div><button disabled={phase !== 'reveal' || rerolls === 0} onClick={() => { rerollExcluded.current = activeRound; setRerolls(n => n - 1); setPhase('idle'); setActiveRound(null); setRevealedHint(false); setAnnouncement('Reroll ready. Spin for a new challenge.'); }}>Reroll · {rerolls} left</button></div>

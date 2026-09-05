@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordAnagram3D'));
 import { anagramCleanCount } from './word-arcade-mechanics';
 // Anagram — The Underpass district.
 // Click letter tiles to spell the word. Click filled slots to remove.
@@ -273,6 +275,7 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
   const [studentAnswers, setStudentAnswers] = useState<Record<string, string>>({});
   const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
   const [completedFired, setCompletedFired] = useState(false);
+  const [committedWord,setCommittedWord]=useState('');
 
   const puzzle = puzzleDeck[puzzleIdx % puzzleDeck.length];
 
@@ -290,7 +293,7 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
   }, [puzzleIdx, puzzle.word, mix]);
 
   useEffect(() => {
-    setSlots([]);
+    setSlots([]);setCommittedWord('');
     // Layer-4 (EM-040): reset accumulated wrong attempts when the puzzle
     // changes, so each puzzle's tip summary stands alone.
     setWrongAttempts([]);
@@ -337,7 +340,7 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
   const inSlots = new Set(slots);
   const built = slots.map(id => tiles.find(t => t.id === id)?.letter ?? '').join('');
   const targetLen = puzzle.word.length;
-  const won = built === puzzle.word;
+  const won = built === puzzle.word && (committedWord===puzzle.word || forcedState==='correct' || forcedState==='complete');
 
   // v10 instructional speech-bubble broadcast (Mike directive 2026-05-03).
   useEffect(() => {
@@ -384,7 +387,11 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
     if (slots.length >= targetLen) return;
     const next = [...slots, id];
     setSlots(next);
-    const builtNext = next.map(tid => tiles.find(t => t.id === tid)?.letter ?? '').join('');
+  };
+
+  const commitTiles = (): void => {
+    if(forcedState||won||slots.length!==targetLen)return;
+    const builtNext = slots.map(tid => tiles.find(t => t.id === tid)?.letter ?? '').join('');
     if (builtNext.length === targetLen && builtNext !== puzzle.word) {
       arcade.answer(false);
       setShake(true);
@@ -407,7 +414,7 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
       setAllWrongAttempts((prev) => [...prev, w]);
       setStudentAnswers((prev) => ({ ...prev, [puzzle.word]: builtNext }));
     } else if (builtNext === puzzle.word) {
-      arcade.answer(true, 150);
+      arcade.answer(true, 150);setCommittedWord(puzzle.word);
       setAnnouncement(`Correct. ${puzzle.word}.`);
       // D3 Wave-5: record the student's correct final spelling so the review
       // shows "you spelled X" even on first-try wins.
@@ -441,7 +448,7 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
       n.add(puzzle.word);
       return n;
     });
-    setPuzzleIdx(i => (i + 1) % puzzleDeck.length);
+    setPuzzleIdx(i => (i + 1) % puzzleDeck.length);setSlots([]);setCommittedWord('');
     setAnnouncement('');
     setHintReveal(null);
     setHintsUsed(0);
@@ -519,7 +526,7 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
         if (/^[a-z]$/i.test(e.key)) {
           const tile = tiles.find(t => t.letter.toUpperCase() === e.key.toUpperCase() && !inSlots.has(t.id));
           if (tile) { e.preventDefault(); placeTile(tile.id); }
-        } else if (e.key === 'Backspace') { e.preventDefault(); removeAt(slots.length - 1); }
+        } else if (e.key === 'Backspace') { e.preventDefault(); removeAt(slots.length - 1); } else if(e.key==='Enter'){e.preventDefault();commitTiles();}
       }}>
       <header>
         <AmbientAudioPlayer shellSlug="anagram" />
@@ -529,13 +536,14 @@ export const AnagramShell: React.FC<AnagramShellProps> = ({ time = 'night', stat
       <WordMission kind="forge" current={visitedIds.size} total={puzzleDeck.length} chain={arcade.chain} reaction={arcade.reaction}/>
       <main className="wa-forge-core">
         <div className="wa-clue"><small>BLUEPRINT {String(puzzleIdx+1).padStart(2,'0')} / {String(puzzleDeck.length).padStart(2,'0')}</small><h3>{safeClue}</h3><p>{puzzle.clue_pl.toLowerCase().includes(puzzle.word.toLowerCase()) ? `${targetLen} liter` : puzzle.clue_pl}</p></div>
-        <div className="wa-slot-rack" role="region" aria-label="Spelling slots" style={{animation:shake ? 'wa-shake .3s' : undefined}}>
+        <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={`${puzzleIdx}:${puzzle.word}`} tiles={tiles} slots={slots} onPlace={placeTile} onRemove={removeAt} onCommit={commitTiles} done={won}/></WordSuspense>
+        <details><summary>Keyboard and flat tile controls</summary><div className="wa-slot-rack" role="region" aria-label="Spelling slots" style={{animation:shake ? 'wa-shake .3s' : undefined}}>
           {Array.from({length:targetLen},(_,i) => {const tile=tiles.find(t=>t.id===slots[i]); return <button key={i} className={`wa-letter ${tile?'is-filled':''}`} disabled={!tile || won} onClick={()=>removeAt(i)} aria-label={tile ? `Slot ${i+1}: ${tile.letter}. Remove letter` : `Slot ${i+1}: empty`}><small>{i+1}</small>{tile?.letter??'·'}</button>;})}
         </div>
         <div className={`wa-forge-readout ${shake?'is-wrong':''}`} role="status">{hintReveal ? `Letter ${hintReveal.slotIdx+1}: ${hintReveal.letter}` : announcement || `${slots.length} / ${targetLen} letters loaded · tap a placed tile to remove it`}</div>
         <div className="wa-tile-rack" role="region" aria-label="Letter tiles">{tiles.map(t=><button key={t.id} className="wa-letter is-tile" disabled={inSlots.has(t.id)||slots.length>=targetLen||won} onClick={()=>placeTile(t.id)} aria-label={`Letter ${t.letter}${inSlots.has(t.id)?', already placed':''}`}>{t.letter}</button>)}</div>
-        <div className="wa-forge-tools"><button className="em-btn em-btn-ghost" onClick={()=>{setMix(v=>v+1);setAnnouncement('Tiles remixed. Your placed letters stay in place.');}}>Remix tiles ↻</button><button className="em-btn em-btn-ghost" onClick={()=>removeAt(slots.length-1)} disabled={!slots.length}>Undo ←</button><button className="em-btn em-btn-ghost" onClick={clear} disabled={!slots.length}>Clear</button></div>
-        <p className="wa-forge-readout">Tap letters or type on your keyboard · Backspace to undo</p>
+        <button className="em-btn em-btn-primary" onClick={commitTiles} disabled={slots.length!==targetLen||won}>Press the word ↵</button></details><div className="wa-forge-tools"><button className="em-btn em-btn-ghost" onClick={()=>{setMix(v=>v+1);setAnnouncement('Tiles remixed. Your placed letters stay in place.');}}>Remix tiles ↻</button><button className="em-btn em-btn-ghost" onClick={()=>removeAt(slots.length-1)} disabled={!slots.length}>Undo ←</button><button className="em-btn em-btn-ghost" onClick={clear} disabled={!slots.length}>Clear</button></div>
+        <p className="wa-forge-readout">Lift letters into the forge · Enter to press · Backspace to undo</p>
       </main>
       {won && !(onSessionComplete && completedFired) && <div className="wa-dialog" role="dialog" aria-modal="true" aria-label="Word complete"><Bajla size={84} mood="cheer" decorative/><h3>{puzzle.word}</h3><p>Blueprint forged · Słowo gotowe</p><button ref={findAnotherBtnRef} className="em-btn em-btn-primary" onClick={next}>Next blueprint →</button></div>}
     </div>

@@ -1,3 +1,4 @@
+import { Challenge3D } from './challenge-3d';
 import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Picture Quiz shell — "The Photography Salon" district.
 // A gallery wall at dusk. Each question hangs in an ornate gilt frame with
@@ -884,7 +885,8 @@ export const PictureQuizShell: React.FC<PictureQuizShellProps> = ({
               {cur.prompt}
             </div>
 
-            <div role="radiogroup" aria-label={cur.prompt} style={{ display: 'grid', gap: 8 }}>
+            <Challenge3D game="PictureQuiz" imageSrc={imageStage < 2 ? stagedImageSrc : undefined} imageAlt={cur.prompt} signal={focusRevealed ? 1 : 0} items={cur.options.map((label,i)=>({id:String(i),label,state:revealed && i===cur.answerIndex?'right':revealed && i===picked?'wrong':'idle'}))} roundKey={cur.id} locked={revealed || completed || !!forcedState} onPick={id=>choose(Number(id))} onAction={() => setFocusRevealed(true)} actionLabel="Open the photo shutters" actionDisabled={focusRevealed} />
+            <div className="cm-legacy-answers" role="radiogroup" aria-label={cur.prompt} style={{ display: 'grid', gap: 8 }}>
               {cur.options.map((opt, oi) => {
                 const isPicked = picked === oi;
                 const isCorrect = oi === cur.answerIndex;

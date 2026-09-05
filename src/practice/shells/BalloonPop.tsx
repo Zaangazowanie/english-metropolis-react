@@ -1,3 +1,4 @@
+import { ActionPlayfield3D } from './action-arcade-three';
 import { useActionCompletion } from './action-arcade-completion';
 import { maskAnswerInPrompt } from '../lib/exercise-adapters';
 import { useArcadeEvents } from '../lib/arcade-events';
@@ -641,7 +642,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
               physically drift across the canvas, so there's no stable
               "focused position" to fire at — the per-balloon buttons (which
               do receive focus on Tab) ARE the keyboard interaction. */}
-          <div
+          <ActionPlayfield3D kind="balloonpop" data={{reducedMotion:reducedMotionRef.current,running:launched&&!frozen,onPick:pop,actors:balloons.map(b=>({id:b.id,x:b.x,y:b.bottom,label:b.word,color:b.color,state:b.state,selected:hintBalloonId===b.id,enabled:b.state==='rising'&&(launched||reducedMotionRef.current)&&!roundLocked.current}))}} controls={<>{balloons.filter(b=>b.state==='rising').map(b=><button key={b.id} disabled={(!launched&&!reducedMotionRef.current)||roundLocked.current} onClick={()=>pop(b.id)}>{b.word}</button>)}</>}><div
             className="em-bp-canvas"
             tabIndex={0}
             role="group"
@@ -745,7 +746,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
                 zIndex: 3,
               }}>{missCount} POPPED WRONG</div>
             )}
-          </div>
+          </div></ActionPlayfield3D>
 
           {completed && !onSessionComplete && (
             <div

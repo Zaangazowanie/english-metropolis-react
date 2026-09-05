@@ -1,3 +1,4 @@
+import { ActionPlayfield3D } from './action-arcade-three';
 import { useActionCompletion } from './action-arcade-completion';
 import { useArcadeEvents } from '../lib/arcade-events';
 import { useActionTimers } from './action-arcade-timers';
@@ -15,7 +16,7 @@ import { useShellProgress } from '../lib/convex-stubs';
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
 import { buildSafeHint } from '../lib/safeHint';
 
-import React, { useRef, useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import {
   Bajla,
   HintCard,
@@ -27,32 +28,6 @@ import {
   useEndOfShellTip,
 } from '../components/primitives';
 
-// 3D pilot (Ricky, 2026-05-03 — wave after Hangman3D). CSS-3D Vault Room
-// scene ported from Mike's prototype. Lazy-loaded so the brass-vault CSS bulk
-// only ships when a student opens this shell *and* the feature flag is on.
-// Pure-visual swap: the SVG dial grid below is the immediate fallback while
-// the 3D chunk downloads + remains the canonical render when the flag is off.
-const OpenTheBox3D = React.lazy(() => import('./OpenTheBox3D'));
-
-/**
- * Feature flag for the 3D Vault Room pilot.
- *  - Defaults ON in production (Mike's directive: ship the pilot).
- *  - Defaults OFF in dev so the design canvas + storybooks stay snappy.
- *  - Overridable via `window.__EM_OPENTHEBOX_3D__` for live A/B inside an
- *    open page (devtools toggle without a rebuild).
- */
-function isOpenTheBox3DEnabledFn(): boolean {
-  // import.meta.env.MODE is provided by Vite at build time.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mode: string = (import.meta as unknown as { env?: { MODE?: string } })?.env?.MODE ?? 'production';
-  const defaultOn = mode === 'production';
-  if (typeof window !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const override = (window as unknown as { __EM_OPENTHEBOX_3D__?: boolean }).__EM_OPENTHEBOX_3D__;
-    if (typeof override === 'boolean') return override;
-  }
-  return defaultOn;
-}
 import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components/ExpandableInstructions';
@@ -316,11 +291,6 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
       });
     } : undefined,
   });
-  // 3D pilot flag — see isOpenTheBox3DEnabledFn() at top of file. Reads the
-  // window override / production default on every render (cheap; no need to
-  // memoize). When true, the brass-vault CSS-3D scene replaces the SVG dial
-  // grid; question popup, hint panel, ledger, header, audio all stay put.
-  const is3DEnabled = isOpenTheBox3DEnabledFn();
 
   // Kelly Tier-2 (2026-05-02): box-flip / slam-shut transitions are CSS, gated
   // to 0.01ms by global media query. Collapse the JS sequencer waits too so the
@@ -588,40 +558,7 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
                 .em-otb-3d-room (the buttons inside it carry their own labels).
                 Suspense fallback is a dark vault-tinted placeholder so the
                 shell layout doesn't jump while the chunk downloads. */}
-            {is3DEnabled && (
-              <div style={{ position: 'absolute', inset: 0 }}>
-                <Suspense
-                  fallback={
-                    <div
-                      aria-hidden="true"
-                      style={{
-                        position: 'absolute', inset: 0,
-                        background: 'radial-gradient(ellipse at center, rgba(168,68,122,0.18), rgba(8,4,18,0.85))',
-                        border: '1px solid rgba(245,217,122,0.18)',
-                        borderRadius: 6,
-                      }}
-                    />
-                  }
-                >
-                  <OpenTheBox3D
-                    boxes={boxes.map((b, i) => ({
-                      index: i,
-                      // Parent uses 'closed' | 'opening' | 'open' | 'sealed' | 'slam';
-                      // 3D layer also accepts 'busted' (visual only, parent never
-                      // emits it — slam → closed re-cycle is the parent's design).
-                      state: b.face,
-                    }))}
-                    onBoxClick={openBox}
-                    currentRoundIdx={activeIdx}
-                    started={(sealedCount > 0) || activeIdx !== null}
-                    tweaks={{ shake }}
-                  />
-                </Suspense>
-              </div>
-            )}
-
-            {!is3DEnabled && (
-            <div className="em-otb-grid" style={{
+<div className="action-three-vault-slot"><ActionPlayfield3D kind="openthebox" data={{reducedMotion:reduceMotion,dial,onPick:openBox,onDial:()=>{if(cur)setDial(d=>(d+1)%cur.options.length);},actors:boxes.map((b,i)=>({id:i,x:0,y:0,state:b.face,selected:activeIdx===i,enabled:b.face!=='sealed'&&(activeIdx===null||activeIdx===i)}))}} controls={<>{boxes.map((b,i)=><button key={i} disabled={b.face==='sealed'||(activeIdx!==null&&activeIdx!==i)} onClick={()=>openBox(i)}>Safe {i+1}{b.face==='sealed'?' ✓':''}</button>)}</>}><div className="em-otb-grid" style={{
               display: 'grid', gridTemplateColumns: `repeat(${cols}, 130px)`, gap: 16,
             }}>
               {boxes.map((b, i) => {
@@ -737,8 +674,7 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
                   </button>
                 );
               })}
-            </div>
-            )}
+            </div></ActionPlayfield3D></div>
           </div>
 
           <div className="action-arcade-hud" style={{ position: 'relative', zIndex: 2 }}><div><strong>VAULT HAUL · {loot}</strong><small>{lastLoot} Pick a safe, set its word dial, then turn the key.</small></div><span>{sealedCount}/{total} safes</span></div>

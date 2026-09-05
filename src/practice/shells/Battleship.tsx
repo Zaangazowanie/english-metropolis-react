@@ -1,3 +1,5 @@
+import { ActionPlayfield3D } from './action-arcade-three';
+import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
 import { useActionCompletion } from './action-arcade-completion';
 import { sonarCount } from './action-arcade-logic.mjs';
 import { useArcadeEvents } from '../lib/arcade-events';
@@ -285,6 +287,7 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
   const activePuzzle: ArcadePuzzle = puzzle && puzzle.rounds.length > 0 ? puzzle : DEMO_PUZZLE;
   const persisted = useShellProgress('battleship');
   const arcadeEvent = useArcadeEvents();
+  const actionReducedMotion = usePrefersReducedMotion();
   const { later, cancel: cancelActionTimers } = useActionTimers();
 
   const initialShips = useMemo(() => buildShips(activePuzzle.rounds.length), [activePuzzle]);
@@ -594,8 +597,8 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
             onKeyDown={onCanvasKeyDown}
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, position: 'relative' }}
           >
-            <div className="action-bs-board" style={{ position: 'relative' }}>
-              <div className="action-sonar-sweep" aria-hidden="true" />
+            <div className="action-bs-board" style={{ position: 'relative', width: '100%' }}>
+              <ActionPlayfield3D kind="battleship" data={{player:cursor,reducedMotion:actionReducedMotion,onPick:id=>{const r=Math.floor(id/8),c=id%8;setCursor({r,c});fireAt(r,c);},actors:fired.map(f=>({id:f.r*8+f.c,x:f.c,y:f.r,state:f.result,value:sonarCount(ships,f.r,f.c)}))}} controls={<><button onClick={()=>canvasRef.current?.focus()}>Keyboard: arrows + Enter</button><button disabled={!!activeCell||completed} onClick={()=>fireAt(cursor.r,cursor.c)}>Ping {String.fromCharCode(65+cursor.c)}{cursor.r+1}</button></>}><div><div className="action-sonar-sweep" aria-hidden="true" />
               {/* Column headers (A-H) */}
               <div className="action-bs-row" style={{ display: 'grid', gridTemplateColumns: `28px repeat(${COLS}, 44px)`, gap: 2, marginBottom: 4 }}>
                 <div />
@@ -674,6 +677,7 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
                 </div>
               ))}
 
+              </div></ActionPlayfield3D>
               {/* Question modal — appears anchored above grid */}
               {activeCell && activeRound && (
                 <div

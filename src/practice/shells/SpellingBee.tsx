@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordSpellingBee3D'));
 // Spelling Bee — The Concert Hall district.
 // A single microphone in a pool of gold spotlight on a dark proscenium stage.
 // The audience is silent; the curtain hangs heavy. The word is spoken (audio
@@ -324,7 +326,6 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
   const [slowPlayback, setSlowPlayback] = useState(false);
   const [verdict, setVerdict] = useState<'right' | 'wrong' | null>(null);
   const [score, setScore] = useState(0);
-  const [questionsSeen, setQuestionsSeen] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [hintRevealed, setHintRevealed] = useState(false);
   const [revealedFirst, setRevealedFirst] = useState<string>('');
@@ -337,6 +338,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
 
   const cur = activePuzzle.words[idx % total];
   const completed = idx >= total;
+  const resolvedQuestions = Math.min(total, idx + (verdict === 'right' ? 1 : 0));
   const tip = useEndOfShellTip({
     onWrongAnswer,
     completed,
@@ -377,10 +379,10 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
   useEffect(() => {
     if (forcedState) return;
     persisted.save({
-      progress: idx / Math.max(1, total),
+      progress: Math.min(idx, total) / Math.max(1, total),
+      completed,
       lastState: completed ? 'complete' : 'active',
     });
-    if (completed) persisted.save({ progress: 1, completed: true, lastState: 'complete' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, total, forcedState]);
 
@@ -450,6 +452,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
     arcade.answer(correct);
     if (correct) {
       setScore((s) => s + 1);
+      persisted.save({ progress: Math.min(total, idx + 1) / Math.max(1, total), completed: false, lastState: 'active' });
       setHistory((h) => [...h, { word: cur.word, verdict: 'right' }]);
       setAnnouncement(`Spelled ${cur.word}. Bravo.`);
     } else {
@@ -466,7 +469,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
   };
 
   const advance = (): void => {
-    setQuestionsSeen((q) => q + 1);
+    if (forcedState || completed || verdict !== 'right') return;
     setIdx((i) => i + 1);
     setDraft(''); setVerdict(null); setHintRevealed(false); setRevealedFirst('');
     setTimeout(() => inputRef.current?.focus(), 80);
@@ -474,7 +477,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
 
   const skip = (): void => {
     if (forcedState || completed || !cur) return;
-    setQuestionsSeen((q) => q + 1);
+    if (verdict === 'right') { advance(); return; }
     setHistory((h) => [...h, { word: cur.word, verdict: 'skip' }]);
     setAnnouncement(`Skipped. The word was "${cur.word}".`);
     setIdx((i) => i + 1);
@@ -499,7 +502,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
   const reset = (): void => {
     arcade.restart();
     setIdx(0); setDraft(''); setVerdict(null); setScore(0);
-    setQuestionsSeen(0); setHintsUsed(0); setHintRevealed(false); setRevealedFirst('');
+    setHintsUsed(0); setHintRevealed(false); setRevealedFirst('');
     setHistory([]);
     tip.reset();
   };
@@ -570,7 +573,7 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
           }
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <Progress current={score} seen={questionsSeen} total={total} accent={ACCENT} />
+          <Progress current={score} seen={Math.min(total, idx + 1)} total={total} accent={ACCENT} />
           <SkipButton onClick={skip} />
           <HintButton onClick={useHint} used={hintsUsed} total={3} />
         </div>
@@ -617,7 +620,8 @@ export const SpellingBeeShell: React.FC<SpellingBeeShellProps> = ({
       {/* Stage centrepiece */}
       {!completed && cur && (
         <div className="sb-stage" style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: 28, zIndex: 4 }}>
-          <WordMission kind="stage" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/><div className="wa-inline-tools"><button aria-pressed={slowPlayback} onClick={()=>{setSlowPlayback(v=>!v);if(audioRef.current)audioRef.current.playbackRate=slowPlayback?1:.75;}}>Slow listening {slowPlayback?'on · 0.75×':'off · 1×'}</button><span>Listen as often as you need. No points lost.</span></div>
+          <WordMission kind="stage" current={resolvedQuestions} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+          <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={cur.id} length={cur.word.length} draft={draft} done={verdict==='right'} onChange={text=>{if(!forcedState&&verdict!=='right'){setDraft(text);setVerdict(null);}}} onHear={replay} onSubmit={submit}/></WordSuspense><div className="wa-inline-tools"><button aria-pressed={slowPlayback} onClick={()=>{setSlowPlayback(v=>!v);if(audioRef.current)audioRef.current.playbackRate=slowPlayback?1:.75;}}>Slow listening {slowPlayback?'on · 0.75×':'off · 1×'}</button><span>Listen as often as you need. No points lost.</span></div>
           {/* Microphone */}
           <div
             key={`m-${cur.id}`}

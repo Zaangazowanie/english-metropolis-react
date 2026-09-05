@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordSentenceTransform3D'));
 // Sentence Transformation — The Translator's Booth district.
 // A two-screen UN interpreter's booth. The left screen shows the source
 // sentence; the right screen is dim until the student rewrites it using
@@ -309,7 +311,6 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
   const [draft, setDraft] = useState('');
   const [verdict, setVerdict] = useState<'right' | 'wrong' | null>(null);
   const [score, setScore] = useState(0);
-  const [questionsSeen, setQuestionsSeen] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [hintRevealed, setHintRevealed] = useState(false);
   const [announcement, setAnnouncement] = useState('');
@@ -317,6 +318,7 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
 
   const cur = activePuzzle.items[idx % total];
   const completed = idx >= total;
+  const resolvedQuestions = Math.min(total, idx + (verdict === 'right' ? 1 : 0));
   // D3-ST Wave-2 (2026-05-02): skipped item ids surface as muted SKIPPED chips
   // in the review screen. wrongAttempts come back from useEndOfShellTip.
   const skippedItemIdsRef = useRef<string[]>([]);
@@ -339,10 +341,10 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
   useEffect(() => {
     if (forcedState) return;
     persisted.save({
-      progress: idx / Math.max(1, total),
+      progress: Math.min(idx, total) / Math.max(1, total),
+      completed,
       lastState: completed ? 'complete' : 'active',
     });
-    if (completed) persisted.save({ progress: 1, completed: true, lastState: 'complete' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, total, forcedState]);
 
@@ -384,6 +386,7 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
     arcade.answer(correct);
     if (correct) {
       setScore((s) => s + 1);
+      persisted.save({ progress: Math.min(total, idx + 1) / Math.max(1, total), completed: false, lastState: 'active' });
       setAnnouncement('Translation accepted.');
     } else {
       setAnnouncement(usesKeyWord
@@ -400,7 +403,7 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
   };
 
   const advance = (): void => {
-    setQuestionsSeen((q) => q + 1);
+    if (forcedState || completed || verdict !== 'right') return;
     setIdx((i) => i + 1);
     setDraft(''); setVerdict(null); setHintRevealed(false);
     setTimeout(() => inputRef.current?.focus(), 80);
@@ -408,7 +411,7 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
 
   const skip = (): void => {
     if (forcedState || completed || !cur) return;
-    setQuestionsSeen((q) => q + 1);
+    if (verdict === 'right') { advance(); return; }
     setAnnouncement(`Skipped. Reference: "${cur.target_form}"`);
     // D3 Wave-2: log the skip so the review can render the muted SKIPPED chip.
     if (onSessionComplete && !skippedItemIdsRef.current.includes(cur.id)) {
@@ -427,7 +430,7 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
   const reset = (): void => {
     arcade.restart();
     setIdx(0); setDraft(''); setVerdict(null); setScore(0);
-    setQuestionsSeen(0); setHintsUsed(0); setHintRevealed(false);
+    setHintsUsed(0); setHintRevealed(false);
     tip.reset();
     skippedItemIdsRef.current = [];
   };
@@ -487,7 +490,7 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
           }
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <Progress current={score} seen={questionsSeen} total={total} accent={ACCENT} />
+          <Progress current={score} seen={Math.min(total, idx + 1)} total={total} accent={ACCENT} />
           <SkipButton onClick={skip} />
           <HintButton onClick={useHint} used={hintsUsed} total={3} />
         </div>
@@ -543,7 +546,8 @@ export const SentenceTransformShell: React.FC<SentenceTransformShellProps> = ({
             zIndex: 4,
           }}
         >
-          <WordMission kind="translation" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+          <WordMission kind="translation" current={resolvedQuestions} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+          <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={cur.id} keyword={cur.key_word} ready={containsKeyword(draft,cur.key_word)} words={draft.trim()?draft.trim().split(/\s+/).length:0} done={verdict==='right'} onKeyword={()=>{if(!forcedState&&verdict!=='right'){setDraft(v=>v+(v.trim()?' ':'')+cur.key_word);inputRef.current?.focus();}}} onSubmit={submit} onNext={advance}/></WordSuspense>
           <div className="wa-checklist"><span className={containsKeyword(draft,cur.key_word)?'is-ready':''}>Key word: {cur.key_word} {containsKeyword(draft,cur.key_word)?'✓':'○'}</span><span className={draft.trim()?'is-ready':''}>{draft.trim()?draft.trim().split(/\s+/).length:0} words written</span><span className={verdict==='right'?'is-ready':''}>Same meaning {verdict==='right'?'✓':'○'}</span></div>
           {/* Source screen */}
           <div

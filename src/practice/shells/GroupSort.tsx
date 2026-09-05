@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordGroupSort3D'));
 // Group sort — The Post Office district.
 // Drag mail (envelopes) into the correct sorting window (route).
 // Wrong drops bounce back; correct drops latch with an ink-stamp animation.
@@ -587,7 +589,8 @@ export const GroupSortShell: React.FC<GroupSortShellProps> = ({ time = 'day', st
     <WordMission kind="sorting" current={puzzle.items.length-waiting.length} total={puzzle.items.length} chain={arcade.chain} reaction={arcade.reaction}/>
     <div className="wa-inline-tools"><button aria-pressed={expressMode} onClick={()=>{setExpressMode(v=>!v);setDragging(null);}}>Express conveyor {expressMode?'on':'off'}</button><span>{expressMode?'Route the next parcel. Press a destination number or tap a chute.':'Choose any parcel, then tap its destination.'}</span></div>
     <div className="wa-postal-objective"><small>TODAY’S ROUTE</small><h3>{puzzle.title}</h3></div>
-    <div className="wa-mail-chutes" style={{gridTemplateColumns:`repeat(${Math.min(puzzle.groups.length,4)},minmax(0,1fr))`}}>
+    <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={puzzleIdx} groups={puzzle.groups} items={puzzle.items} placed={placed} active={activeParcel??null} onSelect={setDragging} onRoute={tryPlace}/></WordSuspense>
+    <details><summary>Accessible parcel controls</summary><div className="wa-mail-chutes" style={{gridTemplateColumns:`repeat(${Math.min(puzzle.groups.length,4)},minmax(0,1fr))`}}>
       {puzzle.groups.map((group,i)=>{const count=puzzle.items.filter(it=>placed[it.word]===group.id).length;return <button key={group.id} className={`wa-chute ${shake===group.id?'is-wrong':''} ${hintReveal?.group===group.id?'is-hint':''}`} style={{'--wa-route':group.color} as React.CSSProperties} onClick={()=>activeParcel&&tryPlace(group.id,activeParcel)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const word=e.dataTransfer.getData(DRAG_MIME)||activeParcel;if(word)tryPlace(group.id,word);}} aria-label={`Destination ${i+1}: ${group.name}. ${count} delivered.`}>
         <span className="wa-route-number">{String(i+1).padStart(2,'0')}</span><strong>{group.name}</strong><div className="wa-chute-slot" aria-hidden="true"><i/></div><small>{count} delivered · dostarczono</small><div className="wa-route-stack" aria-hidden="true">{Array.from({length:Math.min(5,count)},(_,j)=><i key={j}/>)}</div>
       </button>;})}
@@ -596,7 +599,7 @@ export const GroupSortShell: React.FC<GroupSortShellProps> = ({ time = 'day', st
       <div className="wa-conveyor-rollers" aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i}/>)}</div>
       {(expressMode?waiting.slice(0,4):waiting).map((it,i)=><button key={it.word} className={`wa-parcel ${activeParcel===it.word?'is-active':''}`} disabled={expressMode&&i>0} draggable={!forcedState} onDragStart={e=>{setDragging(it.word);e.dataTransfer.setData(DRAG_MIME,it.word);}} onClick={()=>setDragging(it.word)} aria-label={`Parcel ${it.word}. Select to route.`}><svg viewBox="0 0 120 72" aria-hidden="true"><rect x="2" y="2" width="116" height="68" rx="6" fill="#ddc7a4" stroke="#a8865c" strokeWidth="2"/><path d="M3 6l57 36 57-36M3 68l36-26m78 26L81 42" stroke="#a8865c" fill="none"/><rect x="88" y="10" width="20" height="20" fill="#895ca8" opacity=".65"/><path d="M92 15h12m-12 4h12m-12 4h12" stroke="#ead5ef"/></svg><span>{it.word}</span>{expressMode&&i===0&&<small>NEXT TO ROUTE</small>}</button>)}
     </div>
-    <p className="wa-forge-readout" role="status">{hintReveal?`Route “${hintReveal.word}” to ${puzzle.groups.find(g=>g.id===hintReveal.group)?.name}`:announcement||`${waiting.length} parcels waiting · Select a destination for ${activeParcel?`“${activeParcel}”`:'your parcel'}.`}</p>
+    </details><p className="wa-forge-readout" role="status">{hintReveal?`Route “${hintReveal.word}” to ${puzzle.groups.find(g=>g.id===hintReveal.group)?.name}`:announcement||`${waiting.length} parcels waiting · Select a destination for ${activeParcel?`“${activeParcel}”`:'your parcel'}.`}</p>
     {completed && !onSessionComplete && <div className="wa-dialog" role="dialog" aria-modal="true" aria-label="All mail sorted"><Bajla size={84} mood="cheer" decorative/><h3>Route complete.</h3><p>Every parcel has reached its destination.</p><div className="wa-inline-tools"><button ref={reSortBtnRef} className="em-btn" onClick={()=>{arcade.restart();reset();}}>Re-sort</button><button ref={nextRoundBtnRef} className="em-btn em-btn-primary" onClick={next}>Next route →</button></div></div>}
     <Confetti show={completed}/>
   </div>;

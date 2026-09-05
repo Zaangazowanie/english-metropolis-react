@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordOpenCloze3D'));
 import { clozeResolved } from './word-arcade-mechanics';
 // Open Cloze — The Vellum Atelier district.
 // A scribe's desk at dusk. A sheet of parchment lies under candlelight; the
@@ -650,6 +652,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
       {/* ─── Parchment ─── */}
       <div className="oc-stage" style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', zIndex: 4 }}>
         <WordMission kind="manuscript" current={correctCount} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+        <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D gaps={activePuzzle.gaps.map(g=>({id:g.id,value:values[g.id]??'',done:locked[g.id]==='right',wrong:locked[g.id]==='wrong',skipped:skippedIds.has(g.id)}))} active={activeId} onSelect={id=>{setActiveId(id);inputRefs.current[id]?.focus();}} onSeal={submit}/></WordSuspense>
         <div className="wa-checklist">{activePuzzle.gaps.map(g=><span key={g.id} className={locked[g.id]==='right'?'is-ready':''}>Seal {g.id} {locked[g.id]==='right'?'✓':skippedIds.has(g.id)?'—':'○'}</span>)}</div>
         <div
           role="region"
