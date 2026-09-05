@@ -349,9 +349,11 @@ export class Crowd {
     // instanced mesh for all of them, so a district full of street exercises
     // adds a single draw call.
     this.markerCap = 24;
+    // A small gold dot — the same gold as the quest locals' ❗ discs in
+    // markers.js, so one colour means "someone here has something for you".
     this.markers = new THREE.InstancedMesh(
-      new THREE.OctahedronGeometry(0.17, 0),
-      new THREE.MeshBasicMaterial({ color: 0xffc857, toneMapped: false }),
+      new THREE.SphereGeometry(0.13, 10, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffbe72, toneMapped: false }),
       this.markerCap,
     );
     this.markers.name = 'em-crowd-markers';
@@ -377,10 +379,12 @@ export class Crowd {
     }
   }
 
-  // Nearest street local with an unfinished exercise, within range.
+  // Nearest live street local with an exercise, within range. A despawned
+  // agent is never returned, even if its last coordinates match.
   nearestSpeaker(pos, range = 2.9) {
     let best = null, bestD = range * range;
     for (const a of this.speakers) {
+      if (!this.isLive(a)) continue;
       const dx = a.x - pos.x, dz = a.z - pos.z;
       const d = dx * dx + dz * dz;
       if (d < bestD) { bestD = d; best = a; }
@@ -442,6 +446,9 @@ export class Crowd {
 
   despawn(agent) {
     if (!agent || this.slots[agent.slot] !== agent) return;
+    // a street local leaves the speaker roster with its body — otherwise dead
+    // agents keep their marker slot and win the E prompt over empty pavement
+    if (agent.speaker) this.setSpeaker(agent, null);
     this.slots[agent.slot] = null;
     this.free.push(agent.slot);
     const i = this.agents.indexOf(agent);
@@ -537,7 +544,7 @@ export class Crowd {
     let markers = 0;
     for (const a of this.speakers) {
       if (markers >= this.markerCap) break;
-      if (a.speaker?.done) continue;
+      if (a.speaker?.done || !this.isLive(a)) continue;
       dummy.position.set(a.x, a.y + a.height * 1.16 + Math.sin(this.time * 2.2 + a.phase) * 0.09, a.z);
       dummy.rotation.set(0, this.time * 1.5 + a.phase, 0);
       dummy.scale.setScalar(1);

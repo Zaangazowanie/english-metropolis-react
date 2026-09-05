@@ -27,7 +27,6 @@ const ui = new UI();
 const audio = new AudioManager();
 ui.audio = audio;
 ui.voice = new VoiceManager();   // Kokoro NPC voices + faster-whisper answers
-document.getElementById('journal-close').addEventListener('click', () => ui.toggleJournal());
 
 // ---------- renderer ----------
 const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
@@ -150,13 +149,14 @@ const heroLoader = makeGLTFLoader(manager);
 
 // zone-entry HUD title card + the objective chip beneath it
 const zoneCard = document.getElementById('zone-card');
-const refreshObjective = () => {
-  const code = zoneMgr.current ? zoneMgr.current.data.code : 'hub';
-  const st = zoneMgr.roundStatus(code);
-  ui.setObjective(st.remaining > 0
-    ? `❗ Round ${st.round} — help <b>${st.remaining} more local${st.remaining > 1 ? 's' : ''}</b> here (${st.done}/${st.total})`
-    : `✓ Round ${st.round} — every local here is helped, ride on!`);
+// Overhear → Talk → Drill → Stamp for the circuit the player stands in, or
+// for the local's own district while a dialog is open (the first stop's
+// shopfront walk used to read as the hub).
+const refreshObjective = (code = null) => {
+  ui.renderObjective(zoneMgr, code || (zoneMgr.current ? zoneMgr.current.data.code : 'hub'));
 };
+// when a dialog closes, circuits that closed a round hand out fresh exercises
+ui.onDialogClose = () => { zoneMgr.flushRefresh(); refreshObjective(); };
 zoneMgr.onEnter = (z) => {
   const lineEl = zoneCard.querySelector('.line');
   const nameEl = zoneCard.querySelector('.name');
@@ -179,6 +179,7 @@ let trains = null, traffic = null, citizens = null;
 const pedestrianBuffer = [];
 const collisionPeople = [];
 const minimap = new Minimap(document.getElementById('minimap'));
+ui.minimap = minimap;
 document.getElementById('minimap').addEventListener('click', () => {
   if (player) input.pressMap();
 });
@@ -325,7 +326,7 @@ function simTick(dt) {
   collisionPeople.push(player.pos);
   if (citizens?.list) collisionPeople.push(...citizens.list);
   if (world.npcs) collisionPeople.push(...world.npcs);
-  if (!ui.dialogOpen && !ui.guideOpen) {
+  if (!ui.blocked) {
     player.update(dt, input, -followCam.yaw, world.colliders, collisionPeople);
   }
   world.update(performance.now() / 1000, dt, player.pos);
@@ -401,7 +402,7 @@ renderer.setAnimationLoop(() => {
     while (accumulator >= SIM_DT) { simTick(SIM_DT); accumulator -= SIM_DT; }
 
     // render-side: camera follows every frame for smoothness
-    const blocked = ui.dialogOpen || ui.guideOpen || ui.welcomeOpen || ui.journalOpen || ui.metroOpen || ui.mapOpen;
+    const blocked = ui.blocked;
     followCam.update(rdt, player, blocked ? { dx: 0, dy: 0, wheel: 0, looking: false } : mouse, world.colliders);
 
     // sprint FOV kick (cinematic juice)
@@ -414,50 +415,75 @@ renderer.setAnimationLoop(() => {
     minimap.update(rdt, player, zoneMgr, world, trains);
     chatter.update(rdt, crowd, player.pos, quality.s.bubbleRadius);
 
-    // NPC interaction. Teachers take priority; if none is in reach, a passing
-    // local with a street exercise will do.
-    const near = world.nearestNPC(player.pos);
-    const streetLocal = near ? null : crowd?.nearestSpeaker(player.pos);
-    if (streetLocal && !blocked) {
+    // NPC interaction. Quest locals take priority; if none is in reach, a
+    // passing local with a street exercise will do. The prompt is keyed on the
+    // device (no phone has an E key) and the talk button pulses while a local
+    // is in range. Nothing here runs while any overlay is up.
+    const near = blocked ? null : world.nearestNPC(player.pos);
+    const streetLocal = blocked || near ? null : crowd?.nearestSpeaker(player.pos);
+    ui.setTalkReady(!!(near || streetLocal));
+    if (streetLocal) {
       const sp = streetLocal.speaker;
       ui.setPrompt(sp.done
-        ? `Press <b>E</b> — ${sp.name} <span style="opacity:.65">(✓ already helped)</span>`
-        : `Press <b>E</b> — ${sp.name}, ${sp.role} <span style="color:#ffc857">✦ quick one</span>`);
+        ? ui.promptFor(`${sp.name} <span style="opacity:.65">(✓ already helped)</span>`)
+        : ui.promptFor(`${sp.name}, ${sp.role} <span style="color:#ffbe72">✦ quick one</span>`));
       if (mouse.interact) {
         audio.click();
+        const code = sp.zoneCode || sp.dialectCode;
+        refreshObjective(code);
         ui.openStreetDialog(sp, {
-          onCorrect: () => {
+          // one click decides; overheard either way, XP only when right
+          onAnswer: (right) => {
             sp.done = true;
-            ui.addXP(sp.exercise?.reward || 8);
-            zoneMgr.recordStreetWin(sp.dialectCode);
+            if (right) ui.addXP(sp.exercise?.reward || 8);
+            else audio.wrong?.();
+            zoneMgr.recordStreetWin(code, sp.slot ?? 0);
+            refreshObjective(code);
           },
-          onWrong: () => audio.wrong?.(),
         });
       }
-    } else if (near && !blocked) {
+    } else if (near) {
       ui.setPrompt(near.done
-        ? `Press <b>E</b> — talk to ${near.name} <span style="opacity:.65">(✓ done this round)</span>`
-        : `Press <b>E</b> — talk to ${near.name} <span style="color:#ffb84d">❗ exercises</span>`);
+        ? ui.promptFor(`talk to ${near.name} <span style="opacity:.65">(✓ done this round)</span>`)
+        : ui.promptFor(`talk to ${near.name} <span style="color:#ffbe72">${near.warmupDone ? '❓ drill' : '❗ exercises'}</span>`));
       if (mouse.interact) {
         near.playOnce?.(near.gestureGreet || 'Wave');
         audio.click();
+        const code = near.zoneCode || 'hub';
+        refreshObjective(code);
         ui.openDialog(near, {
           status: near.zoneCode ? zoneMgr.roundStatus(near.zoneCode) : null,
           warmupAvailable: zoneMgr.warmupAvailable(near),
           claimWarmup: () => zoneMgr.claimWarmup(near),
-          onWarmup: (n) => n.playOnce?.(n.gestureCorrect || 'ThumbsUp'),
+          onWarmup: (n, right) => {
+            if (right) n.playOnce?.(n.gestureCorrect || 'ThumbsUp');
+            n.warmupDone = true;
+            n.refreshMarker?.();
+            refreshObjective(code);
+          },
           onCorrect: (n) => {
             n.playOnce?.(n.gestureCorrect || 'ThumbsUp');
             const r = zoneMgr.recordDone(n);
             if (r?.roundComplete) {
               ui.addXP(r.bonus);
-              ui.toast(`🏆 Round ${r.laps} complete at ${r.zoneName}! The locals there have new, harder exercises (+${r.bonus} XP)`);
+              ui.toast(`🏆 Round ${r.laps} complete at ${r.zoneName} (+${r.bonus} XP) — the locals have new, harder exercises`);
               audio.fanfare();
+              if (r.stamp) {
+                ui.addXP(r.stampBonus);
+                ui.noteStamp(code);
+                const z = zoneMgr.zones.find((zz) => zz.data.code === code);
+                const all = zoneMgr.zones.map((zz) => zz.data.code);
+                ui.celebrate({ kind: 'stamp', zoneName: r.zoneName, dialect: z?.data.dialect, lineKey: z?.lineKey || 'liberty',
+                  xp: r.stampBonus, stamps: zoneMgr.progress.stampedCount(all), stampsTotal: all.length });
+              }
+              if (r.certificate) { ui.addXP(r.certificateBonus); ui.celebrate({ kind: 'certificate', lineKey: r.certificate, xp: r.certificateBonus }); }
+              if (r.cityComplete) { ui.addXP(r.cityBonus); ui.celebrate({ kind: 'city', xp: r.cityBonus }); }
             } else if (r && r.remaining > 0) {
-              ui.toast(`✦ ${r.remaining} more local${r.remaining > 1 ? 's' : ''} to close the round here — look for the ❗`);
+              ui.toast(`✦ ${r.remaining} more local${r.remaining > 1 ? 's' : ''} to close the round here — look for the gold ❗`);
             }
-            refreshObjective();
+            refreshObjective(code);
           },
+          onFail: (n) => n.playOnce?.(n.gestureWrong),
           onWrong: (n) => n.playOnce?.(n.gestureWrong),
         });
       }

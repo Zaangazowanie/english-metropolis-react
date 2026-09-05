@@ -107,10 +107,9 @@ export class Minimap {
     ctx.fillStyle = 'rgba(239,224,192,0.92)';
     ctx.fillRect(0, 0, W, W);
 
-    // metro lines
-    const lineColors = { isles: '#7ba05b', liberty: '#8fb4c9', sunward: '#e8a13d' };
+    // metro lines in the one line palette the signage, map, menus and chatter share
     for (const [key, L] of Object.entries(LINES)) {
-      ctx.strokeStyle = lineColors[key];
+      ctx.strokeStyle = '#' + L.color.toString(16).padStart(6, '0');
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(X(0), Y(0));
@@ -118,15 +117,15 @@ export class Minimap {
       ctx.stroke();
     }
 
-    // stations: exercise state — green = zone complete, white = open
+    // stations: stamped = line colour, open = white
     for (const z of zoneMgr.zones) {
       const sx = X(z.stopPos.x), sy = Y(z.stopPos.y);
       if (sx < -8 || sx > W + 8 || sy < -8 || sy > W + 8) continue;
       if (!this.fog.visited(z.stopPos.x, z.stopPos.y)) continue;   // undiscovered
-      const done = zoneMgr.progressFor(z.data.code).laps >= 1;   // full round done
+      const done = !!zoneMgr.progressFor(z.data.code).stamped;   // district stamped
       ctx.beginPath();
       ctx.arc(sx, sy, 4, 0, Math.PI * 2);
-      ctx.fillStyle = done ? '#5d8f42' : '#fdf6e3';
+      ctx.fillStyle = done ? '#' + LINES[z.lineKey].color.toString(16).padStart(6, '0') : '#fdf6e3';
       ctx.fill();
       ctx.lineWidth = 1.6;
       ctx.strokeStyle = '#4a3826';

@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { toonMat, toonVertexMat, GeoBatch, bakeVertexAO, addWetStreets, blobShadow, PALETTE } from './materials.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { assignGrammar, grammarForLap } from './grammar.js';
+import { progress } from './progress.js';
 import { instanceRig } from './rig.js';
 import { attachMarker } from './markers.js';
 import { BOULEVARD } from './transit-layout.js';
@@ -20,6 +21,20 @@ export const LINES = {
 
 const FIRST_STOP = 62, STOP_SPACING = 42, LATERAL = 26;
 const R_BUILD = 105, R_DISPOSE = 145, R_INSIDE = 24;
+// District footprint in local units (see buildChunk): the block spans
+// ±districtHalfWidth across and nearEdge..farEdge deep; the tram lane on the
+// district's side of the boulevard belongs to the district too, so a player on
+// the platform is already "in" the neighbourhood the sign names.
+const FOOT_HALF_W = 40.5 / 2 + 3, FOOT_NEAR = -(LATERAL - BOULEVARD.tramLaneX), FOOT_FAR = 28 + 3;
+const HUB_RADIUS = 40;
+// The three street-teaching slots per district, on the shopfront walk facing
+// the boulevard, on EVERY tier (decorative patrons vary with the tier, the
+// exercises do not).
+const STREET_SLOTS = [
+  { x: -13.5, z: -18.5 + 2.9, heading: 0.35 },
+  { x: 0.5, z: -18.5 + 3.4, heading: -0.4 },
+  { x: 13.5, z: -18.5 + 2.9, heading: 0.5 },
+];
 
 // deterministic per-zone rng so streaming rebuilds identical districts
 function mulberry32(seed) {
@@ -88,21 +103,16 @@ export class ZoneManager {
     this._crowdTag = new Map(); // zoneCode -> spawned crowd agents
     this.world = null;        // bound World (npc registry lives there)
     this.npcBase = null;      // rigged template { scene, animations } (Xbot)
-    this.hubNpcs = [];        // hub teacher entries (their circuit code is 'hub')
-    // Round-based progress per circuit code: { laps, d: {npcIdx:done}, w: {npcIdx:warmup} }.
-    // Complete every teacher in a circuit → laps++, d/w reset, everyone gets
-    // fresh (harder) exercises. Migrates the old flat {idx:true,_bonused} shape.
-    this.progress = JSON.parse(localStorage.getItem('em_progress') || '{}');
-    let migrated = false;
-    for (const [code, p] of Object.entries(this.progress)) {
-      if (p && typeof p === 'object' && !('d' in p)) {
-        const d = {};
-        for (const k of Object.keys(p)) if (k !== '_bonused') d[k] = true;
-        this.progress[code] = p._bonused ? { laps: 1, d: {}, w: {} } : { laps: 0, d, w: {} };
-        migrated = true;
-      }
-    }
-    if (migrated) this.saveProgress();
+    this.hubNpcs = [];        // hub local entries (their circuit code is 'hub')
+    // Round-based progress per circuit code lives in the progress store
+    // (progress.js): { laps, d: {npcIdx:done}, w: {npcIdx:warmup},
+    // street: {slot:done}, stamped }. Complete every local in a circuit →
+    // laps++, d/w reset, everyone gets fresh (harder) exercises, and the first
+    // close stamps the district in the Metro Pass. The store migrates the old
+    // em_progress shapes and guards every parse, so a corrupt value can no
+    // longer throw here during module evaluation and brick the boot.
+    this.progress = progress;
+    this._pendingRefresh = new Set();   // circuits whose markers flip when the dialog closes
   }
 
   bindWorld(world) { this.world = world; }
@@ -110,23 +120,22 @@ export class ZoneManager {
   setNPCBase(gltf) { this.npcBase = gltf; }              // legacy (rigged single base)
   setNPCBases(models) { this.npcBases = models; }        // array of Meshy character scenes
 
-  // hub teachers join the quest system as their own circuit ('hub')
+  // hub locals join the quest system as their own circuit ('hub')
   bindHub(entries) {
     this.hubNpcs = entries;
     const p = this.progressFor('hub');
     entries.forEach((n) => {
       n.done = !!p.d[n.npcIdx];
+      n.warmupDone = !!p.w[n.npcIdx];
       n.grammar = grammarForLap(n.baseGrammar || n.grammar, p.laps);
       n.refreshMarker?.();
     });
   }
 
-  saveProgress() { localStorage.setItem('em_progress', JSON.stringify(this.progress)); }
+  saveProgress() { this.progress.save(); }
 
-  progressFor(code) { return this.progress[code] || { laps: 0, d: {}, w: {} }; }
-  _ensure(code) {
-    return this.progress[code] || (this.progress[code] = { laps: 0, d: {}, w: {} });
-  }
+  progressFor(code) { return this.progress.peekCircuit(code); }
+  _ensure(code) { return this.progress.circuit(code); }
 
   circuitName(code) {
     if (code === 'hub') return 'Metropolis Central';
@@ -137,15 +146,30 @@ export class ZoneManager {
     const z = this.zones.find((zz) => zz.data.code === code);
     return z ? Math.min(3, districtCastFor(z.data, z.zoneIndex).length) : 3;
   }
-  // { round, laps, done, total, remaining } for the journal / objective HUD
+  // Street exercises a district offers per lap (the three teaching slots).
+  streetTotal(code) {
+    if (code === 'hub') return 0;
+    const z = this.zones.find((zz) => zz.data.code === code);
+    return Math.min(STREET_SLOTS.length, (z?.data.streetExercises || []).length);
+  }
+  // The district's quest beats for the journal / objective HUD:
+  // { round, laps, done, total, remaining, street:{done,total}, warm:{done,total}, stamped, beat }
+  // beat = the next thing to do: 'overhear' | 'talk' | 'drill' | 'stamped'
   roundStatus(code) {
     const p = this.progressFor(code);
     const total = this.teacherTotal(code);
     const done = Object.keys(p.d).length;
-    return { laps: p.laps, round: p.laps + 1, done, total, remaining: total - done };
+    const streetTotal = this.streetTotal(code);
+    const streetDone = Math.min(streetTotal, Object.keys(p.street || {}).length);
+    const warmDone = Math.min(total, Object.keys(p.w || {}).length);
+    const beat = done >= total ? 'stamped' : streetDone < streetTotal ? 'overhear' : warmDone < total ? 'talk' : 'drill';
+    return {
+      laps: p.laps, round: p.laps + 1, done, total, remaining: total - done,
+      street: { done: streetDone, total: streetTotal }, warm: { done: warmDone, total }, stamped: !!p.stamped, beat,
+    };
   }
 
-  // dialect warm-up question: rewards XP once per teacher per round
+  // dialect warm-up question: rewards XP once per local per round
   warmupAvailable(npc) {
     if (!npc.zoneCode) return true;
     return !this.progressFor(npc.zoneCode).w[npc.npcIdx];
@@ -159,33 +183,65 @@ export class ZoneManager {
     return true;
   }
 
-  // teacher passed their drill. Returns round bookkeeping:
-  //  { roundComplete, laps, nextRound, bonus, zoneName } when the circuit closed,
-  //  { roundComplete: false, remaining, total } otherwise.
+  // A local's drill was passed. Returns round bookkeeping:
+  //  { roundComplete: true, laps, nextRound, bonus, zoneName, stamp, certificate, cityComplete }
+  //    when the circuit closed (stamp = first close of this district (+60),
+  //    certificate = lineKey when every station on that line is now stamped
+  //    (+300), cityComplete when all 44 districts are stamped (+1000));
+  //  { roundComplete: false, remaining, total, done } otherwise.
+  // Marker/exercise refresh of the other locals is DEFERRED to flushRefresh()
+  // so the local who just closed the round keeps their ✓ while the dialog is
+  // open instead of snapping back to ❗ mid-sentence.
   recordDone(npc) {
     if (!npc.zoneCode) return null;
-    const p = this._ensure(npc.zoneCode);
+    const code = npc.zoneCode;
+    const p = this._ensure(code);
     if (!p.d[npc.npcIdx]) { p.d[npc.npcIdx] = true; this.saveProgress(); }
-    const total = this.teacherTotal(npc.zoneCode);
+    const total = this.teacherTotal(code);
     const done = Object.keys(p.d).length;
-    if (done >= total) {
-      p.laps++; p.d = {}; p.w = {};
-      this.saveProgress();
-      this.refreshTeachers(npc.zoneCode);
-      return {
-        roundComplete: true, laps: p.laps, nextRound: p.laps + 1,
-        bonus: 20 + 15 * p.laps, zoneName: this.circuitName(npc.zoneCode),
-      };
+    if (done < total) return { roundComplete: false, remaining: total - done, total, done };
+
+    p.laps++; p.d = {}; p.w = {};
+    const r = {
+      roundComplete: true, laps: p.laps, nextRound: p.laps + 1,
+      bonus: 40 + 30 * p.laps, zoneName: this.circuitName(code),
+      stamp: false, stampBonus: 0, certificate: null, certificateBonus: 0, cityComplete: false, cityBonus: 0,
+    };
+    if (!p.stamped) {
+      p.stamped = Date.now();
+      r.stamp = true; r.stampBonus = 60;
+      const z = this.zones.find((zz) => zz.data.code === code);
+      if (z) {
+        const lineCodes = this.zones.filter((zz) => zz.lineKey === z.lineKey).map((zz) => zz.data.code);
+        if (!this.progress.state.certificates[z.lineKey] && this.progress.stampedCount(lineCodes) >= lineCodes.length) {
+          this.progress.state.certificates[z.lineKey] = Date.now();
+          r.certificate = z.lineKey; r.certificateBonus = 300;
+        }
+        const all = this.zones.map((zz) => zz.data.code);
+        if (!this.progress.state.cityComplete && this.progress.stampedCount(all) >= all.length) {
+          this.progress.state.cityComplete = Date.now();
+          r.cityComplete = true; r.cityBonus = 1000;
+        }
+      }
     }
-    return { roundComplete: false, remaining: total - done, total, done };
+    this.saveProgress();
+    this._pendingRefresh.add(code);
+    return r;
   }
 
-  // a circuit's round closed: hand every spawned teacher there a fresh set
+  // Called when the dialog closes: any circuit that closed a round now hands
+  // its locals fresh exercises and flips their markers back to ❗.
+  flushRefresh() {
+    for (const code of this._pendingRefresh) this.refreshTeachers(code);
+    this._pendingRefresh.clear();
+  }
+
+  // a circuit's round closed: hand every spawned local there a fresh set
   refreshTeachers(code) {
     const p = this.progressFor(code);
     if (code === 'hub') {
       for (const n of this.hubNpcs) {
-        n.done = false;
+        n.done = false; n.warmupDone = false;
         n.grammar = grammarForLap(n.baseGrammar || n.grammar, p.laps);
         n.refreshMarker?.();
       }
@@ -193,9 +249,22 @@ export class ZoneManager {
     }
     const z = this.zones.find((zz) => zz.data.code === code);
     for (const n of this._npcTag.get(code) || []) {
-      n.done = false;
-      if (z) n.grammar = assignGrammar(z.stopIdx, n.npcIdx, z.lineKey, p.laps);
+      n.done = false; n.warmupDone = false;
+      if (z) {
+        n.grammar = assignGrammar(z, n.npcIdx, p.laps);
+        // the warm-up rotates with the round too, not only when the district re-streams
+        const ex = z.data.sampleExercises || [];
+        if (ex.length) n.exercise = ex[(n.npcIdx + p.laps) % ex.length];
+      }
       n.refreshMarker?.();
+    }
+    // street locals rotate as well: clear their done flags for the new lap and
+    // re-seed the three teaching slots with the next items
+    const zc = z && this._crowdTag.get(code);
+    if (z && zc) {
+      for (const agent of zc) if (agent.speaker) this.crowd?.setSpeaker(agent, null);
+      this.progress.circuit(code).street = {};
+      this.seedStreetSpeakers(z, zc.filter((a) => a._teachSlot !== undefined));
     }
   }
 
@@ -214,24 +283,36 @@ export class ZoneManager {
         const d = FIRST_STOP + stopIdx * STOP_SPACING;
         const stop = new THREE.Vector2(dir.x * d, dir.y * d);
         const center = stop.clone().addScaledVector(perp, side * LATERAL);
+        // the district's own frame (same yaw buildChunk uses) so regionAt can
+        // test the real footprint instead of a distance to the centre
+        const yaw = Math.atan2(perp.x * side, perp.y * side);
         this.zones.push({
           data, lineKey, line: L, side, stopIdx, zoneIndex: zoneOrder.get(data.code),
           dir: new THREE.Vector2(dir.x, dir.y), perp,
           stopPos: stop, center, chunk: null,
+          yaw, cosY: Math.cos(yaw), sinY: Math.sin(yaw),
         });
       });
     }
   }
 
-  // nearest dialect region (Voronoi by zone center); null = the central hub
+  // Which dialect region a point is in; null = the central hub.
+  // A district's footprint (its block plus its side of the boulevard) always
+  // wins, so the locals on the first stop's shopfront walk, 48 m from the
+  // origin, count as their own district and not as "Metropolis Central". Only
+  // outside every footprint does the hub disc apply, then a Voronoi fallback so
+  // the whole city stays dialect turf.
   regionAt(x, z) {
-    if (Math.hypot(x, z) < 55) return null;
     let best = null, bestD = Infinity;
     for (const zn of this.zones) {
       const dx = x - zn.center.x, dz = z - zn.center.y;
+      const lx = dx * zn.cosY - dz * zn.sinY;
+      const lz = dx * zn.sinY + dz * zn.cosY;
+      if (Math.abs(lx) <= FOOT_HALF_W && lz >= FOOT_NEAR && lz <= FOOT_FAR) return zn;
       const d2 = dx * dx + dz * dz;
       if (d2 < bestD) { bestD = d2; best = zn; }
     }
+    if (Math.hypot(x, z) < HUB_RADIUS) return null;
     return best;
   }
 
@@ -568,11 +649,11 @@ export class ZoneManager {
           name: npcData.name, role: npcData.role, greeting: npcData.greeting,
           // warm-up question rotates with the round so repeat visits stay fresh
           exercise: z.data.sampleExercises[(i + zoneProg.laps) % z.data.sampleExercises.length],
-          grammar: assignGrammar(z.stopIdx, i, z.lineKey, zoneProg.laps),
+          grammar: assignGrammar(z, i, zoneProg.laps),
           dialectCode: z.data.code,
           voiceId: i < 2 ? `${z.data.code}_${i}` : null,
           accentProfile: accentProfileFor(z.data.code, i), barkFam: z.lineKey,
-          done: !!zoneProg.d[i],
+          done: !!zoneProg.d[i], warmupDone: !!zoneProg.w[i],
           zoneCode: z.data.code, npcIdx: i, phase: rng() * 6,
           gestureCorrect: 'agree', gestureWrong: 'headShake', gestureGreet: 'Wave',
         };
@@ -641,12 +722,8 @@ export class ZoneManager {
       if (!agent) break;
       agents.push(agent);
     }
-    // Standing locals at the terrace. A few of them have something to teach —
-    // one question each, so a street is worth walking down rather than crossing.
-    const street = z.data.streetExercises || [];
-    const lap = this.progressFor(z.data.code).laps;
-    let taught = 0;
-    (z.patronSlots || []).forEach((slot, i) => {
+    // Decorative patrons at the terrace (count follows the tier).
+    (z.patronSlots || []).forEach((slot) => {
       const w = toWorld(slot.x, slot.z);
       const agent = this.crowd.spawn({
         route: makeRoute([w, { x: w.x + 0.001, z: w.z }]),
@@ -656,31 +733,66 @@ export class ZoneManager {
       if (!agent) return;
       agent.heading = slot.heading + Math.atan2(sinY, cosY);
       agents.push(agent);
-      if (street.length && taught < 3 && i % 2 === 0) {
-        const item = street[(taught + lap) % street.length];
-        const who = streetLocalFor(z.data.code, i);
-        this.crowd.setSpeaker(agent, {
-          name: who.name,
-          role: item.role || who.role,
-          line: item.line,
-          exercise: item,
-          dialectCode: z.data.code,
-          accentProfile: accentProfileFor(z.data.code, 2 + taught),
-          done: false,
-        });
-        taught++;
-      }
     });
+    // The three street locals with something to teach — one question each, so
+    // a street is worth walking down rather than crossing. Always three, on
+    // every tier: the exercises are content, not decoration.
+    const teachers = [];
+    STREET_SLOTS.forEach((slot, i) => {
+      const w = toWorld(slot.x, slot.z);
+      const agent = this.crowd.spawn({
+        route: makeRoute([w, { x: w.x + 0.001, z: w.z }]),
+        standing: true,
+        dialect: z.data.code,
+      });
+      if (!agent) return;
+      agent.heading = slot.heading + Math.atan2(sinY, cosY);
+      agent._teachSlot = i;
+      agents.push(agent);
+      teachers.push(agent);
+    });
+    this.seedStreetSpeakers(z, teachers);
     this._crowdTag.set(z.data.code, agents);
   }
 
-  // Street wins are lighter than a teacher's drill: they feed the journal and
-  // XP, but they never close a district's round on their own.
-  recordStreetWin(code) {
+  // Give the district's teaching agents their exercise for the current lap.
+  // Done state is read back from the save (per district, per slot), so riding
+  // away and back never resets an overheard line, and the roster excludes the
+  // quest locals' names and never repeats a name within the district.
+  seedStreetSpeakers(z, teachers) {
+    const street = z.data.streetExercises || [];
+    if (!street.length) return;
+    const code = z.data.code;
+    const circuit = this.progressFor(code);
+    const taken = new Set(districtCastFor(z.data, z.zoneIndex).map((n) => n.name));
+    for (const agent of teachers) {
+      const slot = agent._teachSlot;
+      const item = street[(slot + circuit.laps) % street.length];
+      const who = streetLocalFor(code, slot, taken);
+      taken.add(who.name);
+      this.crowd.setSpeaker(agent, {
+        name: who.name,
+        role: item.role || who.role,
+        line: item.line,
+        exercise: item,
+        dialectCode: code,
+        zoneCode: code,
+        slot,
+        accentProfile: accentProfileFor(code, 2 + slot),
+        done: !!(circuit.street && circuit.street[slot]),
+      });
+    }
+  }
+
+  // Street wins are lighter than a quest local's drill: they feed the journal,
+  // the Overhear beat and XP, but they never close a district's round on their
+  // own. Persisted per (district, slot).
+  recordStreetWin(code, slot = 0) {
     const p = this._ensure(code);
-    p.street = (p.street || 0) + 1;
+    p.street ||= {};
+    p.street[slot] = true;
     this.saveProgress();
-    return p.street;
+    return Object.keys(p.street).length;
   }
 
   // ---------- facade architecture ----------
