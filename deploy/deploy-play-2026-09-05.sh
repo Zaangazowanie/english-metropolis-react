@@ -28,7 +28,7 @@ for f in "$SRC"/src/*.js; do node --check "$f" >/dev/null || { echo "!! syntax: 
 if ss -ltn | grep -q ':4175 '; then
   ( cd /tmp/claude-0 2>/dev/null || cd /tmp
     SMOKE_DIR=$(mktemp -d); cp "$PROBE" "$SMOKE_DIR/tour.mjs"; ln -sfn /root/node_modules "$SMOKE_DIR/node_modules"
-    cd "$SMOKE_DIR" && TIER=high timeout 400 node tour.mjs http://127.0.0.1:4175/play/ smoke > smoke.log 2>&1 || { tail -20 smoke.log; echo "!! headless smoke failed"; exit 1; }
+    cd "$SMOKE_DIR" && TIER=high timeout 1500 /root/ricky-estate-2026-09-01/em-play-revamp/probe-run.sh --quota 200 -- node tour.mjs http://127.0.0.1:4175/play/ smoke > smoke.log 2>&1 || { tail -20 smoke.log; echo "!! headless smoke failed (exit 75 = host CPU steal > 40%, retry later)"; exit 1; }
     if grep -q "pageerror" smoke.log; then grep pageerror smoke.log; echo "!! page errors in smoke"; exit 1; fi
     echo "  smoke ok: $(grep -o 'loaded in [0-9]* ms' smoke.log)" )
 else
