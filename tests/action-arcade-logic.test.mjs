@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nextMazeStep, snakeStep, sonarCount, selectedWheelRotation, advanceCompletionLatch } from '../src/practice/shells/action-arcade-logic.mjs';
+import { nextMazeStep, snakeStep, sonarCount, selectedWheelRotation, advanceCompletionLatch, currentMoleSlots } from '../src/practice/shells/action-arcade-logic.mjs';
 
 test('shadow follows open corridors, not a Manhattan shortcut through walls', () => {
   const maze = [[1,1,1,1,1],[1,0,1,0,1],[1,0,1,0,1],[1,0,0,0,1],[1,1,1,1,1]];
@@ -48,4 +48,29 @@ test('forced previews never claim completion, including repeated effect runs', (
   assert.equal(advanceCompletionLatch(forced.announced, true, false).emit, false);
   const reset = advanceCompletionLatch(forced.announced, false, false);
   assert.equal(advanceCompletionLatch(reset.announced, true, false).emit, true);
+});
+
+test('recycled mole holes show the current visible slot, never an old hidden word', () => {
+  const moles = [
+    { holeIdx: 2, word: 'subway', state: 'down', spawnedAt: 10 },
+    { holeIdx: 2, word: 'bus', state: 'up', spawnedAt: 20 },
+    { holeIdx: 4, word: 'train', state: 'falling', spawnedAt: 15 },
+    { holeIdx: 0, word: 'platform', state: 'down', spawnedAt: 30 },
+  ];
+  assert.deepEqual(currentMoleSlots(moles), [-1, -1, 1, -1, 2, -1]);
+  moles[1].holeIdx = 0;
+  moles[2].state = 'down';
+  assert.deepEqual(currentMoleSlots(moles), [1, -1, -1, -1, -1, -1]);
+});
+
+test('mole controls stay at six holes across collisions and a fresh round', () => {
+  const previousRound = [
+    { holeIdx: 2, word: 'subway', state: 'up', spawnedAt: 10 },
+    { holeIdx: 2, word: 'bus', state: 'rising', spawnedAt: 20 },
+  ];
+  assert.deepEqual(currentMoleSlots(previousRound), [-1, -1, 1, -1, -1, -1]);
+  const nextRound = [{ holeIdx: 2, word: 'kiosk', state: 'up', spawnedAt: 30 }];
+  const slots = currentMoleSlots(nextRound);
+  assert.equal(slots.length, 6);
+  assert.deepEqual(slots.filter(index => index >= 0).map(index => nextRound[index].word), ['kiosk']);
 });

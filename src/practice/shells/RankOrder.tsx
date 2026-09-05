@@ -1,12 +1,7 @@
 import { Challenge3D } from './challenge-3d';
 import { rankAssessment } from './challenge-arcade-logic';
 import { ChallengeMission, useChallengeArcade } from './challenge-arcade';
-// Rank Order shell — "The Election Hall" district.
-// A Senate-style civic hall at dusk: a rostrum and numbered brass voting
-// plinths line a podium ladder. Items arrive shuffled in a queue on the
-// left; the student drags (or taps to swap) them onto numbered plinths.
-// Lime LEDs above the plinths light up green when a plinth holds the
-// correct item.
+// Rank Order — load the freight wagons, then dispatch the complete sequence.
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
 import { useShellProgress } from '../lib/convex-stubs';
@@ -18,63 +13,63 @@ import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components';
 
-// Election Hall · Rank Order — full bilingual instruction copy.
+// Freight Marshalling Yard · Rank Order — full bilingual instructions.
 const RANKORDER_INSTRUCTIONS: FullInstructions = {
   whatYouDo: {
     en: [
-      'A "ballot queue" lists N items along the side of the hall — words, numbers or events.',
-      'Brass numbered plinths (1, 2, 3 …) line up across the centre of the hall.',
+      'Each freight wagon carries a word, number or event.',
+      'Read the numbered track sockets from rank 1 onwards.',
       'Read the criterion in the subtitle (e.g. "Order alphabetically (A → Z)" or "Order from smallest to largest").',
-      'Drag each ballot onto the correct plinth — rank 1 first.',
+      'Choose a wagon, then its track socket. Dispatch the full train to check your order.',
     ],
     pl: [
-      'Po boku sali widać „kolejkę biletów" z N pozycjami — słowa, liczby lub zdarzenia.',
-      'Mosiężne ponumerowane mównice (1, 2, 3 …) ustawione są na środku sali.',
+      'Każdy wagon przewozi słowo, liczbę lub zdarzenie.',
+      'Miejsca na torze są ponumerowane od 1.',
       'Przeczytaj kryterium w podtytule (np. „Order alphabetically (A → Z)" lub „Order from smallest to largest").',
-      'Przeciągnij każdy bilet na właściwą mównicę — najpierw rangę 1.',
+      'Wybierz wagon, a potem jego miejsce na torze. Wyślij cały pociąg, aby sprawdzić kolejność.',
     ],
   },
   controls: {
     en: [
-      'Ballot queue (side panel): N items in random order, ready to drag.',
-      'Numbered plinths (centre): rank slots 1 through N — each accepts one ballot.',
-      'Criterion eyebrow: tells you HOW to order (alphabetical, size, time, etc.).',
-      'Q counter: header tally of correctly-ranked ballots.',
-      'Skip + Hint buttons: Skip reveals the full order (counts as wrong), Hint highlights the rank-1 ballot.',
+      'Wagon shelves hold the items. Use the shelf arrows to reach the rest.',
+      'Select a wagon and a numbered socket to load it. Select a filled socket with no wagon selected to unload it.',
+      'Dispatch train checks the entire sequence. Correctness is revealed only after dispatch.',
+      'The Q counter shows correctly ranked wagons after checking.',
+      'Hint reveals the item for the first empty or incorrect position. Skip reveals the complete order.',
     ],
     pl: [
-      'Kolejka biletów (panel boczny): N pozycji w losowej kolejności, gotowe do przeciągnięcia.',
-      'Ponumerowane mównice (środek): miejsca rangi 1 do N — każda przyjmuje jeden bilet.',
-      'Eyebrow z kryterium: mówi JAK ułożyć (alfabetycznie, wg rozmiaru, w czasie, itd.).',
-      'Licznik Q: ranga poprawnie ułożonych biletów w nagłówku.',
-      'Przyciski Pomiń i Podpowiedź: Pomiń odkrywa pełną kolejność (liczy się jako błąd), Podpowiedź podświetla bilet rangi 1.',
+      'Strzałki półek pokazują kolejne wagony i miejsca na torze.',
+      'Wybierz wagon i ponumerowane miejsce. Aby usunąć wagon, stuknij zajęte miejsce bez wybranego wagonu.',
+      'Sprawdź kolejność ocenia cały pociąg. Podczas układania nie widzisz poprawności.',
+      'Licznik Q pokazuje poprawnie ustawione wagony po sprawdzeniu.',
+      'Podpowiedź wskazuje element dla pierwszej pustej lub błędnej pozycji. Pomiń odkrywa całą kolejność.',
     ],
   },
   rightWrongSkip: {
     en: [
-      'Right placement: ✓ plinth glows green, ballot snaps in, +1 to your tally.',
-      'Wrong placement: ✗ ballot bounces back to the queue, the wrong plinth flashes rose.',
-      'Skip: reveals the full correct order so you can memorise it — counts as wrong for this round.',
-      'You can re-drag a placed ballot before committing the round.',
+      'After dispatch, correct wagons glow green and earn arcade points.',
+      'Incorrect positions are marked. Move or unload those wagons, then dispatch again.',
+      'Skip reveals the full order without awarding points for unanswered positions.',
+      'You can rearrange the wagons before dispatching.',
     ],
     pl: [
-      'Trafienie: ✓ mównica świeci na zielono, bilet wskakuje na miejsce, +1 do wyniku.',
-      'Błąd: ✗ bilet wraca do kolejki, błędna mównica mignie na różowo.',
-      'Pomiń: pokazuje pełną poprawną kolejność, abyś mógł ją zapamiętać — liczy się jako błąd w tej rundzie.',
-      'Przed zatwierdzeniem rundy możesz ponownie przeciągnąć umieszczony bilet.',
+      'Po wysłaniu poprawne wagony świecą na zielono i dają punkty arcade.',
+      'Błędne pozycje są oznaczone. Przestaw lub usuń te wagony i sprawdź ponownie.',
+      'Pomiń pokazuje całą kolejność bez punktów za nierozwiązane pozycje.',
+      'Przed wysłaniem możesz zmieniać ustawienie wagonów.',
     ],
   },
   hintMechanic: {
     en:
-      'You have 2 hints per session. Each tap highlights the ballot that should go on the next empty plinth (starting from rank 1). Save them for criteria where two items are very close (e.g. close-in-size or close-in-date).',
+      'You have 3 hints per run. Each reveals the item for the first empty or incorrectly filled track socket.',
     pl:
-      'Masz 2 podpowiedzi na sesję. Każde stuknięcie podświetla bilet, który powinien trafić na następną pustą mównicę (zaczynając od rangi 1). Zachowaj je na kryteria, gdzie dwie pozycje są bardzo blisko (np. zbliżony rozmiar lub data).',
+      'Masz 3 podpowiedzi na rundę. Każda wskazuje element dla pierwszego pustego lub błędnie zajętego miejsca na torze.',
   },
   scoring: {
     en:
-      'Skip counts as wrong. Each correctly-ranked ballot adds to your session streak. Completing every plinth in a round unlocks the post-shell review with explanations of any wrong placements.',
+      'Each correctly ranked wagon builds your streak. Completing the train opens the session review. Rechecking a correct wagon does not award points twice.',
     pl:
-      'Pomiń liczy się jako błąd. Każdy trafnie ułożony bilet buduje serię w sesji. Ułożenie wszystkich mównic w rundzie odblokowuje przegląd z wyjaśnieniami błędów.',
+      'Każdy poprawnie ustawiony wagon buduje serię. Ukończenie pociągu otwiera przegląd sesji. Ponowne sprawdzenie poprawnego wagonu nie daje punktów drugi raz.',
   },
   l1Pattern: {
     en:
@@ -134,7 +129,7 @@ export interface RankOrderShellProps {
 
 // ─────────────────────────────────────────────────────────────────────────
 // renderRankOrderReviewItem — full-ordering locked render for PracticeReview.
-// Election Hall scoreboard: criterion + per-position chip showing student's
+// Freight yard scoreboard: criterion + per-position chip showing student's
 // pick vs canonical pick. Single review item rendering all N positions.
 // ─────────────────────────────────────────────────────────────────────────
 const RO_REVIEW_ACCENT = '#BEF264';
@@ -214,8 +209,8 @@ export function renderRankOrderReviewItem(
 export type { RankItem as ShellRankOrderItem };
 
 const RO_PUZZLE: RankOrderPuzzle = {
-  criterion: 'Order from Monday to Sunday',
-  criterion_pl: 'Uporządkuj od poniedziałku do niedzieli',
+  criterion: 'Order the weekdays from Monday to Friday',
+  criterion_pl: 'Uporządkuj dni robocze od poniedziałku do piątku',
   items: [
     { id: 'ro-d-1', label: 'Wednesday', label_pl: 'środa',         correctRank: 3 },
     { id: 'ro-d-2', label: 'Friday',    label_pl: 'piątek',        correctRank: 5 },
@@ -282,11 +277,11 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'rankorder',
-      brief: "Place every ballot in the order required by the criterion.",
-      brief_pl: "Ułóż wszystkie karty zgodnie z podanym kryterium.",
-      detail: "Place every ballot in the order required by the criterion. Choose Check order to submit your full arrangement. Tiles do not reveal their correctness while you are arranging them. Move any incorrect ballots and check again.",
-      detail_pl: "Ułóż wszystkie karty zgodnie z podanym kryterium. Wybierz Sprawdź kolejność, aby ocenić całe ułożenie. Podczas układania nie widzisz poprawności. Przenieś błędne karty i sprawdź ponownie.",
-      fullInstructions: { ...RANKORDER_INSTRUCTIONS, whatYouDo: {"en": ["Place every ballot in the order required by the criterion.", "Choose Check order to submit your full arrangement. Tiles do not reveal their correctness while you are arranging them.", "Move any incorrect ballots and check again."], "pl": ["Ułóż wszystkie karty zgodnie z podanym kryterium.", "Wybierz Sprawdź kolejność, aby ocenić całe ułożenie. Podczas układania nie widzisz poprawności.", "Przenieś błędne karty i sprawdź ponownie."]}, controls: {"en": ["Place every ballot in the order required by the criterion.", "Choose Check order to submit your full arrangement. Tiles do not reveal their correctness while you are arranging them.", "Move any incorrect ballots and check again."], "pl": ["Ułóż wszystkie karty zgodnie z podanym kryterium.", "Wybierz Sprawdź kolejność, aby ocenić całe ułożenie. Podczas układania nie widzisz poprawności.", "Przenieś błędne karty i sprawdź ponownie."]}, rightWrongSkip: {"en": ["Correct choices earn arcade points. Mistakes stay available in your session review. Skip moves on without points."], "pl": ["Poprawne wybory dają punkty arcade. Błędy zobaczysz w przeglądzie sesji. Pominięcie przechodzi dalej bez punktów."]} },
+      brief: "Load the wagons in the order required by the criterion.",
+      brief_pl: "Ustaw wagony zgodnie z podanym kryterium.",
+      detail: "Choose a wagon and its numbered track socket. Dispatch the complete train to check the sequence. Adjust any marked positions and dispatch again.",
+      detail_pl: "Wybierz wagon i ponumerowane miejsce na torze. Wyślij cały pociąg, aby sprawdzić kolejność. Popraw oznaczone pozycje i sprawdź ponownie.",
+      fullInstructions: RANKORDER_INSTRUCTIONS,
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
     return () => {
@@ -354,7 +349,7 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
     });
 
     setChecked(false);
-    setAnnouncement('Ballot placed. Check the full order when ready.');
+    setAnnouncement('Wagon loaded. Dispatch the full train when ready.');
   };
 
   const checkOrder = () => {
@@ -370,7 +365,9 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
       }
     });
     setChecked(true);
-    setAnnouncement(`${actualCorrectCount} of ${N} ranks correct. Adjust the highlighted ballots and check again.`);
+    setAnnouncement(actualCorrectCount === N
+      ? `All ${N} wagons are in order. Train dispatched!`
+      : `${actualCorrectCount} of ${N} wagons in order. Adjust the marked positions and dispatch again.`);
   };
 
   const removeFromSlot = (slotIdx: number) => {
@@ -432,7 +429,7 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
     <div
       className="em-shell em-shell-rankorder challenge-enhanced"
       role="application"
-      aria-label="Rank order, The Election Hall"
+      aria-label="Rank order, The Freight Marshalling Yard"
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
     >
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
@@ -474,7 +471,7 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
       >
         <AmbientAudioPlayer shellSlug="rankorder" />
         <Nameplate
-          district="The Election Hall"
+          district="The Freight Marshalling Yard"
           subtitle={`Rank order · Uporządkuj · ${activePuzzle.criterion}`}
           accent={ACCENT}
           icon={
@@ -505,7 +502,7 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
           zIndex: 3,
         }}
       >
-        <ChallengeMission title="Arrange the ballots. Commit your verdict." detail="Build the entire sequence before checking. Change any ballot and submit again. · Ułóż całość i sprawdź." current={checked ? correctlyPlacedCount : plinths.filter(Boolean).length} total={N}>
+        <ChallengeMission title="Load the wagons. Dispatch the train." detail="Build the full sequence before dispatching. Move any misplaced wagon and try again. · Ułóż cały pociąg i sprawdź kolejność." current={checked ? correctlyPlacedCount : plinths.filter(Boolean).length} total={N}>
         </ChallengeMission>
         <Challenge3D game="RankOrder" hint={hintRevealSlot===null?undefined:`Rank ${hintRevealSlot+1}: ${activePuzzle.items.find(it=>it.correctRank===hintRevealSlot+1)?.label}`} prompt={activePuzzle.criterion}
           items={activePuzzle.items.map(it=>({id:it.id,label:it.label}))}
@@ -529,7 +526,7 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
         <div
           role="dialog"
           aria-live="assertive"
-          aria-label="Election Hall complete"
+          aria-label="Freight train complete"
           style={{
             position: 'absolute', inset: 0,
             background: `radial-gradient(ellipse, ${ACCENT}22, rgba(14,10,26,0.62))`,
@@ -540,11 +537,11 @@ export const RankOrderShell: React.FC<RankOrderShellProps> = ({
         >
           <Bajla size={84} mood="cheer" decorative />
           <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa` }}>
-            The vote is in.
+            The train is ready.
           </div>
-          <div className="em-eyebrow">SESSION ADJOURNED · POSIEDZENIE ZAKOŃCZONE</div>
+          <div className="em-eyebrow">READY FOR DEPARTURE · GOTOWY DO ODJAZDU</div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button className="em-btn em-btn-ghost" onClick={reset} aria-label="Hold another vote">
+            <button className="em-btn em-btn-ghost" onClick={reset} aria-label="Assemble another train">
               Try another
             </button>
           </div>

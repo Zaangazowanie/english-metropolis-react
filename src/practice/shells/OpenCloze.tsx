@@ -1,6 +1,6 @@
 import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
 const WordScene3D = wordLazy(() => import('../shells3d/WordOpenCloze3D'));
-import { clozeResolved } from './word-arcade-mechanics';
+import { clozeResolved, claimClozeAttempt } from './word-arcade-mechanics';
 // Open Cloze — The Vellum Atelier district.
 // A scribe's desk at dusk. A sheet of parchment lies under candlelight; the
 // student fills the missing words with quill-ink (typed input). Each blank
@@ -365,6 +365,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
   }>>([]);
   const studentInputsRef = useRef<Record<number, string>>({});
   const sessionFiredRef = useRef(false);
+  const submittedAttemptsRef = useRef(new Map<number, string>());
 
   // Auto-save.
   useEffect(() => {
@@ -463,7 +464,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
     if (!gap) return;
     if (locked[id] === 'right' || skippedIds.has(id)) return;
     const candidate = normalise(values[id] ?? '');
-    if (!candidate) return;
+    if (!claimClozeAttempt(submittedAttemptsRef.current, id, candidate)) return;
     const accepted = [normalise(gap.answer), ...(gap.acceptedAnswers ?? []).map(normalise)];
     const correct = accepted.includes(candidate);
     setLocked((prev) => ({ ...prev, [id]: correct ? 'right' : 'wrong' }));
@@ -531,6 +532,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
     wrongAttemptsRef.current = [];
     studentInputsRef.current = {};
     sessionFiredRef.current = false;
+    submittedAttemptsRef.current.clear();
   };
 
   // Kelly Tier-2 (2026-05-02): focus-trap effect for the ink-dried dialog.
@@ -668,7 +670,6 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
                     onChange={(e) => setVal(t.id, e.target.value)}
                     onFocus={() => setActiveId(t.id)}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(t.id); } }}
-                    onBlur={() => { if (!locked[t.id] && (values[t.id] ?? '').trim()) submit(t.id); }}
                     aria-label={`Blank ${t.id}, ${gap.hint}`}
                     aria-invalid={status === 'wrong'}
                     disabled={status === 'right' || skippedIds.has(t.id) || !!forcedState}

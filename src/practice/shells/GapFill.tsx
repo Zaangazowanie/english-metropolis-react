@@ -673,7 +673,7 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
                   "See the board →" so the rhythm cues that the review screen
                   is next, not another scene. Matches the MC pattern. */}
               <button ref={nextSceneBtnRef} className="em-btn em-btn-primary" onClick={next}>
-                {onSessionComplete && scenesSeen + 1 >= activePuzzle.scenes.length
+                {onSessionComplete && sessionComplete
                   ? 'See the board →'
                   : 'Next billboard →'}
               </button>

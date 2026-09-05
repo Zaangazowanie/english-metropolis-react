@@ -3,6 +3,7 @@ import { useActionCompletion } from './action-arcade-completion';
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
 import { useArcadeEvents } from '../lib/arcade-events';
 import { useActionTimers } from './action-arcade-timers';
+import { currentMoleSlots } from './action-arcade-logic.mjs';
 import './action-arcade.css';
 // Whack-a-Mole — "The Subway Mole" district.
 //
@@ -251,6 +252,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
   const [roundIdx, setRoundIdx] = useState(0);
   const [solved, setSolved] = useState<boolean[]>(() => activePuzzle.rounds.map(() => false));
   const [moles, setMoles] = useState<MoleSlot[]>([]);
+  const moleSlots = useMemo(() => currentMoleSlots(moles, HOLES), [moles]);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [hintHole, setHintHole] = useState<number | null>(null);
@@ -517,10 +519,10 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
       if (!interactionRef.current?.contains(event.target as Node)) return;
       if ((event.target as HTMLElement)?.closest('input,textarea,select')) return;
       const hole = Number(event.key) - 1;
-      if (hole >= 0 && hole < HOLES) { const i = moles.findIndex(m => m.holeIdx === hole && (m.state === 'up' || m.state === 'rising')); if (i >= 0) { event.preventDefault(); whack(i); } }
+      if (hole >= 0 && hole < HOLES) { const i = moleSlots[hole]; if (i >= 0 && (moles[i].state === 'up' || moles[i].state === 'rising')) { event.preventDefault(); whack(i); } }
     };
     window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key);
-  }, [moles, started, roundLocked, roundIdx]);
+  }, [moles, moleSlots, started, roundLocked, roundIdx]);
 
   const useHint = (): void => {
     if (hintsUsed >= 3) return;
@@ -623,7 +625,18 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
 
           <div className="action-arcade-hud" style={{ margin: '12px 24px 0' }}><div><strong>{points} POINTS</strong><small>{reaction !== null ? `Caught in ${(reaction / 1000).toFixed(2)}s. ${reaction < 1100 && !precision && !reduceMotion ? 'Quick catch +50 bonus!' : 'Station cleared.'}` : 'Catch the correct conductor. Quick catches earn 50 bonus points. Press 1–6 or tap a mole.'}</small></div><button disabled={roundLocked} aria-pressed={precision} onClick={() => setPrecision(v => !v)}>{precision || reduceMotion ? 'Focus · steady targets' : 'Arcade · moving targets'}</button></div>
           {/* Platform with mole holes */}
-          <ActionPlayfield3D kind="whackamole" data={{reducedMotion:reduceMotion,running:started,selected:moles.find(m=>m.state==='whacked')?.holeIdx,onPick:hole=>{const i=moles.findIndex(m=>m.holeIdx===hole);if(i>=0)whack(i);},actors:moles.map(m=>({id:m.holeIdx,x:0,y:0,label:m.word,state:m.state,selected:hintHole===m.holeIdx,enabled:started&&!roundLocked&&(m.state==='up'||m.state==='rising')}))}} controls={<>{moles.map((m,i)=><button key={m.holeIdx} disabled={!started||roundLocked||(m.state!=='up'&&m.state!=='rising')} onClick={()=>whack(i)}>{m.holeIdx+1} · {m.word}</button>)}</>} />
+          <ActionPlayfield3D kind="whackamole" data={{
+            reducedMotion: reduceMotion, running: started,
+            selected: moleSlots.map(index => moles[index]).find(mole => mole?.state === 'whacked')?.holeIdx,
+            onPick: hole => { const index = moleSlots[hole]; if (index >= 0) whack(index); },
+            actors: moleSlots.map((index, hole) => {
+              const mole = moles[index];
+              return { id: hole, x: 0, y: 0, label: mole?.word, state: mole?.state ?? 'down', selected: hintHole === hole, enabled: started && !roundLocked && (mole?.state === 'up' || mole?.state === 'rising') };
+            }),
+          }} controls={<>{moleSlots.map((index, hole) => {
+            const mole = moles[index];
+            return <button key={hole} disabled={!started || roundLocked || (mole?.state !== 'up' && mole?.state !== 'rising')} onClick={() => whack(index)}>{hole + 1} · {mole?.word ?? 'Empty'}</button>;
+          })}</>} />
 
           {/* START · ROZPOCZNIJ overlay (Ricky 2026-05-02, CD audit §5.5
               Whack-a-Mole first-impression fix). The shell spawns moles on a

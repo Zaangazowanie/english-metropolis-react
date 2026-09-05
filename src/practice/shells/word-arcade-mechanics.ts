@@ -3,6 +3,13 @@ export function clozeResolved(gaps: readonly { id: number }[], locked: Record<nu
   return gaps.every(gap => locked[gap.id] === 'right' || skipped.has(gap.id));
 }
 
+/** Claim each entered cloze answer once, even before React commits its state. */
+export function claimClozeAttempt(attempts: Map<number, string>, id: number, candidate: string): boolean {
+  if (!candidate || attempts.get(id) === candidate) return false;
+  attempts.set(id, candidate);
+  return true;
+}
+
 /** Distinct outcomes only: retries must not multiply the deduction. */
 export function anagramCleanCount(words: readonly string[], wrongIds: readonly string[], answers: Record<string,string>): number {
   const wrong = new Set(wrongIds);

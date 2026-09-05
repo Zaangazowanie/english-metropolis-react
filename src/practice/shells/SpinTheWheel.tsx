@@ -609,36 +609,13 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
             </div>
           </div>
 
-          <div className="em-shell-hint" style={{ minWidth: 0 }}>
-          </div>
-
-          {/* Tonight's Carnival — fills the right-side dead space (#9) with
-             a themed booth scene + run summary instead of duplicating the
-             wheel legend (now lives below the wheel as nameplate-callouts). */}
+          {/* Carnival configuration and the current round's result. */}
           <div className="em-card" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--em-line)', display: 'flex', justifyContent: 'space-between' }}>
               <div className="em-eyebrow">Tonight&apos;s Carnival · Dzisiejszy karnawał</div>
               <div className="em-eyebrow" style={{ color: ACCENT }}>{activePuzzle.rounds.length} rounds</div>
             </div>
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
-              {/* Bajla on the ticket booth, pointing at the wheel. Decorative. */}
-              <div style={{
-                position: 'relative',
-                height: 120,
-                borderRadius: 10,
-                background: 'linear-gradient(180deg, #2A1850 0%, #0E0A1A 100%)',
-                border: `1px solid ${ACCENT}33`,
-                overflow: 'hidden',
-                display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-              }}>
-                {/* Booth roof bunting */}
-
-                {/* Ticket booth silhouette */}
-
-                {/* Standalone Bajla beside the booth removed 2026-05-03 —
-                    chat-widget mascot is the canonical presence. */}
-              </div>
-
               {/* Run breakdown — wedge count + hint usage so the right panel
                  carries real information instead of duplicating the legend. */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

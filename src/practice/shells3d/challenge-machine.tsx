@@ -138,7 +138,7 @@ export function ChallengeMachine({design,items=[],slots=[],roundKey,locked=false
         <Bajla scale={.27} position={[3.75,-1.9,1]} reducedMotion={reducedMotion??systemReduced} variant={success?'celebrate':'idle'}/>
         {design.kind==='museum'&&imageSrc&&signal>0&&<Html portal={portal} center transform position={[0,.8,-.55]} distanceFactor={4} zIndexRange={[4,1]}><img className="cm-museum-photo" src={imageSrc} alt={imageAlt??'Photograph to identify'} /></Html>}
         {design.kind==='gallery'&&evidence?.length&&<Html portal={portal} center position={[0,-1.55,1]} zIndexRange={[14,5]}><button className="cm-instrument" type="button" onClick={()=>setFileOpen(v=>!v)}>Inspect evidence file</button></Html>}
-        {design.kind==='radio'&&onAction&&<Html portal={portal} center position={[0,-1.8,1.6]} zIndexRange={[14,5]}><button className="cm-instrument" type="button" disabled={locked||actionDisabled} onClick={onAction}>▶ Tune in</button></Html>}
+        {design.kind==='radio'&&onAction&&<Html portal={portal} center position={[0,-1.8,1.6]} zIndexRange={[14,5]}><button className="cm-instrument" type="button" disabled={locked||actionDisabled} onClick={onAction}>{actionLabel ?? 'Tune in'}</button></Html>}
         {stageItems.map((it,i)=>drawItem(it,i))}
         {slots.slice(slotPage*columns,slotPage*columns+columns).map((it,i)=>drawItem(it,i,true))}
       </CityStage>}

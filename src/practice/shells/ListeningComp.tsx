@@ -248,14 +248,14 @@ export function pickListeningCompTranscriptSnippet(transcript: string, q: LCQues
 }
 
 const LC_PUZZLE: ListeningCompPuzzle = {
-  audio_url: '/practice-audio/demo/booth.mp3',
-  audio_url_alt: '/practice-audio/demo/booth.ogg',
+  // No demo recording is bundled. Offer the actual transcript immediately.
+  audio_url: '',
   transcript:
     'Welcome to the Listening Booth. The morning train arrived at the central station. A traveller crossed the bridge into the city and ordered a coffee at the small café on the corner.',
   transcript_pl:
     'Witamy w Kabinie Słuchania. Poranny pociąg przybył na dworzec centralny. Podróżnik przeszedł przez most do miasta i zamówił kawę w małej kawiarni na rogu.',
-  title: 'Booth Recording',
-  title_pl: 'Nagranie z kabiny',
+  title: 'Transcript demo',
+  title_pl: 'Demo z transkrypcją',
   maxPlays: 2,
   questions: [
     {
@@ -313,7 +313,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
-  const [showTranscript, setShowTranscript] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(!activePuzzle.audio_url);
 
   const [hintsUsed, setHintsUsed] = useState(0);
   const [hintShown, setHintShown] = useState(false);
@@ -322,13 +322,16 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
   const [questionFinalised, setQuestionFinalised] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const [audioFailed, setAudioFailed] = useState(false);
+  const transcriptOnly = !activePuzzle.audio_url || audioFailed;
   const [playsRemaining, setPlaysRemaining] = useState(activePuzzle.maxPlays ?? 2);
+  const canPlay = transcriptOnly || playsRemaining > 0;
   const [hasListened, setHasListened] = useState(false);
   const [slowPlayback, setSlowPlayback] = useState(false);
   const [audioPosition, setAudioPosition] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const failedSourcesRef = useRef(new Set<string>());
 
   const total = activePuzzle.questions.length;
   const cur = activePuzzle.questions[idx];
@@ -353,17 +356,17 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'listeningcomp',
-      brief: 'Tap Play, listen carefully, then answer the questions.',
-      brief_pl: 'Naciśnij Play, posłuchaj uważnie, potem odpowiedz na pytania.',
-      detail: 'You get a limited number of replays per recording — listen as actively as you can. Every answer is in the audio. If you really need to see the words, use Show transcript (it counts as a replay). Pick the right answer to advance.',
-      detail_pl: 'Masz ograniczoną liczbę odtworzeń — słuchaj jak najuważniej. Każda odpowiedź jest w nagraniu. Jeśli naprawdę musisz zobaczyć tekst, użyj Pokaż transkrypt (liczy się jak odtworzenie). Wybierz dobrą odpowiedź, aby przejść dalej.',
+      brief: transcriptOnly ? 'Read the transcript, then answer the questions.' : 'Tap Play, listen carefully, then answer the questions.',
+      brief_pl: transcriptOnly ? 'Przeczytaj transkrypcję i odpowiedz na pytania.' : 'Naciśnij Play, posłuchaj uważnie, potem odpowiedz na pytania.',
+      detail: transcriptOnly ? 'A recording is unavailable for this round. Every answer is in the transcript. Read it and choose an answer to advance.' : 'You get a limited number of replays per recording — listen as actively as you can. Every answer is in the audio. Use Show transcript if you need to see the words. Pick the right answer to advance.',
+      detail_pl: transcriptOnly ? 'Nagranie jest niedostępne w tej rundzie. Każdą odpowiedź znajdziesz w transkrypcji. Przeczytaj ją i wybierz odpowiedź.' : 'Masz ograniczoną liczbę odtworzeń — słuchaj jak najuważniej. Każda odpowiedź jest w nagraniu. Jeśli potrzebujesz tekstu, użyj Pokaż transkrypt. Wybierz odpowiedź, aby przejść dalej.',
       fullInstructions: LISTENINGCOMP_INSTRUCTIONS,
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
     return () => {
       window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail: null }));
     };
-  }, [forcedState]);
+  }, [forcedState, transcriptOnly]);
 
   // Force-state for canvas previews.
   useEffect(() => {
@@ -390,14 +393,24 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
   }, [forcedState, activePuzzle, total]);
 
   // Audio control.
+  const showAudioFallback = () => {
+    setAudioFailed(true);
+    setIsPlaying(false);
+    setShowTranscript(true);
+  };
+  const sourceFailed = (url: string) => {
+    failedSourcesRef.current.add(url);
+    const sources = [activePuzzle.audio_url, activePuzzle.audio_url_alt].filter(Boolean);
+    if (sources.every(source => failedSourcesRef.current.has(source!))) showAudioFallback();
+  };
   const playAudio = () => {
     if (forcedState) return;
-    if (playsRemaining <= 0) return;
-    if (audioFailed) {
+    if (transcriptOnly) {
       // Surface transcript fallback.
       setShowTranscript(true);
       return;
     }
+    if (playsRemaining <= 0) return;
     const el = audioRef.current;
     if (!el) return;
     el.playbackRate = slowPlayback ? 0.8 : 1;
@@ -405,10 +418,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
     void el.play().then(() => {
       setIsPlaying(true); setHasListened(true);
       setPlaysRemaining((p) => Math.max(0, p - 1));
-    }).catch(() => {
-      setAudioFailed(true);
-      setShowTranscript(true);
-    });
+    }).catch(showAudioFallback);
   };
 
   const choose = (optIdx: number) => {
@@ -416,11 +426,11 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
     setPicked(optIdx);
     setRevealed(true);
     const correct = optIdx === cur.answerIndex;
-    arcade.decide(correct, cur.id, hasListened && !showTranscript && !audioFailed ? 150 : 100);
+    arcade.decide(correct, cur.id, hasListened && !showTranscript && !transcriptOnly ? 150 : 100);
     setAnnouncement(
       correct
-        ? 'Correct. The recording confirms it.'
-        : `Not quite. The recording said "${cur.options[cur.answerIndex]}".`,
+        ? `Correct. The ${transcriptOnly ? 'transcript' : 'recording'} confirms it.`
+        : `Not quite. The ${transcriptOnly ? 'transcript says' : 'recording said'} "${cur.options[cur.answerIndex]}".`,
     );
     if (!questionFinalised) {
       setSeen((s) => Math.min(s + 1, total));
@@ -495,7 +505,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
 
   const reset = () => {
     setStudentPicks({}); setAllWrongAttempts([]); setCompletedFired(false);
-    audioRef.current?.pause(); setIsPlaying(false); setAudioPosition(0); setShowTranscript(false); setHasListened(false);
+    audioRef.current?.pause(); setIsPlaying(false); setAudioPosition(0); setShowTranscript(transcriptOnly); setHasListened(false);
     arcade.reset();
     setIdx(0); setPicked(null); setRevealed(false); setSeen(0); setSolved(0);
     setHintsUsed(0); setHintShown(false); setQuestionFinalised(false);
@@ -627,8 +637,8 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
           zIndex: 3,
         }}
       >
-        <ChallengeMission title="Catch the signal. Decode the message." detail="Correct answers without the transcript earn 150 base points. Use slower playback whenever you need it." current={solved} total={total}>
-          <button type="button" aria-pressed={slowPlayback} disabled={isPlaying} onClick={() => setSlowPlayback(v => !v)}>{slowPlayback ? '0.8× · Slower playback' : '1× · Normal playback'}</button>
+        <ChallengeMission title="Catch the signal. Decode the message." detail={transcriptOnly ? 'Read the transcript and answer the questions. Correct answers earn 100 base points.' : 'Correct answers without the transcript earn 150 base points. Use slower playback whenever you need it.'} current={solved} total={total}>
+          {!transcriptOnly && <button type="button" aria-pressed={slowPlayback} disabled={isPlaying} onClick={() => setSlowPlayback(v => !v)}>{slowPlayback ? '0.8× · Slower playback' : '1× · Normal playback'}</button>}
         </ChallengeMission>
         {/* BOOTH — vinyl + on-air + waveform */}
         <div
@@ -653,7 +663,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
           {/* ON AIR sign */}
           <div
             role="status"
-            aria-label={isPlaying ? 'Now playing' : 'Idle'}
+            aria-label={transcriptOnly ? 'Transcript mode' : isPlaying ? 'Now playing' : 'Ready to play'}
             style={{
               position: 'absolute',
               top: 16,
@@ -671,7 +681,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
               animation: isPlaying ? 'em-lc-onair 1.6s var(--em-ease) infinite' : 'none',
             }}
           >
-            ON AIR
+            {transcriptOnly ? 'TRANSCRIPT' : 'ON AIR'}
           </div>
 
           {/* Vinyl */}
@@ -787,45 +797,45 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
 
           <div className={`challenge-wave ${isPlaying ? 'is-playing' : ''}`} aria-hidden="true">{Array.from({length:32},(_,i)=><i key={i} style={{height:`${14+i*19%36}px`,animationDelay:`${i*-.08}s`,background:i/32 < audioPosition ? '#f1d68a' : '#869acd'}} />)}</div>
           {/* Audio element + play/transcript controls */}
-          <audio
+          {activePuzzle.audio_url && <audio
             ref={audioRef}
             onTimeUpdate={e => setAudioPosition(Number.isFinite(e.currentTarget.duration) && e.currentTarget.duration > 0 ? e.currentTarget.currentTime / e.currentTarget.duration : 0)}
             preload="none"
             onEnded={() => setIsPlaying(false)}
-            onError={() => setAudioFailed(true)}
+            onError={showAudioFallback}
             aria-label="Listening booth recording"
           >
-            <source src={activePuzzle.audio_url} type="audio/mpeg" />
+            <source src={activePuzzle.audio_url} type="audio/mpeg" onError={event => { event.stopPropagation(); sourceFailed(activePuzzle.audio_url); }} />
             {activePuzzle.audio_url_alt && (
-              <source src={activePuzzle.audio_url_alt} type="audio/ogg" />
+              <source src={activePuzzle.audio_url_alt} type="audio/ogg" onError={event => { event.stopPropagation(); sourceFailed(activePuzzle.audio_url_alt!); }} />
             )}
-          </audio>
+          </audio>}
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
             <button
               type="button"
               onClick={playAudio}
-              disabled={playsRemaining <= 0 || isPlaying || !!forcedState}
-              aria-label={`Play recording, ${playsRemaining} plays remaining`}
+              disabled={(!transcriptOnly && playsRemaining <= 0) || isPlaying || !!forcedState}
+              aria-label={transcriptOnly ? 'Read transcript' : `Play recording, ${playsRemaining} plays remaining`}
               style={{
                 padding: '12px 22px',
                 borderRadius: 999,
                 background:
-                  playsRemaining > 0 && !isPlaying
+                  canPlay && !isPlaying
                     ? `linear-gradient(180deg, ${ACCENT}, #6F4FBF)`
                     : 'rgba(255,255,255,0.06)',
-                color: playsRemaining > 0 ? '#1A0F2E' : 'var(--em-text-muted)',
+                color: canPlay ? '#1A0F2E' : 'var(--em-text-muted)',
                 border: `1px solid ${ACCENT}66`,
                 fontFamily: 'var(--em-display)',
                 fontWeight: 700,
                 fontSize: 14,
-                cursor: playsRemaining > 0 && !isPlaying ? 'pointer' : 'not-allowed',
-                opacity: playsRemaining <= 0 ? 0.5 : 1,
+                cursor: canPlay && !isPlaying ? 'pointer' : 'not-allowed',
+                opacity: canPlay ? 1 : 0.5,
                 minHeight: 44,
-                boxShadow: playsRemaining > 0 ? `0 6px 18px ${ACCENT}66` : 'none',
+                boxShadow: canPlay ? `0 6px 18px ${ACCENT}66` : 'none',
               }}
             >
-              ▶ {isPlaying ? 'Playing…' : playsRemaining > 0 ? `Play (${playsRemaining} left)` : 'No plays left'}
+              {transcriptOnly ? 'Read transcript · Przeczytaj' : `▶ ${isPlaying ? 'Playing…' : playsRemaining > 0 ? `Play (${playsRemaining} left)` : 'No plays left'}`}
             </button>
             <button
               type="button"
@@ -849,7 +859,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
             </button>
           </div>
 
-          {audioFailed && (
+          {transcriptOnly && (
             <div
               role="alert"
               style={{
@@ -864,7 +874,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
                 textAlign: 'center',
               }}
             >
-              Audio could not load — transcript shown below for accessibility.
+              {activePuzzle === LC_PUZZLE ? 'This demo has no audio recording. Read the transcript to answer every question. / Demo bez nagrania — odpowiedzi znajdziesz w transkrypcji.' : 'Audio is unavailable. Use Read transcript to answer the questions. / Nagranie niedostępne — skorzystaj z transkrypcji.'}
             </div>
           )}
 
@@ -940,7 +950,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
               {cur.prompt}
             </div>
 
-            <Challenge3D game="ListeningComp" items={cur.options.map((label,i)=>({id:String(i),label,state:revealed && i===cur.answerIndex?'right':revealed && i===picked?'wrong':'idle'}))} roundKey={cur.id} locked={revealed || completed || !!forcedState} onPick={id=>choose(Number(id))} signal={isPlaying ? audioPosition : 0} onAction={playAudio} actionLabel={audioFailed ? "Read transcript" : "Tune in · Play recording"} actionDisabled={playsRemaining <= 0 || isPlaying} />
+            <Challenge3D game="ListeningComp" items={cur.options.map((label,i)=>({id:String(i),label,state:revealed && i===cur.answerIndex?'right':revealed && i===picked?'wrong':'idle'}))} roundKey={cur.id} locked={revealed || completed || !!forcedState} onPick={id=>choose(Number(id))} signal={isPlaying ? audioPosition : 0} onAction={playAudio} actionLabel={transcriptOnly ? "Read transcript" : "Tune in · Play recording"} actionDisabled={(!transcriptOnly && playsRemaining <= 0) || isPlaying} />
 
             {hintShown && !revealed && (
               <div
@@ -1004,7 +1014,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
         >
           <Bajla size={84} mood="cheer" decorative />
           <div className="em-decor" style={{ fontSize: 38, color: ACCENT, textShadow: `0 0 20px ${ACCENT}aa` }}>
-            The recording stops.
+            {transcriptOnly ? 'The message is complete.' : 'The recording stops.'}
           </div>
           <div className="em-eyebrow">BOOTH CLOSED · KABINA ZAMKNIĘTA</div>
           <div style={{ display: 'flex', gap: 24, alignItems: 'baseline', marginTop: 8 }}>
@@ -1018,7 +1028,7 @@ export const ListeningCompShell: React.FC<ListeningCompShellProps> = ({
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button className="em-btn em-btn-ghost" onClick={reset} aria-label="Try another recording">
+            <button className="em-btn em-btn-ghost" onClick={reset} aria-label={transcriptOnly ? 'Read the transcript again' : 'Try another recording'}>
               Try another
             </button>
           </div>
