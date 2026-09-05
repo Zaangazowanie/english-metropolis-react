@@ -150,7 +150,12 @@ export class Progress {
     st.days = st.last === todayKey(y) ? (st.days | 0) + 1 : 1;
     st.last = t;
   }
-  get streak() { const st = this.state.streak; return st.last === todayKey() || (() => { const y = new Date(); y.setDate(y.getDate() - 1); return st.last === todayKey(y); })() ? st.days | 0 : 0; }
+  // consecutive play days; 0 once a whole day has been skipped
+  get streak() {
+    const st = this.state.streak;
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    return st.last === todayKey() || st.last === todayKey(y) ? st.days | 0 : 0;
+  }
 
   // ---------- circuits (districts + hub) ----------
   circuit(code) {

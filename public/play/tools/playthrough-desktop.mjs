@@ -310,7 +310,8 @@ check('Escape closes the ceremony', !(await ev(() => window.__EM.ui.overlay.isOp
 await page.keyboard.press('m'); await frames(2); await shot('19-map-stamped');
 check('map open; stamped station drawn', await ev(() => window.__EM.ui.mapOpen));
 // map click off-platform keeps the map open
-await ev(() => { const em = window.__EM; const z = em.zones.zones[20]; em.player.pos.set(z.center.x + 12, 0, z.center.y + 12); em.player.vel.set(0, 0, 0); em.step(2); });
+// deep in the district, 36 m from its platform (center + 12 was inside the 12 m ride radius of that same stop)
+await ev(() => { const em = window.__EM; const z = em.zones.zones[20]; em.player.pos.set(z.center.x + z.perp.x * z.side * 10, 0, z.center.y + z.perp.y * z.side * 10); em.player.vel.set(0, 0, 0); em.step(2); });
 const target = await ev(() => { const em = window.__EM; const z = em.zones.zones[20]; const c = document.getElementById('citymap-canvas'); const r = c.getBoundingClientRect(); const W = c.width, C = W / 2, S = W / 920; return { x: r.left + (C + z.stopPos.x * S) * (r.width / W), y: r.top + (C + z.stopPos.y * S) * (r.height / W) }; });
 await page.mouse.click(target.x, target.y); await page.waitForTimeout(400);
 const refused = await ev(() => ({ mapOpen: window.__EM.ui.mapOpen, zone: window.__EM.zones.current?.data?.code, toasts: [...window.__EM.ui.toasts.recent, ...window.__EM.ui.toasts.queue.map(t => t.text)] }));

@@ -42,7 +42,9 @@ export class UI {
     this.isTouch = () => document.body.classList.contains('touch');
 
     const ov = this.overlay;
-    ov.register('welcome', { el: this.$('welcome'), modal: true, escapable: false, exclusive: true });
+    // Escape on the tour = skip it (and remember that, like the skip button)
+    ov.register('welcome', { el: this.$('welcome'), modal: true, exclusive: true,
+      hide: () => { try { localStorage.setItem('em_welcome', '1'); localStorage.setItem('em_guide_seen', '1'); } catch {} this._guideSeen = true; } });
     ov.register('dialog', { el: null, modal: true, exclusive: true, hide: () => this._dialogHidden() });
     ov.register('metro', { el: this.$('metro') });
     ov.register('citymap', { el: this.$('citymap'), hide: () => { this._mapAnim = false; } });
@@ -679,26 +681,32 @@ export class UI {
     const justStamped = this._justStamped; this._justStamped = null;
     let animT0 = performance.now();
 
+    // The two districts at one stop share a station dot, so their labels sit
+    // on their own side of the line (side -1 left, +1 right) at dot height,
+    // instead of stacking above it; stops are 42 m ≈ 24 px apart so a 20 px
+    // label per side never collides with its neighbour.
     const label = (z, strong) => {
       const hx = px(z.stopPos.x), hy = pz(z.stopPos.y);
       ctx.font = `${strong ? '700 15px' : '600 13px'} 'Space Grotesk', sans-serif`;
       const name = z.data.zoneName;
       const wpx = ctx.measureText(name).width + 16;
-      const bx = Math.min(Math.max(hx - wpx / 2, 4), W - wpx - 4);
-      const by = hy > 40 ? hy - (strong ? 40 : 34) : hy + 12;
+      const h = strong ? 26 : 20;
+      const right = z.side > 0;
+      const bx = Math.min(Math.max(right ? hx + 10 : hx - 10 - wpx, 4), W - wpx - 4);
+      const by = Math.min(Math.max(hy - h / 2, 4), W - h - (strong ? 24 : 4));
       ctx.fillStyle = strong ? 'rgba(42,30,18,0.94)' : 'rgba(42,30,18,0.78)';
-      ctx.fillRect(bx, by, wpx, strong ? 26 : 20);
+      ctx.fillRect(bx, by, wpx, h);
       ctx.fillStyle = '#f6ead2';
       ctx.fillText(name, bx + 8, by + (strong ? 18 : 14));
       if (strong) {
         ctx.font = "13px 'Space Grotesk', sans-serif";
         const sub = `${z.data.dialect} · ${LINE_NAMES[z.lineKey]}`;
         const w2 = ctx.measureText(sub).width + 16;
-        const bx2 = Math.min(Math.max(hx - w2 / 2, 4), W - w2 - 4);
+        const bx2 = Math.min(Math.max(right ? hx + 10 : hx - 10 - w2, 4), W - w2 - 4);
         ctx.fillStyle = 'rgba(42,30,18,0.9)';
-        ctx.fillRect(bx2, by + 26, w2, 20);
+        ctx.fillRect(bx2, by + h, w2, 20);
         ctx.fillStyle = '#f3dca6';
-        ctx.fillText(sub, bx2 + 8, by + 40);
+        ctx.fillText(sub, bx2 + 8, by + h + 14);
       }
     };
 

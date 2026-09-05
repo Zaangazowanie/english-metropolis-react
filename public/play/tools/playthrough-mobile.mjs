@@ -50,6 +50,9 @@ await page.waitForFunction(() => getComputedStyle(document.querySelector('#loadi
 await ev((t) => { window.__EM.quality.setManual(t); window.__EM.ui.voice.speak = () => {}; }, process.env.TIER || 'medium');
 await frames(2);
 check('welcome tour shows on first visit', await ev(() => window.__EM.ui.welcomeOpen));
+await page.keyboard.press('Escape'); await page.waitForTimeout(150);
+check('Escape skips the welcome tour and remembers it', !(await ev(() => window.__EM.ui.welcomeOpen)) && (await ev(() => localStorage.getItem('em_welcome'))) === '1');
+await ev(() => window.__EM.ui.showWelcome({ force: true })); await page.waitForTimeout(150);
 check('welcome tour text ≥ 13px', (await smallText()).length === 0, await smallText());
 await shot('01-welcome');
 for (let i = 0; i < 7; i++) { if (!(await ev(() => window.__EM.ui.welcomeOpen))) break; await page.locator('#welcome-next').tap(); await page.waitForTimeout(150); }
