@@ -53,11 +53,11 @@ const PRESETS = {
   },
   night: {
     sunColor: 0x9fb4ff, sunIntensity: 0.62, sunEl: 36 * DEG, sunAz: -128 * DEG,
-    hemiSky: 0x6e7ad6, hemiGround: 0x2a1c44, hemiIntensity: 0.55, shadowIntensity: 0.9,
+    hemiSky: 0x7280dc, hemiGround: 0x2e2050, hemiIntensity: 0.68, shadowIntensity: 0.88,
     skyTop: 0x050816, skyMid: 0x182a56, skyBot: 0x5b3f8a, glow: 0xff5c9a, glowStrength: 0.42,
     sunDisc: 0.35, stars: 1,
     fogMul: 1.0, fogHighFloor: 0.36,
-    exposure: 1.06, bloomThreshold: 0.78, bloomStrength: 0.82,
+    exposure: 1.14, bloomThreshold: 0.76, bloomStrength: 0.9,
     emissiveGain: 2.15, windowLit: 0.46, windowGlow: 0.82, wet: 0.85, cloudShadow: 0.10,
     rimColor: 0x7fd9ff, rimStrength: 0.3,
     ink: 0x0a0a22, shadowTint: [0.9, 0.93, 1.06], highTint: [1.05, 0.99, 0.96], saturation: 1.06,
@@ -293,7 +293,7 @@ export class Daylight {
     const el = Math.max(0.12, this.cur.sunEl);
     const stretch = THREE.MathUtils.clamp(1 / Math.sqrt(Math.sin(el)), 1, 1.6);
     const sNear = 24 * stretch;
-    const sFar = 78 * stretch;
+    const sFar = 54 * stretch;
     camera.getWorldDirection(this._fwd);
     this._basis.lookAt(this.sunDir, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0));
     this._inv.copy(this._basis).invert();
@@ -304,22 +304,38 @@ export class Daylight {
     }
   }
 
-  // The far cascade covers ~190 m and would otherwise re-draw every 25k-triangle
-  // local in the district. Its shadow camera lives on layer 1, and only large
-  // static casters (batched district shells, terrain, instanced kits, big
-  // props) are enabled there; people and small props cast in the near cascade
-  // alone, which is the only place their shadow could be read anyway.
+  // The far cascade covers ~130 m and would otherwise re-draw every
+  // 25k-triangle local and every small prop in the district (+120 draw calls
+  // at the hub). three consults object.castShadow per light pass, so the two
+  // shadow lights mark which pass is running (via updateMatrices, which runs
+  // at the start of each light's pass) and small / skinned casters answer
+  // "no" to the far one. Their shadows only ever read up close, where the near
+  // cascade already draws them.
   _sweepFarCasters() {
+    if (!this._farPass) {
+      const flag = this._farPass = { active: false };
+      const nearBase = this.sun.shadow.updateMatrices.bind(this.sun.shadow);
+      const farBase = this.sunFar.shadow.updateMatrices.bind(this.sunFar.shadow);
+      this.sun.shadow.updateMatrices = (light) => { flag.active = false; nearBase(light); };
+      this.sunFar.shadow.updateMatrices = (light) => { flag.active = true; farBase(light); };
+    }
     this._sweepT = (this._sweepT || 0) + 1;
     if (this._sweepT % 90 !== 1) return;
-    this.sunFar.shadow.camera.layers.set(1);
+    const flag = this._farPass;
     this.scene.traverse((o) => {
-      if (!o.isMesh || !o.castShadow || o.isSkinnedMesh || o.userData.emFarChecked) return;
+      if (!o.isMesh || !o.castShadow || o.userData.emFarChecked) return;
       o.userData.emFarChecked = true;
       const g = o.geometry;
       if (!g.boundingSphere) g.computeBoundingSphere();
       const r = g.boundingSphere ? g.boundingSphere.radius * Math.max(o.scale.x, o.scale.y, o.scale.z) : 0;
-      if (o.isInstancedMesh || r > 2.5) o.layers.enable(1);
+      const nearOnly = o.isSkinnedMesh || (!o.isInstancedMesh && r < 2.5);
+      if (!nearOnly) return;
+      let own = o.castShadow;
+      Object.defineProperty(o, 'castShadow', {
+        configurable: true, enumerable: true,
+        get: () => own && !flag.active,
+        set: (v) => { own = v; },
+      });
     });
   }
 

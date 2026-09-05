@@ -71,9 +71,10 @@ export class Player {
     this.root.add(blobShadow(0.62));
     scene.add(this.root);
 
-    // Spawn on the plaza ring, ~9 m out, facing Conductor Clara (-3.5, -9)
-    // across open paving — the first thing a new player does is walk to her.
-    this.pos = new THREE.Vector3(-10, 0, 3);
+    // Spawn on the plaza ring, ~8 m out beside PRON-3000, facing Conductor
+    // Clara (-3.5, -9) across open paving (no bench, slab or beacon on the
+    // line) — the first thing a new player does is walk to her.
+    this.pos = new THREE.Vector3(4.5, 0, -6);
     this.pos.collisionRadius = PLAYER_R;
     this.vel = new THREE.Vector3();
     this.heading = Math.atan2(-3.5 - this.pos.x, -9 - this.pos.z);   // model facing
@@ -236,7 +237,7 @@ const IDLE_TILT_AFTER = 3.0;      // seconds standing still before the camera dr
 export class FollowCamera {
   constructor(camera) {
     this.camera = camera;
-    this.yaw = -0.5;             // behind the spawn point, looking across the plaza at Clara
+    this.yaw = 1.212;            // behind the spawn point, looking across the plaza at Clara
     this.pitch = 0.3;
     this.dist = 5.4;
     this.armLength = this.dist;
@@ -430,12 +431,14 @@ export class FollowCamera {
         const dot = (this.cur.x - playerPos.x) * this._b.x + (this.cur.z - playerPos.z) * this._b.z;
         this.convoSide = dot >= 0 ? 1 : -1;
       }
+      // aim a little below the heads so both faces sit in the upper half of
+      // the frame, clear of the dialog panel along the bottom
       this.convoTarget.set(
         (playerPos.x + pp.x) * 0.5,
-        (headP + headN) * 0.5 - 0.1,
+        (headP + headN) * 0.5 - 0.55,
         (playerPos.z + pp.z) * 0.5,
       );
-      const arm = 3.2;
+      const arm = 3.0;
       this.convoPos.set(
         playerPos.x - this._a.x * arm * 0.72 + this._b.x * this.convoSide * arm * 0.55,
         headP + Math.sin(0.12) * arm + 0.25,

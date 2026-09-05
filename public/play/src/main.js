@@ -431,9 +431,9 @@ const rideTo = (dest) => {
       // into the follow cam over ~1.8 s
       followCam.startDolly({ fromPitch: 0.55, fromDist: 14, toPitch: 0.22, toDist: 5.4, duration: 1.8, fromYaw: bestYaw + 0.45, toYaw: bestYaw });
     } else {
-      player.pos.set(-10, 0, 3);
-      player.heading = Math.atan2(-3.5 + 10, -9 - 3);
-      followCam.yaw = Math.atan2(-(-3.5 + 10), -(-9 - 3));   // camera behind Wren, looking at Clara
+      player.pos.set(4.5, 0, -6);
+      player.heading = Math.atan2(-3.5 - 4.5, -9 + 6);
+      followCam.yaw = Math.atan2(-(-3.5 - 4.5), -(-9 + 6));  // camera behind Wren, looking at Clara
       followCam.pitch = 0.3;
       player.vel.set(0, 0, 0);
       zoneMgr.update(player.pos, world.colliders);
