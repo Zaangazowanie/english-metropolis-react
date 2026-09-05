@@ -4,7 +4,7 @@
 // Everything goes into the district's buckets (no extra draw calls).
 import * as THREE from 'three';
 import { box, cyl, sphere, cone, prism, ribbon, faceQuad, FACES } from './shapes.js';
-import { placeInto, IRON, CHROME, BRASS, WOOD, STONE, lamp, bench, awning } from './street.js';
+import { placeInto, IRON, CHROME, BRASS, WOOD, STONE } from './street.js';
 
 const KINDS = [
   [/footbridge|ha'penny|iron bridge|bridge/i, 'footbridge'],

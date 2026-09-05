@@ -1,8 +1,7 @@
 // Detailed three-car Metro trams, batched by material so the richer geometry
 // stays inexpensive. One train runs each line.
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { neonMat, toonMat, toonVertexMat, GeoBatch } from './materials.js';
+import { toonVertexMat, GeoBatch } from './materials.js';
 import { LINES } from './zones.js';
 import { BOULEVARD } from './transit-layout.js';
 import { glassToon, emissiveMat, CHROME } from './kit/street.js';

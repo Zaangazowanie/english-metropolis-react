@@ -607,11 +607,12 @@ export class ZoneManager {
       bg: country === 'us' ? '#1f6b3a' : '#f5f2ff', fg: country === 'us' ? '#f5f2ff' : '#10172b' });
 
     mark('ground');
-    yield B;
+    yield B; tMark = performance.now();
     // ---- facades, one building per step
     const zoneColliders = [];
-    for (const step of this.facadeSteps(B, slots, rng, T, arch, signs, z)) { zoneColliders.push(...step); yield B; }
-    mark('facades');
+    let facadeMs = 0;
+    for (const step of this.facadeSteps(B, slots, rng, T, arch, signs, z)) { zoneColliders.push(...step); facadeMs += performance.now() - tMark; yield B; tMark = performance.now(); }
+    prof.facades = +facadeMs.toFixed(1);
 
     // ---- landmark: the vista at the far end of the centre street
     const lmKind = landmarkKindFor(z.data);
@@ -725,7 +726,7 @@ export class ZoneManager {
     }
 
     mark('furniture');
-    yield B;
+    yield B; tMark = performance.now();
     // ---- build the buckets into ≤ 9 meshes
     const occluders = slots.map((s) => ({ x: s.x, z: s.z, hw: s.w / 2, hd: s.d / 2 }));
     const meshes = buildBuckets(B, {
@@ -740,7 +741,7 @@ export class ZoneManager {
       g.add(m);
     }
     mark('merge+ao');
-    yield null;
+    yield null; tMark = performance.now();
 
     // orient district: face the boulevard
     const yaw = Math.atan2(z.perp.x * z.side, z.perp.y * z.side);

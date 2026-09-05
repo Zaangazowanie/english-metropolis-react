@@ -7,8 +7,8 @@
 // `architecture` text, so a Georgian terrace, a Kingston yard and a Cape Flats
 // street build from different rules — all into the same handful of buckets.
 import * as THREE from 'three';
-import { box, cyl, sphere, cone, prism, faceQuad, wallWithOpenings, orientFace, uvCell, jitterColor, bandColor, mergeAll, FACES } from './shapes.js';
-import { awning, fine, mid, IRON, CHROME, BRASS, WOOD, STONE } from './street.js';
+import { box, cyl, sphere, cone, prism, wallWithOpenings, orientFace, uvCell, jitterColor, bandColor, mergeAll, FACES } from './shapes.js';
+import { awning, fine, mid, BRASS, WOOD } from './street.js';
 
 // ------------------------------------------------------------ archetypes
 const ARCH_KEYWORDS = [
