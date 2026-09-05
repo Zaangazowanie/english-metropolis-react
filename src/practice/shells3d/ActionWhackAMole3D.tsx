@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { MathUtils } from 'three';
 import type { Group } from 'three';
-import { Stage, Box, Orb, Ring, Label, Instances } from './action-arcade-scene-kit';
+import { HoverTarget, Stage, Box, Orb, Ring, Label, Instances } from './action-arcade-scene-kit';
 import type { ActionActor, ActionSceneData, DetailBlock } from './action-arcade-scene-kit';
 function Mole({a,p}:{a:ActionActor;p:ActionSceneData}){
   const ref=useRef<Group>(null);const visible=['up','rising','whacked'].includes(a.state??'');
@@ -12,7 +12,7 @@ function Mole({a,p}:{a:ActionActor;p:ActionSceneData}){
     <Box at={[0,-.25,0]} size={[1.4,.3,1.55]} color={a.id%2?'#006de2':'#6b00cf'}/>
     <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.08,0]}><circleGeometry args={[.47,24]}/><meshStandardMaterial color="#191724"/></mesh>
     <Ring radius={.49} rotation={[-Math.PI/2,0,0]} color={visible?'#ffce00':'#00cfff'}/>
-    <group ref={ref} position={[0,-.6,0]} visible={a.state!=='down'} onPointerDown={e=>{e.stopPropagation();if(a.enabled!==false)p.onPick?.(a.id);}}>
+    <HoverTarget enabled={a.enabled!==false&&visible} reduced={p.reducedMotion} radius={.55} at={[0,.48,.4]}><group ref={ref} position={[0,-.6,0]} visible={a.state!=='down'} onPointerDown={e=>{e.stopPropagation();if(a.enabled!==false)p.onPick?.(a.id);}}>
       <Orb radius={.34} scale={[1,1.12,1]} color={a.state==='whacked'?'#00de79':'#b600ec'}/><Orb at={[0,.15,.22]} radius={.21} scale={[1.2,.9,.6]} color="#ffb542"/>
       <Orb at={[-.12,.22,.35]} radius={.054} color="#101330"/><Orb at={[.12,.22,.35]} radius={.054} color="#101330"/><Orb at={[0,.11,.37]} radius={.064} color="#ff2e7c"/>
       <Instances blocks={[
@@ -22,7 +22,7 @@ function Mole({a,p}:{a:ActionActor;p:ActionSceneData}){
         {at:[0,-.07,.31],size:[.35,.085,.035],color:'#ffcf00'},
       ]}/><Orb at={[0,.47,.17]} radius={.06} color="#ffda00"/>
       <Label at={[0,.8,0]} text={String(a.id+1)} number selected={a.selected}/>
-    </group>
+    </group></HoverTarget>
     {a.label&&<Label at={[0,.05,.74]} text={a.label} selected={a.selected}/>}
   </group>;
 }

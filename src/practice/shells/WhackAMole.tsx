@@ -517,7 +517,8 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       if (!interactionRef.current?.contains(event.target as Node)) return;
-      if ((event.target as HTMLElement)?.closest('input,textarea,select')) return;
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      if ((event.target as HTMLElement).isContentEditable || (event.target as HTMLElement)?.closest('input,textarea,select,[contenteditable="true"],[role="dialog"]')) return;
       const hole = Number(event.key) - 1;
       if (hole >= 0 && hole < HOLES) { const i = moleSlots[hole]; if (i >= 0 && (moles[i].state === 'up' || moles[i].state === 'rising')) { event.preventDefault(); whack(i); } }
     };
@@ -625,7 +626,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
 
           <div className="action-arcade-hud" style={{ margin: '12px 24px 0' }}><div><strong>{points} POINTS</strong><small>{reaction !== null ? `Caught in ${(reaction / 1000).toFixed(2)}s. ${reaction < 1100 && !precision && !reduceMotion ? 'Quick catch +50 bonus!' : 'Station cleared.'}` : 'Catch the correct conductor. Quick catches earn 50 bonus points. Press 1–6 or tap a mole.'}</small></div><button disabled={roundLocked} aria-pressed={precision} onClick={() => setPrecision(v => !v)}>{precision || reduceMotion ? 'Focus · steady targets' : 'Arcade · moving targets'}</button></div>
           {/* Platform with mole holes */}
-          <ActionPlayfield3D kind="whackamole" data={{
+          <ActionPlayfield3D kind="whackamole" onShortcut={key=>{if(key!=='f'||forcedState||completed||roundLocked)return false;setPrecision(v=>!v);return true;}} data={{
             reducedMotion: reduceMotion, running: started,
             selected: moleSlots.map(index => moles[index]).find(mole => mole?.state === 'whacked')?.holeIdx,
             onPick: hole => { const index = moleSlots[hole]; if (index >= 0) whack(index); },
@@ -635,7 +636,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
             }),
           }} controls={<>{moleSlots.map((index, hole) => {
             const mole = moles[index];
-            return <button key={hole} disabled={!started || roundLocked || (mole?.state !== 'up' && mole?.state !== 'rising')} onClick={() => whack(index)}>{hole + 1} · {mole?.word ?? 'Empty'}</button>;
+            return <button key={hole} disabled={!started || roundLocked || (mole?.state !== 'up' && mole?.state !== 'rising')} onClick={() => whack(index)}><kbd>{hole + 1}</kbd>{mole?.word ?? 'Empty'}</button>;
           })}</>} />
 
           {/* START · ROZPOCZNIJ overlay (Ricky 2026-05-02, CD audit §5.5

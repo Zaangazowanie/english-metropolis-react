@@ -42,6 +42,28 @@
 /* Projected controls share the canvas origin but live outside its aria-hidden layer. */
 .word3d-label-layer {position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}
 .word3d-label-layer button {pointer-events:auto}
+.word3d-label,.word3d-grid-letter {transition:color .15s,background .15s,box-shadow .15s,border-color .15s}
+.word3d-label:not(:disabled):hover,.word3d-label[data-hovered=true] {background:#16398f;border-color:#91f4ff;box-shadow:0 0 0 2px #00dfff66,0 0 18px #00dfff55;color:#fff}
+.word3d-label.is-letter:not(:disabled):hover {background:#075984aa;border-radius:5px}
+.word3d-grid-letter:hover,.word3d-grid-letter:focus-visible {background:#053a7199;box-shadow:0 0 0 2px #7bedff,0 0 16px #00d9ff88;border-radius:4px;color:#fff}
+.word3d-grid-letter[data-hint=true] {outline:3px solid #fff08a;box-shadow:0 0 18px #ffce00;animation:word-hint-beacon 1s ease-in-out 3}
+.word3d-grid-letter[data-done=true] {color:#e5fff3;text-shadow:0 0 7px #00ffa8}
+.wordsearch-3d-controls {width:100%;min-width:0}
+.wordsearch-3d-controls .word3d-viewport,.wordsearch-3d-controls .word3d-grid-letter,.wordsearch-3d-controls canvas {touch-action:none;user-select:none}
+.word3d-play-guide {display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:13px 15px;background:#0d1d40;color:#e1ecff;border:1px solid #206396;border-bottom:0;border-radius:12px 12px 0 0;font:12px/1.6 var(--em-body)}
+.word3d-play-guide b {display:inline-grid;place-items:center;width:22px;height:22px;margin-right:5px;border-radius:6px;background:#006dd8;color:#fff;box-shadow:inset 0 1px #96f7ff}
+.word3d-play-guide small {flex-basis:100%;color:#afccec;font-size:11px}
+.word3d-play-guide kbd,.wordsearch-trail-readout kbd {font:10px var(--em-mono);padding:3px 5px;border:1px solid #6486b8;border-bottom-width:2px;border-radius:4px;color:#e6faff;background:#122e50}
+.wordsearch-trail-readout {display:flex;align-items:center;gap:10px;padding:14px 16px;margin-top:8px;border:1px solid #197e9c;border-radius:12px;background:linear-gradient(100deg,#07374a,#101532);box-shadow:inset 3px 0 #00e8fa;color:#e9f8ff}
+.wordsearch-trail-readout>div {min-width:0;flex:1}
+.wordsearch-trail-readout small {display:block;font:10px var(--em-mono);letter-spacing:.13em;color:#68e9fc}
+.wordsearch-trail-readout strong {display:block;font:700 20px/1.5 var(--em-mono);overflow-wrap:anywhere;letter-spacing:.12em;color:#fff1ac}
+.wordsearch-trail-readout span {display:block;font:12px/1.5 var(--em-body);color:#c8dcf3}
+.wordsearch-trail-readout button {min-height:40px;border:1px solid #63cbe8;border-radius:7px;background:#133e67;color:#fff;padding:8px 12px;cursor:pointer;white-space:nowrap}
+.wordsearch-trail-readout button:disabled {opacity:.4;cursor:default}
+@keyframes word-hint-beacon {50%{box-shadow:0 0 24px #fff08a;outline-color:#fff}}
+@media(max-width:600px){.wordsearch-trail-readout{flex-wrap:wrap}.wordsearch-trail-readout>div{flex-basis:100%}.word3d-play-guide{gap:6px 12px}.wordsearch-trail-readout strong{font-size:17px}}
+@media(prefers-reduced-motion:reduce){.word3d-label,.word3d-grid-letter{transition:none;animation:none!important}}
 @media(max-width:700px) {
   .word3d-viewport {height:380px}
   .word3d-stage>header {padding:8px 12px}

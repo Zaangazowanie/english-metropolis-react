@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
-import { Stage, Box, Orb, Ring, Label, Instances, vividColor } from './action-arcade-scene-kit';
+import { HoverTarget, Stage, Box, Orb, Ring, Label, Instances, vividColor } from './action-arcade-scene-kit';
 import type { ActionActor, ActionSceneData, DetailBlock } from './action-arcade-scene-kit';
 function Fruit({a,p}:{a:ActionActor;p:ActionSceneData}){
   const ref=useRef<Group>(null);const elapsed=useRef(0);
@@ -11,7 +11,7 @@ function Fruit({a,p}:{a:ActionActor;p:ActionSceneData}){
   const color=/^apple|^cherr/.test(literal)?'#ff1245':pear||/^lime/.test(literal)?'#61ed00':/^lemon/.test(literal)?'#ffdb00':/^plum|^grape/.test(literal)?'#a100ee':/^orange/.test(literal)?'#ff7100':/^peach/.test(literal)?'#ff4e51':vividColor(a.color,a.id);
   const x=(a.x-50)*.084,y=4.8-a.y*.053;
   return <group position={[x,y,a.z??0]}>
-    <group ref={ref} visible={!a.hidden||hit} onPointerDown={e=>{e.stopPropagation();if(!p.blade&&a.enabled!==false)p.onPick?.(a.id);}} onPointerMove={e=>{if(p.blade&&e.buttons===1&&a.enabled!==false){e.stopPropagation();p.onPick?.(a.id);}}}>
+    <HoverTarget enabled={a.enabled!==false&&!a.hidden} reduced={p.reducedMotion} radius={.48} at={[0,0,.38]}><group ref={ref} visible={!a.hidden||hit} onPointerDown={e=>{e.stopPropagation();if(!p.blade&&a.enabled!==false)p.onPick?.(a.id);}} onPointerMove={e=>{if(p.blade&&e.buttons===1&&a.enabled!==false){e.stopPropagation();p.onPick?.(a.id);}}}>
       <group rotation={[0,0,(a.rotation??0)*Math.PI/180]}>
         {cherry?<><Orb at={[-.15,-.03,0]} radius={.24} color={color}/><Orb at={[.16,-.06,0]} radius={.24} color={color}/></>:grape?<>{[[0,-.27,0],[-.15,-.07,.08],[.15,-.07,.08],[-.18,.15,0],[.18,.15,0],[0,.16,.18]].map((at,i)=><Orb key={i} at={at as [number,number,number]} radius={.17} color={i%2?'#8100d4':'#ba00f6'}/>)}</>:<Orb radius={.36} scale={lemon?[1.25,.8,.85]:pear?[.9,1.16,.9]:[1,1,1]} color={color}/>}
         {pear&&<Orb at={[0,.2,0]} radius={.2} scale={[.7,1.2,.8]} color={color}/>}
@@ -19,7 +19,7 @@ function Fruit({a,p}:{a:ActionActor;p:ActionSceneData}){
         <Box at={[0,.38,0]} size={[.055,.18,.055]} color="#713000"/><Orb at={[.14,.41,0]} radius={.14} scale={[1.5,.3,.7]} color="#13d900"/>
       </group>
       {a.selected&&<Ring radius={.46} color="#ffdf00"/>}
-    </group>
+    </group></HoverTarget>
     {(!a.hidden||hit)&&<Label at={[0,-.57,0]} text={a.label??''} selected={a.selected}/>}
     {hit&&Array.from({length:6},(_,i)=><Orb key={i} at={[Math.cos(i)*.5,Math.sin(i)*.5,.05]} radius={.06} color={color}/>)}
   </group>;

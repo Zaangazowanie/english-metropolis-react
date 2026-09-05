@@ -490,7 +490,8 @@ export const BattleshipShell: React.FC<BattleshipShellProps> = ({
   // the cursor cell (equivalent to a tap). Only active while the canvas
   // wrapper has focus, so global keypresses (chat boxes etc.) are unaffected.
   const onCanvasKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
-    if (e.target !== e.currentTarget) return;
+    if (e.target !== e.currentTarget && !(e.target as HTMLElement).matches('.action-three-playfield')) return;
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
     if (forcedState || completed) return;
     if (activeCell) return; // a question is open — don't move while answering
     if (e.key === 'ArrowUp')   { e.preventDefault(); setCursor(c => ({ r: Math.max(0, c.r - 1), c: c.c })); }

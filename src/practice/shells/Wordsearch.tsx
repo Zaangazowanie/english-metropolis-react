@@ -1,7 +1,7 @@
 import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
 const WordScene3D = wordLazy(() => import('../shells3d/WordWordsearch3D'));
 // Wordsearch shell — "Neon Market" district.
-// Players drag across glowing neon signs to find words hidden in the marquee.
+// Players click, drag or use the keyboard to trace words hidden in the marquee.
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
 import { WordMission, useWordArcade } from './word-arcade';
@@ -29,58 +29,58 @@ const WORDSEARCH_INSTRUCTIONS: FullInstructions = {
   whatYouDo: {
     en: [
       'A glowing letter grid lights the night market — words are hidden in any direction.',
-      'Drag (or arrow-key + Space) across letters that line up to "switch on" the sign.',
+      'Click each letter in order, click the first and last letters, or drag a straight trail and release.',
       'Words can run horizontally, vertically, or diagonally — forwards or backwards.',
-      'The list of words to find sits beside the grid; each found word lights up cyan.',
+      'The word list sits beside the grid. Complete target words light up; partial clicks are not graded.',
     ],
     pl: [
       'Świecąca siatka liter rozświetla nocny targ — słowa są ukryte we wszystkich kierunkach.',
-      'Przeciągnij (lub strzałki + Spacja) po literach w jednej linii, aby „zaświecić" szyld.',
+      'Klikaj kolejne litery, kliknij pierwszą i ostatnią albo przeciągnij po prostej linii i puść.',
       'Słowa mogą biec poziomo, pionowo lub po skosie — w przód lub wstecz.',
-      'Lista słów do znalezienia jest obok siatki; każde znalezione zapala się na cyjan.',
+      'Lista słów jest obok siatki. Całe znalezione słowa świecą; częściowe zaznaczenia przez klikanie nie są oceniane.',
     ],
   },
   controls: {
     en: [
       'Letter grid: the central marquee — every cell is a letter on a neon sign.',
       'Word list: the panel at the right — each item is a target word with its bilingual hint.',
-      'Cyan dashed cursor: marks where your selection cursor is when using arrow keys.',
-      'Amber anchor marker: the first letter you locked in for the current selection (Space anchors).',
-      'Skip button: jumps to the next puzzle. Hint button: 3 hints — pulses the first letter of an unfound word.',
+      'Tab into the grid, use arrow keys to move focus, and press Enter or Space to select a letter.',
+      'Gold marks the current trail. Escape or Clear cancels it without grading; Check trail submits it.',
+      'Hint marks the first letter of an unfound word; you have 3 hints. Clue hunt hides target words so you can search by meaning.',
     ],
     pl: [
       'Siatka liter: centralny szyld — każda komórka to litera na neonie.',
       'Lista słów: panel po prawej — każda pozycja to docelowe słowo z dwujęzyczną wskazówką.',
-      'Cyjanowy przerywany kursor: pokazuje pozycję kursora przy nawigacji strzałkami.',
-      'Bursztynowy marker kotwicy: pierwsza litera zatwierdzona dla bieżącego zaznaczenia (Spacja kotwiczy).',
-      'Pomiń: przeskakuje do następnej zagadki. Podpowiedź: 3 sztuki — pulsuje pierwszą literę nieznalezionego słowa.',
+      'Przejdź Tabem do siatki, poruszaj się strzałkami i wybieraj litery Enterem lub Spacją.',
+      'Złoty kolor oznacza bieżącą ścieżkę. Escape lub Clear kasuje ją bez oceny; Check trail zatwierdza ją do sprawdzenia.',
+      'Hint zaznacza pierwszą literę nieznalezionego słowa; masz 3 podpowiedzi. Clue hunt ukrywa słowa, by szukać ich na podstawie znaczenia.',
     ],
   },
   rightWrongSkip: {
     en: [
-      'Right line: the word lights cyan, the list item ticks, the marquee plays a brief glow.',
-      'Wrong line: the selection clears with no penalty — try a different angle.',
-      'Skip: counts as wrong and loads the next grid.',
+      'A complete target word is accepted automatically when you finish clicking it or release its drag.',
+      'An invalid trail submitted with Check trail or by releasing a drag counts as a miss and breaks the arcade combo.',
+      'Partial clicks are not graded. Keep extending the straight line, or use Escape or Clear to start again.',
       'Found words stay lit on the grid as a visual record of what you have already hunted.',
     ],
     pl: [
-      'Trafiona linia: słowo zapala się na cyjan, pozycja na liście otrzymuje haczyk, szyld lśni.',
-      'Błędna linia: zaznaczenie znika bez kary — spróbuj innego kąta.',
-      'Pomiń: liczy się jako błąd i ładuje następną siatkę.',
+      'Całe docelowe słowo jest przyjmowane automatycznie po wybraniu jego liter lub puszczeniu przeciąganej ścieżki.',
+      'Błędna ścieżka zatwierdzona przez Check trail lub puszczenie przeciągania liczy się jako pudło i przerywa combo.',
+      'Częściowe zaznaczenia przez klikanie nie są oceniane. Wydłuż prostą linię albo zacznij od nowa przez Escape lub Clear.',
       'Znalezione słowa pozostają zapalone na siatce jako wizualny zapis tego, co już upolowałeś.',
     ],
   },
   hintMechanic: {
     en:
-      'You have 3 hints per session. Each hint pulses the first letter of an unfound word for ~2 seconds. Save them when the grid is mostly noise and you have nothing to grab onto.',
+      'You have 3 hints per session. Each marks the first letter of an unfound target. Follow that letter in a straight line to find the rest of the word; the hint clears when that word is found.',
     pl:
-      'Masz 3 podpowiedzi na sesję. Każda pulsuje pierwszą literą nieznalezionego słowa przez ~2 sekundy. Zachowaj je, gdy siatka jest hałasem i nie masz się czego chwycić.',
+      'Masz 3 podpowiedzi na sesję. Każda zaznacza pierwszą literę nieznalezionego słowa. Szukaj pozostałych liter w linii prostej; zaznaczenie znika po znalezieniu tego słowa.',
   },
   scoring: {
     en:
-      'Skip counts as wrong. Finding every word in the list opens the next market grid. Completing all grids unlocks the post-shell review screen.',
+      'Each newly found word earns 150 base arcade points, multiplied by your current combo. Invalid submitted trails break the combo; partial clicks do not. Finding a word again adds no points. Find every listed word to complete this grid.',
     pl:
-      'Pomiń liczy się jako błąd. Znalezienie wszystkich słów otwiera następną siatkę targu. Ukończenie wszystkich siatek odblokowuje ekran przeglądu.',
+      'Każde nowo znalezione słowo daje 150 punktów bazowych, mnożonych przez bieżące combo. Zatwierdzone błędne ścieżki przerywają combo, a częściowe kliknięcia nie. Ponowne znalezienie słowa nie daje punktów. Znajdź wszystkie słowa z listy, aby ukończyć siatkę.',
   },
   l1Pattern: {
     en:
@@ -382,6 +382,7 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
   const CELL = 42;
 
   const [found, setFound] = useState<number[]>([]);
+  const awardedWords = useRef(new Set<number>());
 
   // Layer-4 (EM-040): accumulate wrong drag attempts during the session.
   // We fire onWrongAnswer ONCE at end-of-shell (in the completion effect
@@ -406,10 +407,10 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
     if (typeof window === 'undefined') return;
     const detail = {
       shellKey: 'wordsearch',
-      brief: 'Drag across letters in any line to light a hidden word.',
-      brief_pl: 'Przeciągnij po literach w dowolnej linii, aby zaświecić ukryte słowo.',
-      detail: 'A grid of letters hides the words listed beside it. Drag from the first letter to the last along any straight line — horizontal, vertical, or diagonal — to highlight a word. Found words light up; mistakes simply release. The list shows clues to keep you reading the meaning, not just hunting letter-by-letter.',
-      detail_pl: 'Siatka liter ukrywa słowa z listy obok. Przeciągnij od pierwszej litery do ostatniej po linii prostej — poziomo, pionowo lub po skosie — aby podświetlić słowo. Znalezione świecą; błędy po prostu się resetują. Lista pokazuje wskazówki, żebyś czytał znaczenia, a nie tylko szukał liter.',
+      brief: 'Click letters, select both ends, or drag a straight trail to find a word.',
+      brief_pl: 'Klikaj litery, wybierz oba końce lub przeciągnij po prostej, aby znaleźć słowo.',
+      detail: 'Find the listed words horizontally, vertically or diagonally, in either direction. Click letters in order, click both endpoints, or drag and release. Tab enters the grid; arrows move focus, Enter or Space selects, and Escape clears. Complete targets are accepted automatically. Partial clicks are not graded, but an invalid Check trail or released drag counts as a miss and breaks your arcade combo.',
+      detail_pl: 'Znajdź słowa z listy poziomo, pionowo lub po skosie, w obu kierunkach. Klikaj kolejne litery, wybierz oba końce albo przeciągnij i puść. Tab przechodzi do siatki, strzałki przesuwają fokus, Enter lub Spacja wybiera, a Escape kasuje. Całe słowa są przyjmowane automatycznie. Częściowe kliknięcia nie są oceniane, ale błędne Check trail lub puszczone przeciąganie liczy się jako pudło i przerywa combo.',
       fullInstructions: WORDSEARCH_INSTRUCTIONS,
     };
     window.dispatchEvent(new CustomEvent('em:shell-instruction', { detail }));
@@ -522,8 +523,8 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
     }
     setDrag({ ...drag, current: snapped });
   };
-  const finishSelection = (selection: WSDrag | null) => {
-    if (!selection || forcedState) return;
+  const finishSelection = (selection: WSDrag | null, commit = true): boolean => {
+    if (!selection || forcedState) return false;
     const [r1, c1] = selection.start;
     const [r2, c2] = selection.current;
     const matchIdx = activePuzzle.words.findIndex(
@@ -531,14 +532,15 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
         (w.start[0] === r1 && w.start[1] === c1 && w.end[0] === r2 && w.end[1] === c2) ||
         (w.start[0] === r2 && w.start[1] === c2 && w.end[0] === r1 && w.end[1] === c1),
     );
-    if (matchIdx >= 0 && !found.includes(matchIdx)) {
+    if (matchIdx >= 0 && !found.includes(matchIdx) && !awardedWords.current.has(matchIdx)) {
+      awardedWords.current.add(matchIdx);
       arcade.answer(true,150);
       setFound((f) => [...f, matchIdx]);
       setFeedback('correct');
       setTimeout(() => setFeedback(null), 1000);
       // If the hint was on this word, clear the reveal — it's done its job.
       if (hintReveal === matchIdx) setHintReveal(null);
-    } else if (matchIdx < 0 && (r1 !== r2 || c1 !== c2)) {
+    } else if (commit && matchIdx < 0 && (r1 !== r2 || c1 !== c2)) {
       arcade.answer(false);
       setFeedback('wrong');
       setTimeout(() => setFeedback(null), 800);
@@ -565,6 +567,7 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
       }
     }
     setDrag(null);
+    return matchIdx >= 0;
   };
 
   const onUp = () => finishSelection(drag);
@@ -753,7 +756,7 @@ export const WordsearchShell: React.FC<WordsearchShellProps> = ({ time = 'night'
             </div>
           </div>
 
-          <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D grid={grid} routes={found.map(i=>activePuzzle.words[i])} onTrail={(start,end)=>finishSelection({start,current:end})}/></WordSuspense>
+          <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D grid={grid} routes={found.map(i=>activePuzzle.words[i])} hint={hintReveal===null?null:activePuzzle.words[hintReveal]?.start} onTrail={(start,end,commit)=>finishSelection({start,current:end},commit)}/></WordSuspense>
           <details><summary>Flat grid and keyboard route controls</summary>          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, position: 'relative' }}>
             <div
               ref={gridRef}

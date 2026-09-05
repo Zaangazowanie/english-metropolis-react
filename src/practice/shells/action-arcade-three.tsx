@@ -1,4 +1,4 @@
-import { Component, Suspense, lazy, useState } from 'react';
+import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { ActionSceneData } from '../shells3d/action-arcade-scene-kit';
 import './action-arcade-three.css';
@@ -14,6 +14,19 @@ const scenes = {
   spinthewheel: lazy(() => import('../shells3d/ActionSpinTheWheel3D')),
   randomwheel: lazy(() => import('../shells3d/ActionRandomWheel3D')),
   openthebox: lazy(() => import('../shells3d/ActionOpenTheBox3D')),
+};
+
+const playGuides: Record<keyof typeof scenes, [string, string]> = {
+  openthebox: ['Open a safe. Match the clue to crack its lock.', '1–9 safe · A–D answer · ← → dial · Enter unlock'],
+  spinthewheel: ['Choose your word, then lock it in with a spin.', 'A–D / 1–4 choose · Space spin'],
+  randomwheel: ['Spin for a challenge. Clear every category.', 'Space spin · A–D / 1–4 answer'],
+  whackamole: ['Catch the conductor whose word matches the clue.', '1–6 hole · F focus / arcade · Tab + Enter controls'],
+  balloonpop: ['Launch, then pop the word that matches the clue.', '1–4 balloon · P launch / pause · F freeze'],
+  flyingfruit: ['Catch the matching fruit. Aim at the top for a bonus.', '1–4 fruit · P launch / pause · B blade mode'],
+  airplane: ['Choose the matching gate, then fly through it.', '↑ ↓ / W S steer · P launch / pause'],
+  snake: ['Steer your train into the matching word. Edges wrap.', '↑ ↓ ← → / WASD steer · Space pause / resume'],
+  mazechase: ['Collect the matching word. Lamps protect you from shadows.', '↑ ↓ ← → / WASD move · Tap a path to steer'],
+  battleship: ['Ping the harbour. Solve clues to sink all four ships.', '↑ ↓ ← → aim · Enter / Space ping'],
 };
 
 class LoadBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
@@ -57,22 +70,50 @@ function AccessiblePlayfield({kind,data,hasControls}:{kind:keyof typeof scenes;d
 }
 
 /** The canonical shell owns every run; both renderers share its live state. */
-export function ActionPlayfield3D({ kind, data, controls }: {
+export function ActionPlayfield3D({ kind, data, controls, onShortcut, hud }: {
   kind: keyof typeof scenes;
   data: ActionSceneData;
   controls?: ReactNode;
+  hud?: ReactNode;
+  /** Return true only for a key handled by the canonical shell. */
+  onShortcut?: (key: string) => boolean;
 }) {
   const [failed, setFailed] = useState(false);
+  const field = useRef<HTMLDivElement>(null);
+  const live = useRef({data, onShortcut});
+  live.current = {data, onShortcut};
+  useEffect(() => {
+    const root = field.current?.closest('[role="application"]') ?? field.current;
+    if (!root) return;
+    const handle = (event: Event) => {
+      const e = event as KeyboardEvent;
+      const target = e.target as HTMLElement;
+      if (e.defaultPrevented || e.repeat || e.altKey || e.ctrlKey || e.metaKey || target.isContentEditable || target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return;
+      // Space/Enter on native buttons must keep their usual single activation.
+      if ((e.key === ' ' || e.key === 'Enter') && target.closest('button, a, summary')) return;
+      const {data: current, onShortcut: shortcut} = live.current;
+      let handled = shortcut?.(e.key.toLowerCase()) ?? false;
+      if (!handled && ['openthebox','spinthewheel','balloonpop','flyingfruit'].includes(kind) && /^[1-9]$/.test(e.key)) {
+        const actor = current.actors?.[Number(e.key) - 1];
+        if (actor && actor.enabled !== false && !actor.hidden && current.onPick) { current.onPick(actor.id); handled = true; }
+      }
+      if (handled) { e.preventDefault(); e.stopPropagation(); field.current?.focus({preventScroll:true}); }
+    };
+    root.addEventListener('keydown', handle);
+    return () => root.removeEventListener('keydown', handle);
+  }, [kind]);
   const Scene = scenes[kind];
   const fallback=<AccessiblePlayfield kind={kind} data={data} hasControls={!!controls}/>;
   return <>
-    <div className={`action-three-playfield action-three-${kind}`} data-three-game={kind}>
+    <div ref={field} role="group" tabIndex={0} aria-label={`${kind} playfield. ${playGuides[kind][1]}`} className={`action-three-playfield action-three-${kind}`} data-three-game={kind} onPointerDownCapture={e => { if ((e.target as HTMLElement).tagName === 'CANVAS') field.current?.focus({preventScroll:true}); }}>
     {failed?fallback:<LoadBoundary fallback={fallback}>
       <Suspense fallback={<div className="action-three-loading" role="status">Opening the district…</div>}>
         <Scene {...data} onError={() => setFailed(true)} />
       </Suspense>
     </LoadBoundary>}
+    <div className="action-three-overlay"><div className="action-three-instructions"><strong>{playGuides[kind][0]}</strong><span>{playGuides[kind][1]}</span></div></div>
     </div>
+    {hud && <div className="action-three-status">{hud}</div>}
     {controls && <div className="action-three-controls">{controls}</div>}
   </>;
 }

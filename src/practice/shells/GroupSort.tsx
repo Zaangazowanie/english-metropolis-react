@@ -1,3 +1,4 @@
+import { acceptsWordShortcut } from '../lib/word-keyboard';
 import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
 const WordScene3D = wordLazy(() => import('../shells3d/WordGroupSort3D'));
 // Group sort — The Post Office district.
@@ -547,13 +548,13 @@ export const GroupSortShell: React.FC<GroupSortShellProps> = ({ time = 'day', st
   const waiting = puzzle.items.filter(it => placed[it.word] !== it.group);
   const activeParcel = dragging ?? (expressMode ? waiting[0]?.word : null);
   return <div className="em-shell em-shell-groupsort wa-board wa-postal" tabIndex={0} onKeyDown={e=>{
-    if (/^[1-9]$/.test(e.key) && activeParcel && !forcedState) {const group=puzzle.groups[Number(e.key)-1];if(group){e.preventDefault();tryPlace(group.id,activeParcel);}}
+    if (acceptsWordShortcut(e) && /^[1-9]$/.test(e.key) && activeParcel && !forcedState) {const group=puzzle.groups[Number(e.key)-1];if(group){e.preventDefault();tryPlace(group.id,activeParcel);e.currentTarget?.focus({preventScroll:true});}}
   }}>
     <header><AmbientAudioPlayer shellSlug="groupsort"/><Nameplate district="The Roundabout" subtitle="Express Sorting · Sortownia ekspresowa" accent={accent}/><div><Progress current={puzzle.items.length-waiting.length} total={puzzle.items.length} accent={accent}/><HintButton onClick={useHint} used={hintsUsed} total={3}/></div></header>
     <WordMission kind="sorting" current={puzzle.items.length-waiting.length} total={puzzle.items.length} chain={arcade.chain} reaction={arcade.reaction}/>
     <div className="wa-inline-tools"><button aria-pressed={expressMode} onClick={()=>{setExpressMode(v=>!v);setDragging(null);}}>Express conveyor {expressMode?'on':'off'}</button><span>{expressMode?'Route the next parcel. Press a destination number or tap a chute.':'Choose any parcel, then tap its destination.'}</span></div>
     <div className="wa-postal-objective"><small>TODAY’S ROUTE</small><h3>{puzzle.title}</h3></div>
-    <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={puzzleIdx} groups={puzzle.groups} items={puzzle.items} placed={placed} active={activeParcel??null} onSelect={setDragging} onRoute={tryPlace}/></WordSuspense>
+    <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={puzzleIdx} groups={puzzle.groups} items={puzzle.items} placed={placed} active={activeParcel??null} express={expressMode} onSelect={setDragging} onRoute={tryPlace}/></WordSuspense>
     <details><summary>Accessible parcel controls</summary><div className="wa-mail-chutes" style={{gridTemplateColumns:`repeat(${Math.min(puzzle.groups.length,4)},minmax(0,1fr))`}}>
       {puzzle.groups.map((group,i)=>{const count=puzzle.items.filter(it=>placed[it.word]===group.id).length;return <button key={group.id} className={`wa-chute ${shake===group.id?'is-wrong':''} ${hintReveal?.group===group.id?'is-hint':''}`} style={{'--wa-route':group.color} as React.CSSProperties} onClick={()=>activeParcel&&tryPlace(group.id,activeParcel)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const word=e.dataTransfer.getData(DRAG_MIME)||activeParcel;if(word)tryPlace(group.id,word);}} aria-label={`Destination ${i+1}: ${group.name}. ${count} delivered.`}>
         <span className="wa-route-number">{String(i+1).padStart(2,'0')}</span><strong>{group.name}</strong><small>{count} delivered · dostarczono</small>

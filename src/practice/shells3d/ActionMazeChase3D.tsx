@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Stage, Box, Orb, Label, Ring, Instances, Smooth, Handle } from './action-arcade-scene-kit';
+import { AimPlane, Stage, Box, Orb, Label, Ring, Instances, Smooth, Handle } from './action-arcade-scene-kit';
 import type { ActionSceneData, DetailBlock } from './action-arcade-scene-kit';
 export default function ActionMazeChase3D(p:ActionSceneData){
   const cols=p.grid?.cols??13,rows=p.grid?.rows??11,cell=.62;
@@ -21,7 +21,7 @@ export default function ActionMazeChase3D(p:ActionSceneData){
   },[p.grid?.walls,cols,rows]);
   return <Stage width={cols*cell+.7} board onError={p.onError} reducedMotion={p.reducedMotion}>
     <Instances blocks={walls}/>
-    <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.08,0]} onPointerDown={e=>{e.stopPropagation();if(!p.player)return;const dx=e.point.x-x(p.player.c),dz=e.point.z-z(p.player.r);p.onMove?.(Math.abs(dx)>Math.abs(dz)?dx>0?'right':'left':dz>0?'down':'up');}}><planeGeometry args={[cols*cell,rows*cell]}/><meshBasicMaterial transparent opacity={0}/></mesh>
+    <AimPlane cols={cols} rows={rows} cell={cell} y={-.08} player={p.player} walls={p.grid?.walls} onMove={p.onMove} />
     {p.player&&<Smooth at={[x(p.player.c),.08,z(p.player.r)]} reduced={p.reducedMotion}><Handle color="#ffcc00"/>{!!p.shield&&<Ring radius={.31} rotation={[-Math.PI/2,0,0]} color="#ffea00"/>}</Smooth>}
     {p.shadow&&<Smooth at={[x(p.shadow.c),.14,z(p.shadow.r)]} reduced={p.reducedMotion}><Orb radius={.25} scale={[1,1.2,1]} color={p.shield?'#4d24ed':'#ff008c'}/><Orb at={[-.085,.07,.21]} radius={.07} color="#fff"/><Orb at={[.085,.07,.21]} radius={.07} color="#fff"/><Orb at={[-.07,.07,.27]} radius={.028} color="#060f2d"/><Orb at={[.1,.07,.27]} radius={.028} color="#060f2d"/></Smooth>}
     {(p.actors??[]).map(a=><group key={a.id} position={[x(a.x),.13,z(a.y)]}><mesh rotation={[Math.PI/2,0,0]}><octahedronGeometry args={[.2]}/><meshStandardMaterial color={a.selected?'#ffdb00':'#00f5a4'} toneMapped={false} metalness={.35} roughness={.2}/></mesh><Label at={[0,.48,0]} text={String(a.id+1)} number selected={a.selected}/></group>)}

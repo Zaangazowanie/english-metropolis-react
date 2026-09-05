@@ -241,12 +241,14 @@ export function renderPictureQuizReviewItem(
 export type { PQItem as ShellPictureQuizItem };
 
 const PQ_PUZZLE: PictureQuizPuzzle = {
+  // Bundled demo photos are also used on the landing page. Supplied lesson
+  // puzzles keep their own image URLs and the honest missing-media fallback.
   items: [
-    { id: 'pq-demo-1', image_url: '/practice-images/demo/bread.jpg', fallback_glyph: '🍞', prompt: 'What is shown?', prompt_pl: 'Co jest na obrazku?', options: ['bread', 'cheese', 'apple', 'cake'], answerIndex: 0, hint: 'You bake it in an oven.', hint_pl: 'Pieczywo, podstawa śniadania.' },
-    { id: 'pq-demo-2', image_url: '/practice-images/demo/rain.jpg', fallback_glyph: '🌧️', prompt: 'What is shown?', prompt_pl: 'Co jest na obrazku?', options: ['snow', 'wind', 'rain', 'sun'], answerIndex: 2, hint: 'Drops falling from the sky.', hint_pl: 'Krople padające z nieba.' },
-    { id: 'pq-demo-3', image_url: '/practice-images/demo/jacket.jpg', fallback_glyph: '🧥', prompt: 'What is shown?', prompt_pl: 'Co jest na obrazku?', options: ['shoe', 'jacket', 'hat', 'bag'], answerIndex: 1, hint: 'You wear it when it is cold.', hint_pl: 'Nosisz to, gdy jest zimno.' },
-    { id: 'pq-demo-4', image_url: '/practice-images/demo/bridge.jpg', fallback_glyph: '🌉', prompt: 'What is shown?', prompt_pl: 'Co jest na obrazku?', options: ['tower', 'square', 'street', 'bridge'], answerIndex: 3, hint: 'It crosses a river.', hint_pl: 'Przechodzi nad rzeką.' },
-    { id: 'pq-demo-5', image_url: '/practice-images/demo/coffee.jpg', fallback_glyph: '☕', prompt: 'What is shown?', prompt_pl: 'Co jest na obrazku?', options: ['tea', 'water', 'juice', 'coffee'], answerIndex: 3, hint: 'A hot drink in the morning.', hint_pl: 'Gorący napój o poranku.' },
+    { id: 'pq-demo-1', image_url: '/home/photo-teacher.webp', fallback_glyph: '💻', prompt: 'Which device shows the teacher on its screen?', prompt_pl: 'Na ekranie którego urządzenia widać nauczyciela?', options: ['laptop', 'television', 'radio', 'camera'], answerIndex: 0, hint: 'A portable computer with a keyboard.', hint_pl: 'Przenośny komputer z klawiaturą.' },
+    { id: 'pq-demo-2', image_url: '/home/photo-practice.webp', fallback_glyph: '📱', prompt: 'What is the learner holding?', prompt_pl: 'Co trzyma osoba na zdjęciu?', options: ['a book', 'a cup', 'a smartphone', 'a pencil'], answerIndex: 2, hint: 'You can send messages on it.', hint_pl: 'Można na nim wysyłać wiadomości.' },
+    { id: 'pq-demo-3', image_url: '/home/photo-student.webp', fallback_glyph: '☕', prompt: 'What is the purple drinking vessel on the desk?', prompt_pl: 'Czym jest fioletowe naczynie do picia na biurku?', options: ['a bottle', 'a mug', 'a bowl', 'a plate'], answerIndex: 1, hint: 'A cup with a handle, often used for tea or coffee.', hint_pl: 'Naczynie z uchwytem, często używane do herbaty lub kawy.' },
+    { id: 'pq-demo-4', image_url: '/home/photo-office-2607.webp', fallback_glyph: '🎧', prompt: 'What are three of the people wearing to speak and listen?', prompt_pl: 'Co mają na głowie trzy osoby, żeby mówić i słuchać?', options: ['scarves', 'helmets', 'earrings', 'headsets'], answerIndex: 3, hint: 'Headphones with a microphone attached.', hint_pl: 'Słuchawki z dołączonym mikrofonem.' },
+    { id: 'pq-demo-5', image_url: '/home/photo-group-2607.webp', fallback_glyph: '💬', prompt: 'What are the learners doing together?', prompt_pl: 'Co uczniowie robią razem?', options: ['cooking a meal', 'playing tennis', 'painting a wall', 'having a conversation'], answerIndex: 3, hint: 'They are talking and listening to each other.', hint_pl: 'Rozmawiają i słuchają siebie nawzajem.' },
   ],
 };
 

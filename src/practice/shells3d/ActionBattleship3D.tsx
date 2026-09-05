@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Stage, Box, Orb, Label, Ring, Instances, Ripple } from './action-arcade-scene-kit';
+import { AimPlane, Stage, Box, Orb, Label, Ring, Instances, Ripple } from './action-arcade-scene-kit';
 import type { ActionSceneData, DetailBlock } from './action-arcade-scene-kit';
 export default function ActionBattleship3D(p:ActionSceneData){
   const n=8,c=.72,world=(i:number)=>(i-3.5)*c;
@@ -22,7 +22,7 @@ export default function ActionBattleship3D(p:ActionSceneData){
   },[]);
   return <Stage width={7.2} board theme="harbour" onError={p.onError} reducedMotion={p.reducedMotion}>
     <Instances blocks={tiles}/>
-    <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.1,0]} onPointerDown={e=>{e.stopPropagation();const col=Math.floor(e.point.x/c+4),row=Math.floor(e.point.z/c+4);if(col>=0&&col<n&&row>=0&&row<n)p.onPick?.(row*8+col);}}><planeGeometry args={[n*c,n*c]}/><meshBasicMaterial transparent opacity={.02} color="#9bdddc"/></mesh>
+    <AimPlane cols={n} rows={n} cell={c} y={-.1} player={p.player} onPick={p.onPick} />
     {Array.from({length:8},(_,i)=><group key={i}><Label at={[world(i),.1,-3.28]} text={String.fromCharCode(65+i)} number/><Label at={[-3.35,.1,world(i)]} text={String(i+1)} number/></group>)}
     {p.lamps?.length? <Ring at={[world(p.lamps[0].c),.015,-3.28]} radius={.27} rotation={[-Math.PI/2,0,0]} color="#ffdc00"/>:null}
     {p.player&&<Ring at={[world(p.player.c),-.025,world(p.player.r)]} radius={.31} rotation={[-Math.PI/2,0,0]} color="#ffdc00"/>}

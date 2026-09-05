@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei/web/Html';
@@ -57,6 +57,33 @@ export function Smooth({ at, children, reduced = false, yaw = 0 }: {at:[number,n
   const initialPosition=useRef<[number,number,number]>([...at]);
   useFrame((_,dt)=>{ const g=ref.current;if(!g)return;const k=reduced?1:Math.min(1,dt*16);g.position.x=MathUtils.lerp(g.position.x,at[0],k);g.position.y=MathUtils.lerp(g.position.y,at[1],k);g.position.z=MathUtils.lerp(g.position.z,at[2],k);g.rotation.y=yaw; });
   return <group ref={ref} position={initialPosition.current}>{children}</group>;
+}
+/** A physical target highlight; activation stays with each game's existing handler. */
+export function HoverTarget({children,enabled=true,reduced=false,radius=.62,at=[0,0,.15],active=false}:{children:ReactNode;enabled?:boolean;reduced?:boolean;radius?:number;at?:[number,number,number];active?:boolean}) {
+  const [hovered,setHovered]=useState(false);
+  const group=useRef<Group>(null);
+  const {gl}=useThree();
+  const lit=enabled&&(hovered||active);
+  useEffect(()=>{if(!hovered||!enabled)return;const previous=gl.domElement.style.cursor;gl.domElement.style.cursor='pointer';return()=>{gl.domElement.style.cursor=previous;};},[hovered,enabled,gl]);
+  useFrame((_,dt)=>{if(group.current)group.current.scale.setScalar(reduced?1:MathUtils.damp(group.current.scale.x,lit?1.065:1,18,dt));});
+  return <group ref={group} onPointerOver={e=>{if(enabled){e.stopPropagation();setHovered(true);}}} onPointerOut={()=>setHovered(false)}>
+    {children}
+    {lit&&<group position={at}>{[-1,1].flatMap(x=>[-1,1].map(y=><group key={`${x}:${y}`} position={[x*radius,y*radius,0]}><mesh raycast={()=>{}} position={[-x*.1,0,0]}><boxGeometry args={[.24,.035,.04]}/><meshBasicMaterial color="#fff4a3" toneMapped={false}/></mesh><mesh raycast={()=>{}} position={[0,-y*.1,0]}><boxGeometry args={[.035,.24,.04]}/><meshBasicMaterial color="#00ecff" toneMapped={false}/></mesh></group>))}</group>}
+  </group>;
+}
+/** Shows exactly which grid cell a pointer will use, without moving or scoring. */
+export function AimPlane({cols,rows,cell,y,player,walls,onPick,onMove}:{cols:number;rows:number;cell:number;y:number;player?:Cell3;walls?:number[][];onPick?:ActionSceneData['onPick'];onMove?:ActionSceneData['onMove']}) {
+  const [aim,setAim]=useState<Cell3|null>(null);
+  const {gl}=useThree();
+  const worldX=(c:number)=>(c-(cols-1)/2)*cell,worldZ=(r:number)=>(r-(rows-1)/2)*cell;
+  const blocked=!!aim&&!!walls?.[aim.r]?.[aim.c];
+  useEffect(()=>{if(!aim)return;const previous=gl.domElement.style.cursor;gl.domElement.style.cursor=blocked?'not-allowed':'crosshair';return()=>{gl.domElement.style.cursor=previous;};},[!!aim,blocked,gl]);
+  const direction=(target:Cell3)=>{if(!player)return null;const dx=target.c-player.c,dz=target.r-player.r;return dx||dz?(Math.abs(dx)>Math.abs(dz)?dx>0?'right':'left':dz>0?'down':'up'):null;};
+  const label=aim?blocked?'WALL':onPick?`${String.fromCharCode(65+aim.c)}${aim.r+1} · PING`:direction(aim)?`${{up:'↑',down:'↓',left:'←',right:'→'}[direction(aim)!]} STEER`:'YOU':'';
+  return <>
+    <mesh rotation={[-Math.PI/2,0,0]} position={[0,y,0]} onPointerMove={e=>{e.stopPropagation();const c=Math.floor(e.point.x/cell+cols/2),r=Math.floor(e.point.z/cell+rows/2);if(c>=0&&c<cols&&r>=0&&r<rows)setAim(previous=>previous?.r===r&&previous.c===c?previous:{r,c});}} onPointerOut={()=>setAim(null)} onPointerDown={e=>{e.stopPropagation();const c=Math.floor(e.point.x/cell+cols/2),r=Math.floor(e.point.z/cell+rows/2);if(c<0||c>=cols||r<0||r>=rows||walls?.[r]?.[c])return;if(onPick)onPick(r*cols+c);else{const next=direction({r,c});if(next)onMove?.(next);}}}><planeGeometry args={[cols*cell,rows*cell]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>
+    {aim&&<group position={[worldX(aim.c),y+.025,worldZ(aim.r)]}><mesh rotation={[-Math.PI/2,0,0]} raycast={()=>{}}><planeGeometry args={[cell*.92,cell*.92]}/><meshBasicMaterial color={blocked?'#ff145b':'#00eaff'} transparent opacity={.26} depthWrite={false}/></mesh><Ring at={[0,.015,0]} radius={cell*.39} rotation={[-Math.PI/2,0,0]} color={blocked?'#ff145b':'#ffdc00'}/><Label at={[0,.72,0]} text={label}/></group>}
+  </>;
 }
 export function Instances({ blocks }: {blocks: DetailBlock[]}) {
   const ref=useRef<InstancedMesh>(null);

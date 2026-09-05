@@ -6,6 +6,18 @@ export function gridTrail(start:GridPoint,end:GridPoint):GridPoint[]{
  return Array.from({length:count+1},(_,i)=>[start[0]+Math.sign(dr)*i,start[1]+Math.sign(dc)*i]);
 }
 export function pointOnTrail(point:GridPoint,start:GridPoint,end:GridPoint):boolean{return gridTrail(start,end).some(cell=>cell[0]===point[0]&&cell[1]===point[1]);}
+// Keep trail input with shared grid mechanics. A single-consumer module next
+// to the lazy Wordsearch entry can be emitted into that entry's facade and
+// create a facade/component chunk cycle when the component is manually split.
+export type TrailCell=GridPoint;
+export type WordTrail={start:TrailCell;end:TrailCell};
+export function trailCells({start,end}:WordTrail):TrailCell[]{return gridTrail(start,end);}
+export function extendWordTrail(trail:WordTrail|null,cell:TrailCell):WordTrail|null{
+ if(!trail)return {start:cell,end:cell};
+ if(cell[0]===trail.start[0]&&cell[1]===trail.start[1])return null;
+ const next={start:trail.start,end:cell};
+ return trailCells(next).length?next:trail;
+}
 export function turnSpellingDial(draft:string,index:number,direction:1|-1,length:number):string{
  if(index<0||index>=length)return draft;
  const letters=Array.from({length},(_,i)=>draft[i]??' ');const current=letters[index].toUpperCase().charCodeAt(0)-65;

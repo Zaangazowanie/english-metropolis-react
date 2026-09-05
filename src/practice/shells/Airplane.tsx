@@ -311,7 +311,8 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       if (!interactionRef.current?.contains(event.target as Node)) return;
-      if ((event.target as HTMLElement)?.closest('input,textarea,select') || completed) return;
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      if ((event.target as HTMLElement).isContentEditable || (event.target as HTMLElement)?.closest('input,textarea,select,[contenteditable="true"],[role="dialog"]') || completed) return;
       if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') { event.preventDefault(); steer(laneRef.current - 1); }
       if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') { event.preventDefault(); steer(laneRef.current + 1); }
     };
@@ -462,7 +463,7 @@ export const AirplaneShell: React.FC<AirplaneShellProps> = ({
       )}
 
       {/* Sky play area — clouds drift across, plane sits left */}
-      <div className="action-three-flight-slot"><ActionPlayfield3D kind="airplane" data={{reducedMotion:reduceMotion,running:flying,selected:lane,onPick:steer,actors:clouds.map(c=>({id:c.optionIdx,x:gateX,y:c.yPct,label:c.text,selected:c.optionIdx===lane,enabled:!forcedState&&verdict===null&&!completed}))}} /></div>
+      <div className="action-three-flight-slot"><ActionPlayfield3D kind="airplane" onShortcut={key=>{if(key!=='p'||forcedState||completed||verdict!==null)return false;if(reduceMotion)onTapCloud(laneRef.current);else setFlying(v=>!v);return true;}} data={{reducedMotion:reduceMotion,running:flying,selected:lane,onPick:steer,actors:clouds.map(c=>({id:c.optionIdx,x:gateX,y:c.yPct,label:c.text,selected:c.optionIdx===lane,enabled:!forcedState&&verdict===null&&!completed}))}} /></div>
 
       {!completed && <div className="action-flight-control action-arcade-controls"><p>{flying ? 'STEER THROUGH THE RIGHT WORD · ↑ / ↓ or W / S' : gateX < 82 ? 'Flight paused. Choose a lane, then resume.' : 'Read the clue. Choose a lane, then launch.'}</p><span role="status" aria-live="polite">Selected gate {String.fromCharCode(65 + lane)}: {round?.options[lane]}</span><button aria-label="Climb one lane" onClick={() => steer(laneRef.current - 1)}>↑ Climb</button><button aria-label="Descend one lane" onClick={() => steer(laneRef.current + 1)}>↓ Descend</button><button disabled={verdict !== null} onClick={() => { if (reduceMotion) onTapCloud(laneRef.current); else setFlying(v => !v); }}>{reduceMotion ? 'Fly through selected gate' : flying ? 'Pause flight' : gateX < 82 ? 'Resume flight' : 'Launch flight'}</button><button disabled={flying} onClick={() => setFlightPace(p => p === 'cruise' ? 'jet' : 'cruise')}>{flightPace === 'jet' ? 'Jet · 150 pts' : 'Cruise · 100 pts'}</button></div>}
       {/* Completion */}
