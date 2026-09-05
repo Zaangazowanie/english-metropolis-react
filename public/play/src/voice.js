@@ -26,6 +26,15 @@ export class VoiceManager {
     window.speechSynthesis?.cancel();
   }
 
+  // Can this browser take a spoken answer at all? The mic button is only
+  // offered when the answer is yes; Firefox and Safari have no Web Speech
+  // recogniser and prod has no whisper endpoint, so "didn't catch that" there
+  // was a lie.
+  canListen() {
+    if (this.sttAvailable) return true;
+    return !!(window.SpeechRecognition || window.webkitSpeechRecognition) && !!navigator.mediaDevices;
+  }
+
   // Play a baked Kokoro line; fall back to browser TTS with the given text.
   speak(id, fallbackText, { volume = 0.9, profile = null } = {}) {
     this.stop();
@@ -65,23 +74,35 @@ export class VoiceManager {
     speechSynthesis.speak(u);
   }
 
-  // Record ~3.5s of mic audio and transcribe. Resolves to text ('' on failure).
+  // Take one spoken answer. Resolves to { text, reason } where reason is
+  // 'ok' | 'unavailable' (no recogniser in this browser) | 'denied' (mic
+  // permission refused) | 'silent' (nothing recognised) | 'timeout' (8 s).
+  // Never hangs on "listening…": every engine is raced against the timeout.
   async listen(onState, profile = null) {
-    if (this.listening) return '';
+    if (this.listening) return { text: '', reason: 'busy' };
     this.listening = true;
+    const TIMEOUT_MS = 8000;
+    let timer = null;
+    const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve({ text: '', reason: 'timeout' }), TIMEOUT_MS); });
+    const wrap = async (fn) => {
+      try { const text = await fn(); return { text: (text || '').trim(), reason: text ? 'ok' : 'silent' }; }
+      catch (e) {
+        const name = String(e?.name || e || '');
+        if (/not-allowed|NotAllowedError|service-not-allowed|PermissionDenied/i.test(name)) return { text: '', reason: 'denied' };
+        if (/no speech recognition|NotSupported/i.test(name)) return { text: '', reason: 'unavailable' };
+        console.warn('[voice] listen failed:', e);
+        return { text: '', reason: 'silent' };
+      }
+    };
     try {
       if (this.sttAvailable === null) await this.probeWhisper();
-      if (this.sttAvailable) {
-        const text = await this.listenWhisper(onState);
-        return text;
-      }
-      return await this.listenWebSpeech(onState, profile);
-    } catch (e) {
-      console.warn('[voice] listen failed:', e);
-      // one layered retry via the other engine
-      try { return this.sttAvailable ? await this.listenWebSpeech(onState, profile) : ''; }
-      catch { return ''; }
+      if (!this.canListen()) return { text: '', reason: 'unavailable' };
+      const engine = this.sttAvailable ? () => this.listenWhisper(onState) : () => this.listenWebSpeech(onState, profile);
+      const res = await Promise.race([wrap(engine), timeout]);
+      if (res.reason === 'timeout') this._rec?.abort?.();
+      return res;
     } finally {
+      clearTimeout(timer);
       this.listening = false;
       onState?.('idle');
     }
@@ -126,6 +147,7 @@ export class VoiceManager {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SR) return reject(new Error('no speech recognition'));
       const r = new SR();
+      this._rec = r;
       r.lang = profile?.lang || 'en-US';
       r.interimResults = false;
       onState?.('listening');
@@ -138,7 +160,7 @@ export class VoiceManager {
 
   // Match spoken text to one of the MCQ options; -1 if no confident match.
   matchOption(text, options) {
-    const norm = (s) => s.toLowerCase().replace(/[^a-z0-9 ']/g, ' ').replace(/\s+/g, ' ').trim();
+    const norm = (s) => s.toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();   // apostrophes dropped: recognisers rarely emit them
     const t = norm(text);
     if (!t) return -1;
     // "option one/two/three" or "the first/second/third one"
@@ -147,19 +169,25 @@ export class VoiceManager {
       [/(option |number |answer )?(three|3)\b|third/, 2],
       [/(option |number |answer )?(four|4)\b|fourth/, 3]];
     for (const [re, idx] of ordinals) if (re.test(t) && t.split(' ').length <= 4) return idx;
-    // token-overlap score against each option
-    let best = -1, bestScore = 0;
+    // Exact match first: for article items the wrong form is a strict token
+    // subset of the right one ('I read book' ⊂ 'I read a book'), so a plain
+    // overlap score ties and used to pick the earlier (wrong) option.
+    const exact = options.findIndex((opt) => norm(opt) === t);
+    if (exact >= 0) return exact;
+    // token-overlap score against each option; ties broken toward the option
+    // whose token count is closest to what was heard (the fuller sentence)
+    let best = -1, bestScore = 0, bestLenDiff = Infinity;
+    const tt = t.split(' ');
     options.forEach((opt, i) => {
       const o = norm(opt);
       const ot = new Set(o.split(' '));
-      const tt = t.split(' ');
       let hit = 0;
       for (const w of tt) if (ot.has(w)) hit++;
       const score = hit / Math.max(2, ot.size);
-      // exact/substring match is decisive
       const sub = o.includes(t) || t.includes(o) ? 1 : 0;
       const s = Math.max(score, sub);
-      if (s > bestScore) { bestScore = s; best = i; }
+      const lenDiff = Math.abs(ot.size - tt.length);
+      if (s > bestScore || (s === bestScore && s > 0 && lenDiff < bestLenDiff)) { bestScore = s; best = i; bestLenDiff = lenDiff; }
     });
     return bestScore >= 0.6 ? best : -1;
   }

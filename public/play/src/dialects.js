@@ -89,11 +89,18 @@ export function accentProfileFor(code, speakerIndex = 0) {
 
 // A named face for one of the district's street locals. Deterministic per
 // (district, slot) so the same person is standing outside the same shop every
-// time you come back to that stop.
-export function streetLocalFor(code, index) {
+// time you come back to that stop. `taken` (a Set of names already used in
+// this district: the quest locals and earlier slots) is skipped so no district
+// has two Lachlan Wrights on one terrace or a passer-by who is also the third
+// quest local.
+export function streetLocalFor(code, index, taken = null) {
   const h = hash(`${code}#${index}`);
+  let ni = h % LOCAL_GUIDES.length;
+  for (let tries = 0; taken && taken.has(LOCAL_GUIDES[ni]) && tries < LOCAL_GUIDES.length; tries++) {
+    ni = (ni + 7) % LOCAL_GUIDES.length;   // 7 is coprime with 44
+  }
   return {
-    name: LOCAL_GUIDES[h % LOCAL_GUIDES.length],
+    name: LOCAL_GUIDES[ni],
     role: LOCAL_ROLES[(h >>> 8) % LOCAL_ROLES.length],
   };
 }

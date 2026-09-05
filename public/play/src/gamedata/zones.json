@@ -4312,7 +4312,7 @@
   },
   {
    "code": "za_white",
-   "dialect": "White South African English",
+   "dialect": "South African English (Cape Dutch)",
    "zoneName": "Howzit Heights",
    "line": "sunward",
    "architecture": "Whitewashed Cape Dutch houses with sculpted gables and green shutters line jacaranda-shaded streets, wood smoke curling from stoep-side weekend braais.",
@@ -4433,7 +4433,7 @@
   },
   {
    "code": "za_black",
-   "dialect": "Black South African English",
+   "dialect": "Township English (Kasi)",
    "zoneName": "Kasi Crossing",
    "line": "sunward",
    "architecture": "Brightly painted kasi houses and container spaza shops cluster around a lively taxi rank, murals of dancing figures glowing warm while music drifts from the shisa nyama grill.",

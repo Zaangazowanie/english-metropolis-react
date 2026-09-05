@@ -1,0 +1,885 @@
+{
+  "_note": "Hand-authored repairs applied by lint-grammar-bank.mjs --fix. Patch only where the fix is unambiguous (a real Polish-learner error as the third option, a recycled distractor replaced by a parallel one, a mis-filed concept moved home). Everything else is deleted. Items may carry an optional 'prompt' when 'Which sentence is correct?' would be ambiguous because the distractor is grammatical but means something else.",
+  "delete": [
+    "articles_2",
+    "articles_26",
+    "articles_36",
+    "articles_0",
+    "articles_7",
+    "articles_10",
+    "articles_20",
+    "articles_4",
+    "articles_30",
+    "articles_32",
+    "verb_tense_11",
+    "verb_tense_22",
+    "verb_tense_3",
+    "verb_tense_5",
+    "verb_tense_6",
+    "verb_tense_9",
+    "verb_tense_28",
+    "verb_tense_30",
+    "verb_tense_36",
+    "verb_tense_12",
+    "verb_tense_13",
+    "verb_tense_14",
+    "verb_tense_15",
+    "verb_tense_16",
+    "verb_tense_19",
+    "verb_tense_24",
+    "verb_tense_31",
+    "verb_tense_34",
+    "subject_verb_7",
+    "subject_verb_20",
+    "subject_verb_23",
+    "subject_verb_3",
+    "subject_verb_5",
+    "subject_verb_14",
+    "subject_verb_21",
+    "subject_verb_22",
+    "prepositions_1",
+    "prepositions_2",
+    "prepositions_7",
+    "prepositions_8",
+    "prepositions_20",
+    "prepositions_24",
+    "prepositions_27",
+    "prepositions_30",
+    "prepositions_31",
+    "prepositions_32",
+    "prepositions_9",
+    "prepositions_4",
+    "prepositions_22",
+    "prepositions_23",
+    "prepositions_25",
+    "prepositions_28",
+    "word_order_1",
+    "word_order_18",
+    "word_order_19",
+    "word_order_3",
+    "word_order_21",
+    "word_order_25",
+    "word_order_0",
+    "word_order_8",
+    "word_order_22",
+    "word_order_23",
+    "word_order_6",
+    "word_order_10",
+    "word_order_11",
+    "word_order_20",
+    "word_order_24",
+    "plurals_0",
+    "plurals_15",
+    "plurals_7",
+    "plurals_16",
+    "pronouns_9",
+    "pronouns_4",
+    "pronouns_7",
+    "modals_5",
+    "modals_13",
+    "modals_0",
+    "modals_14",
+    "modals_16",
+    "modals_3",
+    "modals_10",
+    "modals_11",
+    "conditionals_6",
+    "comparatives_2",
+    "comparatives_5",
+    "gerund_infinitive_7",
+    "gerund_infinitive_8",
+    "gerund_infinitive_10",
+    "collocation_12",
+    "collocation_13",
+    "collocation_7",
+    "collocation_3",
+    "word_choice_4",
+    "word_choice_7",
+    "word_choice_19",
+    "word_choice_26",
+    "word_choice_28",
+    "word_choice_0",
+    "word_choice_11",
+    "word_choice_12",
+    "word_choice_14",
+    "word_choice_17",
+    "word_choice_23",
+    "word_choice_25",
+    "word_choice_33",
+    "word_choice_35",
+    "word_choice_1",
+    "word_choice_10",
+    "word_choice_15",
+    "word_choice_27",
+    "word_choice_32",
+    "word_choice_34",
+    "word_choice_9",
+    "word_choice_36",
+    "questions_negation_4",
+    "questions_negation_8",
+    "questions_negation_10",
+    "questions_negation_13"
+  ],
+  "patch": {
+    "articles_6": {
+      "options": [
+        "I have cat",
+        "I have a cat",
+        "I have an cat"
+      ],
+      "answerIndex": 1
+    },
+    "articles_11": {
+      "options": [
+        "He bought car",
+        "He bought an car",
+        "He bought a car"
+      ],
+      "answerIndex": 2
+    },
+    "articles_12": {
+      "options": [
+        "I read book",
+        "I read a book",
+        "I read an book"
+      ],
+      "answerIndex": 1
+    },
+    "articles_16": {
+      "options": [
+        "Sun is bright",
+        "The sun is bright",
+        "A sun is bright"
+      ],
+      "answerIndex": 1
+    },
+    "articles_17": {
+      "options": [
+        "I want an apple",
+        "I want apple",
+        "I want a apple"
+      ],
+      "answerIndex": 0
+    },
+    "articles_24": {
+      "options": [
+        "I have a dog and a cat.",
+        "I have dog and cat.",
+        "I have dog and a cat."
+      ],
+      "answerIndex": 0
+    },
+    "articles_27": {
+      "options": [
+        "I saw an elephant",
+        "I saw elephant",
+        "I saw a elephant"
+      ],
+      "answerIndex": 0
+    },
+    "articles_37": {
+      "options": [
+        "She has a dog",
+        "She has dog",
+        "She has an dog"
+      ],
+      "answerIndex": 0
+    },
+    "articles_38": {
+      "options": [
+        "She is a teacher.",
+        "She is teacher.",
+        "She is an teacher."
+      ],
+      "answerIndex": 0
+    },
+    "articles_5": {
+      "options": [
+        "I went to store yesterday.",
+        "I went to an store yesterday.",
+        "I went to the store yesterday."
+      ],
+      "answerIndex": 2,
+      "explain": "A place both speakers know takes 'the': the store, the station. Polish has no article to drop, so the bare noun feels complete but is not."
+    },
+    "articles_8": {
+      "options": [
+        "I want to become a doctor.",
+        "I want to become an doctor.",
+        "I want to become doctor."
+      ],
+      "answerIndex": 0,
+      "explain": "Jobs take a/an even after 'become': become a doctor. Polish 'zostać lekarzem' has no article, so learners drop it."
+    },
+    "articles_9": {
+      "options": [
+        "She is teacher at my school.",
+        "She is a teacher at my school.",
+        "She is an teacher at my school."
+      ],
+      "answerIndex": 1,
+      "explain": "Jobs take a/an: a teacher, an engineer. Polish has no articles, so 'teacher' alone feels complete but is not."
+    },
+    "articles_13": {
+      "options": [
+        "She works in office.",
+        "She works in a office.",
+        "She works in an office."
+      ],
+      "answerIndex": 2,
+      "explain": "Singular countable nouns need an article, and 'an' before a vowel sound: an office. Polish has no articles, so learners omit them."
+    },
+    "articles_14": {
+      "options": [
+        "At the weekend, I go to the cinema.",
+        "In weekend I go to cinema.",
+        "At the weekend, I go to cinema."
+      ],
+      "answerIndex": 0,
+      "explain": "'The cinema' takes 'the' even in general (like 'the theatre', 'the gym'). Polish 'w weekend' has no article, so both get dropped."
+    },
+    "articles_18": {
+      "options": [
+        "She is very nice person.",
+        "She is a very nice person.",
+        "She is an very nice person."
+      ],
+      "answerIndex": 1,
+      "explain": "a + adjective + noun: a very nice person. Polish has no articles, so the whole phrase feels complete without one."
+    },
+    "articles_22": {
+      "options": [
+        "I am student from Poland.",
+        "I am a student from Poland.",
+        "I am an student from Poland."
+      ],
+      "answerIndex": 1
+    },
+    "articles_29": {
+      "options": [
+        "When I am older, I will have a house.",
+        "When I am older, I will have house.",
+        "When I am older, I will have an house."
+      ],
+      "answerIndex": 0,
+      "explain": "A new, singular countable thing takes 'a': a house. Polish has no article to drop, so the bare noun feels finished but is not."
+    },
+    "articles_33": {
+      "options": [
+        "This is a accurate translation.",
+        "This is an accurate translation.",
+        "This is accurate translation."
+      ],
+      "answerIndex": 1,
+      "explain": "Singular countable nouns need an article, and 'an' before a vowel sound: an accurate translation."
+    },
+    "articles_34": {
+      "options": [
+        "Today is a rainy day.",
+        "Today is rainy day.",
+        "Today rainy day."
+      ],
+      "answerIndex": 0,
+      "explain": "English needs both the verb 'is' and the article: Today is a rainy day. Polish 'Dziś deszczowy dzień' has neither."
+    },
+    "articles_1": {
+      "options": [
+        "He is in hospital with a broken leg.",
+        "He is in a hospital with a broken leg.",
+        "He is in hospitals with a broken leg."
+      ],
+      "answerIndex": 0,
+      "explain": "British English: in hospital (as a patient), in prison, at school, no article. Americans say 'in the hospital'."
+    },
+    "articles_23": {
+      "options": [
+        "I love a music.",
+        "I love musics.",
+        "I love music."
+      ],
+      "answerIndex": 2
+    },
+    "verb_tense_21": {
+      "options": [
+        "She works every Saturday.",
+        "She working every Saturday.",
+        "She work every Saturday."
+      ],
+      "answerIndex": 0
+    },
+    "verb_tense_0": {
+      "options": [
+        "I working every day.",
+        "I work every day.",
+        "I am work every day."
+      ],
+      "answerIndex": 1,
+      "explain": "Routine = present simple: I work. Polish 'Pracuję' is one word, so learners either drop 'am' from a continuous form or add it to a simple one."
+    },
+    "verb_tense_4": {
+      "options": [
+        "I didn't wake up early today.",
+        "I didn't woke up early today.",
+        "I don't wake up early today."
+      ],
+      "answerIndex": 0,
+      "explain": "A finished action earlier today takes past simple: didn't + base verb (wake, not woke). Polish uses the present for 'today' events."
+    },
+    "verb_tense_7": {
+      "options": [
+        "I have had a party yesterday.",
+        "I had a party yesterday.",
+        "I have a party yesterday."
+      ],
+      "answerIndex": 1,
+      "explain": "'Yesterday' is finished time, so past simple: had. Never present perfect with yesterday."
+    },
+    "verb_tense_10": {
+      "options": [
+        "She have been working here.",
+        "She has been working here.",
+        "She is been working here."
+      ],
+      "answerIndex": 1,
+      "explain": "Present perfect continuous with she/he/it: has been + -ing."
+    },
+    "verb_tense_17": {
+      "options": [
+        "I didn't went there.",
+        "I didn't go there.",
+        "I didn't gone there."
+      ],
+      "answerIndex": 1,
+      "explain": "After didn't the verb goes back to its base form: didn't go. Polish marks the past on the verb itself (nie poszedłem), so learners mark it twice."
+    },
+    "verb_tense_18": {
+      "concept": "subject_verb",
+      "options": [
+        "They have many problems.",
+        "They has many problems.",
+        "They haves many problems."
+      ],
+      "answerIndex": 0,
+      "explain": "Only he/she/it takes 'has'; they have. Polish 'oni mają' looks the same for every plural subject, so the -s rule is easy to forget."
+    },
+    "verb_tense_25": {
+      "options": [
+        "Water is boiling at 100 degrees every time.",
+        "Water boils at 100 degrees.",
+        "Water boil at 100 degrees."
+      ],
+      "answerIndex": 1
+    },
+    "verb_tense_26": {
+      "options": [
+        "I go yesterday",
+        "I went yesterday",
+        "I goed yesterday"
+      ],
+      "answerIndex": 1,
+      "explain": "'Yesterday' forces past simple, and go is irregular: went."
+    },
+    "verb_tense_29": {
+      "options": [
+        "People works in this country.",
+        "People working in this country.",
+        "People work in this country."
+      ],
+      "answerIndex": 2,
+      "explain": "'People' is plural: people work. A sentence also needs a finite verb, so 'working' alone is not enough."
+    },
+    "verb_tense_35": {
+      "options": [
+        "I've waiting for him since morning.",
+        "I've been waiting for him since morning.",
+        "I'm waiting for him since morning."
+      ],
+      "answerIndex": 1,
+      "explain": "since + present perfect continuous: have been waiting. Polish uses the present with 'od' (since), which pulls learners to 'I'm waiting'."
+    },
+    "verb_tense_38": {
+      "options": [
+        "I done it",
+        "I did it",
+        "I have did it"
+      ],
+      "answerIndex": 1,
+      "explain": "did = past simple, done = past participle (have done). Simple past on its own: I did it."
+    },
+    "verb_tense_40": {
+      "concept": "subject_verb",
+      "options": [
+        "My brother has my bike.",
+        "My brother have my bike.",
+        "My brother is have my bike."
+      ],
+      "answerIndex": 0,
+      "explain": "he/she/it (my brother) takes 'has'. Polish 'mieć' looks the same for every person, so the -s is easy to miss."
+    },
+    "verb_tense_20": {
+      "options": [
+        "I have already see that film.",
+        "I have already seen that film.",
+        "I have already saw that film."
+      ],
+      "answerIndex": 1
+    },
+    "verb_tense_2": {
+      "options": [
+        "This time next week I will lying on a beach.",
+        "This time next week I will be lying on a beach.",
+        "This time next week I am lie on a beach."
+      ],
+      "answerIndex": 1
+    },
+    "subject_verb_0": {
+      "options": [
+        "I working now",
+        "I am working now",
+        "I is working now"
+      ],
+      "answerIndex": 1,
+      "explain": "Present continuous needs the auxiliary that matches the subject: I am working. Polish 'pracuję' has no auxiliary, so learners drop it."
+    },
+    "subject_verb_16": {
+      "options": [
+        "He don't know",
+        "He doesn't knows",
+        "He doesn't know"
+      ],
+      "answerIndex": 2,
+      "explain": "Third person: doesn't + base verb (no second -s). Polish learners learn 'don't' first and use it for everyone."
+    },
+    "subject_verb_19": {
+      "options": [
+        "She works here",
+        "She work here",
+        "She is works here"
+      ],
+      "answerIndex": 0
+    },
+    "subject_verb_1": {
+      "options": [
+        "My family living in Warsaw.",
+        "My family lives in Warsaw.",
+        "My family are live in Warsaw."
+      ],
+      "answerIndex": 1
+    },
+    "subject_verb_15": {
+      "options": [
+        "She don't like coffee.",
+        "She doesn't like coffee.",
+        "She doesn't likes coffee."
+      ],
+      "answerIndex": 1
+    },
+    "subject_verb_17": {
+      "options": [
+        "They was happy",
+        "They is happy",
+        "They were happy"
+      ],
+      "answerIndex": 2,
+      "explain": "Plural subjects take 'were': they were. Polish 'byli' does not change the auxiliary, so was/were is easy to mix up."
+    },
+    "subject_verb_18": {
+      "options": [
+        "She has finished",
+        "She haves finished",
+        "She have finished"
+      ],
+      "answerIndex": 0,
+      "explain": "Third person singular takes 'has': she has finished."
+    },
+    "prepositions_3": {
+      "options": [
+        "Can you explain me one more time?",
+        "Can you explain to me one more time?",
+        "Can you explain at me one more time?"
+      ],
+      "answerIndex": 1,
+      "explain": "explain something TO someone. Polish 'wyjaśnić mi' needs no preposition, which is why 'explain me' feels right."
+    },
+    "prepositions_5": {
+      "options": [
+        "We waited for the bus.",
+        "We waited the bus.",
+        "We waited to the bus."
+      ],
+      "answerIndex": 0
+    },
+    "prepositions_6": {
+      "options": [
+        "I'm interested in this topic.",
+        "I'm interested on this topic.",
+        "I'm interested for this topic."
+      ],
+      "answerIndex": 0,
+      "explain": "interested IN. Polish 'zainteresowany czymś' uses a case ending, not a preposition, so any English preposition feels equally likely."
+    },
+    "prepositions_12": {
+      "options": [
+        "She is good at maths.",
+        "She is good in maths.",
+        "She is good on maths."
+      ],
+      "answerIndex": 0
+    },
+    "prepositions_15": {
+      "options": [
+        "I depend on my parents.",
+        "I depend of my parents.",
+        "I depend from my parents."
+      ],
+      "answerIndex": 0,
+      "explain": "depend ON. Polish 'zależeć od' ('from') is why 'depend from' feels natural."
+    },
+    "prepositions_29": {
+      "options": [
+        "I'm afraid at dogs.",
+        "I'm afraid from dogs.",
+        "I'm afraid of dogs."
+      ],
+      "answerIndex": 2,
+      "explain": "afraid OF. Polish 'bać się czegoś' uses a case ending, so learners guess a preposition; 'from' comes from 'od'."
+    },
+    "prepositions_33": {
+      "level": "B1",
+      "options": [
+        "We discussed about political reality.",
+        "We discussed political reality.",
+        "We discussed on political reality."
+      ],
+      "answerIndex": 1,
+      "explain": "'discuss' takes its object directly: discuss something (but talk ABOUT something). Polish 'dyskutować o' has a preposition, English does not."
+    },
+    "prepositions_14": {
+      "options": [
+        "I agree at you",
+        "I agree with you",
+        "I agree to you"
+      ],
+      "answerIndex": 1,
+      "explain": "agree WITH a person (agree TO a proposal). Polish 'zgadzać się z' matches 'with'."
+    },
+    "plurals_17": {
+      "concept": "prepositions",
+      "options": [
+        "He is responsible for this.",
+        "He is responsible of this.",
+        "He is responsible about this."
+      ],
+      "answerIndex": 0,
+      "explain": "responsible FOR. Polish 'odpowiedzialny za' maps to 'for'."
+    },
+    "word_order_5": {
+      "options": [
+        "Where she lives?",
+        "Where does she live?",
+        "Where does she lives?"
+      ],
+      "answerIndex": 1,
+      "explain": "Questions need do/does, and after 'does' the verb loses its -s: Where does she live?"
+    },
+    "word_order_13": {
+      "options": [
+        "I tomorrow go",
+        "I am going tomorrow",
+        "I am tomorrow going"
+      ],
+      "answerIndex": 1,
+      "explain": "Time words go at the end (or the very start), never between subject and verb: I am going tomorrow."
+    },
+    "word_order_26": {
+      "options": [
+        "I also want to go",
+        "I want too to go",
+        "I want also to go"
+      ],
+      "answerIndex": 0,
+      "explain": "'also' goes before the main verb: I also want to go. 'too' only works at the end: I want to go too."
+    },
+    "word_order_2": {
+      "options": [
+        "She always drinks tea in the morning.",
+        "She drinks tea always in the morning.",
+        "She drinks always tea in the morning."
+      ],
+      "answerIndex": 0
+    },
+    "word_order_4": {
+      "options": [
+        "She gave to me the book.",
+        "She me gave the book.",
+        "She gave me the book."
+      ],
+      "answerIndex": 2
+    },
+    "plurals_4": {
+      "options": [
+        "He has a big progress.",
+        "He has made a good progress.",
+        "He has made good progress."
+      ],
+      "answerIndex": 2,
+      "explain": "'progress' is uncountable, so never 'a progress'. Polish 'ma duży postęp' invites the article and the wrong verb."
+    },
+    "plurals_13": {
+      "options": [
+        "She gave me a lot of advices.",
+        "She gave me a lot of advice.",
+        "She gave me a lot of advises."
+      ],
+      "answerIndex": 1,
+      "explain": "'advice' is uncountable: never 'advices'. (Same for information, furniture, news.)"
+    },
+    "plurals_2": {
+      "options": [
+        "I have very much work",
+        "I have a lot of work",
+        "I have a lot of works"
+      ],
+      "answerIndex": 1,
+      "explain": "'work' (a job, tasks) is uncountable: a lot of work, not 'works' and not 'very much work' in an affirmative sentence."
+    },
+    "pronouns_8": {
+      "options": [
+        "She and I went shopping.",
+        "She and me went shopping.",
+        "Her and me went shopping."
+      ],
+      "answerIndex": 0
+    },
+    "pronouns_2": {
+      "options": [
+        "Everybody brought his own lunches.",
+        "Everybody brought their own lunch.",
+        "Everybody brought its own lunch."
+      ],
+      "answerIndex": 1
+    },
+    "modals_8": {
+      "level": "A1",
+      "options": [
+        "I will going",
+        "I will go",
+        "I will to go"
+      ],
+      "answerIndex": 1,
+      "explain": "will + base verb: will go. No -ing and no 'to' after a modal."
+    },
+    "modals_1": {
+      "prompt": "Which sentence tells a friend that coming is optional?",
+      "options": [
+        "You don't must come if you're busy.",
+        "You mustn't come if you're busy.",
+        "You don't have to come if you're busy."
+      ],
+      "answerIndex": 2
+    },
+    "conditionals_2": {
+      "options": [
+        "If you heated ice, it melts.",
+        "If you heat ice, it will melted.",
+        "If you heat ice, it melts."
+      ],
+      "answerIndex": 2
+    },
+    "comparatives_7": {
+      "options": [
+        "She is the most good student in the class.",
+        "She is the goodest student in the class.",
+        "She is the best student in the class."
+      ],
+      "answerIndex": 2
+    },
+    "gerund_infinitive_4": {
+      "prompt": "Which sentence means he quit?",
+      "options": [
+        "He stopped to smoke last year.",
+        "He stopped smoking last year.",
+        "He stopped smoke last year."
+      ],
+      "answerIndex": 1
+    },
+    "collocation_10": {
+      "options": [
+        "In the morning I wake.",
+        "In the morning I wake up.",
+        "In the morning I wake on."
+      ],
+      "answerIndex": 1,
+      "explain": "'wake up' is a phrasal verb; the particle 'up' is part of the meaning (Polish 'budzić się' is one verb)."
+    },
+    "collocation_1": {
+      "options": [
+        "I did a mistake.",
+        "I made a mistake.",
+        "I maked a mistake."
+      ],
+      "answerIndex": 1
+    },
+    "questions_negation_5": {
+      "concept": "collocation",
+      "options": [
+        "I did an appointment.",
+        "I made an appointment.",
+        "I took an appointment."
+      ],
+      "answerIndex": 1,
+      "explain": "MAKE an appointment (and plans, decisions, mistakes). Polish 'zrobić' covers both make and do."
+    },
+    "word_choice_6": {
+      "options": [
+        "I have 25 years old.",
+        "I am 25 years old.",
+        "I have 25 years."
+      ],
+      "answerIndex": 1
+    },
+    "word_choice_16": {
+      "options": [
+        "Let me tell you something.",
+        "Let me say you something.",
+        "Let me tell to you something."
+      ],
+      "answerIndex": 0,
+      "explain": "tell + person (tell you), say + words (say something). Polish 'powiedzieć ci coś' is one verb for both."
+    },
+    "word_choice_21": {
+      "prompt": "You want to say that at the moment you work from home. Which is right?",
+      "options": [
+        "I'm actually working from home.",
+        "I'm currently working from home.",
+        "I'm actual working from home."
+      ],
+      "answerIndex": 1,
+      "explain": "False friend: Polish 'aktualnie' = currently. English 'actually' means 'in fact', so the first sentence says something different."
+    },
+    "word_choice_29": {
+      "prompt": "You want to say you are sad about something. Which is right?",
+      "options": [
+        "I feel sorry about this.",
+        "I feel pathetic about this.",
+        "I feel sorry for about this."
+      ],
+      "answerIndex": 0,
+      "explain": "False friend: Polish 'patetyczny' (solemn, moving) is not English 'pathetic' (pitiful, useless). To express regret say 'I feel sorry about this'."
+    },
+    "word_choice_31": {
+      "prompt": "You want to say that at the moment you are very tired. Which is right?",
+      "options": [
+        "Currently, I'm very tired.",
+        "Actually, I'm very tired.",
+        "Actual, I'm very tired."
+      ],
+      "answerIndex": 0,
+      "explain": "False friend: Polish 'aktualnie' = currently (at present). English 'actually' = in fact. 'Actually, I'm very tired' is good English but says something else."
+    },
+    "word_choice_30": {
+      "prompt": "You want to say your sister's feelings are easily hurt (wrażliwa). Which is right?",
+      "options": [
+        "My sister is very sensed.",
+        "My sister is very sensitive.",
+        "My sister is very sensible."
+      ],
+      "answerIndex": 1
+    },
+    "questions_negation_1": {
+      "options": [
+        "What do you want?",
+        "What you want?",
+        "What does you want?"
+      ],
+      "answerIndex": 0,
+      "explain": "Questions need do/does: What do you want? Polish asks with intonation alone ('Co chcesz?'), so the auxiliary is easy to leave out."
+    }
+  },
+  "add": [
+    {
+      "id": "prepositions_40",
+      "concept": "prepositions",
+      "level": "A2",
+      "options": [
+        "Your opinion is very important for me.",
+        "Your opinion is very important to me.",
+        "Your opinion is very important at me."
+      ],
+      "answerIndex": 1,
+      "explain": "When something matters to a person's feelings, English says 'important TO me'. Polish 'ważne dla mnie' pulls learners toward 'for'. ('Important FOR' = good for a purpose: 'Sleep is important for your health.')"
+    },
+    {
+      "id": "prepositions_41",
+      "concept": "prepositions",
+      "level": "B1",
+      "options": [
+        "Sleep is important to your health.",
+        "Sleep is important for your health.",
+        "Sleep is important with your health."
+      ],
+      "answerIndex": 1,
+      "explain": "'Important FOR' = necessary or good for a purpose or benefit: for your health, for the exam. 'Important TO' = it matters to a person."
+    },
+    {
+      "id": "conditionals_10",
+      "concept": "conditionals",
+      "level": "A2",
+      "options": [
+        "If I will see him, I will tell him.",
+        "If I see him, I will tell him.",
+        "If I would see him, I will tell him."
+      ],
+      "answerIndex": 1,
+      "explain": "First conditional: if + present simple, will + verb. Polish puts the future in both halves ('jeśli go zobaczę'); English never puts 'will' after 'if'."
+    },
+    {
+      "id": "conditionals_11",
+      "concept": "conditionals",
+      "level": "B1",
+      "options": [
+        "If I was you, I would took the job.",
+        "If I were you, I would take the job.",
+        "If I would be you, I would take the job."
+      ],
+      "answerIndex": 1,
+      "explain": "Second conditional advice: If I were you, I would take… 'would' never goes inside the if-clause."
+    },
+    {
+      "id": "conditionals_12",
+      "concept": "conditionals",
+      "level": "B2",
+      "options": [
+        "If you had told me, I would help you.",
+        "If you had told me, I would have helped you.",
+        "If you would have told me, I would have helped you."
+      ],
+      "answerIndex": 1,
+      "explain": "Third conditional (a past regret): if + had + participle, would have + participle."
+    },
+    {
+      "id": "comparatives_10",
+      "concept": "comparatives",
+      "level": "A1",
+      "options": [
+        "This phone is the most cheap in the shop.",
+        "This phone is the cheapest in the shop.",
+        "This phone is cheapest than the others."
+      ],
+      "answerIndex": 1,
+      "explain": "One-syllable adjectives take -est for the superlative: the cheapest. Comparing two things uses -er + than: cheaper than."
+    },
+    {
+      "id": "comparatives_11",
+      "concept": "comparatives",
+      "level": "A2",
+      "options": [
+        "Warsaw is much bigger as Kraków.",
+        "Warsaw is much bigger than Kraków.",
+        "Warsaw is much more bigger than Kraków."
+      ],
+      "answerIndex": 1,
+      "explain": "bigger THAN (Polish 'niż'). Never 'more' and '-er' together."
+    }
+  ]
+}

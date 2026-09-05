@@ -89,14 +89,20 @@ export class Input {
       }
     }
 
+    // Keys are ignored while a form control has focus (arrow keys on the
+    // graphics dropdown used to steer the character behind it). While any
+    // overlay is up (body.overlay-open, set by overlay.js) movement keys are
+    // dropped; while the welcome tour or a dialog is up (body.modal-open) the
+    // panel hotkeys are dropped too, so panels cannot stack over a drill.
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
+      if (e.target?.closest?.('input, select, textarea')) return;
+      const body = document.body.classList;
+      if (body.contains('modal-open')) return;
+      const hotkey = { KeyE: 'interactPressed', KeyH: 'guideToggled', KeyJ: 'journalToggled', KeyT: 'metroToggled', KeyM: 'mapToggled' }[e.code];
+      if (hotkey) { this[hotkey] = true; return; }
+      if (body.contains('overlay-open')) return;
       this.keys.add(e.code);
-      if (e.code === 'KeyE') this.interactPressed = true;
-      if (e.code === 'KeyH') this.guideToggled = true;
-      if (e.code === 'KeyJ') this.journalToggled = true;
-      if (e.code === 'KeyT') this.metroToggled = true;
-      if (e.code === 'KeyM') this.mapToggled = true;
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => {
