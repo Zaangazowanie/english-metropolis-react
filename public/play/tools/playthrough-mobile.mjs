@@ -100,8 +100,9 @@ await page.touchscreen.tap(target.x + 6, target.y + 6); await page.waitForTimeou
 await shot('06-map-first-tap');
 check('first tap selects (map still open, no ride)', await ev(() => window.__EM.ui.mapOpen) && (await ev(() => window.__EM.zones.current?.data?.code || 'hub')) === 'hub');
 // the selected label is drawn on the canvas: sample pixels near the station for the dark label box
-const labelled = await ev((t) => { const c = document.getElementById('citymap-canvas'); const ctx = c.getContext('2d'); const r = c.getBoundingClientRect(); const cx = (t.x - r.left) * (c.width / r.width), cy = (t.y - r.top) * (c.height / r.height); let dark = 0; for (let dy = -46; dy < -8; dy += 2) for (let dx = -60; dx < 60; dx += 4) { const p = ctx.getImageData(Math.round(cx + dx), Math.round(cy + dy), 1, 1).data; if (p[0] < 70 && p[1] < 60) dark++; } return dark; }, target);
-check('station label drawn above the selected dot', labelled > 40, labelled);
+// the label box sits beside the dot on the district's side of the line: sample a band at dot height, both sides
+const labelled = await ev((t) => { const c = document.getElementById('citymap-canvas'); const ctx = c.getContext('2d'); const r = c.getBoundingClientRect(); const cx = (t.x - r.left) * (c.width / r.width), cy = (t.y - r.top) * (c.height / r.height); let dark = 0; for (let dy = -14; dy <= 30; dy += 2) for (let dx = -170; dx <= 170; dx += 4) { if (Math.abs(dx) < 12) continue; const p = ctx.getImageData(Math.round(cx + dx), Math.round(cy + dy), 1, 1).data; if (p[0] < 70 && p[1] < 60) dark++; } return dark; }, target);
+check('station label drawn beside the selected dot', labelled > 40, labelled);
 await page.touchscreen.tap(target.x + 6, target.y + 6); await page.waitForTimeout(2500); await step(20); await frames(2);
 check('second tap rides (from the hub platform)', (await ev(() => window.__EM.zones.current?.data?.code)) === 'uk_rp' && !(await ev(() => window.__EM.ui.mapOpen)));
 await shot('07-arrived-touch');

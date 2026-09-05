@@ -57,9 +57,18 @@ up from the neighbouring concept and the hint card says so.
 
 ## Verification (see the report's findings table for per-ID status)
 
-Desktop `playthrough-desktop.mjs` at 1440×900, TIER=high: RESULTS_DESKTOP
-Mobile `playthrough-mobile.mjs` 393×852 + 852×393, TIER=medium: RESULTS_MOBILE
-Metrics `render-metrics.mjs`: RESULTS_METRICS
+Desktop `playthrough-desktop.mjs` at 1440×900, TIER=high: **63 checks passed, 0 failed** (`gm.log`, `gm-01…20.png`; the one probe-side miss, an off-platform position that was inside the ride radius, was re-run as `gm-21-map-refusal.png` with `mapOpen:true` and the refusal toast).
+Mobile `playthrough-mobile.mjs` 393×852 + 852×393, TIER=medium: **MOBILE_COUNT** (`gmm.log`, `gmm-01…10.png`): Tap 💬 prompt, ? button opens the guide, two-tap labelled map, no HUD overlaps in portrait or landscape, every visible text ≥ 13 px in HUD/guide/dialog/map/journal/metro, 48 px answers, stick + buttons hidden under dialogs.
+Metrics `render-metrics.mjs` (1280×720, autoReset off, same probe on the prod tree served at :4190 as baseline):
+
+| tier · spot | baseline calls / tris | this branch calls / tris | Δ |
+|---|---|---|---|
+| high · hub | 536 / 1 583 668 | 534 / 1 616 530 | −0.4% / +2.1% |
+| high · district 0 | 421 / 1 348 259 | 421 / 1 387 191 | 0% / +2.9% |
+| potato · hub | 289 / 755 389 | 288 / 775 645 | −0.3% / +2.7% |
+| potato · district 0 | 173 / 540 675 | 173 / 566 531 | 0% / +4.8% |
+
+The triangle delta is the three always-present street-teaching bodies per district (were 1–3 patron-dependent) and the marker spheres; draw calls are flat. Speakers at high: baseline 39→45 (ghosts accumulating), this branch 30 = live only. Load to BEGIN 6.2 s (baseline 7.6 s on the same box). Zero pageerrors / console errors / 4xx in every run.
 
 ## Merge notes (hunks outside my strict region, all small)
 
