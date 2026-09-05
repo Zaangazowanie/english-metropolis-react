@@ -87,13 +87,26 @@ export function accentProfileFor(code, speakerIndex = 0) {
   };
 }
 
-// A named face for one of the district's street locals. Deterministic per
-// (district, slot) so the same person is standing outside the same shop every
-// time you come back to that stop. `taken` (a Set of names already used in
-// this district: the quest locals and earlier slots) is skipped so no district
-// has two Lachlan Wrights on one terrace or a passer-by who is also the third
-// quest local.
-export function streetLocalFor(code, index, taken = null) {
+// A named face for one of the district's street locals. Every district carries
+// its own 4-name `streetRoster` in zones.json (names that belong to the place,
+// none shared with its quest locals); street item k is always spoken by
+// roster[k % 4], so the same person says the same line every time you come back
+// and, because a lap shows three consecutive items, the three visible speakers
+// are always three different people. `index` is therefore the street ITEM
+// index (slot + laps), not the slot. Districts without a roster fall back to
+// the hashed global list, skipping `taken` names (the quest locals and earlier
+// slots) so no district has two Lachlan Wrights on one terrace or a passer-by
+// who is also the third quest local.
+export function streetLocalFor(code, index, taken = null, data = null) {
+  const roster = data?.streetRoster;
+  if (Array.isArray(roster) && roster.length) {
+    const who = roster[index % roster.length];
+    if (who?.name && !(taken && taken.has(who.name))) return { name: who.name, role: who.role || LOCAL_ROLES[index % LOCAL_ROLES.length], authored: true };
+    for (let k = 1; k < roster.length; k++) {
+      const alt = roster[(index + k) % roster.length];
+      if (alt?.name && !(taken && taken.has(alt.name))) return { name: alt.name, role: alt.role || LOCAL_ROLES[index % LOCAL_ROLES.length], authored: true };
+    }
+  }
   const h = hash(`${code}#${index}`);
   let ni = h % LOCAL_GUIDES.length;
   for (let tries = 0; taken && taken.has(LOCAL_GUIDES[ni]) && tries < LOCAL_GUIDES.length; tries++) {
@@ -105,6 +118,10 @@ export function streetLocalFor(code, index, taken = null) {
   };
 }
 
+// The district's three quest locals. All 44 districts author npcs[0..2] in
+// zones.json (wave 2); the template padding below is only a safety net for a
+// future district that ships with fewer, and it is flagged `generated` so the
+// content report can count it.
 export function districtCastFor(data, zoneIndex) {
   const cast = data.npcs.slice();
   if (cast.length < 3) {

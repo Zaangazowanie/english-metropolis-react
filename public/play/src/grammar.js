@@ -23,14 +23,19 @@ export const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1'];
 const levelIdx = (l) => Math.max(0, LEVELS.indexOf(l));
 
 // Assign a teaching concept + target level to a district local. The concept
-// comes from the ZONE index (unique 0..43), stride 3 per zone, so the two
-// districts flanking one platform never teach the same thing and a stop's six
-// visible locals cover six concepts; level climbs with distance from the hub.
-// Each completed round (lap) shifts the concept by a stride coprime with the
-// 14 concepts and raises the level, so locals always have something new.
+// is the district's authored learning objective (zones.json objective.concept,
+// chosen to match its dialect point — Pearly Court's question tags, Soul
+// Boulevard's aspect) for the first local at lap 0; the other two locals and
+// every later round rotate from it by a stride (5) coprime with the 14
+// concepts, so a stop's six visible locals still cover six concepts and a
+// completed round always brings something new. Districts without an objective
+// fall back to the zone-index spread. Level climbs with distance from the hub
+// and with each completed round (lap).
 export function assignGrammar(z, npcIdx, laps = 0) {
   const zoneIndex = z.zoneIndex ?? 0, stopIndex = z.stopIdx ?? 0;
-  const concept = CONCEPT_ORDER[(zoneIndex * 3 + npcIdx + laps * 5) % CONCEPT_ORDER.length];
+  const objective = z.data?.objective?.concept;
+  const base = CONCEPT_ORDER.includes(objective) ? CONCEPT_ORDER.indexOf(objective) : zoneIndex * 3;
+  const concept = CONCEPT_ORDER[(base + (npcIdx + laps) * 5) % CONCEPT_ORDER.length];
   const level = LEVELS[Math.min(LEVELS.length - 1, Math.floor(stopIndex / 3) + laps)];
   return { concept, level, conceptName: conceptName(concept) };
 }

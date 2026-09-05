@@ -26,7 +26,13 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DATA = path.resolve(HERE, '../src/gamedata');
 const JSON_PATH = path.join(DATA, 'grammar_bank.json');
 const JS_PATH = path.join(DATA, 'grammar_bank.js');
+const ZONES_PATH = path.join(DATA, 'zones.json');
 const REPAIRS_PATH = path.join(HERE, 'grammar-bank-repairs.json');
+// Wave-2 authored top-up (every concept ≥ 20 items, ≥ 8 B2, dialect-contrast
+// `validIn` items). Same shape as repairs.add; merged after the repairs.
+const AUTHORED_PATH = path.join(HERE, 'grammar-bank-authored.json');
+const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1'];
+const ZONE_CODES = new Set(JSON.parse(fs.readFileSync(ZONES_PATH, 'utf8')).zones.map((z) => z.code));
 
 const argv = process.argv.slice(2);
 const FIX = argv.includes('--fix');
@@ -65,6 +71,17 @@ function lintItem(ex, ctx) {
 
   if (!Array.isArray(opts) || opts.length < MIN_OPTIONS) P('two-option', `${opts.length} options`);
   if (typeof ex.answerIndex !== 'number' || ans === undefined) P('bad-answer-index', String(ex.answerIndex));
+  if (!LEVELS.includes(ex.level)) P('bad-level', String(ex.level));
+  if (!ctx.concepts.has(ex.concept)) P('bad-concept', String(ex.concept));
+  if (!/^[a-z_]+_\d+$/.test(ex.id || '') || !(ex.id || '').startsWith(`${ex.concept}_`)) P('bad-id', `${ex.id} does not belong to ${ex.concept}`);
+  // dialect-contrast items: every code must be a real district, and the
+  // heads-up only makes sense when a distractor IS the local form (so it must
+  // differ from the answer — the lint cannot judge which, the author can)
+  if (ex.validIn !== undefined) {
+    if (!Array.isArray(ex.validIn) || !ex.validIn.length) P('bad-validin', 'validIn must be a non-empty array of district codes');
+    else for (const c of ex.validIn) if (!ZONE_CODES.has(c)) P('bad-validin', `unknown district ${c}`);
+    if (!ex.explain || !/\b(dialect|local|standard|region|Southern|Scots|Irish|Newfoundland|Caribbean|Australia|New Zealand|Quebec|Yorkshire|London|New York|Midwest|AAVE|African American|Cockney|Estuary|West Country|Boston|Canad|Texas|Appalachia|Kiwi|Township|South Africa|Glasgow|Edinburgh|Highland|Dublin|Belfast|Cork)/i.test(ex.explain)) P('validin-explain', 'a dialect-contrast explain must name the variety');
+  }
   if (new Set(opts.map(norm)).size !== opts.length) P('duplicate-options', 'two options normalise to the same text');
   if (!ex.explain || ex.explain.trim().length < 12) P('placeholder-explain', 'missing or too short');
   if (ex.explain && META_EXPLAIN.test(ex.explain)) P('meta-explain', ex.explain.slice(0, 80));
@@ -114,11 +131,14 @@ function lintItem(ex, ctx) {
 
 function lintBank(bank) {
   const hints = new Set(bank.concepts.map((c) => norm(c.hint || '')));
-  const ctx = { hints };
+  const ctx = { hints, concepts: new Set(bank.concepts.map((c) => c.id)) };
   const byId = new Map();
   const report = { items: {}, duplicates: [], importantCap: [] };
   for (const ex of bank.exercises) {
     const probs = lintItem(ex, ctx);
+    // ids must be unique — a duplicate id would make mastery/review bookkeeping
+    // (keyed by id) silently merge two items
+    if (byId.has(ex.id)) probs.push({ rule: 'duplicate-id', detail: 'same id twice' });
     if (probs.length) report.items[ex.id] = probs;
     byId.set(ex.id, ex);
   }
@@ -151,17 +171,22 @@ function lintBank(bank) {
 }
 
 // ---------------------------------------------------------------- repairs
+// Idempotent: --fix can run any number of times. An `add` whose id is already
+// in the bank REPLACES that item (the authored file is the source of truth for
+// it) instead of appending a duplicate.
 function applyRepairs(bank, repairs) {
   const del = new Set(repairs.delete || []);
+  const adds = new Map((repairs.add || []).map((a) => [a.id, a]));
   const patched = [];
-  const log = { deleted: [], patched: [], added: [] };
+  const log = { deleted: [], patched: [], added: [], replaced: [] };
   for (const ex of bank.exercises) {
     if (del.has(ex.id)) { log.deleted.push(ex.id); continue; }
+    if (adds.has(ex.id)) { patched.push(adds.get(ex.id)); adds.delete(ex.id); log.replaced.push(ex.id); continue; }
     const p = repairs.patch?.[ex.id];
     if (p) { patched.push({ ...ex, ...p }); log.patched.push(ex.id); }
     else patched.push(ex);
   }
-  for (const add of repairs.add || []) { patched.push(add); log.added.push(add.id); }
+  for (const add of adds.values()) { patched.push(add); log.added.push(add.id); }
   return { bank: { ...bank, exercises: patched }, log };
 }
 
@@ -172,12 +197,11 @@ function recount(bank) {
 }
 
 function summary(bank) {
-  const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1'];
   const rows = [];
   for (const c of bank.concepts) {
     const items = bank.exercises.filter((e) => e.concept === c.id);
     const byLevel = Object.fromEntries(LEVELS.map((l) => [l, items.filter((e) => e.level === l).length]));
-    rows.push({ concept: c.id, total: items.length, ...byLevel });
+    rows.push({ concept: c.id, total: items.length, ...byLevel, validIn: items.filter((e) => e.validIn?.length).length });
   }
   const opt = {};
   for (const e of bank.exercises) opt[e.options.length] = (opt[e.options.length] || 0) + 1;
@@ -186,9 +210,9 @@ function summary(bank) {
 
 function printSummary(s) {
   console.log(`\nBank: ${s.total} items · option counts ${JSON.stringify(s.optionCounts)}`);
-  console.log('concept'.padEnd(20) + 'total  A1  A2  B1  B2  C1');
+  console.log('concept'.padEnd(20) + 'total  A1  A2  B1  B2  C1  validIn');
   for (const r of s.rows) {
-    console.log(r.concept.padEnd(20) + String(r.total).padStart(5) + ['A1', 'A2', 'B1', 'B2', 'C1'].map((l) => String(r[l]).padStart(4)).join(''));
+    console.log(r.concept.padEnd(20) + String(r.total).padStart(5) + LEVELS.map((l) => String(r[l]).padStart(4)).join('') + String(r.validIn).padStart(9));
   }
 }
 
@@ -216,6 +240,12 @@ if (!FIX) {
 
 const repairs = fs.existsSync(REPAIRS_PATH) ? JSON.parse(fs.readFileSync(REPAIRS_PATH, 'utf8')) : {};
 let { bank, log } = applyRepairs(original, repairs);
+if (fs.existsSync(AUTHORED_PATH)) {
+  const authored = JSON.parse(fs.readFileSync(AUTHORED_PATH, 'utf8'));
+  const r2 = applyRepairs(bank, { add: authored.add || [] });
+  bank = r2.bank;
+  log.added.push(...r2.log.added); log.replaced.push(...r2.log.replaced);
+}
 let after = lintBank(bank);
 // whatever still fails after the hand repairs is deleted — a broken item on a
 // public URL is worse than a thinner concept, and buildSession tops up from
@@ -230,7 +260,7 @@ if (stillBad.length) {
 bank = recount(bank);
 fs.writeFileSync(JSON_PATH, JSON.stringify(bank, null, 1) + '\n');
 fs.writeFileSync(JS_PATH, `// generated by public/play/tools/lint-grammar-bank.mjs --fix — do not edit\nexport default ${JSON.stringify(bank)};\n`);
-console.log(`\nrepairs: patched ${log.patched.length}, deleted ${log.deleted.length}, added ${log.added.length}, auto-removed ${stillBad.length}`);
+console.log(`\nrepairs: patched ${log.patched.length}, deleted ${log.deleted.length}, added ${log.added.length}, replaced ${log.replaced.length}, auto-removed ${stillBad.length}`);
 printReport(after, 'after repairs');
 const s = summary(bank);
 printSummary(s);

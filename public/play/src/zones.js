@@ -1024,7 +1024,7 @@ export class ZoneManager {
     for (const agent of teachers) {
       const slot = agent._teachSlot;
       const item = street[(slot + circuit.laps) % street.length];
-      const who = streetLocalFor(code, slot, taken);
+      const who = streetLocalFor(code, slot + circuit.laps, taken, z.data);   // same person ↔ same line across laps
       taken.add(who.name);
       this.crowd.setSpeaker(agent, {
         name: who.name,

@@ -393,30 +393,36 @@ export class UI {
             const claimed = hooks.claimWarmup?.() !== false;
             buttons.forEach((b) => { b.disabled = true; });
             buttons[sh.answerIndex].classList.add(right ? 'right' : 'reveal');
+            // The explanation (and the Polish gloss when the item has one)
+            // shows on BOTH outcomes, like the street dialog: the dialect
+            // point is the lesson, the click only checks it. Content-11/24.
+            const note = document.createElement('div');
+            note.className = 'explain';
+            note.innerHTML = (right ? `✓ <b>${esc(sh.options[sh.answerIndex])}</b>.` : `💡 The answer was <b>${esc(sh.options[sh.answerIndex])}</b>.`) +
+              (ex.explain ? ` ${esc(ex.explain)}` : '') +
+              (ex.pl ? `<br><span class="pl">🇵🇱 ${esc(ex.pl)}</span>` : '') +
+              (right ? '' : ` <i>No XP this time — the drill is still waiting.</i>`);
+            d.querySelector('.text').appendChild(note);
+            for (const b of buttons) b.remove();
+            const ok = document.createElement('button');
             if (right) {
               this.audio?.correct();
               if (claimed) this.addXP(ex.reward);
               hooks.onWarmup?.(npc, true);
-              setTimeout(() => {
-                if (!this.dialogOpen) return;
+              ok.textContent = claimed ? `✦ +${ex.reward} XP — now take their drill` : '✦ Now take their drill';
+              ok.addEventListener('click', () => {
                 this.closeDialog();
                 this.toast('📖 Warm-up done — now take their drill to finish helping them!');
-              }, 900);
+              });
             } else {
               ob.classList.add('wrong');
               this.audio?.wrong();
               hooks.onWrong?.(npc);
               hooks.onWarmup?.(npc, false);
-              const note = document.createElement('div');
-              note.className = 'explain';
-              note.innerHTML = `💡 The answer was <b>${esc(sh.options[sh.answerIndex])}</b>.` +
-                (ex.explain ? ` ${esc(ex.explain)}` : '') + ` <i>No XP this time — the drill is still waiting.</i>`;
-              d.querySelector('.text').appendChild(note);
-              const ok = document.createElement('button');
               ok.textContent = 'Got it';
               ok.addEventListener('click', () => this.closeDialog());
-              opts.appendChild(ok);
             }
+            opts.appendChild(ok);
           });
           opts.appendChild(ob);
           return ob;
