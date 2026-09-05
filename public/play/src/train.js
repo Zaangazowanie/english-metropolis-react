@@ -1,10 +1,10 @@
 // Detailed three-car Metro trams, batched by material so the richer geometry
 // stays inexpensive. One train runs each line.
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { neonMat, toonMat } from './materials.js';
+import { toonVertexMat, GeoBatch } from './materials.js';
 import { LINES } from './zones.js';
 import { BOULEVARD } from './transit-layout.js';
+import { glassToon, emissiveMat, CHROME } from './kit/street.js';
 
 const SPEED = 11;
 const CAR_LEN = 7.4;
@@ -14,16 +14,18 @@ const CAR_STEP = CAR_LEN + GAP;
 const TRAIN_CENTER_OFFSET = 7.9;
 const TRAIN_HALF_LENGTH = 12.2;
 
-const glassMat = new THREE.MeshStandardMaterial({
-  color: 0x16345c,
-  emissive: 0x3acbd0,
-  emissiveIntensity: 0.38,
-  metalness: 0.52,
-  roughness: 0.2,
-});
-const darkMat = toonMat(0x10172b);
-const trimMat = new THREE.MeshStandardMaterial({ color: 0xb8c7df, metalness: 0.82, roughness: 0.24 });
-const interiorMat = neonMat(0xa9fff4, 0.86);
+// Body, trim and dark parts share one vertex-coloured toon batch; the lit
+// stripe, headlights and interior glow share one emissive batch; the glazing
+// is a translucent toon glass. That is 4 meshes per tram instead of 7, no
+// metalness anywhere (the old chrome trim rendered as charcoal without an
+// environment map), and one shared material set across the three lines.
+const shellMat = toonVertexMat();
+shellMat.name = 'tram-shell';
+const glassMat = glassToon(0x9fdcec, 0.62, { emissive: 0x1c4a5a, emissiveIntensity: 0.5 });
+glassMat.name = 'tram-glass';
+const glowMat = emissiveMat(0xffffff, 1.5, { vertexColors: true });
+glowMat.name = 'tram-glow';
+const DARK = 0x10172b;
 
 const unitBox = new THREE.BoxGeometry(1, 1, 1);
 const unitCylinder6 = new THREE.CylinderGeometry(1, 1, 1, 6);
@@ -62,24 +64,8 @@ function barBetween(start, end, radius) {
   return unitCylinder6.clone().applyMatrix4(matrix);
 }
 
-function makeBatch(geometries, material, { castShadow = false, receiveShadow = false } = {}) {
-  const geometry = mergeGeometries(geometries, false);
-  geometries.forEach((item) => item.dispose());
-  geometry.computeBoundingSphere();
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.castShadow = castShadow;
-  mesh.receiveShadow = receiveShadow;
-  return mesh;
-}
-
 function buildTrain(colorHex) {
   const group = new THREE.Group();
-  const bodyMat = new THREE.MeshStandardMaterial({
-    color: colorHex,
-    metalness: 0.38,
-    roughness: 0.42,
-  });
-  const lineMat = neonMat(colorHex);
   const body = [];
   const trim = [];
   const dark = [];
@@ -173,14 +159,21 @@ function buildTrain(colorHex) {
     line.push(sphereAt([0.1, 0.1, 0.1], [x, 1.12, rearZ - 3.9]));
   }
 
-  group.add(
-    makeBatch(body, bodyMat, { castShadow: true, receiveShadow: true }),
-    makeBatch(trim, trimMat, { castShadow: true }),
-    makeBatch(dark, darkMat, { castShadow: true }),
-    makeBatch(line, lineMat),
-    makeBatch(glass, glassMat),
-    makeBatch(lights, interiorMat),
-  );
+  const shell = new GeoBatch();
+  for (const g of body) shell.add(g, colorHex);
+  for (const g of trim) shell.add(g, CHROME);
+  for (const g of dark) shell.add(g, DARK);
+  const shellMesh = shell.build(shellMat, { name: 'tram-shell', castShadow: true, receiveShadow: true });
+  shellMesh.geometry.computeBoundingSphere();
+  const glow = new GeoBatch();
+  for (const g of line) glow.add(g, colorHex);
+  for (const g of lights) glow.add(g, 0xa9fff4);
+  const glowMesh = glow.build(glowMat, { name: 'tram-glow', castShadow: false, receiveShadow: false });
+  const glazing = new GeoBatch();
+  for (const g of glass) glazing.add(g, 0xffffff);
+  const glassMesh = glazing.build(glassMat, { name: 'tram-glass', castShadow: false, receiveShadow: false });
+  glassMesh.renderOrder = 3;
+  group.add(shellMesh, glowMesh, glassMesh);
 
   const doors = new THREE.InstancedMesh(unitBox, glassMat, doorData.length);
   doors.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -311,6 +304,19 @@ export class Trains {
       train.doorOpen = THREE.MathUtils.damp(train.doorOpen, targetDoors, 7, dt);
       train.group.userData.setDoors?.(train.doorOpen);
 
+      // the player cannot stand inside a tram: 2D oriented-box push-out along
+      // the shallow axis (walkthrough-23)
+      {
+        const along = playerPos.x * train.dir.x + playerPos.z * train.dir.y - train.d;
+        const lateral = playerPos.x * train.perp.x + playerPos.z * train.perp.y - BOULEVARD.tramLaneX;
+        const halfL = TRAIN_HALF_LENGTH + 0.42, halfW = 1.25 + 0.42;
+        if (Math.abs(along) < halfL && Math.abs(lateral) < halfW) {
+          const pushLat = (halfW - Math.abs(lateral)) * Math.sign(lateral || 1);
+          const pushAlong = (halfL - Math.abs(along)) * Math.sign(along || 1);
+          if (Math.abs(pushLat) <= Math.abs(pushAlong)) { playerPos.x += train.perp.x * pushLat; playerPos.z += train.perp.y * pushLat; }
+          else { playerPos.x += train.dir.x * pushAlong; playerPos.z += train.dir.y * pushAlong; }
+        }
+      }
       train.group.position.set(
         train.dir.x * train.d + train.perp.x * BOULEVARD.tramLaneX,
         0,

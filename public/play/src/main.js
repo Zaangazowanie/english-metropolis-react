@@ -159,6 +159,7 @@ fetch('src/gamedata/chatter.json')
 const world = new World(scene, manager, { lowPower: lowPowerHint, crowd });
 const zoneMgr = new ZoneManager(scene, { lowPower: lowPowerHint, compactTouch, quality: quality.s });
 zoneMgr.setCrowd(crowd);
+zoneMgr.setRenderer(renderer, camera);   // lets the first streamed district pre-warm the shaders
 const heroLoader = makeGLTFLoader(manager);
 
 // zone-entry HUD title card + the objective chip beneath it

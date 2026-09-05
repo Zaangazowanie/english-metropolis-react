@@ -2,8 +2,14 @@
 // architecture tinted from each zone's palette, station signs, streaming, and
 // player zone detection. Content comes from src/gamedata/zones.json.
 import * as THREE from 'three';
-import { toonMat, toonVertexMat, GeoBatch, bakeVertexAO, addWetStreets, blobShadow, PALETTE } from './materials.js';
+import { toonMat, addWetStreets, blobShadow, PALETTE } from './materials.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { makeBuckets, buildBuckets, paverField, kerbRun, tactilePatch, zebra, manhole, bollard, bench, lamp, bin, hydrant, treePit, planter, busShelter, bikeRack, postBox, phoneBox, streetSign, bunting, stringLights, placeInto, countryOf, bakeDistrictAO, CHROME, WOOD } from './kit/street.js';
+import { box, cyl, sphere, uvCell, FACES } from './kit/shapes.js';
+import { archetypesFor, buildFacade, toneTable, buildingTones } from './kit/facades.js';
+import { speciesFor, treeInstances } from './kit/flora.js';
+import { landmarkKindFor, emitLandmark } from './kit/landmarks.js';
+import { SignAtlas, shopNamesFor } from './kit/signage.js';
 import { assignGrammar, grammarForLap } from './grammar.js';
 import { instanceRig } from './rig.js';
 import { attachMarker } from './markers.js';
@@ -20,6 +26,10 @@ export const LINES = {
 
 const FIRST_STOP = 62, STOP_SPACING = 42, LATERAL = 26;
 const R_BUILD = 105, R_DISPOSE = 145, R_INSIDE = 24;
+const CHUNK_FADE = 0.6;      // seconds a freshly streamed district takes to fade in
+const R_FINE = 46;           // metres within which a district shows its fine dressing
+const R_MID = 80;            // metres within which a district shows its street/roof furniture
+const BUILD_BUDGET_MS = 8;   // per tick, for the time-sliced chunk builder
 
 // deterministic per-zone rng so streaming rebuilds identical districts
 function mulberry32(seed) {
@@ -37,9 +47,12 @@ function hash(str) {
   return h >>> 0;
 }
 
-function addNpcSignature(wrap, seed, tint) {
+// bodyTop is the measured top of this local's body: the props were authored
+// for a 2.0 m head line and used to float above the shorter Meshy rigs.
+function addNpcSignature(wrap, seed, tint, bodyTop = 2.0) {
   const signature = new THREE.Group();
   signature.name = `npc-signature-${seed.toString(16)}`;
+  signature.position.y = bodyTop - 2.03;
   const ink = new THREE.Color(0x152038).lerp(tint, 0.18);
   const accent = tint.clone().offsetHSL(((seed % 9) - 4) * 0.018, 0.08, 0.04);
   const mesh = (geometry, material, x, y, z, rx = 0, ry = 0, rz = 0) => {
@@ -63,8 +76,8 @@ function addNpcSignature(wrap, seed, tint) {
     mesh(new THREE.BoxGeometry(0.3, 0.42, 0.16), accentMat, 0.29, 1.16, 0.13, 0, 0, -0.08);
   } else if (style === 2) {
     mesh(new THREE.TorusGeometry(0.25, 0.035, 6, 18, Math.PI), darkMat, 0, 2.02, 0, 0, 0, Math.PI / 2);
-    mesh(new THREE.BoxGeometry(0.09, 0.2, 0.08), accentMat, -0.25, 2.0, 0);
-    mesh(new THREE.BoxGeometry(0.09, 0.2, 0.08), accentMat, 0.25, 2.0, 0);
+    mesh(new THREE.BoxGeometry(0.09, 0.2, 0.08), accentMat, -0.25, 1.88, 0);
+    mesh(new THREE.BoxGeometry(0.09, 0.2, 0.08), accentMat, 0.25, 1.88, 0);
   } else {
     mesh(new THREE.CylinderGeometry(0.2, 0.23, 0.16, 12), darkMat, 0, 2.15, 0);
     mesh(new THREE.BoxGeometry(0.28, 0.04, 0.22), accentMat, 0, 2.12, -0.2);
@@ -89,6 +102,7 @@ export class ZoneManager {
     this.world = null;        // bound World (npc registry lives there)
     this.npcBase = null;      // rigged template { scene, animations } (Xbot)
     this.hubNpcs = [];        // hub teacher entries (their circuit code is 'hub')
+    this._fading = [];        // chunks mid fade-in: [{ t, mats: [{ mat, target, transparent }] }]
     // Round-based progress per circuit code: { laps, d: {npcIdx:done}, w: {npcIdx:warmup} }.
     // Complete every teacher in a circuit → laps++, d/w reset, everyone gets
     // fresh (harder) exercises. Migrates the old flat {idx:true,_bonused} shape.
@@ -235,6 +249,11 @@ export class ZoneManager {
     return best;
   }
 
+  // Streaming. Two passes: everything beyond the dispose radius is released
+  // FIRST (so crowd slots and GPU memory are free), then at most one new chunk
+  // is built per tick, nearest first. A zone the player is already standing in
+  // (a metro arrival) builds immediately so the travel fade lifts on a finished
+  // street. Freshly built chunks fade in over CHUNK_FADE seconds.
   update(playerPos, colliders) {
     const p = new THREE.Vector2(playerPos.x, playerPos.z);
     const buildRadius = this.quality?.buildRadius
@@ -242,10 +261,39 @@ export class ZoneManager {
     const disposeRadius = this.quality?.disposeRadius
       ?? (this.compactTouch ? 98 : (this.lowPower ? 124 : R_DISPOSE));
     for (const z of this.zones) {
+      if (!z.chunk) continue;
       const d = p.distanceTo(z.center);
-      if (!z.chunk && d < buildRadius) this.buildChunk(z, colliders);
-      else if (z.chunk && d > disposeRadius) this.disposeChunk(z, colliders);
+      if (d > disposeRadius) { this.disposeChunk(z, colliders); continue; }
+      // fine dressing (frames, mullions, balusters) only within reading range;
+      // street and roof furniture a little further out
+      const fineOn = d < R_FINE, midOn = d < R_MID;
+      if (z.chunk.userData.fine && z.chunk.userData.fine.visible !== fineOn) z.chunk.userData.fine.visible = fineOn;
+      if (z.chunk.userData.mid && z.chunk.userData.mid.visible !== midOn) z.chunk.userData.mid.visible = midOn;
     }
+    // a build in progress whose zone left the build radius is abandoned
+    if (this._pending && p.distanceTo(this._pending.z.center) > buildRadius + 10) this._abandonPending();
+    let nearest = null, nearestD = Infinity;
+    for (const z of this.zones) {
+      if (z.chunk || z === this._pending?.z) continue;
+      const d = p.distanceTo(z.center);
+      if (d >= buildRadius) continue;
+      if (d < R_INSIDE + 6) { if (this._pending?.z === z) this._abandonPending(); this.buildChunk(z, colliders, { fade: false }); continue; }
+      if (d < nearestD) { nearestD = d; nearest = z; }
+    }
+    // time-sliced: resume the pending build, or start the nearest one, and run
+    // its steps until this tick's budget is spent
+    if (!this._pending && nearest) this._pending = { z: nearest, gen: this._buildSteps(nearest, colliders, { fade: true }) };
+    if (this._pending) {
+      const t0 = performance.now();
+      let done = false;
+      do {
+        const r = this._pending.gen.next();
+        done = r.done;
+        if (r.value) this._pending.B = r.value;        // staged buckets, released if abandoned
+      } while (!done && performance.now() - t0 < BUILD_BUDGET_MS);
+      if (done) this._pending = null;
+    }
+    this._tickFades(1 / 60);
     // the whole city is dialect turf: HUD names whichever region you stand in
     const inside = this.regionAt(playerPos.x, playerPos.z);
     if (inside !== this.current) {
@@ -254,25 +302,83 @@ export class ZoneManager {
     }
   }
 
+  // main.js hands the renderer over so the first chunk can pre-warm every
+  // district shader program once, instead of paying the compile on arrival.
+  setRenderer(renderer, camera) { this.renderer = renderer; this.camera = camera; }
+
+  _tickFades(dt) {
+    if (!this._fading.length) return;
+    for (let i = this._fading.length - 1; i >= 0; i--) {
+      const f = this._fading[i];
+      f.t = Math.min(1, f.t + dt / CHUNK_FADE);
+      const k = f.t * f.t * (3 - 2 * f.t);
+      for (const m of f.mats) m.mat.opacity = m.target * k;
+      if (f.t >= 1) {
+        for (const m of f.mats) { m.mat.opacity = m.target; m.mat.transparent = m.transparent; }
+        this._fading.splice(i, 1);
+      }
+    }
+  }
+
+  _beginFade(group) {
+    const mats = [];
+    group.traverse((o) => {
+      const mat = o.material;
+      if (!o.isMesh || !mat || mat.userData.shared || mat.userData.fading) return;
+      mat.userData.fading = true;
+      mats.push({ mat, target: mat.opacity, transparent: mat.transparent });
+      mat.transparent = true;
+      mat.opacity = 0;
+    });
+    if (mats.length) this._fading.push({ t: 0, mats });
+  }
+
+  _abandonPending() {
+    const pend = this._pending;
+    this._pending = null;
+    if (!pend) return;
+    // nothing has reached the scene yet; release whatever geometry was staged
+    pend.gen.return();
+    const B = pend.B;
+    if (B) for (const k of ['shell', 'paneDark', 'paneLit', 'neon', 'glass', 'cone', 'sign', 'fine', 'mid']) { for (const g of B[k]?.geos || []) g.dispose(); }
+  }
+
   // ---------- district construction ----------
-  buildChunk(z, colliders) {
+  // Synchronous build (metro arrival, headless probes): runs every step now.
+  buildChunk(z, colliders, opts = {}) {
+    const gen = this._buildSteps(z, colliders, opts);
+    while (!gen.next().done) { /* run to completion */ }
+  }
+
+  // The build as a generator: each `yield` is a point where the streaming
+  // loop may stop for this tick. Nothing touches the scene, colliders or the
+  // crowd until the last steps, so an abandoned build leaves no trace.
+  *_buildSteps(z, colliders, { fade = true } = {}) {
+    const t0 = performance.now();
+    const prof = {}; let tMark = t0;
+    const mark = (k) => { const now = performance.now(); prof[k] = +(now - tMark).toFixed(1); tMark = now; };
     const rng = mulberry32(hash(z.data.code));
     const g = new THREE.Group();
+    g.name = `district-${z.data.code}`;
     const pal = z.data.palette;
     const lineColor = new THREE.Color(z.line.color);
     // The line colour is WAYFINDING, not architecture. Bleeding it 46% into the
     // accent (and from there into every wall tone) turned cream Georgian
     // terraces on the Isles line teal and made all 44 districts converge on
     // three colours. Keep the authored palette on the buildings and save the
-    // line colour for signage and the vertical lightblades, where it reads as
-    // "this is the Isles line" instead of "this is what stone looks like".
+    // line colour for signage and lit trim, where it reads as "this is the
+    // Isles line" instead of "this is what stone looks like".
     const cPrimary = new THREE.Color(pal.primary).lerp(new THREE.Color(0xdce4e8), 0.18);
     const cSecondary = new THREE.Color(pal.secondary).lerp(new THREE.Color(0xd7b7b0), 0.22);
     const cAccent = new THREE.Color(pal.accent).lerp(lineColor, 0.14);
     const cLine = new THREE.Color(pal.accent).lerp(lineColor, 0.72);   // signage only
     const cRoof = new THREE.Color(pal.roof).lerp(new THREE.Color(PALETTE.ink), 0.52);
+    const arch = archetypesFor(z.data);
+    const T = toneTable({ cPrimary, cSecondary, cAccent, cLine, cRoof }, arch.flags, rng);
+    const B = makeBuckets(T);
+    B.detail = this.quality ? !!this.quality.detailProps : !this.lowPower;
+    const country = countryOf(z.data.code);
 
-    // district ground: concrete pavement with only a hint of the zone's colour
     // Join the district pavement directly to the boulevard curb. Buildings stay
     // farther back, preserving tram clearance without the old dead asphalt moat.
     const nearEdge = BOULEVARD.tramLaneX + 4.2 - LATERAL;
@@ -281,34 +387,14 @@ export class ZoneManager {
     const districtHalfWidth = districtWidth / 2;
     const districtDepth = farEdge - nearEdge;
     const districtMid = (farEdge + nearEdge) / 2;
-    // Every flat surface in the district — pavement, paving seams, sidewalk
-    // ring, curbs, carriageways, shoulders and lane paint — accumulates into ONE
-    // vertex-coloured mesh. This used to be ~30 separate draw calls per district.
-    const surfaces = new GeoBatch();
-    const flat = (w, d, x, y, zz, color, yaw = 0) => {
-      const geo = new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2);
-      if (yaw) geo.rotateY(yaw);
-      geo.translate(x, y, zz);
-      surfaces.add(geo, color);
-    };
+    const ring = districtHalfWidth + 2.6;
 
-    flat(districtWidth, districtDepth, 0, 0.03, districtMid,
-      new THREE.Color(PALETTE.plaza).lerp(cPrimary, 0.15));
-    for (let stripe = -2; stripe <= 2; stripe++) {
-      flat(0.11, districtDepth - 1.2, stripe * 8, 0.041, districtMid,
-        stripe % 2 ? cAccent.clone().multiplyScalar(0.72) : new THREE.Color(PALETTE.curb));
-    }
-    // sidewalk ring + curb line around the block
-    for (const [w, d, x, zz] of [
-      [districtWidth, 3.0, 0, nearEdge - 0.3],
-      [districtWidth, 2.6, 0, farEdge + 1.3],
-      [2.6, districtDepth, -(districtHalfWidth + 1.3), districtMid],
-      [2.6, districtDepth, districtHalfWidth + 1.3, districtMid],
-    ]) {
-      flat(w, d, x, 0.032, zz, PALETTE.sidewalk);
-      flat(w === districtWidth ? districtWidth : 0.45, w === districtWidth ? 0.45 : districtDepth,
-        x, 0.034, zz, PALETTE.curb);
-    }
+    // ---- ground: one paver field for pavement + sidewalk ring, roads on top
+    const paveColor = new THREE.Color(PALETTE.plaza).lerp(cPrimary, 0.22);
+    paverField(B, -ring, nearEdge - 1.8, ring, farEdge + 2.6, 0.03, {
+      slab: 1.35, color: paveColor, grout: paveColor.clone().multiplyScalar(0.7), jitter: 0.06,
+      wear: [{ axis: 'z', at: nearEdge - 1.8, range: 1.2, strength: 0.12 }],
+    });
 
     // A compact street hierarchy turns every streamed dialect region into real
     // blocks. The outer parallels, cross streets and diagonal carry two-way
@@ -322,31 +408,41 @@ export class ZoneManager {
       crossZs: [-2.8, 12.2],
       diagonalWidth: 6.4,
       laneWidth: 3.2,
-      markingClearance: 0.015,
+      markingClearance: 0.017,
       oneWayDirection: hash(z.data.code) % 2 ? 1 : -1,
     };
-    const roadColor = new THREE.Color(0x15243a).lerp(cPrimary, 0.08);
+    const roadColor = new THREE.Color(0x1b2434).lerp(cPrimary, 0.06);
     const laneColor = new THREE.Color(0xc7d8dd).lerp(cAccent, 0.22);
     const oneWayColor = new THREE.Color(0xffc857).lerp(cAccent, 0.16);
     const shoulderColor = new THREE.Color(PALETTE.sidewalk).lerp(cPrimary, 0.08);
+    const kerbColor = new THREE.Color(PALETTE.curb).lerp(cPrimary, 0.12);
     const ROAD_Y = 0.052;
     const MARKING_Y = ROAD_Y + roadLayout.markingClearance;
+    const flat = (w, d, x, y, zz, color, yaw = 0) => {
+      const geo = new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2);
+      if (yaw) geo.rotateY(yaw);
+      geo.translate(x, y, zz);
+      B.shell.add(geo, color);
+    };
     const addRoad = (width, length, x, zz, yaw = 0) => {
       flat(width + 0.72, length + 0.36, x, ROAD_Y - 0.008, zz, shoulderColor, yaw);
       flat(width, length, x, ROAD_Y, zz, roadColor, yaw);
+      // lane wear: a darker polished track down each lane
+      const lanes = width > 5 ? [-width / 4, width / 4] : [0];
+      for (const lx of lanes) {
+        const geo = new THREE.PlaneGeometry(0.9, length * 0.96).rotateX(-Math.PI / 2);
+        geo.translate(lx, 0, 0);
+        if (yaw) geo.rotateY(yaw);
+        geo.translate(x, ROAD_Y + 0.008, zz);          // >= 8 mm above the asphalt: no z-fight at range
+        B.shell.add(geo, roadColor.clone().multiplyScalar(0.86));
+      }
     };
-    // Lane paint sits on its own raised slab rather than a polygon-offset plane,
-    // so it merges into the same batch without ever z-fighting the asphalt.
     const addMarking = (width, length, x, zz, yaw = 0, localX = 0, localZ = 0) => {
       const cos = Math.cos(yaw), sin = Math.sin(yaw);
       const geo = new THREE.BoxGeometry(width, 0.018, length);
       if (yaw) geo.rotateY(yaw);
-      geo.translate(
-        x + localX * cos + localZ * sin,
-        MARKING_Y,
-        zz - localX * sin + localZ * cos,
-      );
-      surfaces.add(geo, laneColor);
+      geo.translate(x + localX * cos + localZ * sin, MARKING_Y, zz - localX * sin + localZ * cos);
+      B.shell.add(geo, laneColor);
     };
     const addDashedCentre = (length, x, zz, yaw = 0) => {
       const spacing = 4.8;
@@ -391,19 +487,81 @@ export class ZoneManager {
       arrowParts.forEach((part) => part.dispose());
       if (arrowYaw) arrowGeometry.rotateY(arrowYaw);
       arrowGeometry.translate(roadLayout.centreX, MARKING_Y + 0.003, districtMid + localZ);
-      surfaces.add(arrowGeometry, oneWayColor);
+      B.shell.add(arrowGeometry, oneWayColor);
     }
+    for (const [mx, mz] of [[-12.2 + 1.4, 6], [0.9, -8], [12.2 - 1.6, 20]]) manhole(B, mx, mz, { y: ROAD_Y + 0.017 });
 
     const distanceToDiagonal = (x, zz) => {
       const px = x - diagonalStart.x;
       const pz = zz - diagonalStart.y;
-      const t = THREE.MathUtils.clamp(
-        (px * diagonalDelta.x + pz * diagonalDelta.y) / diagonalDelta.lengthSq(),
-        0,
-        1,
-      );
+      const t = THREE.MathUtils.clamp((px * diagonalDelta.x + pz * diagonalDelta.y) / diagonalDelta.lengthSq(), 0, 1);
       return Math.hypot(px - diagonalDelta.x * t, pz - diagonalDelta.y * t);
     };
+    // is (x, z) on a carriageway (with `pad` clearance)?
+    const onRoad = (x, zz, pad = 0.6) => {
+      if (Math.abs(zz - districtMid) < parallelLength / 2 + pad) {
+        for (const rx of roadLayout.outerXs) if (Math.abs(x - rx) < roadLayout.twoWayWidth / 2 + 0.36 + pad) return true;
+        if (Math.abs(x - roadLayout.centreX) < roadLayout.oneWayWidth / 2 + 0.36 + pad) return true;
+      }
+      if (Math.abs(x) < districtWidth / 2 - 0.4 + pad) {
+        for (const rz of roadLayout.crossZs) if (Math.abs(zz - rz) < roadLayout.twoWayWidth / 2 + 0.36 + pad) return true;
+      }
+      return distanceToDiagonal(x, zz) < roadLayout.diagonalWidth / 2 + 0.36 + pad;
+    };
+
+    // ---- kerbs: chamfered stones along every carriageway edge, dropped at the
+    // corners where pedestrians cross, with tactile paving on the drop.
+    const kerbY = 0.03;
+    const kerbSeg = (x0, z0, x1, z1) => {
+      // split the run wherever it crosses another road, drop the kerb at each end
+      const len = Math.hypot(x1 - x0, z1 - z0);
+      const dx = (x1 - x0) / len, dz = (z1 - z0) / len;
+      let a = 0;
+      const steps = Math.ceil(len / 0.5);
+      let open = null;
+      for (let i = 0; i <= steps; i++) {
+        const t = Math.min(len, i * 0.5);
+        const x = x0 + dx * t, zz = z0 + dz * t;
+        const blocked = onRoad(x, zz, -0.2);
+        if (!blocked && open === null) open = t;
+        if ((blocked || i === steps) && open !== null) {
+          const end = blocked ? t - 0.5 : t;
+          if (end - open > 1.2) {
+            kerbRun(B, x0 + dx * open, z0 + dz * open, x0 + dx * end, z0 + dz * end, {
+              color: kerbColor, y: kerbY, dropped: [{ at: 0.45, half: 0.45 }, { at: end - open - 0.45, half: 0.45 }],
+            });
+            if (B.detail) {
+              tactilePatch(B, x0 + dx * (open + 0.5), z0 + dz * (open + 0.5), Math.atan2(dx, dz), { y: 0.05 });
+              tactilePatch(B, x0 + dx * (end - 0.5), z0 + dz * (end - 0.5), Math.atan2(dx, dz), { y: 0.05 });
+            }
+          }
+          open = null;
+          a = t;
+        }
+      }
+    };
+    const halfLen = parallelLength / 2;
+    for (const rx of roadLayout.outerXs) for (const s of [-1, 1]) {
+      const kx = rx + s * (roadLayout.twoWayWidth / 2 + 0.36 + 0.14);
+      kerbSeg(kx, districtMid - halfLen, kx, districtMid + halfLen);
+    }
+    for (const s of [-1, 1]) {
+      const kx = roadLayout.centreX + s * (roadLayout.oneWayWidth / 2 + 0.36 + 0.14);
+      kerbSeg(kx, districtMid - halfLen, kx, districtMid + halfLen);
+    }
+    for (const rz of roadLayout.crossZs) for (const s of [-1, 1]) {
+      const kz = rz + s * (roadLayout.twoWayWidth / 2 + 0.36 + 0.14);
+      kerbSeg(-districtWidth / 2 + 0.4, kz, districtWidth / 2 - 0.4, kz);
+    }
+    {
+      const nx = -diagonalDelta.y / diagonalLength, nz = diagonalDelta.x / diagonalLength;
+      const off = roadLayout.diagonalWidth / 2 + 0.36 + 0.14;
+      for (const s of [-1, 1]) {
+        kerbSeg(diagonalStart.x + nx * off * s, diagonalStart.y + nz * off * s, diagonalEnd.x + nx * off * s, diagonalEnd.y + nz * off * s);
+      }
+    }
+
+    // ---- building slots (unchanged layout: colliders and locals rely on it)
     const slots = [];
     const rows = [
       { z: nearEdge + 6.2, d: 7.4, frontage: true },
@@ -424,78 +582,174 @@ export class ZoneManager {
         const d = row.d + rng() * 0.28;
         const diagonalClearance = roadLayout.diagonalWidth / 2 + Math.min(w, d) * 0.48 + 0.45;
         if (distanceToDiagonal(x, zz) < diagonalClearance) continue;
-        slots.push({
-          x,
-          z: zz,
-          w,
-          d,
-          frontage: row.frontage,
-        });
+        slots.push({ x, z: zz, w, d, frontage: row.frontage });
       }
     }
-    const streetMat = toonVertexMat();
-    if (this.quality?.wetStreets) addWetStreets(streetMat);
-    const streetMesh = surfaces.build(streetMat, {
-      castShadow: false, receiveShadow: true, name: `${z.data.code}-streets`,
-    });
-    if (streetMesh) g.add(streetMesh);
+    // free of buildings and carriageways?
+    const footprintHit = (x, zz, r) => slots.some((s) => Math.abs(x - s.x) < s.w / 2 + r && Math.abs(zz - s.z) < s.d / 2 + r);
+    const free = (x, zz, r = 0.6) => !footprintHit(x, zz, r) && !onRoad(x, zz, r);
 
-    const zoneColliders = this.buildFacadeBlock(g, slots, rng, { cPrimary, cSecondary, cAccent, cLine, cRoof });
+    // ---- signage atlas for this district
+    const atlas = new SignAtlas(1024);
+    const names = shopNamesFor(z.data);
+    let nameI = 0;
+    const lineHex = '#' + z.line.color.toString(16).padStart(6, '0');
+    const accentHex = '#' + cAccent.getHexString();
+    const signs = {
+      fascia: () => {
+        const n = names[nameI++ % names.length];
+        return atlas.fascia({ text: n.text, sub: n.sub, bg: ['#1a1430', '#' + T.fascia.getHexString(), '#f5f2ff'][nameI % 3], fg: nameI % 3 === 2 ? '#1a1430' : '#f5f2ff', accent: accentHex, style: nameI % 3 });
+      },
+      hanging: () => atlas.hanging({ text: names[(nameI + 3) % names.length].text.split(' ').pop(), glyph: ['☕', '✂', '★', '♪', '❀', '✦'][nameI % 6], accent: accentHex }),
+    };
+    const plateUV = atlas.nameplate({ name: z.data.zoneName, dialect: z.data.dialect, lineHex });
+    const streetUV = atlas.streetPlate({ text: `${z.data.zoneName.split(' ').slice(-1)[0]} ${country === 'us' ? 'St' : country === 'ca' && /quebec/.test(z.data.code) ? 'Rue' : 'Street'}`,
+      bg: country === 'us' ? '#1f6b3a' : '#f5f2ff', fg: country === 'us' ? '#f5f2ff' : '#10172b' });
 
-    // Every stop gets an inhabited ground floor: compact food/coffee/flower
-    // sellers, outdoor tables and a bright local venue sign. The whole set is
-    // owned by the streamed chunk, so distant districts still cost nothing.
+    mark('ground');
+    yield B; tMark = performance.now();
+    // ---- facades, one building per step
+    const zoneColliders = [];
+    let facadeMs = 0;
+    for (const step of this.facadeSteps(B, slots, rng, T, arch, signs, z)) { zoneColliders.push(...step); facadeMs += performance.now() - tMark; yield B; tMark = performance.now(); }
+    prof.facades = +facadeMs.toFixed(1);
+
+    // ---- landmark: the vista at the far end of the centre street
+    const lmKind = landmarkKindFor(z.data);
+    const lmZ = farEdge + 7.5;
+    const apron = new THREE.CircleGeometry(7.2, 24).rotateX(-Math.PI / 2).translate(0, 0.032, lmZ);
+    B.shell.add(apron, paveColor.clone().lerp(cAccent, 0.15));
+    B.shell.add(new THREE.RingGeometry(6.9, 7.2, 24).rotateX(-Math.PI / 2).translate(0, 0.036, lmZ), kerbColor);
+    zoneColliders.push(...emitLandmark(B, lmKind, { ...T, treeColours: speciesFor(z.data).includes('jacaranda') ? [0x9b7fd0, 0xa88ad8, 0x6f9a6a] : null }, rng, 0, lmZ, Math.PI));
+    for (const s of [-1, 1]) {
+      bench(B, s * 5.2, lmZ - 3.2, s > 0 ? -Math.PI / 2 : Math.PI / 2, { wood: T.deck.getHex(), iron: T.iron.getHex() });
+      lamp(B, s * 5.8, lmZ + 1.5, { style: 'classic', color: T.iron.getHex() });
+      zoneColliders.push({ localX: s * 5.2, localZ: lmZ - 3.2, hw: 0.35, hd: 0.95, source: `${z.data.code}-bench` }, { localX: s * 5.8, localZ: lmZ + 1.5, hw: 0.22, hd: 0.22, source: `${z.data.code}-lamp` });
+    }
+
+    // ---- street life (carts, terrace, parked cars) into the same buckets
     const streetLife = buildDistrictLife(rng, {
-      accent: cAccent,
-      secondary: cSecondary,
-      nearEdge,
-      code: z.data.zoneName,
-      lowPower: this.lowPower,
-      roadLayout,
-    });
-    g.add(streetLife);
-    zoneColliders.push(...(streetLife.userData.colliderBoxes || []));
-    z.patronSlots = streetLife.userData.patronSlots || [];
+      accent: cAccent, secondary: cSecondary, nearEdge, code: z.data.zoneName,
+      lowPower: this.lowPower, roadLayout, detail: B.detail,
+    }, B);
+    zoneColliders.push(...(streetLife.colliderBoxes || []));
+    z.patronSlots = streetLife.patronSlots || [];
 
-    // landmark in the courtyard — variant by zone hash
-    const lm = this.buildLandmark(hash(z.data.code) % 3, cAccent, cRoof);
-    lm.position.set(-15.5, 0, 25.2);
-    g.add(lm);
-    zoneColliders.push({ localX: -15.5, localZ: 25.2, hw: 1.6, hd: 1.6 });
+    // ---- furniture on the pavements: lamps, benches, bins, post + phone box,
+    // bollards along the shopfront walk, a shelter, a bike rack, planters.
+    const furniture = [];
+    const tryPlace = (x, zz, r, fn) => { if (free(x, zz, r)) { fn(); furniture.push([x, zz, r]); return true; } return false; };
+    const lampSpots = [[-15, nearEdge - 1.1], [-4.5, nearEdge - 1.1], [14.5, nearEdge - 1.1],
+      [-20.6, -7], [20.6, -7], [-20.6, 8.5], [20.6, 8.5], [-20.6, 22], [20.6, 22],
+      [-9.2, 1.4], [9.2, 1.4], [-9.2, 16.4], [9.2, 16.4], [-14, farEdge + 1.5], [14, farEdge + 1.5]];
+    lampSpots.forEach(([x, zz], i) => tryPlace(x, zz, 0.45, () => {
+      lamp(B, x, zz, { style: country === 'us' || country === 'ca' ? (i % 2 ? 'modern' : 'classic') : 'classic', color: T.iron.getHex(), cone: B.detail && i % 2 === 0 });
+      zoneColliders.push({ localX: x, localZ: zz, hw: 0.2, hd: 0.2, source: `${z.data.code}-lamp` });
+    }));
+    for (const [x, zz, yaw] of [[-20.6, 2, Math.PI / 2], [20.6, 15, -Math.PI / 2], [-14, farEdge + 1.5, Math.PI], [0, -7.3, 0]]) {
+      tryPlace(x, zz, 1.0, () => {
+        bench(B, x, zz, yaw, { wood: T.deck.getHex(), iron: T.iron.getHex() });
+        zoneColliders.push({ localX: x, localZ: zz, hw: Math.abs(Math.cos(yaw)) * 0.95 + Math.abs(Math.sin(yaw)) * 0.35, hd: Math.abs(Math.sin(yaw)) * 0.95 + Math.abs(Math.cos(yaw)) * 0.35, source: `${z.data.code}-bench` });
+      });
+    }
+    for (const [x, zz] of [[-16.6, nearEdge - 1.0], [16.4, nearEdge - 1.0], [-20.6, 12.5], [20.6, -1.5], [3.2, 8.2]]) {
+      tryPlace(x, zz, 0.4, () => { bin(B, x, zz, { lid: T.accent }); zoneColliders.push({ localX: x, localZ: zz, hw: 0.3, hd: 0.3, source: `${z.data.code}-bin` }); });
+    }
+    tryPlace(-19.4, -7.3, 0.5, () => { postBox(B, -19.4, -7.3, Math.PI / 2, country); zoneColliders.push({ localX: -19.4, localZ: -7.3, hw: 0.35, hd: 0.35, source: `${z.data.code}-post-box` }); });
+    tryPlace(19.4, 1.2, 0.7, () => { phoneBox(B, 19.4, 1.2, -Math.PI / 2, country); zoneColliders.push({ localX: 19.4, localZ: 1.2, hw: 0.5, hd: 0.5, source: `${z.data.code}-phone-box` }); });
+    if (country === 'us' || country === 'ca') tryPlace(-3.2, 8.2, 0.3, () => hydrant(B, -3.2, 8.2));
+    tryPlace(-17.5, 16.4, 1.8, () => {
+      busShelter(B, -17.5, 16.4, 0, { accent: z.line.color, seat: T.deck.getHex() });
+      zoneColliders.push({ localX: -17.5, localZ: 16.4 - 0.5, hw: 1.7, hd: 0.3, source: `${z.data.code}-shelter` });
+    });
+    tryPlace(9.8, nearEdge - 1.2, 1.4, () => bikeRack(B, 9.8, nearEdge - 1.2, 0, { n: 3 }));
+    for (let i = 0; i < 4; i++) {
+      const x = -19 + i * 12.6 + (i > 1 ? 2 : 0), zz = 26.6;
+      tryPlace(x, zz, 0.9, () => {
+        planter(B, x, zz, 0, { color: T.stone.getHex(), hedge: 0x2f856e });
+        zoneColliders.push({ localX: x, localZ: zz, hw: 0.85, hd: 0.35, source: `${z.data.code}-planter` });
+      });
+    }
+    // bollards guard the shopfront walk from the carriageway mouths
+    for (const x of [-15.9, -8.4, 8.4, 15.9]) for (const dz of [0, 0.9]) {
+      const zz = nearEdge - 0.4 + dz;
+      if (free(x, zz, 0.15)) bollard(B, x, zz, { color: T.iron.getHex(), cap: B.detail ? z.line.color : null });
+    }
+    // street-name plates at two corners
+    if (streetUV) {
+      tryPlace(-9.0, -6.6, 0.3, () => streetSign(B, -9.0, -6.6, Math.PI, streetUV, { post: T.iron.getHex() }));
+      tryPlace(9.0, 8.8, 0.3, () => streetSign(B, 9.0, 8.8, 0, streetUV, { post: T.iron.getHex() }));
+    }
+    // festive districts string bunting between the frontage pair and lights across the cross street
+    if (arch.flags.bunting && B.detail) {
+      const fr = slots.filter((s) => s.frontage).sort((a, b) => a.x - b.x);
+      for (let i = 0; i + 1 < fr.length; i++) {
+        const a = fr[i], b = fr[i + 1];
+        bunting(B, a.x + a.w / 2, 6.2, a.z - a.d / 2 - 0.2, b.x - b.w / 2, 6.2, b.z - b.d / 2 - 0.2, [cAccent.getHex(), 0xf5f2ff, z.line.color, 0xffb84d]);
+      }
+      for (const rz of roadLayout.crossZs) {
+        stringLights(B, -20.2, 4.6, rz, 20.2, 4.6, rz, { every: 1.3 });
+      }
+    } else if (B.detail && rng() < 0.5) {
+      stringLights(B, -20.2, 4.6, roadLayout.crossZs[0], 20.2, 4.6, roadLayout.crossZs[0], { every: 1.4 });
+    }
+
+    // ---- station platform at the stop, in the district's own frame
+    const signPos = { x: z.dir.x * 5.4 * 0 + 5.4, z: -LATERAL + 8.2 };
+    // (the platform used to be a separate scene object placed from stopPos; in
+    // district-local coordinates that is x=5.4 along the line, z=-17.8)
+    zoneColliders.push(...this.buildStationSign(B, z, signPos.x, signPos.z, plateUV));
+    // zebra over the boulevard at this stop (drawn by the side>0 zone only so
+    // the two districts flanking a station don't stack two crossings)
+    if (z.side > 0) zebra(B, 0, -LATERAL, Math.PI / 2, { width: 8.4, y: 0.03 });
+
+    // ---- flora: species from climate keywords, one InstancedMesh per species
+    const species = speciesFor(z.data);
+    const treeSpots = [[-19, nearEdge - 1.0], [19.2, nearEdge - 1.0],
+      [-21.6, -12], [21.6, -12], [-21.6, 3.5], [21.6, 3.5], [-21.6, 18], [21.6, 18],
+      [-18.5, farEdge + 1.4], [18.5, farEdge + 1.4], [-6.5, farEdge + 1.4], [6.5, farEdge + 1.4],
+      [-3.0, -7.3], [15.5, 1.3], [-14.6, 16.4]];
+    const bySpecies = new Map();
+    treeSpots.forEach(([x, zz], i) => {
+      if (!free(x, zz, 0.7) || furniture.some(([fx, fz, fr]) => Math.hypot(fx - x, fz - zz) < fr + 1.2)) return;
+      if (!B.detail && i % 2) return;                    // potato keeps every other tree
+      const kind = species[i % species.length];
+      if (!bySpecies.has(kind)) bySpecies.set(kind, []);
+      const s = 0.85 + rng() * 0.35;
+      bySpecies.get(kind).push({ x, z: zz, s, rot: rng() * Math.PI * 2, variant: i % 3 });
+      treePit(B, x, zz, { r: 0.75, color: T.iron.getHex() });
+      zoneColliders.push({ localX: x, localZ: zz, hw: 0.28, hd: 0.28, source: `${z.data.code}-tree` });
+    });
+    for (const [kind, list] of bySpecies) {
+      const inst = treeInstances(kind, list);
+      if (inst) g.add(inst);
+    }
+
+    mark('furniture');
+    yield B; tMark = performance.now();
+    // ---- build the buckets into ≤ 9 meshes
+    const occluders = slots.map((s) => ({ x: s.x, z: s.z, hw: s.w / 2, hd: s.d / 2 }));
+    const meshes = buildBuckets(B, {
+      atlas: atlas.texture(), name: z.data.code,
+      litEmissive: new THREE.Color(0xffa050).lerp(cLine, 0.18),
+      ao: this.vertexAO ? (geo) => bakeDistrictAO(geo, occluders) : null,
+    });
+    for (const m of meshes) {
+      if (m.name.endsWith('-shell') && this.quality?.wetStreets) addWetStreets(m.material, { strength: 0.55 });
+      if (m.userData.fineDetail) { g.userData.fine = m; m.visible = false; }
+      if (m.userData.midDetail) { g.userData.mid = m; }
+      g.add(m);
+    }
+    mark('merge+ao');
+    yield null; tMark = performance.now();
 
     // orient district: face the boulevard
     const yaw = Math.atan2(z.perp.x * z.side, z.perp.y * z.side);
     g.rotation.y = yaw;
     g.position.set(z.center.x, 0, z.center.y);
-
-    // station sign + platform at the stop
-    const sign = this.buildStationSign(z);
-    sign.position.set(
-      z.stopPos.x + z.perp.x * z.side * 8.2 + z.dir.x * 5.4,
-      0,
-      z.stopPos.y + z.perp.y * z.side * 8.2 + z.dir.y * 5.4,
-    );
-    sign.rotation.y = yaw;
-    // zebra crossing over the boulevard at this stop — one batched mesh
-    const zebraBatch = new GeoBatch();
-    for (let s = 0; s < 7; s++) {
-      zebraBatch.add(
-        new THREE.PlaneGeometry(1.05, 2.2).rotateX(-Math.PI / 2).translate(-3.9 + s * 1.3, 0.022, 0),
-        0xe8dcbb,
-      );
-    }
-    const zebra = zebraBatch.build(toonVertexMat(), {
-      castShadow: false, receiveShadow: true, name: `${z.data.code}-zebra`,
-    });
-    zebra.position.set(z.stopPos.x, 0, z.stopPos.y);
-    zebra.rotation.y = Math.atan2(z.dir.x, z.dir.y);   // stripes span the road width
-    this.scene.add(zebra);
-    g.attachZebra = zebra;
-    g.attachSign = sign;
-    this.scene.add(sign);
-
     this.scene.add(g);
     z.chunk = g;
+    if (fade) this._beginFade(g);
 
     // world-space colliders (district rotated — transform local offsets)
     const cosY = Math.cos(yaw), sinY = Math.sin(yaw);
@@ -510,24 +764,6 @@ export class ZoneManager {
         source: c.source || `${z.data.code}-building`,
       };
     });
-    const addSignCollider = (localX, localZ, halfX, halfZ, source) => {
-      const wx = sign.position.x + localX * cosY + localZ * sinY;
-      const wz = sign.position.z - localX * sinY + localZ * cosY;
-      const extentX = Math.abs(cosY) * halfX + Math.abs(sinY) * halfZ;
-      const extentZ = Math.abs(sinY) * halfX + Math.abs(cosY) * halfZ;
-      tagged.push({
-        minX: wx - extentX, maxX: wx + extentX,
-        minZ: wz - extentZ, maxZ: wz + extentZ,
-        source,
-      });
-    };
-    for (const x of [-1.65, 1.65]) {
-      addSignCollider(x, 0, 0.11, 0.11, `${z.data.code}-station-sign`);
-      for (const localZ of [0.55, 1.65]) {
-        addSignCollider(x, localZ, 0.11, 0.11, `${z.data.code}-shelter-support`);
-      }
-    }
-    addSignCollider(2.7, 0.5, 0.3, 0.22, `${z.data.code}-emergency-stop`);
     colliders.push(...tagged);
     this._colliderTag.set(z.data.code, tagged);
 
@@ -561,7 +797,9 @@ export class ZoneManager {
         );
         wrap.rotation.y = yaw + [0.6, -2.2, 2.65][i];
         wrap.scale.setScalar(s);
-        wrap.add(blobShadow(0.5 * s));
+        const blob = blobShadow(0.5 * s);
+        blob.userData.disposeWithNpc = true;             // its PlaneGeometry is per-NPC
+        wrap.add(blob);
 
         const entry = {
           obj: wrap,
@@ -577,26 +815,44 @@ export class ZoneManager {
           gestureCorrect: 'agree', gestureWrong: 'headShake', gestureGreet: 'Wave',
         };
         attachMarker(entry, 2.3);   // local units — wrap scale applies on top
-        addNpcSignature(wrap, hash(`${z.data.code}:${i}`), tint);
+        let bodyTop = 1.8;
         if (base?.rigged) {
           const inst = instanceRig(base.object || base.mesh, base.clips);
           inst.mesh.material = inst.mesh.material.clone();
           inst.mesh.material.color.lerp(tint, 0.22);
           wrap.add(inst.object);
           entry.model = inst.mesh; entry.mixer = inst.mixer; entry.playOnce = inst.playGesture;
+          bodyTop = new THREE.Box3().setFromObject(inst.object).max.y;
         } else {
           const model = base.staticModel.clone(true);
           model.traverse((o) => { if (o.isMesh) { o.material = o.material.clone(); o.material.color.lerp(tint, 0.22); o.castShadow = true; } });
           wrap.add(model);
           entry.model = model;
           entry.playOnce = (name) => { entry.gesture = { name, t: 0 }; };
+          bodyTop = new THREE.Box3().setFromObject(model).max.y;
         }
+        // the hat sits on the measured head, not at an authored 2.0 m
+        addNpcSignature(wrap, hash(`${z.data.code}:${i}`), tint, Number.isFinite(bodyTop) && bodyTop > 1 ? bodyTop : 1.8);
+        // materials the draw-range cross-fade will animate (world.update)
+        entry.fadeMats = [];
+        wrap.traverse((o) => { if (o.isMesh && o.material && !o.userData.disposeWithNpc && !o.isSprite && o !== blob) entry.fadeMats.push(o.material); });
         this.scene.add(wrap);
         this.world.npcs.push(entry);
         spawned.push(entry);
       });
       this._npcTag.set(z.data.code, spawned);
     }
+
+    // Pre-warm every district shader once, so arriving somewhere later never
+    // stalls on program compilation.
+    if (!this._prewarmed && this.renderer && this.camera) {
+      this._prewarmed = true;
+      try { this.renderer.compile(this.scene, this.camera); } catch (err) { console.warn('[EM] shader pre-warm failed:', err); }
+    }
+    mark('people');
+    this.lastBuildMs = performance.now() - t0;
+    this.lastBuildProfile = prof;
+    this.buildCount = (this.buildCount || 0) + 1;
   }
 
   // Fill a freshly-streamed district with its own people. Walkers loop the
@@ -684,390 +940,120 @@ export class ZoneManager {
   }
 
   // ---------- facade architecture ----------
-  // Six silhouette families, merged by material, keep districts authored at
-  // street level without multiplying draw calls per building.
-  buildFacadeBlock(g, slots, rng, { cPrimary, cSecondary, cAccent, cLine, cRoof }) {
-    // Wall variety has to come from the district's OWN palette. Mixing in fixed
-    // cream/warm/mint constants meant every district on the map got one mint
-    // building and one pink one, so a Georgian terrace, a Kingston yard and a
-    // Cape Flats street all shared a third of their colour.
-    const CREAM = new THREE.Color(0xe7e3dc);
-    const wallTones = [
-      cPrimary.clone().lerp(CREAM, 0.10),
-      cSecondary.clone(),
-      cPrimary.clone().lerp(cSecondary, 0.55).offsetHSL(0, 0.03, -0.07),
-      cSecondary.clone().lerp(cAccent, 0.26).offsetHSL(0, 0, 0.05),
-    ];
-    const trimTone = cPrimary.clone().multiplyScalar(0.52).lerp(new THREE.Color(PALETTE.ink), 0.54);
-    const bandTone = CREAM.clone().lerp(trimTone, 0.3);      // ground-floor stone
-    const roofTone = cRoof.clone().lerp(CREAM, 0.18);
-
-    const B = { wall0: [], wall1: [], wall2: [], wall3: [], trim: [], band: [], roof: [],
-      paneLit: [], paneDark: [], accent: [], metal: [] };
-    const boxG = (bucket, w, h, d, x, y, z) => {
-      const geo = new THREE.BoxGeometry(w, h, d);
-      geo.translate(x, y, z);
-      bucket.push(geo);
-    };
-    const boxR = (bucket, w, h, d, x, y, z, rz = 0) => {
-      const geo = new THREE.BoxGeometry(w, h, d);
-      if (rz) geo.rotateZ(rz);
-      geo.translate(x, y, z);
-      bucket.push(geo);
-    };
-    const quad = (bucket, w, h, x, y, z, ry) => {
-      const geo = new THREE.PlaneGeometry(w, h);
-      if (ry) geo.rotateY(ry);
-      geo.translate(x, y, z);
-      bucket.push(geo);
-    };
-    const pitchedRoof = (x, z, w, d, yTop, rh) => {
-      const geo = new THREE.CylinderGeometry(0.72, 0.72, 1, 3, 1);
-      geo.rotateX(Math.PI / 2); geo.rotateY(Math.PI / 2);
-      geo.scale(w * 1.14, rh, d * 1.14);
-      geo.translate(x, yTop + rh * 0.34, z);
-      B.roof.push(geo);
-    };
-
-    const FACES = [
-      { nx: 0, nz: 1, tx: 1, tz: 0, ry: 0 },
-      { nx: 0, nz: -1, tx: -1, tz: 0, ry: Math.PI },
-      { nx: 1, nz: 0, tx: 0, tz: -1, ry: Math.PI / 2 },
-      { nx: -1, nz: 0, tx: 0, tz: 1, ry: -Math.PI / 2 },
-    ];
-    // window grid with per-archetype dressing (sills / lintels)
-    const addWindows = (bx, bz, w, d, yBase, yTop, entranceFace, opts = {}) => {
-      const { winW = 1.1, winH = 1.35, sills = false, lintels = false, maxCols = 4 } = opts;
-      for (const F of FACES) {
-        const ext = (F.nx ? w : d) / 2;
-        const span = F.nx ? d : w;
-        const cols = Math.min(maxCols, Math.max(1, Math.floor((span - 1.7) / 2.05)));
-        const total = cols * 2.05;
-        for (let y = yBase; y <= yTop; y += 2.55) {
-          for (let c = 0; c < cols; c++) {
-            const u = -total / 2 + 2.05 * (c + 0.5);
-            if (entranceFace === F && y < 3.7 && Math.abs(u) < 1.15) continue;
-            const fx = bx + F.tx * u, fz = bz + F.tz * u;
-            quad(B.trim, winW + 0.24, winH + 0.24, fx + F.nx * (ext + 0.03), y, fz + F.nz * (ext + 0.03), F.ry);
-            quad(rng() < 0.34 ? B.paneLit : B.paneDark, winW - 0.16, winH - 0.16,
-              fx + F.nx * (ext + 0.06), y, fz + F.nz * (ext + 0.06), F.ry);
-            const bw = Math.abs(F.tx) * (winW + 0.4) + Math.abs(F.nx) * 0.2;
-            const bd = Math.abs(F.tz) * (winW + 0.4) + Math.abs(F.nz) * 0.2;
-            if (sills) boxG(B.trim, bw, 0.1, bd, fx + F.nx * (ext + 0.08), y - winH / 2 - 0.07, fz + F.nz * (ext + 0.08));
-            if (lintels) boxG(B.trim, bw, 0.13, bd, fx + F.nx * (ext + 0.06), y + winH / 2 + 0.1, fz + F.nz * (ext + 0.06));
-          }
-        }
-      }
-    };
-
-    const zoneColliders = [];
-    slots.forEach((slot, i) => {
-      const { x, z: zz, w, d: dpt, frontage } = slot;
-      const frontPool = ['shop', 'brick', 'deco', 'shop'];
-      const innerPool = ['tower', 'brick', 'industrial', 'deco', 'row'];
-      const pool = frontage ? frontPool : innerPool;
-      const arch = pool[(i + ((rng() * pool.length) | 0)) % pool.length];
-      const heightRanges = {
-        row: [10, 14], shop: [13, 18], brick: [17, 25],
-        tower: [24, 36], deco: [21, 32], industrial: [10, 16],
-      };
-      const [minH, maxH] = heightRanges[arch];
-      const h = minH + rng() * (maxH - minH);
-      const wallBucket = B[`wall${i % 4}`];
-
-      // Streetfront entrances address the boulevard. Rear buildings face the
-      // nearest shared court, producing coherent blocks instead of random boxes.
-      let front = frontage ? FACES[1] : FACES[0], best = -Infinity;
-      if (!frontage) for (const F of FACES) {
-        const dot = F.nx * -x + F.nz * -zz;
-        if (dot > best) { best = dot; front = F; }
-      }
-      const ext = (front.nx ? w : dpt) / 2;
-      const fpx = (off) => x + front.nx * (ext + off);
-      const fpz = (off) => zz + front.nz * (ext + off);
-
-      // plinth + body
-      boxG(B.trim, w + 0.18, 0.9, dpt + 0.18, x, 0.45, zz);
-      const tall = arch === 'tower' || arch === 'deco';
-      const h1 = tall ? h * (arch === 'deco' ? 0.68 : 0.62) : h;
-      boxG(wallBucket, w, h1 - 0.9, dpt, x, 0.9 + (h1 - 0.9) / 2, zz);
-
-      if (arch === 'row') {
-        // rowhouse: tall sash windows, sills + lintels, pitched roof, chimney
-        addWindows(x, zz, w, dpt, 2.3, h - 1.5, front, { winW: 1.0, winH: 1.5, sills: true, lintels: true, maxCols: 3 });
-        boxG(B.trim, w + 0.3, 0.22, dpt + 0.3, x, h + 0.06, zz);           // eave
-        pitchedRoof(x, zz, w, dpt, h + 0.1, 1.5 + rng() * 0.7);
-        boxG(B.trim, 0.55, 1.5, 0.55, x + w * 0.3, h + 0.9, zz + dpt * 0.18); // chimney
-        boxG(B.trim, 1.7, 0.22, 1.0, fpx(0.4), 2.45, fpz(0.4));            // door hood
-      } else if (arch === 'brick') {
-        // brick block: floor banding, lintels, parapet roof
-        addWindows(x, zz, w, dpt, 2.3, h1 - 1.3, front, { winW: 1.15, winH: 1.3, lintels: true });
-        for (let yb = 3.55; yb < h1 - 1.1; yb += 2.55)
-          boxG(B.band, w + 0.12, 0.16, dpt + 0.12, x, yb, zz);             // string courses
-        boxG(B.trim, w + 0.36, 0.28, dpt + 0.36, x, h1 + 0.14, zz);        // cornice
-        boxG(B.roof, w - 0.3, 0.22, dpt - 0.3, x, h1 + 0.31, zz);
-        if (rng() < 0.5) boxG(B.trim, 1.5, 0.95, 1.3, x + (rng() - 0.5) * w * 0.4, h1 + 0.7, zz);
-        if (frontage) {
-          const fireX = x + w * 0.23;
-          for (let fy = 4.2; fy < h1 - 1; fy += 3.0) {
-            boxG(B.metal, 2.6, 0.1, 0.9, fireX, fy, zz - dpt / 2 - 0.48);
-            boxG(B.metal, 0.08, 0.72, 0.08, fireX - 1.15, fy + 0.4, zz - dpt / 2 - 0.86);
-            boxG(B.metal, 0.08, 0.72, 0.08, fireX + 1.15, fy + 0.4, zz - dpt / 2 - 0.86);
-            boxR(B.metal, 2.75, 0.1, 0.12, fireX, fy - 1.15, zz - dpt / 2 - 0.85, -0.58);
-          }
-        }
-      } else if (arch === 'shop') {
-        // shop: stone ground band, glass shopfront + fascia + awning above
-        boxG(B.band, w + 0.08, 2.5, dpt + 0.08, x, 2.15, zz);              // ground floor
-        const gw = Math.min(w, dpt) >= 8 ? 3 : 2;
-        for (let k = 0; k < gw; k++) {
-          const u = (k - (gw - 1) / 2) * 2.1;
-          quad(B.paneDark, 1.75, 1.75, x + front.tx * u + front.nx * (ext + 0.1),
-            1.95, zz + front.tz * u + front.nz * (ext + 0.1), front.ry);
-        }
-        quad(B.accent, Math.min(w, dpt) * 0.86, 0.6, fpx(0.1), 3.15, fpz(0.1), front.ry);  // fascia sign
-        boxG(B.accent, Math.min(w, dpt) * 0.8, 0.14, 1.1, fpx(0.6), 2.7, fpz(0.6));        // awning
-        addWindows(x, zz, w, dpt, 4.9, h1 - 1.2, null, { winW: 1.15, winH: 1.25, sills: true });
-        boxG(B.trim, w + 0.36, 0.28, dpt + 0.36, x, h1 + 0.14, zz);
-        boxG(B.roof, w - 0.3, 0.22, dpt - 0.3, x, h1 + 0.31, zz);
-        if (frontage) {
-          boxG(B.metal, 0.12, 2.5, 0.12, x + w / 2 - 0.65, 4.5, zz - dpt / 2 - 0.7);
-          quad(B.accent, 1.15, 2.2, x + w / 2 - 0.65, 4.5, zz - dpt / 2 - 0.78, Math.PI);
-        }
-      } else if (arch === 'tower') {
-        // tower: banded lower tier, setback upper tier, drainpipes
-        addWindows(x, zz, w, dpt, 2.3, h1 - 1.3, front, { winW: 1.2, winH: 1.35 });
-        boxG(B.trim, w + 0.36, 0.28, dpt + 0.36, x, h1 + 0.14, zz);
-        const wTop = w - 1.6, dTop = dpt - 1.6;
-        boxG(wallBucket, wTop, h - h1 - 0.3, dTop, x, h1 + 0.28 + (h - h1 - 0.3) / 2, zz);
-        addWindows(x, zz, wTop, dTop, h1 + 1.5, h - 1.2, null, { winW: 1.2, winH: 1.35 });
-        boxG(B.trim, wTop + 0.36, 0.28, dTop + 0.36, x, h + 0.14, zz);
-        boxG(B.roof, wTop - 0.3, 0.22, dTop - 0.3, x, h + 0.31, zz);
-        boxG(B.trim, 1.5, 1.0, 1.3, x + (rng() - 0.5) * wTop * 0.4, h + 0.8, zz);
-        if (rng() < 0.6) {
-          boxG(B.trim, 0.1, h1 - 0.9, 0.1, x + w / 2 - 0.22, (h1 + 0.9) / 2, zz + dpt / 2 + 0.08);
-          boxG(B.trim, 0.1, h1 - 0.9, 0.1, x - w / 2 + 0.22, (h1 + 0.9) / 2, zz + dpt / 2 + 0.08);
-        }
-        for (let by = 4.4; by < h1 - 1.2; by += 4.6) {
-          boxG(B.metal, w * 0.58, 0.12, 0.8, x, by, zz - dpt / 2 - 0.35);
-        }
-        const tank = new THREE.CylinderGeometry(0.9, 1.05, 1.6, 10);
-        tank.translate(x, h + 1.25, zz);
-        B.metal.push(tank);
-      } else if (arch === 'deco') {
-        addWindows(x, zz, w, dpt, 2.4, h1 - 1.2, front, { winW: 1.05, winH: 1.55, maxCols: 4 });
-        const wTop = w - 2.2, dTop = dpt - 1.7;
-        boxG(wallBucket, wTop, h - h1, dTop, x, h1 + (h - h1) / 2, zz + 0.25);
-        addWindows(x, zz + 0.25, wTop, dTop, h1 + 1.3, h - 1.1, null, { winW: 0.95, winH: 1.45, maxCols: 3 });
-        for (const fx of [-0.32, 0, 0.32]) {
-          boxG(B.accent, 0.13, h * 0.72, 0.16, x + fx * w, h * 0.52, zz - dpt / 2 - 0.1);
-        }
-        boxG(B.trim, w + 0.4, 0.24, dpt + 0.38, x, h1 + 0.12, zz);
-        boxG(B.roof, wTop + 0.3, 0.28, dTop + 0.3, x, h + 0.14, zz + 0.25);
-        boxG(B.trim, wTop * 0.62, 1.25, dTop * 0.62, x, h + 0.8, zz + 0.25);
-        boxG(B.accent, wTop * 0.22, 2.2, dTop * 0.22, x, h + 2.5, zz + 0.25);
-      } else {
-        // Industrial studios use sawtooth roofs, ribbon glazing, and a stack.
-        addWindows(x, zz, w, dpt, 2.5, h - 1.4, front, { winW: 1.8, winH: 1.45, maxCols: 3 });
-        for (let roofPart = -1; roofPart <= 1; roofPart++) {
-          pitchedRoof(x + roofPart * (w / 3), zz, w / 3.15, dpt, h + 0.06, 1.15);
-        }
-        boxG(B.band, w * 0.88, 0.32, 1.35, x, 3.45, zz - dpt / 2 - 0.65);
-        quad(B.accent, w * 0.72, 0.72, x, 4.15, zz - dpt / 2 - 0.04, Math.PI);
-        const stack = new THREE.CylinderGeometry(0.34, 0.48, 3.8, 8);
-        stack.translate(x + w * 0.32, h + 1.7, zz + dpt * 0.16);
-        B.metal.push(stack);
-      }
-
-      // entrance on the courtyard face (all archetypes)
-      quad(B.trim, 1.4, 2.35, fpx(0.04), 1.18, fpz(0.04), front.ry);       // doorway
-      quad(B.paneDark, 1.02, 1.45, fpx(0.07), 1.42, fpz(0.07), front.ry);
-      boxG(B.band, 1.8, 0.18, 1.1, fpx(0.35), 0.09, fpz(0.35));            // door step
-      if (arch !== 'shop') {
-        if (frontage) {
-          const glassSpan = Math.min(w, dpt) * 0.78;
-          for (let pane = -1; pane <= 1; pane++) {
-            const u = pane * glassSpan * 0.3;
-            if (pane !== 0) quad(
-              B.paneLit, glassSpan * 0.26, 1.72,
-              fpx(0.09) + front.tx * u, 1.72,
-              fpz(0.09) + front.tz * u, front.ry,
-            );
-          }
-          quad(B.accent, glassSpan, 0.58, fpx(0.11), 3.2, fpz(0.11), front.ry);
-          boxG(B.accent, Math.abs(front.tx) * glassSpan + Math.abs(front.nx) * 1.2, 0.15,
-            Math.abs(front.tz) * glassSpan + Math.abs(front.nz) * 1.2,
-            fpx(0.55), 2.65, fpz(0.55));
-        } else {
-          boxG(B.accent, 2.4, 0.15, 1.0, fpx(0.55), 2.6, fpz(0.55));
-          if (rng() < 0.6) quad(B.accent, 1.9, 0.5, fpx(0.05), 3.3, fpz(0.05), front.ry);
-        }
-      }
-
-      // A repeated vertical lightblade ties dissimilar architecture into the
-      // same commercial district language without flattening its silhouette.
-      if (frontage || i % 3 === 0) {
-        const bladeU = Math.min(w, dpt) * (i % 2 ? 0.34 : -0.34);
-        quad(
-          B.accent, 0.18, Math.min(7.5, h1 * 0.56),
-          fpx(0.12) + front.tx * bladeU, Math.min(5.4, h1 * 0.48),
-          fpz(0.12) + front.tz * bladeU, front.ry,
-        );
-      }
-
-      if ((arch === 'brick' || arch === 'tower') && i % 2 === 0) {
-        const signY = h1 + 1.25;
-        boxG(B.metal, 0.08, 1.8, 0.08, x - 1.45, signY, zz);
-        boxG(B.metal, 0.08, 1.8, 0.08, x + 1.45, signY, zz);
-        quad(B.accent, 3.2, 1.15, x, signY + 0.65, zz - dpt / 2 - 0.09, Math.PI);
-      }
-
-      zoneColliders.push({ localX: x, localZ: zz, hw: w / 2 + 0.2, hd: dpt / 2 + 0.2 });
-    });
-
-    // Everything that is just "a toon colour" folds into one vertex-coloured
-    // mesh; only the emissive panes and the metal keep their own material. That
-    // is 11 draw calls per district down to 3.
-    const litMat = toonMat(0x10243c);
-    litMat.emissive = cLine.clone().lerp(new THREE.Color(PALETTE.cyan), 0.28);
-    litMat.emissiveIntensity = 1.08;
-    const tones = {
-      wall0: wallTones[0], wall1: wallTones[1], wall2: wallTones[2], wall3: wallTones[3],
-      trim: trimTone, band: bandTone, roof: roofTone,
-      paneDark: new THREE.Color(0x101a2b), accent: cLine,
-    };
-    const shell = new GeoBatch();
-    for (const [key, colour] of Object.entries(tones)) {
-      for (const geometry of B[key]) shell.add(geometry, colour);
-      B[key].length = 0;
-    }
-    const shellMesh = shell.build(toonVertexMat(), { name: 'district-shell' });
-    if (shellMesh) {
-      if (this.vertexAO) {
-        // Footprints of the block's own buildings are the occluders; this is what
-        // stops procedural boxes reading as cardboard cut-outs on flat ground.
-        const occluders = slots.map((s) => ({ x: s.x, z: s.z, hw: s.w / 2, hd: s.d / 2 }));
-        bakeVertexAO(shellMesh.geometry, occluders);
-      }
-      g.add(shellMesh);
-    }
-    for (const [key, mat, shadows] of [
-      ['paneLit', litMat, false],
-      ['metal', new THREE.MeshStandardMaterial({ color: 0x8195aa, metalness: 0.76, roughness: 0.3 }), true],
-    ]) {
-      const list = B[key];
-      if (!list.length) continue;
-      const merged = mergeGeometries(list, false);
-      list.forEach((geometry) => geometry.dispose());
-      const mesh = new THREE.Mesh(merged, mat);
-      mesh.castShadow = shadows;
-      mesh.receiveShadow = shadows;
-      g.add(mesh);
-    }
-    return zoneColliders;
+  // Every building is generated by the facade kit from the district's own
+  // archetype pool (read from its authored `architecture` text) and palette.
+  // Frontage slots face the boulevard; inner slots face their nearest street.
+  buildFacadeBlock(B, slots, rng, T, arch, signs, z) {
+    const out = [];
+    for (const step of this.facadeSteps(B, slots, rng, T, arch, signs, z)) out.push(...step);
+    return out;
   }
 
+  // one building per yielded step (its colliders), so the streaming loop can
+  // stop between buildings
+  *facadeSteps(B, slots, rng, T, arch, signs, z) {
+    const nearEdge = BOULEVARD.tramLaneX + 4.2 - LATERAL;
+    const roads = { xs: [-12.2, 0, 12.2], zs: [-2.8, 12.2, nearEdge - 3] };
+    for (let i = 0; i < slots.length; i++) {
+      const slot = slots[i];
+      const pool = slot.frontage ? arch.frontage : arch.inner;
+      const kind = pool[(i + ((rng() * pool.length) | 0)) % pool.length];
+      // face the nearest carriageway
+      let front = FACES[1], best = Infinity;
+      if (!slot.frontage) {
+        for (const F of FACES) {
+          const edge = F.nx ? slot.x + F.nx * slot.w / 2 : slot.z + F.nz * slot.d / 2;
+          const list = F.nx ? roads.xs : roads.zs;
+          for (const r of list) {
+            const dist = (r - edge) * (F.nx || F.nz);
+            if (dist > 0 && dist < best) { best = dist; front = F; }
+          }
+        }
+      }
+      const tones = buildingTones(T, i, rng, arch.flags);
+      const flags = { ...arch.flags, fireEscapes: /fire escape|walk-up|brownstone|tenement|bodega/i.test(z.data.architecture || ''), flowerBoxes: /window box|flower|geranium|bougainvillea/i.test(z.data.architecture || ''), litRatio: 0.34 };
+      yield buildFacade(B, { ...slot, front }, kind, rng, tones, signs, flags);
+    }
+  }
+
+  // kept for API compatibility — landmarks now come from the kit
   buildLandmark(variant, cAccent, cRoof) {
-    const batch = new GeoBatch();
-    if (variant === 0) {           // clock-ish tower
-      batch.add(new THREE.CylinderGeometry(1.15, 1.45, 9, 8).translate(0, 4.5, 0), cAccent);
-      batch.add(new THREE.ConeGeometry(1.7, 2.4, 8).translate(0, 10.2, 0), cRoof);
-      batch.add(new THREE.SphereGeometry(0.32, 8, 6).translate(0, 11.6, 0), 0xfff0c2);
-    } else if (variant === 1) {    // arch
-      batch.add(new THREE.BoxGeometry(1.1, 6.5, 1.1).translate(-2.5, 3.25, 0), cAccent);
-      batch.add(new THREE.BoxGeometry(1.1, 6.5, 1.1).translate(2.5, 3.25, 0), cAccent);
-      batch.add(new THREE.BoxGeometry(6.8, 1.2, 1.4).translate(0, 7.1, 0), cRoof);
-    } else {                        // obelisk + ring
-      batch.add(new THREE.CylinderGeometry(0.55, 1.05, 8, 4).translate(0, 4, 0), cAccent);
-      batch.add(new THREE.TorusGeometry(1.6, 0.16, 8, 20).rotateX(Math.PI / 2).translate(0, 6.2, 0), cRoof);
-    }
-    const mesh = batch.build(toonVertexMat(), { name: 'district-landmark' });
-    mesh.userData.zoneLandmark = true;
-    return mesh;
+    const B = makeBuckets();
+    const kinds = ['clocktower', 'arch', 'obelisk'];
+    emitLandmark(B, kinds[variant % kinds.length], { accent: cAccent, roof: cRoof, line: cAccent, stone: new THREE.Color(0xd8b88a) }, mulberry32(variant), 0, 0, 0);
+    const mesh = buildBuckets(B, { name: 'district-landmark' })[0];
+    if (mesh) mesh.userData.zoneLandmark = true;
+    return mesh || new THREE.Group();
   }
 
-  buildStationSign(z) {
-    const g = new THREE.Group();
-    // canvas nameplate
-    const c = document.createElement('canvas');
-    c.width = 512; c.height = 168;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#10172b';
-    ctx.fillRect(0, 0, 512, 168);
-    ctx.fillStyle = '#' + z.line.color.toString(16).padStart(6, '0');
-    ctx.fillRect(0, 0, 512, 26);
-    ctx.fillStyle = '#f5f2ff';
-    ctx.font = "700 46px 'Space Grotesk', sans-serif";
-    ctx.textAlign = 'center';
-    const name = z.data.zoneName;
-    ctx.font = `700 ${name.length > 16 ? 36 : 46}px 'Space Grotesk', sans-serif`;
-    ctx.fillText(name, 256, 88);
-    ctx.font = "600 23px 'Space Grotesk', sans-serif";
-    ctx.fillStyle = '#79f5ec';
-    ctx.fillText(z.data.dialect, 256, 132);
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-
-    const panel = new THREE.Mesh(
-      new THREE.PlaneGeometry(3.6, 1.18),
-      new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide })
-    );
-    panel.position.y = 2.9;
-    const panelBack = panel.clone();
-    panelBack.rotation.y = Math.PI;
-    panelBack.position.set(0, 2.9, -0.02);
-    // Everything toon-shaded on the platform batches together; the glass
-    // shelter and the chrome keep their standard materials.
-    const toonBits = new GeoBatch();
-    const inkColor = new THREE.Color(PALETTE.ink);
-    toonBits.add(new THREE.CylinderGeometry(0.07, 0.07, 3, 6).translate(-1.6, 1.5, 0), inkColor);
-    toonBits.add(new THREE.CylinderGeometry(0.07, 0.07, 3, 6).translate(1.6, 1.5, 0), inkColor);
-    toonBits.add(
-      new THREE.PlaneGeometry(7, 3.4).rotateX(-Math.PI / 2).translate(0, 0.035, 0),
-      new THREE.Color(z.line.color).lerp(new THREE.Color(PALETTE.plaza), 0.68),
-    );
-    toonBits.add(new THREE.PlaneGeometry(2.7, 0.48).translate(0, 2.12, 1.82), 0x10172b);
-    toonBits.add(new THREE.PlaneGeometry(2.35, 0.08).translate(0, 2.12, 1.79), z.line.color);
-    toonBits.add(new THREE.SphereGeometry(0.1, 8, 6).translate(2.7, 1.25, 0.33), 0xffffff);
-    const platform = toonBits.build(toonVertexMat({ side: THREE.DoubleSide }), { name: 'platform-fittings' });
-
-    const shelterGlass = new THREE.MeshStandardMaterial({
-      color: 0x77dce2, emissive: 0x102c45, emissiveIntensity: 0.72,
-      metalness: 0.54, roughness: 0.2, transparent: true, opacity: 0.72,
-    });
-    const shelter = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.14, 1.65), shelterGlass);
-    shelter.position.set(0, 3.72, 1.15);
-
-    const chromeParts = [];
-    for (const x of [-1.65, 1.65]) for (const zz of [0.55, 1.65]) {
-      chromeParts.push(new THREE.CylinderGeometry(0.055, 0.075, 3.55, 7).translate(x, 1.78, zz));
+  // Station platform in the district's local frame at (sx, sz): nameplate on
+  // two posts, a glass shelter with a bench and a lit rail, route board,
+  // emergency cabinet, bin. Returns local colliders.
+  buildStationSign(B, z, sx, sz, plateUV) {
+    const ink = new THREE.Color(PALETTE.ink);
+    const lineCol = new THREE.Color(z.line.color);
+    const P = { shell: [], neon: [], glass: [], sign: [] };
+    const S = (g, c) => P.shell.push([g, c]);
+    // platform paving with the line colour bled in, edged
+    S(box(7.2, 0.05, 3.6, 0, 0.035, 0), lineCol.clone().lerp(new THREE.Color(PALETTE.plaza), 0.86));
+    S(box(7.4, 0.03, 0.12, 0, 0.07, -1.72), lineCol.clone().lerp(new THREE.Color(PALETTE.plaza), 0.4));
+    // nameplate posts + double-sided plate
+    for (const x of [-1.6, 1.6]) S(cyl(0.07, 0.08, 3.0, 7, x, 1.5, 0), ink);
+    S(box(3.7, 1.26, 0.06, 0, 2.9, 0), ink);
+    if (plateUV) {
+      P.sign.push([uvCell(new THREE.PlaneGeometry(3.6, 1.18), plateUV.u0, plateUV.v0, plateUV.u1, plateUV.v1).translate(0, 2.9, 0.035), 0xffffff]);
+      P.sign.push([uvCell(new THREE.PlaneGeometry(3.6, 1.18), plateUV.u0, plateUV.v0, plateUV.u1, plateUV.v1).rotateY(Math.PI).translate(0, 2.9, -0.035), 0xffffff]);
     }
-    chromeParts.push(new THREE.CylinderGeometry(0.055, 0.075, 1.4, 7).translate(2.7, 0.7, 0.5));
-    const chromeMesh = new THREE.Mesh(
-      mergeGeometries(chromeParts, false),
-      new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.86, roughness: 0.22 }),
-    );
-    chromeParts.forEach((p) => p.dispose());
-    chromeMesh.castShadow = true;
-
-    const cabinet = new THREE.Mesh(
-      new THREE.BoxGeometry(0.46, 0.86, 0.26),
-      new THREE.MeshStandardMaterial({ color: 0xff405f, emissive: 0x851027, emissiveIntensity: 1.5, metalness: 0.4, roughness: 0.3 }),
-    );
-    cabinet.position.set(2.7, 1.2, 0.5);
-    cabinet.name = `${z.data.code}-emergency-stop`;
-
-    g.add(panel, panelBack, platform, shelter, chromeMesh, cabinet);
-    g.userData.tex = tex;
-    return g;
+    // shelter: four supports, glass roof, glass back, lit rail, slatted bench
+    for (const x of [-1.65, 1.65]) for (const zz of [0.55, 1.65]) S(cyl(0.06, 0.075, 3.55, 7, x, 1.78, zz), CHROME);
+    S(box(3.9, 0.08, 1.7, 0, 3.6, 1.1), ink);
+    P.glass.push([box(3.8, 0.04, 1.62, 0, 3.66, 1.1), 0xbfe7f0]);
+    P.glass.push([box(3.5, 1.9, 0.04, 0, 2.3, 0.1), 0xbfe7f0]);
+    P.neon.push([box(3.6, 0.06, 0.06, 0, 3.55, 1.95), lineCol.getHex()]);
+    S(box(3.0, 0.08, 0.5, 0, 0.55, 0.55), WOOD);
+    for (const x of [-1.3, 1.3]) S(box(0.08, 0.5, 0.5, x, 0.28, 0.55), ink);
+    // route board on the back post
+    S(box(0.9, 1.3, 0.06, -1.6, 1.6, 1.65 + 0.06), ink);
+    P.neon.push([box(0.7, 0.06, 0.02, -1.6, 2.1, 1.65 + 0.1), lineCol.getHex()]);
+    for (let i = 0; i < 6; i++) P.neon.push([sphere(0.05, -1.85 + i * 0.1, 1.55, 1.65 + 0.1, 5, 4), 0xf5f2ff]);
+    // emergency cabinet (bright by design — infrastructure, not decoration)
+    S(cyl(0.055, 0.075, 1.4, 7, 2.7, 0.7, 0.5), CHROME);
+    S(box(0.46, 0.86, 0.26, 2.7, 1.2, 0.5), 0xff405f);
+    P.neon.push([sphere(0.1, 2.7, 1.25, 0.33, 8, 6), 0xffffff]);
+    P.neon.push([cyl(0.08, 0.08, 0.12, 8, 2.7, 1.72, 0.5), 0xff405f]);
+    // bin
+    S(cyl(0.24, 0.22, 0.8, 10, -2.8, 0.42, 1.2), ink.clone().lerp(lineCol, 0.2));
+    S(cyl(0.27, 0.27, 0.07, 10, -2.8, 0.85, 1.2), lineCol);
+    placeInto(B.shell, P.shell, sx, sz, 0);
+    placeInto(B.neon, P.neon, sx, sz, 0);
+    placeInto(B.glass, P.glass, sx, sz, 0);
+    placeInto(B.sign, P.sign, sx, sz, 0);
+    const cols = [];
+    for (const x of [-1.6, 1.6]) cols.push({ localX: sx + x, localZ: sz, hw: 0.11, hd: 0.11, source: `${z.data.code}-station-sign` });
+    for (const x of [-1.65, 1.65]) for (const zz of [0.55, 1.65]) cols.push({ localX: sx + x, localZ: sz + zz, hw: 0.11, hd: 0.11, source: `${z.data.code}-shelter-support` });
+    cols.push({ localX: sx + 2.7, localZ: sz + 0.5, hw: 0.3, hd: 0.22, source: `${z.data.code}-emergency-stop` });
+    cols.push({ localX: sx - 2.8, localZ: sz + 1.2, hw: 0.28, hd: 0.28, source: `${z.data.code}-bin` });
+    return cols;
   }
 
   disposeChunk(z, colliders) {
+    if (this._pending?.z === z) this._abandonPending();
     const kill = (root) => root.traverse((o) => {
-      if (o.isMesh) { o.geometry.dispose(); if (o.material.map) o.material.map.dispose(); o.material.dispose(); }
+      if (!o.isMesh) return;
+      if (o.geometry && !o.geometry.userData?.shared) o.geometry.dispose();
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mats) {
+        if (!m || m.userData?.shared) continue;
+        if (m.map) m.map.dispose();
+        m.dispose();
+      }
+      if (o.isInstancedMesh) o.dispose();      // releases the instance attributes
     });
     if (z.chunk.attachSign) { kill(z.chunk.attachSign); this.scene.remove(z.chunk.attachSign); }
     if (z.chunk.attachZebra) { kill(z.chunk.attachZebra); this.scene.remove(z.chunk.attachZebra); }
+    // a chunk still fading in is dropped from the fade list
+    const fadeI = this._fading.findIndex((f) => f.mats.some((m) => z.chunk.getObjectByProperty('material', m.mat)));
+    if (fadeI >= 0) this._fading.splice(fadeI, 1);
     kill(z.chunk);
     this.scene.remove(z.chunk);
     z.chunk = null;
@@ -1082,10 +1068,14 @@ export class ZoneManager {
     const npcs = this._npcTag.get(z.data.code) || [];
     for (const n of npcs) {
       n.mixer?.stopAllAction();
-      // geometry is shared with the template — dispose only the per-NPC materials
+      // body geometry is shared with the template — dispose only the per-NPC
+      // materials, the blob shadow / hat geometry, and the skeleton clone's
+      // bone texture (which used to leak one texture per streamed local)
       n.obj.traverse((o) => {
+        if (o.isSkinnedMesh) o.skeleton?.dispose?.();
         if (!o.isMesh) return;
         if (o.userData.disposeWithNpc) o.geometry.dispose();
+        if (o.isSprite) return;               // marker sprites share one material
         o.material?.dispose?.();
       });
       this.scene.remove(n.obj);

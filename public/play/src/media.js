@@ -1,6 +1,7 @@
 // Authored EnglishMetro media facades: Times Square density with the city's
 // existing coral/cyan/chrome language. Canvas textures avoid external assets.
 import * as THREE from 'three';
+import { chromeToon, emissiveMat } from './kit/street.js';
 
 const CAMPAIGNS = [
   { eyebrow: 'ENGLISH METRO', lines: ['SPEAK', 'THE CITY'], sub: 'REAL LESSONS. REAL MOMENTUM.', bg: '#07101f', fg: '#f5f2ff', accent: '#4deeea', alt: '#ff755f' },
@@ -113,14 +114,14 @@ function rooftopTexture() {
 export function buildMediaFacades(scene, animated, sites, { lowPower = false } = {}) {
   const root = new THREE.Group();
   root.name = 'metropolis-media-district';
-  const screenMaterials = CAMPAIGNS.map((campaign, index) => new THREE.MeshBasicMaterial({
-    map: campaignTexture(campaign, index),
-    toneMapped: false,
-  }));
+  // Screens, ticker and rooftop sign go through the emissive-gain hook so they
+  // sit in the same brightness hierarchy as the neon (graphics-08): screens
+  // ~1.6, one notch under strip neon, so bloom catches them in that order.
+  const screenMaterials = CAMPAIGNS.map((campaign, index) => emissiveMat(0xffffff, 1.6, { map: campaignTexture(campaign, index) }));
   const tickerMap = tickerTexture();
-  const tickerMat = new THREE.MeshBasicMaterial({ map: tickerMap, toneMapped: false });
-  const roofMat = new THREE.MeshBasicMaterial({ map: rooftopTexture(), toneMapped: false });
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0xaabbd2, metalness: 0.9, roughness: 0.18 });
+  const tickerMat = emissiveMat(0xffffff, 1.7, { map: tickerMap });
+  const roofMat = emissiveMat(0xffffff, 1.6, { map: rooftopTexture() });
+  const frameMat = chromeToon();
   const frameCount = sites.length * 2 + 3;
   const frames = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), frameMat, frameCount);
   frames.name = 'media-chrome-frames';
@@ -181,8 +182,11 @@ export function buildMediaFacades(scene, animated, sites, { lowPower = false } =
   controller.userData.update = (time) => {
     tickerMap.offset.x = -(time * (lowPower ? 0.018 : 0.035)) % 1;
     if (!lowPower) screenMaterials.forEach((material, index) => {
+      // breathe around the registered emissive level rather than resetting it
       const level = 0.94 + Math.sin(time * 0.72 + index * 1.7) * 0.055;
-      material.color.setRGB(level, level, level);
+      const prev = material.userData.level || 1;
+      material.color.multiplyScalar(level / prev);
+      material.userData.level = level;
     });
   };
   animated.push(controller);
