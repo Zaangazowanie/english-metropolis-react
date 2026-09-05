@@ -201,6 +201,9 @@
     #fade { position: fixed; inset: 0; z-index: 45; pointer-events: none;
       background: #070b1d; opacity: 0; transition: opacity 0.45s ease; }
     #fade.on { opacity: 1; }
+    /* The post stack carries its own vignette + grade; doubling it up in CSS
+       crushed the corners on every post tier. */
+    body.postfx #grade { display: none; }
   </style>
 
   <div id="loading">
@@ -268,6 +271,19 @@
       <option value="ultra">ultra</option>
     </select>
   </div>
+  <!-- Day / night toggle (render lane). Sits left of the graphics picker; N does the same. -->
+  <button id="daynight" title="Switch to night (N)" aria-label="Switch to night (N)">🌙</button>
+  <style>
+    #daynight { position: fixed; z-index: 21; bottom: 20px; right: 150px; width: 34px; height: 30px;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      font: 15px/1 'Space Grotesk', system-ui, sans-serif; color: var(--cream);
+      background: rgba(12, 18, 38, 0.72); border: 1px solid rgba(155, 99, 255, 0.45);
+      border-radius: 999px; backdrop-filter: blur(10px) saturate(140%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08); transition: background 0.15s, border-color 0.15s; }
+    #daynight:hover { background: rgba(139, 92, 246, 0.35); border-color: rgba(217, 70, 239, 0.7); }
+    #daynight:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+    body.touch #daynight { bottom: auto; top: 60px; right: 12px; width: 40px; height: 40px; font-size: 18px; }
+  </style>
 
   <div id="journal">
     <div class="panel">

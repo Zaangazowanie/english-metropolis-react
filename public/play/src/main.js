@@ -1,9 +1,11 @@
 // English Metropolis — bootstrap. Plain ES modules, no build step.
 // Fixed-timestep simulation decoupled from rendering; rigged hero with real
-// skeletal animation; cinematic Miami-after-dark lighting with true shadows.
+// skeletal animation; golden-hour toon lighting with cascaded shadows and a
+// time-of-day controller (daylight.js) that can swing to the neon night.
 import * as THREE from 'three';
 import { makeGLTFLoader } from './loaders.js';
-import { makeSky, toonifyGLB, uTime, setNeonGain } from './materials.js';
+import { makeSky, toonifyGLB, uTime, wrapToonHook, adoptToonMaterials, setBlobShadowsVisible } from './materials.js';
+import { Daylight } from './daylight.js';
 import { loadMixamoHero } from './hero.js';
 import { Trains } from './train.js';
 import { Traffic } from './traffic.js';
@@ -29,67 +31,67 @@ ui.audio = audio;
 ui.voice = new VoiceManager();   // Kokoro NPC voices + faster-whisper answers
 document.getElementById('journal-close').addEventListener('click', () => ui.toggleJournal());
 
+// ---------- quality budget (decided BEFORE the renderer exists) ----------
+// The tier owns every "is this a weak device" decision: the context's
+// antialias flag, shadow sizes, post stack, crowd/traffic/citizen counts and
+// the world detail that used to hang off navigator flags. lowPowerHint and
+// compactTouch survive only as derived aliases for the systems that still
+// take them as constructor options.
+let crowd = null;
+const quality = new Quality({
+  onChange: (s, tier, reason) => {
+    applyQuality(s);
+    console.info(`[EM] quality → ${tier} (${reason})`);
+    ui.setQualityTier(tier, quality.manual);
+  },
+  onScale: () => applySize(),
+});
+const compactTouch = quality.mobile;
+const lowPowerHint = quality.index <= 1;
+
 // ---------- renderer ----------
-const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-const compactTouch = window.matchMedia?.('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 800;
-const lowPowerHint = Boolean(
-  connection?.saveData
-  || /(^|-)2g$/.test(connection?.effectiveType || '')
-  || (navigator.deviceMemory && navigator.deviceMemory <= 4)
-  || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)
-  || compactTouch
-);
 const renderer = new THREE.WebGLRenderer({
-  // The post stack resolves its own edges with FXAA, so a multisampled
-  // backbuffer would only cost bandwidth. Weak devices skip post entirely and
-  // get real MSAA instead.
-  antialias: lowPowerHint || compactTouch,
+  // Post tiers resolve their own edges (FXAA, or MSAA inside the scene target);
+  // only a tier that draws straight to the canvas wants a multisampled backbuffer.
+  antialias: quality.s.aa === 'msaa' && !quality.s.postfx,
   powerPreference: 'high-performance',
 });
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.04;
-renderer.shadowMap.enabled = !compactTouch;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// enabled from the very first compile — flipping it later never recompiled the
+// materials, which is why "high" shipped without a single cast shadow
+renderer.shadowMap.enabled = quality.s.shadows > 0;
+renderer.shadowMap.type = THREE.PCFShadowMap;      // 5-tap Vogel disc, radius per tier
 const nativePixelRatio = Math.max(1, window.devicePixelRatio || 1);
-let renderScale = 1;
 renderer.setSize(window.innerWidth, window.innerHeight);
 app.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x10172f, 0.0052);
+scene.fog = new THREE.FogExp2(0xffd0b0, 0.0052);   // colour is re-sampled from the sky horizon
 
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1200);
 camera.position.set(0, 3, 14);
 
-// ---------- quality budget + screen-space finish ----------
+// ---------- screen-space finish ----------
 const postfx = new PostFX(renderer, scene, camera);
-const quality = new Quality(renderer, { onChange: (s, tier, reason) => {
-  applyQuality(s);
-  console.info(`[EM] quality → ${tier} (${reason})`);
-  ui.setQualityTier(tier, quality.manual);
-} });
-let crowd = null;
 
 function applyQuality(s) {
-  renderer.shadowMap.enabled = s.shadows > 0;
-  sun.castShadow = s.shadows > 0;
-  if (s.shadows > 0 && sun.shadow.mapSize.width !== s.shadows) {
-    sun.shadow.mapSize.set(s.shadows, s.shadows);
-    sun.shadow.map?.dispose();
-    sun.shadow.map = null;
-  }
-  scene.fog.density = s.fog;
+  daylight.applyTier(s);
+  // real shadow maps on: every blob contact shadow steps aside (one shared material)
+  setBlobShadowsVisible(s.shadows === 0);
+  daylight.setFogBase(s.fog);
   camera.far = s.far;
   camera.updateProjectionMatrix();
   MAX_PR = Math.min(nativePixelRatio, s.pixelRatio);
-  // Neon has to be authored above white for the composite's ACES pass to leave
-  // it looking lit, and for the bloom threshold to find it at all.
-  setNeonGain(s.postfx ? 2.15 : 1);
   postfx.configure(s);
+  daylight.apply();                                 // emissive gain depends on postfx
   applySize();
   crowd?.setCapacity(s.crowd);
-  crowd?.setRimLight(s.rimLight);
+  if (crowd && crowd.material.userData.rim !== s.rimLight) {
+    crowd.setRimLight(s.rimLight);
+    wrapToonHook(crowd.material, { rim: 0.8 });    // the rebuilt material rejoins the shared look
+  }
   traffic?.setDensity(s.traffic);
   zoneMgr.quality = s;
   zoneMgr.vertexAO = s.vertexAO;
@@ -97,38 +99,45 @@ function applyQuality(s) {
 }
 let MAX_PR = 2;
 
-// ---------- Miami-after-dark lighting (cinematic: real shadows near the player) ----------
-const hemi = new THREE.HemisphereLight(0x8fdcff, 0x28183f, 1.08);
+// ---------- lighting: warm key sun + cool sky fill, driven by daylight.js ----------
+const hemi = new THREE.HemisphereLight(0xb9ceff, 0x9a6a52, 0.38);
 scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xff9b9f, 1.52);
-sun.position.set(-38, 36, -58);
-// Shadow budget comes from the quality tier; applyQuality resizes the map when
-// the tier moves, and the texel snap below follows whatever size is current.
+// Two suns, one direction: the near cascade is sharp around the player, the
+// far one (intensity 0, shadow only) covers the rest of the district. The toon
+// hook picks one map per fragment by view depth; nothing is lit twice.
+const sun = new THREE.DirectionalLight(0xffdcb8, 2.0);
+const sunFar = new THREE.DirectionalLight(0xffdcb8, 0);
 sun.castShadow = quality.s.shadows > 0;
 sun.shadow.mapSize.set(quality.s.shadows || 1024, quality.s.shadows || 1024);
-sun.shadow.camera.near = 1;
-sun.shadow.camera.far = 170;
-const S = 38;
-sun.shadow.camera.left = -S; sun.shadow.camera.right = S;
-sun.shadow.camera.top = S; sun.shadow.camera.bottom = -S;
-sun.shadow.bias = -0.0004;
-sun.shadow.normalBias = 0.02;
+sunFar.shadow.mapSize.set(2048, 2048);
+sunFar.castShadow = false;
 scene.add(sun, sun.target);
-const rim = new THREE.DirectionalLight(0x55f2e9, 0.82);
-rim.position.set(42, 24, 34);
-scene.add(rim);
-scene.add(makeSky());
+const sky = makeSky();
+scene.add(sky);
+const daylight = new Daylight({ scene, renderer, camera, sun, sunFar, hemi, sky, postfx });
+daylight.applyTier(quality.s);
 
-// shadow frustum follows the player so the map covers only ~76m — crisp + cheap.
-// Position snaps to shadow-texel-sized steps so edges don't crawl/shimmer.
-const SUN_OFF = new THREE.Vector3(-38, 36, -58).normalize().multiplyScalar(90);
-function updateSun(playerPos) {
-  const texel = (2 * S) / Math.max(256, sun.shadow.mapSize.width);
-  const sx = Math.round(playerPos.x / texel) * texel;
-  const sz = Math.round(playerPos.z / texel) * texel;
-  sun.target.position.set(sx, 0, sz);
-  sun.position.set(sx + SUN_OFF.x, SUN_OFF.y, sz + SUN_OFF.z);
-}
+// shadow frusta follow the player and snap to their texel grids in light
+// space (daylight.js) so edges do not crawl as you walk
+function updateSun(playerPos) { daylight.updateSun(playerPos, camera); }
+
+// N flips golden hour ↔ night; the HUD button next to the graphics picker does the same
+const dayNightBtn = document.getElementById('daynight');
+const refreshDayNight = () => {
+  if (!dayNightBtn) return;
+  dayNightBtn.textContent = daylight.isNight ? '☀️' : '🌙';
+  dayNightBtn.title = daylight.isNight ? 'Switch to golden hour (N)' : 'Switch to night (N)';
+  dayNightBtn.setAttribute('aria-label', dayNightBtn.title);
+};
+daylight.onChange = refreshDayNight;
+refreshDayNight();
+dayNightBtn?.addEventListener('click', () => { daylight.toggle(); dayNightBtn.blur(); });
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'KeyN' || e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  daylight.toggle();
+});
 
 // ---------- load ----------
 const manager = new THREE.LoadingManager();
@@ -136,6 +145,10 @@ manager.onProgress = (_url, loaded, total) => ui.setProgress(loaded / Math.max(t
 
 crowd = new Crowd(scene, { capacity: 360, rimLight: quality.s.rimLight });
 crowd.setCapacity(quality.s.crowd);
+// the crowd shader keeps its own gait/palette hook; the shared toon core
+// (tinted ramp, cloud shadows, height fog, sky rim) layers on top of it
+wrapToonHook(crowd.material, { rim: 0.8 });
+if (crowd.shadowTex) { crowd.shadowTex.colorSpace = THREE.SRGBColorSpace; crowd.shadowTex.needsUpdate = true; }
 // Locals talk in their own district's English — the phrasebook is the reason
 // walking two stops down a line sounds different.
 const chatter = new Chatter(scene, { pool: 6 });
@@ -260,6 +273,9 @@ Promise.all([
   const rig = await loadMixamoHero(heroLoader);
   player = new Player(rig.object, scene, rig);
   window.__RIG = rig;   // live hand-tuning handle
+  // every toon material built outside materials.js (hero, terrain, GLB
+  // conversions done elsewhere) joins the shared look before the first compile
+  adoptToonMaterials(scene);
 
   // The city lives: trams on every line and the seven humanoid Meshy townsfolk
   // strolling the boulevards — each body at most once, so no character twins
@@ -267,14 +283,16 @@ Promise.all([
   traffic = new Traffic(scene, { lowPower: lowPowerHint });
   citizens = new Citizens(scene, rig, npcBases, world.colliders);
   citizens.spawn(lowPowerHint ? 5 : 7);                // unique bodies at both quality tiers
-  window.__EM = { player, world, zones: zoneMgr, camera: followCam, renderer, scene, camera3: camera, ui, audio, trains, traffic, citizens };
+  window.__EM = { player, world, zones: zoneMgr, camera: followCam, renderer, scene, camera3: camera, ui, audio, trains, traffic, citizens, daylight };
   // deterministic frame pump for headless verification (background tabs throttle rAF)
+  window.__EM.rideTo = rideTo;
   window.__EM.step = (n = 1, dt = 1 / 60) => {
     uTime.value += n * dt;
-    for (let i = 0; i < n; i++) simTick(dt);
-    followCam.update(1 / 60, player, { dx: 0, dy: 0, wheel: 0, looking: false }, world.colliders);
+    for (let i = 0; i < n; i++) { simTick(dt); daylight.update(dt, camera); }
+    followCam.update(n * dt, player, { dx: 0, dy: 0, wheel: 0, looking: false }, world.colliders, conversationPartner());
     minimap.update(0.25, player, zoneMgr, world, trains);   // force a redraw
-    postfx.render(uTime.value);
+    postfx.setFocus(overlayOpen());
+    postfx.render(uTime.value, n * dt);
   };
   // Players on odd hardware get the final say; picking a tier stops the
   // adaptive controller from arguing with them.
@@ -305,19 +323,26 @@ Promise.all([
 function applySize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  const pr = MAX_PR * renderScale;
+  const pr = MAX_PR * quality.renderScale;
   renderer.setPixelRatio(pr);
   renderer.setSize(window.innerWidth, window.innerHeight);
   postfx.setSize(window.innerWidth, window.innerHeight, pr);
 }
 window.addEventListener('resize', applySize);
 
+// any panel over the world: the composite pulls focus and saturation
+const overlayOpen = () => !!(ui.dialogOpen || ui.guideOpen || ui.welcomeOpen || ui.journalOpen || ui.metroOpen || ui.mapOpen);
+// the local Wren is talking to, for the conversation two-shot
+const conversationPartner = () => {
+  if (!ui.dialogOpen || !player) return null;
+  return world.nearestNPC(player.pos, 4.5) || crowd?.nearestSpeaker(player.pos, 4.5) || null;
+};
+
 // ---------- simulation (fixed step) / rendering (rAF) split ----------
 const SIM_DT = 1 / 60;
 let accumulator = 0;
-let frameEMA = 16.7, fpsCount = 0, fpsTime = 0, scaleCooldown = 0;
+let fpsCount = 0, fpsTime = 0;
 let baseFov = 55;
-const MIN_RENDER_SCALE = 0.62;
 
 function simTick(dt) {
   if (!player) return;
@@ -346,44 +371,86 @@ function simTick(dt) {
 }
 
 const clock = new THREE.Clock();
+const RIDE_RADIUS = 24;              // covers the whole shopfront walk of a stop
+const _proj = new THREE.Vector3();
+// Is a world point inside the camera frustum (with a small margin)?
+const inFrame = (x, y, z, margin = 0.92) => {
+  camera.updateMatrixWorld(true);
+  camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
+  _proj.set(x, y, z).project(camera);
+  return _proj.z < 1 && Math.abs(_proj.x) < margin && Math.abs(_proj.y) < margin;
+};
+const canRide = () => {
+  if (!player) return false;
+  const p = player.pos;
+  return Math.hypot(p.x, p.z) < 30 ||
+    zoneMgr.zones.some((z) => Math.hypot(p.x - z.stopPos.x, p.z - z.stopPos.y) < RIDE_RADIUS);
+};
+const rideTo = (dest) => {
+  audio.play('ping', { rate: 0.8, volume: 0.5 });
+  ui.fadeTravel(() => {
+    if (dest) {
+      // Arrive just inside the district's sidewalk ring, facing the district
+      // centre through the gap in the frontage row, with at least one ❗ local
+      // in frame; the dolly's opening wide shot takes in the platform and sign. The yaw is verified by
+      // projecting the locals' markers, nudging up to ±40° until one shows.
+      const px = dest.perp.x * dest.side, pz = dest.perp.y * dest.side;   // stop → district
+      const lx = dest.dir.x, lz = dest.dir.y;                              // along the line
+      // 9.5 m in from the stop = 2 m inside the district's own sidewalk ring,
+      // at the gap between the two frontage columns (local x = 0)
+      const inward = 9.5, along = 0.0;
+      const ax = dest.stopPos.x + px * inward + lx * along;
+      const az = dest.stopPos.y + pz * inward + lz * along;
+      player.pos.set(ax, 0, az);
+      player.heading = Math.atan2(px, pz);
+      const baseYaw = Math.atan2(-px, -pz);          // camera behind the player
+      followCam.pitch = 0.22;
+      followCam.dist = 5.4;
+      followCam.yaw = baseYaw;
+      player.vel.set(0, 0, 0);
+      zoneMgr.update(player.pos, world.colliders);   // stream destination immediately
+      followCam.snap();
+      followCam.update(1 / 60, player, { dx: 0, dy: 0, wheel: 0, looking: false }, world.colliders);
+      const locals = world.npcs.filter((n) => n.zoneCode === dest.data.code);
+      const score = (yaw) => {
+        followCam.yaw = yaw; followCam.snap();
+        followCam.update(1 / 60, player, { dx: 0, dy: 0, wheel: 0, looking: false }, world.colliders);
+        let s = 0;
+        for (const n of locals) if (inFrame(n.obj.position.x, n.obj.position.y + (n.markerY || 2.3) * n.obj.scale.y, n.obj.position.z)) s += n.done ? 1 : 2;
+        return s;
+      };
+      let bestYaw = baseYaw, best = score(baseYaw);
+      for (const off of [-0.25, 0.25, -0.5, 0.5, -0.7, 0.7]) {
+        if (best >= 2) break;
+        const s = score(baseYaw + off);
+        if (s > best) { best = s; bestYaw = baseYaw + off; }
+      }
+      followCam.yaw = bestYaw;
+      followCam.snap();
+      // establishing shot: high and wide over the district, gliding down
+      // into the follow cam over ~1.8 s
+      followCam.startDolly({ fromPitch: 0.55, fromDist: 14, toPitch: 0.22, toDist: 5.4, duration: 1.8, fromYaw: bestYaw + 0.45, toYaw: bestYaw });
+    } else {
+      player.pos.set(4.5, 0, -6);
+      player.heading = Math.atan2(-3.5 - 4.5, -9 + 6);
+      followCam.yaw = Math.atan2(-(-3.5 - 4.5), -(-9 + 6));  // camera behind Wren, looking at Clara
+      followCam.pitch = 0.3;
+      player.vel.set(0, 0, 0);
+      zoneMgr.update(player.pos, world.colliders);
+      followCam.snap();
+    }
+    audio.fanfare();
+  });
+};
+
 renderer.setAnimationLoop(() => {
+  const frameStart = performance.now();
   const rdt = Math.min(clock.getDelta(), 0.1);
   uTime.value = clock.elapsedTime;           // drives wind sway shaders
   const mouse = input.consume();
 
   if (mouse.guide) ui.showGuide(!ui.guideOpen);
   if (mouse.journal && started) ui.toggleJournal(zoneMgr);
-  const canRide = () => {
-    if (!player) return false;
-    const p = player.pos;
-    return Math.hypot(p.x, p.z) < 30 ||
-      zoneMgr.zones.some((z) => Math.hypot(p.x - z.stopPos.x, p.z - z.stopPos.y) < 12);
-  };
-  const rideTo = (dest) => {
-    audio.play('ping', { rate: 0.8, volume: 0.5 });
-    ui.fadeTravel(() => {
-      if (dest) {
-        // Arrive on the broad shopfront walk, looking outward along the line.
-        // The camera faces back toward the city so platform furniture never
-        // sits between the spring arm and the player.
-        const ax = dest.stopPos.x + (dest.center.x - dest.stopPos.x) * 0.46;
-        const az = dest.stopPos.y + (dest.center.y - dest.stopPos.y) * 0.46;
-        player.pos.set(ax, 0, az);
-        player.heading = Math.atan2(dest.dir.x, dest.dir.y);
-        followCam.yaw = Math.atan2(-dest.dir.x, -dest.dir.y);
-        followCam.pitch = 0.28;
-      } else {
-        player.pos.set(0, 0, 8);
-        player.heading = Math.PI;
-        followCam.yaw = 0;
-        followCam.pitch = 0.32;
-      }
-      player.vel.set(0, 0, 0);
-      zoneMgr.update(player.pos, world.colliders);   // stream destination immediately
-      followCam.snap();
-      audio.fanfare();
-    });
-  };
   if (mouse.metro && started && player) {
     if (canRide()) ui.showMetro(zoneMgr, rideTo);
     else ui.toast('🚇 Find a station platform to ride the metro (T)');
@@ -402,7 +469,7 @@ renderer.setAnimationLoop(() => {
 
     // render-side: camera follows every frame for smoothness
     const blocked = ui.dialogOpen || ui.guideOpen || ui.welcomeOpen || ui.journalOpen || ui.metroOpen || ui.mapOpen;
-    followCam.update(rdt, player, blocked ? { dx: 0, dy: 0, wheel: 0, looking: false } : mouse, world.colliders);
+    followCam.update(rdt, player, blocked ? { dx: 0, dy: 0, wheel: 0, looking: false } : mouse, world.colliders, conversationPartner());
 
     // sprint FOV kick (cinematic juice)
     const targetFov = baseFov + player.speedFrac * (input.sprint ? 8 : 3);
@@ -466,26 +533,18 @@ renderer.setAnimationLoop(() => {
     }
   }
 
-  postfx.render(clock.elapsedTime);
+  daylight.update(rdt, camera);
+  postfx.setFocus(started && overlayOpen());
+  postfx.render(clock.elapsedTime, rdt);
 
-  // Two nested controls: render scale reacts within a tier for short spikes,
-  // the quality tier moves for sustained trouble.
-  frameEMA = frameEMA * 0.95 + rdt * 1000 * 0.05;
-  quality.update(rdt * 1000, rdt);
-  scaleCooldown -= rdt;
-  if (scaleCooldown <= 0) {
-    if (frameEMA > 21 && renderScale > MIN_RENDER_SCALE + 0.001) {
-      renderScale = Math.max(MIN_RENDER_SCALE, renderScale - 0.08);
-      applySize();
-      scaleCooldown = 1.5;
-    } else if (frameEMA < 13.5 && renderScale < 1) {
-      renderScale = Math.min(1, renderScale + 0.08);
-      applySize();
-      scaleCooldown = 1.5;
-    }
-  }
+  // Headroom-based control (quality.js): the render scale answers short spikes
+  // within a tier, the tier moves for sustained pressure — measured as JS busy
+  // fraction and rAF interval against the display's own refresh, so vsync at
+  // 60 Hz no longer reads as "no headroom" and 30 Hz no longer reads as trouble.
+  const busyMs = performance.now() - frameStart;
+  quality.update(rdt * 1000, busyMs);
   fpsCount++; fpsTime += rdt;
-  if (fpsTime >= 0.5) { ui.setFPS(fpsCount / fpsTime, renderScale); fpsCount = 0; fpsTime = 0; }
+  if (fpsTime >= 0.5) { ui.setFPS(fpsCount / fpsTime, quality.renderScale); fpsCount = 0; fpsTime = 0; }
 });
 
 console.log('%c🚇 ENGLISH METROPOLIS — no-build dev', 'color:#e8a13d; font-size:14px');
