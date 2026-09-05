@@ -39,7 +39,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Color, MathUtils, Object3D, Vector3 } from 'three'
 import type { InstancedMesh, Mesh, PerspectiveCamera, PointLight } from 'three'
-import { Bajla, CityStage, palette, useStageQuality } from './kit'
+import { Bajla } from './kit/Bajla'
+import { CityStage, useStageQuality } from './kit/CityStage'
+import { palette } from './kit/palette'
 import type { Game3DProps, SessionResult } from './types'
 
 // ── District manifest — the ring of Wave-1 word-game districts. A local copy

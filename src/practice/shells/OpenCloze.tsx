@@ -1,4 +1,6 @@
-import { clozeResolved } from './word-arcade-mechanics';
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordOpenCloze3D'));
+import { clozeResolved, claimClozeAttempt } from './word-arcade-mechanics';
 // Open Cloze — The Vellum Atelier district.
 // A scribe's desk at dusk. A sheet of parchment lies under candlelight; the
 // student fills the missing words with quill-ink (typed input). Each blank
@@ -363,6 +365,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
   }>>([]);
   const studentInputsRef = useRef<Record<number, string>>({});
   const sessionFiredRef = useRef(false);
+  const submittedAttemptsRef = useRef(new Map<number, string>());
 
   // Auto-save.
   useEffect(() => {
@@ -461,7 +464,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
     if (!gap) return;
     if (locked[id] === 'right' || skippedIds.has(id)) return;
     const candidate = normalise(values[id] ?? '');
-    if (!candidate) return;
+    if (!claimClozeAttempt(submittedAttemptsRef.current, id, candidate)) return;
     const accepted = [normalise(gap.answer), ...(gap.acceptedAnswers ?? []).map(normalise)];
     const correct = accepted.includes(candidate);
     setLocked((prev) => ({ ...prev, [id]: correct ? 'right' : 'wrong' }));
@@ -529,6 +532,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
     wrongAttemptsRef.current = [];
     studentInputsRef.current = {};
     sessionFiredRef.current = false;
+    submittedAttemptsRef.current.clear();
   };
 
   // Kelly Tier-2 (2026-05-02): focus-trap effect for the ink-dried dialog.
@@ -586,45 +590,6 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
         {liveStatus}
       </div>
 
-      {/* ─── Atelier scene ───────────────────────────────────────────────
-          Ricky 2026-05-02 (#15 audit pass): explicit zIndex:0 + pointerEvents:none
-          on the background gradient so it stays below the parchment (z:4) and
-          top-bar (z:5) at all viewports. */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background:
-          time === 'day'
-            ? 'linear-gradient(180deg, #3D2E5A 0%, #6E5A82 60%, #2A1450 100%)'
-            : time === 'dusk'
-              ? 'linear-gradient(180deg, #1A0F2E 0%, #3D1F4A 55%, #1A0628 100%)'
-              : 'linear-gradient(180deg, #07041A 0%, #110828 60%, #02010C 100%)',
-      }} />
-      {/* Candle glow */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', top: '8%', right: '14%', width: 220, height: 220,
-        background: `radial-gradient(circle, ${ACCENT}33 0%, transparent 70%)`,
-        animation: 'oc-candle 4s ease-in-out infinite',
-        pointerEvents: 'none',
-      }} />
-      {/* Bookshelf silhouette behind */}
-      <svg viewBox="0 0 1200 600" preserveAspectRatio="none" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.18, pointerEvents: 'none' }}>
-        {Array.from({ length: 14 }).map((_, i) => {
-          const x = i * 90 + 20;
-          return (
-            <g key={i}>
-              <rect x={x} y={120} width="80" height="380" fill="#2A1830" stroke="#4A2C50" strokeWidth="1" />
-              {Array.from({ length: 4 }).map((_, r) => (
-                <line key={r} x1={x} y1={200 + r * 80} x2={x + 80} y2={200 + r * 80} stroke="#1A0E22" strokeWidth="3" />
-              ))}
-              {Array.from({ length: 6 }).map((_, b) => (
-                <rect key={b} x={x + 6 + b * 12} y={210 + (i % 4) * 80} width="10" height={50 + ((i + b) % 3) * 8} fill={['#5A3F1A', '#7A2A38', '#3A2A5A', '#2A4A38'][b % 4]} opacity="0.7" />
-              ))}
-            </g>
-          );
-        })}
-      </svg>
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 60%, transparent 30%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
-
       {/* ─── Header ─── */}
       <div style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, zIndex: 5, flexWrap: 'wrap' }}>
         <AmbientAudioPlayer shellSlug="opencloze" />
@@ -650,6 +615,7 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
       {/* ─── Parchment ─── */}
       <div className="oc-stage" style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', zIndex: 4 }}>
         <WordMission kind="manuscript" current={correctCount} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+        <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D gaps={activePuzzle.gaps.map(g=>({id:g.id,value:values[g.id]??'',done:locked[g.id]==='right',wrong:locked[g.id]==='wrong',skipped:skippedIds.has(g.id)}))} active={activeId} onSelect={id=>{setActiveId(id);inputRefs.current[id]?.focus();}} onSeal={submit}/></WordSuspense>
         <div className="wa-checklist">{activePuzzle.gaps.map(g=><span key={g.id} className={locked[g.id]==='right'?'is-ready':''}>Seal {g.id} {locked[g.id]==='right'?'✓':skippedIds.has(g.id)?'—':'○'}</span>)}</div>
         <div
           role="region"
@@ -704,7 +670,6 @@ export const OpenClozeShell: React.FC<OpenClozeShellProps> = ({
                     onChange={(e) => setVal(t.id, e.target.value)}
                     onFocus={() => setActiveId(t.id)}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(t.id); } }}
-                    onBlur={() => { if (!locked[t.id] && (values[t.id] ?? '').trim()) submit(t.id); }}
                     aria-label={`Blank ${t.id}, ${gap.hint}`}
                     aria-invalid={status === 'wrong'}
                     disabled={status === 'right' || skippedIds.has(t.id) || !!forcedState}

@@ -1,56 +1,10 @@
-// Hangman — The Lantern Alley.
-//
-// Theme unified (Kelly audit, CC-6, 2026-05-02): we previously dual-named this
-// shell "Lantern Alley · Construction Site" — the landing card said one name,
-// the inner Nameplate subtitle said the other, and the inline visuals depicted
-// scaffolding/hard-hats. Mike's call: pick ONE theme, and the rope-and-hanging
-// metaphor of Hangman maps cleanly onto lanterns hanging from an alley. Wrong
-// guesses dim individual lanterns; the word is built rung-by-rung on a hung
-// rope of glyph plates. The previous EM-031/EM-063 dual-name comment is
-// superseded by this Tier-1 cleanup.
-//
-// Ricky CC-Hangman pass (2026-05-02): post-CD-audit overhaul. Restructured
-// from absolute-positioned overlap-prone scene to a flex-column hierarchy:
-// (1) lanterns chrome row at top, (2) LARGE word slots, (3) clue card,
-// (4) full-width 7-col WCAG keypad, (5) right-side pattern card. Bajla now
-// perches on the LEFT lamp post and her speech-cone points DOWN-RIGHT into
-// the play area — no longer floats next to the moon. Added cyan trail
-// animation key→slot on correct, "−1 LIFE / −1 ŻYCIE" floater on wrong,
-// keypad buttons bumped 30→44px (WCAG 2.5.5 Target Size), 7-col grid so
-// 26 letters tile in 4 rows (7+7+7+5) and the keypad never overflows 375px.
-//
-// Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordHangman3D'));
+// Canonical Hangman mechanics with the lantern rescue arcade presentation.
 import { WordMission, useWordArcade } from './word-arcade';
 import { useShellProgress } from '../lib/convex-stubs';
 import type { ShellHangmanPuzzle } from '../lib/adapters';
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, Suspense } from 'react';
-
-// 3D pilot (Ricky, 2026-05-03 — CD audit). Lazy-loaded so the r3f bundle
-// (~150KB gz) only ships when a student opens this shell, and only when
-// the feature flag below is on. The 2D lantern row stays as the immediate
-// fallback while the 3D chunk is downloading + as the always-on a11y
-// canonical (the Canvas itself is aria-hidden).
-const Hangman3D = React.lazy(() => import('./Hangman3D'));
-
-/**
- * Feature flag for the 3D Lantern Alley pilot.
- *  - Defaults ON in production (Mike's directive: ship the pilot).
- *  - Defaults OFF in dev so the design canvas + storybooks stay snappy.
- *  - Overridable via `window.__EM_HANGMAN_3D__` for live A/B inside an
- *    open page (e.g. devtools toggle without a rebuild).
- */
-function isHangman3DEnabledFn(): boolean {
-  // import.meta.env.MODE is provided by Vite at build time.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mode: string = (import.meta as unknown as { env?: { MODE?: string } })?.env?.MODE ?? 'production';
-  const defaultOn = mode === 'production';
-  if (typeof window !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const override = (window as unknown as { __EM_HANGMAN_3D__?: boolean }).__EM_HANGMAN_3D__;
-    if (typeof override === 'boolean') return override;
-  }
-  return defaultOn;
-}
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import {
   Bajla,
   HintCard,
@@ -131,7 +85,7 @@ interface HMPuzzle {
   exerciseId?: string;
 }
 
-type BajlaMood = 'idle' | 'cheer' | 'think' | 'wave';
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Per-shell answer-leak guard (Kelly CC-2, 2026-05-02).
@@ -295,17 +249,6 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
   // Persisted progress (skipped when forcedState is set for design-canvas demos).
   const persisted = useShellProgress('hangman');
   const MAX_WRONG = 6;
-  // 3D pilot flag — see isHangman3DEnabled() at top of file. Reads the
-  // build-mode + window override on every render but the value is stable
-  // for the lifetime of the page, so the lazy chunk only loads once.
-  const is3DEnabled = isHangman3DEnabledFn();
-  // Tick that bumps every wrong guess so the 3D scene can fire embers
-  // even when wrongCount is the same (e.g. round reset).
-  const [wrongTick, setWrongTick] = useState(0);
-  const [correctTick, setCorrectTick] = useState(0);
-
-  // Normalise the optional puzzle prop to an array deck. Use the built-in
-  // demo deck when no puzzle is supplied (or it's empty).
   const puzzleArr: HMPuzzle[] = (() => {
     if (!puzzle) return HM_PUZZLES;
     const arr = Array.isArray(puzzle) ? puzzle : [puzzle];
@@ -329,11 +272,9 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
     explanationPL?: string; exerciseId?: string;
   }>>([]);
   const sessionFiredRef = useRef(false);
-
-  // Wrong-pick floater payload — surfaces above the just-extinguished lantern
   // for ~1100ms before fading. Also doubles as the visual for "-1 LIFE".
-  const [lifeFloater, setLifeFloater] = useState<{ id: number; lanternIdx: number } | null>(null);
-  const lifeFloaterIdRef = useRef(0);
+
+
 
   // Trail effect — when the player guesses a correct letter, we draw a brief
   // cyan stroke from the keypad button → each filled slot. The animation
@@ -493,26 +434,10 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
       if (!word.includes(letter)) {
         setShake(true);
         setTimeout(() => setShake(false), 400);
-        // Bump the 3D wrongTick so the embers fire on the just-extinguished
-        // lantern even if React batches the wrongCount transition.
-        setWrongTick((t) => t + 1);
-        // Wrong-pick floater — anchored to the lantern that was just dimmed.
-        // Lantern that just went out is at index (MAX_WRONG - 1 - newWrongCount)
-        // because the row dims right-to-left. We pre-compute newWrongCount.
-        const newWrongCount = wrongCount + 1;
-        const lanternIdx = MAX_WRONG - newWrongCount;
-        const id = ++lifeFloaterIdRef.current;
-        setLifeFloater({ id, lanternIdx });
-        window.setTimeout(() => {
-          setLifeFloater((cur) => (cur && cur.id === id ? null : cur));
-        }, 1100);
       } else {
         setPulseLetter(letter);
         setTimeout(() => setPulseLetter(null), 600);
-        // Bump the 3D correctTick so a lantern flares brightly per Mike's
-        // 2026-05-03 feedback ("every correct letter the lantern should
-        // clearly switch on, extremely bright with animation").
-        setCorrectTick((t) => t + 1);
+
       }
     },
     [guessed, won, lost, word, wrongCount, arcade.answer],
@@ -617,7 +542,7 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
     setPuzzleIdx((i) => (i + 1) % puzzleArr.length);
     setGuessed([]);
     setHintsUsed(0);
-    setLifeFloater(null);
+
     setTrail(null);
   };
 
@@ -660,23 +585,14 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
     if(forcedState || won || lost || !rescueWord.trim()) return;
     const correct=rescueWord.trim().toUpperCase()===word.toUpperCase();
     arcade.answer(correct,200);
-    if(correct){setGuessed([...new Set(word.split(''))]);setCorrectTick(t=>t+1);setRescueMessage('Word rescued!');}
-    else{setRescueMisses(n=>n+1);setWrongTick(t=>t+1);setShake(true);setTimeout(()=>setShake(false),400);setRescueMessage('Not this word — two lanterns lost.');}
+    if(correct){setGuessed([...new Set(word.split(''))]);setRescueMessage('Word rescued!');}
+    else{setRescueMisses(n=>n+1);setShake(true);setTimeout(()=>setShake(false),400);setRescueMessage('Not this word — two lanterns lost.');}
     setRescueWord('');
   };
 
-  const bajlaMood: BajlaMood =
-    won ? 'cheer' :
-      lost ? 'think' :
-        pulseLetter ? 'cheer' :
-          shake ? 'think' :
-            'idle';
 
-  const skyByTime: Record<TimeOfDay, string> = {
-    day: 'linear-gradient(180deg, #6E4FB8 0%, #C58BD9 60%, #FBBF24 100%)',
-    dusk: 'linear-gradient(180deg, #2A1B45 0%, #6F3580 60%, #C57195 100%)',
-    night: 'linear-gradient(180deg, #07041A 0%, #1F0E3A 60%, #4A1B5C 100%)',
-  };
+
+
 
   const liveStatus = won
     ? `You won. The word was ${word}.`
@@ -707,21 +623,6 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
           25% { stroke-opacity: 0.95; }
           100% { stroke-opacity: 0; stroke-dashoffset: 0; }
         }
-        @keyframes em-hm-life-float {
-          0% { transform: translate(-50%, 0); opacity: 0; }
-          15% { opacity: 1; }
-          100% { transform: translate(-50%, -28px); opacity: 0; }
-        }
-        @keyframes em-hm-lamp-flicker {
-          0%, 100% { opacity: 0.85; }
-          47% { opacity: 0.85; }
-          48% { opacity: 0.55; }
-          50% { opacity: 0.95; }
-        }
-        @keyframes em-hm-bubble-tail {
-          0%, 100% { transform: rotate(-2deg); }
-          50% { transform: rotate(2deg); }
-        }
         .em-hm-key:focus-visible {
           outline: none;
           box-shadow: 0 0 0 2px #FBBF24, 0 0 0 4px rgba(251,191,36,0.35);
@@ -749,116 +650,12 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
           .em-hm-slots-rect { width: 44px !important; height: 60px !important; font-size: 28px !important; }
           .em-hm-slots-row { gap: 6px !important; }
           .em-hm-key { width: 40px !important; height: 44px !important; font-size: 13px !important; }
-          .em-hm-bajla-perch { display: none !important; }
         }
       `}</style>
 
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
         {liveStatus}
       </div>
-
-      {/* Sky + grain backdrop */}
-      <div style={{ position: 'absolute', inset: 0, background: skyByTime[time] }} />
-      <div className="em-grain" style={{ position: 'absolute', inset: 0 }} />
-
-      {/* Atmospheric scene chrome (decorative, pointer-events:none).
-          Twin lamp posts + cross-rope + moon + skyline silhouette. Hidden
-          when the 3D scene is on (Mike screenshot 2026-05-03 — the dashed
-          cross-rope was slicing through the title subtitle). The 3D scene
-          ships its own moon, skyline, and lantern rope. */}
-      {!is3DEnabled && (
-      <svg
-        viewBox="0 0 800 600"
-        preserveAspectRatio="xMidYMid slice"
-        aria-hidden="true"
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }}
-      >
-        {/* Moon — pushed to far right, tucked under the right rail */}
-        <circle cx="700" cy="120" r="50" fill={time === 'night' ? '#A78BFA' : '#F4A989'} opacity={time === 'night' ? 0.28 : 0.32} />
-        {/* Distant skyline silhouette — full width, anchors the scene */}
-        <g opacity="0.32" fill="#0E0A1A">
-          <rect x="0" y="430" width="120" height="170" />
-          <rect x="120" y="380" width="80" height="220" />
-          <rect x="280" y="450" width="70" height="150" />
-          <rect x="350" y="420" width="50" height="180" />
-          <rect x="500" y="440" width="60" height="160" />
-          <rect x="560" y="410" width="80" height="190" />
-          <rect x="650" y="400" width="60" height="200" />
-          <rect x="710" y="370" width="90" height="230" />
-        </g>
-        {/* Cobblestone foreground hint */}
-        <g opacity="0.18" fill="#0E0A1A">
-          {Array.from({ length: 14 }).map((_, i) => (
-            <ellipse key={i} cx={30 + i * 58} cy="585" rx="22" ry="6" />
-          ))}
-        </g>
-        {/* LEFT lamp post — Bajla perches on its finial */}
-        <g stroke="#0E0A1A" strokeWidth="2.5" fill="none">
-          <line x1="92" y1="600" x2="92" y2="80" />
-          <line x1="108" y1="600" x2="108" y2="80" />
-          <rect x="88" y="50" width="24" height="30" fill="#0E0A1A" stroke="none" />
-          {/* Finial dome where Bajla sits */}
-          <ellipse cx="100" cy="50" rx="18" ry="6" fill="#0E0A1A" stroke="none" />
-          {/* Lit lamp head */}
-          <rect x="84" y="80" width="32" height="40" fill="#3A2855" />
-          <circle cx="100" cy="100" r="8" fill="#FFE48A" opacity="0.85" style={{ animation: 'em-hm-lamp-flicker 4s ease-in-out infinite' }} />
-        </g>
-        {/* RIGHT lamp post — quieter, no perch */}
-        <g stroke="#0E0A1A" strokeWidth="2.5" fill="none">
-          <line x1="610" y1="600" x2="610" y2="120" />
-          <line x1="626" y1="600" x2="626" y2="120" />
-          <rect x="606" y="90" width="24" height="30" fill="#0E0A1A" stroke="none" />
-          <rect x="602" y="120" width="32" height="40" fill="#3A2855" />
-          <circle cx="618" cy="140" r="8" fill="#FFE48A" opacity="0.7" />
-        </g>
-        {/* Dashed clothesline strung between the posts */}
-        <line x1="100" y1="50" x2="618" y2="90" stroke="#FBBF24" strokeWidth="1.5" strokeDasharray="6 4" opacity="0.55" />
-        {/* Decorative hanging mini-lanterns along the line */}
-        {[0.22, 0.4, 0.58, 0.76].map((t, i) => {
-          const x = 100 + (618 - 100) * t;
-          const y = 50 + (90 - 50) * t + 18;
-          return (
-            <g key={i}>
-              <line x1={x} y1={y - 18} x2={x} y2={y - 4} stroke="#FBBF24" strokeWidth="1" opacity="0.5" />
-              <rect x={x - 5} y={y - 4} width="10" height="14" fill="#3A2855" stroke="#FBBF24" strokeWidth="1" />
-              <circle cx={x} cy={y + 3} r="2.5" fill="#FFE48A" opacity="0.8" />
-            </g>
-          );
-        })}
-      </svg>
-      )}
-
-      {/* Bajla — perched on the LEFT lamp post finial, looking down-right
-          into the play area. Speech direction implied by translate offset
-          + a small triangle "speech tail" from her bubble pointing at the
-          clue card region. (At ≤480px we hide the perch; she returns to
-          inline inside the clue card on mobile via HintCard's inner Bajla.) */}
-      {/* 2026-05-03 (Mike screenshot): perched-Bajla was meant to sit on the
-          OLD lamp-post SVG. With the 3D scene now occupying the play column
-          she just floats next to the title (Mike's "remaining bird at top").
-          Hidden when 3D is on. */}
-      {!is3DEnabled && (
-      <div
-        className="em-hm-bajla-perch"
-        style={{
-          position: 'absolute',
-          left: 'calc((100% - 800px) / 2 + 60px)',
-          top: 'min(8%, 80px)',
-          zIndex: 4,
-          pointerEvents: 'none',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 6,
-        }}
-      >
-        <Bajla size={56} mood={bajlaMood} />
-        <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true" style={{ marginLeft: -6, marginTop: 18, opacity: 0.55 }}>
-          <circle cx="6" cy="6" r="2" fill="#FBBF24" />
-          <circle cx="18" cy="18" r="2.5" fill="#FBBF24" />
-          <circle cx="30" cy="30" r="3" fill="#FBBF24" />
-        </svg>
-      </div>
-      )}
 
       {/* Header — district nameplate + counters.
           Ricky 2026-05-03 (CD audit, HM-bug-2a): header used to overflow the
@@ -928,118 +725,14 @@ export const HangmanShell: React.FC<HangmanShellProps> = ({ time = 'dusk', state
             maxWidth: 720,
           }}
         >
-          {/* 3D LANTERN ALLEY — first 3D shell pilot (Mike, 2026-05-03).
-              Lazy-loaded, aria-hidden (the lives row below is the a11y
-              canonical). Suspense fallback is a slim placeholder so the
-              shell layout doesn't jump while the r3f chunk downloads. */}
-          {is3DEnabled && (
-            <Suspense
-              fallback={
-                <div
-                  aria-hidden="true"
-                  style={{
-                    width: '100%',
-                    height: '40vh',
-                    maxHeight: 320,
-                    minHeight: 180,
-                    borderRadius: 12,
-                    background: 'radial-gradient(ellipse at center, rgba(167,139,250,0.12), rgba(14,10,26,0.6))',
-                    border: '1px solid rgba(251,191,36,0.18)',
-                  }}
-                />
-              }
-            >
-              <Hangman3D
-                wrongCount={wrongCount}
-                maxWrong={MAX_WRONG}
-                won={won}
-                lost={lost}
-                wrongTick={wrongTick}
-                correctTick={correctTick}
-              />
-            </Suspense>
-          )}
+          <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D guessed={guessed} display={display} lives={MAX_WRONG-wrongCount} onGuess={guess} done={won||lost}/></WordSuspense>
 
-          {/* LIVES ROW — only renders when 3D is OFF. The 3D lantern alley
-              IS the canonical lives indicator when 3D is on; rendering both
-              competes for visual hierarchy and was Mike's "looks terrible"
-              critique on 2026-05-03. The aria-label still ships via a
-              hidden announcer below for screen-reader users. */}
-          {!is3DEnabled && (
-          <div
-            role="img"
-            aria-label={`Lives remaining: ${MAX_WRONG - wrongCount} of ${MAX_WRONG}`}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 4,
-              position: 'relative',
-            }}
-          >
-            {/* Ricky 2026-05-03 (CD audit, HM-bug-2b): 6 × 28px lanterns +
-                gaps were ~218px wide and never wrapped, so the rightmost
-                lantern clipped on small viewports. Allow flex-wrap; the
-                ≤480px media query already shrinks letter slots/keys, the
-                lanterns now wrap into two rows when they truly can't fit. */}
-            <div style={{ display: 'flex', gap: 10, position: 'relative', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '100%' }}>
-              {Array.from({ length: MAX_WRONG }).map((_, i) => {
-                const alive = i < MAX_WRONG - wrongCount;
-                const isJustExtinguished = lifeFloater?.lanternIdx === i;
-                return (
-                  <div key={i} style={{ position: 'relative', width: 28, height: 36 }}>
-                    <svg viewBox="0 0 28 36" width="28" height="36" style={{ transition: 'opacity 320ms', opacity: alive ? 1 : 0.3 }}>
-                      <line x1="14" y1="0" x2="14" y2="4" stroke="#FBBF24" strokeWidth="1" opacity="0.7" />
-                      <rect x="8" y="4" width="12" height="3" fill="#0E0A1A" />
-                      <rect x="4" y="7" width="20" height="22" fill={alive ? '#3A2855' : '#1A0E2A'} stroke={alive ? '#FBBF24' : '#3A2855'} strokeWidth="1.5" />
-                      {alive
-                        ? <circle cx="14" cy="18" r="5" fill="#FFE48A" opacity="0.9" />
-                        : <line x1="4" y1="7" x2="24" y2="29" stroke="#FB7185" strokeWidth="1.5" />}
-                      <rect x="6" y="29" width="16" height="3" fill="#0E0A1A" />
-                    </svg>
-                    {/* −1 LIFE floater above the lantern that just died */}
-                    {isJustExtinguished && lifeFloater && (
-                      <div
-                        key={lifeFloater.id}
-                        style={{
-                          position: 'absolute',
-                          left: '50%',
-                          top: -22,
-                          transform: 'translate(-50%, 0)',
-                          fontFamily: 'var(--em-mono)',
-                          fontSize: 10,
-                          fontWeight: 700,
-                          color: '#FB7185',
-                          letterSpacing: '0.1em',
-                          whiteSpace: 'nowrap',
-                          background: 'rgba(14,10,26,0.85)',
-                          padding: '2px 6px',
-                          borderRadius: 4,
-                          border: '1px solid #FB7185',
-                          animation: 'em-hm-life-float 1.1s ease-out forwards',
-                          pointerEvents: 'none',
-                        }}
-                      >
-                        −1 LIFE · −1 ŻYCIE
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.2em', color: '#FBBF24', opacity: 0.85 }}>
-              PRÓBY · LIVES LEFT · {MAX_WRONG - wrongCount}/{MAX_WRONG}
-            </div>
-          </div>
-          )}
 
           {/* Screen-reader announcer for lives — kept in DOM so screen
               readers always get the count regardless of 3D/2D rendering. */}
-          {is3DEnabled && (
-            <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
+          <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
               {`Lives remaining: ${MAX_WRONG - wrongCount} of ${MAX_WRONG}`}
             </div>
-          )}
 
           {/* WORD SLOTS — LARGE letter plates. Pure HTML/flex (was SVG)
               so we can DOM-measure each slot for the cyan trail endpoints

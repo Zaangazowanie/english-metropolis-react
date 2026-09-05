@@ -3,9 +3,9 @@
 // The page now leads with the OPEN WORLD (beta): a cinematic hero with an
 // animated city postcard and one unmissable call-to-action — Play the World.
 // Beneath it, the "two ways in" choice (world vs quick practice), then the
-// whole 39-game practice catalog folded into four expandable metro-line
-// sections plus a 3D Districts section fed by game3dRegistry. Instant
-// anonymous play via PlayOverlay is unchanged: every 2D shell falls back to
+// whole 38-game practice catalog folded into four expandable metro-line
+// sections, with one canonical arcade game per exercise. Instant
+// anonymous play via PlayOverlay is unchanged: every controller supplies
 // its built-in demo puzzle; first completed round raises the sign-up CTA
 // (Mike, SPEC 2026-06-06).
 //
@@ -17,7 +17,10 @@ import { Link } from 'react-router-dom'
 import { FONT, G, EASE } from '../../design/v3/tokens.js'
 import { Skyline } from '../../design/v3/primitives.jsx'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
-import { game3dRegistry } from '../../practice/shells3d/kit/registry'
+import { ArcadeCabinet } from '../../practice/components/ArcadeCabinet'
+import '../../practice/styles/system.css'
+import '../../practice/styles/global.css'
+import '../../practice/styles/arcade.css'
 import { usePrefersReducedMotion } from '../../practice/lib/usePrefersReducedMotion'
 import { useI18n } from '../../i18n'
 import { PRIVATE_PACKAGES } from '../public/packages.js'
@@ -167,8 +170,6 @@ const GH = {
     catalogHint: 'Choose a line to see its games · each game starts immediately',
     catalogBrowse: 'Browse the full catalogue by line and station. You can play your first game without an account.',
     catalogGames: (n) => `${n} games`,
-    catalogLive: (a, b) => `${a} live · ${b} arriving`,
-    districts3dSubtitle: 'The Fluent City in 3D. New districts land here automatically with every update.',
     doorsBody: (n) => `${n} short games across four metro lines: vocabulary, grammar, listening and speaking. Practise for two minutes or twenty.`,
     doorsGo: 'Recommended game:',
     ctaTitle: 'Save your progress with a free account.',
@@ -258,8 +259,6 @@ const GH = {
     catalogHint: 'Wybierz linię, aby zobaczyć jej gry · każda gra startuje od razu',
     catalogBrowse: 'Przeglądaj pełny katalog według linii i stacji. W pierwszą grę zagrasz bez konta.',
     catalogGames: (n) => `${n} ${n === 1 ? 'gra' : n < 5 ? 'gry' : 'gier'}`,
-    catalogLive: (a, b) => `${a} dostępne · ${b} w budowie`,
-    districts3dSubtitle: 'Fluent City w 3D. Nowe dzielnice pojawiają się tu automatycznie z każdą aktualizacją.',
     doorsBody: (n) => `${n} krótkich gier na czterech liniach metra: słownictwo, gramatyka, słuchanie i mówienie. Ćwicz dwie minuty albo dwadzieścia.`,
     doorsGo: 'Polecana gra:',
     ctaTitle: 'Zapisuj postępy z darmowym kontem.',
@@ -443,14 +442,14 @@ function HeroArcade({ badge, reduced, lang }) {
   )
 }
 
-// ── The catalog — every playable 2D shell, as a metro "line" map ───────────
+// ── The catalog — every playable arcade, as a metro "line" map ────────────
 // Venue names follow src/practice/lib/shell-selector.ts. `load` mirrors the
 // Shells map in StudentPractice so vite's manualChunks reuses the SAME
 // one-chunk-per-shell outputs (no duplicate chunks).
 const LINES = [
   {
     line: 'Arcade Line',
-    color: '#D946EF',
+    color: '#F024D3',
     icon: 'sports_esports',
     tag: 'Fast hands, faster words',
     games: [
@@ -467,7 +466,7 @@ const LINES = [
   },
   {
     line: 'Word Line',
-    color: '#8B5CF6',
+    color: '#8440FF',
     icon: 'match_word',
     tag: 'Letters into language',
     games: [
@@ -483,7 +482,7 @@ const LINES = [
   },
   {
     line: 'Quiz Line',
-    color: '#F472B6',
+    color: '#FF2D8D',
     icon: 'quiz',
     tag: 'Think quick, answer quicker',
     games: [
@@ -499,7 +498,7 @@ const LINES = [
   },
   {
     line: 'City Line',
-    color: '#34D399',
+    color: '#00DF9D',
     icon: 'location_city',
     tag: 'Real skills, street level',
     games: [
@@ -518,19 +517,6 @@ const LINES = [
       { key: 'speakingcards',      title: 'Speaking Cards',      venue: 'The Speakeasy',        blurb: 'Say it like you mean it.', load: () => import('../../practice/shells/SpeakingCards') },
     ],
   },
-]
-
-// Wave-1 3D games (Fluent City arcade) — shown as "arriving soon" until their
-// entry lands in game3dRegistry, then they flip to playable automatically.
-const ARRIVING = [
-  { key: 'snake',        title: 'Metro Snake',            district: 'The Underground' },
-  { key: 'mazechase',    title: 'Museum After Dark',      district: 'The Museum Mile' },
-  { key: 'balloonpop',   title: 'Thames Balloon Festival', district: 'The Riverside' },
-  { key: 'whackamole',   title: 'Camden Pop-Up Pigeons',  district: 'Camden Market' },
-  { key: 'airplane',     title: 'Paper Plane Post',       district: 'The Rooftops' },
-  { key: 'battleship',   title: 'Bathtub Fleet',          district: 'The Serpentine' },
-  { key: 'spinthewheel', title: 'Pier Carnival Wheel',    district: 'The Pier' },
-  { key: 'openthebox',   title: 'The Vault Job',          district: 'The Old Bank' },
 ]
 
 const ALL_GAMES = LINES.flatMap((l) => l.games.map((g) => ({ ...g, line: l.line, color: l.color })))
@@ -560,7 +546,7 @@ const HERO_MEDIA = [
   { key: 'practice', href: WORLD_URL, images: ['/home/hero/practice-4.webp'] },
 ]
 
-// Games are art-directed for dusk; the play overlay keeps the night palette
+// The arcade overlay keeps a dark surround for its saturated game materials
 // in both site themes.
 const DUSK = {
   bg: 'rgba(5, 3, 9, 0.96)',
@@ -629,9 +615,11 @@ class ShellBoundary extends Component {
 
 // ── Full-screen play overlay (kept from v1 — games are dusk-native) ────────
 function PlayOverlay({ game, onClose }) {
-  const [LazyShell] = useState(() => lazy(game.is3d ? game.load3d : game.load))
+  const [LazyShell] = useState(() => lazy(game.load))
   const [doneOnce, setDoneOnce] = useState(false)
   const [showCta, setShowCta] = useState(false)
+  const canonicalGame = ALL_GAMES.find((entry) => entry.key === (game.key || game.shellKey))
+  const finishGame = () => { if (!doneOnce) { setDoneOnce(true); setShowCta(true) } }
   const dialogRef = useRef(null)
   const closeButtonRef = useRef(null)
   const previousFocusRef = useRef(null)
@@ -726,7 +714,15 @@ function PlayOverlay({ game, onClose }) {
               NEXT TRAIN APPROACHING…
             </div>
           }>
-            <LazyShell onSessionComplete={() => { if (!doneOnce) { setDoneOnce(true); setShowCta(true) } }}/>
+            {canonicalGame ? (
+              <div className="em-practice-root" style={{ minHeight: 0, padding: '16px', maxWidth: 1440, margin: '0 auto', boxSizing: 'border-box' }}>
+                <ArcadeCabinet title={game.title} accent={game.color || DUSK.pink}
+                  number={ALL_GAMES.indexOf(canonicalGame) + 1} shellId={canonicalGame.key}
+                  onRequestFullscreen={() => setShowCta(true)}>
+                  <div className="em-shell-host"><LazyShell onSessionComplete={finishGame}/></div>
+                </ArcadeCabinet>
+              </div>
+            ) : <LazyShell onSessionComplete={finishGame}/>}
           </Suspense>
         </ShellBoundary>
 
@@ -779,16 +775,16 @@ function ThemeToggle({ mode, setMode, T }) {
   )
 }
 
-function GameCard({ g, color, T, onPlay, index, soon }) {
+function GameCard({ g, color, T, onPlay, index }) {
   return (
-    <button type="button" className="gh-card gh-glass" disabled={soon}
-      onClick={soon ? undefined : () => onPlay(g)}
+    <button type="button" className="gh-card gh-glass"
+      onClick={() => onPlay(g)}
       onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
       onPointerDown={pulsePointerPolish}
-      aria-label={soon ? `${g.title} - arriving soon` : `Play ${g.title}`}
-      style={{ textAlign: 'left', cursor: soon ? 'default' : 'pointer', borderRadius: 16,
+      aria-label={`Play ${g.title}`}
+      style={{ textAlign: 'left', cursor: 'pointer', borderRadius: 16,
         border: `1px solid ${T.border}`, padding: '18px 18px 16px',
-        color: T.text, fontFamily: FONT.body, opacity: soon ? 0.55 : 1,
+        color: T.text, fontFamily: FONT.body,
         animationDelay: `${Math.min(index * 45, 450)}ms`, '--gh-card-glow': `${color}44` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <span aria-hidden style={{ width: 14, height: 14, borderRadius: '50%',
@@ -799,13 +795,13 @@ function GameCard({ g, color, T, onPlay, index, soon }) {
         {g.venue || g.district}
       </div>
       <div style={{ fontSize: 13, color: T.textDim, lineHeight: 1.5, minHeight: 36 }}>
-        {g.blurb || (soon ? 'A new 3D district under construction.' : 'A Fluent City 3D district.')}
+        {g.blurb}
       </div>
       <div className="gh-card-play" style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center',
         gap: 6, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
-        color: soon ? T.textMute : color }}>
-        {soon ? 'Arriving soon' : 'Play'}
-        {!soon && <span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_forward</span>}
+        color }}>
+        Play
+        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_forward</span>
       </div>
     </button>
   )
@@ -874,19 +870,11 @@ export default function GameHome() {
 
   const quickPick = ALL_GAMES.find((g) => g.key === DAILY_PICK_KEY) || ALL_GAMES[0]
 
-  const playable3d = useMemo(() =>
-    game3dRegistry.filter((e) => !e.shellKey.startsWith('world-'))
-      .map((e) => ({ ...e, is3d: true, load3d: e.load, color: DUSK.amber })), [])
-  const arrivingSoon = useMemo(() => {
-    const live = new Set(game3dRegistry.map((e) => e.shellKey))
-    return ARRIVING.filter((a) => !live.has(a.key))
-  }, [])
-
   const tickerNames = useMemo(() => {
-    const names = ['English Metro World · OPEN BETA', ...playable3d.map((e) => `${e.title} · 3D`),
+    const names = ['English Metro World · OPEN BETA',
       ...ALL_GAMES.map((g) => g.title)]
     return [...names, ...names] // doubled for a seamless -50% loop
-  }, [playable3d])
+  }, [])
 
   const toggleLine = (name) => setOpenLines((prev) => {
     const next = new Set(prev)
@@ -1309,22 +1297,6 @@ export default function GameHome() {
               </LineSection>
             ))}
 
-            {/* 3D districts from the Fluent City arcade */}
-            <LineSection
-              line={{ line: '3D Districts', color: '#FFB347', icon: 'view_in_ar' }}
-              T={T} night={night}
-              open={openLines.has('3D Districts')} onToggle={() => toggleLine('3D Districts')}
-              count={W.catalogLive(playable3d.length, arrivingSoon.length)}
-              subtitle={W.districts3dSubtitle}>
-              {playable3d.map((e, i) => (
-                <GameCard key={`3d-${e.shellKey}`} g={{ ...e, venue: e.district }} color="#FFB347"
-                  T={T} night={night} index={i} onPlay={(game) => setPlaying(game)}/>
-              ))}
-              {arrivingSoon.map((a, i) => (
-                <GameCard key={`soon-${a.key}`} g={{ title: a.title, district: a.district }} color="#FFB347"
-                  T={T} night={night} index={playable3d.length + i} soon/>
-              ))}
-            </LineSection>
           </div>
         </section>
 

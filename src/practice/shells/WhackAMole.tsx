@@ -1,7 +1,9 @@
+import { ActionPlayfield3D } from './action-arcade-three';
 import { useActionCompletion } from './action-arcade-completion';
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
 import { useArcadeEvents } from '../lib/arcade-events';
 import { useActionTimers } from './action-arcade-timers';
+import { currentMoleSlots } from './action-arcade-logic.mjs';
 import './action-arcade.css';
 // Whack-a-Mole — "The Subway Mole" district.
 //
@@ -16,12 +18,11 @@ import './action-arcade.css';
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
 import { useShellProgress } from '../lib/convex-stubs';
 import { maskAnswerInPrompt } from '../lib/exercise-adapters';
-import { buildSafeHint } from '../lib/safeHint';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Bajla,
-  HintCard,
+
   Progress,
   Nameplate,
   SkipButton,
@@ -141,10 +142,10 @@ const DEMO_PUZZLE: ArcadePuzzle = {
   ],
 };
 
-const ACCENT = '#BEF264';
+const ACCENT = '#a4f900';
 const HOLES = 6;
 const POP_DURATION = 2400;   // ms a mole stays up (gives time to read + tap)
-const ROUND_TIMEOUT = 45000; // ms before round auto-fails (long — recycling keeps spawning)
+ // ms before round auto-fails (long — recycling keeps spawning)
 // Mike playtest fix (Ricky 2026-05-02): without recycling, after the first
 // wave of moles ducks (~2.5s) the platform goes empty for ~6.5s waiting on
 // ROUND_TIMEOUT. Mike's screenshot showed all 6 holes empty — exactly that
@@ -166,7 +167,7 @@ interface MoleSlot {
 // Mole-arcade scoreboard: round number + question + 4 mole tiles with
 // student's hit + correct mole highlighted.
 // ─────────────────────────────────────────────────────────────────────────
-const WAM_REVIEW_ACCENT = '#BEF264';
+const WAM_REVIEW_ACCENT = '#a4f900';
 export function renderWhackAMoleReviewItem(
   round: ArcadeRound,
   roundNumber: number,
@@ -198,7 +199,7 @@ export function renderWhackAMoleReviewItem(
           fontFamily: 'var(--em-mono)', fontSize: 9, letterSpacing: '0.18em',
           padding: '2px 8px', borderRadius: 999, fontWeight: 700,
           background: isWrong ? 'rgba(251,113,133,0.18)' : 'rgba(190,242,100,0.22)',
-          color: isWrong ? '#FB7185' : '#BEF264',
+          color: isWrong ? '#ff3871' : '#a4f900',
         }}>
           {isWrong ? '✗ MISSED · CHYBIONE' : '✓ WHACKED · TRAFIONE'}
         </span>
@@ -221,8 +222,8 @@ export function renderWhackAMoleReviewItem(
                 : showWrong
                   ? 'rgba(251,113,133,0.18)'
                   : 'rgba(245,239,255,0.04)',
-              border: `1px solid ${showCorrect ? '#BEF26488' : showWrong ? '#FB718588' : 'rgba(245,239,255,0.1)'}`,
-              color: showCorrect ? '#BEF264' : showWrong ? '#FB7185' : 'var(--em-text, #EDE6FF)',
+              border: `1px solid ${showCorrect ? '#a4f90088' : showWrong ? '#ff387188' : 'rgba(245,239,255,0.1)'}`,
+              color: showCorrect ? '#a4f900' : showWrong ? '#ff3871' : 'var(--em-text, #EDE6FF)',
               fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{ flex: 1 }}>{opt}</span>
@@ -237,7 +238,6 @@ export function renderWhackAMoleReviewItem(
 }
 
 export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
-  time = 'night',
   state: forcedState = null,
   puzzle,
   onWrongAnswer,
@@ -252,11 +252,12 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
   const [roundIdx, setRoundIdx] = useState(0);
   const [solved, setSolved] = useState<boolean[]>(() => activePuzzle.rounds.map(() => false));
   const [moles, setMoles] = useState<MoleSlot[]>([]);
+  const moleSlots = useMemo(() => currentMoleSlots(moles, HOLES), [moles]);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [hintHole, setHintHole] = useState<number | null>(null);
   const [missCount, setMissCount] = useState(0);
-  const [bajlaShake, setBajlaShake] = useState(false);
+
   // First-impression fix (Ricky 2026-05-02, CD audit §5 Subway Mole):
   // moles spawn on staggered timers, so on first mount the platform reads as
   // 6 empty holes for ~220ms+ — confusing first-impression. We gate spawn
@@ -382,7 +383,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
       state: 'down',
       spawnedAt: 0,
     }));
-    setRoundLocked(false); setReaction(null); setHintHole(null); setBajlaShake(false);
+    setRoundLocked(false); setReaction(null); setHintHole(null);
     setMoles(placements);
     setFeedback(null);
     if (reduceMotion || precision) { setMoles(placements.map(m => ({ ...m, state: 'up', spawnedAt: Date.now() }))); return; }
@@ -494,8 +495,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
       arcadeEvent({ type: 'incorrect' });
       setFeedback('wrong');
       setMissCount(c => c + 1);
-      setBajlaShake(true);
-      later(() => setBajlaShake(false), 480);
+
       tip.recordWrong({
         questionId: cur.id,
         studentAnswer: m.word,
@@ -519,10 +519,10 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
       if (!interactionRef.current?.contains(event.target as Node)) return;
       if ((event.target as HTMLElement)?.closest('input,textarea,select')) return;
       const hole = Number(event.key) - 1;
-      if (hole >= 0 && hole < HOLES) { const i = moles.findIndex(m => m.holeIdx === hole && (m.state === 'up' || m.state === 'rising')); if (i >= 0) { event.preventDefault(); whack(i); } }
+      if (hole >= 0 && hole < HOLES) { const i = moleSlots[hole]; if (i >= 0 && (moles[i].state === 'up' || moles[i].state === 'rising')) { event.preventDefault(); whack(i); } }
     };
     window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key);
-  }, [moles, started, roundLocked, roundIdx]);
+  }, [moles, moleSlots, started, roundLocked, roundIdx]);
 
   const useHint = (): void => {
     if (hintsUsed >= 3) return;
@@ -531,11 +531,6 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
     setHintHole(answerMole.holeIdx);
     setHintsUsed(h => h + 1);
     later(() => setHintHole(null), 2400);
-  };
-
-  const skipRound = (): void => {
-    cleanup();
-    const nextRound = solved.findIndex((done, i) => !done && i !== roundIdx); if (nextRound >= 0) setRoundIdx(nextRound);
   };
 
   const reset = (): void => {
@@ -552,15 +547,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
     tip.reset();
   };
 
-  const grad = time === 'day'
-    ? 'linear-gradient(180deg, #4F2A6F 0%, #1A0E36 100%)'
-    : 'linear-gradient(180deg, #02010C 0%, #0F0824 50%, #1F0E3A 100%)';
-
   // Hole grid layout — 2 rows x 3 holes for desktop.
-  const holePositions: { x: number; y: number }[] = [
-    { x: 18, y: 30 }, { x: 50, y: 22 }, { x: 82, y: 30 },
-    { x: 18, y: 70 }, { x: 50, y: 78 }, { x: 82, y: 70 },
-  ];
 
   const liveStatus = completed
     ? 'The platform clears. All rounds done.'
@@ -581,85 +568,22 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
     >
       <style>{`
-        @keyframes em-mole-rise {
+@keyframes em-mole-rise {
           0% { transform: translateY(100%) scaleY(0.7); }
           70% { transform: translateY(-10%) scaleY(1.08); }
           100% { transform: translateY(0%) scaleY(1); }
-        }
-        @keyframes em-mole-fall {
-          0% { transform: translateY(0%) scaleY(1); }
-          100% { transform: translateY(100%) scaleY(0.7); }
-        }
-        @keyframes em-mole-whacked {
-          0% { transform: translateY(0%) scaleY(1) scaleX(1); }
-          30% { transform: translateY(-8%) scaleY(0.6) scaleX(1.4); }
-          100% { transform: translateY(120%) scaleY(0.4) scaleX(1.2); opacity: 0.4; }
-        }
-        @keyframes em-mole-bob {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-3px); }
-        }
-        @keyframes em-hole-pulse {
-          0%, 100% { box-shadow: inset 0 6px 20px rgba(0,0,0,0.95), 0 0 0px ${ACCENT}00; }
-          50% { box-shadow: inset 0 6px 20px rgba(0,0,0,0.95), 0 0 24px ${ACCENT}aa; }
         }
         @keyframes em-mole-rise-anim {
           from { opacity: 0; transform: translateY(12px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes em-train-go {
-          0% { transform: translateX(-200%); opacity: 0; }
-          25% { opacity: 0.45; }
-          75% { opacity: 0.45; }
-          100% { transform: translateX(0%); opacity: 0; }
-        }
-        @keyframes em-bajla-shake {
-          0%, 100% { transform: rotate(0deg); }
-          25% { transform: rotate(-6deg); }
-          75% { transform: rotate(6deg); }
-        }
         @media (max-width: 768px) {
           .em-wam-side { display: none !important; }
           .em-wam-layout { grid-template-columns: 1fr !important; padding: 16px !important; }
-          .em-wam-hole { min-width: 64px !important; min-height: 64px !important; }
         }
       `}</style>
 
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{liveStatus}</div>
-
-      {/* Subway scene */}
-      <div style={{ position: 'absolute', inset: 0, background: grad }} />
-      {/* Subway-tile pattern back wall — staggered cream brick (Ricky 2026-05-02,
-          CD audit §5.5 quick-win): the previous thin-grid was indistinguishable
-          from a generic dark gradient. Real subway tiling = wide cream-coloured
-          rectangles offset row-by-row with darker grout lines, evoking metro
-          station walls. Keeps opacity low so foreground holes remain readable. */}
-      <div style={{ position: 'absolute', inset: 0, opacity: 0.22, pointerEvents: 'none',
-        backgroundImage: `
-          repeating-linear-gradient(90deg,
-            rgba(255,248,229,0.10) 0 72px,
-            rgba(0,0,0,0.45) 72px 74px),
-          repeating-linear-gradient(0deg,
-            transparent 0 30px,
-            rgba(0,0,0,0.45) 30px 32px)`,
-        backgroundSize: '74px 64px, 100% 64px',
-      }} />
-      {/* Half-row offset second layer to give the brick a staggered pattern */}
-      <div style={{ position: 'absolute', inset: 0, top: 32, opacity: 0.22, pointerEvents: 'none',
-        backgroundImage: `repeating-linear-gradient(90deg,
-            transparent 0 36px,
-            rgba(0,0,0,0.45) 36px 38px,
-            transparent 38px 110px)`,
-        backgroundSize: '110px 64px',
-      }} />
-      {/* Track tunnel light streak */}
-      <div style={{
-        position: 'absolute', bottom: '8%', left: 0, right: 0, height: 4,
-        background: `linear-gradient(90deg, transparent 0%, ${ACCENT}55 50%, transparent 100%)`,
-        animation: 'em-train-go 7s linear infinite',
-        pointerEvents: 'none',
-      }} />
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
 
       <div className="em-wam-layout" style={{
         position: 'relative', display: 'grid',
@@ -701,111 +625,18 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
 
           <div className="action-arcade-hud" style={{ margin: '12px 24px 0' }}><div><strong>{points} POINTS</strong><small>{reaction !== null ? `Caught in ${(reaction / 1000).toFixed(2)}s. ${reaction < 1100 && !precision && !reduceMotion ? 'Quick catch +50 bonus!' : 'Station cleared.'}` : 'Catch the correct conductor. Quick catches earn 50 bonus points. Press 1–6 or tap a mole.'}</small></div><button disabled={roundLocked} aria-pressed={precision} onClick={() => setPrecision(v => !v)}>{precision || reduceMotion ? 'Focus · steady targets' : 'Arcade · moving targets'}</button></div>
           {/* Platform with mole holes */}
-          <div style={{ flex: 1, position: 'relative', margin: '20px 24px', overflow: 'hidden' }}>
-            {/* Tile floor (lighter band at bottom) */}
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0, height: '40%',
-              background: 'linear-gradient(180deg, transparent 0%, rgba(190,242,100,0.05) 100%)',
-              pointerEvents: 'none',
-            }} />
-            {/* Holes */}
-            {holePositions.map((pos, hi) => {
-              const mole = moles.find(m => m.holeIdx === hi && m.state !== 'down');
-              const isHinted = hintHole === hi;
-              return (
-                <div
-                  key={hi}
-                  style={{
-                    position: 'absolute',
-                    left: `${pos.x}%`, top: `${pos.y}%`,
-                    transform: 'translate(-50%, -50%)',
-                    width: 110, height: 110,
-                  }}
-                >
-                  {/* Hole ellipse */}
-                  <div className="em-wam-hole" style={{
-                    position: 'absolute', inset: 0,
-                    background: 'radial-gradient(ellipse at center, #02010C 0%, #08041A 60%, #14082A 100%)',
-                    borderRadius: '50% / 38%',
-                    border: '2px solid #1F0E3A',
-                    boxShadow: 'inset 0 6px 20px rgba(0,0,0,0.95)',
-                    overflow: 'hidden',
-                    animation: isHinted ? `em-hole-pulse 0.8s var(--em-ease) infinite` : 'none',
-                  }}>
-                    {/* Mole rendered inside hole */}
-                    {mole && mole.state !== 'down' && (
-                      <button
-                        onClick={() => whack(moles.findIndex(m => m === mole))}
-                        aria-label={`Mole holding ${mole.word}, tap to choose`}
-                        style={{
-                          position: 'absolute', bottom: 0, left: 0, right: 0,
-                          minHeight: 80, padding: 0,
-                          background: 'transparent', border: 'none', cursor: 'pointer',
-                          animation:
-                            mole.state === 'rising' ? 'em-mole-rise 280ms var(--em-ease) forwards'
-                              : mole.state === 'falling' ? 'em-mole-fall 260ms var(--em-ease) forwards'
-                              : mole.state === 'whacked' ? 'em-mole-whacked 360ms var(--em-ease) forwards'
-                              : 'em-mole-bob 1.6s var(--em-ease) infinite',
-                          transformOrigin: 'bottom center',
-                          touchAction: 'manipulation',
-                        }}
-                      >
-                        <svg viewBox="0 0 80 90" width="100%" height="100%" style={{ display: 'block' }}>
-                          {/* Mole body */}
-                          <ellipse cx="40" cy="60" rx="28" ry="30" fill="#3D2A18" stroke="#1A1208" strokeWidth="1.5" />
-                          <ellipse cx="40" cy="50" rx="20" ry="14" fill="#5C3F22" />
-                          {/* Conductor cap */}
-                          <path d="M 18 38 Q 40 18 62 38 L 62 42 L 18 42 Z" fill="#0E0A1A" stroke={ACCENT} strokeWidth="1.5" />
-                          <rect x="18" y="40" width="44" height="5" fill={ACCENT} opacity="0.85" />
-                          <circle cx="40" cy="32" r="3.5" fill={ACCENT} stroke="#0E0A1A" strokeWidth="1" />
-                          {/* Eyes */}
-                          <circle cx="32" cy="50" r="3.2" fill="#FFF8E5" />
-                          <circle cx="48" cy="50" r="3.2" fill="#FFF8E5" />
-                          <circle cx="32" cy="51" r="1.6" fill="#0E0A1A" />
-                          <circle cx="48" cy="51" r="1.6" fill="#0E0A1A" />
-                          {/* Nose */}
-                          <ellipse cx="40" cy="58" rx="3" ry="2" fill="#FB7185" />
-                          {/* Word card */}
-                          <rect x="8" y="68" width="64" height="18" rx="3" fill="#FFF8E5" stroke="#0E0A1A" strokeWidth="1.2" />
-                          <text x="40" y="80" textAnchor="middle"
-                            fontFamily="var(--em-decor)"
-                            fontSize="10"
-                            fontWeight="600"
-                            fill="#0E0A1A">{String(hi + 1)}</text>
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                  {mole && <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', width: 'min(140px, 28vw)', padding: '5px 7px', background: '#101321', border: '1px solid #bef26470', borderRadius: 6, color: '#f0ffd3', font: '12px var(--em-body)', textAlign: 'center', overflowWrap: 'anywhere', pointerEvents: 'none' }}>{mole.word}</div>}
-                  {/* Hole rim shadow underneath */}
-                  <div style={{
-                    position: 'absolute', bottom: -6, left: '15%', right: '15%', height: 8,
-                    background: 'radial-gradient(ellipse at top, rgba(0,0,0,0.5), transparent)',
-                    borderRadius: '50%',
-                    pointerEvents: 'none',
-                  }} />
-                  {/* Hint glow ring */}
-                  {isHinted && (
-                    <div style={{
-                      position: 'absolute', inset: -8, borderRadius: '50% / 40%',
-                      border: `2px dashed ${ACCENT}`,
-                      pointerEvents: 'none',
-                      animation: 'em-hole-pulse 0.8s var(--em-ease) infinite',
-                    }} />
-                  )}
-                </div>
-              );
-            })}
-
-            {/* Standalone Bajla on platform removed 2026-05-03 — chat-widget
-                mascot is the canonical presence. */}
-
-            {/* MISS chip removed (Ricky CC-cleanup, 2026-05-02 — CD audit §5.5
-                Whack-a-Mole counter cleanup): keep a single position-based
-                Q N/M counter via the shared Progress primitive in the sidebar,
-                with a small ✓/✗ tally chip beside it. The play-area MISS chip
-                duplicated that tally and crowded the scene. */}
-          </div>
+          <ActionPlayfield3D kind="whackamole" data={{
+            reducedMotion: reduceMotion, running: started,
+            selected: moleSlots.map(index => moles[index]).find(mole => mole?.state === 'whacked')?.holeIdx,
+            onPick: hole => { const index = moleSlots[hole]; if (index >= 0) whack(index); },
+            actors: moleSlots.map((index, hole) => {
+              const mole = moles[index];
+              return { id: hole, x: 0, y: 0, label: mole?.word, state: mole?.state ?? 'down', selected: hintHole === hole, enabled: started && !roundLocked && (mole?.state === 'up' || mole?.state === 'rising') };
+            }),
+          }} controls={<>{moleSlots.map((index, hole) => {
+            const mole = moles[index];
+            return <button key={hole} disabled={!started || roundLocked || (mole?.state !== 'up' && mole?.state !== 'rising')} onClick={() => whack(index)}>{hole + 1} · {mole?.word ?? 'Empty'}</button>;
+          })}</>} />
 
           {/* START · ROZPOCZNIJ overlay (Ricky 2026-05-02, CD audit §5.5
               Whack-a-Mole first-impression fix). The shell spawns moles on a
@@ -927,7 +758,7 @@ export const WhackAMoleShell: React.FC<WhackAMoleShellProps> = ({
                 >
                   <span style={{ color: ACCENT }}>✓ {solved.filter(Boolean).length}</span>
                   <span style={{ opacity: 0.4 }}>·</span>
-                  <span style={{ color: '#FB7185' }}>✗ {missCount}</span>
+                  <span style={{ color: '#ff3871' }}>✗ {missCount}</span>
                 </div>
               )}
             </div>

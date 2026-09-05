@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordSentenceCorrection3D'));
 import { expandErrorSelection, insertionPointMatches } from './word-arcade-mechanics';
 // Sentence Correction — The Editor's Office district.
 // A newspaper editor's room at midnight. Each sentence comes off the wire
@@ -362,7 +364,6 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
   const [extendSelection, setExtendSelection] = useState(false);
   const [verdict, setVerdict] = useState<'right' | 'wrong' | null>(null);
   const [score, setScore] = useState(0);
-  const [questionsSeen, setQuestionsSeen] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [hintRevealed, setHintRevealed] = useState(false);
   const [announcement, setAnnouncement] = useState('');
@@ -370,6 +371,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
 
   const cur = activePuzzle.items[idx % total];
   const completed = idx >= total;
+  const resolvedQuestions = Math.min(total, idx + (verdict === 'right' ? 1 : 0));
   // D3-SC Wave-2 (2026-05-02): track skipped item ids so the review can
   // surface SKIPPED chips. wrongAttempts come back from useEndOfShellTip via
   // its onSessionComplete callback (richer than the legacy onWrongAnswer).
@@ -407,10 +409,10 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
   useEffect(() => {
     if (forcedState) return;
     persisted.save({
-      progress: idx / Math.max(1, total),
+      progress: Math.min(idx, total) / Math.max(1, total),
+      completed,
       lastState: completed ? 'complete' : 'active',
     });
-    if (completed) persisted.save({ progress: 1, completed: true, lastState: 'complete' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, total, forcedState]);
 
@@ -470,6 +472,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
     arcade.answer(isNoErrorSentence);
     if (isNoErrorSentence) {
       setScore((s) => s + 1);
+      persisted.save({ progress: Math.min(total, idx + 1) / Math.max(1, total), completed: false, lastState: 'active' });
       setAnnouncement('Filed. Correctly identified as error-free.');
     } else {
       setAnnouncement(`Not quite — there is an error. Look for "${cur.correction}".`);
@@ -498,6 +501,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
     arcade.answer(correct);
     if (correct) {
       setScore((s) => s + 1);
+      persisted.save({ progress: Math.min(total, idx + 1) / Math.max(1, total), completed: false, lastState: 'active' });
       setAnnouncement('Filed. Correction stands.');
     } else {
       setAnnouncement(spanRight
@@ -514,14 +518,14 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
   };
 
   const advance = (): void => {
-    setQuestionsSeen((q) => q + 1);
+    if (forcedState || completed || verdict !== 'right') return;
     setIdx((i) => i + 1);
     setSelection(null); setDraft(''); setVerdict(null); setHintRevealed(false);
   };
 
   const skip = (): void => {
     if (forcedState || completed || !cur) return;
-    setQuestionsSeen((q) => q + 1);
+    if (verdict === 'right') { advance(); return; }
     setAnnouncement(`Skipped. The fix was "${cur.correction}".`);
     // D3 Wave-2: log the skip so the review can render the muted SKIPPED chip.
     if (onSessionComplete && !skippedItemIdsRef.current.includes(cur.id)) {
@@ -540,7 +544,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
   const reset = (): void => {
     arcade.restart();
     setIdx(0); setSelection(null); setDraft(''); setVerdict(null); setScore(0);
-    setQuestionsSeen(0); setHintsUsed(0); setHintRevealed(false);
+    setHintsUsed(0); setHintRevealed(false);
     tip.reset();
     skippedItemIdsRef.current = [];
   };
@@ -558,31 +562,6 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
         {liveStatus}
       </div>
 
-      {/* Office scene */}
-      <div style={{
-        position: 'absolute', inset: 0, background:
-          time === 'day'
-            ? 'linear-gradient(180deg, #2D1F4A 0%, #6E4A82 60%, #4A2030 100%)'
-            : time === 'dusk'
-              ? 'linear-gradient(180deg, #1B0F2A 0%, #4A1E2C 70%, #1F0F18 100%)'
-              : 'linear-gradient(180deg, #07041A 0%, #2A1018 70%, #100406 100%)',
-      }} />
-      {/* Desk lamp glow from upper-left */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', top: '-10%', left: '6%', width: 340, height: 340,
-        background: `radial-gradient(circle, ${ACCENT}33 0%, transparent 70%)`,
-        animation: 'em-pulse 4s ease-in-out infinite',
-        pointerEvents: 'none',
-      }} />
-      {/* Wall texture — pinboard cork strips */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: `repeating-linear-gradient(0deg, transparent 0 36px, rgba(0,0,0,0.10) 36px 37px)`,
-        opacity: 0.5,
-      }} />
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 60%, transparent 35%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
-
       {/* Header */}
       <div style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, zIndex: 5, flexWrap: 'wrap' }}>
         <AmbientAudioPlayer shellSlug="sentencecorrection" />
@@ -598,41 +577,12 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
           }
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <Progress current={score} seen={questionsSeen} total={total} accent={ACCENT} />
+          <Progress current={score} seen={Math.min(total, idx + 1)} total={total} accent={ACCENT} />
           <SkipButton onClick={skip} />
           <HintButton onClick={useHint} used={hintsUsed} total={3} />
         </div>
       </div>
 
-      {/* Ricky · 2026-05-02 · audit §4 #8 right-rail: Error Types legend.
-          Closes vertical/right dead space at desktop ≥1280px. Surfaces the 8
-          bilingual error categories so the student understands what kind of
-          mistake to hunt for, with the current question's type highlighted. */}
-      <aside className="sc-rail" aria-label="Error types legend">
-        <div className="em-eyebrow" style={{ color: ACCENT, marginBottom: 12, letterSpacing: '0.22em', fontSize: 10 }}>
-          TYPY BŁĘDÓW · ERROR TYPES
-        </div>
-        <ul className="sc-rail-list">
-          {(['tense', 'agreement', 'article', 'preposition', 'word-choice', 'plural', 'spelling', 'missing-word'] as SCErrorType[]).map((et) => {
-            const lbl = SC_ERROR_TYPE_LABEL[et];
-            const isCur = !completed && cur && inferErrorType(cur) === et;
-            return (
-              <li key={et} className={`sc-rail-item${isCur ? ' sc-rail-item-cur' : ''}`}>
-                <span className="sc-rail-en">{lbl.en}</span>
-                <span className="sc-rail-pl">{lbl.pl}</span>
-              </li>
-            );
-          })}
-        </ul>
-        <div className="sc-rail-foot">
-          <span style={{ color: ACCENT, fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.18em' }}>
-            EDITOR&apos;S TIP
-          </span>
-          <span style={{ color: 'var(--em-text-muted)', fontSize: 11, lineHeight: 1.4, marginTop: 4, display: 'block' }}>
-            Re-read the line aloud once before tapping. Articles and prepositions are the easiest to miss.
-          </span>
-        </div>
-      </aside>
 
       {/* Main: typewriter sheet + correction line */}
       {!completed && cur && (() => {
@@ -642,7 +592,8 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
         const isNoError = errType === 'no-error';
         return (
         <div className="sc-stage" style={{ position: 'absolute', inset: '124px 24px 220px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, zIndex: 4, overflowY: 'auto' }}>
-          <WordMission kind="scanner" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+          <WordMission kind="scanner" current={resolvedQuestions} total={total} chain={arcade.chain} reaction={arcade.reaction}/>
+          <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={cur.id} tokens={tokens.map((t,index)=>({...t,index})).filter(t=>t.kind==='word')} selection={selection} missing={isMissingWord} onPick={pickToken} onInsert={at=>{if(!forcedState&&verdict!=='right'){setSelection([at,at]);setVerdict(null);inputRef.current?.focus();}}} onSubmit={submit} onNoError={submitNoError} end={cur.sentence_with_error.length} done={verdict==='right'}/></WordSuspense>
 
           <div className="wa-inline-tools"><button aria-pressed={extendSelection} onClick={()=>setExtendSelection(v=>!v)}>Select phrase {extendSelection?'on':'off'}</button><button onClick={()=>setSelection(null)}>Clear selection</button><span>{extendSelection?'Tap the first and last words in the phrase.':'Tap the word that needs repairing.'}</span></div>
           {/* Kelly Tier-2 audit (2026-05-02): error-type chip — tells the
@@ -921,10 +872,9 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
           60%  { opacity: 1; transform: rotate(-12deg) scale(0.95); }
           100% { opacity: 0.85; transform: rotate(-12deg) scale(1); }
         }
-        /* Right-rail (Ricky · 2026-05-02 · audit §4 #8). */
-        .em-shell-sentencecorrection .sc-rail { display: none; }
+         { display: none; }
         @media (min-width: 1280px) {
-          .em-shell-sentencecorrection .sc-rail {
+           {
             display: flex;
             flex-direction: column;
             position: absolute;
@@ -944,10 +894,10 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
             font-family: var(--em-body);
             overflow-y: auto;
           }
-          .em-shell-sentencecorrection .sc-stage {
+           {
             inset: 124px 326px 220px 24px !important;
           }
-          .em-shell-sentencecorrection .sc-rail-list {
+           {
             list-style: none;
             margin: 0;
             padding: 0;
@@ -956,7 +906,7 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
             gap: 4px;
             flex: 1;
           }
-          .em-shell-sentencecorrection .sc-rail-item {
+           {
             display: flex;
             flex-direction: column;
             gap: 1px;
@@ -966,23 +916,23 @@ export const SentenceCorrectionShell: React.FC<SentenceCorrectionShellProps> = (
             border: 1px solid rgba(255, 255, 255, 0.06);
             transition: all 180ms;
           }
-          .em-shell-sentencecorrection .sc-rail-item-cur {
+           {
             background: rgba(251, 113, 133, 0.16);
             border-color: rgba(251, 113, 133, 0.6);
             box-shadow: 0 0 14px rgba(251, 113, 133, 0.18);
           }
-          .em-shell-sentencecorrection .sc-rail-en {
+           {
             font-family: var(--em-display);
             font-size: 13px;
             color: #FB7185;
             letter-spacing: 0.02em;
           }
-          .em-shell-sentencecorrection .sc-rail-pl {
+           {
             font-size: 11px;
             color: rgba(255,255,255,0.55);
             font-style: italic;
           }
-          .em-shell-sentencecorrection .sc-rail-foot {
+           {
             margin-top: 14px;
             padding-top: 12px;
             border-top: 1px dashed rgba(255, 255, 255, 0.14);

@@ -30,7 +30,7 @@
 // real students' state.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ArcadeFeedbackContext } from './arcade-feedback';
 import { fetchWithTimeout } from './practice-cache';
 
@@ -79,6 +79,10 @@ const DEFAULT_PROGRESS: ShellProgress = {
   completed: false,
   hintsUsed: 0,
 };
+
+/** Built-in city demos keep their HUD progress in memory without touching a
+ * student's lesson practice. Regular practice retains persistence by default. */
+export const ShellProgressPersistenceContext = createContext(true);
 
 // ─── Student-session helpers ─────────────────────────────────────────────────
 const STUDENT_SESSION_KEY = 'em-student-session';
@@ -204,6 +208,7 @@ async function mutateConvex<T>(path: string, args: Record<string, unknown>): Pro
 // progress is keyed per-exercise so swapping puzzles starts fresh.
 export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShellProgress {
   const reportArcadeProgress = useContext(ArcadeFeedbackContext);
+  const persist = useContext(ShellProgressPersistenceContext);
   const [state, setState] = useState<ShellProgress>(DEFAULT_PROGRESS);
   // Track whether we've hydrated from the backend yet. Until then we don't
   // want a save() call to collide with the in-flight read and reset values
@@ -214,13 +219,18 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
   const stateRef = useRef<ShellProgress>(DEFAULT_PROGRESS);
   stateRef.current = state;
 
-  const slug = readStudentSlug();
+  const slug = persist ? readStudentSlug() : undefined;
 
   // Hydrate from Convex on mount / when shellId or exerciseId changes.
   useEffect(() => {
     let cancelled = false;
     hydratedRef.current = false;
     setState(DEFAULT_PROGRESS);
+
+    if (!persist) {
+      hydratedRef.current = true;
+      return;
+    }
 
     (async () => {
       try {
@@ -256,7 +266,7 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
     return () => {
       cancelled = true;
     };
-  }, [shellId, exerciseId, slug]);
+  }, [shellId, exerciseId, slug, persist]);
 
   const save = useCallback(
     (next: Partial<ShellProgress> & { exerciseId?: string }) => {
@@ -265,6 +275,8 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
       const merged: ShellProgress = { ...stateRef.current, ...progressFields };
       setState(merged);
       reportArcadeProgress?.(shellId, merged);
+
+      if (!persist) return;
 
       // Fire-and-forget backend write. We send the *delta* fields so the
       // mutation can patch atomically rather than over-write neighbouring
@@ -278,12 +290,13 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
         // Non-fatal — see header comment.
       });
     },
-    [shellId, exerciseId, slug, reportArcadeProgress],
+    [shellId, exerciseId, slug, reportArcadeProgress, persist],
   );
 
   const reset = useCallback(() => {
     setState(DEFAULT_PROGRESS);
     reportArcadeProgress?.(shellId, DEFAULT_PROGRESS);
+    if (!persist) return;
     void mutateConvex('practice:reset', {
       studentSlug: slug,
       shellId,
@@ -291,7 +304,7 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
     }).catch(() => {
       // Non-fatal.
     });
-  }, [shellId, exerciseId, slug, reportArcadeProgress]);
+  }, [shellId, exerciseId, slug, reportArcadeProgress, persist]);
 
   return { ...state, save, reset };
 }

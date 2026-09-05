@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordMatching3D'));
 import { shuffledTranslations } from './word-arcade-mechanics';
 // Matching Pairs — Metro Network district.
 // Click a station, then click its translation across lines.
@@ -465,8 +467,8 @@ export const MatchingShell: React.FC<MatchingShellProps> = ({ time = 'night', st
     }
   };
 
-  const lines: LineColor[] = ['magenta', 'violet', 'amber'];
-  const lineY: Record<LineColor, number> = { magenta: 110, violet: 240, amber: 370 };
+
+
 
   const shuffledPL = useMemo(() => shuffledTranslations(activePairs), [activePairs]);
 
@@ -550,7 +552,7 @@ export const MatchingShell: React.FC<MatchingShellProps> = ({ time = 'night', st
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allMatched]);
 
-  const stationX = (idx: number, total: number) => 110 + (idx + 1) * (700 / (total + 1));
+
 
   const liveStatus = allMatched
     ? 'All matches complete. Every train is running.'
@@ -570,12 +572,13 @@ export const MatchingShell: React.FC<MatchingShellProps> = ({ time = 'night', st
     <WordMission kind="signals" current={matchedTotal} total={allPairs.length} chain={arcade.chain} reaction={arcade.reaction}/>
     <div className="wa-switch-stages">{linesAvailable.map((line,i)=><span key={line} className={i<stageIdx?'is-done':i===stageIdx?'is-active':''}>{i<stageIdx?'✓ ':''}Line {i+1} · {allPairs.filter(p=>p.line===line).length} signals</span>)}</div>
     <div className="wa-inline-tools"><button aria-pressed={memoryMode} onClick={()=>{setMemoryMode(v=>!v);setScanning(false);}}>Memory signals {memoryMode?'on':'off'}</button>{memoryMode && <button onClick={()=>setScanning(v=>!v)}>{scanning?'Hide translations':'Scan translations'}</button>}<span>{memoryMode?'Recall the hidden translations; scan whenever you need a reminder.':'Choose a word, then its translation.'}</span></div>
-    <div className="wa-switchboard">
+    <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={currentLine} pairs={activePairs} translations={shuffledPL[currentLine]??[]} matches={matches} selected={selected} onPick={onPick} hidden={memoryMode&&!scanning} wrong={wrong?.en&&wrong?.pl?{en:wrong.en,pl:wrong.pl}:null}/></WordSuspense>
+    <details><summary>Accessible signal controls</summary><div className="wa-switchboard">
       <div className="wa-signal-column"><small>ENGLISH · DEPARTURES</small>{activePairs.map((p,i)=><button key={p.en} disabled={!!matches[p.en]} aria-pressed={selected?.type==='en'&&selected.value===p.en} className={`wa-signal ${matches[p.en]?'is-matched':''} ${selected?.type==='en'&&selected.value===p.en?'is-selected':''} ${wrong?.en===p.en?'is-wrong':''} ${hintPair?.en===p.en?'is-hint':''}`} onClick={()=>onPick('en',p.en)}><i/><span>{p.en}</span>{matches[p.en]&&<span aria-label="matched">✓</span>}</button>)}</div>
-      <div className="wa-signal-wires" aria-hidden="true"><span>{allMatched?'✓':'↔'}</span></div>
+
       <div className="wa-signal-column"><small>POLSKI · ARRIVALS</small>{(shuffledPL[currentLine]??[]).map((pl,i)=>{const matched=Object.values(matches).includes(pl);const revealed=!memoryMode||scanning||matched||selected?.type==='pl'&&selected.value===pl||hintPair?.pl===pl;return <button key={pl} disabled={matched} aria-label={revealed?pl:`Hidden translation ${i+1}. Select to reveal.`} aria-pressed={selected?.type==='pl'&&selected.value===pl} className={`wa-signal ${matched?'is-matched':''} ${selected?.type==='pl'&&selected.value===pl?'is-selected':''} ${wrong?.pl===pl?'is-wrong':''} ${hintPair?.pl===pl?'is-hint':''}`} onClick={()=>onPick('pl',pl)}><i/><span>{revealed?pl:`Signal ${String(i+1).padStart(2,'0')} · ?`}</span>{matched&&<span aria-label="matched">✓</span>}</button>;})}</div>
     </div>
-    <p className="wa-forge-readout" role="status">{allMatched ? stageIdx+1<totalStages?'Line clear. Dispatching the next train…':'Every signal connected. All trains can depart.' : liveStatus || 'Connect every signal on this line to dispatch the train.'}</p>
+    </details><p className="wa-forge-readout" role="status">{allMatched ? stageIdx+1<totalStages?'Line clear. Dispatching the next train…':'Every signal connected. All trains can depart.' : liveStatus || 'Connect every signal on this line to dispatch the train.'}</p>
     {allMatched && stageIdx+1===totalStages && !onSessionComplete && <div className="wa-dialog" role="dialog" aria-modal="true" aria-label="All trains running"><Bajla size={84} mood="cheer" decorative/><h3>Network connected.</h3><p>{allPairs.length} signals restored.</p><button ref={newScheduleBtnRef} className="em-btn em-btn-primary" onClick={reset}>New dispatch →</button></div>}
     <Confetti show={allMatched}/>
   </div>;

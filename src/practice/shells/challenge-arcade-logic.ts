@@ -18,3 +18,12 @@ export function challengeReward(right: boolean, alreadyCredited: boolean, armed:
   if (alreadyCredited) return null;
   return right ? points * (armed ? 2 : 1) : 0;
 }
+
+/** Consume immediately so multiple graded slots in one React event cannot all
+ * reuse the same armed charge before the next render. Call for accepted decisions. */
+export function consumeChallengeBoost(boost: { armed: boolean; remaining: number }): boolean {
+  const used = boost.armed && boost.remaining > 0;
+  boost.armed = false;
+  if (used) boost.remaining -= 1;
+  return used;
+}

@@ -12,17 +12,8 @@ import { PairArena, useChallengeArcade } from './challenge-arcade';
 // Persisted progress — Convex-backed.
 import { useShellProgress } from '../lib/convex-stubs';
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Bajla,
-  HintCard,
-  Progress,
-  Nameplate,
-  SkipButton,
-  HintButton,
-  Confetti,
-  useEndOfShellTip,
-} from '../components/primitives';
-import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
+import { useEndOfShellTip } from '../components/primitives';
+
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components';
 
@@ -157,8 +148,6 @@ const CO_DEMO: WrapperPuzzle = {
   ],
 };
 
-const ACCENT = '#A78BFA';
-
 // ─────────────────────────────────────────────────────────────────────────
 // renderConcentrationReviewItem — per-pair locked render for PracticeReview.
 // Shows the clue card + word card side-by-side + attempt count + status
@@ -271,7 +260,7 @@ function deterministicShuffle<T>(arr: T[], seed: number): T[] {
 // Component
 // ─────────────────────────────────────────────────────────────
 export const ConcentrationShell: React.FC<ConcentrationShellProps> = ({
-  time = 'night',
+
   state: forcedState = null,
   puzzle,
   onWrongAnswer,
@@ -446,13 +435,8 @@ export const ConcentrationShell: React.FC<ConcentrationShellProps> = ({
   };
 
   // Page background — cellar stone, oil-lamp warmth at center.
-  const grad = time === 'day'
-    ? 'radial-gradient(ellipse at 50% 40%, #5C3A2A 0%, #2D1A14 60%, #14080A 100%)'
-    : time === 'dusk'
-      ? 'radial-gradient(ellipse at 50% 40%, #4A2C1F 0%, #1F100E 60%, #08040A 100%)'
-      : 'radial-gradient(ellipse at 50% 40%, #36211C 0%, #14080A 60%, #02010A 100%)';
 
-  return <PairArena title="The Memory Cellar" memory cards={board} matched={matched} flipped={flipped} wrong={wrongFlash} hintGlow={hintGlow} onPick={onFlip} onHint={useHint} hintDisabled={hintsUsed >= 2 || scouting} onReset={reset} scouting={scouting} scoutUsed={scoutUsed} onScout={() => { if (scoutUsed || flipped.length || wrongFlash.length || forcedState) return; setScoutUsed(true); setScouting(true); }} />;
+  return <PairArena announcement={announcement} title="The Memory Cellar" memory cards={board} matched={matched} flipped={flipped} wrong={wrongFlash} hintGlow={hintGlow} onPick={onFlip} onHint={useHint} hintDisabled={hintsUsed >= 2 || scouting} onReset={reset} scouting={scouting} scoutUsed={scoutUsed} onScout={() => { if (scoutUsed || flipped.length || wrongFlash.length || forcedState) return; setScoutUsed(true); setScouting(true); }} />;
 };
 
 export default ConcentrationShell;

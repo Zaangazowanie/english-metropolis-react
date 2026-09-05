@@ -1,3 +1,4 @@
+import { ActionPlayfield3D } from './action-arcade-three';
 import { useActionCompletion } from './action-arcade-completion';
 import { maskAnswerInPrompt } from '../lib/exercise-adapters';
 import { useArcadeEvents } from '../lib/arcade-events';
@@ -13,13 +14,12 @@ import './action-arcade.css';
 //
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
 import { useShellProgress } from '../lib/convex-stubs';
-import { buildSafeHint } from '../lib/safeHint';
 import '../styles/shells/balloonpop.css';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Bajla,
-  HintCard,
+
   Progress,
   Nameplate,
   SkipButton,
@@ -142,8 +142,8 @@ const DEMO_PUZZLE: ArcadePuzzle = {
   ],
 };
 
-const ACCENT = '#FB7185';
-const BALLOON_PALETTE = ['#FB7185', '#FBBF24', '#7DD3FC', '#A78BFA', '#34D399', '#E879F9'];
+const ACCENT = '#ff3871';
+const BALLOON_PALETTE = ['#ff3871', '#ffce00', '#00cfff', '#952fff', '#00eb91', '#ef22ff'];
 
 interface Balloon {
   id: number;
@@ -165,7 +165,7 @@ interface Balloon {
 // Rooftop scoreboard: round number + question + balloon options with
 // student's pop + correct balloon highlighted.
 // ─────────────────────────────────────────────────────────────────────────
-const BP_REVIEW_ACCENT = '#FB7185';
+const BP_REVIEW_ACCENT = '#ff3871';
 export function renderBalloonPopReviewItem(
   round: ArcadeRound,
   roundNumber: number,
@@ -197,7 +197,7 @@ export function renderBalloonPopReviewItem(
           fontFamily: 'var(--em-mono)', fontSize: 9, letterSpacing: '0.18em',
           padding: '2px 8px', borderRadius: 999, fontWeight: 700,
           background: isWrong ? 'rgba(251,113,133,0.18)' : 'rgba(52,211,153,0.18)',
-          color: isWrong ? '#FB7185' : '#34D399',
+          color: isWrong ? '#ff3871' : '#00eb91',
         }}>
           {isWrong ? '✗ ESCAPED · UCIEKŁ' : '✓ POPPED · TRZASK'}
         </span>
@@ -220,8 +220,8 @@ export function renderBalloonPopReviewItem(
                 : showWrong
                   ? 'rgba(251,113,133,0.18)'
                   : 'rgba(245,239,255,0.04)',
-              border: `1px solid ${showCorrect ? '#34D39988' : showWrong ? '#FB718588' : 'rgba(245,239,255,0.1)'}`,
-              color: showCorrect ? '#34D399' : showWrong ? '#FB7185' : 'var(--em-text, #EDE6FF)',
+              border: `1px solid ${showCorrect ? '#00eb9188' : showWrong ? '#ff387188' : 'rgba(245,239,255,0.1)'}`,
+              color: showCorrect ? '#00eb91' : showWrong ? '#ff3871' : 'var(--em-text, #EDE6FF)',
               fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{ flex: 1 }}>{opt}</span>
@@ -236,7 +236,6 @@ export function renderBalloonPopReviewItem(
 }
 
 export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
-  time = 'dusk',
   state: forcedState = null,
   puzzle,
   onWrongAnswer,
@@ -473,10 +472,6 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
     later(() => setHintBalloonId(null), 2400);
   };
 
-  const skipRound = (): void => {
-    const nextRound = solved.findIndex((done, i) => !done && i !== roundIdx); if (nextRound >= 0) setRoundIdx(nextRound);
-  };
-
   const reset = (): void => {
     cancelActionTimers();
     arcadeEvent({ type: 'reset' });
@@ -489,12 +484,6 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
     setMissCount(0);
     tip.reset();
   };
-
-  const grad = time === 'day'
-    ? 'linear-gradient(180deg, #2A1450 0%, #6E4FB8 60%, #C58BD9 100%)'
-    : time === 'night'
-      ? 'linear-gradient(180deg, #02010C 0%, #1F0E3A 50%, #4B1E78 100%)'
-      : 'linear-gradient(180deg, #1F1240 0%, #5B2480 60%, #C5598E 100%)';
 
   // Kelly Tier-2 (2026-05-02): focus-trap effect for the completion overlay.
   // Two focusable buttons (Try another / Next district →) — Tab cycles
@@ -550,48 +539,6 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
 
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{liveStatus}</div>
 
-      {/* Sky scene — Ricky 2026-05-02 (#15 audit pass): every decorative layer
-          below gets pointerEvents:none + zIndex:0. The functional layout
-          (top bar / canvas / side panel) lives at relative z-index inside the
-          em-bp-layout grid (zIndex implicit auto > 0), so the city silhouette
-          and 60 twinkle dots no longer sit between taps and the balloon-pop
-          buttons. */}
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background: grad }} />
-      {/* Distant city silhouette at bottom */}
-      <svg aria-hidden="true" viewBox="0 0 1200 200" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 80, left: 0, width: '100%', height: '24%', opacity: 0.55, zIndex: 0, pointerEvents: 'none' }}>
-        <path
-          d="M0 200 L0 100 L80 100 L80 60 L120 60 L120 90 L180 90 L180 40 L240 40 L240 70 L300 70 L300 30 L340 30 L340 60 L400 60 L400 80 L460 80 L460 50 L520 50 L520 90 L580 90 L580 60 L640 60 L640 30 L700 30 L700 70 L760 70 L760 50 L820 50 L820 90 L880 90 L880 60 L940 60 L940 100 L1000 100 L1000 70 L1060 70 L1060 90 L1120 90 L1120 110 L1200 110 L1200 200 Z"
-          fill="#0E0A1A"
-        />
-      </svg>
-      {/* City lights twinkling */}
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        {Array.from({ length: 60 }).map((_, i) => (
-          <div key={i} style={{
-            position: 'absolute',
-            left: `${(i * 7.13) % 100}%`,
-            bottom: `${20 + ((i * 11) % 18)}%`,
-            width: 2, height: 2,
-            background: i % 4 === 0 ? '#FBBF24' : '#F4E4A1',
-            borderRadius: '50%',
-            opacity: 0.5,
-            animation: `em-bp-twinkle ${2.5 + (i % 3)}s var(--em-ease) ${(i * 0.07)}s infinite`,
-          }} />
-        ))}
-      </div>
-      {/* Fairy lights string at top */}
-      <svg style={{ position: 'absolute', top: 50, left: 0, width: '100%', height: 60, pointerEvents: 'none', opacity: 0.85 }} preserveAspectRatio="none" viewBox="0 0 1200 60">
-        <path d="M0 4 Q 300 30 600 12 T 1200 8" stroke={ACCENT} strokeWidth="0.6" fill="none" opacity="0.6" />
-        {Array.from({ length: 24 }).map((_, i) => {
-          const x = i * 50 + 20;
-          const y = 4 + Math.sin(i * 0.4) * 14;
-          return (
-            <circle key={i} cx={x} cy={y} r="3" fill={['#FBBF24', '#FB7185', '#7DD3FC'][i % 3]} style={{ filter: `drop-shadow(0 0 6px ${['#FBBF24', '#FB7185', '#7DD3FC'][i % 3]})` }} opacity={0.85} />
-          );
-        })}
-      </svg>
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
-
       <div className="em-bp-layout" style={{
         position: 'relative', display: 'grid',
         gridTemplateColumns: '1.5fr 1fr', gap: 24, padding: 32,
@@ -631,7 +578,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
             <div className="em-decor" style={{ fontSize: 18, color: 'var(--em-text)', flex: 1, lineHeight: 1.3 }}>{maskAnswerInPrompt(cur.prompt, cur.options[cur.answerIndex])}</div>
           </div>
 
-          <div className="action-arcade-hud" style={{ margin: '12px 24px 0' }}><div><strong>{points} POINTS</strong><small>{reward}</small></div><button disabled={completed || roundLocked.current} onClick={() => setLaunched(v => !v)}>{launched ? 'Pause' : 'Launch balloons'}</button><button disabled={!launched || frozen || freezeCharges === 0 || completed || roundLocked.current} onClick={() => { setFreezeCharges(n => n - 1); setFrozen(true); later(() => setFrozen(false), 4000); }}>{frozen ? 'Wind frozen · 4s' : `Freeze wind · ${freezeCharges}`}</button></div>
+          <div className="action-arcade-hud" style={{ margin: '12px 24px 0' }}><div><strong>{points} POINTS</strong><small>{reward}{missCount>0?` · ${missCount} missed`:''}</small></div><button disabled={completed || roundLocked.current} onClick={() => setLaunched(v => !v)}>{launched ? 'Pause' : 'Launch balloons'}</button><button disabled={!launched || frozen || freezeCharges === 0 || completed || roundLocked.current} onClick={() => { setFreezeCharges(n => n - 1); setFrozen(true); later(() => setFrozen(false), 4000); }}>{frozen ? 'Wind frozen · 4s' : `Freeze wind · ${freezeCharges}`}</button></div>
           {/* Garden floor area (where balloons fly through).
               Kelly Tier-2 (2026-05-02): made keyboard-focusable so non-mouse
               users can at least land focus here and Tab into the per-balloon
@@ -641,111 +588,7 @@ export const BalloonPopShell: React.FC<BalloonPopShellProps> = ({
               physically drift across the canvas, so there's no stable
               "focused position" to fire at — the per-balloon buttons (which
               do receive focus on Tab) ARE the keyboard interaction. */}
-          <div
-            className="em-bp-canvas"
-            tabIndex={0}
-            role="group"
-            aria-label="Rooftop garden canvas — balloons rise from the railing; Tab to move between balloon buttons, Space or Enter to pop the focused balloon"
-            style={{ flex: 1, position: 'relative', overflow: 'hidden', margin: '14px 0 0' }}
-          >
-            <div aria-hidden="true" style={{ position: 'absolute', bottom: '28%', height: '32%', left: 0, right: 0, borderTop: '1px dashed #fbbf2480', borderBottom: '1px dashed #fbbf2480', background: 'linear-gradient(90deg,#fbbf2400,#fbbf2414,#fbbf2400)', pointerEvents: 'none' }}><span style={{ position: 'absolute', right: 12, top: 5, color: '#fde68a', font: '10px var(--em-mono)' }}>BONUS AIRSPACE +50</span></div>
-            {/* Railing/parapet */}
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0, height: 56,
-              background: 'linear-gradient(180deg, rgba(251,113,133,0.05), rgba(0,0,0,0.4))',
-              borderTop: `2px solid ${ACCENT}44`,
-              pointerEvents: 'none',
-            }} />
-            {/* Planter pots along the railing */}
-            {[15, 38, 62, 85].map((px, pi) => (
-              <div key={pi} style={{
-                position: 'absolute', bottom: 24, left: `${px}%`, transform: 'translateX(-50%)',
-                width: 28, height: 22,
-                pointerEvents: 'none',
-              }}>
-                <svg viewBox="0 0 28 22" width="100%" height="100%">
-                  <path d="M 4 6 L 24 6 L 22 22 L 6 22 Z" fill="#3D2A18" />
-                  <ellipse cx="14" cy="6" rx="10" ry="2" fill="#1A1208" />
-                  <ellipse cx="9" cy="3" rx="4" ry="3" fill="#34D399" opacity="0.8" />
-                  <ellipse cx="17" cy="2" rx="5" ry="3" fill="#34D399" opacity="0.7" />
-                </svg>
-              </div>
-            ))}
-
-            {balloons.map(b => {
-              if (b.state === 'escaped') return null;
-              const wobX = reducedMotionRef.current || !launched || frozen ? 0 : Math.sin(performance.now() / 800 + b.phase) * b.wobble;
-              const isHinted = hintBalloonId === b.id;
-              return (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => pop(b.id)}
-                  aria-label={`Balloon with answer ${b.word}, tap to pop`}
-                  disabled={b.state !== 'rising' || (!launched && !reducedMotionRef.current) || roundLocked.current}
-                  style={{
-                    position: 'absolute',
-                    left: `clamp(48px, calc(${b.x}% + ${wobX}px), calc(100% - 48px))`,
-                    bottom: `${b.bottom}%`,
-                    transform: 'translateX(-50%)',
-                    width: 90, height: 130,
-                    background: 'transparent', border: 'none',
-                    cursor: b.state === 'rising' ? 'pointer' : 'default',
-                    padding: 0,
-                    minWidth: 44, minHeight: 44,
-                    animation:
-                      b.state === 'popped' ? 'em-bp-pop 360ms var(--em-ease) forwards'
-                        : b.state === 'deflated' ? 'em-bp-deflate 480ms var(--em-ease) forwards'
-                        : 'em-bp-wobble 2.4s var(--em-ease) infinite',
-                    touchAction: 'manipulation',
-                    // No CSS transition: rAF already drives `bottom` every
-                    // frame, and a 60ms tween between rAF updates fights the
-                    // state churn and produces visible micro-jitter.
-                    willChange: 'transform, bottom',
-                  } as React.CSSProperties}
-                >
-                  <svg viewBox="0 0 90 130" width="100%" height="100%" style={{ display: 'block', filter: isHinted ? `drop-shadow(0 0 12px ${ACCENT})` : `drop-shadow(0 6px 12px rgba(0,0,0,0.4))` }}>
-                    {/* Balloon body */}
-                    <ellipse cx="45" cy="50" rx="38" ry="46" fill={b.color} opacity={isHinted ? 1 : 0.95} />
-                    <ellipse cx="35" cy="35" rx="10" ry="14" fill="rgba(255,255,255,0.35)" />
-                    {/* Tie */}
-                    <polygon points="42,94 48,94 45,102" fill={b.color} />
-                    {/* String */}
-                    <path d="M 45 102 Q 42 115 45 130" stroke="rgba(255,255,255,0.5)" strokeWidth="1" fill="none" />
-                    {/* Word card */}
-                    <rect x="14" y="44" width="62" height="20" rx="4" fill="rgba(14,10,26,0.85)" stroke={isHinted ? '#FBBF24' : 'rgba(0,0,0,0.4)'} strokeWidth="1" />
-                    <text x="45" y="58" textAnchor="middle"
-                      fontFamily="var(--em-decor)" fontSize="11" fontWeight="600"
-                      fill="#FFF8E5">{b.word.length > 11 ? b.word.slice(0, 10) + '…' : b.word}</text>
-                  </svg>
-                  {b.state === 'popped' && (
-                    <div style={{
-                      position: 'absolute', top: '38%', left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      width: 60, height: 60,
-                      borderRadius: '50%',
-                      background: `radial-gradient(circle, ${b.color}aa 0%, transparent 70%)`,
-                      animation: 'em-bp-pop-burst 360ms var(--em-ease) forwards',
-                      pointerEvents: 'none',
-                    }} />
-                  )}
-                </button>
-              );
-            })}
-
-            {missCount > 0 && (
-              <div style={{
-                position: 'absolute', top: 8, right: 12,
-                fontFamily: 'var(--em-mono)', fontSize: 10, color: '#FB7185',
-                letterSpacing: '0.16em',
-                padding: '4px 8px',
-                background: 'rgba(251,113,133,0.1)',
-                border: '1px solid #FB718555',
-                borderRadius: 4,
-                zIndex: 3,
-              }}>{missCount} POPPED WRONG</div>
-            )}
-          </div>
+          <ActionPlayfield3D kind="balloonpop" data={{reducedMotion:reducedMotionRef.current,running:launched&&!frozen,onPick:pop,actors:balloons.map(b=>({id:b.id,x:b.x,y:b.bottom,label:b.word,color:b.color,state:b.state,selected:hintBalloonId===b.id,enabled:b.state==='rising'&&(launched||reducedMotionRef.current)&&!roundLocked.current}))}} controls={<>{balloons.filter(b=>b.state==='rising').map(b=><button key={b.id} disabled={(!launched&&!reducedMotionRef.current)||roundLocked.current} onClick={()=>pop(b.id)}>{b.word}</button>)}</>} />
 
           {completed && !onSessionComplete && (
             <div

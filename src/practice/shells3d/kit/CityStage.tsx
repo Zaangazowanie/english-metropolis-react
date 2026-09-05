@@ -1,6 +1,7 @@
-import { Component, createContext, useContext, useEffect, useMemo } from 'react'
+import { Component, createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ErrorInfo, ReactNode } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { ACESFilmicToneMapping, NeutralToneMapping } from 'three'
 import type { QualityTier } from '../types'
 import { palette, duskSkyStops } from './palette'
 
@@ -42,16 +43,20 @@ export function resolveQuality(quality?: QualityTier): QualitySettings {
   }
 }
 
-/** Cheap, synchronous WebGL availability probe. */
+let webglAvailable: boolean | undefined
+/** Probe once and release it. Retaining a probe per game exhausts the browser's
+ * context limit when a learner moves through several districts. */
 export function hasWebGL(): boolean {
   if (typeof document === 'undefined' || typeof window === 'undefined') return false
+  if (webglAvailable !== undefined) return webglAvailable
   try {
     const canvas = document.createElement('canvas')
-    return !!(
-      window.WebGLRenderingContext &&
-      (canvas.getContext('webgl2') || canvas.getContext('webgl'))
-    )
+    const context = canvas.getContext('webgl2')
+    webglAvailable = !!context
+    context?.getExtension('WEBGL_lose_context')?.loseContext()
+    return webglAvailable
   } catch {
+    webglAvailable = false
     return false
   }
 }
@@ -106,21 +111,48 @@ class StageErrorBoundary extends Component<BoundaryProps, BoundaryState> {
 // Default lights — warm dusk rig. Vertex/standard lighting; at most one cheap
 // directional shadow (high tier only). Games may add their own.
 // ─────────────────────────────────────────────────────────────────────
-function StageLights({ settings }: { settings: QualitySettings }) {
+function StageLights({ settings, arcade }: { settings: QualitySettings; arcade: boolean }) {
   return (
     <>
-      <hemisphereLight args={[palette.duskTop, palette.night, 0.8]} />
-      <ambientLight intensity={0.5} color={palette.skyGlow} />
+      <hemisphereLight args={arcade ? ['#ffffff', '#112451', 1.05] : ['#d5e4ff', '#78648e', 1.4]} />
+      <ambientLight intensity={arcade ? 0.35 : 0.9} color={arcade ? '#ffffff' : '#f3efff'} />
       <directionalLight
         position={[4, 6, 3]}
-        intensity={1.15}
-        color={palette.lanternCore}
+        intensity={arcade ? 2 : 2.6}
+        color={arcade ? '#ffffff' : palette.lanternCore}
         castShadow={settings.shadows}
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
     </>
   )
+}
+
+function ContextLifecycle({ onLost }: { onLost: () => void }) {
+  const gl = useThree(state => state.gl)
+  useEffect(() => {
+    const canvas = gl.domElement
+    const lost = (event: Event) => { event.preventDefault(); onLost() }
+    canvas.addEventListener('webglcontextlost', lost)
+    return () => canvas.removeEventListener('webglcontextlost', lost)
+  }, [gl, onLost])
+  return null
+}
+
+/** Development-only measurements for visual QA. They describe the previous
+ * rendered frame, so inspecting a board does not require a second render. */
+function RenderMeasurements() {
+  const gl = useThree(state => state.gl)
+  const elapsed = useRef(0)
+  useFrame((_, delta) => {
+    elapsed.current += delta
+    if (elapsed.current < 1) return
+    elapsed.current = 0
+    gl.domElement.dataset.drawCalls = String(gl.info.render.calls)
+    gl.domElement.dataset.triangles = String(gl.info.render.triangles)
+    gl.domElement.dataset.pixelRatio = String(gl.getPixelRatio())
+  })
+  return null
 }
 
 export interface CityStageProps {
@@ -140,6 +172,12 @@ export interface CityStageProps {
   cameraPosition?: [number, number, number]
   cameraFov?: number
   className?: string
+  /** Embedded boards can choose their dimensions without global CSS overrides. */
+  style?: CSSProperties
+  minHeight?: number
+  /** Neutral product lighting preserves the saturated enamel arcade materials. */
+  arcade?: boolean
+  fallback?: ReactNode
 }
 
 /**
@@ -159,22 +197,39 @@ export function CityStage({
   cameraPosition = [0, 1.2, 6],
   cameraFov = 45,
   className,
+  style,
+  minHeight = 320,
+  arcade = false,
+  fallback,
 }: CityStageProps) {
   const settings = useMemo(() => resolveQuality(quality), [quality])
   const webgl = useMemo(() => hasWebGL(), [])
+  const host = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(true)
+  const [pageVisible, setPageVisible] = useState(() => typeof document === 'undefined' || !document.hidden)
+  const [contextLost, setContextLost] = useState(false)
+  const onLost = useMemo(() => () => setContextLost(true), [])
 
   useEffect(() => {
-    if (!webgl) {
+    const observer = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { rootMargin: '60px' })
+    if (host.current) observer?.observe(host.current)
+    const sync = () => setPageVisible(!document.hidden)
+    document.addEventListener('visibilitychange', sync)
+    return () => { observer?.disconnect(); document.removeEventListener('visibilitychange', sync) }
+  }, [])
+
+  useEffect(() => {
+    if (!webgl || contextLost) {
       onError?.(new Error('WebGL unavailable — falling back to 2D shell'))
     }
-  }, [webgl, onError])
+  }, [webgl, contextLost, onError])
 
   const quality3d = useMemo<StageQuality>(
     () => ({ tier: settings.tier, settings, reducedMotion }),
     [settings, reducedMotion],
   )
 
-  const gradient = `linear-gradient(180deg, ${duskSkyStops.join(', ')})`
+  const gradient = arcade ? 'linear-gradient(180deg, #060b29, #132c70 70%, #072e52)' : `linear-gradient(180deg, ${duskSkyStops.join(', ')})`
 
   const wrapperStyle: CSSProperties = fullscreen
     ? { position: 'fixed', inset: 0, width: '100vw', height: '100vh', overflow: 'hidden' }
@@ -182,7 +237,7 @@ export function CityStage({
         position: 'relative',
         width: '100%',
         height: '100%',
-        minHeight: 320,
+        minHeight,
         borderRadius: 14,
         overflow: 'hidden',
       }
@@ -192,26 +247,28 @@ export function CityStage({
   const overlayStyle: CSSProperties = { ...layerStyle, pointerEvents: 'none' }
 
   return (
-    <div className={className} style={wrapperStyle}>
+    <div ref={host} className={className} style={{ ...wrapperStyle, ...style }} data-three-stage={webgl && !contextLost ? 'ready' : 'fallback'}>
       {/* Decorative 3D layer — hidden from assistive tech (contract rule 10). */}
       <div aria-hidden="true" style={skyStyle}>
-        <StageErrorBoundary onError={onError} fallback={<div style={skyStyle} />}>
-          {webgl ? (
+        <StageErrorBoundary onError={onError} fallback={fallback ?? <div style={skyStyle} />}>
+          {webgl && !contextLost ? (
             <Canvas
               dpr={settings.dpr}
               shadows={settings.shadows}
-              frameloop="always"
+              frameloop={visible && pageVisible ? 'always' : 'never'}
               camera={{ position: cameraPosition, fov: cameraFov }}
-              gl={{ alpha: true, antialias: settings.antialias, powerPreference: 'high-performance' }}
+              gl={{ alpha: true, antialias: settings.antialias, powerPreference: 'high-performance', toneMapping: arcade ? NeutralToneMapping : ACESFilmicToneMapping, toneMappingExposure: 1 }}
               style={{ width: '100%', height: '100%' }}
             >
               <StageQualityContext.Provider value={quality3d}>
-                <StageLights settings={settings} />
+                <ContextLifecycle onLost={onLost} />
+                {(import.meta as ImportMeta & { env: { DEV: boolean } }).env.DEV && <RenderMeasurements />}
+                <StageLights settings={settings} arcade={arcade} />
                 {children}
               </StageQualityContext.Provider>
             </Canvas>
           ) : (
-            <div style={skyStyle} />
+            fallback ?? <div style={skyStyle} />
           )}
         </StageErrorBoundary>
       </div>

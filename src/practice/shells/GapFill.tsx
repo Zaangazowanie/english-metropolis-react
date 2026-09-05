@@ -1,4 +1,5 @@
-import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
+import { Challenge3D } from './challenge-3d';
+import { ChallengeMission, useChallengeArcade } from './challenge-arcade';
 // Gap-fill shell — "Construction Quarter".
 // Broken billboards / under-construction shop signs are missing words.
 // Players drag letter tiles (or word chips) into the gaps.
@@ -7,15 +8,7 @@ import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade 
 import { useShellProgress } from '../lib/convex-stubs';
 import type { ShellGapFillPuzzle } from '../lib/adapters';
 import { useState, useEffect, useRef } from 'react';
-import {
-  Bajla,
-  HintCard,
-  Progress,
-  Nameplate,
-  SkipButton,
-  HintButton,
-  Confetti,
-} from '../components/primitives';
+import { Bajla, Progress, Nameplate, SkipButton, HintButton, Confetti } from '../components/primitives';
 import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
 // Mike #7 — expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components/ExpandableInstructions';
@@ -218,10 +211,6 @@ const GF_PUZZLE: GFPuzzle = {
   ],
 };
 
-function isGap(part: GFSignPart): part is GFGapMarker {
-  return typeof part !== 'string';
-}
-
 // ─────────────────────────────────────────────────────────────────────────
 // GFReviewSign — locked render of a scene's sign for PracticeReview.
 // Reconstructs the shop-sign layout that the live shell shows during play,
@@ -334,7 +323,7 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
   const completionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (completionTimer.current) clearTimeout(completionTimer.current); }, []);
   const [completed, setCompleted] = useState(false);
-  const [draggedOption, setDraggedOption] = useState<string | null>(null);
+
   const [hintsUsed, setHintsUsed] = useState<number>(0);
   // Gap id whose correct option is highlighted by the latest hint.
   const [hintReveal, setHintReveal] = useState<number | null>(null);
@@ -638,6 +627,14 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
 
       <div className="em-gap-layout" style={{ position: 'relative', display: 'grid', gridTemplateRows: 'auto auto 1fr auto', gap: 24, padding: '60px 32px 32px', height: '100%', boxSizing: 'border-box' }}>
         <ChallengeMission title="Repair the neon. Reopen the block." detail="Fit every missing word to restore this storefront. A fully repaired sign earns 150 base points." current={scenesSolved} total={activePuzzle.scenes.length} />
+        <Challenge3D game="GapFill" hint={hintReveal===null?undefined:`Gap ${hintReveal+1}: ${cur.gaps.find(g=>g.id===hintReveal)?.answer}`} roundKey={cur.id} prompt={cur.sign.map(part=>typeof part==='string'?part:`[${part.gap+1}]`).join(' ')}
+          items={cur.gaps.flatMap(g=>g.options.map(word=>({id:`${g.id}:${word}`,label:word})))}
+          slots={cur.gaps.map(g=>({id:String(g.id),label:picks[g.id]||`Gap ${g.id+1}`,state:feedback==='correct'?'right':feedback==='wrong' && picks[g.id] && picks[g.id]!==g.answer?'wrong':'idle'}))}
+          locked={completed || sceneFinalised || sessionComplete || !!forcedState}
+          onPlace={(slot,id)=>place(Number(slot),id.slice(id.indexOf(':')+1))}
+          onRemove={id=>{setPicks(prev=>{const next={...prev};delete next[Number(id)];return next;});setFeedback(null);}}
+          status={feedback==='wrong'?'A word is in the wrong socket. Clear it and rebuild.':feedback==='correct'?'The sign is repaired.':'Lift a crate, then select its numbered gap.'} />
+
         <div className="challenge-gap-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <AmbientAudioPlayer shellSlug="gapfill" />
           <Nameplate
@@ -651,179 +648,6 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
             <Progress current={scenesSolved} total={activePuzzle.scenes.length} seen={Math.min(scene + 1, activePuzzle.scenes.length)} accent={accent} />
             <SkipButton onClick={skip} />
             <HintButton onClick={useHint} used={hintsUsed} total={3} />
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-          <div className="em-gap-sign" style={{ position: 'relative', width: '78%', maxWidth: 760 }}>
-            <div style={{
-              position: 'relative',
-              background: 'linear-gradient(180deg, #2A1B45 0%, #1A1030 100%)',
-              border: '6px solid #14082A',
-              borderRadius: 12,
-              padding: '52px 44px',
-              boxShadow: '0 30px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05) inset',
-              transform: 'rotate(-0.6deg)',
-            }}>
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    position: 'absolute',
-                    top: i < 2 ? 8 : 'auto',
-                    bottom: i >= 2 ? 8 : 'auto',
-                    left: i % 2 === 0 ? 8 : 'auto',
-                    right: i % 2 === 1 ? 8 : 'auto',
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: '#0E0A1A',
-                    boxShadow: '0 0 0 1px rgba(255,255,255,0.1) inset',
-                  }}
-                />
-              ))}
-              <div style={{ position: 'absolute', top: -22, left: 32, padding: '6px 14px', background: accent, color: '#1A0F2E', fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.2em', fontWeight: 700, transform: 'rotate(-2deg)', boxShadow: '0 6px 14px rgba(0,0,0,0.3)' }}>
-                NOW OPEN · OTWARTE
-              </div>
-
-              <div className="em-decor" style={{ fontSize: 32, color: accent, textShadow: `0 0 18px ${accent}66`, marginBottom: 18, letterSpacing: '0.02em' }}>{cur.shopName}</div>
-
-              <div style={{ fontSize: 30, lineHeight: 1.7, color: 'var(--em-text)', fontFamily: 'var(--em-display)', fontWeight: 500, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-                {cur.sign.map((part, i) => {
-                  if (!isGap(part)) return <span key={i}>{part}</span>;
-                  const g = cur.gaps.find((gg) => gg.id === part.gap);
-                  if (!g) return null;
-                  const placed = picks[g.id];
-                  const right = placed === g.answer;
-                  return (
-                    <button
-                      type="button"
-                      key={i}
-                      disabled={!!forcedState || completed || sceneFinalised}
-                      onClick={() => {
-                        if (forcedState || completed || sceneFinalised || !placed) return;
-                        setPicks(previous => { const next = { ...previous }; delete next[g.id]; return next; });
-                        setFeedback(null);
-                      }}
-                      aria-label={`Gap ${g.id + 1}${placed ? `, current answer ${placed}, ${right ? 'correct' : feedback === 'wrong' ? 'incorrect' : 'pending'}` : ', empty'}${placed && !completed && !sceneFinalised ? ', tap to remove and try another word' : ''}`}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        if (draggedOption) place(g.id, draggedOption);
-                        setDraggedOption(null);
-                      }}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        minWidth: 140, padding: '6px 16px',
-                        borderRadius: 10,
-                        border: `2px dashed ${feedback === 'correct' && placed === g.answer ? 'var(--em-mint)' : feedback === 'wrong' && placed && !right ? 'var(--em-coral)' : placed ? accent : 'rgba(255,255,255,0.25)'}`,
-                        background: feedback === 'correct' && right ? 'rgba(52,211,153,0.18)' : feedback === 'wrong' && placed && !right ? 'rgba(251,113,133,0.18)' : placed ? `${accent}1c` : 'rgba(0,0,0,0.25)',
-                        color: placed ? 'var(--em-text)' : 'rgba(255,255,255,0.3)',
-                        fontStyle: placed ? 'normal' : 'italic',
-                        fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit',
-                        cursor: placed && !completed && !sceneFinalised ? 'pointer' : 'default',
-                        animation: feedback === 'wrong' && placed && !right ? 'em-shake 0.4s' : 'none',
-                        transition: 'all 220ms',
-                      }}
-                    >
-                      {placed || '____'}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div style={{ position: 'absolute', top: -3, left: 24, right: 24, display: 'flex', justifyContent: 'space-between' }}>
-                {Array.from({ length: 14 }).map((_, i) => (
-                  <div key={i} style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: i === 3 || i === 9 ? '#3A2A55' : accent,
-                    boxShadow: i === 3 || i === 9 ? 'none' : `0 0 12px ${accent}, 0 -10px 30px ${accent}66`,
-                    animation: i === 6 ? 'em-flicker 3s infinite' : 'none',
-                  }} />
-                ))}
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <div className="em-card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="em-eyebrow">Letter blocks · klocki · drag to fix the sign</div>
-            <div className="em-eyebrow" style={{ color: accent }}>{cur.gaps[0].clue}</div>
-          </div>
-          {hintReveal !== null && (() => {
-            const g = cur.gaps.find((gg) => gg.id === hintReveal);
-            if (!g) return null;
-            return (
-              <div
-                role="status"
-                aria-live="polite"
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  background: 'rgba(251,191,36,0.14)',
-                  border: `1px dashed ${accent}`,
-                  fontFamily: 'var(--em-mono)', fontSize: 12, color: 'var(--em-text)',
-                  letterSpacing: '0.06em',
-                  animation: 'em-tip-fade 220ms var(--em-ease) both',
-                }}
-              >
-                <span className="em-eyebrow" style={{ color: accent, marginRight: 8 }}>HINT</span>
-                Gap {g.id + 1} → <strong style={{ color: accent, fontFamily: 'var(--em-display)', fontSize: 16 }}>{g.answer}</strong>
-                <span className="em-hint-pl" style={{ marginLeft: 10 }}>🇵🇱 {cur.hint_pl}</span>
-              </div>
-            );
-          })()}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }} role="list" aria-label="Word options">
-            {cur.gaps
-              .flatMap((g) => g.options.map((o) => ({ word: o, gid: g.id, key: `${g.id}-${o}` })))
-              .map((opt) => {
-                const placedSomewhere = picks[opt.gid] === opt.word;
-                const isHinted = hintReveal === opt.gid && cur.gaps.find((g) => g.id === opt.gid)?.answer === opt.word;
-                return (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    tabIndex={placedSomewhere ? -1 : 0}
-                    disabled={placedSomewhere}
-                    aria-label={`Word ${opt.word}${placedSomewhere ? ', already placed' : ', click or drag to place'}${isHinted ? ', hinted as correct' : ''}`}
-                    draggable
-                    onDragStart={() => setDraggedOption(opt.word)}
-                    onClick={() => {
-                      const empty = cur.gaps.find((g) => !picks[g.id]);
-                      if (empty) place(empty.id, opt.word);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        const empty = cur.gaps.find((g) => !picks[g.id]);
-                        if (empty) place(empty.id, opt.word);
-                      }
-                    }}
-                    style={{
-                      // Kelly Tier-2 (2026-05-02): native <button> reset.
-                      font: 'inherit',
-                      margin: 0,
-                      WebkitAppearance: 'none',
-                      appearance: 'none',
-                      cursor: placedSomewhere ? 'default' : 'grab', userSelect: 'none',
-                      padding: '14px 22px',
-                      background: placedSomewhere ? 'rgba(255,255,255,0.04)' : isHinted ? 'linear-gradient(180deg, #6E4F1A 0%, #3A2A12 100%)' : 'linear-gradient(180deg, #3A2855 0%, #1F1438 100%)',
-                      border: isHinted ? `2px solid ${accent}` : '1px solid',
-                      borderColor: placedSomewhere ? 'rgba(255,255,255,0.06)' : isHinted ? accent : `${accent}55`,
-                      borderRadius: 10,
-                      boxShadow: placedSomewhere ? 'none' : isHinted ? `0 0 18px ${accent}aa, 0 4px 0 rgba(0,0,0,0.4)` : '0 4px 0 rgba(0,0,0,0.4), 0 8px 20px rgba(0,0,0,0.3)',
-                      color: placedSomewhere ? 'var(--em-text-dim)' : 'var(--em-text)',
-                      fontFamily: 'var(--em-display)', fontSize: 18, fontWeight: 600,
-                      opacity: placedSomewhere ? 0.4 : 1,
-                      transition: 'all 220ms',
-                    }}
-                  >
-                    {opt.word}
-                  </button>
-                );
-              })}
           </div>
         </div>
 
@@ -849,7 +673,7 @@ export const GapFillShell: React.FC<GapFillShellProps> = ({ time = 'day', state:
                   "See the board →" so the rhythm cues that the review screen
                   is next, not another scene. Matches the MC pattern. */}
               <button ref={nextSceneBtnRef} className="em-btn em-btn-primary" onClick={next}>
-                {onSessionComplete && scenesSeen + 1 >= activePuzzle.scenes.length
+                {onSessionComplete && sessionComplete
                   ? 'See the board →'
                   : 'Next billboard →'}
               </button>

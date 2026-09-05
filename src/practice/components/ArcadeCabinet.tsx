@@ -11,6 +11,7 @@ interface Props {
   number: number;
   shellId: string;
   children: React.ReactNode;
+  onRequestFullscreen?: () => void;
 }
 
 function readBest(shellId: string) {
@@ -20,7 +21,7 @@ function readBest(shellId: string) {
 
 // The learning record and arcade score are separate: progress comes from the
 // existing persistence hook; points only come from explicit gameplay events.
-export function ArcadeCabinet({ title, accent, number, shellId, children }: Props) {
+export function ArcadeCabinet({ title, accent, number, shellId, children, onRequestFullscreen }: Props) {
   const { lang } = useI18n();
   const pl = lang === 'pl';
   const [{ progress, completed }, setProgress] = useState({ progress: 0, completed: false });
@@ -82,6 +83,7 @@ export function ArcadeCabinet({ title, accent, number, shellId, children }: Prop
     } catch { setSound(false); }
   };
   const toggleFullscreen = async () => {
+    if (onRequestFullscreen) { onRequestFullscreen(); return; }
     try {
       if (document.fullscreenElement) await document.exitFullscreen();
       else await cabinet.current?.requestFullscreen();

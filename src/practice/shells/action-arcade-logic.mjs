@@ -33,3 +33,15 @@ export function advanceCompletionLatch(announced, completed, preview = false) {
   if (preview) return { announced: true, emit: false };
   return { announced: true, emit: !announced };
 }
+
+/** One visible slot per physical hole, shared by canvas, buttons and keys.
+ * Recycled hidden slots can retain the same hole as a newly risen mole. */
+export function currentMoleSlots(moles, holeCount = 6) {
+  const slots = Array.from({ length: holeCount }, () => -1);
+  moles.forEach((mole, index) => {
+    if (mole.state === 'down' || !Number.isInteger(mole.holeIdx) || mole.holeIdx < 0 || mole.holeIdx >= holeCount) return;
+    const previous = slots[mole.holeIdx];
+    if (previous < 0 || mole.spawnedAt >= moles[previous].spawnedAt) slots[mole.holeIdx] = index;
+  });
+  return slots;
+}

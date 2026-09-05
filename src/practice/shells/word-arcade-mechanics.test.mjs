@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { clozeResolved, anagramCleanCount, shuffledTranslations, typingDispatchStats, expandErrorSelection, insertionPointMatches } from './word-arcade-mechanics.ts';
+import { clozeResolved, claimClozeAttempt, anagramCleanCount, shuffledTranslations, typingDispatchStats, expandErrorSelection, insertionPointMatches } from './word-arcade-mechanics.ts';
 
 test('a wrong cloze guess stays playable until corrected or explicitly skipped',()=>{
   const gaps=[{id:1},{id:7}];
@@ -8,6 +8,24 @@ test('a wrong cloze guess stays playable until corrected or explicitly skipped',
   assert.equal(clozeResolved(gaps,{1:'right',7:'right'},new Set()),true);
   assert.equal(clozeResolved(gaps,{1:'right',7:'wrong'},new Set([7])),true);
   assert.equal(clozeResolved(gaps,{1:'wrong',7:'wrong'},new Set([7])),false);
+});
+test('cloze Enter and seal events cannot count the same guess twice before a render', () => {
+  const attempts = new Map();
+  assert.equal(claimClozeAttempt(attempts, 1, 'at'), true);
+  assert.equal(claimClozeAttempt(attempts, 1, 'at'), false);
+  assert.equal(claimClozeAttempt(attempts, 1, 'in'), true);
+  assert.equal(claimClozeAttempt(attempts, 1, 'in'), false);
+  assert.equal(claimClozeAttempt(attempts, 2, ''), false);
+  attempts.clear();
+  assert.equal(claimClozeAttempt(attempts, 1, 'in'), true);
+});
+test('six cloze gaps yield six scored decisions when each seal is dispatched twice', () => {
+  const attempts = new Map();
+  const scored = [1, 2, 3, 4, 5, 6].flatMap(id => [
+    claimClozeAttempt(attempts, id, 'in'),
+    claimClozeAttempt(attempts, id, 'in'),
+  ]).filter(Boolean);
+  assert.equal(scored.length, 6);
 });
 test('skipping an anagram never earns a correct grade and repeated attempts deduct once',()=>{
   assert.equal(anagramCleanCount(['METRO','TRAM','BRIDGE'],['TRAM','TRAM'],{METRO:'METRO',TRAM:'TRAM'}),1);

@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordWordFormation3D'));
 // Word Formation — The Mason's Yard district.
 // A stonemason's yard at dusk. A great stone slab waits to be chiselled into
 // the right form (noun, verb, adjective, adverb). The base word is stamped
@@ -304,7 +306,6 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
   const [partsOpen, setPartsOpen] = useState(false);
   const [verdict, setVerdict] = useState<'right' | 'wrong' | null>(null);
   const [score, setScore] = useState(0);
-  const [questionsSeen, setQuestionsSeen] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [hintRevealed, setHintRevealed] = useState(false);
   const [chipFlash, setChipFlash] = useState(false);
@@ -313,6 +314,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
 
   const cur = activePuzzle.items[idx % total];
   const completed = idx >= total;
+  const resolvedQuestions = Math.min(total, idx + (verdict === 'right' ? 1 : 0));
   const tip = useEndOfShellTip({
     onWrongAnswer,
     completed,
@@ -342,7 +344,6 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
   useEffect(() => {
     if (!basePosLooksIdentity) return;
     const t = window.setTimeout(() => {
-      setQuestionsSeen((q) => q + 1);
       setIdx((i) => i + 1);
       setDraft(''); setVerdict(null); setHintRevealed(false);
     }, 1400);
@@ -352,10 +353,10 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
   useEffect(() => {
     if (forcedState) return;
     persisted.save({
-      progress: idx / Math.max(1, total),
+      progress: Math.min(idx, total) / Math.max(1, total),
+      completed,
       lastState: completed ? 'complete' : 'active',
     });
-    if (completed) persisted.save({ progress: 1, completed: true, lastState: 'complete' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, total, forcedState]);
 
@@ -396,6 +397,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
     arcade.answer(correct);
     if (correct) {
       setScore((s) => s + 1);
+      persisted.save({ progress: Math.min(total, idx + 1) / Math.max(1, total), completed: false, lastState: 'active' });
       setAnnouncement(`Chiselled. ${cur.answer}.`);
     } else {
       setChipFlash(true);
@@ -412,7 +414,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
   };
 
   const advance = (): void => {
-    setQuestionsSeen((q) => q + 1);
+    if (forcedState || completed || verdict !== 'right') return;
     setIdx((i) => i + 1);
     setDraft(''); setVerdict(null); setHintRevealed(false);
     setTimeout(() => inputRef.current?.focus(), 80);
@@ -420,7 +422,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
 
   const skip = (): void => {
     if (forcedState || completed || !cur) return;
-    setQuestionsSeen((q) => q + 1);
+    if (verdict === 'right') { advance(); return; }
     setAnnouncement(`Skipped. The right form was "${cur.answer}".`);
     setIdx((i) => i + 1);
     setDraft(''); setVerdict(null); setHintRevealed(false);
@@ -435,7 +437,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
   const reset = (): void => {
     arcade.restart();
     setIdx(0); setDraft(''); setVerdict(null); setScore(0);
-    setQuestionsSeen(0); setHintsUsed(0); setHintRevealed(false);
+    setHintsUsed(0); setHintRevealed(false);
     tip.reset();
   };
 
@@ -451,42 +453,6 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
         {liveStatus}
       </div>
-
-      {/* Yard scene */}
-      <div style={{
-        position: 'absolute', inset: 0, background:
-          time === 'day'
-            ? 'linear-gradient(180deg, #6E5A82 0%, #B58F5A 60%, #5C4D3A 100%)'
-            : time === 'dusk'
-              ? 'linear-gradient(180deg, #1F1240 0%, #5C3F1A 70%, #2A1810 100%)'
-              : 'linear-gradient(180deg, #07041A 0%, #2A1810 70%, #0E0A1A 100%)',
-      }} />
-      {/* Workshop floor pavers */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.20) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.20) 1px, transparent 1px)`,
-        backgroundSize: '110px 110px',
-        opacity: 0.4,
-        transform: 'perspective(800px) rotateX(58deg) translateY(20vh) scale(2.4)',
-        transformOrigin: 'top',
-      }} />
-      {/* Scaffolding silhouette */}
-      <svg viewBox="0 0 1200 600" preserveAspectRatio="none" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.22, pointerEvents: 'none' }}>
-        {Array.from({ length: 8 }).map((_, i) => {
-          const x = i * 160 + 40;
-          return (
-            <g key={i} stroke="#3A2C1F" strokeWidth="3" fill="none">
-              <line x1={x} y1={520} x2={x} y2={120} />
-              <line x1={x + 60} y1={520} x2={x + 60} y2={120} />
-              {Array.from({ length: 6 }).map((_, r) => (
-                <line key={r} x1={x} y1={150 + r * 70} x2={x + 60} y2={150 + r * 70} />
-              ))}
-            </g>
-          );
-        })}
-      </svg>
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 60%, transparent 35%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
 
       {/* Header */}
       <div style={{ position: 'absolute', top: 24, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, zIndex: 5, flexWrap: 'wrap' }}>
@@ -504,72 +470,19 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
           }
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <Progress current={score} seen={questionsSeen} total={total} accent={ACCENT} />
+          <Progress current={score} seen={Math.min(total, idx + 1)} total={total} accent={ACCENT} />
           <SkipButton onClick={skip} />
           <HintButton onClick={useHint} used={hintsUsed} total={3} />
         </div>
       </div>
 
-      {/* Ricky · 2026-05-02 · audit §4 #8 right-rail: Today's Formations panel.
-          Closes universal #0 + #9 (vertical/right dead space) at desktop ≥1280px.
-          Surfaces the queue of 6 base words + their POS targets so the student
-          sees what's coming. Hidden under 1280px via the scoped CSS at bottom. */}
-      <aside className="wf-rail" aria-label="Today's formations queue">
-        <div className="em-eyebrow" style={{ color: ACCENT, marginBottom: 12, letterSpacing: '0.22em', fontSize: 10 }}>
-          DZIŚ PRZEKSZTAŁCAMY · TODAY&apos;S FORMATIONS
-        </div>
-        <ol className="wf-rail-list">
-          {activePuzzle.items.map((it, i) => {
-            const isCur = i === idx;
-            const isPast = i < idx;
-            const pos = POS_LABEL[it.target_pos];
-            // CD audit 2026-05-02: previously a local heuristic that defaulted
-            // to NOUN, producing "BRAVE NOUN → NOUN (identity!)" cosmetic bugs.
-            // Now uses the shared posFromBaseWord lookup (KNOWN_BASE_POS table
-            // + posFromSuffix). For the rare 'unknown' case we render an em-dash
-            // so we never falsely advertise an identity transform.
-            const fromPosTag = posFromBaseWord(it.base_word);
-            const FROM_LABEL: Record<string, string> = {
-              noun: 'NOUN', verb: 'VERB', adj: 'ADJ', adv: 'ADV', unknown: '—',
-            };
-            const fromPos = FROM_LABEL[fromPosTag] ?? '—';
-            return (
-              <li key={it.id} className={`wf-rail-item${isCur ? ' wf-rail-item-cur' : ''}${isPast ? ' wf-rail-item-past' : ''}`}>
-                <span className="wf-rail-num">{String(i + 1).padStart(2, '0')}</span>
-                <span className="wf-rail-body">
-                  <span className="wf-rail-base">{it.base_word}</span>
-                  <span className="wf-rail-arrow">{fromPos} → {pos.en}</span>
-                  <span className="wf-rail-pl">{pos.pl}</span>
-                </span>
-                {isCur && <span className="wf-rail-pin" aria-label="current">●</span>}
-                {isPast && <span className="wf-rail-pin wf-rail-pin-done" aria-label="done">✓</span>}
-              </li>
-            );
-          })}
-        </ol>
-        <div className="wf-rail-foot">
-          <span className="wf-rail-foot-icon" aria-hidden>
-            {/* Tiny chisel + stone block */}
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <rect x="4" y="12" width="11" height="6" stroke={ACCENT} strokeWidth="1.4" fill="rgba(200,182,152,0.2)" />
-              <path d="M14 11 L18 5 L20 7 L16 13 Z" stroke={ACCENT} strokeWidth="1.4" fill="rgba(192,152,77,0.4)" />
-            </svg>
-          </span>
-          <span style={{ color: 'var(--em-text-muted)', fontSize: 10, letterSpacing: '0.04em', lineHeight: 1.4 }}>
-            <span style={{ color: ACCENT, fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.18em' }}>SUFFIX TIPS</span><br />
-            -tion / -ment / -ness → noun<br />
-            -ful / -ous / -ive → adjective<br />
-            -ly → adverb
-          </span>
-        </div>
-      </aside>
 
       {/* Kelly Tier-2 audit (2026-05-02): defensive empty-state for identity
           transformations (e.g. base RESILIENCE → target NOUN where the word
           already IS a noun). Auto-advances after 1.4s via the effect above. */}
       {!completed && cur && basePosLooksIdentity && (
         <div className="wf-stage" style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, zIndex: 4 }}>
-          <WordMission kind="construction" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/><div className="wa-checklist"><span>BASE {cur.base_word}</span><span className={draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'is-ready':''}>New form {draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'✓':'○'}</span><span className={verdict==='right'?'is-ready':''}>Fits the sentence {verdict==='right'?'✓':'○'}</span></div>
+          <WordMission kind="construction" current={resolvedQuestions} total={total} chain={arcade.chain} reaction={arcade.reaction}/><div className="wa-checklist"><span>BASE {cur.base_word}</span><span className={draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'is-ready':''}>New form {draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'✓':'○'}</span><span className={verdict==='right'?'is-ready':''}>Fits the sentence {verdict==='right'?'✓':'○'}</span></div>
           <div className="em-eyebrow" style={{ color: ACCENT, letterSpacing: '0.22em' }}>
             NO TRANSFORMATION NEEDED
           </div>
@@ -589,7 +502,8 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
       {/* Main work area */}
       {!completed && cur && !basePosLooksIdentity && (
         <div className="wf-stage" style={{ position: 'absolute', inset: '110px 24px 220px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28, zIndex: 4 }}>
-          <WordMission kind="construction" current={idx} total={total} chain={arcade.chain} reaction={arcade.reaction}/><div className="wa-checklist"><span>BASE {cur.base_word}</span><span className={draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'is-ready':''}>New form {draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'✓':'○'}</span><span className={verdict==='right'?'is-ready':''}>Fits the sentence {verdict==='right'?'✓':'○'}</span></div>
+          <WordMission kind="construction" current={resolvedQuestions} total={total} chain={arcade.chain} reaction={arcade.reaction}/><div className="wa-checklist"><span>BASE {cur.base_word}</span><span className={draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'is-ready':''}>New form {draft.trim()&&normalise(draft)!==normalise(cur.base_word)?'✓':'○'}</span><span className={verdict==='right'?'is-ready':''}>Fits the sentence {verdict==='right'?'✓':'○'}</span></div>
+          <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={cur.id} base={cur.base_word} draft={draft} done={verdict==='right'} onBuild={word=>{if(!forcedState&&verdict!=='right'){setDraft(word);setVerdict(null);}}} onSubmit={submit}/></WordSuspense>
           {/* Sentence carved on a stone slab */}
           <div
             key={`s-${cur.id}`}
@@ -683,7 +597,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
             </div>
 
             {/* Carved input */}
-            <div style={{ position: 'relative', minWidth: 220 }}>
+            <div style={{ position: 'relative', minWidth: 0, width: 280, maxWidth: '100%' }}>
               <input
                 ref={inputRef}
                 type="text"
@@ -708,7 +622,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
                       : `inset 0 0 30px rgba(0,0,0,0.35)`,
                   outline: 'none',
                   textAlign: 'center',
-                  width: '100%', minWidth: 220,
+                  width: '100%', minWidth: 0,
                   letterSpacing: '0.03em',
                   transition: 'all 220ms var(--em-ease)',
                   animation: verdict === 'right' ? 'wf-spark 0.6s var(--em-ease)' : 'none',
@@ -839,10 +753,9 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
           0%   { transform: translate(0, 0) scale(1); opacity: 1; }
           100% { transform: translate(${(Math.random() * 60 - 30) | 0}px, -40px) scale(0.4); opacity: 0; }
         }
-        /* Right-rail (Ricky · 2026-05-02 · audit §4 #8). */
-        .em-shell-wordformation .wf-rail { display: none; }
+         { display: none; }
         @media (min-width: 1280px) {
-          .em-shell-wordformation .wf-rail {
+           {
             display: flex;
             flex-direction: column;
             position: absolute;
@@ -862,10 +775,10 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
             font-family: var(--em-body);
             overflow-y: auto;
           }
-          .em-shell-wordformation .wf-stage {
+           {
             inset: 110px 326px 220px 24px !important;
           }
-          .em-shell-wordformation .wf-rail-list {
+           {
             list-style: none;
             margin: 0;
             padding: 0;
@@ -874,7 +787,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
             gap: 6px;
             flex: 1;
           }
-          .em-shell-wordformation .wf-rail-item {
+           {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -885,55 +798,55 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
             position: relative;
             transition: background 140ms;
           }
-          .em-shell-wordformation .wf-rail-item-cur {
+           {
             background: rgba(251, 191, 36, 0.14);
             border-color: rgba(251, 191, 36, 0.55);
             box-shadow: 0 0 14px rgba(251, 191, 36, 0.18);
           }
-          .em-shell-wordformation .wf-rail-item-past {
+           {
             opacity: 0.55;
           }
-          .em-shell-wordformation .wf-rail-num {
+           {
             font-family: var(--em-mono);
             font-size: 10px;
             color: rgba(255,255,255,0.4);
             letter-spacing: 0.08em;
             min-width: 18px;
           }
-          .em-shell-wordformation .wf-rail-body {
+           {
             display: flex;
             flex-direction: column;
             flex: 1;
             min-width: 0;
             gap: 2px;
           }
-          .em-shell-wordformation .wf-rail-base {
+           {
             font-family: var(--em-decor);
             font-size: 14px;
             letter-spacing: 0.04em;
             color: #C8B698;
           }
-          .em-shell-wordformation .wf-rail-arrow {
+           {
             font-family: var(--em-mono);
             font-size: 10px;
             letter-spacing: 0.18em;
             color: #FBBF24;
           }
-          .em-shell-wordformation .wf-rail-pl {
+           {
             font-size: 10px;
             color: rgba(255,255,255,0.45);
             font-style: italic;
           }
-          .em-shell-wordformation .wf-rail-pin {
+           {
             font-size: 10px;
             color: #FBBF24;
             min-width: 14px;
             text-align: right;
           }
-          .em-shell-wordformation .wf-rail-pin-done {
+           {
             color: #34D399;
           }
-          .em-shell-wordformation .wf-rail-foot {
+           {
             display: flex;
             align-items: flex-start;
             gap: 8px;
@@ -941,7 +854,7 @@ export const WordFormationShell: React.FC<WordFormationShellProps> = ({
             padding-top: 12px;
             border-top: 1px dashed rgba(255, 255, 255, 0.14);
           }
-          .em-shell-wordformation .wf-rail-foot-icon {
+           {
             flex-shrink: 0;
           }
         }

@@ -1,4 +1,5 @@
-import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
+import { Challenge3D } from './challenge-3d';
+import { ChallengeMission, useChallengeArcade } from './challenge-arcade';
 // Labelled Diagram shell — "The Atrium Schematic" district.
 // A blueprint chamber: an architectural drafting paper grid with the
 // atrium silhouette laid over it. Hotspots are pinpoints (small cyan
@@ -10,16 +11,7 @@ import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade 
 import { useShellProgress } from '../lib/convex-stubs';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Bajla,
-  HintCard,
-  Progress,
-  Nameplate,
-  SkipButton,
-  HintButton,
-  Confetti,
-  useEndOfShellTip,
-} from '../components/primitives';
+import { Bajla, Progress, Nameplate, SkipButton, HintButton, Confetti, useEndOfShellTip } from '../components/primitives';
 import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
 import { useTouchDragDrop, dropZoneProps } from './useTouchDragDrop';
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
@@ -570,6 +562,11 @@ export const LabelledDiagramShell: React.FC<LabelledDiagramShellProps> = ({
         }}
       >
         <ChallengeMission title="Bring the schematic online." detail="Connect each label to the right location. Correct connections illuminate the network; wrong labels return to the tray." current={solved} total={total} />
+        <Challenge3D game="LabelledDiagram" prompt={`${activePuzzle.title} — connect labels to the diagram's numbered points.`}
+          items={activePuzzle.hotspots.map(h=>({id:h.id,label:h.label,locked:placement[h.id]===h.id}))}
+          slots={activePuzzle.hotspots.map((h,i)=>({id:h.id,label:placement[h.id]===h.id?h.label:`Diagram point ${i+1}`,state:placement[h.id]===h.id?'right':feedback?.id===h.id&&!feedback.ok?'wrong':'idle',locked:placement[h.id]===h.id}))}
+          onPlace={placeLabel} locked={completed || !!forcedState} status={announcement} />
+
         {/* DIAGRAM PANE */}
         <div
           className="em-card"

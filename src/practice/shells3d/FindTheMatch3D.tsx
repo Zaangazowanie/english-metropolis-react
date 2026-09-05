@@ -1,0 +1,9 @@
+import { Challenge3DPreferences } from '../shells/challenge-3d-preferences';
+import CanonicalShell from '../shells/FindTheMatch';
+import { ChallengeMachine, type MachineProps } from './challenge-machine';
+const design = { kind: 'network', title: 'The Delivery Network', instruction: 'Connect a clue depot to its matching word depot. Completed connections stay illuminated.', action: 'Connect depot', color: '#63ed00', mode: 'direct' } as const;
+/** Canonical handlers own grading; this chunk owns the spatial interaction. */
+export default function FindTheMatch3D(props: MachineProps) {
+  if (props.items === undefined) return <Challenge3DPreferences value={{quality:props.quality,reducedMotion:props.reducedMotion}}><div style={props.fullscreen?{position:"fixed",inset:0,zIndex:900,overflow:"auto",background:"#090d38"}:undefined}><CanonicalShell puzzle={props.puzzle as never} onSessionComplete={props.onSessionComplete ? r => props.onSessionComplete?.({...r,shellKey:'findthematch'}) : undefined} /></div></Challenge3DPreferences>;
+  return <ChallengeMachine {...props} design={design} />;
+}

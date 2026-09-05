@@ -1,4 +1,5 @@
-import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade } from './challenge-arcade';
+import { Challenge3D } from './challenge-3d';
+import { ChallengeMission, SpeakingMission, useChallengeArcade } from './challenge-arcade';
 // Speaking Cards shell — "The Speakeasy" district.
 // A brass-plated speakeasy at dusk: velvet curtain, a vintage tube
 // microphone on a brass stand, a flickering EXIT sign. Each card prompts
@@ -11,15 +12,7 @@ import { ChallengeMission, EvidenceScanner, SpeakingMission, useChallengeArcade 
 import { useShellProgress } from '../lib/convex-stubs';
 
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  Bajla,
-  HintCard,
-  Progress,
-  Nameplate,
-  SkipButton,
-  HintButton,
-  Confetti,
-} from '../components/primitives';
+import { Bajla, Progress, Nameplate, SkipButton, HintButton, Confetti } from '../components/primitives';
 import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components';
@@ -678,6 +671,16 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
         }}
       >
         <ChallengeMission title="Take the mic. Make the scene your own." detail="Use the target phrases in a natural answer, then listen back and self-rate. · Mów, odsłuchaj, oceń." current={seen} total={total} />
+        <Challenge3D game="SpeakingCards" roundKey={cur.id} prompt={cur.prompt} signal={recordState==='recording'?recordSeconds/20:0}
+          items={[
+            {id:'mic',label:recordState==='recording'?`Stop recording · ${recordSeconds}s`:'Record my response',state:recordState==='recording'?'selected':'idle'},
+            {id:'targets',label:showTargets?'Hide phrase cues':'Reveal phrase cues'},
+            {id:'well',label:'I said it well · Self-rating',locked:recordState==='recording'},
+            {id:'retry',label:'Keep this for practice · Self-rating',locked:recordState==='recording'}
+          ]} locked={completed || !!forcedState}
+          onPick={id=>{if(id==='mic'){if(recordState==='recording')stopRecording();else void startRecording();}else if(id==='targets')setShowTargets(v=>!v);else if(id==='well')rateWell();else rateRetry();}}
+          status={recordState==='denied'?'Mic denied. Speak aloud and use honest self-rating.':recordState==='unavailable'?'Recording unavailable. Speak aloud and self-rate.':announcement} />
+
         {/* PROMPT CARD */}
         <div
           key={cur.id}
@@ -793,7 +796,7 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
         </div>
 
         {/* MIC + CONTROLS */}
-        <div
+        <div className="cm-recording-playback"
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -804,107 +807,8 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
           }}
         >
           {/* The microphone */}
-          <div
-            aria-hidden="true"
-            style={{
-              position: 'relative',
-              width: 110,
-              height: 200,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            {/* mic head */}
-            <div
-              style={{
-                width: 90,
-                height: 110,
-                borderRadius: 18,
-                background:
-                  'linear-gradient(180deg, #E0A33F 0%, #B89E66 50%, #876543 100%)',
-                boxShadow:
-                  recordState === 'recording'
-                    ? `inset 0 0 30px rgba(0,0,0,0.4), 0 0 24px ${ACCENT}aa, 0 0 40px ${ACCENT}55`
-                    : 'inset 0 0 30px rgba(0,0,0,0.4), 0 8px 18px rgba(0,0,0,0.5)',
-                position: 'relative',
-                border: '2px solid #5A4220',
-              }}
-            >
-              {/* mesh */}
-              <svg
-                viewBox="0 0 90 110"
-                width="90"
-                height="110"
-                style={{ position: 'absolute', inset: 0 }}
-                aria-hidden="true"
-              >
-                {Array.from({ length: 8 }).map((_, r) =>
-                  Array.from({ length: 6 }).map((__, c) => (
-                    <circle
-                      key={`${r}-${c}`}
-                      cx={12 + c * 13}
-                      cy={14 + r * 11}
-                      r="2"
-                      fill="#1A0F08"
-                      opacity="0.45"
-                    />
-                  )),
-                )}
-              </svg>
-              {/* recording LED */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: 8,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  background: recordState === 'recording' ? '#FB7185' : '#3A2510',
-                  animation: recordState === 'recording' ? 'em-sc-mic-glow 1.4s var(--em-ease) infinite' : 'none',
-                }}
-              />
-            </div>
-            {/* mic stand neck */}
-            <div style={{ width: 8, height: 10, background: '#876543' }} />
-            {/* base */}
-            <div
-              style={{
-                width: 90,
-                height: 16,
-                borderRadius: '50%',
-                background: 'linear-gradient(180deg, #876543, #3F2510)',
-                boxShadow: '0 8px 16px rgba(0,0,0,0.55)',
-              }}
-            />
-          </div>
 
           {/* mic controls */}
-          {recordState === 'idle' && (
-            <button
-              type="button"
-              onClick={startRecording}
-              disabled={!!forcedState}
-              aria-label="Start recording your answer"
-              style={{
-                padding: '14px 26px',
-                borderRadius: 999,
-                background: `linear-gradient(180deg, ${ACCENT}, #BE8B16)`,
-                color: '#1A0F08',
-                border: `1px solid ${ACCENT}`,
-                fontFamily: 'var(--em-display)',
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: 'pointer',
-                minHeight: 48,
-                boxShadow: `0 8px 20px ${ACCENT}55`,
-              }}
-            >
-              ● Record yourself
-            </button>
-          )}
 
           {recordState === 'recording' && (
             <>
@@ -919,25 +823,7 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
               >
                 ● REC {String(Math.floor(recordSeconds / 60)).padStart(2, '0')}:{String(recordSeconds % 60).padStart(2, '0')} / 00:20
               </div>
-              <button
-                type="button"
-                onClick={stopRecording}
-                aria-label="Stop recording"
-                style={{
-                  padding: '14px 26px',
-                  borderRadius: 999,
-                  background: 'linear-gradient(180deg, #FB7185, #BE3A4F)',
-                  color: '#fff',
-                  border: '1px solid #FB7185',
-                  fontFamily: 'var(--em-display)',
-                  fontWeight: 700,
-                  fontSize: 14,
-                  cursor: 'pointer',
-                  minHeight: 48,
-                }}
-              >
-                ■ Stop
-              </button>
+
             </>
           )}
 
@@ -1013,50 +899,6 @@ export const SpeakingCardsShell: React.FC<SpeakingCardsShellProps> = ({
 
           <SpeakingMission key={cur.id} phrases={cur.target_phrases} recording={recordState === 'recording'} seconds={recordSeconds} />
           {/* Self-rate buttons — always available, even with no mic */}
-          <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button
-              type="button"
-              onClick={rateRetry}
-              disabled={!!forcedState}
-              aria-label="I want to try this again"
-              style={{
-                padding: '12px 22px',
-                borderRadius: 999,
-                background: 'linear-gradient(180deg, #FB7185, #BE3A4F)',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.2)',
-                fontFamily: 'var(--em-display)',
-                fontWeight: 600,
-                fontSize: 13,
-                cursor: 'pointer',
-                minHeight: 44,
-                boxShadow: '0 8px 20px rgba(251,113,133,0.35)',
-              }}
-            >
-              ↻ Try again
-            </button>
-            <button
-              type="button"
-              onClick={rateWell}
-              disabled={!!forcedState}
-              aria-label="I said it well"
-              style={{
-                padding: '12px 22px',
-                borderRadius: 999,
-                background: 'linear-gradient(180deg, #34D399, #1B8060)',
-                color: '#0E2A1F',
-                border: '1px solid rgba(255,255,255,0.2)',
-                fontFamily: 'var(--em-display)',
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: 'pointer',
-                minHeight: 44,
-                boxShadow: '0 8px 20px rgba(52,211,153,0.35)',
-              }}
-            >
-              ✓ I said it well
-            </button>
-          </div>
 
         </div>
       </div>

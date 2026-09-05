@@ -1,3 +1,4 @@
+import { ActionPlayfield3D } from './action-arcade-three';
 import { useActionCompletion } from './action-arcade-completion';
 import { selectedWheelRotation } from './action-arcade-logic.mjs';
 import { useArcadeEvents } from '../lib/arcade-events';
@@ -16,12 +17,11 @@ import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
 // CD audit 2026-05-02 (#19): word-tile shells must mask the answer in the
 // rendered prompt as a belt-and-suspenders pass over the adapter layer.
 import { maskAnswerInPrompt } from '../lib/exercise-adapters';
-import { buildSafeHint } from '../lib/safeHint';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Bajla,
-  HintCard,
+
   Progress,
   Nameplate,
   SkipButton,
@@ -149,14 +149,14 @@ const DEMO_PUZZLE: ArcadePuzzle = {
   ],
 };
 
-const ACCENT = '#E879F9';
+const ACCENT = '#ef22ff';
 
 // ─────────────────────────────────────────────────────────────────────────
 // renderSpinTheWheelReviewItem — per-round locked render for PracticeReview.
 // Carnival scoreboard row: round number + question + 4 wedge options with
 // the student's pick + correct answer highlighted.
 // ─────────────────────────────────────────────────────────────────────────
-const STW_REVIEW_ACCENT = '#E879F9';
+const STW_REVIEW_ACCENT = '#ef22ff';
 export function renderSpinTheWheelReviewItem(
   round: ArcadeRound,
   roundNumber: number,
@@ -188,7 +188,7 @@ export function renderSpinTheWheelReviewItem(
           fontFamily: 'var(--em-mono)', fontSize: 9, letterSpacing: '0.18em',
           padding: '2px 8px', borderRadius: 999, fontWeight: 700,
           background: isWrong ? 'rgba(251,113,133,0.18)' : 'rgba(52,211,153,0.18)',
-          color: isWrong ? '#FB7185' : '#34D399',
+          color: isWrong ? '#ff3871' : '#00eb91',
         }}>
           {isWrong ? '✗ MISSED · POMINIĘTE' : '✓ LANDED · TRAFIONE'}
         </span>
@@ -211,8 +211,8 @@ export function renderSpinTheWheelReviewItem(
                 : showWrong
                   ? 'rgba(251,113,133,0.18)'
                   : 'rgba(245,239,255,0.04)',
-              border: `1px solid ${showCorrect ? '#34D39988' : showWrong ? '#FB718588' : 'rgba(245,239,255,0.1)'}`,
-              color: showCorrect ? '#34D399' : showWrong ? '#FB7185' : 'var(--em-text, #EDE6FF)',
+              border: `1px solid ${showCorrect ? '#00eb9188' : showWrong ? '#ff387188' : 'rgba(245,239,255,0.1)'}`,
+              color: showCorrect ? '#00eb91' : showWrong ? '#ff3871' : 'var(--em-text, #EDE6FF)',
               fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{
@@ -231,7 +231,6 @@ export function renderSpinTheWheelReviewItem(
 }
 
 export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
-  time = 'dusk',
   state: forcedState = null,
   puzzle,
   onWrongAnswer,
@@ -282,7 +281,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
     } : undefined,
   });
   const wedgeCount = cur.options.length;
-  const wedgeAngle = 360 / wedgeCount;
+
   // Kelly Tier-2 (2026-05-02): wheel spin is the entire visual mechanic.
   // CSS already collapses the rotation transition to 0.01ms under reduced-
   // motion, but the JS sequencer waited 4.2s for a spin that never visually
@@ -363,15 +362,6 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
     }, SPIN_WAIT_MS);
   };
 
-  const skipRound = (): void => {
-    if (spinning) return;
-    if (roundIdx + 1 < activePuzzle.rounds.length) {
-      setRoundIdx(i => i + 1);
-      setLandedOn(null);
-      setFeedback(null);
-    }
-  };
-
   const useHint = (): void => {
     if (hintsUsed >= 3 || spinning) return;
     setShowHintGlow(true);
@@ -395,17 +385,8 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
   };
 
   // Wedge palette derived from accent — alternating saturation.
-  const wedgeColors = ['#E879F9', '#A78BFA', '#FBBF24', '#7DD3FC', '#34D399', '#FB7185', '#BEF264', '#F472B6'];
+  const wedgeColors = ['#ed00ff', '#7628ff', '#ffcf00', '#00cdff', '#00e875', '#ff174f', '#9aff00', '#ff008e'];
 
-  const grad = time === 'day'
-    ? 'linear-gradient(180deg, #6E4FB8 0%, #C58BD9 100%)'
-    : time === 'night'
-      ? 'linear-gradient(180deg, #02010C 0%, #1F0E3A 60%, #3E1A60 100%)'
-      : 'linear-gradient(180deg, #1F1240 0%, #5B2480 60%, #9C3D8E 100%)';
-
-  // Build SVG wedge paths.
-  const RADIUS = 150;
-  const CENTER = 170;
   // CD audit 2026-05-02 (#20): wedge text used to live INSIDE each wedge with
   // `transform: rotate(labelAngle + 90)` — that rotates with the wheel, so at
   // rest the labels are sideways (Q2/Q4) or upside-down (Q3/Q5), and once the
@@ -416,30 +397,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
   // and never truncates. The pointer at top shows the landed letter; the
   // legend tells the student what that letter means.
   const wedgeLetter = (i: number): string => String.fromCharCode(65 + i); // A, B, C, D…
-  const wedges = cur.options.map((opt, i) => {
-    const startAngle = i * wedgeAngle - 90;
-    const endAngle = (i + 1) * wedgeAngle - 90;
-    const startRad = (startAngle * Math.PI) / 180;
-    const endRad = (endAngle * Math.PI) / 180;
-    const x1 = CENTER + RADIUS * Math.cos(startRad);
-    const y1 = CENTER + RADIUS * Math.sin(startRad);
-    const x2 = CENTER + RADIUS * Math.cos(endRad);
-    const y2 = CENTER + RADIUS * Math.sin(endRad);
-    const large = wedgeAngle > 180 ? 1 : 0;
-    const path = `M ${CENTER} ${CENTER} L ${x1} ${y1} A ${RADIUS} ${RADIUS} 0 ${large} 1 ${x2} ${y2} Z`;
-    const labelAngle = startAngle + wedgeAngle / 2;
-    const labelRad = (labelAngle * Math.PI) / 180;
-    // Letter marker sits closer to the rim so it's readable even with thin
-    // wedges (8 options would otherwise crowd the centre).
-    const letterX = CENTER + RADIUS * 0.66 * Math.cos(labelRad);
-    const letterY = CENTER + RADIUS * 0.66 * Math.sin(labelRad);
-    return {
-      opt, path, letterX, letterY, labelAngle,
-      color: wedgeColors[i % wedgeColors.length],
-      letter: wedgeLetter(i),
-      i,
-    };
-  });
+  const wedges = cur.options.map((opt, i) => ({ opt, i, letter: wedgeLetter(i), color: wedgeColors[i % wedgeColors.length] }));
 
   const liveStatus = completed
     ? 'The wheel rests. All rounds complete.'
@@ -459,69 +417,17 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
     >
       <style>{`
-        @keyframes em-stw-rise {
+@keyframes em-stw-rise {
           from { opacity: 0; transform: translateY(12px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes em-stw-marquee {
-          0%, 100% { opacity: 0.45; box-shadow: 0 0 8px ${ACCENT}aa; }
-          50% { opacity: 1; box-shadow: 0 0 18px ${ACCENT}, 0 0 30px ${ACCENT}66; }
-        }
-        @keyframes em-stw-pointer-bob {
-          0%, 100% { transform: translate(-50%, 0) scale(1); }
-          50% { transform: translate(-50%, -3px) scale(1.05); }
-        }
-        @keyframes em-stw-pointer-tick {
-          0% { transform: translate(-50%, 0) rotate(0deg); }
-          50% { transform: translate(-50%, 0) rotate(-8deg); }
-          100% { transform: translate(-50%, 0) rotate(0deg); }
-        }
-        @keyframes em-stw-burst {
-          0% { transform: scale(0.4); opacity: 0; }
-          40% { transform: scale(1.1); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes em-stw-confetti-shake {
-          0%, 100% { transform: translateY(0); }
-          25% { transform: translateY(-2px); }
-          75% { transform: translateY(2px); }
-        }
-        .em-stw-bulb { animation: em-stw-marquee 2.4s var(--em-ease) infinite; }
         @media (max-width: 768px) {
           .em-stw-side { display: none !important; }
           .em-stw-layout { grid-template-columns: 1fr !important; padding: 16px !important; }
-          .em-stw-wheel-svg { max-width: 100%; height: auto; }
         }
       `}</style>
 
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{liveStatus}</div>
-
-      {/* Carnival booth scene */}
-      <div style={{ position: 'absolute', inset: 0, background: grad }} />
-      {/* Booth striped awning at top */}
-      <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 80, pointerEvents: 'none' }} preserveAspectRatio="none" viewBox="0 0 1200 80">
-        {Array.from({ length: 24 }).map((_, i) => (
-          <polygon key={i}
-            points={`${i * 50},0 ${(i + 1) * 50},0 ${(i + 1) * 50 - 25},80`}
-            fill={i % 2 === 0 ? '#E879F9' : '#FBBF24'}
-            opacity={0.55}
-          />
-        ))}
-      </svg>
-      {/* Bunting — Ricky 2026-05-03 (CD audit, STW-bug-3b): bunting decoration
-          was overlapping the skip/hint buttons in the side panel because it
-          had default z-index. Pin to z-index 0 so all interactive controls
-          (which sit inside the layout grid below) stack above it. The
-          em-grain layer also stays purely decorative below z:1. */}
-      <svg style={{ position: 'absolute', top: 60, left: 0, width: '100%', height: 40, pointerEvents: 'none', zIndex: 0 }} preserveAspectRatio="none" viewBox="0 0 1200 40">
-        {Array.from({ length: 18 }).map((_, i) => (
-          <g key={i} transform={`translate(${i * 70 + 20}, 0)`}>
-            <line x1={0} y1={0} x2={50} y2={6} stroke={ACCENT} strokeWidth="0.8" opacity="0.6" />
-            <polygon points="10,4 30,4 20,28" fill={['#FBBF24', '#7DD3FC', '#34D399', '#FB7185'][i % 4]} opacity="0.7" />
-          </g>
-        ))}
-      </svg>
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
 
       <div className="em-stw-layout" style={{
         position: 'relative', display: 'grid',
@@ -559,118 +465,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
             </div>
 
             {/* Wheel + marquee */}
-            <div style={{ position: 'relative', width: 360, height: 360 }}>
-              {/* Marquee bulbs ring */}
-              {Array.from({ length: 24 }).map((_, i) => {
-                const a = (i / 24) * Math.PI * 2;
-                const r = 178;
-                const x = 180 + r * Math.cos(a) - 5;
-                const y = 180 + r * Math.sin(a) - 5;
-                return (
-                  <div key={i} className="em-stw-bulb" style={{
-                    position: 'absolute', left: x, top: y,
-                    width: 10, height: 10, borderRadius: '50%',
-                    background: ACCENT,
-                    animationDelay: `${(i % 6) * 0.2}s`,
-                  }} />
-                );
-              })}
-              {/* Wheel SVG */}
-              <svg
-                viewBox="0 0 340 340"
-                className="em-stw-wheel-svg"
-                style={{
-                  position: 'absolute', inset: 10, width: 340, height: 340,
-                  transform: `rotate(${angle}deg)`,
-                  transition: spinning ? 'transform 4.2s cubic-bezier(0.17, 0.67, 0.16, 1.0)' : 'none',
-                  filter: 'drop-shadow(0 6px 18px rgba(0,0,0,0.6))',
-                }}
-              >
-                <defs>
-                  <radialGradient id="wheelShine" cx="0.5" cy="0.5" r="0.5">
-                    <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
-                    <stop offset="100%" stopColor="rgba(0,0,0,0.0)" />
-                  </radialGradient>
-                </defs>
-                <circle cx={CENTER} cy={CENTER} r={RADIUS + 6} fill="#0E0A1A" />
-                {wedges.map(w => {
-                  const isHinted = showHintGlow && w.i === cur.answerIndex;
-                  return (
-                    <g key={w.i}>
-                      <path d={w.path} fill={w.color} stroke="#0E0A1A" strokeWidth="2" opacity={isHinted ? 1 : 0.92} />
-                      {isHinted && (
-                        <path d={w.path} fill="none" stroke="#FBBF24" strokeWidth="3" style={{ filter: 'drop-shadow(0 0 8px #FBBF24)' }} />
-                      )}
-                      {/* Letter marker — single glyph stays readable at any
-                         rotation, no truncation. Full word label lives in
-                         the external legend so it never rotates. */}
-                      <circle
-                        cx={w.letterX} cy={w.letterY} r={15}
-                        fill="rgba(14,10,26,0.85)"
-                        stroke={isHinted ? '#FBBF24' : '#0E0A1A'}
-                        strokeWidth={isHinted ? 2 : 1.2}
-                      />
-                      <text
-                        x={w.letterX}
-                        y={w.letterY}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fontFamily="var(--em-decor)"
-                        fontSize="18"
-                        fontWeight="700"
-                        fill={w.color}
-                        style={{ pointerEvents: 'none', userSelect: 'none' }}
-                      >{w.letter}</text>
-                    </g>
-                  );
-                })}
-                <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="url(#wheelShine)" pointerEvents="none" />
-                {/* Hub */}
-                <circle cx={CENTER} cy={CENTER} r={28} fill="#0E0A1A" stroke={ACCENT} strokeWidth="2" />
-                <circle cx={CENTER} cy={CENTER} r={10} fill={ACCENT} />
-              </svg>
-
-              {/* Pointer at top */}
-              <div style={{
-                position: 'absolute', top: -2, left: '50%',
-                width: 28, height: 38,
-                animation: spinning ? 'em-stw-pointer-tick 0.18s var(--em-ease) infinite' : 'em-stw-pointer-bob 2.2s var(--em-ease) infinite',
-                transformOrigin: 'top center',
-                pointerEvents: 'none',
-                zIndex: 3,
-              }}>
-                <svg viewBox="0 0 28 38" width={28} height={38}>
-                  <polygon points="14,38 0,4 28,4" fill={ACCENT} stroke="#0E0A1A" strokeWidth="1.5" />
-                  <circle cx="14" cy="6" r="3" fill="#FBBF24" stroke="#0E0A1A" strokeWidth="1" />
-                </svg>
-              </div>
-
-              {/* Burst feedback overlay */}
-              {feedback === 'correct' && landedOn !== null && (
-                <div style={{
-                  position: 'absolute', top: '50%', left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  fontFamily: 'var(--em-decor)',
-                  color: '#34D399',
-                  fontSize: 32,
-                  textShadow: '0 0 20px #34D39988',
-                  animation: 'em-stw-burst 540ms var(--em-ease)',
-                  pointerEvents: 'none',
-                }}>✓</div>
-              )}
-              {feedback === 'wrong' && landedOn !== null && (
-                <div style={{
-                  position: 'absolute', top: '50%', left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  fontFamily: 'var(--em-decor)',
-                  color: '#FB7185',
-                  fontSize: 28,
-                  textShadow: '0 0 20px #FB718588',
-                  animation: 'em-stw-burst 540ms var(--em-ease)',
-                  pointerEvents: 'none',
-                }}>×</div>
-              )}
-            </div>
+            <ActionPlayfield3D kind="spinthewheel" data={{reducedMotion:reduceMotion,angle, duration:SPIN_WAIT_MS,running:spinning,onSpin:spin,onPick:i=>{if(!completed&&feedback!=='correct'){setSelected(i);setFeedback(null);setLandedOn(null);}},actors:wedges.map(w=>({id:w.i,x:0,y:0,label:cur.options[w.i],color:w.color,selected:selected===w.i}))}} />
 
             {/* External nameplate-callout legend (CD audit Option A, #20).
                Wedges only carry single-letter markers — the full word labels
@@ -691,7 +486,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
               {wedges.map(w => {
                 const isLanded = landedOn === w.i;
                 const isCorrect = w.i === cur.answerIndex;
-                const showCorrectGlow = (feedback === 'correct' || feedback === 'wrong') && isCorrect;
+                const showCorrectGlow = (feedback === 'correct' || feedback === 'wrong' || showHintGlow) && isCorrect;
                 const showLandedWrong = feedback === 'wrong' && isLanded;
                 return (
                   <button
@@ -704,7 +499,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '6px 10px', borderRadius: 10,
                       background: showCorrectGlow ? 'rgba(52,211,153,0.16)' : showLandedWrong ? 'rgba(251,113,133,0.14)' : 'rgba(20,12,38,0.7)',
-                      border: `1px solid ${showCorrectGlow ? '#34D39988' : showLandedWrong ? '#FB718588' : `${w.color}55`}`,
+                      border: `1px solid ${showCorrectGlow ? '#00eb9188' : showLandedWrong ? '#ff387188' : `${w.color}55`}`,
                       transition: 'all 240ms var(--em-ease)',
                       minWidth: 0,
                     }}
@@ -718,7 +513,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontFamily: 'var(--em-decor)', fontSize: 13, fontWeight: 700,
                         color: '#0E0A1A',
-                        boxShadow: showCorrectGlow ? '0 0 12px #34D399aa' : 'none',
+                        boxShadow: showCorrectGlow ? '0 0 12px #00eb91aa' : 'none',
                       }}
                     >{w.letter}</div>
                     <div
@@ -770,7 +565,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
 
             {feedback === 'wrong' && landedOn !== null && (
               <div style={{
-                fontFamily: 'var(--em-mono)', fontSize: 11, color: '#FB7185',
+                fontFamily: 'var(--em-mono)', fontSize: 11, color: '#ff3871',
                 letterSpacing: '0.18em', textAlign: 'center',
               }}>
                 LANDED ON · {cur.options[landedOn].toUpperCase()} · TRY AGAIN
@@ -814,50 +609,13 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
             </div>
           </div>
 
-          <div className="em-shell-hint" style={{ minWidth: 0 }}>
-          </div>
-
-          {/* Tonight's Carnival — fills the right-side dead space (#9) with
-             a themed booth scene + run summary instead of duplicating the
-             wheel legend (now lives below the wheel as nameplate-callouts). */}
+          {/* Carnival configuration and the current round's result. */}
           <div className="em-card" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--em-line)', display: 'flex', justifyContent: 'space-between' }}>
               <div className="em-eyebrow">Tonight&apos;s Carnival · Dzisiejszy karnawał</div>
               <div className="em-eyebrow" style={{ color: ACCENT }}>{activePuzzle.rounds.length} rounds</div>
             </div>
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
-              {/* Bajla on the ticket booth, pointing at the wheel. Decorative. */}
-              <div style={{
-                position: 'relative',
-                height: 120,
-                borderRadius: 10,
-                background: 'linear-gradient(180deg, #2A1850 0%, #0E0A1A 100%)',
-                border: `1px solid ${ACCENT}33`,
-                overflow: 'hidden',
-                display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-              }}>
-                {/* Booth roof bunting */}
-                <svg style={{ position: 'absolute', top: 4, left: 0, width: '100%', height: 22 }} preserveAspectRatio="none" viewBox="0 0 200 22">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <polygon key={i}
-                      points={`${i * 25 + 4},2 ${i * 25 + 22},2 ${i * 25 + 13},18`}
-                      fill={['#FBBF24', '#7DD3FC', '#34D399', '#FB7185'][i % 4]}
-                      opacity={0.85}
-                    />
-                  ))}
-                </svg>
-                {/* Ticket booth silhouette */}
-                <svg style={{ position: 'absolute', bottom: 0, right: 14, width: 70, height: 80 }} viewBox="0 0 70 80">
-                  <rect x="6" y="20" width="58" height="58" fill="#1B0F36" stroke={ACCENT} strokeWidth="1.4" />
-                  <polygon points="0,20 35,2 70,20" fill="#3E1A60" stroke={ACCENT} strokeWidth="1.4" />
-                  <rect x="18" y="32" width="34" height="22" fill="#0E0A1A" stroke={ACCENT} strokeWidth="1" />
-                  <text x="35" y="46" textAnchor="middle" fontFamily="var(--em-mono)" fontSize="6" fill={ACCENT} letterSpacing="0.1em">TICKETS</text>
-                  <rect x="22" y="60" width="26" height="18" fill="#1B0F36" stroke={ACCENT} strokeWidth="0.8" />
-                </svg>
-                {/* Standalone Bajla beside the booth removed 2026-05-03 —
-                    chat-widget mascot is the canonical presence. */}
-              </div>
-
               {/* Run breakdown — wedge count + hint usage so the right panel
                  carries real information instead of duplicating the legend. */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -880,7 +638,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
                     border: '1px solid var(--em-line)',
                   }}>
                     <div style={{ fontFamily: 'var(--em-mono)', fontSize: 10, color: 'var(--em-muted)', letterSpacing: '0.12em' }}>HINTS</div>
-                    <div className="em-decor" style={{ fontSize: 22, color: '#FBBF24', lineHeight: 1.1 }}>{3 - hintsUsed}<span style={{ fontSize: 14, color: 'var(--em-muted)' }}> / 3</span></div>
+                    <div className="em-decor" style={{ fontSize: 22, color: '#ffce00', lineHeight: 1.1 }}>{3 - hintsUsed}<span style={{ fontSize: 14, color: 'var(--em-muted)' }}> / 3</span></div>
                     <div style={{ fontSize: 11, color: 'var(--em-muted)' }}>left tonight</div>
                   </div>
                 </div>
@@ -892,7 +650,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
                 <div style={{
                   padding: '10px 12px', borderRadius: 8,
                   background: 'rgba(52,211,153,0.08)',
-                  border: '1px solid #34D39955',
+                  border: '1px solid #00eb9155',
                   display: 'flex', alignItems: 'center', gap: 10,
                   animation: 'em-stw-rise 320ms var(--em-ease)',
                 }}>
@@ -905,7 +663,7 @@ export const SpinTheWheelShell: React.FC<SpinTheWheelShellProps> = ({
                     color: '#0E0A1A',
                   }}>{wedgeLetter(cur.answerIndex)}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="em-eyebrow" style={{ fontSize: 9, color: '#34D399' }}>ANSWER · ODPOWIEDŹ</div>
+                    <div className="em-eyebrow" style={{ fontSize: 9, color: '#00eb91' }}>ANSWER · ODPOWIEDŹ</div>
                     <div style={{ fontFamily: 'var(--em-body)', fontSize: 14, color: 'var(--em-text)' }}>{cur.options[cur.answerIndex]}</div>
                   </div>
                 </div>

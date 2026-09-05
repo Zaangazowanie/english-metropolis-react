@@ -1,3 +1,5 @@
+import { lazy as wordLazy, Suspense as WordSuspense } from 'react';
+const WordScene3D = wordLazy(() => import('../shells3d/WordGroupSort3D'));
 // Group sort — The Post Office district.
 // Drag mail (envelopes) into the correct sorting window (route).
 // Wrong drops bounce back; correct drops latch with an ink-stamp animation.
@@ -101,7 +103,7 @@ const GROUPSORT_INSTRUCTIONS: FullInstructions = {
       'Polski nie ma czasu Present Perfect — to największa luka gramatyczna dla Polaków. Ten poziom trenuje granicę między „have done" (PP) a „did" (PS) poprzez sortowanie na podstawie wskazówek aspektowych.',
   },
 };
-import { dropZoneProps, useTouchDragDrop } from './useTouchDragDrop';
+
 
 // ─────────────────────────────────────────────────────────────
 // Data
@@ -223,32 +225,15 @@ export interface GroupSortShellProps {
 type PlacedMap = Record<string, string>;
 
 const DRAG_MIME = 'text/plain';
-const zoneIdFor = (groupId: string): string => `gs-bin-${groupId}`;
-const parseZoneId = (id: string): string | null => {
-  const m = /^gs-bin-(.+)$/.exec(id);
-  return m ? m[1] : null;
-};
+
+
 
 // Route-naming helper. If the puzzle's group name already reads as a route
 // (e.g. carries " · " bilingual separator from the adapter, or already ends in
 // ROUTE), pass it through. Otherwise wrap it as "<NAME> ROUTE · TRASA".
 // CD audit (2026-05-02): "BIN A / BIN B" felt generic. Routes evoke the mail
 // metaphor and tie the bin to its grammar topic.
-const routeLabel = (groupName: string): { en: string; pl: string } => {
-  // Already bilingual? Split on the EN · PL separator and keep both halves.
-  if (groupName.includes(' · ')) {
-    const [en, pl] = groupName.split(' · ');
-    const enUp = en.toUpperCase();
-    const enLabel = /\b(ROUTE|LINE|RUN|POST)\b/.test(enUp) ? enUp : `${enUp} ROUTE`;
-    const plLabel = /\b(TRASA|LINIA|POCZTA)\b/.test(pl.toUpperCase()) ? pl.toUpperCase() : `TRASA ${pl.toUpperCase()}`;
-    return { en: enLabel, pl: plLabel };
-  }
-  const up = groupName.toUpperCase();
-  return {
-    en: /\bROUTE\b/.test(up) ? up : `${up} ROUTE`,
-    pl: `TRASA ${up}`,
-  };
-};
+
 
 // ─────────────────────────────────────────────────────────────
 // renderGroupSortReviewItem — per-item locked render for PracticeReview's
@@ -334,9 +319,9 @@ export const GroupSortShell: React.FC<GroupSortShellProps> = ({ time = 'day', st
   const [expressMode, setExpressMode] = useState(true);
   const [placed, setPlaced] = useState<PlacedMap>({});
   const [dragging, setDragging] = useState<string | null>(null);
-  const [hoverGroup, setHoverGroup] = useState<string | null>(null);
+
   const [shake, setShake] = useState<string | null>(null);
-  const [bounce, setBounce] = useState<string | null>(null);
+
   const [announcement, setAnnouncement] = useState<string>('');
 
   // Layer-4 (EM-040): accumulate wrong sorts during the session and fire
@@ -437,29 +422,29 @@ export const GroupSortShell: React.FC<GroupSortShellProps> = ({ time = 'day', st
 
   useEffect(() => {
     if (!forcedState) return;
-    if (forcedState === 'empty') { setPlaced({}); setShake(null); setBounce(null); }
+    if (forcedState === 'empty') { setPlaced({}); setShake(null);  }
     if (forcedState === 'active') {
       const it = puzzle.items[0];
       setPlaced({ [it.word]: it.group });
       setDragging(puzzle.items[1].word);
-      setHoverGroup(puzzle.items[1].group);
+
     }
     if (forcedState === 'correct') {
       const a = puzzle.items[0], b = puzzle.items[1];
       setPlaced({ [a.word]: a.group, [b.word]: b.group });
-      setDragging(null); setHoverGroup(null);
+      setDragging(null);
     }
     if (forcedState === 'wrong') {
       const it = puzzle.items[0];
       setPlaced({ [it.word]: it.group });
       const wrongGroup = puzzle.groups.find(g => g.id !== puzzle.items[1].group)?.id || puzzle.groups[0].id;
       setShake(wrongGroup);
-      setBounce(puzzle.items[1].word);
+
     }
     if (forcedState === 'complete') {
       const all: PlacedMap = {};
       puzzle.items.forEach(it => { all[it.word] = it.group; });
-      setPlaced(all); setDragging(null); setHoverGroup(null); setShake(null); setBounce(null);
+      setPlaced(all); setDragging(null);  setShake(null);
     }
   }, [forcedState, puzzleIdx, puzzle]);
 
@@ -488,9 +473,9 @@ export const GroupSortShell: React.FC<GroupSortShellProps> = ({ time = 'day', st
       setPlaced(p => ({ ...p, [word]: groupId }));
       setAnnouncement(`Correct. "${word}" sorted.`);
     } else {
-      setShake(groupId); setBounce(word);
+      setShake(groupId);
       setAnnouncement(`Wrong. "${word}" does not belong here.`);
-      setTimeout(() => { setShake(null); setBounce(null); }, 500);
+      setTimeout(() => { setShake(null);  }, 500);
       // Layer-4 (EM-040): instead of firing onWrongAnswer immediately on
       // each mis-sort (which interrupts iterative drag-and-build play),
       // accumulate the wrong attempt. We fire ONCE at end-of-shell (see
@@ -510,31 +495,13 @@ export const GroupSortShell: React.FC<GroupSortShellProps> = ({ time = 'day', st
         ]);
       }
     }
-    setDragging(null); setHoverGroup(null);
+    setDragging(null);
   };
 
   // Touch fallback — discovers drop zone via data-dnd-drop-id attribute.
-  const getTouchHandlers = useTouchDragDrop({
-    onDragStart: (sourceId) => setDragging(sourceId),
-    onHoverChange: (zoneId) => {
-      if (zoneId == null) { setHoverGroup(null); return; }
-      const groupId = parseZoneId(zoneId);
-      setHoverGroup(groupId);
-    },
-    onDrop: (zoneId, sourceId) => {
-      const groupId = parseZoneId(zoneId);
-      if (groupId) tryPlace(groupId, sourceId);
-    },
-    onDragEnd: () => setDragging(null),
-  });
 
-  const handleZoneKey = (groupId: string) => (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (forcedState) return;
-    if ((e.key === 'Enter' || e.key === ' ') && dragging) {
-      e.preventDefault();
-      tryPlace(groupId, dragging);
-    }
-  };
+
+
 
   // Kelly Tier-2 (2026-05-02): focus-trap effect for the mail-delivered dialog.
   useEffect(() => {
@@ -570,9 +537,8 @@ export const GroupSortShell: React.FC<GroupSortShellProps> = ({ time = 'day', st
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [completed]);
 
-  const unsorted = puzzle.items.filter(it => !placed[it.word]);
-  const sortedByGroup = (groupId: string): GroupItem[] =>
-    puzzle.items.filter(it => placed[it.word] === groupId);
+
+
 
   if (propsInvalid) {
     return <div className="em-shell-host-error">No puzzle data available · Brak danych ćwiczenia</div>;
@@ -587,16 +553,17 @@ export const GroupSortShell: React.FC<GroupSortShellProps> = ({ time = 'day', st
     <WordMission kind="sorting" current={puzzle.items.length-waiting.length} total={puzzle.items.length} chain={arcade.chain} reaction={arcade.reaction}/>
     <div className="wa-inline-tools"><button aria-pressed={expressMode} onClick={()=>{setExpressMode(v=>!v);setDragging(null);}}>Express conveyor {expressMode?'on':'off'}</button><span>{expressMode?'Route the next parcel. Press a destination number or tap a chute.':'Choose any parcel, then tap its destination.'}</span></div>
     <div className="wa-postal-objective"><small>TODAY’S ROUTE</small><h3>{puzzle.title}</h3></div>
-    <div className="wa-mail-chutes" style={{gridTemplateColumns:`repeat(${Math.min(puzzle.groups.length,4)},minmax(0,1fr))`}}>
+    <WordSuspense fallback={<p>Opening the 3D district…</p>}><WordScene3D key={puzzleIdx} groups={puzzle.groups} items={puzzle.items} placed={placed} active={activeParcel??null} onSelect={setDragging} onRoute={tryPlace}/></WordSuspense>
+    <details><summary>Accessible parcel controls</summary><div className="wa-mail-chutes" style={{gridTemplateColumns:`repeat(${Math.min(puzzle.groups.length,4)},minmax(0,1fr))`}}>
       {puzzle.groups.map((group,i)=>{const count=puzzle.items.filter(it=>placed[it.word]===group.id).length;return <button key={group.id} className={`wa-chute ${shake===group.id?'is-wrong':''} ${hintReveal?.group===group.id?'is-hint':''}`} style={{'--wa-route':group.color} as React.CSSProperties} onClick={()=>activeParcel&&tryPlace(group.id,activeParcel)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const word=e.dataTransfer.getData(DRAG_MIME)||activeParcel;if(word)tryPlace(group.id,word);}} aria-label={`Destination ${i+1}: ${group.name}. ${count} delivered.`}>
-        <span className="wa-route-number">{String(i+1).padStart(2,'0')}</span><strong>{group.name}</strong><div className="wa-chute-slot" aria-hidden="true"><i/></div><small>{count} delivered · dostarczono</small><div className="wa-route-stack" aria-hidden="true">{Array.from({length:Math.min(5,count)},(_,j)=><i key={j}/>)}</div>
+        <span className="wa-route-number">{String(i+1).padStart(2,'0')}</span><strong>{group.name}</strong><small>{count} delivered · dostarczono</small>
       </button>;})}
     </div>
     <div className="wa-conveyor" role="region" aria-label="Unsorted mail">
-      <div className="wa-conveyor-rollers" aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i}/>)}</div>
-      {(expressMode?waiting.slice(0,4):waiting).map((it,i)=><button key={it.word} className={`wa-parcel ${activeParcel===it.word?'is-active':''}`} disabled={expressMode&&i>0} draggable={!forcedState} onDragStart={e=>{setDragging(it.word);e.dataTransfer.setData(DRAG_MIME,it.word);}} onClick={()=>setDragging(it.word)} aria-label={`Parcel ${it.word}. Select to route.`}><svg viewBox="0 0 120 72" aria-hidden="true"><rect x="2" y="2" width="116" height="68" rx="6" fill="#ddc7a4" stroke="#a8865c" strokeWidth="2"/><path d="M3 6l57 36 57-36M3 68l36-26m78 26L81 42" stroke="#a8865c" fill="none"/><rect x="88" y="10" width="20" height="20" fill="#895ca8" opacity=".65"/><path d="M92 15h12m-12 4h12m-12 4h12" stroke="#ead5ef"/></svg><span>{it.word}</span>{expressMode&&i===0&&<small>NEXT TO ROUTE</small>}</button>)}
+
+      {(expressMode?waiting.slice(0,4):waiting).map((it,i)=><button key={it.word} className={`wa-parcel ${activeParcel===it.word?'is-active':''}`} disabled={expressMode&&i>0} draggable={!forcedState} onDragStart={e=>{setDragging(it.word);e.dataTransfer.setData(DRAG_MIME,it.word);}} onClick={()=>setDragging(it.word)} aria-label={`Parcel ${it.word}. Select to route.`}><span>{it.word}</span>{expressMode&&i===0&&<small>NEXT TO ROUTE</small>}</button>)}
     </div>
-    <p className="wa-forge-readout" role="status">{hintReveal?`Route “${hintReveal.word}” to ${puzzle.groups.find(g=>g.id===hintReveal.group)?.name}`:announcement||`${waiting.length} parcels waiting · Select a destination for ${activeParcel?`“${activeParcel}”`:'your parcel'}.`}</p>
+    </details><p className="wa-forge-readout" role="status">{hintReveal?`Route “${hintReveal.word}” to ${puzzle.groups.find(g=>g.id===hintReveal.group)?.name}`:announcement||`${waiting.length} parcels waiting · Select a destination for ${activeParcel?`“${activeParcel}”`:'your parcel'}.`}</p>
     {completed && !onSessionComplete && <div className="wa-dialog" role="dialog" aria-modal="true" aria-label="All mail sorted"><Bajla size={84} mood="cheer" decorative/><h3>Route complete.</h3><p>Every parcel has reached its destination.</p><div className="wa-inline-tools"><button ref={reSortBtnRef} className="em-btn" onClick={()=>{arcade.restart();reset();}}>Re-sort</button><button ref={nextRoundBtnRef} className="em-btn em-btn-primary" onClick={next}>Next route →</button></div></div>}
     <Confetti show={completed}/>
   </div>;

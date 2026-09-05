@@ -1,3 +1,4 @@
+import { ActionPlayfield3D } from './action-arcade-three';
 import { useActionCompletion } from './action-arcade-completion';
 import { useArcadeEvents } from '../lib/arcade-events';
 import { useActionTimers } from './action-arcade-timers';
@@ -13,12 +14,11 @@ import './action-arcade.css';
 // Persisted progress — Convex-backed, see convex-stubs.ts + convex/practice.ts.
 import { useShellProgress } from '../lib/convex-stubs';
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
-import { buildSafeHint } from '../lib/safeHint';
 
-import React, { useRef, useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   Bajla,
-  HintCard,
+
   Progress,
   Nameplate,
   SkipButton,
@@ -27,32 +27,6 @@ import {
   useEndOfShellTip,
 } from '../components/primitives';
 
-// 3D pilot (Ricky, 2026-05-03 — wave after Hangman3D). CSS-3D Vault Room
-// scene ported from Mike's prototype. Lazy-loaded so the brass-vault CSS bulk
-// only ships when a student opens this shell *and* the feature flag is on.
-// Pure-visual swap: the SVG dial grid below is the immediate fallback while
-// the 3D chunk downloads + remains the canonical render when the flag is off.
-const OpenTheBox3D = React.lazy(() => import('./OpenTheBox3D'));
-
-/**
- * Feature flag for the 3D Vault Room pilot.
- *  - Defaults ON in production (Mike's directive: ship the pilot).
- *  - Defaults OFF in dev so the design canvas + storybooks stay snappy.
- *  - Overridable via `window.__EM_OPENTHEBOX_3D__` for live A/B inside an
- *    open page (devtools toggle without a rebuild).
- */
-function isOpenTheBox3DEnabledFn(): boolean {
-  // import.meta.env.MODE is provided by Vite at build time.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mode: string = (import.meta as unknown as { env?: { MODE?: string } })?.env?.MODE ?? 'production';
-  const defaultOn = mode === 'production';
-  if (typeof window !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const override = (window as unknown as { __EM_OPENTHEBOX_3D__?: boolean }).__EM_OPENTHEBOX_3D__;
-    if (typeof override === 'boolean') return override;
-  }
-  return defaultOn;
-}
 import { AmbientAudioPlayer } from '../components/AmbientAudioPlayer';
 // Mike #7 (CD audit §4): expandable full-mechanic instructions panel.
 import type { FullInstructions } from '../components/ExpandableInstructions';
@@ -184,7 +158,7 @@ const DEMO_PUZZLE: ArcadePuzzle = {
   ],
 };
 
-const ACCENT = '#FBBF24';
+const ACCENT = '#ffce00';
 
 // ─────────────────────────────────────────────────────────────────────────
 // renderOpenTheBoxReviewItem — per-box locked render for PracticeReview.
@@ -192,7 +166,7 @@ const ACCENT = '#FBBF24';
 // answer + the explanationPL rule callout. Mirrors the live shell's poster
 // styling so the review feels like a frozen scoreboard.
 // ─────────────────────────────────────────────────────────────────────────
-const OTB_REVIEW_ACCENT = '#FBBF24';
+const OTB_REVIEW_ACCENT = '#ffce00';
 export function renderOpenTheBoxReviewItem(
   round: ArcadeRound,
   boxNumber: number,
@@ -224,7 +198,7 @@ export function renderOpenTheBoxReviewItem(
           fontFamily: 'var(--em-mono)', fontSize: 9, letterSpacing: '0.18em',
           padding: '2px 8px', borderRadius: 999, fontWeight: 700,
           background: isWrong ? 'rgba(251,113,133,0.18)' : 'rgba(52,211,153,0.18)',
-          color: isWrong ? '#FB7185' : '#34D399',
+          color: isWrong ? '#ff3871' : '#00eb91',
         }}>
           {isWrong ? '✗ BUSTED · USZKODZONA' : '✓ SEALED · ZAPLOMBOWANA'}
         </span>
@@ -247,8 +221,8 @@ export function renderOpenTheBoxReviewItem(
                 : showWrong
                   ? 'rgba(251,113,133,0.18)'
                   : 'rgba(245,239,255,0.04)',
-              border: `1px solid ${showCorrect ? '#34D39988' : showWrong ? '#FB718588' : 'rgba(245,239,255,0.1)'}`,
-              color: showCorrect ? '#34D399' : showWrong ? '#FB7185' : 'var(--em-text, #EDE6FF)',
+              border: `1px solid ${showCorrect ? '#00eb9188' : showWrong ? '#ff387188' : 'rgba(245,239,255,0.1)'}`,
+              color: showCorrect ? '#00eb91' : showWrong ? '#ff3871' : 'var(--em-text, #EDE6FF)',
               fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{
@@ -275,7 +249,6 @@ interface BoxState {
 }
 
 export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
-  time = 'night',
   state: forcedState = null,
   puzzle,
   onWrongAnswer,
@@ -316,11 +289,6 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
       });
     } : undefined,
   });
-  // 3D pilot flag — see isOpenTheBox3DEnabledFn() at top of file. Reads the
-  // window override / production default on every render (cheap; no need to
-  // memoize). When true, the brass-vault CSS-3D scene replaces the SVG dial
-  // grid; question popup, hint panel, ledger, header, audio all stay put.
-  const is3DEnabled = isOpenTheBox3DEnabledFn();
 
   // Kelly Tier-2 (2026-05-02): box-flip / slam-shut transitions are CSS, gated
   // to 0.01ms by global media query. Collapse the JS sequencer waits too so the
@@ -453,13 +421,6 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
   const curBox = activeIdx !== null ? boxes[activeIdx] : null;
 
   // Box grid sizing — 3 columns on desktop, auto on mobile.
-  const cols = total >= 9 ? 3 : Math.min(3, total);
-
-  const grad = time === 'day'
-    ? 'linear-gradient(180deg, #6E4FB8 0%, #3D2360 100%)'
-    : time === 'night'
-      ? 'linear-gradient(180deg, #02010C 0%, #120726 60%, #2A1450 100%)'
-      : 'linear-gradient(180deg, #1A0E36 0%, #2A1450 60%, #4B1E78 100%)';
 
   const liveStatus = completed
     ? 'The vault is sealed. All boxes secured.'
@@ -475,62 +436,22 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
     >
       <style>{`
-        @keyframes em-otb-rise {
+@keyframes em-otb-rise {
           from { opacity: 0; transform: translateY(12px); }
           to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes em-otb-flip-open {
-          0% { transform: perspective(900px) rotateY(0deg); }
-          100% { transform: perspective(900px) rotateY(-122deg); }
-        }
-        @keyframes em-otb-slam {
-          0% { transform: perspective(900px) rotateY(-122deg); }
-          70% { transform: perspective(900px) rotateY(8deg); }
-          100% { transform: perspective(900px) rotateY(0deg); }
         }
         @keyframes em-otb-shake {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-6px); }
           75% { transform: translateX(6px); }
         }
-        @keyframes em-otb-stamp {
-          0% { transform: scale(1.6) rotate(-12deg); opacity: 0; }
-          60% { transform: scale(0.92) rotate(-12deg); opacity: 1; }
-          100% { transform: scale(1) rotate(-12deg); opacity: 1; }
-        }
-        @keyframes em-otb-vault-light {
-          0%, 100% { opacity: 0.55; }
-          50% { opacity: 0.85; }
-        }
-        .em-otb-box-shell { animation: em-otb-rise 540ms var(--em-ease) both; }
-        .em-otb-box-shell:focus-visible { outline: 2px solid ${ACCENT}; outline-offset: 4px; border-radius: 6px; }
         @media (max-width: 768px) {
-          .em-otb-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 10px !important; }
           .em-otb-side { display: none !important; }
           .em-otb-layout { grid-template-columns: 1fr !important; padding: 16px !important; }
         }
       `}</style>
 
       <div role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{liveStatus}</div>
-
-      {/* Vault wall scene.
-          Ricky 2026-05-02 (#15 audit pass): explicit zIndex:0 + pointerEvents:none
-          on the background gradient (em-otb-layout below sits at relative z auto). */}
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background: grad }} />
-      <div style={{ position: 'absolute', inset: 0, opacity: 0.32, pointerEvents: 'none',
-        backgroundImage: `repeating-linear-gradient(90deg, rgba(0,0,0,0.45) 0 1px, transparent 1px 110px),
-                          repeating-linear-gradient(0deg, rgba(0,0,0,0.5) 0 1px, transparent 1px 80px)` }} />
-      {/* Vault overhead lights */}
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} style={{
-          position: 'absolute', top: 0, left: `${10 + i * 16}%`,
-          width: 140, height: 220,
-          background: `radial-gradient(ellipse at top, ${ACCENT}33 0%, transparent 70%)`,
-          animation: `em-otb-vault-light ${3 + (i % 3)}s var(--em-ease) ${i * 0.4}s infinite`,
-          pointerEvents: 'none',
-        }} />
-      ))}
-      <div className="em-grain" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
 
       <div className="em-otb-layout" style={{
         position: 'relative', display: 'grid',
@@ -588,157 +509,7 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
                 .em-otb-3d-room (the buttons inside it carry their own labels).
                 Suspense fallback is a dark vault-tinted placeholder so the
                 shell layout doesn't jump while the chunk downloads. */}
-            {is3DEnabled && (
-              <div style={{ position: 'absolute', inset: 0 }}>
-                <Suspense
-                  fallback={
-                    <div
-                      aria-hidden="true"
-                      style={{
-                        position: 'absolute', inset: 0,
-                        background: 'radial-gradient(ellipse at center, rgba(168,68,122,0.18), rgba(8,4,18,0.85))',
-                        border: '1px solid rgba(245,217,122,0.18)',
-                        borderRadius: 6,
-                      }}
-                    />
-                  }
-                >
-                  <OpenTheBox3D
-                    boxes={boxes.map((b, i) => ({
-                      index: i,
-                      // Parent uses 'closed' | 'opening' | 'open' | 'sealed' | 'slam';
-                      // 3D layer also accepts 'busted' (visual only, parent never
-                      // emits it — slam → closed re-cycle is the parent's design).
-                      state: b.face,
-                    }))}
-                    onBoxClick={openBox}
-                    currentRoundIdx={activeIdx}
-                    started={(sealedCount > 0) || activeIdx !== null}
-                    tweaks={{ shake }}
-                  />
-                </Suspense>
-              </div>
-            )}
-
-            {!is3DEnabled && (
-            <div className="em-otb-grid" style={{
-              display: 'grid', gridTemplateColumns: `repeat(${cols}, 130px)`, gap: 16,
-            }}>
-              {boxes.map((b, i) => {
-                const isFocus = activeIdx === i;
-                const flipping = b.face === 'opening' || b.face === 'open' || b.face === 'slam';
-                const sealed = b.face === 'sealed';
-                const animation = b.face === 'opening' ? 'em-otb-flip-open 320ms var(--em-ease) forwards'
-                  : b.face === 'open' ? 'none'
-                  : b.face === 'slam' ? 'em-otb-slam 320ms var(--em-ease) forwards'
-                  : 'none';
-                const pickedRotate = b.face === 'open' ? 'perspective(900px) rotateY(-122deg)' : undefined;
-                return (
-                  <button
-                    key={i}
-                    className="em-otb-box-shell"
-                    aria-label={sealed ? `Box ${i + 1}, sealed and locked` : isFocus ? `Box ${i + 1}, currently open` : `Box ${i + 1}, tap to open`}
-                    aria-pressed={isFocus}
-                    onClick={() => openBox(i)}
-                    disabled={sealed || (activeIdx !== null && !isFocus)}
-                    style={{
-                      position: 'relative', width: 130, height: 130,
-                      perspective: '900px',
-                      background: 'transparent', border: 'none', cursor: sealed ? 'default' : 'pointer', padding: 0,
-                      animationDelay: `${i * 60}ms`,
-                      opacity: activeIdx !== null && !isFocus && !sealed ? 0.45 : 1,
-                      transition: 'opacity 220ms',
-                    }}
-                  >
-                    {/* Cabinet frame (shadow box behind the door) */}
-                    <div style={{
-                      position: 'absolute', inset: 0, borderRadius: 6,
-                      background: 'linear-gradient(160deg, #0A0512 0%, #1A0F2E 100%)',
-                      boxShadow: 'inset 0 0 24px rgba(0,0,0,0.85), inset 0 2px 4px rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(0,0,0,0.6)',
-                    }}>
-                      {/* The number-stencil reveal area inside the cabinet */}
-                      <div style={{
-                        position: 'absolute', inset: 8, borderRadius: 4,
-                        background: 'radial-gradient(ellipse at center, rgba(251,191,36,0.18) 0%, rgba(0,0,0,0.6) 80%)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexDirection: 'column', gap: 4,
-                      }}>
-                        <div style={{
-                          fontFamily: 'var(--em-mono)', fontSize: 9, letterSpacing: '0.2em',
-                          color: `${ACCENT}99`,
-                        }}>BOX</div>
-                        <div className="em-decor" style={{ fontSize: 26, color: ACCENT, lineHeight: 1 }}>
-                          {String(i + 1).padStart(2, '0')}
-                        </div>
-                        {sealed && (
-                          <div style={{
-                            position: 'absolute', inset: 0, display: 'flex',
-                            alignItems: 'center', justifyContent: 'center',
-                            background: 'radial-gradient(ellipse at center, rgba(52,211,153,0.32) 0%, transparent 70%)',
-                            animation: 'em-otb-stamp 420ms var(--em-ease) both',
-                          }}>
-                            <div style={{
-                              padding: '4px 10px', border: '2px solid #34D399',
-                              fontFamily: 'var(--em-mono)', fontSize: 10, letterSpacing: '0.18em',
-                              color: '#34D399', borderRadius: 4,
-                              transform: 'rotate(-12deg)',
-                              background: 'rgba(0,0,0,0.45)',
-                            }}>SEALED</div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {/* Brass door with hinge + dial — rotates open on Y-axis */}
-                    <div style={{
-                      position: 'absolute', inset: 0,
-                      transformOrigin: 'left center',
-                      transformStyle: 'preserve-3d',
-                      transform: pickedRotate,
-                      animation,
-                      backfaceVisibility: 'hidden',
-                      pointerEvents: 'none',
-                    }}>
-                      <div style={{
-                        position: 'absolute', inset: 0, borderRadius: 6,
-                        background: 'linear-gradient(135deg, #C8932B 0%, #FBBF24 50%, #8C620E 100%)',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.55), inset 0 1px 2px rgba(255,255,255,0.4), inset 0 -1px 2px rgba(0,0,0,0.4)',
-                        border: '1px solid #5A3F08',
-                      }}>
-                        {/* Combination dial */}
-                        <div style={{
-                          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                          width: 50, height: 50, borderRadius: '50%',
-                          background: 'radial-gradient(circle, #FBBF24 0%, #8C620E 80%)',
-                          border: '2px solid #5A3F08',
-                          boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.3)',
-                        }}>
-                          <div style={{
-                            position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%)',
-                            width: 3, height: 14, background: '#0E0A1A', borderRadius: 2,
-                          }} />
-                          <div style={{
-                            position: 'absolute', top: '50%', left: '50%',
-                            transform: 'translate(-50%, -50%)', width: 8, height: 8,
-                            borderRadius: '50%', background: '#0E0A1A',
-                          }} />
-                        </div>
-                        {/* Two hinge rivets on left edge */}
-                        <div style={{ position: 'absolute', left: 4, top: 14, width: 6, height: 6, borderRadius: '50%', background: '#5A3F08' }} />
-                        <div style={{ position: 'absolute', left: 4, bottom: 14, width: 6, height: 6, borderRadius: '50%', background: '#5A3F08' }} />
-                        {/* Box number engraved on door */}
-                        <div style={{
-                          position: 'absolute', top: 8, right: 10,
-                          fontFamily: 'var(--em-mono)', fontSize: 10, color: '#5A3F08',
-                          letterSpacing: '0.1em',
-                        }}>№ {String(i + 1).padStart(2, '0')}</div>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            )}
+<div className="action-three-vault-slot"><ActionPlayfield3D kind="openthebox" data={{reducedMotion:reduceMotion,dial,onPick:openBox,onDial:()=>{if(cur)setDial(d=>(d+1)%cur.options.length);},actors:boxes.map((b,i)=>({id:i,x:0,y:0,state:b.face,selected:activeIdx===i,enabled:b.face!=='sealed'&&(activeIdx===null||activeIdx===i)}))}} controls={<>{boxes.map((b,i)=><button key={i} disabled={b.face==='sealed'||(activeIdx!==null&&activeIdx!==i)} onClick={()=>openBox(i)}>Safe {i+1}{b.face==='sealed'?' ✓':''}</button>)}</>} /></div>
           </div>
 
           <div className="action-arcade-hud" style={{ position: 'relative', zIndex: 2 }}><div><strong>VAULT HAUL · {loot}</strong><small>{lastLoot} Pick a safe, set its word dial, then turn the key.</small></div><span>{sealedCount}/{total} safes</span></div>
@@ -792,9 +563,9 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
                             : hinted
                               ? `${ACCENT}22`
                               : 'rgba(255,255,255,0.04)',
-                        outline: dial === oi ? '2px solid #fbbf24' : 'none',
-                        border: `1px solid ${showRight ? '#34D39966' : showWrong ? '#FB718566' : hinted ? `${ACCENT}88` : 'rgba(255,255,255,0.1)'}`,
-                        color: showRight ? '#34D399' : showWrong ? '#FB7185' : 'var(--em-text)',
+                        outline: dial === oi ? '2px solid #ffce00' : 'none',
+                        border: `1px solid ${showRight ? '#00eb9166' : showWrong ? '#ff387166' : hinted ? `${ACCENT}88` : 'rgba(255,255,255,0.1)'}`,
+                        color: showRight ? '#00eb91' : showWrong ? '#ff3871' : 'var(--em-text)',
                         fontFamily: 'var(--em-body)', fontSize: 14,
                         cursor: 'pointer', textAlign: 'left',
                         transition: 'all 200ms var(--em-ease)',
@@ -813,7 +584,7 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
               </div>
               <div className="action-arcade-controls" style={{ marginTop: 14 }}><button disabled={lockBusy} aria-label="Turn dial left" onClick={() => setDial(i => (i - 1 + cur.options.length) % cur.options.length)}>↶</button><button disabled={lockBusy} onClick={() => pick(activeIdx as number, dial)} style={{ background: 'linear-gradient(#fde68a,#dca844)', color: '#311c08', minWidth: 180 }}>{lockBusy ? 'Turning the lock…' : `Unlock with ${String.fromCharCode(65 + dial)}`}</button><button disabled={lockBusy} aria-label="Turn dial right" onClick={() => setDial(i => (i + 1) % cur.options.length)}>↷</button></div>
               {curBox.tries > 0 && (
-                <div style={{ marginTop: 10, fontFamily: 'var(--em-mono)', fontSize: 10, color: '#FB7185', letterSpacing: '0.16em' }}>
+                <div style={{ marginTop: 10, fontFamily: 'var(--em-mono)', fontSize: 10, color: '#ff3871', letterSpacing: '0.16em' }}>
                   TRY {curBox.tries} OF 2 · {curBox.tries >= 2 ? 'BOX SLAMS SHUT' : 'ONE MORE CHANCE'}
                 </div>
               )}
@@ -872,15 +643,15 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '8px 12px', borderRadius: 8,
                   background: b.face === 'sealed' ? 'rgba(52,211,153,0.08)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${b.face === 'sealed' ? '#34D39933' : 'var(--em-line)'}`,
+                  border: `1px solid ${b.face === 'sealed' ? '#00eb9133' : 'var(--em-line)'}`,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
                       width: 24, height: 24, borderRadius: 4,
-                      background: b.face === 'sealed' ? '#34D39922' : `${ACCENT}22`,
+                      background: b.face === 'sealed' ? '#00eb9122' : `${ACCENT}22`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontFamily: 'var(--em-mono)', fontSize: 9,
-                      color: b.face === 'sealed' ? '#34D399' : ACCENT,
+                      color: b.face === 'sealed' ? '#00eb91' : ACCENT,
                       letterSpacing: '0.06em',
                     }}>{String(i + 1).padStart(2, '0')}</div>
                     <div style={{ fontFamily: 'var(--em-mono)', fontSize: 11, color: 'var(--em-text-muted)' }}>
@@ -888,7 +659,7 @@ export const OpenTheBoxShell: React.FC<OpenTheBoxShellProps> = ({
                     </div>
                   </div>
                   {b.tries > 0 && b.face !== 'sealed' && (
-                    <div style={{ fontFamily: 'var(--em-mono)', fontSize: 10, color: '#FB7185' }}>
+                    <div style={{ fontFamily: 'var(--em-mono)', fontSize: 10, color: '#ff3871' }}>
                       {b.tries} miss
                     </div>
                   )}
