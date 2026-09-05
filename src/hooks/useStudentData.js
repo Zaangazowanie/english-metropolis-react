@@ -11,6 +11,7 @@ import {
 import { fetchWithTimeout } from '../practice/lib/practice-cache'
 import { getStudentSessionToken } from '../contexts/StudentAuthContext.jsx'
 import { createStudentDataRefresh, refreshedValue } from './studentDataRefresh.js'
+import { useI18n } from '../i18n'
 
 function normalizeDateKey(value) {
   return String(value || '').trim().slice(0, 10)
@@ -323,6 +324,7 @@ function emptyStudentState(slug) {
 }
 
 export default function useStudentData() {
+  const { t } = useI18n()
   const params = useParams()
   const { pathname } = useLocation()
   const urlSlug = params.slug || 'szymon-karpinski'
@@ -370,9 +372,9 @@ export default function useStudentData() {
             studentSlug: urlSlug,
             loading: false,
             lessonsError: convexLessonsResult.status === 'rejected'
-              ? 'Lessons could not be refreshed. Please try again.' : '',
+              ? 'lessons.refreshError' : '',
             convexError: [convexLessonsResult, analysesResult, keywordsResult].some(result => result.status === 'rejected')
-              ? 'Some learning data is temporarily unavailable. Please try again.' : '',
+              ? 'studentData.partialError' : '',
             profile: {
               id: studentId,
               name: student.name || STUDENT_NAME,
@@ -394,8 +396,8 @@ export default function useStudentData() {
       },
       onError() {
         setState(current => ({ ...current, loading: false,
-          lessonsError: 'Lessons could not be refreshed. Please try again.',
-          convexError: 'Learning data is temporarily unavailable. Please try again.' }))
+          lessonsError: 'lessons.refreshError',
+          convexError: 'studentData.unavailable' }))
       },
     })
     refreshController.current = controller
@@ -422,6 +424,8 @@ export default function useStudentData() {
 
   return {
     ...state,
+    lessonsError: state.lessonsError ? t(state.lessonsError) : '',
+    convexError: state.convexError ? t(state.convexError) : '',
     refresh,
     lessonCount,
     keywordCount,

@@ -2088,7 +2088,7 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
         </div>
         {data?.refresh && <button type="button" onClick={() => data.refresh()} disabled={data.loading}
           style={{ marginTop: 12, padding: '8px 14px', borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, color: T.text, cursor: 'pointer', font: 'inherit' }}>
-          {t('lessons.refresh', { defaultValue: 'Refresh lessons' })}
+          {t('lessons.refresh')}
         </button>}
         {data?.lessonsError && <p role="alert" style={{ color: T.textDim }}>{data.lessonsError}</p>}
         <input type="search" placeholder={t('lessons.searchPlaceholder')}

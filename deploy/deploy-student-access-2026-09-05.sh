@@ -20,8 +20,17 @@ fi
 test -s "$BUILD/index.html"
 node --test tests/admin-student-view.test.mjs tests/student-data-refresh.test.mjs tests/student-view-session.test.mjs tests/student-view-practice.test.mjs tests/arcade-demo-progress.test.mjs > "$BACKUP/tests.log"
 node_modules/.bin/convex function-spec --prod > "$BACKUP/spec-before.json"
-# Additive backend: no existing handler or schema changes in this release.
-script -qec 'node_modules/.bin/convex deploy --typecheck enable --codegen disable' /dev/null <<< 'y' > "$BACKUP/convex-deploy.log" 2>&1
+if [ "${STUDENT_ACCESS_FRONTEND_ONLY:-0}" = 1 ]; then
+  # This baseline completed the backend deploy and live access/revocation checks.
+  # Reuse it only when every backend file and dependency remains identical.
+  BASE=21737dd171502475c6b6542f951ae75b478e4a94
+  git merge-base --is-ancestor "$BASE" HEAD
+  git diff --quiet "$BASE" HEAD -- convex package.json package-lock.json yarn.lock pnpm-lock.yaml
+  echo "Reusing verified backend from $BASE" > "$BACKUP/convex-deploy.log"
+else
+  # Additive backend: no existing handler or schema changes in this release.
+  script -qec 'node_modules/.bin/convex deploy --typecheck enable --codegen disable' /dev/null <<< 'y' > "$BACKUP/convex-deploy.log" 2>&1
+fi
 node_modules/.bin/convex function-spec --prod > "$BACKUP/spec-after.json"
 python3 - "$BACKUP/spec-before.json" "$BACKUP/spec-after.json" <<'PY'
 import json, sys
@@ -46,7 +55,7 @@ rollback() {
 }
 trap rollback ERR
 # Keep all existing hashed chunks and learner PDFs. Index is switched last.
-rsync -a --backup --backup-dir="$BACKUP/replaced" --exclude='index.html' --exclude='lesson-pdfs.json' --exclude='release-source-tree.txt' --exclude='students/*/pdfs/' "$BUILD/" "$WEB/"
+rsync -a --backup --backup-dir="$BACKUP/replaced" --exclude='index.html' --exclude='lesson-pdfs.json' --exclude='release-source-tree.txt' --exclude='/play/' --exclude='students/*/pdfs/' "$BUILD/" "$WEB/"
 install -m 644 "$BUILD/index.html" "$WEB/.index-$STAMP.html"
 mv "$WEB/.index-$STAMP.html" "$WEB/index.html"
 curl --fail --silent --show-error --max-time 45 https://englishmetro.com/ > "$BACKUP/edge.html"
