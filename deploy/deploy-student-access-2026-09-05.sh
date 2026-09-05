@@ -27,7 +27,9 @@ python3 - "$BACKUP/spec-before.json" "$BACKUP/spec-after.json" <<'PY'
 import json, sys
 def functions(path):
     data=json.load(open(path))
-    return {x['identifier'] for x in (data if isinstance(data,list) else data['functions'])}
+    # HTTP routes have no identifier; include their method/path in the guard.
+    return {x.get('identifier') or f"HTTP {x['method']} {x['path']}"
+            for x in (data if isinstance(data,list) else data['functions'])}
 before,after=map(functions,sys.argv[1:])
 assert not before-after, f'Functions disappeared: {before-after}'
 assert {'adminStudentView.js:start','adminStudentView.js:end'} <= after
