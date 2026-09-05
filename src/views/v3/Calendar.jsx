@@ -112,7 +112,7 @@ function UpcomingCard({ item, slug, earliestDate, now }) {
   return (
     <Glass padding={18} hover style={{
       position: 'relative',
-      borderColor: isLive ? T.emerald : undefined,
+      ...(isLive ? { border: `1px solid ${T.emerald}` } : {}),
       boxShadow: isLive ? `0 0 0 2px ${T.emerald}, 0 0 40px -8px ${T.emerald}` : undefined,
     }}>
       {isLive && (
@@ -361,8 +361,8 @@ export default function Calendar({ data }) {
     return (
       <div style={container}>
         <Glass padding={isMobile ? 24 : 36} style={{
-          background: `${G.brandSoft}, rgba(255,255,255,0.04)`,
-          borderColor: 'rgba(217,70,239,0.25)',
+          background: `${G.brandSoft}, ${T.bg1}`,
+          border: '1px solid rgba(217,70,239,0.25)',
         }}>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: T.brandInk || T.brand, marginBottom: 10 }}>
@@ -371,7 +371,7 @@ export default function Calendar({ data }) {
           <h1 style={{ fontFamily: FONT.display, fontWeight: 600,
             fontSize: isMobile ? 30 : 44, lineHeight: 1.04, letterSpacing: '-0.03em',
             margin: 0, color: T.text }}>{t('calendar.empty.title')}</h1>
-          <p style={{ marginTop: 14, fontSize: 15, color: T.textDim,
+          <p style={{ marginTop: 14, fontSize: 15, color: T.textSoft,
             maxWidth: 560, lineHeight: 1.55 }}>
             {t('calendar.empty.body')}
           </p>
@@ -391,8 +391,8 @@ export default function Calendar({ data }) {
       <Glass padding={isMobile ? 22 : 30} style={{
         marginBottom: 22,
         borderRadius: 28,
-        background: `${G.brandSoft}, rgba(255,255,255,0.06)`,
-        borderColor: 'rgba(217,70,239,0.24)',
+        background: `${G.brandSoft}, ${T.bg1}`,
+        border: '1px solid rgba(217,70,239,0.24)',
         overflow: 'hidden',
       }}>
         <div style={{
@@ -408,8 +408,8 @@ export default function Calendar({ data }) {
               gap: 8,
               padding: '7px 10px',
               borderRadius: 999,
-              background: 'rgba(255,255,255,0.40)',
-              border: '1px solid rgba(255,255,255,0.34)',
+              background: T.surfaceLo,
+              border: `1px solid ${T.borderHi}`,
               fontSize: 13,
               fontWeight: 800,
               letterSpacing: '0.12em',
@@ -435,7 +435,7 @@ export default function Calendar({ data }) {
             <p style={{
               marginTop: 14,
               fontSize: 15,
-              color: T.textDim,
+              color: T.textSoft,
               maxWidth: 660,
               lineHeight: 1.55,
             }}>
@@ -454,8 +454,8 @@ export default function Calendar({ data }) {
             ].map(item => (
               <div key={item.label} style={{
                 borderRadius: 22,
-                background: 'rgba(255,255,255,0.50)',
-                border: '1px solid rgba(255,255,255,0.38)',
+                background: T.surfaceLo,
+                border: `1px solid ${T.borderHi}`,
                 padding: 15,
                 minHeight: 102,
               }}>
@@ -470,7 +470,7 @@ export default function Calendar({ data }) {
                 }}>
                   {item.n}
                 </div>
-                <div style={{ marginTop: 6, color: T.textDim, fontSize: 13, fontWeight: 650 }}>
+                <div style={{ marginTop: 6, color: T.textSoft, fontSize: 13, fontWeight: 650 }}>
                   {item.label}
                 </div>
               </div>
