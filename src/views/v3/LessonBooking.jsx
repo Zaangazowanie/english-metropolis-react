@@ -21,6 +21,7 @@ import { ThreeSlot } from '../../design/v3/three/ThreeSlot.jsx'
 import { Glass, Btn, Pill } from '../../design/v3/primitives.jsx'
 import { useStudentAuth, getStudentSessionToken } from '../../contexts/StudentAuthContext.jsx'
 import { useI18n } from '../../i18n'
+import { isStudentView } from '../../lib/student-session.js'
 import { CONVEX_URL } from '../../data/studentConfig.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -704,7 +705,7 @@ export default function LessonBooking() {
                     </span>
                   )}
                   {alloc.remaining <= 0 && studentUser?.slug && (
-                    <a href={`/app/${studentUser.slug}/buy`} style={{ display: 'inline-flex', alignItems: 'center',
+                    <a href={`${isStudentView() ? '/admin/student-view' : '/app'}/${studentUser.slug}/buy`} style={{ display: 'inline-flex', alignItems: 'center',
                       gap: 6, padding: '7px 14px', borderRadius: 999, textDecoration: 'none',
                       background: 'linear-gradient(135deg, #8B5CF6, #D946EF)', color: '#fff',
                       fontSize: 13, fontWeight: 700, letterSpacing: '0.06em' }}>

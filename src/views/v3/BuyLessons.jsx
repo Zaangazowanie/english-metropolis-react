@@ -20,6 +20,7 @@ import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 import { PRIVATE_PACKAGES, SPECIALIST_PACKAGES, GROUP_COURSES, PACKAGE_LESSONS, packageValidity } from '../public/packages.js'
 import { PL_CITIES } from '../public/pl-cities.js'
 import { cart, parsePricePLN } from '../public/cart-store.js'
+import { isStudentView } from '../../lib/student-session.js'
 
 // Same test as main.jsx: /checkout (and the Przelewy24 flow behind it) is only
 // routed on englishmetro.com and localhost. Elsewhere the invoice wizard stays.
@@ -38,6 +39,7 @@ async function convexCall(kind, path, args) {
 }
 
 const emptyBilling = { fullName: '', email: '', phone: '', addressLine: '', city: '', postalCode: '', country: 'Polska', company: '', nip: '', notes: '' }
+const STUDENT_VIEW_PURCHASE_MESSAGE = 'Use the admin billing controls to make account purchases.'
 
 export default function BuyLessons({ data, slug, basePath = '' }) {
   const { T, isMobile } = useV3Theme()
@@ -46,6 +48,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
   const { studentUser } = useStudentAuth()
   const { verified, email: verifiedEmail, resend, resent, refresh } = useEmailVerified()
   const studentId = studentUser?._id
+  const studentView = isStudentView()
 
   // ?package=<id> (from the pricing page / signup) preselects and jumps to billing
   const preselect = useMemo(() => {
@@ -80,6 +83,10 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
   // fresh account — payment would then allocate lessons to the wrong student
   // record — so they sign in first and come back.
   function startCheckout(p) {
+    if (studentView || isStudentView()) {
+      setErr(STUDENT_VIEW_PURCHASE_MESSAGE)
+      return
+    }
     if (!studentUser?.sessionToken) {
       navigate(`/login?next=${encodeURIComponent(`${basePath}/${slug}/buy`)}`)
       return
@@ -92,7 +99,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
 
   const preselectDone = useRef(false)
   useEffect(() => {
-    if (!HAS_ONLINE_CHECKOUT || !preselect || preselectDone.current) return
+    if (studentView || !HAS_ONLINE_CHECKOUT || !preselect || preselectDone.current) return
     preselectDone.current = true
     // Strip ?package= first so Back from /checkout lands on the package grid
     // instead of re-adding the package and bouncing straight back to checkout.
@@ -119,6 +126,10 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
   }, [studentUser?._id])
 
   async function submit() {
+    if (studentView || isStudentView()) {
+      setErr(STUDENT_VIEW_PURCHASE_MESSAGE)
+      return
+    }
     if (!studentId || !pkg) return
     setBusy(true); setErr('')
     try {
@@ -222,6 +233,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
             lineHeight: 1.05, letterSpacing: '-0.03em', margin: 0, color: T.text }}>{V.title}</h1>
         </div>
         <Glass padding={26} style={{ maxWidth: 640 }}>
+          {studentView && <p role="status" style={{ margin: '0 0 12px', fontSize: 14, color: T.textSoft }}>{STUDENT_VIEW_PURCHASE_MESSAGE}</p>}
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: T.textSoft }}>
             {verifiedEmail ? V.bodyFor(verifiedEmail) : V.body}
           </p>
@@ -251,6 +263,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
         <h1 style={{ fontFamily: FONT.display, fontWeight: 600, fontSize: isMobile ? 34 : 48,
           lineHeight: 1.05, letterSpacing: '-0.03em', margin: 0, color: T.text }}>{L.title}</h1>
         <p style={{ marginTop: 14, fontSize: 15, color: T.textDim, maxWidth: 640, lineHeight: 1.55 }}>{L.intro}</p>
+        {studentView && <p role="status" style={{ marginTop: 12, fontSize: 14, color: T.textSoft }}>{STUDENT_VIEW_PURCHASE_MESSAGE}</p>}
         {alloc && (
           <div style={{ marginTop: 12 }}>
             <Pill tone={alloc.remaining > 0 ? 'emerald' : 'amber'} icon="token">
@@ -288,7 +301,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
               <div style={{ fontSize: 13, color: T.textDim }}>{p.pace} · {p.perLesson} · {packageValidity(PACKAGE_LESSONS[p.id])[pl ? 'pl' : 'en']}</div>
               <p style={{ marginTop: 10, fontSize: 13, color: T.textSoft, lineHeight: 1.5, flex: 1 }}>{p.bestFor}</p>
               <div style={{ marginTop: 14 }}>
-                <Btn variant={pkg?.id === p.id ? 'primary' : 'secondary'} size="md"
+                <Btn variant={pkg?.id === p.id ? 'primary' : 'secondary'} size="md" disabled={studentView}
                   onClick={() => { if (HAS_ONLINE_CHECKOUT) return startCheckout(p); setPkg(p); setStep(2) }}>
                   {L.choose} →
                 </Btn>
@@ -323,7 +336,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
                   {pl ? p.bestForPl : p.bestFor}
                 </p>
                 <div style={{ marginTop: 14 }}>
-                  <Btn variant="secondary" size="md"
+                  <Btn variant="secondary" size="md" disabled={studentView}
                     onClick={() => { if (HAS_ONLINE_CHECKOUT) return startCheckout(p); setPkg(p); setStep(2) }}>
                     {L.choose} →
                   </Btn>
@@ -398,7 +411,7 @@ export default function BuyLessons({ data, slug, basePath = '' }) {
           {err && <p style={{ marginTop: 10, fontSize: 13, color: T.rose }}>{err}</p>}
           <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
             <Btn variant="ghost" size="md" onClick={() => setStep(2)}>← {L.back}</Btn>
-            <Btn variant="primary" size="md" icon="shopping_cart_checkout" disabled={busy} onClick={submit}>
+            <Btn variant="primary" size="md" icon="shopping_cart_checkout" disabled={busy || studentView} onClick={submit}>
               {busy ? '…' : L.submit}
             </Btn>
           </div>

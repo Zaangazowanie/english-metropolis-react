@@ -33,6 +33,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ArcadeFeedbackContext } from './arcade-feedback';
 import { fetchWithTimeout } from './practice-cache';
+import { readStudentSession, isStudentView } from '../../lib/student-session.js';
 
 // ─── Shared types — mirror the Convex schema ─────────────────────────────────
 //
@@ -85,22 +86,14 @@ const DEFAULT_PROGRESS: ShellProgress = {
 export const ShellProgressPersistenceContext = createContext(true);
 
 // ─── Student-session helpers ─────────────────────────────────────────────────
-const STUDENT_SESSION_KEY = 'em-student-session';
 const LEGACY_SLUG_KEY = 'studentSlug';
 
-// Read the current student's slug from the same localStorage keys
-// StudentAuthContext writes. Returns undefined when no session exists.
+// Resolve the effective account, including a tab-scoped admin student view.
 function readStudentSlug(): string | undefined {
+  const student = readStudentSession();
+  if (student?.slug) return student.slug;
+  if (isStudentView()) return undefined;
   if (typeof window === 'undefined') return undefined;
-  try {
-    const raw = window.localStorage.getItem(STUDENT_SESSION_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as { slug?: string };
-      if (parsed?.slug) return parsed.slug;
-    }
-  } catch {
-    // fall through to legacy slug
-  }
   try {
     const legacy = window.localStorage.getItem(LEGACY_SLUG_KEY);
     return legacy || undefined;
@@ -209,6 +202,7 @@ async function mutateConvex<T>(path: string, args: Record<string, unknown>): Pro
 export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShellProgress {
   const reportArcadeProgress = useContext(ArcadeFeedbackContext);
   const persist = useContext(ShellProgressPersistenceContext);
+  const studentView = isStudentView();
   const [state, setState] = useState<ShellProgress>(DEFAULT_PROGRESS);
   // Track whether we've hydrated from the backend yet. Until then we don't
   // want a save() call to collide with the in-flight read and reset values
@@ -276,7 +270,7 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
       setState(merged);
       reportArcadeProgress?.(shellId, merged);
 
-      if (!persist) return;
+      if (!persist || studentView || isStudentView()) return;
 
       // Fire-and-forget backend write. We send the *delta* fields so the
       // mutation can patch atomically rather than over-write neighbouring
@@ -290,13 +284,13 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
         // Non-fatal — see header comment.
       });
     },
-    [shellId, exerciseId, slug, reportArcadeProgress, persist],
+    [shellId, exerciseId, slug, reportArcadeProgress, persist, studentView],
   );
 
   const reset = useCallback(() => {
     setState(DEFAULT_PROGRESS);
     reportArcadeProgress?.(shellId, DEFAULT_PROGRESS);
-    if (!persist) return;
+    if (!persist || studentView || isStudentView()) return;
     void mutateConvex('practice:reset', {
       studentSlug: slug,
       shellId,
@@ -304,7 +298,7 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
     }).catch(() => {
       // Non-fatal.
     });
-  }, [shellId, exerciseId, slug, reportArcadeProgress, persist]);
+  }, [shellId, exerciseId, slug, reportArcadeProgress, persist, studentView]);
 
   return { ...state, save, reset };
 }

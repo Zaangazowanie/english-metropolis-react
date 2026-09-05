@@ -29,6 +29,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchWithTimeout } from './practice-cache';
+import { readStudentSession, isStudentView } from '../../lib/student-session.js';
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -86,7 +87,6 @@ export interface UseSessionState {
 }
 
 // ─── Local state ───────────────────────────────────────────────────
-const STUDENT_SESSION_KEY = 'em-student-session';
 const LEGACY_SLUG_KEY = 'studentSlug';
 
 /**
@@ -108,16 +108,10 @@ const STALE_MAX_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const SNAPSHOT_DEBOUNCE_MS = 10 * 1000;
 
 function readStudentSlug(): string | undefined {
+  const student = readStudentSession();
+  if (student?.slug) return student.slug;
+  if (isStudentView()) return undefined;
   if (typeof window === 'undefined') return undefined;
-  try {
-    const raw = window.localStorage.getItem(STUDENT_SESSION_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as { slug?: string };
-      if (parsed?.slug) return parsed.slug;
-    }
-  } catch {
-    /* fall through */
-  }
   try {
     return window.localStorage.getItem(LEGACY_SLUG_KEY) || undefined;
   } catch {
@@ -169,6 +163,7 @@ interface ActiveSessionRow {
 // ─── Hook ──────────────────────────────────────────────────────────
 export function useSessionState(shellKey: string | null): UseSessionState {
   const slug = readStudentSlug();
+  const studentView = isStudentView();
   const [pendingSession, setPendingSession] = useState<PendingSession | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   // questionIds carried over from the prior snapshot — used by startFresh
@@ -221,10 +216,12 @@ export function useSessionState(shellKey: string | null): UseSessionState {
         } catch {
           // Corrupted blob — treat as "no usable session" and discard so the
           // student isn't stuck in a loop of un-resumable prompts.
-          void mutateConvex('practice:discardSession', {
-            studentSlug: slug,
-            shellKey,
-          }).catch(() => { /* non-fatal */ });
+          if (!studentView && !isStudentView()) {
+            void mutateConvex('practice:discardSession', {
+              studentSlug: slug,
+              shellKey,
+            }).catch(() => { /* non-fatal */ });
+          }
           setPendingSession(null);
           return;
         }
@@ -247,7 +244,7 @@ export function useSessionState(shellKey: string | null): UseSessionState {
     return () => {
       cancelled = true;
     };
-  }, [slug, shellKey]);
+  }, [slug, shellKey, studentView]);
 
   // Flush any pending snapshot write on unmount or when shellKey changes —
   // we don't want the timer to fire after the student has already left.
@@ -260,7 +257,7 @@ export function useSessionState(shellKey: string | null): UseSessionState {
       // Best-effort flush of the last queued write. Fire-and-forget.
       const queued = pendingWriteRef.current;
       pendingWriteRef.current = null;
-      if (queued && slug && shellKey) {
+      if (queued && slug && shellKey && !studentView && !isStudentView()) {
         void mutateConvex('practice:saveSessionSnapshot', {
           studentSlug: slug,
           shellKey,
@@ -269,7 +266,7 @@ export function useSessionState(shellKey: string | null): UseSessionState {
         }).catch(() => { /* non-fatal */ });
       }
     };
-  }, [slug, shellKey]);
+  }, [slug, shellKey, studentView]);
 
   const continueSession = useCallback((): unknown => {
     // The caller (the shell) hydrates from this. Clear the pending flag so
@@ -285,7 +282,7 @@ export function useSessionState(shellKey: string | null): UseSessionState {
       const reuseQuestionIds = newQuestions ? null : lastQuestionIdsRef.current.slice();
       // Discard the existing row regardless — we want a clean slate. The
       // shell will re-snapshot on its first state change after this.
-      if (slug && shellKey) {
+      if (slug && shellKey && !studentView && !isStudentView()) {
         try {
           await mutateConvex('practice:discardSession', {
             studentSlug: slug,
@@ -303,11 +300,11 @@ export function useSessionState(shellKey: string | null): UseSessionState {
       setPendingSession(null);
       return { state: null, reuseQuestionIds };
     },
-    [slug, shellKey],
+    [slug, shellKey, studentView],
   );
 
   const discardSession = useCallback(async (): Promise<void> => {
-    if (!slug || !shellKey) {
+    if (!slug || !shellKey || studentView || isStudentView()) {
       setPendingSession(null);
       return;
     }
@@ -322,10 +319,10 @@ export function useSessionState(shellKey: string | null): UseSessionState {
     lastStateRef.current = null;
     lastQuestionIdsRef.current = [];
     setPendingSession(null);
-  }, [slug, shellKey]);
+  }, [slug, shellKey, studentView]);
 
   const markComplete = useCallback(async (): Promise<void> => {
-    if (!slug || !shellKey) return;
+    if (!slug || !shellKey || studentView || isStudentView()) return;
     // Cancel any pending debounced snapshot — completing a shell supersedes
     // an in-flight mid-shell save.
     if (snapshotTimerRef.current !== null) {
@@ -342,11 +339,11 @@ export function useSessionState(shellKey: string | null): UseSessionState {
       /* non-fatal */
     }
     setPendingSession(null);
-  }, [slug, shellKey]);
+  }, [slug, shellKey, studentView]);
 
   const snapshot = useCallback(
     (state: unknown, questionIds: string[]) => {
-      if (!slug || !shellKey) return;
+      if (!slug || !shellKey || studentView || isStudentView()) return;
       // Always hold the most recent value — the timer will write it.
       pendingWriteRef.current = { state, questionIds };
       lastStateRef.current = state;
@@ -356,7 +353,7 @@ export function useSessionState(shellKey: string | null): UseSessionState {
         snapshotTimerRef.current = null;
         const queued = pendingWriteRef.current;
         pendingWriteRef.current = null;
-        if (!queued) return;
+        if (!queued || studentView || isStudentView()) return;
         void mutateConvex('practice:saveSessionSnapshot', {
           studentSlug: slug,
           shellKey,
@@ -367,7 +364,7 @@ export function useSessionState(shellKey: string | null): UseSessionState {
         });
       }, SNAPSHOT_DEBOUNCE_MS);
     },
-    [slug, shellKey],
+    [slug, shellKey, studentView],
   );
 
   return useMemo(

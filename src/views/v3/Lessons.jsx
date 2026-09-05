@@ -4,9 +4,9 @@
 // Tailwind-era Lessons.jsx — functional parity preserved verbatim.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useI18n } from '../../i18n'
-import { fetchJSONCached, fetchWithTimeout } from '../../practice/lib/practice-cache'
+import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 import {
   METRICS,
   scoreToTier,
@@ -1940,6 +1940,8 @@ function CompactLessonRow({ lesson, analysis, onOpen }) {
    Main Lessons view
    ============================================================================ */
 export default function LessonsV3({ data, slug, basePath = '' }) {
+  const location = useLocation()
+  const appliedDeepLink = useRef('')
   const { T, mode, isMobile } = useV3Theme()
   const isDay = mode === 'day'
   const { t } = useI18n()
@@ -1958,13 +1960,14 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
 
   useEffect(() => {
     let cancelled = false
-    // 30s timeout + 5-min cache: lesson-pdfs.json is a small static index;
-    // re-mounting the Lessons view shouldn't re-pull it.
-    fetchJSONCached('/lesson-pdfs.json', { cacheKey: 'lesson-pdfs' })
+    // Revalidate alongside lesson data: a newly published card or replacement
+    // PDF must not remain invisible behind an older in-memory registry.
+    fetchWithTimeout('/lesson-pdfs.json', { cache: 'no-cache' })
+      .then(r => { if (!r.ok) throw new Error('Could not refresh lesson notes'); return r.json() })
       .then(d => { if (!cancelled) setPdfMap(d || {}) })
-      .catch(() => { if (!cancelled) setPdfMap({}) })
+      .catch(() => { /* Keep the last successful notes index during a network failure. */ })
     return () => { cancelled = true }
-  }, [])
+  }, [studentSlug, data?.refreshedAt])
 
   const allTopics = useMemo(() => {
     const set = new Set()
@@ -1975,7 +1978,9 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
   // Deep-link query-param handling
   useEffect(() => {
     if (!lessons.length) return
-    const params = new URLSearchParams(window.location.search)
+    const linkKey = `${studentSlug}:${location.search}`
+    if (appliedDeepLink.current === linkKey) return
+    const params = new URLSearchParams(location.search)
     const openLessonId = params.get('openLesson') || params.get('lessonId')
     const focusKw = params.get('focusKeyword')
     const from = params.get('from')
@@ -1987,11 +1992,20 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
         String(l.analysis?.id || '') === openLessonId
       )
       if (lesson) {
+        appliedDeepLink.current = linkKey
         setSelectedLesson(lesson)
         setCameFromVocab(from === 'vocabulary')
         if (focusKw) setFocusKeyword(focusKw)
       }
     }
+  }, [lessons, studentSlug, location.search])
+
+  // Live refresh should update an open lesson without reopening a dismissed
+  // deep link or leaving the modal tied to an obsolete copy of its keywords.
+  useEffect(() => {
+    setSelectedLesson(current => current
+      ? lessons.find(lesson => lesson.id === current.id) || null
+      : null)
   }, [lessons])
 
   const filteredLessons = useMemo(() => {
@@ -2072,6 +2086,11 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
               color: T.text, marginTop: 2 }}>{lessons.length}</div>
           </div>
         </div>
+        {data?.refresh && <button type="button" onClick={() => data.refresh()} disabled={data.loading}
+          style={{ marginTop: 12, padding: '8px 14px', borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, color: T.text, cursor: 'pointer', font: 'inherit' }}>
+          {t('lessons.refresh', { defaultValue: 'Refresh lessons' })}
+        </button>}
+        {data?.lessonsError && <p role="alert" style={{ color: T.textDim }}>{data.lessonsError}</p>}
         <input type="search" placeholder={t('lessons.searchPlaceholder')}
           value={lessonFilter} onChange={(e) => setLessonFilter(e.target.value)}
           style={{

@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate,
 import './index.css'
 
 import App from './App.jsx'
+import StudentAppView from './views/admin/StudentAppView.jsx'
 import AdminLayout from './components/admin/AdminLayout.jsx'
 import AdminDashboard from './views/admin/Dashboard.jsx'
 import AdminCalendar from './views/admin/Calendar.jsx'
@@ -433,7 +434,8 @@ function RootRouter() {
         </Route>
 
         <Route path="/settings" element={<Settings />} />
-        <Route path="/app/:slug/*" element={<App basePath="/app" />} />
+          <Route path="/admin/student-view/:slug/*" element={<StudentAppView />} />
+          <Route path="/app/:slug/*" element={<App basePath="/app" />} />
         <Route path="/app/*" element={<App basePath="/app" />} />
         {/* englishmetro.com: an unknown address must not fall into the legacy
             student shell, which rendered "Welcome back, Szymon" (the .env demo
