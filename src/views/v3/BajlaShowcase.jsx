@@ -54,7 +54,7 @@ export default function BajlaShowcase({ lang }) {
       </header>
 
       <div className="bj-showcase-workspace">
-        <div className="bj-showcase-explorer">
+        <div className="bj-showcase-explorer" onFocusCapture={() => setPlaying(false)} onPointerDownCapture={() => setPlaying(false)}>
           <div className="bj-showcase-nav-heading">
             <span>{pl ? 'Sprawdź, co potrafi' : 'See what she can do'}</span>
             <span>{pl ? '7 przykładów' : '7 examples'}</span>

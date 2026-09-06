@@ -1058,6 +1058,8 @@
 
 @media (max-width: 1050px) {
   .gh-header { border-radius: 18px; }
+  /* The dropdown sits below the header; the later motion sheet clips it. */
+  .gh-root .gh-header { overflow: visible; }
   .gh-menu-toggle { display: inline-flex; margin-left: auto; }
   /* `.gh-header > .gh-nav`, not `.gh-nav`: public/assets/em-motion-20260825-v3.css
      sets `.gh-header > * { position: relative }` and won the cascade, so the
@@ -1143,7 +1145,7 @@
 }
 
 @media (max-width: 420px) {
-  .gh-nav { grid-template-columns: 1fr; max-height: min(72dvh, 560px); overflow-y: auto; }
+  .gh-header > .gh-nav { grid-template-columns: 1fr; max-height: min(72dvh, 560px); overflow-y: auto; }
   .gh-nav .gh-action--primary { grid-column: auto; }
   .gh-arcade-tab { min-height: 44px; padding-inline: 12px; }
   .gh-arcade-tabs { max-width: calc(100vw - 74px); }
