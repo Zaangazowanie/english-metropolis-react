@@ -26,16 +26,26 @@ export default function HeroSilhouette({ reduced = false }) {
             <stop offset=".58" stopColor="var(--gh-contour-low)"/>
             <stop offset="1" stopColor="var(--gh-contour-mid)"/>
           </linearGradient>
+          <linearGradient id={`${id}-trail`}>
+            <stop offset="0" stopColor="var(--gh-contour-low)" stopOpacity="0"/>
+            <stop offset=".28" stopColor="var(--gh-contour-low)" stopOpacity=".12"/>
+            <stop offset=".56" stopColor="var(--gh-contour-mid)" stopOpacity=".5"/>
+            <stop offset=".8" stopColor="var(--gh-contour-high)" stopOpacity=".88"/>
+            <stop offset=".9" stopColor="var(--gh-contour-gloss)"/>
+            <stop offset="1" stopColor="var(--gh-contour-gloss)" stopOpacity="0"/>
+          </linearGradient>
+          <mask id={`${id}-line`} maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse"
+            x="-20" y="-20" width="1185" height="585" style={{ maskType: 'alpha' }}>
+            <path d={CONTOUR} fill="none" stroke="white" strokeWidth="1.4" strokeLinecap="round"
+              strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+          </mask>
         </defs>
-        <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-          <path className="gh-silhouette-reflection" d={CONTOUR} stroke={`url(#${id}-metal)`} strokeWidth="9"
-            transform="translate(0 540.35) scale(1 -.07)"/>
-          <path className="gh-silhouette-ink" d={CONTOUR} stroke="var(--gh-contour-base)" strokeWidth="2.8"
-            vectorEffect="non-scaling-stroke"/>
-          <path className="gh-silhouette-draw" d={CONTOUR} pathLength="1000" stroke={`url(#${id}-metal)`} strokeWidth="2.8"
-            vectorEffect="non-scaling-stroke"/>
-          <path className="gh-silhouette-gloss" d={CONTOUR} pathLength="1000" stroke="var(--gh-contour-gloss)" strokeWidth="3.6"
-            vectorEffect="non-scaling-stroke"/>
+        <path className="gh-silhouette-still" d={CONTOUR} fill="none" stroke={`url(#${id}-metal)`}
+          strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+        <g className="gh-silhouette-draw">
+          <g mask={`url(#${id}-line)`}>
+            <rect className="gh-silhouette-scan" x="-360" y="-12" width="360" height="565" fill={`url(#${id}-trail)`}/>
+          </g>
         </g>
       </svg>
     </div>
