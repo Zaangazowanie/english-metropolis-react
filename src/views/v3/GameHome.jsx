@@ -30,6 +30,7 @@ import CartUI from '../public/CartUI.jsx'
 import HeroPracticePreview from './HeroPracticePreview.jsx'
 import HeroSlider from './HeroSlider.jsx'
 import HeroSkyline from '../../components/public/HeroSkyline.jsx'
+import HeroSilhouette from '../../components/public/HeroSilhouette.jsx'
 import BajlaShowcase from './BajlaShowcase.jsx'
 import ReactiveShaderField from '../../components/public/ReactiveShaderField.jsx'
 import { clearPointerPolish, pulsePointerPolish, setPointerPolish, focusSkylineDistrict } from '../../components/public/motionPolish.js'
@@ -1008,6 +1009,8 @@ export default function GameHome() {
             </div>
 
           </div>
+
+          <HeroSilhouette reduced={reduced}/>
 
           <div className="gh-rise gh-rise-3 gh-hero-stage-wrap" style={{ minWidth: 0 }}
             onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
