@@ -1268,8 +1268,10 @@
   position: absolute;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 9px 14px;
+  gap: 5px;
+  box-sizing: border-box;
+  max-width: calc(100% - 24px);
+  padding: 5px 9px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(8px);
@@ -1277,16 +1279,23 @@
   border: 1px solid rgba(16, 10, 40, 0.08);
   box-shadow: 0 14px 34px -14px rgba(23, 16, 46, 0.3);
   color: #17102E;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0;
   animation: ghGentleFloat 6s ease-in-out infinite alternate;
 }
-.gh-float-chip .material-symbols-outlined { font-size: 16px; color: #7C3AED; }
-.gh-float-chip--a { top: 18px; left: 18px; }
-.gh-float-chip--b { bottom: 18px; left: 18px; animation-delay: 1.6s; }
+.gh-float-chip .material-symbols-outlined { flex: none; font-size: 14px; color: #7C3AED; }
+.gh-float-chip--a { top: 14px; left: 14px; }
+.gh-float-chip--b { bottom: 14px; left: 14px; animation-delay: 1.6s; }
 .gh-night .gh-float-chip { background: rgba(20, 12, 42, 0.88); color: #F4F0FF; border-color: rgba(255, 255, 255, 0.14); }
 .gh-night .gh-photo-frame--side { border-color: #0A0718; }
+@media (max-width: 620px) {
+  .gh-float-chip { max-width: calc(100% - 20px); gap: 4px; padding: 4px 7px; font-size: 11px; animation: none; }
+  .gh-float-chip .material-symbols-outlined { font-size: 13px; }
+  .gh-float-chip--a { top: 10px; left: 10px; }
+  .gh-float-chip--b { bottom: 10px; left: 10px; }
+}
 
 @keyframes ghGentleFloat {
   from { transform: translateY(0); }
@@ -1670,24 +1679,27 @@
 
 .gh-hs-chip {
   position: absolute;
-  top: 18px;
-  left: 18px;
+  top: 14px;
+  left: 14px;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 38px;
-  padding: 8px 13px;
+  gap: 5px;
+  box-sizing: border-box;
+  max-width: calc(100% - 112px);
+  min-height: 26px;
+  padding: 5px 9px;
   border: 1px solid rgba(255,255,255,0.2);
   border-radius: 999px;
   color: #fff;
   background: rgba(24,15,49,0.84);
   -webkit-backdrop-filter: blur(12px) saturate(135%);
   backdrop-filter: blur(12px) saturate(135%);
-  font: 650 12px/1 'Space Grotesk', system-ui, sans-serif;
-  letter-spacing: 0.01em;
+  font: 600 11px/1.2 'Space Grotesk', system-ui, sans-serif;
+  letter-spacing: 0;
   text-transform: none;
 }
-.gh-hs-chip .material-symbols-outlined { color: #a855f7; font-size: 17px; }
+.gh-hs-chip .material-symbols-outlined { flex: none; color: #c4b5fd; font-size: 14px; }
+.gh-hs-chip-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .gh-hs-caption {
   position: absolute;
@@ -1747,6 +1759,30 @@
 }
 .gh-hs-dot[data-active="true"] { width: 22px; background: #fff; }
 .gh-hs-dot:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+/* Keep the marks small while each slide selector retains a 24px hit area.
+   This variant outranks the legacy motion sheet, which loads after this CSS. */
+.gh-hs.gh-hs--minimal .gh-hs-dots {
+  top: 14px; right: 14px; bottom: auto; left: auto;
+  height: 24px; gap: 0; padding: 0;
+  border: 0; background: transparent; box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.gh-hs.gh-hs--minimal .gh-hs-dot {
+  position: relative; flex: none; width: 24px; height: 24px;
+  border: 0; padding: 0; background: transparent; box-shadow: none;
+  transform: none; transition: none;
+}
+.gh-hs.gh-hs--minimal .gh-hs-dot:is([data-active="true"], :hover, :focus-visible) {
+  width: 24px; background: transparent; transform: none;
+}
+.gh-hs.gh-hs--minimal .gh-hs-dot::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 6px; height: 6px; border-radius: 999px;
+  transform: translate(-50%, -50%);
+  background: rgba(255,255,255,0.85);
+  box-shadow: 0 0 0 1px rgba(14,10,27,0.25), 0 1px 3px rgba(14,10,27,0.5);
+}
+.gh-hs.gh-hs--minimal .gh-hs-dot[data-active="true"]::after { width: 16px; background: #c4b5fd; }
 .gh-hs-arrow {
   position: absolute;
   top: 50%;
@@ -1780,8 +1816,10 @@
 @media (max-width: 620px) {
   .gh-hs-caption { padding: 62px 18px 18px; }
   .gh-hs-actions { display: none; }
-  .gh-hs-chip { top: 12px; left: 12px; min-height: 36px; padding: 7px 11px; font-size: 13px; }
+  .gh-hs-chip { top: 10px; left: 10px; max-width: calc(100% - 20px); min-height: 22px; gap: 4px; padding: 4px 7px; font-size: 10px; }
+  .gh-hs-chip .material-symbols-outlined { font-size: 12px; }
   .gh-hs-dots { top: 12px; right: 12px; }
+  .gh-hs.gh-hs--minimal .gh-hs-dots { top: auto; right: auto; bottom: 8px; left: 10px; }
   .gh-hs-arrow { width: 36px; height: 36px; }
   .gh-hs-arrow--prev { left: 8px; }
   .gh-hs-arrow--next { right: 8px; }
