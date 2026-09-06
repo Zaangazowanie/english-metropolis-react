@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { usePrefersReducedMotion } from '../../practice/lib/usePrefersReducedMotion'
-import { nextExample } from './bajla-tour.mjs'
+import { nextExample, PLAYBACK_RATE } from './bajla-tour.mjs'
 import './bajla-showcase.css'
 import BajlaWalkthrough from './BajlaWalkthrough.jsx'
 
@@ -45,7 +45,7 @@ export default function BajlaShowcase({ lang }) {
   const continueTour = useCallback(() => move(1), [move])
   const stepCaption = currentStep?.id === example.id ? currentStep.caption : ''
   return (
-    <section id="bajla" className="gh-section bj-showcase" aria-labelledby="gh-bajla-title">
+    <section id="bajla" className="gh-section bj-showcase" aria-labelledby="gh-bajla-title" style={{ '--bj-playback-rate': PLAYBACK_RATE }}>
       <header className="bj-showcase-heading">
         <div className="bj-showcase-copy">
           <div className="bj-showcase-kicker"><span aria-hidden="true"/>{pl ? 'Poznaj Bajlę' : 'Meet Bajla'}</div>
@@ -58,7 +58,7 @@ export default function BajlaShowcase({ lang }) {
       </header>
 
       <div className="bj-showcase-workspace">
-        <div className="bj-showcase-explorer" onFocusCapture={() => setPlaying(false)} onPointerDownCapture={() => setPlaying(false)}>
+        <div className="bj-showcase-explorer">
           <div className="bj-showcase-nav-heading">
             <span>{pl ? 'Sprawdź, co potrafi' : 'See what she can do'}</span>
             <span>{pl ? '7 przykładów' : '7 examples'}</span>

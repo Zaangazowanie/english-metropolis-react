@@ -1,12 +1,18 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { walkthroughDelay, nextExample, cursorTarget } from '../src/views/v3/bajla-tour.mjs'
+import { walkthroughDelay, nextExample, cursorTarget, playbackDuration } from '../src/views/v3/bajla-tour.mjs'
 
-test('all seven walkthroughs give every screen two extra seconds, including the last screen', () => {
+test('all seven walkthroughs run at 1.5x the previous pace, including the last screen', () => {
   for (const id of ['memory','voice','grammar','booking','notes','practice','word']) {
     const old = [1400,1200,4200,id === 'practice' ? 1200 : 3200,3600,3600,3600]
-    old.forEach((duration, step) => assert.equal(walkthroughDelay(id, step), duration + 2000))
+    old.forEach((duration, step) => assert.equal(walkthroughDelay(id, step), (duration + 2000) / 1.5))
   }
+})
+
+test('typing and cursor choreography use the same 1.5x playback clock', () => {
+  assert.equal(playbackDuration(24),16)
+  assert.equal(playbackDuration(900),600)
+  assert.equal(playbackDuration(1800),1200)
 })
 test('tour crosses from Web to WhatsApp and wraps back to Web', () => {
   assert.equal(nextExample(2,7),3)
