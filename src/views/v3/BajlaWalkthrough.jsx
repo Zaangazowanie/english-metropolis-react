@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePrefersReducedMotion } from '../../practice/lib/usePrefersReducedMotion'
-import { walkthroughDelay, cursorTarget } from './bajla-tour.mjs'
+import { walkthroughDelay, cursorTarget, playbackDuration } from './bajla-tour.mjs'
 import './bajla-walkthrough.css'
 
 const STEPS = {
@@ -32,7 +32,7 @@ const MODES = [
 function Icon({name}){return <span className="material-symbols-outlined" aria-hidden="true">{name}</span>}
 function Stream({text, running, reduced}){
   const [count,setCount]=useState(reduced?text.length:0)
-  useEffect(()=>{if(reduced&&count<text.length){const timer=setTimeout(()=>setCount(text.length),0);return()=>clearTimeout(timer)}if(reduced||!running||count>=text.length)return; const timer=setTimeout(()=>setCount(c=>Math.min(text.length,c+3)),24);return()=>clearTimeout(timer)},[count,text,running,reduced])
+  useEffect(()=>{if(reduced&&count<text.length){const timer=setTimeout(()=>setCount(text.length),0);return()=>clearTimeout(timer)}if(reduced||!running||count>=text.length)return; const timer=setTimeout(()=>setCount(c=>Math.min(text.length,c+3)),playbackDuration(24));return()=>clearTimeout(timer)},[count,text,running,reduced])
   return <span>{reduced?text:text.slice(0,count)}{!reduced&&count<text.length&&<i className="bj-stream-caret" aria-hidden="true"/>}</span>
 }
 function Typing({pl}){return <div className="bj-walk-typing" role="status"><img src="/brand/em-bajla-icon.webp" alt=""/><i/><i/><i/><span className="bj-walk-sr">{pl?'Bajla pisze':'Bajla is typing'}</span></div>}
@@ -61,7 +61,7 @@ export default function BajlaWalkthrough({id,wa,query,pl,auto,setAuto,onComplete
   // Intent lives above the step-keyed feature: opening a clip must not discard
   // the same click that requested playback. Automatic steps never set it.
   const [clipPlayback,setClipPlayback]=useState(null)
-  const playClip=word=>{setAuto(false);setClipPlayback(previous=>({word,revision:(previous?.revision??0)+1}))}
+  const playClip=word=>{setClipPlayback(previous=>({word,revision:(previous?.revision??0)+1}))}
   const [slot,setSlot]=useState('18:00')
   const [booking,setBooking]=useState('move')
   const [selectedHabit,setSelectedHabit]=useState(0)
@@ -76,7 +76,14 @@ export default function BajlaWalkthrough({id,wa,query,pl,auto,setAuto,onComplete
   const go=n=>{setClipPlayback(null);setStep(Math.max(0,Math.min(steps.length-1,n)))}
   const next=()=>ended?onComplete():go(step+1)
   useEffect(()=>{const observer=new IntersectionObserver(([entry])=>setVisible(entry.isIntersecting),{threshold:.2});observer.observe(host.current);const onVisibility=()=>setPageVisible(!document.hidden);document.addEventListener('visibilitychange',onVisibility);return()=>{observer.disconnect();document.removeEventListener('visibilitychange',onVisibility)}},[])
-  useEffect(()=>{if(!playbackActive)return;const timer=setTimeout(()=>{if(ended)onComplete();else setStep(step+1)},walkthroughDelay(id,step));return()=>clearTimeout(timer)},[step,playbackActive,replay,ended,id,mode,onComplete])
+  useEffect(()=>{
+    if(!playbackActive)return
+    // A requested recording gets time to finish, then the tour continues.
+    // Touching, focusing or exploring never changes the Play/Pause preference.
+    const delay=clipPlayback?(WORDS[clipPlayback.word].end-WORDS[clipPlayback.word].start+1)*1000:walkthroughDelay(id,step)
+    const timer=setTimeout(()=>{setClipPlayback(null);if(ended)onComplete();else setStep(step+1)},delay)
+    return()=>clearTimeout(timer)
+  },[step,playbackActive,replay,ended,id,mode,onComplete,clipPlayback])
   useEffect(()=>{
     const guide=pointer.current
     if(!guide||!running)return
@@ -101,16 +108,16 @@ export default function BajlaWalkthrough({id,wa,query,pl,auto,setAuto,onComplete
       const point={x:Math.max(12,Math.min(frame.width-22,rect.left-frame.left+rect.width*.68)),y:Math.max(74,Math.min(frame.height-18,rect.top-frame.top+rect.height*.5))}
       const start=pointerPosition.current
       guide.style.left=`${point.x}px`;guide.style.top=`${point.y}px`
-      movement=guide.animate([{opacity:0,transform:`translate(${start.x-point.x}px,${start.y-point.y}px) rotate(-12deg)`},{opacity:1,offset:.22},{opacity:1,transform:'translate(0,0) rotate(0deg)'}],{duration:900,easing:'cubic-bezier(.22,.61,.36,1)',fill:'forwards'})
-      click=guide.querySelector('i').animate([{transform:'scale(.2)',opacity:0},{transform:'scale(.55)',opacity:.65,offset:.3},{transform:'scale(1.7)',opacity:0}],{delay:900,duration:500,fill:'both'})
+      movement=guide.animate([{opacity:0,transform:`translate(${start.x-point.x}px,${start.y-point.y}px) rotate(-12deg)`},{opacity:1,offset:.22},{opacity:1,transform:'translate(0,0) rotate(0deg)'}],{duration:playbackDuration(900),easing:'cubic-bezier(.22,.61,.36,1)',fill:'forwards'})
+      click=guide.querySelector('i').animate([{transform:'scale(.2)',opacity:0},{transform:'scale(.55)',opacity:.65,offset:.3},{transform:'scale(1.7)',opacity:0}],{delay:playbackDuration(900),duration:playbackDuration(500),fill:'both'})
       pointerPosition.current=point
       }
-      if(needsScroll)scrollTimer=setTimeout(movePointer,300)
+      if(needsScroll)scrollTimer=setTimeout(movePointer,playbackDuration(300))
       else movePointer()
-    },Math.max(650,duration-1800))
+    },Math.max(playbackDuration(650),duration-playbackDuration(1800)))
     return()=>{clearTimeout(timer);clearTimeout(scrollTimer);movement?.cancel();click?.cancel()}
   },[id,step,mode,running,replay,selectedHabit,booking])
-  useEffect(()=>{const el=body.current;if(!el)return;const timer=setTimeout(()=>el.scrollTo({top:el.scrollHeight,behavior:reduced?'instant':'smooth'}),90);return()=>clearTimeout(timer)},[step,reduced,answer,word,mode])
+  useEffect(()=>{const el=body.current;if(!el)return;const timer=setTimeout(()=>el.scrollTo({top:el.scrollHeight,behavior:reduced?'instant':'smooth'}),playbackDuration(90));return()=>clearTimeout(timer)},[step,reduced,answer,word,mode])
   const restart=()=>{setClipPlayback(null);setStep(0);setAnswer('');setWord(id==='voice'?'berth':'mural');setMode(id==='word'?'hear':'quiz');setSlot('18:00');setBooking('move');setSelectedHabit(0);setReplay(r=>r+1)}
   const chooseMode=value=>{setMode(value);setAnswer('');go(3)}
   const chooseWord=value=>{setWord(value);setAnswer('');go(3)}
@@ -178,7 +185,7 @@ export default function BajlaWalkthrough({id,wa,query,pl,auto,setAuto,onComplete
   return <div ref={host} className="bj-walkthrough" data-running={running} data-step={step} data-example={id}>
     <div className={`bj-demo ${wa?'bj-demo--wa':'bj-demo--web'}`}>
       <div className="bj-demo-header"><span className="bj-walk-avatar"><img src="/brand/em-bajla-icon.webp" alt="" width="42" height="42"/>{running&&step===1&&<i/>}</span><div><strong>{wa?'Englishmetro Bajla':'Bajla'}</strong><span>{step===1?copy('typing…','pisze…'):wa?'online':copy('remembers your lessons · B2','pamięta Twoje lekcje · B2')}</span></div><Icon name={wa?'search':'close'}/>{wa&&<Icon name="more_vert"/>}</div>
-      <div ref={body} role="group" aria-label={`${caption()} (${step+1}/${steps.length})`} className="bj-demo-conversation bj-walk-body" key={`body-${replay}`} onPointerDownCapture={()=>setAuto(false)} onFocusCapture={()=>setAuto(false)}>
+      <div ref={body} role="group" aria-label={`${caption()} (${step+1}/${steps.length})`} className="bj-demo-conversation bj-walk-body" key={`body-${replay}`}>
         {wa&&<span className="bj-demo-today">{copy('Today','Dzisiaj')}</span>}
         {step===0?<div className="bj-walk-intro"><img src="/brand/em-bajla-icon.webp" alt=""/><span>{copy('One conversation. Your next step.','Jedna rozmowa. Twój kolejny krok.')}</span></div>:<Message you wa={wa} pl={pl}>{previewQuery}</Message>}
         {step===1&&<Typing pl={pl}/>}

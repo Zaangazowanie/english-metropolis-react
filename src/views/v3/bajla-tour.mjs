@@ -1,8 +1,13 @@
-// Shared by the playback controller and its timing tests. Every original
-// screen gets two additional seconds to read before the next action.
+export const PLAYBACK_RATE = 1.5
+
+// Keep steps, typing and the guide on the same playback clock.
+export function playbackDuration(milliseconds) {
+  return milliseconds / PLAYBACK_RATE
+}
+
 export function walkthroughDelay(id, step) {
   const original = step === 0 ? 1400 : step === 1 ? 1200 : step === 2 ? 4200 : step === 3 && id === 'practice' ? 1200 : step === 3 ? 3200 : 3600
-  return original + 2000
+  return playbackDuration(original + 2000)
 }
 
 export function nextExample(index, length, direction = 1) {

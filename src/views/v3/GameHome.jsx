@@ -1038,30 +1038,6 @@ export default function GameHome() {
 
         <BajlaShowcase lang={lang}/>
 
-        {/* ── Why students stay: the six moats ── */}
-        <section className="gh-section gh-why-section" aria-labelledby="gh-why-title">
-          <Reveal className="gh-section-heading gh-why-heading">
-            <div className="gh-kicker" style={{ color: T.fuchsia }}>{W.whyKicker}</div>
-            <h2 id="gh-why-title" style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(30px, 4.2vw, 52px)',
-              lineHeight: 1.04, letterSpacing: '-0.035em', margin: '0 0 16px', maxWidth: 820 }}>{W.whyTitle}</h2>
-            <p style={{ color: T.textDim, fontSize: 'clamp(15px, 1.35vw, 18px)', lineHeight: 1.65, maxWidth: 640, margin: 0 }}>{W.whyBody}</p>
-          </Reveal>
-          <div className="gh-why-grid">
-            {W.why.map((item, i) => (
-              <Reveal key={item.title} delay={i * 70} className="gh-why-slot">
-                <article className="gh-why-card gh-glass gh-shader-surface" data-moat={i}
-                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
-                  <span className="gh-why-icon" aria-hidden>
-                    <span className="material-symbols-outlined">{item.icon}</span>
-                  </span>
-                  <h3>{item.title}</h3>
-                  <p>{item.body}</p>
-                </article>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-
         {/* ── Real lessons, real people — photography band ── */}
         <section className="gh-section gh-lessons-band">
           <Reveal className="gh-lessons-media">
@@ -1107,6 +1083,30 @@ export default function GameHome() {
               </ActionLink>
             </div>
           </Reveal>
+        </section>
+
+        {/* ── Why students stay: the six moats ── */}
+        <section className="gh-section gh-why-section" aria-labelledby="gh-why-title">
+          <Reveal className="gh-section-heading gh-why-heading">
+            <div className="gh-kicker" style={{ color: T.fuchsia }}>{W.whyKicker}</div>
+            <h2 id="gh-why-title" style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(30px, 4.2vw, 52px)',
+              lineHeight: 1.04, letterSpacing: '-0.035em', margin: '0 0 16px', maxWidth: 820 }}>{W.whyTitle}</h2>
+            <p style={{ color: T.textDim, fontSize: 'clamp(15px, 1.35vw, 18px)', lineHeight: 1.65, maxWidth: 640, margin: 0 }}>{W.whyBody}</p>
+          </Reveal>
+          <div className="gh-why-grid">
+            {W.why.map((item, i) => (
+              <Reveal key={item.title} delay={i * 70} className="gh-why-slot">
+                <article className="gh-why-card gh-glass gh-shader-surface" data-moat={i}
+                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
+                  <span className="gh-why-icon" aria-hidden>
+                    <span className="material-symbols-outlined">{item.icon}</span>
+                  </span>
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
+                </article>
+              </Reveal>
+            ))}
+          </div>
         </section>
 
         {/* ── How lessons work ── */}
