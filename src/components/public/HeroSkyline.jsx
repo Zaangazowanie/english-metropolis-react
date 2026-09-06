@@ -91,9 +91,9 @@ export default function HeroSkyline({ className = '', mode = 'night', reduced = 
         if (!w || !h) return
         renderer.setSize(w, h, false)
         const aspect = w / h
-        // Mobile deliberately crops to the central districts instead of shrinking
-        // an entire metropolis into illegible pixels.
-        const width = w < 600 ? 43 : w < 950 ? 67 : 94
+        // Fit the entire 88-unit city and viaduct, including parallax margin,
+        // at every breakpoint instead of cutting off the outer districts.
+        const width = 94
         const height = Math.max(19, width / aspect)
         camera.left = -height * aspect / 2; camera.right = height * aspect / 2
         camera.top = height / 2; camera.bottom = -height / 2

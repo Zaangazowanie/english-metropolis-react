@@ -1826,10 +1826,15 @@
   background: radial-gradient(ellipse 70% 70% at 30% 40%, var(--gh-hero-veil, rgba(251,250,255,0.86)), transparent 72%);
 }
 .gh-night .gh-hero-copy::before { --gh-hero-veil: rgba(6,4,16,0.78); }
-@media (max-width: 900px) {
-  /* The legacy motion sheet loads last and sets a 48px !important shorthand. */
-  .gh-hero-grid.em-hero-three-field { --gh-hero-pad-bottom: 220px; padding-bottom: var(--gh-hero-pad-bottom) !important; }
-  .gh-hero-skyline { height: 260px; bottom: -16px; opacity: 0.96; }
+@media (max-width: 920px) {
+  /* Match the legacy hero breakpoint and override its 48px bottom padding. */
+  .gh-hero-grid.em-hero-three-field { --gh-hero-pad-bottom: clamp(112px, 24vw, 220px); padding-bottom: var(--gh-hero-pad-bottom) !important; }
+  .gh-hero-skyline {
+    left: 0; right: 0; bottom: 0;
+    height: var(--gh-hero-pad-bottom);
+    opacity: 0.96;
+  }
+  .gh-hero-skyline[data-webgl="fallback"] { background-size: 100% auto; }
   .gh-hero-copy::before { inset: -20px -16px; }
 }
 
