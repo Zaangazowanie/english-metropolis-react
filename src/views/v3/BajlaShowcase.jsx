@@ -17,6 +17,16 @@ const EXAMPLES = [
   { id: 'word', mode: 'whatsapp', icon: 'hearing', en: ['Real words, real voices', 'Hear how a word lives in a sentence.', 'Pick a word from your lesson. Bajla brings back its meaning, an example and a native-speaker clip to hear it in context.', 'Let me choose a word from my lesson.'], pl: ['Prawdziwe słowa, prawdziwe głosy', 'Usłysz słowo w całym zdaniu.', 'Wybierz słowo z lekcji. Bajla pokaże znaczenie, przykład i nagranie native speakera, żeby usłyszeć je w kontekście.', 'Chcę wybrać słowo z mojej lekcji.'] },
 ]
 
+const EXAMPLE_LABELS = {
+  memory: ['Lesson memory', 'Pamięć lekcji'],
+  voice: ['Pronunciation', 'Wymowa'],
+  grammar: ['Grammar', 'Gramatyka'],
+  booking: ['Bookings', 'Rezerwacje'],
+  notes: ['Lesson notes', 'Notatki z lekcji'],
+  practice: ['Quick practice', 'Krótka powtórka'],
+  word: ['Words in context', 'Słowa w kontekście'],
+}
+
 function Icon({ name }) { return <span className="material-symbols-outlined" aria-hidden="true">{name}</span> }
 export default function BajlaShowcase({ lang }) {
   const pl = lang === 'pl'
@@ -25,24 +35,65 @@ export default function BajlaShowcase({ lang }) {
   const [playing, setPlaying] = useState(!reduced)
   const [currentStep, setCurrentStep] = useState(null)
   const example = EXAMPLES[index]
-  const [eyebrow, title, description, query] = example[pl ? 'pl' : 'en']
+  const [, title, description, query] = example[pl ? 'pl' : 'en']
   const wa = example.mode === 'whatsapp'
   const move = useCallback(amount => setIndex(current => nextExample(current, EXAMPLES.length, amount)), [])
   const continueTour = useCallback(() => move(1), [move])
   const stepCaption = currentStep?.id === example.id ? currentStep.caption : ''
-  return <section id="bajla" className="gh-section bj-showcase" aria-labelledby="gh-bajla-title">
-    <div className="bj-showcase-copy">
-      <div className="gh-kicker">{pl ? 'Poznaj Bajlę · w aplikacji i na WhatsAppie' : 'Meet Bajla · in the app and on WhatsApp'}</div>
-      <h2 id="gh-bajla-title">{pl ? <>Twoje lekcje.<br/>{' '}Jej dobra pamięć.</> : <>Your lessons.<br/>{' '}Her long memory.</>}</h2>
-      <p className="bj-showcase-intro">{pl ? 'Bajla to Twoja asystentka w English Metro. Pamięta materiał z lekcji, pomaga ćwiczyć i ogarnia rezerwacje. Napisz po polsku lub po angielsku — w aplikacji albo na WhatsAppie.' : 'Bajla is your English Metro assistant. She remembers your lesson material, helps you practise and takes care of bookings. Write in Polish or English, in the app or on WhatsApp.'}</p>
-      <Link className="bj-showcase-link" to="/pricing">{pl ? 'W dodatku z analizą lekcji AI' : 'Included with the AI lesson analysis add-on'}<Icon name="arrow_forward"/></Link>
-      <div className="bj-showcase-explanation" aria-live={playing ? 'off' : 'polite'} aria-atomic="true"><div key={`${index}-${lang}`} className="bj-showcase-explanation-content"><div className="bj-showcase-eyebrow"><span>{String(index + 1).padStart(2, '0')}</span>{eyebrow}</div><h3>{title}</h3><p>{description}</p><span className="bj-showcase-context" key={`${example.id}-${stepCaption}`}><Icon name={example.icon}/><span>{stepCaption || (wa ? 'WhatsApp' : (pl ? 'Bajla w aplikacji' : 'Bajla in the app'))}</span></span></div></div>
-    </div>
-    <div className="bj-showcase-stage" role="region" aria-roledescription={pl ? 'karuzela' : 'carousel'} aria-label={pl ? 'Bajla w działaniu' : 'Bajla in action'} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === 'ArrowRight') { event.preventDefault(); move(1) } if (event.key === 'ArrowLeft') { event.preventDefault(); move(-1) } }} tabIndex={0}>
-      <div className="bj-showcase-toolbar"><div className="bj-showcase-modes" role="group" aria-label={pl ? 'Wybierz interfejs' : 'Choose interface'}><button onClick={() => setIndex(0)} aria-pressed={!wa}><Icon name="desktop_windows"/>Web</button><button onClick={() => setIndex(3)} aria-pressed={wa}><Icon name="chat"/>WhatsApp</button></div><span className="bj-showcase-preview-label">{pl ? 'Podgląd' : 'Preview'}</span></div>
-      <BajlaWalkthrough key={`${index}-${lang}`} id={example.id} wa={wa} query={query} pl={pl} auto={playing} setAuto={setPlaying} onComplete={continueTour} onStepChange={setCurrentStep}/>
-      <div className="bj-showcase-controls"><span>{String(index + 1).padStart(2, '0')}<span> / {String(EXAMPLES.length).padStart(2, '0')}</span></span><div className="bj-showcase-steps">{EXAMPLES.map((item, i) => <button key={item.id} onClick={() => setIndex(i)} aria-label={`${pl ? 'Przykład' : 'Example'} ${i + 1}: ${item[pl ? 'pl' : 'en'][0]}`} aria-current={i === index ? 'true' : undefined}/>)}</div><div className="bj-showcase-arrows"><button onClick={() => move(-1)} aria-label={pl ? 'Poprzedni przykład Bajli' : 'Previous Bajla example'}><Icon name="arrow_back"/></button><button onClick={() => move(1)} aria-label={pl ? 'Następny przykład Bajli' : 'Next Bajla example'}><Icon name="arrow_forward"/></button></div></div>
-      <p className="bj-showcase-caption">{pl ? 'Web i WhatsApp w pętli. Zatrzymaj lub wybierz dowolną opcję.' : 'Web and WhatsApp, on a loop. Pause or try any option.'}</p>
-    </div>
-  </section>
+  return (
+    <section id="bajla" className="gh-section bj-showcase" aria-labelledby="gh-bajla-title">
+      <header className="bj-showcase-heading">
+        <div className="bj-showcase-copy">
+          <div className="bj-showcase-kicker"><span aria-hidden="true"/>{pl ? 'Poznaj Bajlę' : 'Meet Bajla'}</div>
+          <h2 id="gh-bajla-title">{pl ? <>Twoje lekcje.<br/>Zawsze pod ręką.</> : <>Your lessons.<br/>Always with you.</>}</h2>
+        </div>
+        <div className="bj-showcase-lead">
+          <p className="bj-showcase-intro">{pl ? 'Ćwicz materiał z lekcji, wracaj do notatek i zarządzaj rezerwacjami z Bajlą, w aplikacji lub na WhatsAppie. Rozmawiaj po polsku lub po angielsku.' : 'Practise your lesson material, revisit notes and manage bookings with Bajla, in the app or on WhatsApp. Speak Polish or English.'}</p>
+          <Link className="bj-showcase-link" to="/pricing">{pl ? 'W dodatku z analizą lekcji AI' : 'Included with the AI lesson analysis add-on'}<Icon name="arrow_forward"/></Link>
+        </div>
+      </header>
+
+      <div className="bj-showcase-workspace">
+        <div className="bj-showcase-explorer" onFocusCapture={() => setPlaying(false)} onPointerDownCapture={() => setPlaying(false)}>
+          <div className="bj-showcase-nav-heading">
+            <span>{pl ? 'Sprawdź, co potrafi' : 'See what she can do'}</span>
+            <span>{pl ? '7 przykładów' : '7 examples'}</span>
+          </div>
+          <div className="bj-showcase-modes" role="group" aria-label={pl ? 'Wybierz interfejs' : 'Choose interface'}>
+            <button type="button" onClick={() => { if (wa) setIndex(0) }} aria-pressed={!wa}><Icon name="desktop_windows"/>{pl ? 'W aplikacji' : 'In the app'}</button>
+            <button type="button" onClick={() => { if (!wa) setIndex(3) }} aria-pressed={wa}><Icon name="chat"/>WhatsApp</button>
+          </div>
+          <div className="bj-showcase-examples" role="group" aria-label={pl ? 'Wybierz przykład' : 'Choose an example'}>
+            {EXAMPLES.map((item, i) => item.mode === example.mode && (
+              <button type="button" key={item.id} onClick={() => setIndex(i)} aria-pressed={i === index} aria-controls="bj-showcase-preview">
+                <Icon name={item.icon}/><span>{EXAMPLE_LABELS[item.id][pl ? 1 : 0]}</span><Icon name="arrow_forward"/>
+              </button>
+            ))}
+          </div>
+          <div className="bj-showcase-explanation" aria-live={playing ? 'off' : 'polite'} aria-atomic="true">
+            <div key={`${index}-${lang}`} className="bj-showcase-explanation-content">
+              <h3>{title}</h3>
+              <p>{description}</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="bj-showcase-preview" className="bj-showcase-stage" role="region" aria-roledescription={pl ? 'karuzela' : 'carousel'} aria-label={pl ? 'Bajla w działaniu' : 'Bajla in action'} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === 'ArrowRight') { event.preventDefault(); move(1) } if (event.key === 'ArrowLeft') { event.preventDefault(); move(-1) } }} tabIndex={0}>
+          <div className="bj-showcase-toolbar">
+            <span className="bj-showcase-preview-label">{pl ? 'Przykładowa rozmowa' : 'Example conversation'}</span>
+            <span className="bj-showcase-counter">{String(index + 1).padStart(2, '0')}<span> / {String(EXAMPLES.length).padStart(2, '0')}</span></span>
+          </div>
+          <BajlaWalkthrough key={`${index}-${lang}`} id={example.id} wa={wa} query={query} pl={pl} auto={playing} setAuto={setPlaying} onComplete={continueTour} onStepChange={setCurrentStep}/>
+          <div className="bj-showcase-controls">
+            <span className="bj-showcase-context"><Icon name={example.icon}/><span>{stepCaption || EXAMPLE_LABELS[example.id][pl ? 1 : 0]}</span></span>
+            <div className="bj-showcase-arrows">
+              <button type="button" onClick={() => move(-1)} aria-label={pl ? 'Poprzedni przykład Bajli' : 'Previous Bajla example'}><Icon name="arrow_back"/></button>
+              <button type="button" onClick={() => move(1)} aria-label={pl ? 'Następny przykład Bajli' : 'Next Bajla example'}><Icon name="arrow_forward"/></button>
+            </div>
+          </div>
+          <p className="bj-showcase-caption">{pl ? 'Zatrzymaj pokaz lub wybierz przykład, aby wypróbować dostępne opcje.' : 'Pause the tour or choose an example to explore the available options.'}</p>
+        </div>
+      </div>
+    </section>
+  )
 }

@@ -1,17 +1,25 @@
+import { DAY, NIGHT } from '../../design/v3/tokens.js'
+
 // All repeated architectural details share instanced geometry. No model downloads,
 // texture requests, postprocessing passes, or per-window animation allocations.
 export function buildMetropolis(THREE, scene, day) {
+  const theme = day ? DAY : NIGHT
+  const brand = Object.fromEntries(['violet', 'fuchsia', 'pink', 'sky', 'emerald', 'ember', 'amber']
+    .map(name => [name, Number.parseInt(theme[name].slice(1), 16)]))
+  // Use the landing page's full palette; each tower keeps its own facade hue.
   const p = day ? {
-    stone: [0xaaa1c3, 0xc3bad5, 0xd4cce0], glass: [0x718798, 0x8292af, 0x9d99b9],
-    trim: 0xe8dfed, dark: 0x57516f, pane: 0xa8c4d1, warm: 0xffe4b7,
-    ground: 0xe0dbe9, pavement: 0xc6bfd4, road: 0x9a96b0, green: 0x658d86,
-    rail: 0x89809d, metal: 0xaca6ba, accent: 0x9568d4,
+    stone: [brand.violet, brand.fuchsia, brand.ember, brand.pink], glass: [brand.sky, brand.emerald, brand.violet],
+    trim: 0xd6dcf5, dark: 0x28264d, pane: 0x54b8e8, warm: 0xffca68,
+    ground: 0xd9ddf0, pavement: 0xa4aecb, road: 0x627398, green: brand.emerald,
+    rail: 0x64739c, metal: 0x849ac2, accent: brand.violet,
   } : {
-    stone: [0x4e456b, 0x68607b, 0x827087], glass: [0x223c54, 0x344968, 0x4c416b],
-    trim: 0x827799, dark: 0x191b32, pane: 0x466984, warm: 0xffd7a0,
-    ground: 0x211b36, pavement: 0x38314e, road: 0x191c30, green: 0x294d4c,
-    rail: 0x706882, metal: 0x69718c, accent: 0xbb87f3,
+    stone: [0x6836b5, 0x983caa, 0xb45c2c, 0xa73f72], glass: [0x164f9b, 0x127864, 0x523494],
+    trim: 0x9996c8, dark: 0x141d3d, pane: 0x348dcc, warm: 0xffc26b,
+    ground: 0x1c203e, pavement: 0x39436b, road: 0x151e39, green: 0x087c5c,
+    rail: 0x686f9d, metal: 0x7595bb, accent: brand.violet,
   }
+  const facadePanes = day ? [0x48b1ef, 0x30c6ad, 0xa78bf1, 0xee81bb] : [0x267cc4, 0x19a38b, 0x8762cb, 0xcd5995]
+  const facadeAccents = [brand.sky, brand.emerald, brand.violet, brand.pink, brand.ember, brand.fuchsia]
   const random = (n) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v) }
   const boxGeo = new THREE.BoxGeometry(1, 1, 1)
   const leafGeo = new THREE.IcosahedronGeometry(1, 1)
@@ -38,13 +46,16 @@ export function buildMetropolis(THREE, scene, day) {
   function tree(x, z, size = 0.65) {
     box(x, 0.32, z, 0.07, 0.64, 0.07, p.dark)
     part('leaf', x, size * 0.95, z, size * 0.52, size * 0.72, size * 0.48, p.green)
-    part('leaf', x - size * 0.25, size * 0.78, z + 0.1, size * 0.38, size * 0.45, size * 0.4, day ? 0x81a297 : 0x3b645d)
+    part('leaf', x - size * 0.25, size * 0.78, z + 0.1, size * 0.38, size * 0.45, size * 0.4, day ? 0x34d399 : 0x16a779)
   }
   // Side panes are actual geometry, so the façades hold up under parallax.
   function building(x, z, w, h, d, style, seed, far = false) {
-    const bodyColor = (style % 2 ? p.stone : p.glass)[seed % 3]
+    const bodies = style % 2 ? p.stone : p.glass
+    const bodyColor = bodies[seed % bodies.length]
+    const pane = facadePanes[seed % facadePanes.length]
+    const accent = facadeAccents[seed % facadeAccents.length]
     const podium = 0.58
-    box(x, podium / 2, z, w + 0.25, podium, d + 0.22, p.stone[(seed + 1) % 3])
+    box(x, podium / 2, z, w + 0.25, podium, d + 0.22, bodyColor)
     part(style % 2 ? 'solid' : 'glass', x, h / 2 + podium, z, w, h, d, bodyColor)
     const floors = Math.floor(h / 0.4)
     const columns = Math.max(3, Math.floor(w / 0.28))
@@ -56,16 +67,16 @@ export function buildMetropolis(THREE, scene, day) {
       if (f % (style === 1 ? 2 : 1) === 0) box(x, y + 0.17, z, w + 0.035, 0.032, d + 0.035, style % 2 ? p.trim : p.dark)
       for (let c = 0; c < columns; c++) {
         const hash = random(seed * 701 + f * 31 + c)
-        const color = hash > (far ? 0.7 : 0.47) ? (hash > 0.88 ? 0x9cdce1 : p.warm) : p.pane
+        const color = hash > (far ? 0.7 : 0.47) ? (hash > 0.88 ? 0x55e2d0 : p.warm) : pane
         const idx = part('light', x - w / 2 + dx * (c + 0.5), y, z + d / 2 + 0.012,
-          dx * (style % 2 ? 0.48 : 0.78), style % 2 ? 0.19 : 0.27, 0.015, day && hash < 0.8 ? p.pane : color)
-        windowRecords.push({ index: idx, x, color: day && hash < 0.8 ? p.pane : color })
+          dx * (style % 2 ? 0.48 : 0.78), style % 2 ? 0.19 : 0.27, 0.015, day && hash < 0.8 ? pane : color)
+        windowRecords.push({ index: idx, x, color: day && hash < 0.8 ? pane : color })
       }
       for (let c = 0; c < sides; c++) {
-        const color = random(seed * 61 + f * 19 + c) > 0.65 ? p.warm : p.pane
+        const color = random(seed * 61 + f * 19 + c) > 0.65 ? p.warm : pane
         const idx = part('light', x + w / 2 + 0.012, y, z - d / 2 + d / sides * (c + 0.5),
-          0.015, 0.22, d / sides * 0.52, day ? p.pane : color)
-        windowRecords.push({ index: idx, x, color: day ? p.pane : color, side: true })
+          0.015, 0.22, d / sides * 0.52, day ? pane : color)
+        windowRecords.push({ index: idx, x, color: day ? pane : color, side: true })
       }
     }
     // Vertical structural fins make each tower read as architecture at small sizes.
@@ -101,18 +112,19 @@ export function buildMetropolis(THREE, scene, day) {
     for (let c = 0; c < 4; c++) {
       part('light', x - w * 0.36 + c * w * 0.24, 0.29, z + d / 2 + 0.12, w * 0.17, 0.4, 0.025, day ? p.glass[0] : p.warm)
     }
-    box(x, 0.57, z + d / 2 + 0.24, w + 0.26, 0.07, 0.4, p.accent)
+    box(x, 0.57, z + d / 2 + 0.24, w + 0.26, 0.07, 0.4, accent)
   }
 
   function roundTower(x, z, height, seed) {
     const diameter = 2.8
-    part('round', x, height / 2, z, diameter, height, diameter, p.glass[0])
+    const pane = facadePanes[(seed + 1) % facadePanes.length]
+    part('round', x, height / 2, z, diameter, height, diameter, p.glass[1])
     for (let floor = 0; floor < Math.floor(height / 0.38); floor++) {
       const y = floor * 0.38 + 0.22
       part('round', x, y + 0.17, z, diameter + 0.07, 0.045, diameter + 0.07, p.trim)
       for (let c = 0; c < 24; c++) {
         const angle = c / 24 * Math.PI * 2
-        const color = !day && random(seed + floor * 31 + c) > 0.5 ? p.warm : p.pane
+        const color = !day && random(seed + floor * 31 + c) > 0.5 ? p.warm : pane
         const idx = part('light', x + Math.sin(angle) * 1.406, y, z + Math.cos(angle) * 1.406,
           0.21, 0.25, 0.022, color, angle)
         windowRecords.push({ index: idx, x, color })
@@ -182,7 +194,7 @@ export function buildMetropolis(THREE, scene, day) {
     box(stationX + i, 1.49, 2.9, 0.055, 1.2, 0.055, p.metal)
     box(stationX + i, 2.08, 3.3, 0.06, 0.08, 1.4, p.trim)
   }
-  part('glass', stationX, 2.12, 3.3, 7.6, 0.07, 1.5, day ? 0x9bbac9 : 0x506b83)
+  part('glass', stationX, 2.12, 3.3, 7.6, 0.07, 1.5, day ? 0x29b9b4 : 0x167a93)
   part('light', stationX, 1.98, 3.95, 7.4, 0.045, 0.04, p.warm)
   box(stationX - 3.8, 1.85, 4.62, 0.42, 0.48, 0.08, p.accent)
   // The station's M is geometry rather than a network font or texture.
@@ -222,9 +234,9 @@ export function buildMetropolis(THREE, scene, day) {
   const train = new THREE.Group()
   for (let i = 0; i < 3; i++) {
     const x = (i - 1) * 2.05
-    vehicleBox(train, x, 0.27, 0, 1.92, 0.43, 0.6, day ? 0xe4dce9 : 0xc4bad9)
+    vehicleBox(train, x, 0.27, 0, 1.92, 0.43, 0.6, p.accent)
     vehicleBox(train, x, 0.5, 0, 1.82, 0.065, 0.54, p.metal)
-    vehicleBox(train, x, 0.13, 0.31, 1.89, 0.105, 0.025, p.accent)
+    vehicleBox(train, x, 0.13, 0.31, 1.89, 0.105, 0.025, brand.pink)
     vehicleBox(train, x, 0.02, 0, 1.65, 0.12, 0.43, p.dark)
     for (let j = 0; j < 6; j++) vehicleBox(train, x - 0.74 + j * 0.29, 0.33, 0.309, 0.21, 0.18, 0.02, j % 3 === 0 ? p.pane : p.warm, true)
     for (const dx of [-0.62, 0.62]) vehicleBox(train, x + dx, -0.035, 0, 0.28, 0.17, 0.55, p.dark)
@@ -236,7 +248,7 @@ export function buildMetropolis(THREE, scene, day) {
   const cars = []
   for (let i = 0; i < 9; i++) {
     const car = new THREE.Group()
-    const color = [p.accent, 0xc7baba, 0xb99157, 0x7793a3][i % 4]
+    const color = [brand.fuchsia, brand.sky, brand.amber, brand.emerald][i % 4]
     vehicleBox(car, 0, 0.18, 0, 0.72, 0.21, 0.31, color)
     vehicleBox(car, -0.02, 0.33, 0, 0.39, 0.16, 0.27, p.glass[0])
     vehicleBox(car, 0.36, 0.17, 0, 0.035, 0.06, 0.27, p.warm, true)
@@ -274,7 +286,7 @@ export function buildMetropolis(THREE, scene, day) {
     w.halo = i
     w.phase = random(w.index * 3.71) * Math.PI * 2
     w.speed = 0.28 + random(w.index * 1.91) * 0.42 // independent 9–22 second cycles
-    w.warm = new THREE.Color(random(w.index * 2.31) > 0.84 ? 0x9cdce1 : p.warm)
+    w.warm = new THREE.Color(random(w.index * 2.31) > 0.84 ? 0x55e2d0 : p.warm)
     w.base = new THREE.Color(w.color)
   })
   halos.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(animatedWindows.length * 3), 3)

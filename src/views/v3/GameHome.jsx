@@ -1024,6 +1024,8 @@ export default function GameHome() {
           </div>
         </section>
 
+        <BajlaShowcase lang={lang}/>
+
         {/* ── Credible proof points, then the teacher-to-city learning loop ── */}
         <section className="gh-proof-rail gh-glass" aria-label={W.proofLabel}>
           {W.proof(ALL_GAMES.length).map((item, index) => (
@@ -1106,8 +1108,6 @@ export default function GameHome() {
             </div>
           </Reveal>
         </section>
-
-        <BajlaShowcase lang={lang}/>
 
         {/* ── How lessons work ── */}
         <section className="gh-section gh-journey-section">

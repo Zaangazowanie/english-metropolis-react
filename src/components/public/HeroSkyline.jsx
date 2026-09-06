@@ -24,17 +24,18 @@ export default function HeroSkyline({ className = '', mode = 'night', reduced = 
       renderer.setClearColor(0x000000, 0)
       renderer.outputColorSpace = THREE.SRGBColorSpace
       renderer.toneMapping = THREE.ACESFilmicToneMapping
-      renderer.toneMappingExposure = day ? 1.3 : 1.15
+      // Keep daylight below the ACES shoulder so saturated facades retain colour.
+      renderer.toneMappingExposure = day ? 1 : 1.1
       renderer.domElement.setAttribute('aria-hidden', 'true')
       mount.appendChild(renderer.domElement)
       mount.dataset.webgl = 'ready'
       const scene = new THREE.Scene()
-      scene.fog = new THREE.Fog(day ? 0xeee8f7 : 0x211630, 66, 110)
-      scene.add(new THREE.HemisphereLight(day ? 0xe8efff : 0xc7c7ff, day ? 0xaca0bd : 0x32263e, day ? 2.1 : 1.35))
-      const key = new THREE.DirectionalLight(day ? 0xffe5d1 : 0xd6dcff, day ? 3.2 : 2.5)
+      scene.fog = new THREE.Fog(day ? 0xece9fa : 0x211630, day ? 82 : 76, day ? 140 : 125)
+      scene.add(new THREE.HemisphereLight(day ? 0xf1f6ff : 0xc7dcff, day ? 0x7285a5 : 0x252e4a, day ? 1.25 : 1.2))
+      const key = new THREE.DirectionalLight(day ? 0xfff3e3 : 0xd6e5ff, day ? 2.3 : 2.4)
       key.position.set(-20, 35, 20)
       scene.add(key)
-      const rim = new THREE.DirectionalLight(day ? 0xc2b6ff : 0xb98cf6, day ? 1.2 : 2)
+      const rim = new THREE.DirectionalLight(day ? 0xb6daff : 0xc096ff, day ? 0.8 : 1.5)
       rim.position.set(22, 12, -12)
       scene.add(rim)
       const camera = new THREE.OrthographicCamera(-45, 45, 10, -10, 0.1, 160)
@@ -90,9 +91,9 @@ export default function HeroSkyline({ className = '', mode = 'night', reduced = 
         if (!w || !h) return
         renderer.setSize(w, h, false)
         const aspect = w / h
-        // Mobile deliberately crops to the central districts instead of shrinking
-        // an entire metropolis into illegible pixels.
-        const width = w < 600 ? 43 : w < 950 ? 67 : 94
+        // Fit the entire 88-unit city and viaduct, including parallax margin,
+        // at every breakpoint instead of cutting off the outer districts.
+        const width = 94
         const height = Math.max(19, width / aspect)
         camera.left = -height * aspect / 2; camera.right = height * aspect / 2
         camera.top = height / 2; camera.bottom = -height / 2

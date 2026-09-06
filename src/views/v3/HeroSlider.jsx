@@ -20,7 +20,7 @@ function Slide({ slide, image, active, minimal }) {
           <span className="material-symbols-outlined" aria-hidden>
             {slide.key === 'lessons' ? 'diversity_3' : slide.key === 'course' ? 'track_changes' : 'style'}
           </span>
-          {slide.eyebrow}
+          <span className="gh-hs-chip-label">{slide.eyebrow}</span>
         </span>
       ) : (
         <div className="gh-hs-caption">
@@ -77,7 +77,7 @@ export default function HeroSlider({ slides, label, prevLabel, nextLabel, minima
   }, [])
 
   return (
-    <div className="gh-hs" role="group" aria-roledescription="carousel" aria-label={label}
+    <div className={`gh-hs${minimal ? ' gh-hs--minimal' : ''}`} role="group" aria-roledescription="carousel" aria-label={label}
       tabIndex={0}
       onKeyDown={(event) => {
         if (event.key === 'ArrowRight') { event.preventDefault(); go(index + 1) }
