@@ -626,7 +626,7 @@
 .gh-proof-rail {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0 0 96px;
+  margin: 0;
   padding: 14px;
   border: 1px solid var(--gh-glass-border);
   border-radius: 22px;
@@ -1117,7 +1117,7 @@
   .gh-slider-prev { right: 68px; left: auto; }
   .gh-slider-next { right: 16px; }
   .gh-packs > .gh-pack-slot { grid-column: 1 / -1; }
-  .gh-proof-rail { margin-bottom: 72px; padding: 8px; }
+  .gh-proof-rail { padding: 8px; }
   .gh-proof-item { min-height: 76px; padding-inline: 8px; }
   .gh-proof-item strong { font-size: 25px; }
   .gh-proof-item span { font-size: 13px; letter-spacing: 0.08em; }
