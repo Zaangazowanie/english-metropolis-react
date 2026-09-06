@@ -37,6 +37,10 @@ export default function BajlaShowcase({ lang }) {
   const example = EXAMPLES[index]
   const [, title, description, query] = example[pl ? 'pl' : 'en']
   const wa = example.mode === 'whatsapp'
+  const selectExample = nextIndex => {
+    setIndex(nextIndex)
+    setPlaying(true)
+  }
   const move = useCallback(amount => setIndex(current => nextExample(current, EXAMPLES.length, amount)), [])
   const continueTour = useCallback(() => move(1), [move])
   const stepCaption = currentStep?.id === example.id ? currentStep.caption : ''
@@ -60,12 +64,12 @@ export default function BajlaShowcase({ lang }) {
             <span>{pl ? '7 przykładów' : '7 examples'}</span>
           </div>
           <div className="bj-showcase-modes" role="group" aria-label={pl ? 'Wybierz interfejs' : 'Choose interface'}>
-            <button type="button" onClick={() => { if (wa) setIndex(0) }} aria-pressed={!wa}><Icon name="desktop_windows"/>{pl ? 'W aplikacji' : 'In the app'}</button>
-            <button type="button" onClick={() => { if (!wa) setIndex(3) }} aria-pressed={wa}><Icon name="chat"/>WhatsApp</button>
+            <button type="button" onClick={() => selectExample(wa ? 0 : index)} aria-pressed={!wa}><Icon name="desktop_windows"/>{pl ? 'W aplikacji' : 'In the app'}</button>
+            <button type="button" onClick={() => selectExample(wa ? index : 3)} aria-pressed={wa}><Icon name="chat"/>WhatsApp</button>
           </div>
           <div className="bj-showcase-examples" role="group" aria-label={pl ? 'Wybierz przykład' : 'Choose an example'}>
             {EXAMPLES.map((item, i) => item.mode === example.mode && (
-              <button type="button" key={item.id} onClick={() => setIndex(i)} aria-pressed={i === index} aria-controls="bj-showcase-preview">
+              <button type="button" key={item.id} onClick={() => selectExample(i)} aria-pressed={i === index} aria-controls="bj-showcase-preview">
                 <Icon name={item.icon}/><span>{EXAMPLE_LABELS[item.id][pl ? 1 : 0]}</span><Icon name="arrow_forward"/>
               </button>
             ))}
