@@ -1888,6 +1888,77 @@
   .gh-hero-copy::before { inset: -20px -16px; }
 }
 
+/* ── glossy skyline contour ── */
+.gh-root .gh-hero-grid > .em-hero-procession { display: none; }
+.gh-hero-silhouette {
+  --gh-contour-base: #d6bdff;
+  --gh-contour-high: #ffffff;
+  --gh-contour-mid: #f3e8ff;
+  --gh-contour-low: #a26eff;
+  --gh-contour-gloss: #ffffff;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 360px;
+  pointer-events: none;
+  isolation: isolate;
+}
+.gh-day .gh-hero-silhouette {
+  --gh-contour-base: #5b21b6;
+  --gh-contour-high: #7c3aed;
+  --gh-contour-mid: #6d28d9;
+  --gh-contour-low: #3b1565;
+  --gh-contour-gloss: #f6eaff;
+}
+.gh-hero-silhouette::before {
+  content: ''; position: absolute; inset: 42% 0 0; z-index: -1;
+  background: radial-gradient(ellipse at 50% 72%, rgba(139,92,246,.19), transparent 68%);
+}
+.gh-day .gh-hero-silhouette::before { opacity: .5; }
+.gh-hero-silhouette svg { display: block; width: 100%; height: auto; overflow: visible; }
+.gh-silhouette-ink { filter: drop-shadow(0 0 3px rgba(155,112,255,.5)); }
+.gh-silhouette-reflection { opacity: .2; }
+.gh-silhouette-draw {
+  stroke-dasharray: 1000;
+  filter: drop-shadow(0 0 5px rgba(218,191,255,.6));
+  animation: ghSilhouetteDraw 8s linear infinite both;
+}
+.gh-silhouette-gloss {
+  stroke-dasharray: 80 1000;
+  filter: drop-shadow(0 0 8px rgba(230,208,255,.9));
+  animation: ghSilhouetteGloss 8s linear infinite both;
+}
+.gh-hero-silhouette[data-visible="false"] :is(.gh-silhouette-draw, .gh-silhouette-gloss) { animation-play-state: paused; }
+@keyframes ghSilhouetteDraw {
+  0%, 5% { stroke-dashoffset: 1000; opacity: 1; }
+  58%, 88% { stroke-dashoffset: 0; opacity: 1; }
+  98%, 100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes ghSilhouetteGloss {
+  0%, 5% { stroke-dashoffset: 80; opacity: 0; }
+  8% { opacity: 1; }
+  58% { stroke-dashoffset: -920; opacity: 1; }
+  62%, 100% { stroke-dashoffset: -920; opacity: 0; }
+}
+/* The silhouette owns a grid slot; it never sits over a link or a photo. */
+.gh-root .gh-hero-grid > .gh-hero-silhouette { grid-column: 1; grid-row: 2; margin-top: 22px; }
+.gh-root .gh-hero-grid > .gh-hero-stage-wrap { grid-row: 1 / span 2; }
+@media (min-width: 1260px) {
+  .gh-root .gh-hero-grid > .gh-hero-silhouette { grid-column: 2; grid-row: 1; margin-top: 0; align-self: center; }
+  .gh-root .gh-hero-grid > .gh-hero-stage-wrap { grid-row: 1; }
+}
+@media (max-width: 920px) {
+  .gh-root .gh-hero-grid { grid-template-rows: auto auto auto; row-gap: 20px !important; }
+  .gh-root .gh-hero-grid > .gh-hero-silhouette { grid-column: 1; grid-row: 2; max-width: 480px; margin-top: 0; justify-self: center; }
+  .gh-root .gh-hero-grid > .gh-hero-stage-wrap { grid-column: 1; grid-row: 3; }
+}
+.gh-hero-silhouette--still .gh-silhouette-draw { animation: none; stroke-dashoffset: 0; opacity: 1; }
+.gh-hero-silhouette--still .gh-silhouette-gloss { animation: none; display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .gh-silhouette-draw { animation: none; stroke-dashoffset: 0; opacity: 1; }
+  .gh-silhouette-gloss { animation: none; display: none; }
+}
+
 /* ── why students stay ── */
 /* padding-top now comes from the .gh-section rhythm */
 .gh-why-heading { margin-bottom: 30px; }
