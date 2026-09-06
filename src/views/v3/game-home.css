@@ -1809,6 +1809,16 @@
 .gh-hs-arrow--prev:hover { transform: translateY(-50%) translateX(-2px); }
 .gh-hs-arrow--next:hover { transform: translateY(-50%) translateX(2px); }
 .gh-hs-arrow:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.gh-hs.gh-hs--minimal .gh-hs-arrow {
+  opacity: 0; pointer-events: none;
+  background: rgba(12,8,25,0.18); border-color: rgba(255,255,255,0.2); box-shadow: none;
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+.gh-hs.gh-hs--minimal .gh-hs-arrow:focus-visible { opacity: 1; pointer-events: auto; }
+@media (hover: hover) and (pointer: fine) {
+  .gh-hs.gh-hs--minimal:hover .gh-hs-arrow { opacity: 0.65; pointer-events: auto; }
+  .gh-hs.gh-hs--minimal .gh-hs-arrow:is(:hover, :focus-visible) { opacity: 1; background: rgba(12,8,25,0.3); }
+}
 
 @media (max-width: 900px) {
   .gh-hs { aspect-ratio: 3 / 2; }
