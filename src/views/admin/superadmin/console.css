@@ -1411,7 +1411,7 @@
 .sa-root .sa-card-grid > .sa-card > .sa-card-header .sa-badge { flex: 0 0 auto; white-space: nowrap; margin-top: 2px; }
 .sa-root .sa-card-grid > .sa-card > :not(.sa-card-header) { margin-left: 18px; margin-right: 18px; }
 .sa-root .sa-card-grid > .sa-card > .sa-card-foot { margin-top: auto; padding-bottom: 16px; }
-.sa-root .sa-card-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.sa-root .sa-card-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
 .sa-root .sa-card.is-active { border-color: var(--sa-violet-500); box-shadow: var(--sa-shadow-pop); }
 .sa-root .sa-card-title { margin: 0; font-size: 16px; font-weight: 700; color: var(--sa-text); }
 .sa-root .sa-card-meta { margin: 2px 0 10px; font-size: var(--sa-fs-micro); color: var(--sa-text-muted); }
