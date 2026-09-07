@@ -1984,7 +1984,7 @@
 /* ── glossy skyline contour ── */
 .gh-root .gh-hero-grid > .em-hero-procession { display: none; }
 .gh-hero-silhouette {
-  --gh-contour-cycle: 16s;
+  --gh-contour-cycle: 14s;
   --gh-contour-high: #ffffff;
   --gh-contour-mid: #f3e8ff;
   --gh-contour-low: #a26eff;
@@ -2002,11 +2002,6 @@
   --gh-contour-low: #3b1565;
   --gh-contour-gloss: #4c1d95;
 }
-.gh-hero-silhouette::before {
-  content: ''; position: absolute; inset: 42% 0 0; z-index: -1;
-  background: radial-gradient(ellipse at 50% 72%, rgba(139,92,246,.19), transparent 68%);
-}
-.gh-day .gh-hero-silhouette::before { opacity: .5; }
 .gh-hero-silhouette svg { display: block; width: 100%; height: auto; overflow: visible; }
 .gh-silhouette-still { display: none; }
 .gh-silhouette-draw {
@@ -2023,14 +2018,14 @@
   animation: ghSilhouetteScan var(--gh-contour-cycle) linear infinite both;
 }
 .gh-hero-silhouette[data-visible="false"] :is(.gh-silhouette-draw, .gh-silhouette-reveal, .gh-silhouette-scan) { animation-play-state: paused; }
-/* Reveal and gloss advance together, hold the full city for .96s, then fade. */
+/* Reveal and gloss advance together, hold the full city for .98s, then fade. */
 @keyframes ghSilhouetteReveal {
   0%, 2% { transform: scaleX(0); }
-  74%, 100% { transform: scaleX(1); }
+  73%, 100% { transform: scaleX(1); }
 }
 @keyframes ghSilhouetteScan {
   0%, 2% { transform: translateX(16px); }
-  74% { transform: translateX(1201px); }
+  73% { transform: translateX(1201px); }
   80%, 100% { transform: translateX(1505px); }
 }
 @keyframes ghSilhouetteFade {
@@ -2042,7 +2037,8 @@
 .gh-root .gh-hero-grid > .gh-hero-silhouette { grid-column: 1; grid-row: 2; margin-top: 22px; }
 .gh-root .gh-hero-grid > .gh-hero-stage-wrap { grid-row: 1 / span 2; }
 @media (min-width: 1260px) {
-  .gh-root .gh-hero-grid > .gh-hero-silhouette { grid-column: 2; grid-row: 1; margin-top: 0; align-self: center; }
+  /* Balance against the copy's readable text width, rather than its wider grid track. */
+  .gh-root .gh-hero-grid > .gh-hero-silhouette { grid-column: 2; grid-row: 1; margin-top: 0; align-self: center; justify-self: center; transform: translateX(clamp(-24px, calc((1680px - 100vw) * .06), 0px)); }
   .gh-root .gh-hero-grid > .gh-hero-stage-wrap { grid-row: 1; }
 }
 @media (max-width: 920px) {
