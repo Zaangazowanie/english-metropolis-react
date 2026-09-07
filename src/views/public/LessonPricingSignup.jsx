@@ -566,20 +566,28 @@ export default function LessonPricingSignup() {
       <header className="lp-nav" onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
         <Link to="/" className="lp-brand" aria-label={t('English Metro home', 'English Metro, strona główna')}>
           <Skyline size={30} />
-          <span>English<span>Metro</span>.</span>
+          <span>English <span>Metro</span><em>.</em></span>
         </Link>
+        {/* Same header as the landing (GameHome.jsx): ghost pills, a secondary
+            Sign up, the language pill, a primary pill on the right. */}
         <nav className="lp-nav-links" aria-label={t('Public lessons navigation', 'Nawigacja strony lekcji')}>
           <a href="#packages">{t('Lessons', 'Lekcje')}</a>
           <a href="#pricing">{t('Pricing', 'Cennik')}</a>
-          <a href="#signup">{t('Signup', 'Zapisy')}</a>
           <a href="/about/">{t('About', 'O nas')}</a>
           <a href="/faq/">{t('FAQ', 'Pytania')}</a>
           <a href="/kontakt/">{t('Contact', 'Kontakt')}</a>
           <Link to="/login">{t('Sign in', 'Logowanie')}</Link>
+          <Link className="lp-button lp-button-ghost lp-nav-cta" to="/signup">{t('Sign up', 'Załóż konto')}</Link>
         </nav>
-        <div className="lp-lang-toggle" role="group" aria-label={t('Language', 'Język')}>
-          <button type="button" className={lang === 'en' ? 'is-active' : ''} aria-pressed={lang === 'en'} onClick={() => chooseLanguage('en')}>EN</button>
-          <button type="button" className={lang === 'pl' ? 'is-active' : ''} aria-pressed={lang === 'pl'} onClick={() => chooseLanguage('pl')}>PL</button>
+        <div className="lp-nav-end">
+          <div className="lp-lang-toggle" role="group" aria-label={t('Language', 'Język')}>
+            <button type="button" className={lang === 'pl' ? 'is-active' : ''} aria-pressed={lang === 'pl'} onClick={() => chooseLanguage('pl')}>PL</button>
+            <button type="button" className={lang === 'en' ? 'is-active' : ''} aria-pressed={lang === 'en'} onClick={() => chooseLanguage('en')}>EN</button>
+          </div>
+          <a className="lp-button lp-button-primary lp-nav-cta" href="#signup">
+            {t('Learning plan', 'Plan nauki')}
+            <span className="material-symbols-outlined" aria-hidden>arrow_forward</span>
+          </a>
         </div>
       </header>
 
@@ -587,10 +595,13 @@ export default function LessonPricingSignup() {
         <MetroSignalField className="lp-hero-signal" mode="light" density={66}/>
         <div className="lp-hero-copy">
           <p className="lp-kicker">
-            <span className="material-symbols-outlined" aria-hidden>verified</span>
             {t('Live 1:1 lessons with a teacher, practice in English Metro World', 'Lekcje 1:1 na żywo z lektorem i ćwiczenia w English Metro World')}
           </p>
-          <h1 id="lp-title">{t('English Metro private lessons', 'Prywatne lekcje English Metro')}</h1>
+          <h1 id="lp-title">
+            {t('English Metro', 'Prywatne lekcje')}
+            <br/>
+            <span className="lp-gradient-word">{t('private lessons', 'English Metro')}</span><em>.</em>
+          </h1>
           <p>
             {t(
               'Pick a package, pay securely through Przelewy24 and book your lessons from your account. Every package shows its price with VAT and its validity before you pay.',
@@ -610,21 +621,21 @@ export default function LessonPricingSignup() {
         </div>
         <div className="lp-hero-panel" aria-label={t('How buying lessons works', 'Jak kupić lekcje')}
           onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
-          <div>
-            <span>01</span>
-            <strong>{t('Add a package to the cart', 'Dodaj pakiet do koszyka')}</strong>
-            <p>{t('Compare lesson count, price per lesson and validity.', 'Porównaj liczbę lekcji, cenę za lekcję i ważność.')}</p>
-          </div>
-          <div>
-            <span>02</span>
-            <strong>{t('Create your account and pay', 'Załóż konto i zapłać')}</strong>
-            <p>{t('BLIK, card, bank transfer or PayPo, on the secure Przelewy24 page. Invoice on request.', 'BLIK, karta, przelew lub PayPo na bezpiecznej stronie Przelewy24. Faktura na życzenie.')}</p>
-          </div>
-          <div>
-            <span>03</span>
-            <strong>{t('Book lessons from your account', 'Rezerwuj lekcje ze swojego konta')}</strong>
-            <p>{t('Right away, or after the 14-day withdrawal period if you prefer. Cancel free with 24 hours notice.', 'Od razu albo po 14-dniowym okresie na odstąpienie, jak wolisz. Odwołanie bez opłaty z 24-godzinnym wyprzedzeniem.')}</p>
-          </div>
+          {/* The landing's journey route (.gh-journey-step): gradient number
+              badge on a rail, title with icon, one line of body. */}
+          {[
+            ['add_shopping_cart', t('Add a package to the cart', 'Dodaj pakiet do koszyka'), t('Compare lesson count, price per lesson and validity.', 'Porównaj liczbę lekcji, cenę za lekcję i ważność.')],
+            ['lock', t('Create your account and pay', 'Załóż konto i zapłać'), t('BLIK, card, bank transfer or PayPo, on the secure Przelewy24 page. Invoice on request.', 'BLIK, karta, przelew lub PayPo na bezpiecznej stronie Przelewy24. Faktura na życzenie.')],
+            ['event_available', t('Book lessons from your account', 'Rezerwuj lekcje ze swojego konta'), t('Right away, or after the 14-day withdrawal period if you prefer. Cancel free with 24 hours notice.', 'Od razu albo po 14-dniowym okresie na odstąpienie, jak wolisz. Odwołanie bez opłaty z 24-godzinnym wyprzedzeniem.')],
+          ].map(([icon, title, body], i) => (
+            <article className="lp-hero-step" key={icon}>
+              <span className="lp-hero-num" aria-hidden><b>{i + 1}</b></span>
+              <div>
+                <strong><span className="material-symbols-outlined" aria-hidden>{icon}</span>{title}</strong>
+                <p>{body}</p>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 
