@@ -32,6 +32,7 @@ import HeroSlider from './HeroSlider.jsx'
 import HeroSkyline from '../../components/public/HeroSkyline.jsx'
 import HeroSilhouette from '../../components/public/HeroSilhouette.jsx'
 import BajlaShowcase from './BajlaShowcase.jsx'
+import CourseSlider from './CourseSlider.jsx'
 import ReactiveShaderField from '../../components/public/ReactiveShaderField.jsx'
 import { clearPointerPolish, pulsePointerPolish, setPointerPolish, focusSkylineDistrict } from '../../components/public/motionPolish.js'
 const ArcadeCityBackdrop = lazy(() => import('./ArcadeCityBackdrop.jsx'))
@@ -204,15 +205,6 @@ const GH = {
     cityCta: 'Start my learning plan',
     cityLabel: 'Interactive 3D map of English Metro',
     cityHint: 'Drag the city to explore',
-    lessonsKicker: 'Live lessons, with a direction',
-    lessonsTitle: 'English for the conversations ahead.',
-    lessonsBody: 'Bring the situations you want to handle with more confidence. In 1:1 lessons, there is time to follow your interests and work closely on your language. In groups of up to four, classmates bring another perspective and another reason to speak.',
-    lessonsPoints: ['A CEFR starting point and goals you agree with your teacher', 'Specialist programmes for interviews, exams, relocation and English at work, with 6, 12 or 24 lessons', 'Specialist Track includes two writing or speaking reviews; longer programmes include regular progress reviews'],
-    lessonsCta: 'Meet your teacher',
-    lessonsAltMain: 'A student smiling during a live online English lesson',
-    lessonsAltSide: 'A student laughing while practising English on a phone',
-    lessonsChipA: 'Live 1:1 · 60 min',
-    lessonsChipB: 'Small groups, too',
     stepsAlt: 'A group of English Metro students laughing and learning together',
     stepsChip: 'Live · your own teacher',
   },
@@ -293,15 +285,6 @@ const GH = {
     cityCta: 'Rozpocznij plan nauki',
     cityLabel: 'Interaktywna mapa 3D English Metro',
     cityHint: 'Przeciągnij miasto, aby je odkrywać',
-    lessonsKicker: 'Zajęcia na żywo, z konkretnym celem',
-    lessonsTitle: 'Angielski do rozmów, które Cię czekają.',
-    lessonsBody: 'Przynieś sytuacje, w których chcesz czuć się pewniej. Na lekcjach 1:1 jest czas na Twoje zainteresowania i dokładną pracę nad językiem. W grupach do czterech osób dochodzi inna perspektywa i kolejny powód, żeby zabrać głos.',
-    lessonsPoints: ['Poziom CEFR na start i cele ustalone wspólnie z lektorem', 'Programy specjalistyczne: rozmowy kwalifikacyjne, egzaminy, przeprowadzka i angielski w pracy, w pakietach 6, 12 lub 24 lekcji', 'Specialist Track obejmuje dwie oceny wypowiedzi pisemnej lub ustnej; dłuższe programy zawierają regularne przeglądy postępów'],
-    lessonsCta: 'Poznaj swojego lektora',
-    lessonsAltMain: 'Uśmiechnięta uczennica podczas lekcji angielskiego online na żywo',
-    lessonsAltSide: 'Uczeń śmiejący się podczas ćwiczenia angielskiego na telefonie',
-    lessonsChipA: 'Na żywo 1:1 · 60 min',
-    lessonsChipB: 'Także małe grupy',
     stepsAlt: 'Grupa uczniów English Metro śmiejących się i uczących razem',
     stepsChip: 'Na żywo · Twój własny lektor',
   },
@@ -1041,52 +1024,7 @@ export default function GameHome() {
 
         <BajlaShowcase lang={lang}/>
 
-        {/* ── Real lessons, real people — photography band ── */}
-        <section className="gh-section gh-lessons-band">
-          <Reveal className="gh-lessons-media">
-            <div className="gh-photo-frame gh-photo-frame--main"
-              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
-              <img src="/home/photo-student.webp" alt={W.lessonsAltMain} loading="lazy" width="1600" height="1067"/>
-              <span className="gh-ai-note">{AI_NOTE(lang)}</span>
-              <span className="gh-float-chip gh-float-chip--a">
-                <span className="material-symbols-outlined" aria-hidden>videocam</span>
-                {W.lessonsChipA}
-              </span>
-              <span className="gh-float-chip gh-float-chip--b">
-                <span className="material-symbols-outlined" aria-hidden>track_changes</span>
-                {W.lessonsChipB}
-              </span>
-            </div>
-            <div className="gh-photo-frame gh-photo-frame--side"
-              onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
-              <img src="/home/photo-practice-2607.webp" alt={W.lessonsAltSide} loading="lazy" width="800" height="533"/>
-              <span className="gh-ai-note">{AI_NOTE(lang)}</span>
-            </div>
-          </Reveal>
-          <Reveal className="gh-lessons-copy" delay={90}>
-            <div className="gh-kicker" style={{ color: T.fuchsia }}>{W.lessonsKicker}</div>
-            <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(30px, 4.2vw, 52px)',
-              lineHeight: 1.04, letterSpacing: '-0.035em', margin: '0 0 18px' }}>{W.lessonsTitle}</h2>
-            <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.35vw, 17px)', lineHeight: 1.7,
-              maxWidth: 520, margin: '0 0 22px' }}>{W.lessonsBody}</p>
-            <ul className="gh-lessons-points">
-              {W.lessonsPoints.map((point) => (
-                <li key={point}>
-                  <span className="material-symbols-outlined" aria-hidden>check_circle</span>
-                  {point}
-                </li>
-              ))}
-            </ul>
-            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 26 }}>
-              <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward">
-                {W.lessonsCta}
-              </ActionLink>
-              <ActionLink to="/pricing" variant="secondary" size="lg" trailingIcon="sell">
-                {W.ctaPricing}
-              </ActionLink>
-            </div>
-          </Reveal>
-        </section>
+        <CourseSlider lang={lang}/>
 
         {/* ── Why students stay: the six moats ── */}
         <section className="gh-section gh-why-section" aria-labelledby="gh-why-title">

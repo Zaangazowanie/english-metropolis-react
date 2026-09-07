@@ -1,0 +1,60 @@
+.gh-courses { --course-accent: #edb5f5; }
+.gh-day .gh-courses { --course-accent: #762497; }
+.gh-courses-heading { display: grid; grid-template-columns: 1.25fr 1fr; gap: 48px; align-items: end; margin-bottom: 32px; }
+.gh-courses .gh-kicker { color: var(--course-accent); }
+.gh-courses h2 { font-size: clamp(30px, 3.7vw, 50px); font-weight: 700; line-height: 1.14; letter-spacing: -.035em; margin: 0; max-width: 720px; }
+.gh-courses-heading > p { color: var(--gh-text-soft); max-width: 470px; font-size: 16px; line-height: 1.75; margin: 0; }
+.gh-course-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 30px; }
+.gh-course-tabs button { display: inline-flex; align-items: center; gap: 9px; border: 1px solid var(--gh-border-hi); border-radius: 999px; padding: 12px 16px; min-height: 46px; font: inherit; font-size: 13px; font-weight: 600; color: var(--gh-text-soft); background: var(--gh-surface); cursor: pointer; }
+.gh-course-tabs button[aria-selected="true"] { background: var(--course-accent); border-color: var(--course-accent); color: #25112f; }
+.gh-day .gh-course-tabs button[aria-selected="true"] { color: #fff; }
+.gh-course-tab-number { font-size: 11px; opacity: .75; }
+.gh-course-stage { display: grid; }
+/* Overlaid panels reserve the tallest slide's space so controls do not jump. */
+.gh-course-panel { grid-area: 1 / 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 4vw, 64px); align-items: center; visibility: hidden; opacity: 0; pointer-events: none; }
+.gh-course-panel.is-active { visibility: visible; opacity: 1; pointer-events: auto; }
+.gh-course-visual { position: relative; align-self: stretch; margin: 0; min-width: 0; overflow: hidden; border-radius: 24px; background: var(--gh-surface); min-height: 520px; }
+.gh-course-visual img { position: absolute; width: 100%; height: 100%; object-fit: cover; inset: 0; }
+.gh-course-visual::after { content: ''; position: absolute; inset: 55% 0 0; background: linear-gradient(transparent, rgba(16,9,29,.7)); pointer-events: none; }
+.gh-course-visual figcaption { position: absolute; right: 16px; bottom: 12px; z-index: 1; color: #fff; font-size: 10px; }
+.gh-course-image-label { position: absolute; z-index: 1; left: 24px; bottom: 42px; color: #fff; font-size: clamp(23px, 2.3vw, 34px); font-weight: 700; letter-spacing: -.025em; right: 24px; }
+.gh-course-copy { padding: 18px 0; min-width: 0; }
+.gh-course-tag { color: var(--course-accent); font-size: 12px; font-weight: 700; line-height: 1.6; margin: 0 0 14px; }
+.gh-course-copy h3 { font-size: clamp(28px, 3vw, 43px); font-weight: 700; line-height: 1.14; letter-spacing: -.035em; margin: 0 0 20px; max-width: 620px; }
+.gh-course-intro { font-size: 15px; line-height: 1.8; color: var(--gh-text-soft); margin: 0 0 22px; max-width: 640px; }
+.gh-course-copy ul { padding: 0; margin: 0; list-style: none; display: grid; gap: 13px; }
+.gh-course-copy li { display: flex; gap: 11px; font-size: 14px; line-height: 1.65; color: var(--gh-text-soft); }
+.gh-course-copy li .material-symbols-outlined { color: var(--course-accent); font-size: 19px; flex: none; margin-top: 2px; }
+.gh-course-example { border-left: 2px solid var(--course-accent); padding-left: 16px; margin: 24px 0; color: var(--gh-text-soft); font-size: 13px; line-height: 1.7; }
+.gh-course-actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.gh-course-actions .gh-action { text-align: center; font-size: 13px; }
+.gh-root .gh-courses a.gh-course-contact { color: var(--gh-text); font-size: 13px; text-decoration: underline; text-underline-offset: 5px; }
+.gh-course-controls { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--gh-border-hi); padding: 20px 0; }
+.gh-course-controls p { margin: 0; color: var(--gh-text-soft); font-size: 13px; }
+.gh-course-controls b { color: var(--gh-text); }
+.gh-course-controls p > span { margin-left: 20px; }
+.gh-course-controls > div { display: flex; gap: 10px; }
+.gh-course-controls button { width: 46px; height: 46px; border: 1px solid var(--gh-border-hi); border-radius: 50%; background: var(--gh-surface); color: var(--gh-text); display: grid; place-items: center; cursor: pointer; }
+.gh-courses button:hover { border-color: var(--course-accent); }
+.gh-courses :focus-visible { outline: 3px solid var(--course-accent); outline-offset: 4px; }
+@media (prefers-reduced-motion: no-preference) {
+  .gh-course-panel.is-active { animation: course-appear 320ms ease-out; }
+  @keyframes course-appear { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: none; } }
+}
+@media (max-width: 900px) {
+  .gh-courses-heading { grid-template-columns: 1fr; gap: 18px; }
+  .gh-courses-heading > p { max-width: 620px; }
+  .gh-course-panel { grid-template-columns: 1fr; gap: 24px; align-content: start; }
+  .gh-course-visual { min-height: 0; height: clamp(280px, 65vw, 480px); }
+  .gh-course-copy { padding: 0; }
+  .gh-course-tabs { gap: 7px; }
+  .gh-course-tabs button { font-size: 12px; padding: 10px 13px; }
+}
+@media (max-width: 480px) {
+  .gh-course-tab-number { display: none; }
+  .gh-course-tabs { margin-bottom: 22px; }
+  .gh-course-controls p > span { display: block; margin: 6px 0 0; }
+  .gh-course-copy h3 { font-size: 30px; }
+  .gh-course-visual { border-radius: 18px; }
+  .gh-course-actions { align-items: flex-start; flex-direction: column; gap: 16px; }
+}
