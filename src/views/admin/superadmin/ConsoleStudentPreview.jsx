@@ -249,21 +249,19 @@ export default function ConsoleStudentPreview() {
                     <input id="p-name" className="sa-input" value={draft.name}
                            onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
                   </Field>
-                  <div className="sa-field-row">
-                    <Field label="Level" htmlFor="p-level">
-                      <select id="p-level" className="sa-select" value={draft.level}
-                              onChange={e => setDraft(d => ({ ...d, level: e.target.value }))}>
-                        {CEFR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-                      </select>
-                    </Field>
-                    <Field label="Target" htmlFor="p-target">
-                      <select id="p-target" className="sa-select" value={draft.targetLevel}
-                              onChange={e => setDraft(d => ({ ...d, targetLevel: e.target.value }))}>
-                        <option value="">—</option>
-                        {CEFR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-                      </select>
-                    </Field>
-                  </div>
+                  <Field label="Level" htmlFor="p-level">
+                    <select id="p-level" className="sa-select" value={draft.level}
+                            onChange={e => setDraft(d => ({ ...d, level: e.target.value }))}>
+                      {CEFR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Target level" htmlFor="p-target">
+                    <select id="p-target" className="sa-select" value={draft.targetLevel}
+                            onChange={e => setDraft(d => ({ ...d, targetLevel: e.target.value }))}>
+                      <option value="">—</option>
+                      {CEFR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </Field>
                   <Field label="Primary teacher" htmlFor="p-teacher">
                     <select id="p-teacher" className="sa-select" value={draft.primaryTeacherId}
                             onChange={e => setDraft(d => ({ ...d, primaryTeacherId: e.target.value }))}>

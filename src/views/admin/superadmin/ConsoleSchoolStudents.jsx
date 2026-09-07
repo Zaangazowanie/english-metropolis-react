@@ -258,27 +258,25 @@ export default function ConsoleSchoolStudents() {
               </Field>
               {slugTaken && <p className="sa-note is-bad">That slug is already used in this school.</p>}
 
-              <div className="sa-field-row">
-                <Field label="Level" htmlFor="s-level">
-                  <select id="s-level" className="sa-select" value={draft.level}
-                          onChange={e => setDraft(d => ({ ...d, level: e.target.value }))}>
-                    {CEFR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-                  </select>
-                </Field>
-                <Field label="Target level" htmlFor="s-target">
-                  <select id="s-target" className="sa-select" value={draft.targetLevel}
-                          onChange={e => setDraft(d => ({ ...d, targetLevel: e.target.value }))}>
-                    <option value="">—</option>
-                    {CEFR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-                  </select>
-                </Field>
-                <Field label="Type" htmlFor="s-type">
-                  <select id="s-type" className="sa-select" value={draft.type}
-                          onChange={e => setDraft(d => ({ ...d, type: e.target.value }))}>
-                    {STUDENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </Field>
-              </div>
+              <Field label="Level" htmlFor="s-level">
+                <select id="s-level" className="sa-select" value={draft.level}
+                        onChange={e => setDraft(d => ({ ...d, level: e.target.value }))}>
+                  {CEFR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </Field>
+              <Field label="Target level" htmlFor="s-target">
+                <select id="s-target" className="sa-select" value={draft.targetLevel}
+                        onChange={e => setDraft(d => ({ ...d, targetLevel: e.target.value }))}>
+                  <option value="">—</option>
+                  {CEFR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </Field>
+              <Field label="Type" htmlFor="s-type">
+                <select id="s-type" className="sa-select" value={draft.type}
+                        onChange={e => setDraft(d => ({ ...d, type: e.target.value }))}>
+                  {STUDENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </Field>
 
               <Field label="Primary teacher" htmlFor="s-teacher"
                      hint="Scheduling scopes open slots per teacher. Leaving this unset means their calendar has no teacher to draw availability from.">
@@ -298,16 +296,14 @@ export default function ConsoleSchoolStudents() {
                 </select>
               </Field>
 
-              <div className="sa-field-row">
-                <Field label="Email" htmlFor="s-email">
-                  <input id="s-email" type="email" className="sa-input" value={draft.email}
-                         onChange={e => setDraft(d => ({ ...d, email: e.target.value }))} />
-                </Field>
-                <Field label="Phone" htmlFor="s-phone">
-                  <input id="s-phone" className="sa-input" value={draft.phone}
-                         onChange={e => setDraft(d => ({ ...d, phone: e.target.value }))} />
-                </Field>
-              </div>
+              <Field label="Email" htmlFor="s-email">
+                <input id="s-email" type="email" className="sa-input" value={draft.email}
+                       onChange={e => setDraft(d => ({ ...d, email: e.target.value }))} />
+              </Field>
+              <Field label="Phone" htmlFor="s-phone">
+                <input id="s-phone" className="sa-input" value={draft.phone}
+                       onChange={e => setDraft(d => ({ ...d, phone: e.target.value }))} />
+              </Field>
 
               <Field label="Notes" htmlFor="s-notes">
                 <textarea id="s-notes" className="sa-textarea" rows={3} value={draft.notes}
