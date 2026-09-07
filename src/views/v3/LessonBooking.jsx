@@ -31,7 +31,8 @@ const DAY_MS = 24 * 60 * 60 * 1000
 // credit — a silent charge, in the only place the policy is shown to the person
 // paying. The server is authoritative; this must track it.
 const CANCELLATION_WINDOW_MS = 24 * 60 * 60 * 1000
-const HORIZON_STEPS = [28, 56, 84]
+// Show the recurring schedule through the requested teaching-year end.
+const HORIZON_STEPS = [28, 56, 84, Math.max(84, Math.round((Date.parse('2027-07-31T00:00:00Z') - Date.parse(`${warsawToday()}T00:00:00Z`)) / DAY_MS))]
 const MAX_WEEKS = 52
 
 // Convex HTTP API. A ConvexError (the refusals a student can act on) arrives as
@@ -299,7 +300,7 @@ export default function LessonBooking() {
   const teacherId = studentUser?.primaryTeacherId || undefined
 
   const [state, setState] = useState({ loading: true, bookings: [], slots: [], windows: [], error: null })
-  const [horizonDays, setHorizonDays] = useState(HORIZON_STEPS[0])
+  const [horizonDays, setHorizonDays] = useState(HORIZON_STEPS[HORIZON_STEPS.length - 1])
   const [alloc, setAlloc] = useState(null)
   const [mode, setMode] = useState('pick')
   const [selected, setSelected] = useState(() => new Map())

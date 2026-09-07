@@ -100,7 +100,8 @@ export default function AdminCalendar() {
 
       const today = new Date()
       const slotsFrom = ymd(today)
-      const slotsTo = ymd(new Date(today.getTime() + 28 * DAY_MS))
+      // Include the requested teaching year and any later month being viewed.
+      const slotsTo = [ymd(monthEnd), '2027-07-31', ymd(new Date(today.getTime() + 28 * DAY_MS))].sort().at(-1)
       // Settle each query independently: one failed call degrades just that
       // section (e.g. an empty slot list) instead of blanking the whole page.
       const [bookings, taught, slots, students, stats] = await Promise.allSettled([
