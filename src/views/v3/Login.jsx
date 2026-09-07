@@ -1,3 +1,4 @@
+import { saveStudentLogin } from '../../lib/student-session.js'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAdminAuth } from '../../contexts/AdminAuthContext.jsx'
@@ -163,12 +164,7 @@ export default function LoginV3() {
         // Persist the same session shape that studentLogin sets so the
         // student-auth context picks it up across reloads. The shape mirrors
         // studentAuth:studentLogin → result.student exactly.
-        try {
-          window.localStorage.setItem(
-            'em-student-session',
-            JSON.stringify({ ...result.student, sessionToken: result.sessionToken }),
-          )
-        } catch {}
+        saveStudentLogin(result)
         window.location.href = studentDestination(result.student?.slug)
         return
       }

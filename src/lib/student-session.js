@@ -22,3 +22,12 @@ export function readStudentSession() {
 export function getStudentSessionToken() {
   return readStudentSession()?.sessionToken || null
 }
+
+// Complete persistence before the login caller navigates to another page.
+// Storage failures must reach the login error UI, never look like success.
+export function saveStudentLogin(payload) {
+  if (!payload?.student?.slug || !payload?.sessionToken) throw new Error('Login did not return a student session. Please try again.')
+  const user = { ...payload.student, sessionToken: payload.sessionToken }
+  window.localStorage.setItem('em-student-session', JSON.stringify(user))
+  return user
+}

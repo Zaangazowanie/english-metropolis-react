@@ -10,6 +10,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { fetchWithTimeout } from '../practice/lib/practice-cache'
 export { getStudentSessionToken } from '../lib/student-session.js'
+import { saveStudentLogin } from '../lib/student-session.js'
 
 const STUDENT_SESSION_KEY = 'em-student-session'   // real auth session
 const LEGACY_SLUG_KEY = 'studentSlug'               // old link-based fallback
@@ -77,7 +78,7 @@ export function StudentAuthProvider({ children }) {
 
     // Store the session token alongside the student object so
     // getStudentSessionToken() can read it back for booking calls.
-    setStudentUser({ ...payload.student, sessionToken: payload.sessionToken })
+    setStudentUser(saveStudentLogin(payload))
     return payload
   }
 
