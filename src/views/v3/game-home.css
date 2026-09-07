@@ -4,8 +4,11 @@
 
 /* ── semantic glass + interaction foundation (2026-07-12) ── */
 .gh-root {
-  --gh-glass-bg: rgba(18, 10, 38, 0.62);
-  --gh-glass-strong-bg: rgba(15, 8, 34, 0.82);
+  /* Night glass. Deepened 2026-09-07 (Mike: "significantly darken the purple"):
+     the old rgba(18,10,38) / rgba(15,8,34) surfaces read as a violet haze over
+     the whole page. Near-black with a trace of violet now. */
+  --gh-glass-bg: rgba(9, 5, 20, 0.66);
+  --gh-glass-strong-bg: rgba(7, 4, 16, 0.86);
   --gh-glass-border: rgba(255, 255, 255, 0.15);
   --gh-glass-highlight: rgba(255, 255, 255, 0.16);
   --gh-glass-shadow: 0 24px 70px -42px rgba(2, 0, 12, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.13);
@@ -39,9 +42,9 @@
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .gh-glass, .gh-glass-strip { background: rgba(25, 15, 50, 0.96); }
+  .gh-glass, .gh-glass-strip { background: rgba(12, 7, 26, 0.96); }
   .gh-day .gh-glass, .gh-day .gh-glass-strip { background: rgba(255, 255, 255, 0.97); }
-  .gh-glass-strong { background: rgba(17, 9, 38, 0.98); }
+  .gh-glass-strong { background: rgba(9, 5, 20, 0.98); }
   .gh-day .gh-glass-strong { background: rgba(255, 255, 255, 0.98); }
 }
 
@@ -345,15 +348,156 @@
 }
 .gh-still .gh-live-dot::after { animation: none; opacity: 0; }
 
-/* How-it-works steps */
-.gh-step { border-radius: 18px; padding: 22px 20px; backdrop-filter: blur(10px);
-  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms ease; }
-.gh-step:hover { transform: translateY(-4px); box-shadow: 0 22px 60px -30px rgba(139,92,246,0.45); }
-.gh-step-num { display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; border-radius: 9px; font-size: 13px; font-weight: 700;
-  color: #fff; background: linear-gradient(135deg, #8B5CF6, #D946EF); }
-@media (max-width: 1020px) { .gh-steps { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
-@media (max-width: 560px)  { .gh-steps { grid-template-columns: 1fr !important; } }
+/* ── How-it-works: the journey panel (2026-09-07) ──────────────────────────
+   One glass panel: the school photograph on the left, the four numbered steps
+   as a vertical route on the right, and the booking CTA at the end of that
+   route. Replaces the detached 21:9 banner + four loose cards. */
+.gh-journey-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 18px 48px;
+  align-items: end;
+  margin-bottom: 26px;
+}
+.gh-journey {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  border: 1px solid var(--gh-glass-border);
+  border-radius: 28px;
+  overflow: hidden;
+}
+.gh-journey-photo {
+  min-height: 480px;
+  border-radius: 0;
+  box-shadow: none;
+}
+.gh-journey-photo img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.gh-journey-facts {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 72px 150px 16px 16px;
+  list-style: none;
+  background: linear-gradient(180deg, transparent, rgba(8, 5, 18, 0.78));
+  pointer-events: none;
+}
+.gh-journey-facts li {
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(8, 5, 18, 0.55);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.gh-journey-route {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: clamp(20px, 2.6vw, 34px) clamp(18px, 2.4vw, 32px);
+}
+.gh-journey-steps {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gh-journey-steps::before {
+  content: '';
+  position: absolute;
+  left: 21px;
+  top: 34px;
+  bottom: 34px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #8b5cf6, #d946ef 55%, #34d399);
+  opacity: 0.55;
+}
+.gh-journey-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 12px 14px 12px 0;
+  border-radius: 16px;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: background 220ms ease, transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 260ms ease;
+}
+.gh-sr.on .gh-journey-step,
+.gh-still .gh-journey-step { opacity: 1; transform: none; transition-delay: var(--gh-step-delay, 0ms); }
+.gh-journey-step:hover { background: var(--gh-glass-bg); transform: translateX(4px); transition-delay: 0ms; }
+.gh-journey-step::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle at var(--motion-x, 50%) var(--motion-y, 50%), rgba(217,70,239,0.14), transparent 55%);
+  transition: opacity 220ms ease;
+}
+.gh-journey-step:hover::after { opacity: 1; }
+.gh-journey-num {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-top: 2px;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(135deg, #8B5CF6, #D946EF);
+  box-shadow: 0 0 0 6px var(--gh-glass-strong-bg), 0 10px 26px -10px rgba(217,70,239,0.8);
+  font: 700 15px/1 'JetBrains Mono', ui-monospace, monospace;
+}
+.gh-journey-body h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 6px;
+  font-size: 16.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+.gh-journey-body h3 .material-symbols-outlined { font-size: 20px; color: #A855F7; }
+.gh-day .gh-journey-body h3 .material-symbols-outlined { color: #7C3AED; }
+.gh-journey-body p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--gh-text-dim); }
+.gh-journey-cta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid var(--gh-border);
+}
+.gh-journey-note { margin-left: auto; font-size: 12.5px; color: var(--gh-text-dim); }
+@media (max-width: 1100px) {
+  .gh-journey { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
+  .gh-journey-note { margin-left: 0; flex-basis: 100%; }
+}
+@media (max-width: 900px) {
+  .gh-journey-heading { grid-template-columns: 1fr; gap: 12px; }
+  .gh-journey { grid-template-columns: 1fr; border-radius: 22px; }
+  .gh-journey-photo { min-height: 0; aspect-ratio: 16 / 9; max-height: 340px; }
+  .gh-journey-facts { padding: 56px 120px 12px 12px; gap: 5px; }
+  .gh-journey-facts li { font-size: 11px; padding: 4px 8px; }
+  .gh-journey-steps::before { left: 19px; }
+  .gh-journey-step { grid-template-columns: 40px minmax(0, 1fr); gap: 12px; padding: 10px 10px 10px 0; }
+  .gh-journey-num { width: 40px; height: 40px; border-radius: 12px; font-size: 14px; }
+  .gh-journey-cta .gh-action { flex: 1 1 auto; }
+}
 
 /* Package cards */
 .gh-pack { border-radius: 20px; padding: 24px 22px; backdrop-filter: blur(10px);
@@ -900,31 +1044,6 @@
   margin-bottom: 10px;
 }
 .gh-section-heading { transform-origin: left center; }
-.gh-steps { position: relative; }
-.gh-steps::before,
-.gh-steps::after {
-  content: '';
-  position: absolute;
-  top: 34px;
-  left: 5%;
-  right: 5%;
-  height: 2px;
-  border-radius: 99px;
-  pointer-events: none;
-}
-.gh-steps::before { background: var(--gh-border); }
-.gh-steps::after {
-  background: linear-gradient(90deg, #8b5cf6, #d946ef 52%, #34d399);
-  box-shadow: 0 0 18px rgba(217, 70, 239, 0.45);
-  transform-origin: left;
-}
-.gh-step-slot { position: relative; z-index: 1; }
-.gh-step {
-  border: 1px solid var(--gh-glass-border) !important;
-  background-color: var(--gh-glass-bg);
-  box-shadow: var(--gh-glass-shadow);
-}
-.gh-step-num { box-shadow: 0 0 0 5px var(--gh-glass-strong-bg), 0 8px 24px -8px rgba(217,70,239,0.8); }
 
 .gh-packs {
   display: grid;
@@ -936,6 +1055,15 @@
    five different card widths and a stranded last card, which read as an error
    rather than a hierarchy (Mike, 2026-09-04). */
 .gh-pack-slot { grid-column: span 4; }
+.gh-packs-spec { margin-top: clamp(40px, 4.5vw, 64px); }
+.gh-packs-spec-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px 48px;
+  align-items: end;
+  margin-bottom: 22px;
+}
+@media (max-width: 900px) { .gh-packs-spec-head { grid-template-columns: 1fr; gap: 10px; } }
 .gh-pack {
   position: relative;
   isolation: isolate;
@@ -983,7 +1111,7 @@
 .gh-door { -webkit-backdrop-filter: blur(18px) saturate(145%); backdrop-filter: blur(18px) saturate(145%); }
 .gh-acc { background-color: var(--gh-glass-bg); -webkit-backdrop-filter: blur(16px) saturate(140%); backdrop-filter: blur(16px) saturate(140%); }
 .gh-card { background-color: var(--gh-glass-bg); -webkit-backdrop-filter: blur(12px) saturate(135%); backdrop-filter: blur(12px) saturate(135%); }
-.gh-night .gh-card { background-image: linear-gradient(180deg, rgba(35,24,66,0.52), rgba(12,7,28,0.44)); }
+.gh-night .gh-card { background-image: linear-gradient(180deg, rgba(24,16,46,0.52), rgba(8,5,18,0.44)); }
 .gh-day .gh-card { background-image: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(245,242,252,0.76)); }
 .gh-game-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 225px), 1fr)); }
 .gh-glass-strip { margin-inline: calc(50% - 50vw); padding-inline: calc(50vw - 50%); }
@@ -1026,15 +1154,9 @@
 .gh-overlay-card { -webkit-backdrop-filter: blur(22px) saturate(150%); backdrop-filter: blur(22px) saturate(150%); }
 
 @supports (animation-timeline: view()) {
-  @keyframes gh-rail-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
   @keyframes gh-heading-track {
     from { opacity: 0.35; transform: translateY(26px) scale(0.98); }
     to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  .gh-steps::after {
-    animation: gh-rail-fill linear both;
-    animation-timeline: view();
-    animation-range: entry 8% cover 54%;
   }
   .gh-section-heading {
     animation: gh-heading-track linear both;
@@ -1088,7 +1210,7 @@
     transform-origin: top center;
     transition: opacity 220ms ease, transform 300ms cubic-bezier(0.16, 1, 0.3, 1), visibility 220ms;
   }
-  .gh-night .gh-nav { background: rgba(15, 8, 34, 0.96); }
+  .gh-night .gh-nav { background: rgba(8, 5, 18, 0.97); }
   .gh-day .gh-nav { background: rgba(255, 255, 255, 0.96); }
   .gh-header > .gh-nav.is-open { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
   .gh-nav .gh-action { width: 100%; }
@@ -1126,17 +1248,6 @@
   .gh-three-shell { min-height: 430px; border-radius: 8px; }
   .gh-three-hud { top: 12px; left: 12px; right: 12px; }
   .gh-three-route { bottom: 12px; width: calc(100% - 24px); gap: 7px; padding-inline: 10px; font-size: 13px; }
-  .gh-steps { gap: 14px !important; }
-  .gh-steps::before, .gh-steps::after {
-    top: 26px;
-    bottom: 26px;
-    left: 13px;
-    right: auto;
-    width: 2px;
-    height: auto;
-  }
-  .gh-steps::after { transform-origin: top; }
-  .gh-step { padding-left: 18px; }
   .gh-bottom-cta { padding: 52px 20px !important; margin-bottom: 64px !important; }
   .gh-bajla { width: 96px; height: 96px; }
   .gh-play-overlay > div:first-child { padding: 10px 12px !important; }
@@ -1154,7 +1265,7 @@
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  .gh-glass, .gh-glass-strip, .gh-card, .gh-step, .gh-pack, .gh-door, .gh-acc, .gh-nav,
+  .gh-glass, .gh-glass-strip, .gh-card, .gh-journey, .gh-pack, .gh-door, .gh-acc, .gh-nav,
   .gh-slider-arrow, .gh-slider-dots {
     background: var(--gh-glass-strong-bg) !important;
     -webkit-backdrop-filter: none !important;
@@ -1165,7 +1276,7 @@
 @media (prefers-reduced-motion: reduce) {
   .gh-motion-orb, .gh-motion-line, .gh-gradient-word, .gh-eyebrow-mark, .gh-feature-chip,
   .gh-arcade-stage, .gh-bajla, .gh-cta-orb, .gh-action::before, .gh-section-heading,
-  .gh-steps::after, .gh-proof-item, .gh-three-loading::after, .gh-city-feature,
+  .gh-journey-step, .gh-proof-item, .gh-three-loading::after, .gh-city-feature,
   .gh-arcade-tab, .gh-slider-arrow, .gh-slider-dot::before, .gh-live-dot::after {
     animation: none !important;
     transition: none !important;
@@ -1176,7 +1287,7 @@
   .gh-nav { transition: none; }
   .gh-action:hover,
   .gh-city-feature:hover,
-  .gh-step:hover,
+  .gh-journey-step:hover,
   .gh-card:not(:disabled):hover,
   .gh-door:hover,
   .gh-theme-btn:hover,
@@ -1290,7 +1401,7 @@
 .gh-float-chip .material-symbols-outlined { flex: none; font-size: 14px; color: #7C3AED; }
 .gh-float-chip--a { top: 14px; left: 14px; }
 .gh-float-chip--b { bottom: 14px; left: 14px; animation-delay: 1.6s; }
-.gh-night .gh-float-chip { background: rgba(20, 12, 42, 0.88); color: #F4F0FF; border-color: rgba(255, 255, 255, 0.14); }
+.gh-night .gh-float-chip { background: rgba(12, 7, 26, 0.88); color: #F4F0FF; border-color: rgba(255, 255, 255, 0.14); }
 .gh-night .gh-photo-frame--side { border-color: #0A0718; }
 @media (max-width: 620px) {
   .gh-float-chip { max-width: calc(100% - 20px); gap: 4px; padding: 4px 7px; font-size: 11px; animation: none; }
@@ -1316,7 +1427,6 @@
 .gh-lessons-points .material-symbols-outlined { font-size: 19px; color: #059669; }
 .gh-night .gh-lessons-points .material-symbols-outlined { color: #34D399; }
 
-.gh-steps-photo { min-width: 0; }
 
 /* pack add-to-cart button feedback */
 .gh-pack-add { transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), filter 180ms ease; }
@@ -2020,7 +2130,8 @@
    Restored 2026-09-04: the 09-03 rewrite of this file dropped both blocks, so
    the slides shipped bare. Do not replace it with a text mark. */
 .gh-hs-slide::after,
-.gh-photo-frame::after {
+.gh-photo-frame::after,
+.gh-watermark {
   content: '';
   position: absolute;
   right: 14px;
@@ -2037,7 +2148,8 @@
 .gh-hs-slide::after { bottom: 14px; right: 16px; }
 @media (max-width: 620px) {
   .gh-hs-slide::after,
-  .gh-photo-frame::after { width: 86px; height: 9px; right: 10px; bottom: 9px; }
+  .gh-photo-frame::after,
+  .gh-watermark { width: 86px; height: 9px; right: 10px; bottom: 9px; }
 }
 
 /* ── AI disclosure ──────────────────────────────────────────────────────

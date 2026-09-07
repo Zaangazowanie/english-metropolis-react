@@ -99,6 +99,9 @@ export const SPECIALIST_PACKAGES = [
     bestFor: 'Interview, exam, relocation, and business pressure',
     features: ['Diagnostic placement call', 'Specialist CEFR outcome plan', '6 x 60 min specialist lessons', 'Review notes after each session'],
     badge: 'Focused',
+    pacePl: '6 lekcji specjalistycznych',
+    bestForPl: 'Rozmowa o pracę, egzamin, wyjazd za granicę lub presja w biznesie',
+    badgePl: 'Skoncentrowany',
     accent: 'ember',
   },
   {
@@ -110,6 +113,9 @@ export const SPECIALIST_PACKAGES = [
     bestFor: 'A focused plan for exam, interview, or business outcomes',
     features: ['Diagnostic placement call', 'Specialist CEFR outcome plan', '12 x 60 min specialist lessons', 'Two writing or speaking reviews'],
     badge: 'Deeper focus',
+    pacePl: '12 lekcji specjalistycznych',
+    bestForPl: 'Skupiony plan na egzamin, rozmowę o pracę lub cele biznesowe',
+    badgePl: 'Głębsza praca',
     accent: 'ember',
   },
   {
@@ -121,6 +127,9 @@ export const SPECIALIST_PACKAGES = [
     bestFor: 'The best value for long-term specialist coaching',
     features: ['Diagnostic placement call', 'Specialist CEFR outcome plan', '24 x 60 min specialist lessons', 'Monthly review and lesson notes'],
     badge: 'Best specialist value',
+    pacePl: '24 lekcje specjalistyczne',
+    bestForPl: 'Najlepsza cena przy długofalowym coachingu specjalistycznym',
+    badgePl: 'Najlepsza cena specjalistyczna',
     accent: 'ember',
   },
 ]

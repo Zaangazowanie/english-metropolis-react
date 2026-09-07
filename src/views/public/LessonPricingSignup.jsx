@@ -572,6 +572,9 @@ export default function LessonPricingSignup() {
           <a href="#packages">{t('Lessons', 'Lekcje')}</a>
           <a href="#pricing">{t('Pricing', 'Cennik')}</a>
           <a href="#signup">{t('Signup', 'Zapisy')}</a>
+          <a href="/about/">{t('About', 'O nas')}</a>
+          <a href="/faq/">{t('FAQ', 'Pytania')}</a>
+          <a href="/kontakt/">{t('Contact', 'Kontakt')}</a>
           <Link to="/login">{t('Sign in', 'Logowanie')}</Link>
         </nav>
         <div className="lp-lang-toggle" role="group" aria-label={t('Language', 'Język')}>

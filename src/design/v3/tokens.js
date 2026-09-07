@@ -25,6 +25,10 @@ export const G = {
     'radial-gradient(ellipse 60% 50% at 20% 10%, rgba(139,92,246,0.22), transparent 60%), radial-gradient(ellipse 50% 40% at 80% 20%, rgba(217,70,239,0.18), transparent 60%), radial-gradient(ellipse 60% 40% at 50% 100%, rgba(244,114,182,0.14), transparent 60%)',
   auroraDay:
     'radial-gradient(ellipse 60% 50% at 20% 10%, rgba(139,92,246,0.10), transparent 60%), radial-gradient(ellipse 50% 40% at 80% 20%, rgba(217,70,239,0.08), transparent 60%), radial-gradient(ellipse 60% 40% at 50% 100%, rgba(244,114,182,0.08), transparent 60%)',
+  // Landing-page night aurora (Mike 2026-09-07: "significantly darken the
+  // purple"). Roughly half the tint of `aurora`; the student app keeps `aurora`.
+  auroraDeep:
+    'radial-gradient(ellipse 60% 50% at 20% 10%, rgba(109,62,220,0.10), transparent 60%), radial-gradient(ellipse 50% 40% at 80% 20%, rgba(180,40,210,0.07), transparent 60%), radial-gradient(ellipse 60% 40% at 50% 100%, rgba(200,70,150,0.05), transparent 60%)',
   glass: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
   glassHi: 'linear-gradient(180deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.04) 100%)',
   glassDay: 'linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.65) 100%)',
@@ -63,6 +67,10 @@ export const NIGHT = {
   ringBrand: '0 0 0 1px rgba(217,70,239,0.45), 0 0 40px -6px rgba(217,70,239,0.45)',
   pageBg:
     'radial-gradient(ellipse 100% 80% at 50% -10%, rgba(139,92,246,0.18), transparent 60%), radial-gradient(ellipse 80% 60% at 80% 30%, rgba(217,70,239,0.10), transparent 60%), radial-gradient(ellipse 80% 60% at 10% 70%, rgba(99,102,241,0.10), transparent 60%), #060410',
+  // Landing-page night ground: a near-black base with the purple wash cut to
+  // half. Used by GameHome only; the app shell keeps `pageBg`.
+  pageBgDeep:
+    'radial-gradient(ellipse 100% 80% at 50% -10%, rgba(109,62,220,0.09), transparent 60%), radial-gradient(ellipse 80% 60% at 80% 30%, rgba(180,40,210,0.05), transparent 60%), radial-gradient(ellipse 80% 60% at 10% 70%, rgba(80,80,220,0.05), transparent 60%), #04030a',
 }
 
 export const DAY = {

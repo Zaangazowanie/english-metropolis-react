@@ -394,6 +394,39 @@ Heavy rounded corners are the house vocabulary. Cards at 28px (`rounded.xl`), di
 - **BYD Bridge deck cover**: cream substrate, Fraunces 54pt headline, fuchsia + cyan road-line SVG. Skyline chip top-left. Kicker "BYD BRIDGE · LESSON 3" or "LESSON 4" top-left per the `window.LESSON_FOCUS` value. The combined "Lessons 3 & 4" wording is deprecated per Mike 2026-04-22.
 - **Conversa AI chat widget**: floating at bottom-right, circle button branded with the skyline glyph. Expanded: messages scroll, user bubbles in fuchsia-500 with white text, assistant bubbles in slate-100 with slate-800 text. Follows `[ag-err-XXX]` → drill-chip deep-links on assistant output (amber chip linking to /practice?errorId=X).
 
+## Buttons (the site button, locked 2026-09-07)
+
+Mike, 2026-09-07: *"preserve the button style on the header and harden save it so you don't
+forget it. It's amazing with the liquid morph effect on hover. Standardize all buttons on the
+site to be like our header buttons."* This section is that hardening. Every button on a public
+surface is the header pill. Do not add a per-section button skin.
+
+- **Source of truth**: `.gh-action` in `src/views/v3/game-home.css` (rest state, `--primary`,
+  `--secondary`, `--ghost`, sizes `--sm/--md/--lg`, `--full`). React surfaces use
+  `ActionLink` in `GameHome.jsx` or the raw classes; both must wire
+  `onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish} onPointerDown={pulsePointerPolish}`
+  from `src/components/public/motionPolish.js`, which writes `--motion-x/y/angle/shift-*` on the element.
+- **Shape**: pill (`border-radius: 999px`), `min-height: 44px`, `padding: 11px 20px`,
+  `font: 600 13px/1 Plus Jakarta Sans`, `letter-spacing: .02em` (primary `.055em`), icon 17px,
+  trailing icon slides 3px right on hover.
+- **Primary skin**: `linear-gradient(135deg, #5b21b6 0%, #86198f 54%, #9f1239 100%)`, white text,
+  `border: 1px solid rgba(255,255,255,.24)`, shadow `0 14px 34px -15px rgba(217,70,239,.8)` +
+  `inset 0 1px 0 rgba(255,255,255,.32)`.
+- **Secondary skin**: glass (`var(--gh-glass-bg)`, `var(--gh-border-hi)` border, `blur(14px)`).
+- **The liquid morph**: three layers, all pointer-driven. `::after` is a radial white sheen plus a
+  conic tint centred on `--motion-x/--motion-y` (blend `soft-light`), fading in on hover. On the
+  primary, `::before` is a diagonal light sweep that travels `-125% → 125%` over 650ms on hover.
+  The whole pill lifts along the pointer: `translate3d(var(--motion-shift-x), calc(var(--motion-shift-y) - 2px), 0)`,
+  and presses `scale(.985)` on active. `public/assets/em-motion-20260825-v3.css` (loaded after the
+  bundle) repeats the same declarations; keep the two in step.
+- **Where else it lives**: `.lp-button` / `.lp-add-cart` in `lesson-pricing-signup.css` (pricing page),
+  `.legal-topnav a.nav-cta` in `public/legal/legal.css` (About / FAQ / Contact / legal pages),
+  `Btn` in `src/design/v3/primitives.jsx` (login, signup, app). Same shape, gradient and sweep.
+- **The trap that broke it once**: until 2026-09-07 em-motion CSS carried a `.gh-hero-copy .gh-action`
+  override (flat indigo, radius 9, sheen and sweep `display: none`), so the hero "Book your first
+  lesson" looked nothing like the header. That override is deleted. If a button on the site ever
+  looks flat again, grep the static em-motion CSS first: it wins the cascade over the bundle.
+
 ## Do's and Don'ts
 
 - **Do** treat the `/login` landing as the canonical brand reference. Any wordmark rendering on any surface MUST be pixel-consistent with that lockup (Plus Jakarta 900 + four-stop gradient + amber dot).

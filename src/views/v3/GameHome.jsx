@@ -24,7 +24,7 @@ import '../../practice/styles/global.css'
 import '../../practice/styles/arcade.css'
 import { usePrefersReducedMotion } from '../../practice/lib/usePrefersReducedMotion'
 import { useI18n } from '../../i18n'
-import { PRIVATE_PACKAGES } from '../public/packages.js'
+import { PRIVATE_PACKAGES, SPECIALIST_PACKAGES } from '../public/packages.js'
 import { cart, parsePricePLN } from '../public/cart-store.js'
 import CartUI from '../public/CartUI.jsx'
 import HeroPracticePreview from './HeroPracticePreview.jsx'
@@ -131,6 +131,7 @@ const GH = {
   en: {
     navPricing: 'Pricing', navSignin: 'Sign in', navSignup: 'Sign up', navDash: 'My dashboard',
     navPlay: 'Play the World',
+    navAbout: 'About', navFaq: 'FAQ', navContact: 'Contact',
     eyebrow: 'online English school · live 1:1 lessons',
     h1a: 'Learn live.', h1b: 'Speak every day',
     heroPoints: [
@@ -182,6 +183,9 @@ const GH = {
     lineTags: { 'Arcade Line': 'Fast hands, faster words', 'Word Line': 'Letters into language', 'Quiz Line': 'Think quick, answer quicker', 'City Line': 'Real skills, street level' },
     worldLink: 'Explore the full 3D city with a free account',
     stepsKicker: 'From sign-up to speaking', stepsTitle: 'Your first lesson is four steps away',
+    stepsLead: 'Everything happens in your account: the package, the calendar and the Google Meet link. Your teacher takes it from the first session.',
+    stepsFacts: ['Live 1:1 · 60 min', 'Google Meet', 'Notes after every lesson'],
+    stepsNote: 'About two minutes from sign-up to your first booking.',
     steps: [
       { icon: 'person_add', title: 'Create your account', body: 'It takes about two minutes: use your email and password or continue with Google.' },
       { icon: 'shopping_bag', title: 'Pick a package', body: 'Start with a trial lesson, or choose a course of 4 to 48 lessons. Pay online or by invoice.' },
@@ -190,6 +194,8 @@ const GH = {
     ],
     packsKicker: '1:1 lesson packages', packsTitle: 'Pick your pace', packsLink: 'Full pricing & details',
     packsStart: 'Start', packsEach: '60 min each',
+    specKicker: 'Specialist programmes', specTitle: 'English with a specific goal',
+    specBody: 'Job interviews, exams, life abroad and English at work. Each programme starts with a diagnostic placement call and a CEFR outcome plan, then focuses every lesson on your goal.',
     doorsKicker: 'Between lessons', doorsTitle: 'Keep practising in the city',
     proofLabel: 'What your route includes',
     proof: (n) => [
@@ -211,6 +217,7 @@ const GH = {
   pl: {
     navPricing: 'Cennik', navSignin: 'Zaloguj się', navSignup: 'Załóż konto', navDash: 'Mój panel',
     navPlay: 'Zagraj w World',
+    navAbout: 'O nas', navFaq: 'Pytania', navContact: 'Kontakt',
     eyebrow: 'szkoła angielskiego online · lekcje 1:1 na żywo',
     h1a: 'Ucz się na żywo.', h1b: 'Mów po angielsku na co dzień',
     heroPoints: [
@@ -262,6 +269,9 @@ const GH = {
     lineTags: { 'Arcade Line': 'Szybkie ręce, szybsze słowa', 'Word Line': 'Z liter w język', 'Quiz Line': 'Myśl szybko, odpowiadaj szybciej', 'City Line': 'Prawdziwe sytuacje, poziom ulicy' },
     worldLink: 'Poznaj całe miasto 3D z darmowym kontem',
     stepsKicker: 'Od rejestracji do mówienia', stepsTitle: 'Twoja pierwsza lekcja w czterech krokach',
+    stepsLead: 'Wszystko dzieje się na Twoim koncie: pakiet, kalendarz i link do Google Meet. Od pierwszej lekcji prowadzi Cię lektor.',
+    stepsFacts: ['1:1 na żywo · 60 min', 'Google Meet', 'Notatki po każdej lekcji'],
+    stepsNote: 'Od rejestracji do pierwszej rezerwacji: około dwóch minut.',
     steps: [
       { icon: 'person_add', title: 'Załóż konto', body: 'To około dwóch minut: podaj e-mail i hasło lub kontynuuj z Google.' },
       { icon: 'shopping_bag', title: 'Wybierz pakiet', body: 'Zacznij od lekcji próbnej lub wybierz kurs od 4 do 48 lekcji. Zapłać online lub na podstawie faktury.' },
@@ -270,6 +280,8 @@ const GH = {
     ],
     packsKicker: 'pakiety lekcji 1:1', packsTitle: 'Wybierz swoje tempo', packsLink: 'Pełny cennik i szczegóły',
     packsStart: 'Zaczynam', packsEach: 'po 60 min',
+    specKicker: 'Programy specjalistyczne', specTitle: 'Angielski z konkretnym celem',
+    specBody: 'Rozmowy o pracę, egzaminy, życie za granicą i angielski w pracy. Każdy program zaczyna się od rozmowy diagnozującej poziom i planu celów CEFR, a każda lekcja pracuje na Twój cel.',
     doorsKicker: 'Między lekcjami', doorsTitle: 'Ćwicz dalej w mieście',
     proofLabel: 'Co obejmuje Twoja ścieżka',
     proof: (n) => [
@@ -851,6 +863,37 @@ export default function GameHome() {
     packTimer.current = window.setTimeout(() => setPackAdded(null), 1400)
   }
 
+  const renderPack = (p, i) => (
+    <Reveal key={p.id} delay={i * 80} style={{ height: '100%' }} className="gh-pack-slot">
+      <div className="gh-pack gh-glass gh-spatial-card"
+        onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+        onPointerDown={pulsePointerPolish}
+        style={{ height: '100%', display: 'flex', flexDirection: 'column',
+        border: `1px solid ${T.border}` }}>
+        <div className="gh-card-badge" style={{ color: p.accent === 'ember' ? T.ember : T.fuchsia }}>{lang === 'pl' ? (p.badgePl || p.badge) : p.badge}</div>
+        <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 18, marginBottom: 2 }}>{p.name}</div>
+        <div style={{ fontSize: 13, color: T.textDim, marginBottom: 14 }}>{lang === 'pl' ? (p.pacePl || p.pace) : p.pace} · {W.packsEach}</div>
+        <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 30, letterSpacing: '-0.02em' }}>{p.price}</div>
+        <div style={{ fontSize: 13, color: T.textMute, marginBottom: 14 }}>{p.perLesson}</div>
+        <p style={{ margin: '0 0 18px', fontSize: 13, lineHeight: 1.55, color: T.textDim, flexGrow: 1 }}>{lang === 'pl' ? (p.bestForPl || p.bestFor) : p.bestFor}</p>
+        <button type="button"
+          className="gh-action gh-action--primary gh-action--md gh-action--full gh-pack-add"
+          data-added={packAdded === p.id}
+          onClick={() => addPackToCart(p)}
+          onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
+          onPointerDown={pulsePointerPolish}
+          aria-label={`${W.packsStart}: ${p.name}, ${p.price}`}>
+          {packAdded === p.id
+            ? (lang === 'pl' ? 'Dodano do koszyka' : 'Added to cart')
+            : W.packsStart}
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 17 }}>
+            {packAdded === p.id ? 'check' : 'add_shopping_cart'}
+          </span>
+        </button>
+      </div>
+    </Reveal>
+  )
+
   const quickPick = ALL_GAMES.find((g) => g.key === DAILY_PICK_KEY) || ALL_GAMES[0]
 
   const tickerNames = useMemo(() => {
@@ -878,13 +921,13 @@ export default function GameHome() {
   return (
     <div className={`gh-root gh-${night ? 'night' : 'day'}${reduced ? ' gh-still' : ''}`}
       data-theme={night ? 'night' : 'day'} style={{ position: 'relative', minHeight: '100dvh',
-      background: T.pageBg, color: T.text, fontFamily: FONT.body, overflowX: 'clip',
+      background: night ? (T.pageBgDeep || T.pageBg) : T.pageBg, color: T.text, fontFamily: FONT.body, overflowX: 'clip',
       transition: 'background 500ms ease, color 500ms ease',
       '--gh-text': T.text, '--gh-text-soft': T.textSoft, '--gh-text-dim': T.textDim,
       '--gh-border': T.border, '--gh-border-hi': T.borderHi, '--gh-surface': T.surface }}>
       {/* Atmosphere */}
       <div className="gh-aurora" aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: night ? G.aurora : G.auroraDay, transition: 'opacity 500ms ease' }}/>
+        background: night ? G.auroraDeep : G.auroraDay, transition: 'opacity 500ms ease' }}/>
       {night ? <StarField/> : <DayClouds/>}
       <div className="gh-motion-field" aria-hidden>
         <span className="gh-motion-orb gh-motion-orb--one"/>
@@ -913,6 +956,9 @@ export default function GameHome() {
           </button>
           <nav id="gh-primary-nav" className={`gh-nav${menuOpen ? ' is-open' : ''}`} aria-label="Primary navigation">
             <ActionLink to="/pricing" onClick={() => setMenuOpen(false)}>{W.navPricing}</ActionLink>
+            <ActionLink href="/about/" className="gh-nav-more">{W.navAbout}</ActionLink>
+            <ActionLink href="/faq/" className="gh-nav-more">{W.navFaq}</ActionLink>
+            <ActionLink href="/kontakt/" className="gh-nav-more">{W.navContact}</ActionLink>
             {studentSession?.slug ? (
               <ActionLink to={`/app/${studentSession.slug}/dashboard`} icon="account_circle"
                 onClick={() => setMenuOpen(false)}>{W.navDash}</ActionLink>
@@ -976,9 +1022,10 @@ export default function GameHome() {
             </ul>
             <div className="gh-rise gh-rise-4" style={{ marginTop: 22, display: 'flex', gap: 14,
               flexWrap: 'wrap', alignItems: 'center' }}>
-              <ActionLink to="/signup" variant="primary" size="lg" trailingIcon="arrow_forward" district="school"
-                style={{ fontSize: 15, padding: '18px 32px' }}>{W.ctaBook}</ActionLink>
-              <ActionLink to="/pricing" variant="secondary" size="lg" trailingIcon="sell" district="pricing">
+              <ActionLink to="/signup" variant="primary" trailingIcon="arrow_forward" district="school">
+                {W.ctaBook}
+              </ActionLink>
+              <ActionLink to="/pricing" variant="secondary" trailingIcon="sell" district="pricing">
                 {W.ctaPricing}
               </ActionLink>
               <a href={WORLD_URL} className="gh-text-link"
@@ -1050,17 +1097,23 @@ export default function GameHome() {
           </div>
         </section>
 
-        {/* ── How lessons work ── */}
-        <section className="gh-section gh-journey-section">
-          <Reveal className="gh-section-heading">
-            <div className="gh-kicker" style={{ color: T.fuchsia }}>{W.stepsKicker}</div>
-            <h2 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
-              letterSpacing: '-0.03em', margin: '0 0 26px' }}>
-              {W.stepsTitle}
-            </h2>
+        {/* ── How lessons work: one panel, the photo and the numbered route side
+           by side, and the CTA at the end of the route. Until 2026-09-07 the
+           photo was a lone 21:9 banner over four unconnected cards (Mike: "it
+           looks detached"). ── */}
+        <section className="gh-section gh-journey-section" aria-labelledby="gh-steps-title">
+          <Reveal className="gh-section-heading gh-journey-heading">
+            <div>
+              <div className="gh-kicker" style={{ color: T.fuchsia }}>{W.stepsKicker}</div>
+              <h2 id="gh-steps-title" style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(26px, 3vw, 38px)',
+                letterSpacing: '-0.03em', margin: 0 }}>
+                {W.stepsTitle}
+              </h2>
+            </div>
+            <p style={{ color: T.textDim, fontSize: 'clamp(14px, 1.2vw, 16px)', lineHeight: 1.65, maxWidth: 460, margin: 0 }}>{W.stepsLead}</p>
           </Reveal>
-          <Reveal className="gh-steps-photo">
-            <div className="gh-photo-frame gh-photo-frame--wide"
+          <Reveal className="gh-journey gh-glass" delay={80}>
+            <div className="gh-journey-photo gh-photo-frame"
               onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
               <img src="/home/photo-group-2607.webp" alt={W.stepsAlt} loading="lazy" width="1600" height="900"/>
               <span className="gh-ai-note">{AI_NOTE(lang)}</span>
@@ -1068,24 +1121,33 @@ export default function GameHome() {
                 <span className="material-symbols-outlined" aria-hidden>co_present</span>
                 {W.stepsChip}
               </span>
+              <ul className="gh-journey-facts" aria-label={W.proofLabel}>
+                {W.stepsFacts.map((fact) => <li key={fact}>{fact}</li>)}
+              </ul>
+            </div>
+            <div className="gh-journey-route">
+              <ol className="gh-journey-steps">
+                {W.steps.map((step, i) => (
+                  <li key={step.title} className="gh-journey-step gh-shader-surface" style={{ '--gh-step-delay': `${i * 90}ms` }}
+                    onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
+                    <span className="gh-journey-num" aria-hidden><b>{i + 1}</b></span>
+                    <div className="gh-journey-body">
+                      <h3>
+                        <span className="material-symbols-outlined" aria-hidden>{step.icon}</span>
+                        {step.title}
+                      </h3>
+                      <p>{step.body}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <div className="gh-journey-cta">
+                <ActionLink to="/signup" variant="primary" trailingIcon="arrow_forward" district="school">{W.ctaBook}</ActionLink>
+                <ActionLink to="/pricing" variant="secondary" trailingIcon="sell" district="pricing">{W.ctaPricing}</ActionLink>
+                <span className="gh-journey-note">{W.stepsNote}</span>
+              </div>
             </div>
           </Reveal>
-          <div className="gh-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
-            {W.steps.map((s, i) => (
-              <Reveal key={s.title} delay={i * 90} className="gh-step-slot">
-                <div className="gh-step gh-glass gh-shader-surface" style={{ height: '100%' }}
-                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                    <span className="gh-step-num" style={{ fontFamily: FONT.mono }}>{i + 1}</span>
-                    <span className="material-symbols-outlined" aria-hidden
-                      style={{ fontSize: 22, color: T.violet }}>{s.icon}</span>
-                  </div>
-                  <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 16.5, marginBottom: 8 }}>{s.title}</div>
-                  <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: T.textDim }}>{s.body}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
         </section>
 
         {/* ── Lesson packages — the live pricing, right here ── */}
@@ -1113,37 +1175,24 @@ export default function GameHome() {
                 filled button while the rest were outlined and grey, which read as
                 "these ones are disabled" rather than "these ones are recommended".
                 The recommendation now lives only in the badge text. */}
-            {PRIVATE_PACKAGES.map((p, i) => (
-                <Reveal key={p.id} delay={i * 80} style={{ height: '100%' }}
-                  className="gh-pack-slot">
-                  <div className="gh-pack gh-glass gh-spatial-card"
-                    onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
-                    onPointerDown={pulsePointerPolish}
-                    style={{ height: '100%', display: 'flex', flexDirection: 'column',
-                    border: `1px solid ${T.border}` }}>
-                    <div className="gh-card-badge" style={{ color: T.fuchsia }}>{lang === 'pl' ? (p.badgePl || p.badge) : p.badge}</div>
-                    <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 18, marginBottom: 2 }}>{p.name}</div>
-                    <div style={{ fontSize: 13, color: T.textDim, marginBottom: 14 }}>{lang === 'pl' ? (p.pacePl || p.pace) : p.pace} · {W.packsEach}</div>
-                    <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 30, letterSpacing: '-0.02em' }}>{p.price}</div>
-                    <div style={{ fontSize: 13, color: T.textMute, marginBottom: 14 }}>{p.perLesson}</div>
-                    <p style={{ margin: '0 0 18px', fontSize: 13, lineHeight: 1.55, color: T.textDim, flexGrow: 1 }}>{lang === 'pl' ? (p.bestForPl || p.bestFor) : p.bestFor}</p>
-                    <button type="button"
-                      className="gh-action gh-action--primary gh-action--md gh-action--full gh-pack-add"
-                      data-added={packAdded === p.id}
-                      onClick={() => addPackToCart(p)}
-                      onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
-                      onPointerDown={pulsePointerPolish}
-                      aria-label={`${W.packsStart}: ${p.name}, ${p.price}`}>
-                      {packAdded === p.id
-                        ? (lang === 'pl' ? 'Dodano do koszyka' : 'Added to cart')
-                        : W.packsStart}
-                      <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 17 }}>
-                        {packAdded === p.id ? 'check' : 'add_shopping_cart'}
-                      </span>
-                    </button>
-                  </div>
-                </Reveal>
-            ))}
+            {PRIVATE_PACKAGES.map((p, i) => renderPack(p, i))}
+          </div>
+
+          {/* Specialist programmes (Mike 2026-09-07: "specialist course should
+              also be shown on landing page"). Same card, ember badge; the course
+              slider above links here. Prices come from packages.js like the rest. */}
+          <div className="gh-packs-spec" id="specialist-packs">
+            <Reveal className="gh-packs-spec-head">
+              <div>
+                <div className="gh-kicker" style={{ color: T.ember }}>{W.specKicker}</div>
+                <h3 style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 'clamp(22px, 2.4vw, 30px)',
+                  letterSpacing: '-0.03em', margin: 0 }}>{W.specTitle}</h3>
+              </div>
+              <p style={{ color: T.textDim, fontSize: 14, lineHeight: 1.65, maxWidth: 520, margin: 0 }}>{W.specBody}</p>
+            </Reveal>
+            <div className="gh-packs">
+              {SPECIALIST_PACKAGES.map((p, i) => renderPack(p, i))}
+            </div>
           </div>
         </section>
 

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { COURSE_SLIDES } from './course-slides.js'
+import { clearPointerPolish, pulsePointerPolish, setPointerPolish } from '../../components/public/motionPolish.js'
 import './course-slider.css'
 
 export default function CourseSlider({ lang = 'en' }) {
@@ -32,7 +33,8 @@ export default function CourseSlider({ lang = 'en' }) {
       <div className="gh-course-tabs" role="tablist" aria-label={pl ? 'Wybierz cel nauki' : 'Choose your learning goal'} onKeyDown={onKeyDown}>
         {slides.map((slide, index) => <button type="button" role="tab" key={slide.id}
           id={`course-tab-${slide.id}`} aria-controls={`course-panel-${slide.id}`} aria-selected={active === index}
-          tabIndex={active === index ? 0 : -1} ref={el => { tabs.current[index] = el }} onClick={() => select(index)}>
+          tabIndex={active === index ? 0 : -1} ref={el => { tabs.current[index] = el }} onClick={() => select(index)}
+          onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish} onPointerDown={pulsePointerPolish}>
           <span className="gh-course-tab-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>{slide.label}
         </button>)}
       </div>
@@ -48,10 +50,13 @@ export default function CourseSlider({ lang = 'en' }) {
         {slides.map((slide, index) => <div className={`gh-course-panel${active === index ? ' is-active' : ''}`}
           key={slide.id} role="tabpanel" id={`course-panel-${slide.id}`} aria-labelledby={`course-tab-${slide.id}`}
           aria-hidden={active !== index} inert={active !== index} tabIndex={active === index ? 0 : -1}>
-          <figure className="gh-course-visual">
+          <figure className="gh-course-visual" onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
             <img src={`/home/courses/${slide.id}.webp`} alt={slide.alt} width="502" height="502" loading="lazy"/>
-            <figcaption>{pl ? 'Ilustracja wygenerowana przez AI' : 'AI-generated illustration'}</figcaption>
-            <span className="gh-course-image-label">{slide.label}</span>
+            <span className="gh-course-image-label"><small>{slide.tag}</small>{slide.label}</span>
+            {/* Same lockup as every hero slide and photograph (.gh-watermark in
+                game-home.css), with the AI disclosure tucked above it. */}
+            <figcaption className="gh-ai-note">{pl ? 'Ilustracja wygenerowana przez AI' : 'AI-generated illustration'}</figcaption>
+            <span className="gh-watermark" aria-hidden="true"/>
           </figure>
           <div className="gh-course-copy">
             <p className="gh-course-tag">{slide.tag}</p>
@@ -60,11 +65,27 @@ export default function CourseSlider({ lang = 'en' }) {
             <ul>{slide.points.map(point => <li key={point}><span className="material-symbols-outlined" aria-hidden="true">check_circle</span>{point}</li>)}</ul>
             <p className="gh-course-example">{slide.example}</p>
             <div className="gh-course-actions">
-              <Link className="gh-action gh-action--primary gh-action--lg" to={slide.id === 'groups' ? '/pricing#summer-title' : '/pricing#specialist-title'}>
-                {slide.id === 'groups' ? (pl ? 'Zobacz kursy grupowe' : 'Explore group courses') : (pl ? 'Zobacz kursy specjalistyczne' : 'Explore specialist courses')}
-                <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+              {/* Both buttons are the header pills (.gh-action). Specialist goals
+                  scroll to the specialist programmes on this page; the group
+                  course lives on the pricing page. */}
+              {slide.id === 'groups' ? (
+                <Link className="gh-action gh-action--primary gh-action--md" to="/pricing#summer-title"
+                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish} onPointerDown={pulsePointerPolish}>
+                  <span>{pl ? 'Zobacz kursy grupowe' : 'Explore group courses'}</span>
+                  <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+                </Link>
+              ) : (
+                <a className="gh-action gh-action--primary gh-action--md" href="#specialist-packs"
+                  onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish} onPointerDown={pulsePointerPolish}>
+                  <span>{pl ? 'Zobacz programy specjalistyczne' : 'See specialist programmes'}</span>
+                  <span className="material-symbols-outlined" aria-hidden="true">arrow_downward</span>
+                </a>
+              )}
+              <Link className="gh-action gh-action--secondary gh-action--md" to="/signup"
+                onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish} onPointerDown={pulsePointerPolish}>
+                <span>{pl ? 'Porozmawiajmy o Twoim celu' : 'Tell us your goal'}</span>
+                <span className="material-symbols-outlined" aria-hidden="true">forum</span>
               </Link>
-              <Link className="gh-course-contact" to="/signup">{pl ? 'Porozmawiajmy o Twoim celu' : 'Tell us your goal'}</Link>
             </div>
           </div>
         </div>)}
@@ -72,8 +93,10 @@ export default function CourseSlider({ lang = 'en' }) {
       <div className="gh-course-controls">
         <p aria-live="polite" aria-atomic="true"><b>{String(active + 1).padStart(2, '0')}</b> / {String(slides.length).padStart(2, '0')}<span>{slides[active].label}</span></p>
         <div>
-          <button type="button" onClick={() => select(active - 1)} aria-label={pl ? 'Poprzedni kurs' : 'Previous course'}><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span></button>
-          <button type="button" onClick={() => select(active + 1)} aria-label={pl ? 'Następny kurs' : 'Next course'}><span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button>
+          <button type="button" onClick={() => select(active - 1)} aria-label={pl ? 'Poprzedni kurs' : 'Previous course'}
+            onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish} onPointerDown={pulsePointerPolish}><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span></button>
+          <button type="button" onClick={() => select(active + 1)} aria-label={pl ? 'Następny kurs' : 'Next course'}
+            onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish} onPointerDown={pulsePointerPolish}><span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button>
         </div>
       </div>
     </section>

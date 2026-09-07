@@ -301,71 +301,88 @@
   margin-top: 30px;
 }
 
+/* The site button (2026-09-07): the same pill as .gh-action in the landing
+   header. Gradient primary, glass ghost, pointer-lit sheen (em-motion's
+   ::before) and the light sweep (::after). See DESIGN.md "Buttons". */
 .lp-button {
+  --motion-x: 50%;
+  --motion-y: 50%;
   position: relative;
   overflow: hidden;
-  min-height: 46px;
+  min-height: 44px;
   justify-content: center;
-  gap: 9px;
+  gap: 8px;
   border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 0 18px;
+  border-radius: 999px;
+  padding: 11px 20px;
   color: var(--lp-ink);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 730;
+  font: 600 13px/1 "Plus Jakarta Sans", "Space Grotesk", system-ui, sans-serif;
+  letter-spacing: 0.02em;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
 }
+.lp-button > * { position: relative; z-index: 1; }
 
 .lp-button::after {
   content: "";
   position: absolute;
-  inset: -40% -70%;
-  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.34), transparent 62%);
-  transform: translateX(-65%) rotate(8deg);
-  transition: transform 560ms ease;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 28%, rgba(255, 255, 255, 0.35) 48%, transparent 68%);
+  transform: translateX(-125%);
+  transition: transform 650ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .lp-button:hover,
 .lp-button:focus-visible {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   outline: none;
 }
+.lp-button:focus-visible { box-shadow: 0 0 0 3px rgba(217, 70, 239, 0.45); }
+.lp-button:active { transform: translateY(1px) scale(0.985); }
 
 .lp-button:hover::after,
 .lp-button:focus-visible::after {
-  transform: translateX(65%) rotate(8deg);
+  transform: translateX(125%);
 }
 
 .lp-button .material-symbols-outlined {
-  font-size: 19px;
+  font-size: 17px;
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
+.lp-button:hover .material-symbols-outlined:last-child { transform: translateX(3px) scale(1.04); }
 
-.lp-button-primary {
-  color: var(--lp-ink);
-  background: linear-gradient(135deg, #c4b5fd, #f0abfc 54%, #f9a8d4);
-  box-shadow: 0 18px 42px -22px rgba(217, 70, 239, 0.9);
+/* Three classes on purpose: em-motion-20260825-v3.css loads after this bundle
+   and sets `.lp-page .lp-button { color: var(--lp-ink) }`, which at equal
+   specificity would paint the gradient pill with dark text. */
+.lp-page .lp-button.lp-button-primary {
+  color: #fff;
+  letter-spacing: 0.055em;
+  background: linear-gradient(135deg, #5b21b6 0%, #86198f 54%, #9f1239 100%);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 14px 34px -15px rgba(217, 70, 239, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.32);
 }
 
 .lp-button-primary:hover,
 .lp-button-primary:focus-visible {
-  box-shadow: 0 22px 54px -22px rgba(217, 70, 239, 1);
+  box-shadow: 0 18px 46px -14px rgba(217, 70, 239, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .lp-button-ghost,
 .lp-button-soft {
-  background: rgba(16, 10, 40, 0.06);
-  border-color: var(--lp-line);
+  background: rgba(255, 255, 255, 0.66);
+  border-color: var(--lp-line-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
 }
 
 .lp-button-ghost:hover,
 .lp-button-ghost:focus-visible,
 .lp-button-soft:hover,
 .lp-button-soft:focus-visible {
-  border-color: var(--lp-line-strong);
-  background: rgba(16, 10, 40, 0.10);
+  border-color: rgba(75, 54, 117, 0.3);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .lp-button-soft {
@@ -1716,38 +1733,55 @@ html.dark .lp-page .lp-field textarea:focus {
 }
 
 /* ── Add to cart (Przelewy24 cart requirement) ─────────────── */
+/* The site button (2026-09-07): same primary pill as the landing header, with
+   the light sweep on hover. See DESIGN.md "Buttons". */
 .lp-add-cart {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
   margin-top: 14px;
-  padding: 12px 16px;
-  border: 1px solid rgba(16, 10, 40, 0.14);
-  border-radius: 11px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(217, 70, 239, 0.18));
-  color: var(--lp-ink);
-  min-height: 48px;
-  font: 700 14px/1 "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
+  padding: 11px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #5b21b6 0%, #86198f 54%, #9f1239 100%);
+  color: #fff;
+  min-height: 44px;
+  font: 600 13px/1 "Plus Jakarta Sans", "Space Grotesk", "Inter", system-ui, sans-serif;
+  letter-spacing: 0.055em;
+  box-shadow: 0 14px 34px -15px rgba(217, 70, 239, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.32);
   cursor: pointer;
-  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms ease,
-              border-color 200ms ease, box-shadow 200ms ease;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), background 200ms ease,
+              border-color 200ms ease, box-shadow 220ms ease;
 }
+.lp-add-cart::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 28%, rgba(255, 255, 255, 0.35) 48%, transparent 68%);
+  transform: translateX(-125%);
+  transition: transform 650ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lp-add-cart > * { position: relative; z-index: 1; }
 .lp-add-cart:focus-visible { outline: 2px solid #6D28D9; outline-offset: 3px; }
-.lp-add-cart .material-symbols-outlined { font-size: 17px; }
-.lp-add-cart:active { transform: scale(0.97); }
+.lp-add-cart .material-symbols-outlined { font-size: 17px; transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1); }
+.lp-add-cart:active { transform: translateY(1px) scale(0.985); }
 @media (hover: hover) and (pointer: fine) {
   .lp-add-cart:hover {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(217, 70, 239, 0.32));
-    border-color: rgba(217, 70, 239, 0.5);
-    box-shadow: 0 14px 34px -18px rgba(139, 92, 246, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 18px 46px -14px rgba(217, 70, 239, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   }
+  .lp-add-cart:hover::after { transform: translateX(125%); }
+  .lp-add-cart:hover .material-symbols-outlined:first-child { transform: translateX(3px) scale(1.04); }
 }
 .lp-add-cart[data-added="true"] {
-  background: linear-gradient(135deg, rgba(52, 211, 153, 0.3), rgba(16, 185, 129, 0.24));
-  border-color: rgba(52, 211, 153, 0.55);
-  color: #065f46;
+  background: linear-gradient(135deg, #34D399, #10B981);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #052e1b;
 }
 .lp-add-cart-course { margin-top: 12px; }
 
