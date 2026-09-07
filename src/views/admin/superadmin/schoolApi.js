@@ -68,10 +68,13 @@ export const createSchool = ({ name, slug, type }) =>
 
 /* ──────────────────────────────────────────────────────── teachers ──────── */
 
-export const listTeachers = (organizationId, includeRemoved = false) =>
+export const listTeachers = (organizationId, includeRemoved = false, allOrganizations = false) =>
   queryAdminConvex('teachers:listTeachers', {
     organizationId: requireOrg(organizationId, 'the teacher list'),
     includeRemoved,
+    // Superadmin: every school's teachers (a teacher row lives in one org but
+    // may teach students in another); the server ignores it for other roles.
+    ...(allOrganizations ? { allOrganizations: true } : {}),
   })
 
 export const createTeacher = ({ name, email, organizationId }) =>

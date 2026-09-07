@@ -46,7 +46,7 @@ export default function ConsoleSchoolStudents() {
   const [q, setQ] = useState('')
 
   const students = useConvexList(() => listStudents(schoolId, activeOnly), [schoolId, activeOnly], true)
-  const teachers = useConvexList(() => listTeachers(schoolId, false), [schoolId], !!schoolId)
+  const teachers = useConvexList(() => listTeachers(schoolId, false, true), [schoolId], !!schoolId)
   const courses = useConvexList(() => listCourses(schoolId), [schoolId], !!schoolId)
 
   const [draft, setDraft] = useState(null)
@@ -283,7 +283,7 @@ export default function ConsoleSchoolStudents() {
                 <select id="s-teacher" className="sa-select" value={draft.primaryTeacherId}
                         onChange={e => setDraft(d => ({ ...d, primaryTeacherId: e.target.value }))}>
                   <option value="">— unassigned —</option>
-                  {(teachers.rows || []).map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                  {(teachers.rows || []).map(t => <option key={t._id} value={t._id}>{t.name}{t.organizationName && String(t.organizationId) !== String(schoolId) ? ` · ${t.organizationName}` : ''}</option>)}
                 </select>
               </Field>
 

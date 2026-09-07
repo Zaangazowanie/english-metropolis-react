@@ -49,7 +49,7 @@ export default function ConsoleStudentPreview() {
   const [previewTab, setPreviewTab] = useState('home')
 
   const students = useConvexList(() => listStudents(schoolId, true), [schoolId], !!schoolId)
-  const teachers = useConvexList(() => listTeachers(schoolId, false), [schoolId], !!schoolId)
+  const teachers = useConvexList(() => listTeachers(schoolId, false, true), [schoolId], !!schoolId)
   const courses = useConvexList(() => listCourses(schoolId), [schoolId], !!schoolId)
 
   const [dash, setDash] = useState({ data: null, error: null, loading: false })
@@ -266,7 +266,7 @@ export default function ConsoleStudentPreview() {
                     <select id="p-teacher" className="sa-select" value={draft.primaryTeacherId}
                             onChange={e => setDraft(d => ({ ...d, primaryTeacherId: e.target.value }))}>
                       <option value="">— unassigned —</option>
-                      {(teachers.rows || []).map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                      {(teachers.rows || []).map(t => <option key={t._id} value={t._id}>{t.name}{t.organizationName && String(t.organizationId) !== String(schoolId) ? ` · ${t.organizationName}` : ''}</option>)}
                     </select>
                   </Field>
                   <Field label="Course" htmlFor="p-course">

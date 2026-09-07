@@ -459,6 +459,64 @@ export const updateStudent = mutation({
         timestamp: now,
       });
     }
+    // Teacher change reflects everywhere the teacher is read from: the
+    // student's calendar already draws availability from primaryTeacherId,
+    // but a booking carries its own teacherId, so FUTURE scheduled bookings
+    // are re-pointed here. Past/completed/cancelled rows keep the teacher who
+    // actually held them.
+    const newTeacher = cleanUpdates.primaryTeacherId as string | undefined;
+    if (newTeacher !== undefined && String(newTeacher) !== String(target.primaryTeacherId ?? "")) {
+      const bookings = await ctx.db
+        .query("lessonBookings")
+        .withIndex("by_student", q => q.eq("studentId", studentId))
+        .collect();
+      let repointed = 0;
+      for (const b of bookings) {
+        if (b.status === "scheduled" && b.startUtc > now && String(b.teacherId ?? "") !== String(newTeacher)) {
+          await ctx.db.patch(b._id, { teacherId: newTeacher as any, updatedAt: now });
+          repointed++;
+        }
+      }
+      await ctx.db.insert("auditLog", {
+        organizationId: target.organizationId,
+        userId: user._id,
+        action: "student.teacher_changed",
+        targetType: "student",
+        targetId: studentId,
+        details: JSON.stringify({ from: target.primaryTeacherId ?? null, to: newTeacher, repointedBookings: repointed }),
+        timestamp: now,
+      });
+    }
+    // Course change: the student's groupId and their groupMemberships rows
+    // must agree whichever screen wrote it (Students, Preview, Courses). Old
+    // active memberships are closed, the new one upserted. Taught lessons
+    // keep the groupId they were ingested under, so only future work moves.
+    const newGroup = cleanUpdates.groupId as string | undefined;
+    if (newGroup !== undefined && String(newGroup) !== String(target.groupId ?? "")) {
+      const memberships = await ctx.db
+        .query("groupMemberships")
+        .withIndex("by_student", q => q.eq("studentId", studentId))
+        .collect();
+      let existing = null;
+      for (const m of memberships) {
+        if (String(m.groupId) === String(newGroup)) existing = m;
+        else if (m.isActive) await ctx.db.patch(m._id, { isActive: false, leftAt: now });
+      }
+      if (existing) {
+        if (!existing.isActive) await ctx.db.patch(existing._id, { isActive: true, leftAt: undefined, role: existing.role || "member" });
+      } else {
+        await ctx.db.insert("groupMemberships", { groupId: newGroup as any, studentId, role: "member", joinedAt: now, isActive: true });
+      }
+      await ctx.db.insert("auditLog", {
+        organizationId: target.organizationId,
+        userId: user._id,
+        action: "student.course_changed",
+        targetType: "student",
+        targetId: studentId,
+        details: JSON.stringify({ from: target.groupId ?? null, to: newGroup }),
+        timestamp: now,
+      });
+    }
     await ctx.db.patch(studentId, { ...cleanUpdates, updatedAt: now });
   },
 });

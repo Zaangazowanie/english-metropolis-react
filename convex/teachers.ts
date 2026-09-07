@@ -24,21 +24,36 @@ export const listTeachers = query({
     sessionToken: v.optional(v.string()),
     organizationId: v.optional(v.id("organizations")),
     includeRemoved: v.optional(v.boolean()),
+    // Superadmin only: every teacher in every school, each tagged with its
+    // organizationName. A teacher row lives in ONE org (Mike's is Conversa)
+    // but teaches PVT students too, so an org-scoped list hid him from the
+    // PVT screens and rendered "unassigned" over a set primaryTeacherId.
+    allOrganizations: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { user } = await requireAdmin(ctx, args.sessionToken);
-    const organizationId = resolveOrg(user, args.organizationId);
+    const everywhere = !!args.allOrganizations && isSuperadmin(user.role);
+    const organizationId = everywhere ? null : resolveOrg(user, args.organizationId);
 
-    const teachers = await ctx.db
-      .query("users")
-      .withIndex("by_org_role", q =>
-        q.eq("organizationId", organizationId).eq("role", "teacher"),
-      )
-      .collect();
+    const teachers = everywhere
+      ? await ctx.db.query("users").withIndex("by_role", q => q.eq("role", "teacher")).collect()
+      : await ctx.db
+          .query("users")
+          .withIndex("by_org_role", q =>
+            q.eq("organizationId", organizationId).eq("role", "teacher"),
+          )
+          .collect();
+    const orgNames = new Map<string, string>();
 
     const result = [];
     for (const u of teachers) {
       if (u.deletedAt && !args.includeRemoved) continue;
+      let organizationName: string | null = null;
+      if (u.organizationId) {
+        const key = String(u.organizationId);
+        if (!orgNames.has(key)) orgNames.set(key, (await ctx.db.get(u.organizationId))?.name ?? "");
+        organizationName = orgNames.get(key) || null;
+      }
       const students = await ctx.db
         .query("students")
         .withIndex("by_teacher", q => q.eq("primaryTeacherId", u._id))
@@ -51,6 +66,8 @@ export const listTeachers = query({
         availabilityHandedOff: !!u.availabilityHandedOff,
         removed: !!u.deletedAt,
         studentCount: students.length,
+        organizationId: u.organizationId ?? null,
+        organizationName,
       });
     }
     return result;
