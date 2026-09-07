@@ -1891,6 +1891,7 @@
 /* ── glossy skyline contour ── */
 .gh-root .gh-hero-grid > .em-hero-procession { display: none; }
 .gh-hero-silhouette {
+  --gh-contour-cycle: 16s;
   --gh-contour-high: #ffffff;
   --gh-contour-mid: #f3e8ff;
   --gh-contour-low: #a26eff;
@@ -1917,15 +1918,32 @@
 .gh-silhouette-still { display: none; }
 .gh-silhouette-draw {
   filter: drop-shadow(0 0 2px rgba(218,191,255,.45));
+  animation: ghSilhouetteFade var(--gh-contour-cycle) linear infinite both;
+}
+.gh-silhouette-reveal {
+  opacity: .7;
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: ghSilhouetteReveal var(--gh-contour-cycle) linear infinite both;
 }
 .gh-silhouette-scan {
-  animation: ghSilhouetteScan 20s linear infinite both;
+  animation: ghSilhouetteScan var(--gh-contour-cycle) linear infinite both;
 }
-.gh-hero-silhouette[data-visible="false"] .gh-silhouette-scan { animation-play-state: paused; }
-/* Both transparent ends clear the path before the scan resets. */
+.gh-hero-silhouette[data-visible="false"] :is(.gh-silhouette-draw, .gh-silhouette-reveal, .gh-silhouette-scan) { animation-play-state: paused; }
+/* Reveal and gloss advance together, hold the full city for .96s, then fade. */
+@keyframes ghSilhouetteReveal {
+  0%, 2% { transform: scaleX(0); }
+  74%, 100% { transform: scaleX(1); }
+}
 @keyframes ghSilhouetteScan {
-  0%, 2% { transform: translateX(0); }
-  92%, 100% { transform: translateX(1505px); }
+  0%, 2% { transform: translateX(16px); }
+  74% { transform: translateX(1201px); }
+  80%, 100% { transform: translateX(1505px); }
+}
+@keyframes ghSilhouetteFade {
+  0%, 2% { opacity: 0; }
+  4%, 80% { opacity: 1; }
+  86%, 100% { opacity: 0; }
 }
 /* The silhouette owns a grid slot; it never sits over a link or a photo. */
 .gh-root .gh-hero-grid > .gh-hero-silhouette { grid-column: 1; grid-row: 2; margin-top: 22px; }
@@ -1941,11 +1959,11 @@
 }
 .gh-hero-silhouette--still .gh-silhouette-still { display: block; }
 .gh-hero-silhouette--still .gh-silhouette-draw { display: none; }
-.gh-hero-silhouette--still .gh-silhouette-scan { animation: none; }
+.gh-hero-silhouette--still :is(.gh-silhouette-draw, .gh-silhouette-reveal, .gh-silhouette-scan) { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .gh-silhouette-still { display: block; }
   .gh-silhouette-draw { display: none; }
-  .gh-silhouette-scan { animation: none; }
+  :is(.gh-silhouette-draw, .gh-silhouette-reveal, .gh-silhouette-scan) { animation: none; }
 }
 
 /* ── why students stay ── */
