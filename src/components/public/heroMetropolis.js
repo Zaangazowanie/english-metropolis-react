@@ -20,6 +20,7 @@ export function buildMetropolis(THREE, scene, day) {
   }
   const facadePanes = day ? [0x48b1ef, 0x30c6ad, 0xa78bf1, 0xee81bb] : [0x267cc4, 0x19a38b, 0x8762cb, 0xcd5995]
   const facadeAccents = [brand.sky, brand.emerald, brand.violet, brand.pink, brand.ember, brand.fuchsia]
+  const mix = (a, b, amount) => new THREE.Color(a).lerp(new THREE.Color(b), amount).getHex()
   const random = (n) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v) }
   const boxGeo = new THREE.BoxGeometry(1, 1, 1)
   const leafGeo = new THREE.IcosahedronGeometry(1, 1)
@@ -52,38 +53,44 @@ export function buildMetropolis(THREE, scene, day) {
   function building(x, z, w, h, d, style, seed, far = false) {
     const bodies = style % 2 ? p.stone : p.glass
     const bodyColor = bodies[seed % bodies.length]
-    const pane = facadePanes[seed % facadePanes.length]
+    const pane = mix(bodyColor, facadePanes[seed % facadePanes.length], day ? 0.56 : 0.48)
+    const litPane = mix(pane, p.warm, day ? 0.12 : 0.56)
+    const facadeTrim = mix(bodyColor, p.trim, day ? 0.38 : 0.26)
     const accent = facadeAccents[seed % facadeAccents.length]
     const podium = 0.58
     box(x, podium / 2, z, w + 0.25, podium, d + 0.22, bodyColor)
     part(style % 2 ? 'solid' : 'glass', x, h / 2 + podium, z, w, h, d, bodyColor)
-    const floors = Math.floor(h / 0.4)
-    const columns = Math.max(3, Math.floor(w / 0.28))
-    const sides = Math.max(2, Math.floor(d / 0.3))
+    // Larger bays and quieter bands keep the detail legible without a dense
+    // checkerboard of bright pinpoints. Distant buildings use a coarser rhythm.
+    const floorHeight = far ? 0.64 : 0.52
+    const floors = Math.floor(h / floorHeight)
+    const columns = Math.max(3, Math.floor(w / (far ? 0.52 : 0.42)))
+    const sides = Math.max(2, Math.floor(d / 0.46))
     const dx = w / columns
     for (let f = 0; f < floors; f++) {
-      const y = podium + 0.2 + f * 0.4
+      const y = podium + floorHeight / 2 + f * floorHeight
       // Limestone cornices / glass curtain-wall transoms.
-      if (f % (style === 1 ? 2 : 1) === 0) box(x, y + 0.17, z, w + 0.035, 0.032, d + 0.035, style % 2 ? p.trim : p.dark)
+      if (f % 3 === 0) box(x, y + floorHeight * 0.42, z, w + 0.035, 0.028, d + 0.035, facadeTrim)
       for (let c = 0; c < columns; c++) {
-        const hash = random(seed * 701 + f * 31 + c)
-        const color = hash > (far ? 0.7 : 0.47) ? (hash > 0.88 ? 0x55e2d0 : p.warm) : pane
+        // Neighbouring rooms share their light, rather than alternating colours.
+        const hash = random(seed * 701 + Math.floor(f / 3) * 31 + Math.floor(c / 2))
+        const color = !day && hash > (far ? 0.92 : 0.82) ? litPane : pane
         const idx = part('light', x - w / 2 + dx * (c + 0.5), y, z + d / 2 + 0.012,
-          dx * (style % 2 ? 0.48 : 0.78), style % 2 ? 0.19 : 0.27, 0.015, day && hash < 0.8 ? pane : color)
-        windowRecords.push({ index: idx, x, color: day && hash < 0.8 ? pane : color })
+          dx * (style % 2 ? 0.68 : 0.88), floorHeight * (style % 2 ? 0.58 : 0.76), 0.015, color)
+        windowRecords.push({ index: idx, x, color, ambient: !far })
       }
       for (let c = 0; c < sides; c++) {
-        const color = random(seed * 61 + f * 19 + c) > 0.65 ? p.warm : pane
+        const color = !day && random(seed * 61 + Math.floor(f / 3) * 19 + Math.floor(c / 2)) > 0.86 ? litPane : pane
         const idx = part('light', x + w / 2 + 0.012, y, z - d / 2 + d / sides * (c + 0.5),
-          0.015, 0.22, d / sides * 0.52, day ? pane : color)
-        windowRecords.push({ index: idx, x, color: day ? pane : color, side: true })
+          0.015, floorHeight * 0.66, d / sides * 0.76, color)
+        windowRecords.push({ index: idx, x, color, side: true, ambient: !far })
       }
     }
     // Vertical structural fins make each tower read as architecture at small sizes.
-    for (let c = 0; c <= (style % 2 ? 3 : 5); c++) {
-      const count = style % 2 ? 3 : 5
+    for (let c = 0; c <= (style % 2 ? 2 : 3); c++) {
+      const count = style % 2 ? 2 : 3
       box(x - w / 2 + w * c / count, h / 2 + podium, z + d / 2 + 0.04,
-        style % 2 ? 0.065 : 0.032, h, 0.06, p.trim)
+        style % 2 ? 0.065 : 0.032, h, 0.06, facadeTrim)
     }
     const top = h + podium
     box(x, top + 0.05, z, w + 0.13, 0.1, d + 0.13, p.trim)
@@ -117,17 +124,19 @@ export function buildMetropolis(THREE, scene, day) {
 
   function roundTower(x, z, height, seed) {
     const diameter = 2.8
-    const pane = facadePanes[(seed + 1) % facadePanes.length]
+    const pane = mix(p.glass[1], facadePanes[(seed + 1) % facadePanes.length], 0.52)
+    const litPane = mix(pane, p.warm, 0.5)
+    const facadeTrim = mix(p.glass[1], p.trim, 0.3)
     part('round', x, height / 2, z, diameter, height, diameter, p.glass[1])
-    for (let floor = 0; floor < Math.floor(height / 0.38); floor++) {
-      const y = floor * 0.38 + 0.22
-      part('round', x, y + 0.17, z, diameter + 0.07, 0.045, diameter + 0.07, p.trim)
-      for (let c = 0; c < 24; c++) {
-        const angle = c / 24 * Math.PI * 2
-        const color = !day && random(seed + floor * 31 + c) > 0.5 ? p.warm : pane
+    for (let floor = 0; floor < Math.floor(height / 0.52); floor++) {
+      const y = floor * 0.52 + 0.28
+      if (floor % 3 === 0) part('round', x, y + 0.22, z, diameter + 0.07, 0.035, diameter + 0.07, facadeTrim)
+      for (let c = 0; c < 16; c++) {
+        const angle = c / 16 * Math.PI * 2
+        const color = !day && random(seed + Math.floor(floor / 3) * 31 + Math.floor(c / 2)) > 0.84 ? litPane : pane
         const idx = part('light', x + Math.sin(angle) * 1.406, y, z + Math.cos(angle) * 1.406,
-          0.21, 0.25, 0.022, color, angle)
-        windowRecords.push({ index: idx, x, color })
+          0.43, 0.4, 0.022, color, angle)
+        windowRecords.push({ index: idx, x, color, ambient: true })
       }
     }
     part('round', x, height + 0.08, z, diameter + 0.16, 0.16, diameter + 0.16, p.trim)
@@ -270,10 +279,10 @@ export function buildMetropolis(THREE, scene, day) {
   const glowMap = new THREE.DataTexture(glowPixels, 32, 32)
   glowMap.magFilter = THREE.LinearFilter; glowMap.minFilter = THREE.LinearFilter
   glowMap.needsUpdate = true
-  const animatedWindows = windowRecords.filter(w => random(w.index * 7.13) > 0.62)
+  const animatedWindows = windowRecords.filter(w => w.ambient && random(w.index * 7.13) > 0.9)
   const halos = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({
     map: glowMap, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-    toneMapped: false, opacity: day ? 0.12 : 0.42,
+    toneMapped: false, opacity: day ? 0.05 : 0.18,
   }), animatedWindows.length)
   const lightParts = pools.get('light')
   animatedWindows.forEach((w, i) => {
@@ -296,7 +305,6 @@ export function buildMetropolis(THREE, scene, day) {
   windowMesh.instanceColor.setUsage(THREE.DynamicDrawUsage)
   let lastFocus = undefined, focusX = null, lightsDirty = true, lastWindowTime = -1
   const tint = new THREE.Color(), base = new THREE.Color(), glowTint = new THREE.Color()
-  const dim = new THREE.Color(day ? p.pane : 0x24364f)
   const highlight = new THREE.Color(day ? 0xf7e6cc : 0xffe3b1)
   return {
     train, cars,
@@ -319,8 +327,7 @@ export function buildMetropolis(THREE, scene, day) {
         const wave = (Math.sin(t * w.speed + w.phase) + 1) * 0.5
         const level = wave * wave * (3 - 2 * wave)
         const near = focusX === null ? 0 : Math.max(0, 1 - Math.abs(w.x - focusX) / 6) * 0.8
-        tint.copy(dim).lerp(w.warm, 0.06 + level * 0.94)
-        if (day) tint.lerp(w.base, 0.76)
+        tint.copy(w.base).lerp(w.warm, level * (day ? 0.08 : 0.24))
         tint.lerp(highlight, near)
         windowMesh.setColorAt(w.index, tint)
         glowTint.copy(w.warm).multiplyScalar((level * level * 0.88 + near * 0.45) * (day ? 0.3 : 1))
