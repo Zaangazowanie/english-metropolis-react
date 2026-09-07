@@ -413,15 +413,18 @@ export default function LessonPricingSignup() {
   const mailHref = `mailto:support@englishmetro.com?subject=${encodeURIComponent(`${isPl ? 'Zapis na lekcje' : 'Lessons signup'} - ${selectedPackage.name}`)}&body=${encodeURIComponent(summary)}`
 
   useEffect(() => {
-    const target = location.pathname.includes('signup')
+    const courseTarget = location.hash === '#specialist-title' || location.hash === '#summer-title'
+      ? document.getElementById(location.hash.slice(1))
+      : null
+    const target = courseTarget || (location.pathname.includes('signup')
       ? signupRef.current
       : location.pathname.includes('pricing')
         ? pricingRef.current
-        : null
+        : null)
     if (!target) return
     const timer = window.setTimeout(() => target.scrollIntoView({ behavior: 'auto', block: 'start' }), 80)
     return () => window.clearTimeout(timer)
-  }, [location.pathname])
+  }, [location.pathname, location.hash])
 
   useEffect(() => {
     const root = pageRef.current
