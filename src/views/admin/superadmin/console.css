@@ -746,7 +746,8 @@
 /* =============================================================== FORMS === */
 
 .sa-root .sa-input,
-.sa-root .sa-select {
+.sa-root .sa-select,
+.sa-root .sa-textarea {
   width: 100%;
   height: var(--sa-control-h);
   padding: 0 10px;
@@ -1443,7 +1444,7 @@
   font-size: var(--sa-fs-micro); color: var(--sa-text-muted); }
 .sa-root .sa-preview-chrome .material-symbols-outlined { font-size: 16px; }
 .sa-root .sa-preview-panel { border: 1px solid var(--sa-border); border-radius: var(--sa-radius-card); background: var(--sa-surface); }
-.sa-root .sa-panel-body { padding: 14px; display: grid; gap: 12px; }
+.sa-root .sa-panel-body { padding: 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .sa-root .sa-panel-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .sa-root .sa-scope-note { margin: 0; padding: 8px 10px; border-radius: var(--sa-radius-control); font-size: var(--sa-fs-micro); }
 .sa-root .sa-scope-note.is-single { background: var(--sa-surface-soft); color: var(--sa-text-muted); }
