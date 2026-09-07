@@ -1,20 +1,48 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { COURSE_SLIDES } from './course-slides.js'
 import { clearPointerPolish, pulsePointerPolish, setPointerPolish } from '../../components/public/motionPolish.js'
+import { usePrefersReducedMotion } from '../../practice/lib/usePrefersReducedMotion'
 import './course-slider.css'
+
+// Slides rotate on their own (Mike 2026-09-07). Same manners as the hero
+// carousel: paused while hovered or focused, off-screen, in a hidden tab, or
+// under reduced motion; any manual choice restarts the clock.
+const AUTOPLAY_MS = 7000
 
 export default function CourseSlider({ lang = 'en' }) {
   const pl = lang === 'pl'
   const slides = COURSE_SLIDES[pl ? 'pl' : 'en']
+  const reduced = usePrefersReducedMotion()
   const [active, setActive] = useState(0)
+  const [cycle, setCycle] = useState(0)
+  const [hovered, setHovered] = useState(false)
+  const [inView, setInView] = useState(() => typeof IntersectionObserver === 'undefined')
+  const [pageVisible, setPageVisible] = useState(() => typeof document === 'undefined' || !document.hidden)
+  const section = useRef(null)
   const tabs = useRef([])
   const touch = useRef(null)
+  const playing = !reduced && !hovered && inView && pageVisible
   const select = (index, focus = false) => {
     const next = (index + slides.length) % slides.length
     setActive(next)
+    setCycle((c) => c + 1)
     if (focus) tabs.current[next]?.focus({ preventScroll: true })
   }
+  useEffect(() => {
+    const el = section.current
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined
+    const io = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.25 })
+    io.observe(el)
+    const onVisibility = () => setPageVisible(!document.hidden)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => { io.disconnect(); document.removeEventListener('visibilitychange', onVisibility) }
+  }, [])
+  useEffect(() => {
+    if (!playing) return undefined
+    const id = window.setTimeout(() => setActive((current) => (current + 1) % slides.length), AUTOPLAY_MS)
+    return () => window.clearTimeout(id)
+  }, [playing, active, cycle, slides.length])
   const onKeyDown = (event) => {
     const next = { ArrowRight: active + 1, ArrowLeft: active - 1, Home: 0, End: slides.length - 1 }[event.key]
     if (next === undefined) return
@@ -22,7 +50,10 @@ export default function CourseSlider({ lang = 'en' }) {
     select(next, true)
   }
   return (
-    <section className="gh-section gh-courses" id="courses" aria-labelledby="gh-courses-title">
+    <section ref={section} className="gh-section gh-courses" id="courses" aria-labelledby="gh-courses-title"
+      data-playing={playing}
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setHovered(false) }}>
       <div className="gh-courses-heading">
         <div>
           <div className="gh-kicker">{pl ? 'Kursy specjalistyczne i małe grupy' : 'Specialist courses & small groups'}</div>
@@ -91,6 +122,8 @@ export default function CourseSlider({ lang = 'en' }) {
         </div>)}
       </div>
       <div className="gh-course-controls">
+        {/* Keyed on slide + cycle so the fill restarts on every change, manual or automatic. */}
+        <span key={`${active}-${cycle}`} className="gh-course-progress" aria-hidden="true" style={{ '--gh-course-autoplay': `${AUTOPLAY_MS}ms` }}/>
         <p aria-live="polite" aria-atomic="true"><b>{String(active + 1).padStart(2, '0')}</b> / {String(slides.length).padStart(2, '0')}<span>{slides[active].label}</span></p>
         <div>
           <button type="button" onClick={() => select(active - 1)} aria-label={pl ? 'Poprzedni kurs' : 'Previous course'}

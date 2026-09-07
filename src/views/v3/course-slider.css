@@ -36,7 +36,13 @@
 .gh-course-example { border-left: 2px solid var(--course-accent); padding-left: 16px; margin: 24px 0; color: var(--gh-text-soft); font-size: 13px; line-height: 1.7; }
 .gh-course-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .gh-course-actions .gh-action { text-align: center; }
-.gh-course-controls { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--gh-border-hi); padding: 20px 0; }
+.gh-course-controls { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--gh-border-hi); padding: 20px 0; }
+/* Autoplay clock: a hairline that fills along the controls' bottom rule over one
+   slide interval. Runs only while data-playing="true" (hover, focus, off-screen,
+   hidden tab and reduced motion all pause it). */
+.gh-course-progress { position: absolute; left: 0; bottom: -1px; height: 2px; width: 100%; transform: scaleX(0); transform-origin: left; background: linear-gradient(90deg, #8b5cf6, #d946ef 55%, #f472b6); border-radius: 2px; pointer-events: none; opacity: 0; }
+.gh-courses[data-playing="true"] .gh-course-progress { opacity: 1; animation: course-clock var(--gh-course-autoplay, 7000ms) linear both; }
+@keyframes course-clock { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .gh-course-controls p { margin: 0; color: var(--gh-text-soft); font-size: 13px; }
 .gh-course-controls b { color: var(--gh-text); }
 .gh-course-controls p > span { margin-left: 20px; }
