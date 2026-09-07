@@ -21,6 +21,7 @@
 import {
   mutateAdminConvex, queryAdminConvex, queryConvexUnscoped,
 } from '../../../contexts/AdminAuthContext.jsx'
+import { consoleGet, consolePost } from './consoleApi.js'
 
 /* ─────────────────────────────────────────────────────── vocabularies ───── */
 // Sampled from live data rather than guessed. Extend deliberately.
@@ -77,10 +78,12 @@ export const listTeachers = (organizationId, includeRemoved = false, allOrganiza
     ...(allOrganizations ? { allOrganizations: true } : {}),
   })
 
-export const createTeacher = ({ name, email, organizationId }) =>
+export const createTeacher = ({ name, email, workEmail, phone, organizationId }) =>
   mutateAdminConvex('teachers:createTeacher', {
     name: String(name).trim(),
     email: String(email).trim().toLowerCase(),
+    ...(workEmail ? { workEmail: String(workEmail).trim().toLowerCase() } : {}),
+    ...(phone ? { phone: String(phone).trim() } : {}),
     organizationId: requireOrg(organizationId, 'a new teacher'),
   })
 
@@ -137,6 +140,20 @@ export const listCourses = organizationId =>
   queryConvexUnscoped('students:listGroups', {
     organizationId: requireOrg(organizationId, 'the course list'),
   })
+
+// Whole-track assignment from the Students screen: the console API creates or
+// links the student's personal course group (Convex) and plans the untaught
+// lessons of the track; taught lessons and already-attached PDFs are kept.
+export const assignCourseTrack = ({ studentSlug, courseId }) =>
+  consolePost('/api/console/assign-course', { student_slug: studentSlug, course_id: courseId })
+
+// Library tracks (GEN-B2-LIFESTYLE …) with level + lesson count, for the course
+// dropdowns. Values in the dropdown are prefixed "track:" to tell them apart
+// from existing group ids.
+export const listCourseTracks = () =>
+  consoleGet('/api/console/courses').then(r => (r?.courses || []).map(c => ({
+    courseId: c.course_id, level: c.level, levels: c.levels || [], lessonCount: c.lesson_count, basket: c.basket,
+  })))
 
 export const addStudentToCourse = ({ groupId, studentId, role }) =>
   mutateAdminConvex('groups:addGroupMember', { groupId, studentId, ...(role ? { role } : {}) })

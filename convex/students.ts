@@ -407,6 +407,35 @@ export const createStudent = mutation({
   },
 });
 
+// Shared by updateStudent and assignCourseTrack: close the student's other
+// active memberships, upsert the new one, audit. Taught lessons keep the
+// groupId they were ingested under, so only future work moves.
+async function applyGroupChange(ctx: any, user: any, student: any, newGroup: string | null, now: number) {
+  const memberships = await ctx.db
+    .query("groupMemberships")
+    .withIndex("by_student", (q: any) => q.eq("studentId", student._id))
+    .collect();
+  let existing: any = null;
+  for (const m of memberships) {
+    if (newGroup !== null && String(m.groupId) === String(newGroup)) existing = m;
+    else if (m.isActive) await ctx.db.patch(m._id, { isActive: false, leftAt: now });
+  }
+  if (existing) {
+    if (!existing.isActive) await ctx.db.patch(existing._id, { isActive: true, leftAt: undefined, role: existing.role || "member" });
+  } else if (newGroup !== null) {
+    await ctx.db.insert("groupMemberships", { groupId: newGroup as any, studentId: student._id, role: "member", joinedAt: now, isActive: true });
+  }
+  await ctx.db.insert("auditLog", {
+    organizationId: student.organizationId,
+    userId: user._id,
+    action: "student.course_changed",
+    targetType: "student",
+    targetId: student._id,
+    details: JSON.stringify({ from: student.groupId ?? null, to: newGroup }),
+    timestamp: now,
+  });
+}
+
 export const updateStudent = mutation({
   args: {
     sessionToken: v.string(),
@@ -489,40 +518,87 @@ export const updateStudent = mutation({
       });
     }
     // Course change: the student's groupId and their groupMemberships rows
-    // must agree whichever screen wrote it (Students, Preview, Courses). Old
-    // active memberships are closed, the new one upserted. Taught lessons
-    // keep the groupId they were ingested under, so only future work moves.
+    // must agree whichever screen wrote it (Students, Preview, Courses).
     const newGroup = cleanUpdates.groupId as string | null | undefined;
     if (newGroup !== undefined && String(newGroup ?? "") !== String(target.groupId ?? "")) {
-      const memberships = await ctx.db
-        .query("groupMemberships")
-        .withIndex("by_student", q => q.eq("studentId", studentId))
-        .collect();
-      let existing = null;
-      for (const m of memberships) {
-        if (newGroup !== null && String(m.groupId) === String(newGroup)) existing = m;
-        else if (m.isActive) await ctx.db.patch(m._id, { isActive: false, leftAt: now });
-      }
-      if (existing) {
-        if (!existing.isActive) await ctx.db.patch(existing._id, { isActive: true, leftAt: undefined, role: existing.role || "member" });
-      } else if (newGroup !== null) {
-        await ctx.db.insert("groupMemberships", { groupId: newGroup as any, studentId, role: "member", joinedAt: now, isActive: true });
-      }
-      await ctx.db.insert("auditLog", {
-        organizationId: target.organizationId,
-        userId: user._id,
-        action: "student.course_changed",
-        targetType: "student",
-        targetId: studentId,
-        details: JSON.stringify({ from: target.groupId ?? null, to: newGroup }),
-        timestamp: now,
-      });
+      await applyGroupChange(ctx, user, target, newGroup, now);
     }
     // null clears the field on the row (Convex removes a field patched to undefined).
     const patch = cleanUpdates as Record<string, unknown>;
     if (patch.primaryTeacherId === null) patch.primaryTeacherId = undefined;
     if (patch.groupId === null) patch.groupId = undefined;
     await ctx.db.patch(studentId, { ...cleanUpdates, updatedAt: now });
+  },
+});
+
+// Assign a course TRACK from the library (e.g. GEN-B2-LIFESTYLE) directly from
+// the Students screen. A PVT student's course is a personal group carrying the
+// track's courseId ("PVT <Name> - B2 Lifestyle", the convention Aleksandra's
+// groups already follow), so this finds or creates that group, moves the
+// student's membership to it and parks their previous personal group as
+// archived when nobody else is in it. Lesson-level planning (curriculum slots,
+// PDFs) is the console API's job — it calls this first, then plans.
+export const assignCourseTrack = mutation({
+  args: {
+    sessionToken: v.string(),
+    studentId: v.id("students"),
+    courseId: v.string(),
+    trackLabel: v.string(),
+    level: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireAdmin(ctx, args.sessionToken);
+    const student = await ctx.db.get(args.studentId);
+    if (!student) throw new Error("Student not found");
+    if (!isSuperadmin(user.role) && student.organizationId !== user.organizationId) {
+      throw new Error("Unauthorized");
+    }
+    const organizationId = student.organizationId;
+    if (!organizationId) throw new Error("Student has no organization");
+    const now = Date.now();
+    const personalPrefix = `PVT ${student.name} - `;
+    const groups = await ctx.db
+      .query("groups")
+      .withIndex("by_organization", q => q.eq("organizationId", organizationId))
+      .collect();
+    let group = groups.find(g => g.courseId === args.courseId && g.name.startsWith(personalPrefix)) ?? null;
+    let created = false;
+    if (!group) {
+      const name = `${personalPrefix}${args.trackLabel}`;
+      const groupId = await ctx.db.insert("groups", {
+        name,
+        slug: deriveSlug(name),
+        organizationId,
+        courseId: args.courseId,
+        level: args.level,
+        status: "active",
+        teachers: [],
+        createdAt: now,
+        updatedAt: now,
+      });
+      await ctx.db.insert("auditLog", {
+        organizationId, userId: user._id, action: "group.created",
+        targetType: "group", targetId: groupId, timestamp: now,
+      });
+      group = await ctx.db.get(groupId);
+      created = true;
+    } else if (group.status !== "active") {
+      await ctx.db.patch(group._id, { status: "active", updatedAt: now });
+    }
+    if (String(student.groupId ?? "") !== String(group!._id)) {
+      await applyGroupChange(ctx, user, student, String(group!._id), now);
+      // Park the previous personal group if it is now empty.
+      const prev = student.groupId ? groups.find(g => String(g._id) === String(student.groupId)) : null;
+      if (prev && prev.name.startsWith(personalPrefix) && prev.status === "active") {
+        const others = (await ctx.db
+          .query("groupMemberships")
+          .withIndex("by_group", q => q.eq("groupId", prev._id))
+          .collect()).filter(m => m.isActive && String(m.studentId) !== String(student._id));
+        if (others.length === 0) await ctx.db.patch(prev._id, { status: "archived", updatedAt: now });
+      }
+      await ctx.db.patch(student._id, { groupId: group!._id, updatedAt: now });
+    }
+    return { groupId: group!._id, groupName: group!.name, created };
   },
 });
 

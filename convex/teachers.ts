@@ -62,6 +62,8 @@ export const listTeachers = query({
         _id: u._id,
         name: u.name,
         email: u.email,
+        workEmail: u.workEmail ?? null,
+        phone: u.phone ?? null,
         status: u.status,
         availabilityHandedOff: !!u.availabilityHandedOff,
         removed: !!u.deletedAt,
@@ -80,6 +82,8 @@ export const createTeacher = mutation({
     sessionToken: v.optional(v.string()),
     name: v.string(),
     email: v.string(),
+    workEmail: v.optional(v.string()),
+    phone: v.optional(v.string()),
     organizationId: v.optional(v.id("organizations")),
   },
   handler: async (ctx, args) => {
@@ -96,6 +100,8 @@ export const createTeacher = mutation({
     const teacherId = await ctx.db.insert("users", {
       email: args.email,
       name: args.name,
+      ...(args.workEmail ? { workEmail: args.workEmail } : {}),
+      ...(args.phone ? { phone: args.phone } : {}),
       role: "teacher",
       organizationId,
       status: "active",
@@ -113,6 +119,8 @@ export const updateTeacher = mutation({
     teacherId: v.id("users"),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
+    workEmail: v.optional(v.union(v.string(), v.null())),
+    phone: v.optional(v.union(v.string(), v.null())),
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -128,6 +136,8 @@ export const updateTeacher = mutation({
     if (args.name !== undefined) patch.name = args.name;
     if (args.email !== undefined) patch.email = args.email;
     if (args.status !== undefined) patch.status = args.status;
+    if (args.workEmail !== undefined) patch.workEmail = args.workEmail ?? undefined;
+    if (args.phone !== undefined) patch.phone = args.phone ?? undefined;
     await ctx.db.patch(args.teacherId, patch);
     return { ok: true };
   },

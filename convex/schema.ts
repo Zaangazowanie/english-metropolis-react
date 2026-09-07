@@ -146,6 +146,10 @@ export default defineSchema({
     organizationId: v.optional(v.id("organizations")),
     password: v.optional(v.string()),     // Admin login (plaintext, staging only)
     avatarUrl: v.optional(v.string()),
+    // Teachers: `email` is the address they registered and sign in with (their
+    // gmail — magic links go there); `workEmail` is the assigned
+    // first.last@englishmetro.com alias shown to students. (2026-09-07)
+    workEmail: v.optional(v.string()),
     phone: v.optional(v.string()),
     timezone: v.optional(v.string()),
     locale: v.optional(v.string()),

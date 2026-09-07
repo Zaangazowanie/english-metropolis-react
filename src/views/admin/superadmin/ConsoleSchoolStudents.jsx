@@ -28,7 +28,7 @@ function initialsOf(name) {
 import { ConfirmWrite, useConvexList, useSchool } from './SchoolShared.jsx'
 import {
   CEFR_LEVELS, STUDENT_TYPES, addStudentToCourse, archiveStudent, createStudent,
-  listCourses, listStudents, listTeachers, slugify, updateStudent,
+  assignCourseTrack, listCourseTracks, listCourses, listStudents, listTeachers, slugify, updateStudent,
 } from './schoolApi.js'
 
 const BLANK = {
@@ -48,6 +48,7 @@ export default function ConsoleSchoolStudents() {
   const students = useConvexList(() => listStudents(schoolId, activeOnly), [schoolId, activeOnly], true)
   const teachers = useConvexList(() => listTeachers(schoolId, false, true), [schoolId], !!schoolId)
   const courses = useConvexList(() => listCourses(schoolId), [schoolId], !!schoolId)
+  const tracks = useConvexList(() => listCourseTracks(), [], true)
 
   const [draft, setDraft] = useState(null)
   const [pending, setPending] = useState(null)
@@ -56,6 +57,9 @@ export default function ConsoleSchoolStudents() {
 
   const teacherName = id => teachers.rows?.find(t => t._id === id)?.name || null
   const courseName = id => courses.rows?.find(c => c._id === id)?.name || null
+  // Dropdown value is either an existing group id or "track:<courseId>".
+  const isTrack = v => typeof v === 'string' && v.startsWith('track:')
+  const trackLabel = v => { const t = tracks.rows?.find(x => `track:${x.courseId}` === v); return t ? `${t.courseId} · ${t.level || '—'} · ${t.lessonCount} lessons` : v }
 
   const filtered = useMemo(() => {
     const rows = students.rows || []
@@ -92,7 +96,7 @@ export default function ConsoleSchoolStudents() {
       { label: 'Type', value: draft.type },
       { label: 'Email', value: draft.email },
       { label: 'Teacher', value: teacherName(draft.primaryTeacherId) || 'none' },
-      { label: 'Course', value: courseName(draft.groupId) || 'none' },
+      { label: 'Course', value: isTrack(draft.groupId) ? trackLabel(draft.groupId) : (courseName(draft.groupId) || 'none') },
     ],
     warning: draft.groupId
       ? 'The course is written both as the student’s groupId and as a group membership row, so the group screens and the student record agree.'
@@ -110,14 +114,19 @@ export default function ConsoleSchoolStudents() {
         }), {
           // Outside stripEmpty on purpose: "— unassigned —" / "— none —" must
           // reach the server as null so the teacher/course is actually cleared.
-          primaryTeacherId: fields.primaryTeacherId || null, groupId: fields.groupId || null,
+          primaryTeacherId: fields.primaryTeacherId || null,
+          // A track goes through the console API below; a group id is written here.
+          ...(isTrack(fields.groupId) ? {} : { groupId: fields.groupId || null }),
         }))
       } else {
         const created = await createStudent(fields)
         studentId = created?._id || created?.studentId || created
       }
-      // Membership is a separate table; keep it in step with groupId.
-      if (fields.groupId && studentId) {
+      if (isTrack(fields.groupId) && studentId) {
+        // Creates/links the personal course group and plans the untaught lessons.
+        await assignCourseTrack({ studentSlug: fields.slug, courseId: fields.groupId.slice(6) })
+      } else if (fields.groupId && studentId) {
+        // Membership is a separate table; keep it in step with groupId.
         await addStudentToCourse({ groupId: fields.groupId, studentId }).catch(() => {})
       }
     },
@@ -291,11 +300,16 @@ export default function ConsoleSchoolStudents() {
               </Field>
 
               <Field label="Course" htmlFor="s-course"
-                     hint="Writes the student's groupId and a group membership row together.">
+                     hint="Pick a library track to give this student that course: their course group is created, and the untaught lessons are planned. Lessons already taught are never changed.">
                 <select id="s-course" className="sa-select" value={draft.groupId}
                         onChange={e => setDraft(d => ({ ...d, groupId: e.target.value }))}>
                   <option value="">— none —</option>
-                  {(courses.rows || []).map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  <optgroup label="Course library — assign a track">
+                    {(tracks.rows || []).map(t => <option key={t.courseId} value={`track:${t.courseId}`}>{t.courseId} · {t.level || '—'} · {t.lessonCount} lessons</option>)}
+                  </optgroup>
+                  <optgroup label="Existing course groups in this school">
+                    {(courses.rows || []).map(c => <option key={c._id} value={c._id}>{c.name}{c.courseId ? ` (${c.courseId})` : ''}</option>)}
+                  </optgroup>
                 </select>
               </Field>
 

@@ -24,7 +24,7 @@ import { consoleGet, consolePost } from './consoleApi.js'
 import ConsoleLessonNotes from './ConsoleLessonNotes.jsx'
 import { ConfirmWrite, NeedSchool, useConvexList, useSchool } from './SchoolShared.jsx'
 import {
-  CEFR_LEVELS, getStudentDashboard, listCourses, listStudents, listTeachers, updateStudent,
+  CEFR_LEVELS, assignCourseTrack, getStudentDashboard, listCourseTracks, listCourses, listStudents, listTeachers, updateStudent,
 } from './schoolApi.js'
 import { DEFAULT_STUDENT_DESIGN, STUDENT_CARDS } from '../../../design/v3/studentDesign.js'
 import { queryAdminConvex } from '../../../contexts/AdminAuthContext.jsx'
@@ -50,6 +50,8 @@ export default function ConsoleStudentPreview() {
 
   const students = useConvexList(() => listStudents(schoolId, true), [schoolId], !!schoolId)
   const teachers = useConvexList(() => listTeachers(schoolId, false, true), [schoolId], !!schoolId)
+  const tracks = useConvexList(() => listCourseTracks(), [], true)
+  const isTrack = v => typeof v === 'string' && v.startsWith('track:')
   const courses = useConvexList(() => listCourses(schoolId), [schoolId], !!schoolId)
 
   const [dash, setDash] = useState({ data: null, error: null, loading: false })
@@ -143,13 +145,17 @@ export default function ConsoleStudentPreview() {
     ],
     warning: 'Affects this student only.',
     done: 'Student updated.',
-    run: () => updateStudent(student._id, Object.assign(stripEmpty({
-      name: draft.name, level: draft.level, targetLevel: draft.targetLevel,
-      email: draft.email, phone: draft.phone, notes: draft.notes,
-    }), {
-      // null = clear on the server; '' would be stripped and leave the old value.
-      primaryTeacherId: draft.primaryTeacherId || null, groupId: draft.groupId || null,
-    })),
+    run: async () => {
+      await updateStudent(student._id, Object.assign(stripEmpty({
+        name: draft.name, level: draft.level, targetLevel: draft.targetLevel,
+        email: draft.email, phone: draft.phone, notes: draft.notes,
+      }), {
+        // null = clear on the server; '' would be stripped and leave the old value.
+        primaryTeacherId: draft.primaryTeacherId || null,
+        ...(isTrack(draft.groupId) ? {} : { groupId: draft.groupId || null }),
+      }))
+      if (isTrack(draft.groupId)) await assignCourseTrack({ studentSlug: student.slug, courseId: draft.groupId.slice(6) })
+    },
     after: loadDash,
   })
 
@@ -275,7 +281,12 @@ export default function ConsoleStudentPreview() {
                     <select id="p-course" className="sa-select" value={draft.groupId}
                             onChange={e => setDraft(d => ({ ...d, groupId: e.target.value }))}>
                       <option value="">— none —</option>
-                      {(courses.rows || []).map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                      <optgroup label="Course library — assign a track">
+                        {(tracks.rows || []).map(t => <option key={t.courseId} value={`track:${t.courseId}`}>{t.courseId} · {t.level || '—'} · {t.lessonCount} lessons</option>)}
+                      </optgroup>
+                      <optgroup label="Existing course groups in this school">
+                        {(courses.rows || []).map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                      </optgroup>
                     </select>
                   </Field>
                   <Field label="Email" htmlFor="p-email">
