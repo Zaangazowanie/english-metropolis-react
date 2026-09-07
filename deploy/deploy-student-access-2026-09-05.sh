@@ -21,9 +21,9 @@ test -s "$BUILD/index.html"
 node --test tests/admin-student-view.test.mjs tests/student-data-refresh.test.mjs tests/student-view-session.test.mjs tests/student-view-practice.test.mjs tests/arcade-demo-progress.test.mjs > "$BACKUP/tests.log"
 node_modules/.bin/convex function-spec --prod > "$BACKUP/spec-before.json"
 if [ "${STUDENT_ACCESS_FRONTEND_ONLY:-0}" = 1 ]; then
-  # This baseline completed the backend deploy and live access/revocation checks.
-  # Reuse it only when every backend file and dependency remains identical.
-  BASE=21737dd171502475c6b6542f951ae75b478e4a94
+  # Backend verified in englishmetro-row-dropdowns-20260907-074943; the
+  # following 1e018 commit changes CSS only. Reuse only with identical backend/deps.
+  BASE=1e0182545739b783a5a1c1e6e12b61d923bf3051
   git merge-base --is-ancestor "$BASE" HEAD
   git diff --quiet "$BASE" HEAD -- convex package.json package-lock.json yarn.lock pnpm-lock.yaml
   echo "Reusing verified backend from $BASE" > "$BACKUP/convex-deploy.log"
