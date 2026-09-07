@@ -1984,7 +1984,7 @@
 /* ── glossy skyline contour ── */
 .gh-root .gh-hero-grid > .em-hero-procession { display: none; }
 .gh-hero-silhouette {
-  --gh-contour-cycle: 14s;
+  --gh-contour-cycle: 7s;
   --gh-contour-high: #ffffff;
   --gh-contour-mid: #f3e8ff;
   --gh-contour-low: #a26eff;
@@ -2017,8 +2017,12 @@
 .gh-silhouette-scan {
   animation: ghSilhouetteScan var(--gh-contour-cycle) linear infinite both;
 }
-.gh-hero-silhouette[data-visible="false"] :is(.gh-silhouette-draw, .gh-silhouette-reveal, .gh-silhouette-scan) { animation-play-state: paused; }
-/* Reveal and gloss advance together, hold the full city for .98s, then fade. */
+.gh-silhouette-flash {
+  opacity: 0;
+  animation: ghSilhouetteFlash var(--gh-contour-cycle) linear infinite both;
+}
+.gh-hero-silhouette[data-visible="false"] :is(.gh-silhouette-draw, .gh-silhouette-reveal, .gh-silhouette-scan, .gh-silhouette-flash) { animation-play-state: paused; }
+/* Hold the full city for .49s, then briefly brighten the line into its fade. */
 @keyframes ghSilhouetteReveal {
   0%, 2% { transform: scaleX(0); }
   73%, 100% { transform: scaleX(1); }
@@ -2030,15 +2034,20 @@
 }
 @keyframes ghSilhouetteFade {
   0%, 2% { opacity: 0; }
-  4%, 80% { opacity: 1; }
-  86%, 100% { opacity: 0; }
+  4%, 82% { opacity: 1; }
+  90%, 100% { opacity: 0; }
+}
+@keyframes ghSilhouetteFlash {
+  0%, 80% { opacity: 0; }
+  82% { opacity: 1; }
+  90%, 100% { opacity: 0; }
 }
 /* The silhouette owns a grid slot; it never sits over a link or a photo. */
 .gh-root .gh-hero-grid > .gh-hero-silhouette { grid-column: 1; grid-row: 2; margin-top: 22px; }
 .gh-root .gh-hero-grid > .gh-hero-stage-wrap { grid-row: 1 / span 2; }
 @media (min-width: 1260px) {
   /* Balance against the copy's readable text width, rather than its wider grid track. */
-  .gh-root .gh-hero-grid > .gh-hero-silhouette { grid-column: 2; grid-row: 1; margin-top: 0; align-self: center; justify-self: center; transform: translateX(clamp(-24px, calc((1680px - 100vw) * .06), 0px)); }
+  .gh-root .gh-hero-grid > .gh-hero-silhouette { grid-column: 2; grid-row: 1; margin-top: 0; align-self: center; justify-self: center; transform: translateX(clamp(-32px, calc((1680px - 100vw) * .08), 0px)); }
   .gh-root .gh-hero-grid > .gh-hero-stage-wrap { grid-row: 1; }
 }
 @media (max-width: 920px) {
@@ -2048,11 +2057,11 @@
 }
 .gh-hero-silhouette--still .gh-silhouette-still { display: block; }
 .gh-hero-silhouette--still .gh-silhouette-draw { display: none; }
-.gh-hero-silhouette--still :is(.gh-silhouette-draw, .gh-silhouette-reveal, .gh-silhouette-scan) { animation: none; }
+.gh-hero-silhouette--still :is(.gh-silhouette-draw, .gh-silhouette-reveal, .gh-silhouette-scan, .gh-silhouette-flash) { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .gh-silhouette-still { display: block; }
   .gh-silhouette-draw { display: none; }
-  :is(.gh-silhouette-draw, .gh-silhouette-reveal, .gh-silhouette-scan) { animation: none; }
+  :is(.gh-silhouette-draw, .gh-silhouette-reveal, .gh-silhouette-scan, .gh-silhouette-flash) { animation: none; }
 }
 
 /* ── why students stay ── */
