@@ -332,3 +332,51 @@ export const wipeAll = internalMutation({
     return { deleted: total };
   },
 });
+
+// Hard-delete the money/schedule rows of ARCHIVED test students so they stop
+// showing in the console's Orders / Payments / Package allocation tabs (those
+// tabs list every row regardless of status; cancelOrder/cancelPackage only
+// flip a status). Superadmin only; refuses any student that is not archived,
+// so a live learner's records can never be purged by a typo. The student row
+// itself is kept (archived) so nothing else dangles. Audit-logged per student.
+export const purgeTestStudentRecords = mutation({
+  args: {
+    sessionToken: v.string(),
+    studentIds: v.array(v.id("students")),
+    dryRun: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireSuperadmin(ctx, args.sessionToken);
+    const tables = ["p24Payments", "lessonOrders", "lessonPackages", "lessonBookings"] as const;
+    const report: Array<{ studentId: string; name: string } & Record<string, number | string>> = [];
+    for (const studentId of args.studentIds) {
+      const student = await ctx.db.get(studentId);
+      if (!student) throw new Error(`Student ${studentId} not found`);
+      if (student.status !== "archived") {
+        throw new Error(`${student.name} is ${student.status}, not archived — refusing to purge`);
+      }
+      const counts: Record<string, number> = {};
+      for (const table of tables) {
+        const rows = await ctx.db
+          .query(table)
+          .withIndex("by_student", (q: any) => q.eq("studentId", studentId))
+          .collect();
+        counts[table] = rows.length;
+        if (!args.dryRun) for (const row of rows) await ctx.db.delete(row._id);
+      }
+      if (!args.dryRun) {
+        await ctx.db.insert("auditLog", {
+          organizationId: student.organizationId,
+          userId: user._id,
+          action: "student.records_purged",
+          targetType: "student",
+          targetId: String(studentId),
+          details: JSON.stringify(counts),
+          timestamp: Date.now(),
+        });
+      }
+      report.push({ studentId: String(studentId), name: student.name, ...counts });
+    }
+    return { dryRun: !!args.dryRun, report };
+  },
+});
