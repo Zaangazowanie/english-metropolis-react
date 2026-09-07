@@ -143,10 +143,12 @@ export default function ConsoleStudentPreview() {
     ],
     warning: 'Affects this student only.',
     done: 'Student updated.',
-    run: () => updateStudent(student._id, stripEmpty({
+    run: () => updateStudent(student._id, Object.assign(stripEmpty({
       name: draft.name, level: draft.level, targetLevel: draft.targetLevel,
       email: draft.email, phone: draft.phone, notes: draft.notes,
-      primaryTeacherId: draft.primaryTeacherId, groupId: draft.groupId,
+    }), {
+      // null = clear on the server; '' would be stripped and leave the old value.
+      primaryTeacherId: draft.primaryTeacherId || null, groupId: draft.groupId || null,
     })),
     after: loadDash,
   })

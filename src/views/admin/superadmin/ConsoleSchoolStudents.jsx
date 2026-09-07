@@ -102,12 +102,15 @@ export default function ConsoleSchoolStudents() {
       const fields = { ...draft, slug: slugValue, organizationId: schoolId }
       let studentId = draft._id
       if (isEdit) {
-        await updateStudent(studentId, stripEmpty({
+        await updateStudent(studentId, Object.assign(stripEmpty({
           name: fields.name, slug: fields.slug, level: fields.level, type: fields.type,
           email: fields.email, phone: fields.phone, notes: fields.notes,
           targetLevel: fields.targetLevel, nativeLanguage: fields.nativeLanguage,
-          primaryTeacherId: fields.primaryTeacherId, groupId: fields.groupId,
           organizationId: fields.organizationId,
+        }), {
+          // Outside stripEmpty on purpose: "— unassigned —" / "— none —" must
+          // reach the server as null so the teacher/course is actually cleared.
+          primaryTeacherId: fields.primaryTeacherId || null, groupId: fields.groupId || null,
         }))
       } else {
         const created = await createStudent(fields)

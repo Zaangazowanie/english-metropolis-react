@@ -423,8 +423,9 @@ export const updateStudent = mutation({
     status: v.optional(v.string()),
     notes: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
-    groupId: v.optional(v.id("groups")),
-    primaryTeacherId: v.optional(v.id("users")),
+    // null = unassign (the field is removed); undefined = leave untouched.
+    groupId: v.optional(v.union(v.id("groups"), v.null())),
+    primaryTeacherId: v.optional(v.union(v.id("users"), v.null())),
     organizationId: v.optional(v.id("organizations")),
   },
   handler: async (ctx, args) => {
@@ -464,16 +465,16 @@ export const updateStudent = mutation({
     // but a booking carries its own teacherId, so FUTURE scheduled bookings
     // are re-pointed here. Past/completed/cancelled rows keep the teacher who
     // actually held them.
-    const newTeacher = cleanUpdates.primaryTeacherId as string | undefined;
-    if (newTeacher !== undefined && String(newTeacher) !== String(target.primaryTeacherId ?? "")) {
+    const newTeacher = cleanUpdates.primaryTeacherId as string | null | undefined;
+    if (newTeacher !== undefined && String(newTeacher ?? "") !== String(target.primaryTeacherId ?? "")) {
       const bookings = await ctx.db
         .query("lessonBookings")
         .withIndex("by_student", q => q.eq("studentId", studentId))
         .collect();
       let repointed = 0;
       for (const b of bookings) {
-        if (b.status === "scheduled" && b.startUtc > now && String(b.teacherId ?? "") !== String(newTeacher)) {
-          await ctx.db.patch(b._id, { teacherId: newTeacher as any, updatedAt: now });
+        if (b.status === "scheduled" && b.startUtc > now && String(b.teacherId ?? "") !== String(newTeacher ?? "")) {
+          await ctx.db.patch(b._id, { teacherId: (newTeacher ?? undefined) as any, updatedAt: now });
           repointed++;
         }
       }
@@ -491,20 +492,20 @@ export const updateStudent = mutation({
     // must agree whichever screen wrote it (Students, Preview, Courses). Old
     // active memberships are closed, the new one upserted. Taught lessons
     // keep the groupId they were ingested under, so only future work moves.
-    const newGroup = cleanUpdates.groupId as string | undefined;
-    if (newGroup !== undefined && String(newGroup) !== String(target.groupId ?? "")) {
+    const newGroup = cleanUpdates.groupId as string | null | undefined;
+    if (newGroup !== undefined && String(newGroup ?? "") !== String(target.groupId ?? "")) {
       const memberships = await ctx.db
         .query("groupMemberships")
         .withIndex("by_student", q => q.eq("studentId", studentId))
         .collect();
       let existing = null;
       for (const m of memberships) {
-        if (String(m.groupId) === String(newGroup)) existing = m;
+        if (newGroup !== null && String(m.groupId) === String(newGroup)) existing = m;
         else if (m.isActive) await ctx.db.patch(m._id, { isActive: false, leftAt: now });
       }
       if (existing) {
         if (!existing.isActive) await ctx.db.patch(existing._id, { isActive: true, leftAt: undefined, role: existing.role || "member" });
-      } else {
+      } else if (newGroup !== null) {
         await ctx.db.insert("groupMemberships", { groupId: newGroup as any, studentId, role: "member", joinedAt: now, isActive: true });
       }
       await ctx.db.insert("auditLog", {
@@ -517,6 +518,10 @@ export const updateStudent = mutation({
         timestamp: now,
       });
     }
+    // null clears the field on the row (Convex removes a field patched to undefined).
+    const patch = cleanUpdates as Record<string, unknown>;
+    if (patch.primaryTeacherId === null) patch.primaryTeacherId = undefined;
+    if (patch.groupId === null) patch.groupId = undefined;
     await ctx.db.patch(studentId, { ...cleanUpdates, updatedAt: now });
   },
 });
