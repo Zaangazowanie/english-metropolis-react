@@ -380,3 +380,66 @@ export const purgeTestStudentRecords = mutation({
     return { dryRun: !!args.dryRun, report };
   },
 });
+
+// Hard-delete ARCHIVED test students and every row that points at them.
+// Superadmin only, explicit id list, refuses non-archived students, and
+// refuses students with taught lessons unless allowLessons is set — a real
+// ex-learner (Conversa archive) has lessons, a QA/probe account does not.
+// Returns per-table counts; dryRun reports without deleting.
+export const deleteTestStudents = mutation({
+  args: {
+    sessionToken: v.string(),
+    studentIds: v.array(v.id("students")),
+    allowLessons: v.optional(v.boolean()),
+    dryRun: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireSuperadmin(ctx, args.sessionToken);
+    const byStudent = [
+      "groupMemberships", "lessons", "keywords", "transcriptAnalyses", "quizResults",
+      "keywordBank", "practiceProgress", "practiceRecommendations", "lessonPackages",
+      "lessonOrders", "p24Payments", "priceQuotes", "analysisEntitlements", "certificates",
+      "lessonBookings", "operationsAlerts", "curriculumItems", "authSessions",
+    ] as const;
+    const report: Array<Record<string, number | string>> = [];
+    for (const studentId of args.studentIds) {
+      const student = await ctx.db.get(studentId);
+      if (!student) throw new Error(`Student ${studentId} not found`);
+      if (student.status !== "archived") {
+        throw new Error(`${student.name} is ${student.status}, not archived — refusing to delete`);
+      }
+      const counts: Record<string, number> = {};
+      const rowsByTable: Record<string, any[]> = {};
+      for (const table of byStudent) {
+        rowsByTable[table] = await ctx.db
+          .query(table)
+          .withIndex("by_student", (q: any) => q.eq("studentId", studentId))
+          .collect();
+        counts[table] = rowsByTable[table].length;
+      }
+      rowsByTable.studentTokens = await ctx.db
+        .query("studentTokens")
+        .withIndex("by_student_kind", (q: any) => q.eq("studentId", studentId))
+        .collect();
+      counts.studentTokens = rowsByTable.studentTokens.length;
+      if (counts.lessons > 0 && !args.allowLessons) {
+        throw new Error(`${student.name} has ${counts.lessons} lessons — pass allowLessons to delete anyway`);
+      }
+      if (!args.dryRun) {
+        for (const rows of Object.values(rowsByTable)) for (const row of rows) await ctx.db.delete(row._id);
+        await ctx.db.delete(studentId);
+        await ctx.db.insert("auditLog", {
+          organizationId: student.organizationId,
+          userId: user._id,
+          action: "student.hard_deleted",
+          targetType: "student",
+          targetId: String(studentId),
+          details: JSON.stringify({ name: student.name, email: student.email ?? null, slug: student.slug ?? null, ...counts }),
+          timestamp: Date.now(),
+        });
+      }
+      report.push({ studentId: String(studentId), name: student.name, ...counts });
+    }
+    return { dryRun: !!args.dryRun, report };
+  },
+});
