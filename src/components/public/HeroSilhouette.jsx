@@ -46,6 +46,7 @@ export default function HeroSilhouette({ reduced = false }) {
           <g mask={`url(#${id}-line)`}>
             <rect className="gh-silhouette-reveal" x="-20" y="-12" width="1185" height="565" fill={`url(#${id}-metal)`}/>
             <rect className="gh-silhouette-scan" x="-360" y="-12" width="360" height="565" fill={`url(#${id}-trail)`}/>
+            <rect className="gh-silhouette-flash" x="-20" y="-12" width="1185" height="565" fill="var(--gh-contour-high)"/>
           </g>
         </g>
       </svg>
