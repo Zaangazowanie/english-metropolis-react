@@ -3,7 +3,10 @@
   font-family: 'Material Symbols Outlined';
   font-style: normal;
   font-weight: 400;
-  src: url(/fonts/files/7c14d745-kJF1BvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oDMzByHX9rA6RzaxHMPdY43zj-jCxv3fzvRNU22ZXGJpEpjC_1v-p_4MrImHCIJIZrDCvHOej.woff2) format('woff2');
+  /* 2026-09-07: subset to the 707 icon names the site references (60 KB, was 319 KB).
+     Regenerate with the GSUB-ligature script in DESIGN.md "Icon font" when new icons are added. */
+  src: url(/fonts/files/material-symbols-outlined-subset-20260907.woff2) format('woff2');
+  font-display: block;
 }
 /* fallback */
 @font-face {

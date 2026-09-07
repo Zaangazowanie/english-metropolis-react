@@ -3,93 +3,93 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import './index.css'
 
-import App from './App.jsx'
-import StudentAppView from './views/admin/StudentAppView.jsx'
-import AdminLayout from './components/admin/AdminLayout.jsx'
-import AdminDashboard from './views/admin/Dashboard.jsx'
-import AdminCalendar from './views/admin/Calendar.jsx'
-import AdminStudents from './views/admin/Students.jsx'
-import AdminCourses from './views/admin/Courses.jsx'
-import AdminBilling from './views/admin/Billing.jsx'
-import StudentDetail from './views/admin/StudentDetail.jsx'
-import AdminSettings from './views/admin/Settings.jsx'
-import SuperadminLayout from './views/admin/superadmin/SuperadminLayout.jsx'
-import SuperadminDashboard from './views/admin/superadmin/SuperadminDashboard.jsx'
-import SuperadminCourses from './views/admin/superadmin/SuperadminCourses.jsx'
-import SuperadminIngest from './views/admin/superadmin/SuperadminIngest.jsx'
-import SuperadminReview from './views/admin/superadmin/SuperadminReview.jsx'
-import SuperadminJobs from './views/admin/superadmin/SuperadminJobs.jsx'
-import SuperadminStudents from './views/admin/superadmin/SuperadminStudents.jsx'
-import SuperadminAudit from './views/admin/superadmin/SuperadminAudit.jsx'
-import SuperadminGroups from './views/admin/superadmin/SuperadminGroups.jsx'
-import SuperadminAvailability from './views/admin/superadmin/SuperadminAvailability.jsx'
-import SuperadminGroupDetail from './views/admin/superadmin/SuperadminGroupDetail.jsx'
-import SuperadminLibrary from './views/admin/superadmin/SuperadminLibrary.jsx'
-import SuperadminLibraryDetail from './views/admin/superadmin/SuperadminLibraryDetail.jsx'
-import SuperadminAssignments from './views/admin/superadmin/SuperadminAssignments.jsx'
-import SuperadminPipelines from './views/admin/superadmin/SuperadminPipelines.jsx'
-import ConsoleInbox from './views/admin/superadmin/ConsoleInbox.jsx'
-import ConsoleSchools from './views/admin/superadmin/ConsoleSchools.jsx'
-import ConsoleTeachers from './views/admin/superadmin/ConsoleTeachers.jsx'
-import ConsoleSchoolStudents from './views/admin/superadmin/ConsoleSchoolStudents.jsx'
-import ConsoleStudentPreview from './views/admin/superadmin/ConsoleStudentPreview.jsx'
-import ConsoleTemplates from './views/admin/superadmin/ConsoleTemplates.jsx'
-import ConsoleSequences from './views/admin/superadmin/ConsoleSequences.jsx'
-import ConsoleWhatsApp from './views/admin/superadmin/ConsoleWhatsApp.jsx'
-import ConsoleBajla from './views/admin/superadmin/ConsoleBajla.jsx'
-import ConsoleTickets from './views/admin/superadmin/ConsoleTickets.jsx'
-import ConsoleRevenue from './views/admin/superadmin/ConsoleRevenue.jsx'
-import ConsoleInvoices from './views/admin/superadmin/ConsoleInvoices.jsx'
-import ConsolePayroll from './views/admin/superadmin/ConsolePayroll.jsx'
-import ConsoleContacts from './views/admin/superadmin/ConsoleContacts.jsx'
-import ConsoleCompanies from './views/admin/superadmin/ConsoleCompanies.jsx'
-import ConsolePipeline from './views/admin/superadmin/ConsolePipeline.jsx'
-import ConsolePages from './views/admin/superadmin/ConsolePages.jsx'
-import ConsoleDeploys from './views/admin/superadmin/ConsoleDeploys.jsx'
-import ConsoleTeam from './views/admin/superadmin/ConsoleTeam.jsx'
-import ConsoleRecruiting from './views/admin/superadmin/ConsoleRecruiting.jsx'
-import ConsoleIntegrations from './views/admin/superadmin/ConsoleIntegrations.jsx'
-import ConsoleBookingOperations from './views/admin/superadmin/ConsoleBookingOperations.jsx'
-import ConsolePublishing from './views/admin/superadmin/ConsolePublishing.jsx'
-import ConsoleBookingReadiness from './views/admin/superadmin/ConsoleBookingReadiness.jsx'
-import ConsoleCampaigns from './views/admin/superadmin/growth/ConsoleCampaigns.jsx'
-import ConsoleAdverts from './views/admin/superadmin/growth/ConsoleAdverts.jsx'
-import ConsoleSeo from './views/admin/superadmin/growth/ConsoleSeo.jsx'
+const App = lazyRoute(() => import('./App.jsx'))
+const StudentAppView = lazyRoute(() => import('./views/admin/StudentAppView.jsx'))
+const AdminLayout = lazyRoute(() => import('./components/admin/AdminLayout.jsx'))
+const AdminDashboard = lazyRoute(() => import('./views/admin/Dashboard.jsx'))
+const AdminCalendar = lazyRoute(() => import('./views/admin/Calendar.jsx'))
+const AdminStudents = lazyRoute(() => import('./views/admin/Students.jsx'))
+const AdminCourses = lazyRoute(() => import('./views/admin/Courses.jsx'))
+const AdminBilling = lazyRoute(() => import('./views/admin/Billing.jsx'))
+const StudentDetail = lazyRoute(() => import('./views/admin/StudentDetail.jsx'))
+const AdminSettings = lazyRoute(() => import('./views/admin/Settings.jsx'))
+const SuperadminLayout = lazyRoute(() => import('./views/admin/superadmin/SuperadminLayout.jsx'))
+const SuperadminDashboard = lazyRoute(() => import('./views/admin/superadmin/SuperadminDashboard.jsx'))
+const SuperadminCourses = lazyRoute(() => import('./views/admin/superadmin/SuperadminCourses.jsx'))
+const SuperadminIngest = lazyRoute(() => import('./views/admin/superadmin/SuperadminIngest.jsx'))
+const SuperadminReview = lazyRoute(() => import('./views/admin/superadmin/SuperadminReview.jsx'))
+const SuperadminJobs = lazyRoute(() => import('./views/admin/superadmin/SuperadminJobs.jsx'))
+const SuperadminStudents = lazyRoute(() => import('./views/admin/superadmin/SuperadminStudents.jsx'))
+const SuperadminAudit = lazyRoute(() => import('./views/admin/superadmin/SuperadminAudit.jsx'))
+const SuperadminGroups = lazyRoute(() => import('./views/admin/superadmin/SuperadminGroups.jsx'))
+const SuperadminAvailability = lazyRoute(() => import('./views/admin/superadmin/SuperadminAvailability.jsx'))
+const SuperadminGroupDetail = lazyRoute(() => import('./views/admin/superadmin/SuperadminGroupDetail.jsx'))
+const SuperadminLibrary = lazyRoute(() => import('./views/admin/superadmin/SuperadminLibrary.jsx'))
+const SuperadminLibraryDetail = lazyRoute(() => import('./views/admin/superadmin/SuperadminLibraryDetail.jsx'))
+const SuperadminAssignments = lazyRoute(() => import('./views/admin/superadmin/SuperadminAssignments.jsx'))
+const SuperadminPipelines = lazyRoute(() => import('./views/admin/superadmin/SuperadminPipelines.jsx'))
+const ConsoleInbox = lazyRoute(() => import('./views/admin/superadmin/ConsoleInbox.jsx'))
+const ConsoleSchools = lazyRoute(() => import('./views/admin/superadmin/ConsoleSchools.jsx'))
+const ConsoleTeachers = lazyRoute(() => import('./views/admin/superadmin/ConsoleTeachers.jsx'))
+const ConsoleSchoolStudents = lazyRoute(() => import('./views/admin/superadmin/ConsoleSchoolStudents.jsx'))
+const ConsoleStudentPreview = lazyRoute(() => import('./views/admin/superadmin/ConsoleStudentPreview.jsx'))
+const ConsoleTemplates = lazyRoute(() => import('./views/admin/superadmin/ConsoleTemplates.jsx'))
+const ConsoleSequences = lazyRoute(() => import('./views/admin/superadmin/ConsoleSequences.jsx'))
+const ConsoleWhatsApp = lazyRoute(() => import('./views/admin/superadmin/ConsoleWhatsApp.jsx'))
+const ConsoleBajla = lazyRoute(() => import('./views/admin/superadmin/ConsoleBajla.jsx'))
+const ConsoleTickets = lazyRoute(() => import('./views/admin/superadmin/ConsoleTickets.jsx'))
+const ConsoleRevenue = lazyRoute(() => import('./views/admin/superadmin/ConsoleRevenue.jsx'))
+const ConsoleInvoices = lazyRoute(() => import('./views/admin/superadmin/ConsoleInvoices.jsx'))
+const ConsolePayroll = lazyRoute(() => import('./views/admin/superadmin/ConsolePayroll.jsx'))
+const ConsoleContacts = lazyRoute(() => import('./views/admin/superadmin/ConsoleContacts.jsx'))
+const ConsoleCompanies = lazyRoute(() => import('./views/admin/superadmin/ConsoleCompanies.jsx'))
+const ConsolePipeline = lazyRoute(() => import('./views/admin/superadmin/ConsolePipeline.jsx'))
+const ConsolePages = lazyRoute(() => import('./views/admin/superadmin/ConsolePages.jsx'))
+const ConsoleDeploys = lazyRoute(() => import('./views/admin/superadmin/ConsoleDeploys.jsx'))
+const ConsoleTeam = lazyRoute(() => import('./views/admin/superadmin/ConsoleTeam.jsx'))
+const ConsoleRecruiting = lazyRoute(() => import('./views/admin/superadmin/ConsoleRecruiting.jsx'))
+const ConsoleIntegrations = lazyRoute(() => import('./views/admin/superadmin/ConsoleIntegrations.jsx'))
+const ConsoleBookingOperations = lazyRoute(() => import('./views/admin/superadmin/ConsoleBookingOperations.jsx'))
+const ConsolePublishing = lazyRoute(() => import('./views/admin/superadmin/ConsolePublishing.jsx'))
+const ConsoleBookingReadiness = lazyRoute(() => import('./views/admin/superadmin/ConsoleBookingReadiness.jsx'))
+const ConsoleCampaigns = lazyRoute(() => import('./views/admin/superadmin/growth/ConsoleCampaigns.jsx'))
+const ConsoleAdverts = lazyRoute(() => import('./views/admin/superadmin/growth/ConsoleAdverts.jsx'))
+const ConsoleSeo = lazyRoute(() => import('./views/admin/superadmin/growth/ConsoleSeo.jsx'))
 import { ConsoleEmpty } from './views/admin/superadmin/ConsoleStates.jsx'
-import StudentHeatmap from './views/admin/teacher/StudentHeatmap.jsx'
-import AdminTeachers from './views/admin/Teachers.jsx'
-import TeacherLogin from './views/teacher/TeacherLogin.jsx'
-import TeacherVerify from './views/teacher/TeacherVerify.jsx'
-import TeacherPortal from './views/teacher/TeacherPortal.jsx'
-import TeacherSchedule from './views/teacher/TeacherSchedule.jsx'
-import TeacherStudents from './views/teacher/TeacherStudents.jsx'
-import TeacherStudentDetail from './views/teacher/TeacherStudentDetail.jsx'
-import TeacherMaterials from './views/teacher/TeacherMaterials.jsx'
-import TeacherUpload from './views/teacher/TeacherUpload.jsx'
-import TeacherKeywords from './views/teacher/TeacherKeywords.jsx'
-import TeacherAvailability from './views/teacher/TeacherAvailability.jsx'
+const StudentHeatmap = lazyRoute(() => import('./views/admin/teacher/StudentHeatmap.jsx'))
+const AdminTeachers = lazyRoute(() => import('./views/admin/Teachers.jsx'))
+const TeacherLogin = lazyRoute(() => import('./views/teacher/TeacherLogin.jsx'))
+const TeacherVerify = lazyRoute(() => import('./views/teacher/TeacherVerify.jsx'))
+const TeacherPortal = lazyRoute(() => import('./views/teacher/TeacherPortal.jsx'))
+const TeacherSchedule = lazyRoute(() => import('./views/teacher/TeacherSchedule.jsx'))
+const TeacherStudents = lazyRoute(() => import('./views/teacher/TeacherStudents.jsx'))
+const TeacherStudentDetail = lazyRoute(() => import('./views/teacher/TeacherStudentDetail.jsx'))
+const TeacherMaterials = lazyRoute(() => import('./views/teacher/TeacherMaterials.jsx'))
+const TeacherUpload = lazyRoute(() => import('./views/teacher/TeacherUpload.jsx'))
+const TeacherKeywords = lazyRoute(() => import('./views/teacher/TeacherKeywords.jsx'))
+const TeacherAvailability = lazyRoute(() => import('./views/teacher/TeacherAvailability.jsx'))
 import { TeacherAuthProvider, useTeacherAuth } from './contexts/TeacherAuthContext.jsx'
 import { OrgThemeProvider } from './contexts/OrgThemeContext.jsx'
 import { AdminAuthProvider } from './contexts/AdminAuthContext.jsx'
 import { StudentAuthProvider } from './contexts/StudentAuthContext.jsx'
 import ConsentBanner from './components/ConsentBanner.jsx'
 import BajlaConnectModal from './components/BajlaConnectModal.jsx'
-import PrivacyPolicy from './views/legal/PrivacyPolicy.jsx'
-import CookiePolicy from './views/legal/CookiePolicy.jsx'
-import Terms from './views/legal/Terms.jsx'
-import Login from './views/Login.jsx'
-import LoginV3 from './views/v3/Login.jsx'
+const PrivacyPolicy = lazyRoute(() => import('./views/legal/PrivacyPolicy.jsx'))
+const CookiePolicy = lazyRoute(() => import('./views/legal/CookiePolicy.jsx'))
+const Terms = lazyRoute(() => import('./views/legal/Terms.jsx'))
+const Login = lazyRoute(() => import('./views/Login.jsx'))
+const LoginV3 = lazyRoute(() => import('./views/v3/Login.jsx'))
 import { ResetPassword, VerifyEmail } from './views/v3/AccountLink.jsx'
-import LessonAnalysisNotice from './views/legal/LessonAnalysisNotice.jsx'
+const LessonAnalysisNotice = lazyRoute(() => import('./views/legal/LessonAnalysisNotice.jsx'))
 import GameHome from './views/v3/GameHome.jsx'
-import EnglishMetroWorld from './world/EnglishMetroWorld'
-import LessonPricingSignup from './views/public/LessonPricingSignup.jsx'
-import Checkout from './views/public/Checkout.jsx'
-import PaymentReturn from './views/public/PaymentReturn.jsx'
-import WithdrawalPage from './views/public/WithdrawalPage.jsx'
-import Signup from './views/v3/Signup.jsx'
-import Logout from './views/Logout.jsx'
-import Settings from './views/Settings.jsx'
+const EnglishMetroWorld = lazyRoute(() => import('./world/EnglishMetroWorld'))
+const LessonPricingSignup = lazyRoute(() => import('./views/public/LessonPricingSignup.jsx'))
+const Checkout = lazyRoute(() => import('./views/public/Checkout.jsx'))
+const PaymentReturn = lazyRoute(() => import('./views/public/PaymentReturn.jsx'))
+const WithdrawalPage = lazyRoute(() => import('./views/public/WithdrawalPage.jsx'))
+const Signup = lazyRoute(() => import('./views/v3/Signup.jsx'))
+const Logout = lazyRoute(() => import('./views/Logout.jsx'))
+const Settings = lazyRoute(() => import('./views/Settings.jsx'))
 import { I18nProvider } from './i18n'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
 import { V3ThemeProvider } from './design/v3/ThemeProvider.jsx'
@@ -97,6 +97,25 @@ import { V3ThemeProvider } from './design/v3/ThemeProvider.jsx'
 // v3 port kill-switch: set window.__EM_LEGACY = true in devtools to fall back to
 // the old Midnight Library login. Default is v3.
 const USE_V3 = typeof window === 'undefined' || !window.__EM_LEGACY
+// Route-level code splitting (2026-09-07). Every screen except the landing
+// loads on demand; the landing bundle no longer carries the admin console, the
+// teacher portal, checkout or the student app. Each lazy screen suspends on
+// its own, so a console sub-page loading never blanks the shell around it.
+function RouteFallback() {
+  return (
+    <div role="status" aria-live="polite" style={{ minHeight: '40vh', display: 'grid', placeItems: 'center',
+      color: '#8A83AE', fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif", fontSize: 13, letterSpacing: '0.12em' }}>
+      LOADING…
+    </div>
+  )
+}
+function lazyRoute(loader) {
+  const Screen = lazy(loader)
+  return function LazyScreen(props) {
+    return <Suspense fallback={<RouteFallback />}><Screen {...props} /></Suspense>
+  }
+}
+
 const LoginComponent = USE_V3 ? LoginV3 : Login
 
 // Domain-based routing: englishmetro.com gets the new marketing/login landing

@@ -82,7 +82,11 @@ export default function CourseSlider({ lang = 'en' }) {
           key={slide.id} role="tabpanel" id={`course-panel-${slide.id}`} aria-labelledby={`course-tab-${slide.id}`}
           aria-hidden={active !== index} inert={active !== index} tabIndex={active === index ? 0 : -1}>
           <figure className="gh-course-visual" onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}>
-            <img src={`/home/courses/${slide.id}.webp`} alt={slide.alt} width="502" height="502" loading="lazy"/>
+            {/* Only the active slide and its two neighbours carry a src: the
+                hidden panels overlay the same grid cell, so lazy loading alone
+                fetched all six images (~260 KB) on page load. */}
+            <img src={Math.min(Math.abs(index - active), slides.length - Math.abs(index - active)) <= 1 ? `/home/courses/${slide.id}.webp` : undefined}
+              alt={slide.alt} width="502" height="502" loading="lazy" decoding="async"/>
             <span className="gh-course-image-label"><small>{slide.tag}</small>{slide.label}</span>
             {/* Same lockup as every hero slide and photograph (.gh-watermark in
                 game-home.css), with the AI disclosure tucked above it. */}

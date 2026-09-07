@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { SKYLINE_FOCUS_EVENT } from './motionPolish.js'
+import { isScrolling, SCROLL_IDLE_MS } from './scrollIdle.js'
 import { buildMetropolis } from './heroMetropolis.js'
 
 const DISTRICTS = { school: -19, pricing: 0, world: 10 }
@@ -11,7 +12,18 @@ export default function HeroSkyline({ className = '', mode = 'night', reduced = 
     if (!mount) return undefined
     let disposed = false
     let cleanup = () => {}
+    // Low-end devices get the still fallback: two cores or two gigabytes cannot
+    // hold a 60fps page and a WebGL city at the same time (2026-09-07).
+    const lowEnd = (navigator.hardwareConcurrency || 4) <= 2 || (navigator.deviceMemory || 4) <= 2
+      || navigator.connection?.saveData === true
+    if (lowEnd) { mount.dataset.webgl = 'fallback'; return undefined }
     ;(async () => {
+      // Let the hero text and photo paint first; the city is decoration and
+      // can build in the first idle slice (bounded so it never waits forever).
+      await new Promise((resolve) => ('requestIdleCallback' in window)
+        ? window.requestIdleCallback(resolve, { timeout: 1200 })
+        : setTimeout(resolve, 200))
+      if (disposed) return
       let THREE
       try { THREE = await import('three') } catch { mount.dataset.webgl = 'fallback'; return }
       if (disposed) return
@@ -20,7 +32,9 @@ export default function HeroSkyline({ className = '', mode = 'night', reduced = 
       try {
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' })
       } catch { mount.dataset.webgl = 'fallback'; return }
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
+      // 1.25, not 1.5: the city is soft-lit and fogged; the extra samples were invisible
+      // and cost a third of the fill rate (2026-09-07 scroll-jank pass).
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25))
       renderer.setClearColor(0x000000, 0)
       renderer.outputColorSpace = THREE.SRGBColorSpace
       renderer.toneMapping = THREE.ACESFilmicToneMapping
@@ -48,9 +62,18 @@ export default function HeroSkyline({ className = '', mode = 'night', reduced = 
         camera.lookAt(pointer.x * 0.35, 4.5, -5)
         renderer.render(scene, camera)
       }
+      let scrollWait = 0
       function frame(now) {
         raf = 0
         if (disposed || !visible || document.hidden) return
+        // Hold the city still while the page scrolls: a WebGL frame under a
+        // scrolling compositor is what made the landing stutter. Resume once
+        // the wheel has been quiet for a beat.
+        if (isScrolling() && !reduced) {
+          clearTimeout(scrollWait)
+          scrollWait = setTimeout(() => { last = performance.now() - 34; start() }, SCROLL_IDLE_MS)
+          return
+        }
         // Ambient transport needs only 30fps, including on high-refresh screens.
         if (now - last < 32 && !reduced) { raf = requestAnimationFrame(frame); return }
         const dt = Math.min((now - last) / 1000, 0.06)
@@ -127,7 +150,7 @@ export default function HeroSkyline({ className = '', mode = 'night', reduced = 
         visible = entry.isIntersecting
         if (visible) start()
         else { cancelAnimationFrame(raf); raf = 0 }
-      }, { rootMargin: '80px 0px' })
+      }, { rootMargin: '80px 0px', threshold: 0.12 })
       ro.observe(mount); io.observe(mount)
       window.addEventListener('pointermove', onPointer, { passive: true })
       window.addEventListener(SKYLINE_FOCUS_EVENT, onFocus)

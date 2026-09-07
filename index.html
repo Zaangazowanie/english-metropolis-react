@@ -116,7 +116,7 @@
          font-feature-settings:'liga', so icons render as raw ligature text
          (expand_more, settings_voice…). The self-hosted CSS sets 'liga'. -->
     <!-- Outlined + Rounded both defined here (Rounded used by .conversa-admin). -->
-    <link href="/fonts/material-symbols.css" rel="stylesheet">
+    <link href="/fonts/material-symbols.css?v=20260907" rel="stylesheet">
 
 
     <!-- jsPDF (365 KB) is loaded on demand by src/utils/pdf-loader.js when a
@@ -127,7 +127,7 @@
          on /login. Additive auth: existing email+password studentLogin still
          works untouched. The button is rendered via google.accounts.id.* in
          src/views/v3/Login.jsx; this script just exposes window.google. -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- 2026-09-07: loaded on demand by src/lib/google-identity.js instead of on every page. -->
   </head>
   <body class="font-body text-on-surface min-h-screen selection:bg-primary-fixed-dim">
     <div id="root"></div>
@@ -150,7 +150,7 @@
          mechanism available here, since we cannot place a tag after one vite
          has not written yet. -->
     <link rel="stylesheet" href="/assets/em-motion-20260825-v3.css?v=31">
-    <script defer src="/assets/em-motion-20260825-v3.js?v=17"></script>
+    <script defer src="/assets/em-motion-20260825-v3.js?v=18"></script>
     <!-- Conversa AI Tutor — loaded on student/admin app pages only.
          ?v=2 busts Cloudflare's cached 404 from when the widget wasn't
          on the prod webroot (pre-2026-04-21). -->

@@ -6,6 +6,8 @@
     light: { grid: '96,165,250', violet: '124,58,237', fuchsia: '219,39,119', sky: '14,165,233' },
   }
   const fields = new Map()
+  let lastScrollAt = -Infinity
+  window.addEventListener('scroll', () => { lastScrollAt = performance.now() }, { passive: true, capture: true })
   const carouselCleanups = new Map()
   const polished = new WeakSet()
   const revealed = new WeakSet()
@@ -340,14 +342,20 @@
       }
     }
 
+    let lastFrame = 0
     function animate(time) {
+      // Hold during scroll (2026-09-07): a 2D field repainting under a moving
+      // page is wasted work that shows up as stutter. 30fps is plenty at rest.
+      if (performance.now() - lastScrollAt < 140) { frame = requestAnimationFrame(animate); return }
+      if (time - lastFrame < 32) { frame = requestAnimationFrame(animate); return }
+      lastFrame = time
       draw(time)
       if (visible && !reduced && canvas.isConnected) frame = requestAnimationFrame(animate)
     }
     function resize() {
       const bounds = host.getBoundingClientRect()
       width = Math.max(1, bounds.width); height = Math.max(1, bounds.height)
-      ratio = Math.min(window.devicePixelRatio || 1, 1.5)
+      ratio = Math.min(window.devicePixelRatio || 1, 1)
       canvas.width = Math.round(width * ratio); canvas.height = Math.round(height * ratio)
       canvas.style.width = `${width}px`; canvas.style.height = `${height}px`
       draw(performance.now(), true)

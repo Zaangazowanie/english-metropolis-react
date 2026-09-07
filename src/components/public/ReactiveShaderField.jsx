@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { isScrolling, SCROLL_IDLE_MS } from './scrollIdle.js'
 
 const SIGNAL_EVENT = 'englishmetro:surface-signal'
 
@@ -117,7 +118,9 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
         height = cap
       }
       if (!renderer || !material) return
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, width < 760 ? 1 : 1.35))
+      // A soft additive glow field: half-resolution is indistinguishable and
+      // a quarter of the fragment work (2026-09-07 scroll-jank pass).
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 0.75))
       renderer.setSize(width, height, false)
       material.uniforms.uAspect.value = width / height
     }
@@ -138,8 +141,18 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
       renderer.render(scene, camera)
     }
 
+    let lastFrame = 0
+    let scrollWait = 0
     function animate(time) {
       frame = 0
+      if (isScrolling()) {
+        // Skip while the page scrolls; pick up again once it settles.
+        window.clearTimeout(scrollWait)
+        scrollWait = window.setTimeout(start, SCROLL_IDLE_MS)
+        return
+      }
+      if (time - lastFrame < 32) { frame = window.requestAnimationFrame(animate); return }
+      lastFrame = time
       render(time)
       if (canAnimate()) frame = window.requestAnimationFrame(animate)
     }
@@ -246,6 +259,7 @@ export default function ReactiveShaderField({ className = '', mode = 'dark' }) {
     return () => {
       disposed = true
       window.cancelAnimationFrame(frame)
+      window.clearTimeout(scrollWait)
       if ('cancelIdleCallback' in window) window.cancelIdleCallback(idleHandle)
       else window.clearTimeout(idleHandle)
       resizeObserver.disconnect()

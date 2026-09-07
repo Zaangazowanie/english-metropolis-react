@@ -16,6 +16,7 @@ import { Btn, Glass, Skyline } from '../../design/v3/primitives.jsx'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 import { useI18n } from '../../i18n'
 import { joinName, nameFieldOk } from '../../lib/signup-name.js'
+import { ensureGoogleIdentity } from '../../lib/google-identity.js'
 
 const GOOGLE_CLIENT_ID = '960729188616-r2ql4rjid9aibbo1psi678gonf8lp04o.apps.googleusercontent.com'
 
@@ -276,6 +277,7 @@ export default function Signup() {
 
   useEffect(() => {
     let cancelled = false
+    ensureGoogleIdentity()
     function tryInit() {
       if (cancelled) return
       if (!window.google?.accounts?.id) return setTimeout(tryInit, 100)

@@ -427,6 +427,33 @@ surface is the header pill. Do not add a per-section button skin.
   lesson" looked nothing like the header. That override is deleted. If a button on the site ever
   looks flat again, grep the static em-motion CSS first: it wins the cascade over the bundle.
 
+## Icon font (subset, 2026-09-07)
+
+`public/fonts/material-symbols.css` points at `material-symbols-outlined-subset-20260907.woff2`,
+a 60 KB subset of the 319 KB Material Symbols variable font containing only the ~700 icon
+names referenced in `src/` and `public/`. Icons are ligatures, so an icon whose name is not in
+that subset renders as its literal text. **When you add a new icon name, run
+`/usr/bin/python3 tools/subset-material-symbols.py` and commit the regenerated font.** The
+script scans the sources for names, so nothing has to be listed by hand. The Rounded variant
+(admin console only) is untouched.
+
+## Performance budget (landing, 2026-09-07)
+
+Mike: "make the site faster and not sluggish on loading and scrolling". What was done and
+what to keep:
+- **Routes are lazy** (`lazyRoute()` in `src/main.jsx`). Only the landing is in the entry chunk.
+  Do not add a top-level static import of a screen to main.jsx.
+- **The landing never imports practice/arcade code.** `PlayOverlay.jsx` (lazy) owns the
+  ArcadeCabinet and the practice stylesheets.
+- **backdrop-filter is for the sticky header and the mobile drawer only.** Cards use the
+  denser `--gh-glass-bg` tint instead. 99 blurred surfaces were the scroll cost.
+- **Decorative render loops pause while scrolling** (`src/components/public/scrollIdle.js`):
+  the three.js skyline, the shader field and the static em-motion canvas all check it. They
+  also run at 30fps and reduced pixel ratios (skyline 1.25, shader field 0.75, canvas 1).
+- **Google Identity loads on demand** (`src/lib/google-identity.js`), not from index.html.
+- **Course slider images**: only the active slide and its neighbours carry a `src`.
+- Measure with `perf.cjs`-style Playwright runs before and after any change to the hero.
+
 ## Do's and Don'ts
 
 - **Do** treat the `/login` landing as the canonical brand reference. Any wordmark rendering on any surface MUST be pixel-consistent with that lockup (Plus Jakarta 900 + four-stop gradient + amber dot).

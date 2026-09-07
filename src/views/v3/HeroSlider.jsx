@@ -10,6 +10,7 @@ function Slide({ slide, image, active, minimal }) {
   return (
     <li className="gh-hs-slide" data-active={active} aria-hidden={!active}>
       <img src={image} alt={slide.alt} loading={active ? 'eager' : 'lazy'}
+        fetchPriority={active ? 'high' : 'low'} decoding="async"
         width="1600" height="900" draggable="false"/>
       {/* A real element, not ::before: em-motion's .em-carousel-dramatic
           .gh-hs-slide::before owns that pseudo for the vignette and outranks

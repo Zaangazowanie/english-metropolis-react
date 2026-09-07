@@ -9,6 +9,7 @@ import { Btn, Field, Glass, Skyline } from '../../design/v3/primitives.jsx'
 import { useI18n } from '../../i18n'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 import '../login-v2.css'
+import { ensureGoogleIdentity } from '../../lib/google-identity.js'
 
 // Google OAuth client ID — same client as Mission Control. Authorized JS
 // origins (englishmetro.com, staging.englishmetro.com) must be added in
@@ -216,6 +217,7 @@ export default function LoginV3() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     let cancelled = false
+    ensureGoogleIdentity()
     function tryInit() {
       if (cancelled) return
       if (!window.google?.accounts?.id) {

@@ -12,6 +12,7 @@ import AnimatedMoney from './AnimatedMoney.jsx'
 import { KNOWN_METHOD_KEYS } from './payment-method-copy.js'
 import { joinName, nameFieldOk } from '../../lib/signup-name.js'
 import './checkout.css'
+import { ensureGoogleIdentity } from '../../lib/google-identity.js'
 
 // Checkout = account + order + server-registered Przelewy24 payment. The
 // browser sends only catalog IDs and quantities; Convex is the price authority
@@ -325,6 +326,7 @@ export default function Checkout() {
   useEffect(() => {
     if (session) return undefined
     let cancelled = false
+    ensureGoogleIdentity()
     function tryInit() {
       if (cancelled) return
       if (!window.google?.accounts?.id) return setTimeout(tryInit, 120)
