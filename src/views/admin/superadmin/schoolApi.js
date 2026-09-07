@@ -155,6 +155,11 @@ export const listCourseTracks = () =>
     courseId: c.course_id, level: c.level, levels: c.levels || [], lessonCount: c.lesson_count, basket: c.basket,
   })))
 
+// Active lesson packages in the school — the Students screen reads which
+// students paid for a Specialist pack (their course must be a SPEC-* track).
+export const listPackages = organizationId =>
+  queryAdminConvex('billing:listPackages', { organizationId: requireOrg(organizationId, 'the package list') })
+
 export const addStudentToCourse = ({ groupId, studentId, role }) =>
   mutateAdminConvex('groups:addGroupMember', { groupId, studentId, ...(role ? { role } : {}) })
 

@@ -28,7 +28,7 @@ function initialsOf(name) {
 import { ConfirmWrite, useConvexList, useSchool } from './SchoolShared.jsx'
 import {
   CEFR_LEVELS, STUDENT_TYPES, addStudentToCourse, archiveStudent, createStudent,
-  assignCourseTrack, listCourseTracks, listCourses, listStudents, listTeachers, slugify, updateStudent,
+  assignCourseTrack, listCourseTracks, listCourses, listPackages, listStudents, listTeachers, slugify, updateStudent,
 } from './schoolApi.js'
 
 const BLANK = {
@@ -49,6 +49,29 @@ export default function ConsoleSchoolStudents() {
   const teachers = useConvexList(() => listTeachers(schoolId, false, true), [schoolId], !!schoolId)
   const courses = useConvexList(() => listCourses(schoolId), [schoolId], !!schoolId)
   const tracks = useConvexList(() => listCourseTracks(), [], true)
+  const packages = useConvexList(() => listPackages(schoolId), [schoolId], !!schoolId)
+  // A student who PAID for a Specialist pack may only be given a specialist
+  // course: the dropdown narrows to SPEC-* tracks (and SPEC groups) for them.
+  const specialistPack = s => (packages.rows || []).find(p => String(p.studentId) === String(s?._id)
+    && p.status !== 'cancelled' && /^specialist/i.test(p.name || ''))
+  const allowedTracks = s => (tracks.rows || []).filter(t => !specialistPack(s) || t.courseId.startsWith('SPEC-'))
+  const allowedGroups = s => (courses.rows || []).filter(c => !specialistPack(s) || (c.courseId || '').startsWith('SPEC-'))
+  const [rowBusy, setRowBusy] = useState(null)
+  // Inline changes on a row save immediately; the server propagates (future
+  // bookings, memberships, course plan) exactly as the drawer does.
+  const setRowTeacher = async (s, v) => {
+    setRowBusy(s._id); setNote(null)
+    try { await updateStudent(s._id, { primaryTeacherId: v || null }); setNote({ ok: true, text: `${s.name}: teacher ${v ? 'set to ' + teacherName(v) : 'unassigned'}.` }); students.reload() }
+    catch (e) { setNote({ ok: false, text: e.message }) } finally { setRowBusy(null) }
+  }
+  const setRowCourse = async (s, v) => {
+    setRowBusy(s._id); setNote(null)
+    try {
+      if (isTrack(v)) { const r = await assignCourseTrack({ studentSlug: s.slug, courseId: v.slice(6) }); setNote({ ok: true, text: `${s.name}: course ${r?.group?.groupName || v.slice(6)} — ${r?.planned_slots ?? 0} lessons planned ahead.${r?.warning ? ' ' + r.warning : ''}` }) }
+      else { await updateStudent(s._id, { groupId: v || null }); setNote({ ok: true, text: `${s.name}: course ${v ? 'set to ' + courseName(v) : 'cleared'}.` }) }
+      students.reload()
+    } catch (e) { setNote({ ok: false, text: e.message }) } finally { setRowBusy(null) }
+  }
 
   const [draft, setDraft] = useState(null)
   const [pending, setPending] = useState(null)
@@ -220,8 +243,27 @@ export default function ConsoleSchoolStudents() {
                       </>
                     ) : (
                       <>
-                        <div><span>Teacher </span><strong>{teacherName(s.primaryTeacherId) || 'unassigned'}</strong></div>
-                        <div><span>Course </span><strong>{courseName(s.groupId) || 'none'}</strong></div>
+                        <label className="sa3-fact-select"><span>Teacher</span>
+                          <select className="sa-select sa-select-sm" value={s.primaryTeacherId || ''} disabled={rowBusy === s._id}
+                                  aria-label={`Teacher for ${s.name}`} onChange={e => setRowTeacher(s, e.target.value)}>
+                            <option value="">— unassigned —</option>
+                            {(teachers.rows || []).map(t => <option key={t._id} value={t._id}>{t.name}{t.organizationName && String(t.organizationId) !== String(schoolId) ? ` · ${t.organizationName}` : ''}</option>)}
+                          </select>
+                        </label>
+                        <label className="sa3-fact-select"><span>Course</span>
+                          <select className="sa-select sa-select-sm" value={s.groupId || ''} disabled={rowBusy === s._id}
+                                  aria-label={`Course for ${s.name}`} onChange={e => setRowCourse(s, e.target.value)}
+                                  title={specialistPack(s) ? `Paid ${specialistPack(s).name}: specialist tracks only` : undefined}>
+                            <option value="">— none —</option>
+                            {s.groupId && !(courses.rows || []).some(c => c._id === s.groupId) && <option value={s.groupId}>{courseName(s.groupId) || 'current course'}</option>}
+                            <optgroup label={specialistPack(s) ? 'Specialist tracks (paid Specialist pack)' : 'Course library — assign a track'}>
+                              {allowedTracks(s).map(t => <option key={t.courseId} value={`track:${t.courseId}`}>{t.courseId} · {t.level || '—'} · {t.lessonCount} lessons</option>)}
+                            </optgroup>
+                            <optgroup label="Existing course groups">
+                              {allowedGroups(s).map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                            </optgroup>
+                          </select>
+                        </label>
                       </>
                     )}
                   </div>
@@ -304,11 +346,11 @@ export default function ConsoleSchoolStudents() {
                 <select id="s-course" className="sa-select" value={draft.groupId}
                         onChange={e => setDraft(d => ({ ...d, groupId: e.target.value }))}>
                   <option value="">— none —</option>
-                  <optgroup label="Course library — assign a track">
-                    {(tracks.rows || []).map(t => <option key={t.courseId} value={`track:${t.courseId}`}>{t.courseId} · {t.level || '—'} · {t.lessonCount} lessons</option>)}
+                  <optgroup label={specialistPack(draft) ? 'Specialist tracks (paid Specialist pack)' : 'Course library — assign a track'}>
+                    {allowedTracks(draft).map(t => <option key={t.courseId} value={`track:${t.courseId}`}>{t.courseId} · {t.level || '—'} · {t.lessonCount} lessons</option>)}
                   </optgroup>
                   <optgroup label="Existing course groups in this school">
-                    {(courses.rows || []).map(c => <option key={c._id} value={c._id}>{c.name}{c.courseId ? ` (${c.courseId})` : ''}</option>)}
+                    {allowedGroups(draft).map(c => <option key={c._id} value={c._id}>{c.name}{c.courseId ? ` (${c.courseId})` : ''}</option>)}
                   </optgroup>
                 </select>
               </Field>
