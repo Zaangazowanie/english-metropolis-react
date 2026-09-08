@@ -901,6 +901,7 @@
   "booking.weekdays.6": "w soboty",
   "curriculum.kicker": "Twoja ścieżka nauki",
   "curriculum.courseName": "Kurs pilotażowy",
+  "curriculum.courseNameTrack": "Kurs {track}",
   "curriculum.semester": "Zima 2025–2026",
   "curriculum.lessonsCount": "{n} lekcji",
   "curriculum.outcome": "Cel lekcji",

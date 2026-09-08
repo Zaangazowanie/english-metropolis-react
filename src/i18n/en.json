@@ -901,6 +901,7 @@
   "booking.weekdays.6": "Saturdays",
   "curriculum.kicker": "Your learning path",
   "curriculum.courseName": "Pilot Course",
+  "curriculum.courseNameTrack": "{track} Course",
   "curriculum.semester": "Winter 2025–2026",
   "curriculum.lessonsCount": "{n} lessons",
   "curriculum.outcome": "Learning outcome",
