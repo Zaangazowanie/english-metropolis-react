@@ -668,18 +668,15 @@ export const notifyPaidOrder = internalAction({
 // is a group the customer must never be offered. That is the whole mechanism
 // keeping a card button off the checkout until Przelewy24 enable cards: we do
 // not maintain a local list that can disagree with their account state.
-type MethodGroupKey = "blik" | "card" | "paypo" | "installments" | "transfer";
+type MethodGroupKey = "blik" | "card" | "applepay" | "googlepay" | "visamobile" | "paypo" | "installments" | "transfer";
 // Przelewy24 Raty (bank-financed instalments). `group` is a fixed English enum
 // in P24's spec, identical in the PL and EN method lists.
 const RATY_METHOD_ID = 303;
-// ⛔ Mike, 2026-09-04: do NOT offer Raty until Przelewy24 answer whether the 0%
-// tenors can be tiered by basket (under 2 000 PLN → 5 only; 2 000–2 999,99 →
-// up to 10; 3 000+ → up to 20) and the Regulamin + privacy policy carry the
-// linked-credit wording. The register API has no tenor field (checked against
-// their OpenAPI spec), so the only lever we own is whether the tile shows at
-// all. Flipping this ONE constant turns on both the checkout tile and the P24
-// instalment widget on the pricing page (installmentWidgetConfig below).
-export const RATY_OFFERED = false;
+// Keep the historical hold until the provider confirms the actual 0% offer,
+// basket/tenor rules and linked-credit documents are reviewed. An enabled
+// method 303 alone does not establish a 0% rate. See docs/P24-ACTIVATION.md.
+// A production env switch avoids a code deployment on activation day.
+export const RATY_OFFERED = process.env.P24_RATY_ZERO_CONFIRMED === "true";
 // Pricing-page widget shows only on packages from this amount up (Mike's
 // lowest tier boundary). Irrelevant while RATY_OFFERED is false.
 export const RATY_WIDGET_MIN_PLN = 2000;
@@ -695,6 +692,9 @@ export function methodGroupOf(method: any): MethodGroupKey {
   // for that no customer could find. Checked after PayPo because PayPo shares
   // the group.
   if (method?.id === RATY_METHOD_ID || group === "Installments") return "installments";
+  if (method?.id === 252 || group === "Apple Pay") return "applepay";
+  if (method?.id === 264 || group === "Google Pay") return "googlepay";
+  if (method?.id === 299 || group === "Visa Mobile") return "visamobile";
   // 145 is Karta płatnicza. The group string is matched too so the wallets and
   // card variants P24 may add later land here without another deploy.
   if (method?.id === 145 || /card|karta/i.test(group)) return "card";
@@ -730,7 +730,7 @@ export const listMethods = action({
     }
     // Keep a non-credit method first: the checkout preselects the first option,
     // so deferred payment must always remain an active customer choice.
-    const order: MethodGroupKey[] = (["blik", "paypo", "installments", "card", "transfer"] as MethodGroupKey[])
+    const order: MethodGroupKey[] = (["blik", "card", "applepay", "googlepay", "visamobile", "paypo", "installments", "transfer"] as MethodGroupKey[])
       .filter((key) => key !== "installments" || RATY_OFFERED);
     return {
       groups: order.flatMap((key) => {
@@ -766,6 +766,8 @@ export const installmentWidgetConfig = action({
   args: {},
   handler: async (): Promise<null | { sign: string; posid: string; method: string; currency: "PLN"; lang: "pl"; minAmount: number }> => {
     if (!RATY_OFFERED) return null;
+    const methods = await fetchEnabledMethods("pl");
+    if (!methods.some(m => m.id === RATY_METHOD_ID)) return null;
     const cfg = p24Config();
     // Documented: SHA-384({"crc":"string","posId":int,"method":int}), key order as written.
     const sign = await sha384({ crc: cfg.crc, posId: cfg.posId, method: RATY_METHOD_ID });
@@ -799,6 +801,7 @@ export const createPayment = action({
     consentAnalysis: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<{ sessionId: string; redirectUrl: string }> => {
+    if (args.method === RATY_METHOD_ID && !RATY_OFFERED) throw new Error("RATY_NOT_AVAILABLE");
     const cfg = p24Config();
     const sessionId = `EM-${crypto.randomUUID()}`;
 
@@ -815,6 +818,8 @@ export const createPayment = action({
         console.error("p24 method check failed, continuing without it:", error?.message);
       }
     }
+
+    if (args.method === RATY_METHOD_ID && method !== RATY_METHOD_ID) throw new Error("RATY_NOT_AVAILABLE");
 
     let payPoDetails: { addressLine: string; postalCode: string; city: string } | undefined;
     if (method === PAYPO_METHOD_ID) {
@@ -907,7 +912,7 @@ export const createPayment = action({
       // without it puts the customer on Przelewy24's own method page, which is
       // exactly where they were before this shortcut existed. Only ever retried
       // when a method was pinned, so a genuine failure still surfaces.
-      if (!result.token && method !== undefined) {
+      if (!result.token && method !== undefined && method !== RATY_METHOD_ID) {
         console.error("p24 register rejected method", method, JSON.stringify(result.body).slice(0, 200));
         const { method: _dropped, ...withoutMethod } = payload as any;
         result = await register(withoutMethod);
