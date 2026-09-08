@@ -46,8 +46,10 @@ done
 echo "  uploaded $new new asset(s)"
 
 # Verify BEFORE the swap: every asset the new entry references must already be on disk.
+# Strip any ?v= cache-buster before the existence test — the hand-maintained
+# em-motion-*.css/js are referenced that way and live on disk without the suffix.
 missing=$(grep -oE '(src|href)="/assets/[^"]+"' dist/index.html \
-          | sed -E 's|.*"/assets/(.*)"|\1|' | sort -u \
+          | sed -E 's|.*"/assets/([^"?]+).*"|\1|' | sort -u \
           | while read -r b; do [ -e "$WEB/assets/$b" ] || echo "$b"; done)
 if [ -n "$missing" ]; then
   echo "!! new index.html references assets that are not on the server:"; echo "$missing"
