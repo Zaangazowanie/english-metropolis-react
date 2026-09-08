@@ -10,7 +10,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { fetchWithTimeout } from '../practice/lib/practice-cache'
 export { getStudentSessionToken } from '../lib/student-session.js'
-import { saveStudentLogin } from '../lib/student-session.js'
+import { saveStudentLogin, clearStudentLogin, hasStudentSession } from '../lib/student-session.js'
 
 const STUDENT_SESSION_KEY = 'em-student-session'   // real auth session
 const LEGACY_SLUG_KEY = 'studentSlug'               // old link-based fallback
@@ -84,6 +84,8 @@ export function StudentAuthProvider({ children }) {
 
   // ── studentLogout ─────────────────────────────────────────
   function studentLogout() {
+    // Clear before a caller navigates; a React effect may not run before unload.
+    if (typeof window !== 'undefined') clearStudentLogin()
     setStudentUser(null)
     // Also clear the legacy slug key so the fallback doesn't re-admit them
     if (typeof window !== 'undefined') {
@@ -105,7 +107,7 @@ export function StudentAuthProvider({ children }) {
     studentUser,
     studentLogin,
     studentLogout,
-    isStudentAuthenticated: Boolean(studentUser),
+    isStudentAuthenticated: hasStudentSession(studentUser),
     // True for both real sessions and legacy slug-based fallback
     hasStudentAccess: Boolean(studentUser) || Boolean(legacySlug),
     resolvedSlug,

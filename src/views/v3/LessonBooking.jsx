@@ -22,6 +22,7 @@ import { Glass, Btn, Pill } from '../../design/v3/primitives.jsx'
 import { useStudentAuth, getStudentSessionToken } from '../../contexts/StudentAuthContext.jsx'
 import { useI18n } from '../../i18n'
 import { isStudentView } from '../../lib/student-session.js'
+import { requireBookingSession, bookingLoginPath, STUDENT_SESSION_REQUIRED } from '../../lib/booking-session.js'
 import { CONVEX_URL } from '../../data/studentConfig.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -293,7 +294,7 @@ export default function LessonBooking() {
   const { T, isMobile } = useV3Theme()
   const { t, lang } = useI18n()
   const fmtDay = (ms) => new Date(ms).toLocaleDateString(lang === 'pl' ? 'pl-PL' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-  const { studentUser } = useStudentAuth()
+  const { studentUser, studentLogout } = useStudentAuth()
 
   const studentId = studentUser?._id
   const organizationId = studentUser?.organizationId
@@ -349,11 +350,10 @@ export default function LessonBooking() {
   }, [state.loading])
 
   const refresh = useCallback(async () => {
-    if (!studentId || !organizationId) {
-      setState(s => ({ ...s, loading: false, error: 'no-student' }))
-      return
-    }
     try {
+      const sessionToken = getStudentSessionToken()
+      await requireBookingSession(convexCall, sessionToken, studentId)
+      if (!studentId || !organizationId) throw new Error('no-student')
       const from = warsawToday()
       const to = addDays(from, horizonDays)
       // forStudent: the server hides anything inside the 24-hour lead time, so
@@ -361,8 +361,6 @@ export default function LessonBooking() {
       const slotArgs = { organizationId, fromDate: from, toDate: to, forStudent: true }
       const availArgs = { organizationId }
       if (teacherId) { slotArgs.teacherId = teacherId; availArgs.teacherId = teacherId }
-      const sessionToken = getStudentSessionToken()
-      if (!sessionToken) throw new Error('Student session required')
       const [bookings, slots, allocation, windows] = await Promise.all([
         convexCall('query', 'scheduling:listBookings', { sessionToken, organizationId, studentId }),
         convexCall('query', 'scheduling:getOpenSlots', slotArgs),
@@ -372,7 +370,7 @@ export default function LessonBooking() {
       setAlloc(allocation)
       setState({ loading: false, bookings, slots, windows, error: null })
     } catch (e) {
-      // Keep whatever we already had on screen; say what failed; offer a retry.
+      // Show recovery instead of presenting a failed load as an empty calendar.
       setState(s => ({ ...s, loading: false, error: String(e?.message || e) }))
     }
   }, [studentId, organizationId, teacherId, horizonDays])
@@ -626,6 +624,30 @@ export default function LessonBooking() {
     setPendingCancel(null)
     setConfirming(false)
     setNotice(null)
+  }
+
+  if (state.error) {
+    const needsSession = state.error === STUDENT_SESSION_REQUIRED
+    const supportView = isStudentView()
+    const signIn = () => {
+      const destination = bookingLoginPath(window.location)
+      studentLogout()
+      if (!supportView) window.location.assign(destination)
+    }
+    return (
+      <div id="lesson-booking" style={{ marginBottom: 28 }}>
+        <Glass padding={isMobile ? 20 : 28}>
+          <h2 style={{ margin: '0 0 12px', fontFamily: FONT.display, color: T.text }}>{t('booking.title')}</h2>
+          <p role="alert" style={{ color: T.text, lineHeight: 1.6 }}>
+            {needsSession ? t('booking.sessionRequired') : t('booking.loadError', { reason: state.error })}
+          </p>
+          {needsSession && <p style={{ color: T.textDim, lineHeight: 1.6 }}>{t(supportView ? 'booking.reopenViewHint' : 'booking.signInHint')}</p>}
+          <Btn variant="primary" icon={needsSession ? 'login' : 'refresh'} onClick={needsSession ? signIn : refresh}>
+            {t(needsSession ? (supportView ? 'booking.reopenView' : 'booking.signIn') : 'booking.retry')}
+          </Btn>
+        </Glass>
+      </div>
+    )
   }
 
   if (state.loading) {

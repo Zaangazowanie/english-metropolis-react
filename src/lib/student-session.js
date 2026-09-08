@@ -23,6 +23,16 @@ export function getStudentSessionToken() {
   return readStudentSession()?.sessionToken || null
 }
 
+export function hasStudentSession(user) {
+  return typeof user?.slug === 'string' && Boolean(user.slug)
+    && typeof user?.sessionToken === 'string' && Boolean(user.sessionToken.trim())
+}
+
+export function clearStudentLogin() {
+  window.localStorage.removeItem('em-student-session')
+  window.localStorage.removeItem('studentSlug')
+}
+
 // Complete persistence before the login caller navigates to another page.
 // Storage failures must reach the login error UI, never look like success.
 export function saveStudentLogin(payload) {
