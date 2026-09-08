@@ -20,6 +20,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { consoleGet, consoleGetBlob, consolePost, libraryPdfPath } from './consoleApi.js'
 import { ConsoleEmpty, ConsoleLoading } from './ConsoleStates.jsx'
 import SchedulePlanner from './SchedulePlanner.jsx'
+import CourseLessonProgress from './CourseLessonProgress.jsx'
+import { courseLessonProgress } from '../../../lib/course-lesson-progress.js'
 
 const BASKET_ICON = { IDEAS: 'psychology', PLACES: 'public', SOCIETY: 'newspaper', SPEC: 'work', SUM: 'sunny' }
 const BASKET_LABEL = { IDEAS: 'Ideas & Ambition', PLACES: 'Places & Culture', SOCIETY: 'News & Society' }
@@ -101,24 +103,29 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
   const [publishing, setPublishing] = useState(null)       // {done, total, log:[]}
   const [busyRow, setBusyRow] = useState(null)
   const [pdfBusy, setPdfBusy] = useState(null)
-  const [stuBookings, setStuBookings] = useState([])
+  const [bookingState, setBookingState] = useState({ studentId: null, rows: [], loading: true, error: false })
+  const bookingsForStudent = bookingState.studentId === student?._id
+  const stuBookings = useMemo(() => bookingsForStudent ? bookingState.rows : [], [bookingsForStudent, bookingState.rows])
+  const bookingsLoading = !bookingsForStudent || bookingState.loading
+  const bookingsError = bookingsForStudent && bookingState.error
   const [bookVersion, setBookVersion] = useState(0)
 
   // The student's committed lessons (scheduled + completed), chronological —
   // mapped SEQUENTIALLY onto the in-course lessons so each course lesson
   // shows its date.
   useEffect(() => {
-    if (!student?._id) { setStuBookings([]); return }
+    if (!student?._id) return
     let alive = true
+    setBookingState({ studentId: student._id, rows: [], loading: true, error: false })
     import('../../../contexts/AdminAuthContext.jsx').then(({ queryAdminConvex }) =>
       queryAdminConvex('scheduling:listBookings', { studentId: student._id }))
       .then(rows => {
         if (!alive) return
-        setStuBookings((rows || [])
+        setBookingState({ studentId: student._id, loading: false, error: false, rows: (rows || [])
           .filter(b => b.status === 'scheduled' || b.status === 'completed')
-          .sort((a, b) => a.startUtc - b.startUtc))
+          .sort((a, b) => a.startUtc - b.startUtc) })
       })
-      .catch(() => { if (alive) setStuBookings([]) })
+      .catch(() => { if (alive) setBookingState({ studentId: student._id, rows: [], loading: false, error: true }) })
     return () => { alive = false }
   }, [student?._id, bookVersion])
 
@@ -310,7 +317,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
       {layer === 3 && course && student && (
         <div className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <LayerHeading step="3" label="Choose the lessons" hint="PDF decks only — numbered as taught" />
+            <LayerHeading step="3" label="Choose the lessons" hint="PDF decks in course order · lesson times in Warsaw" />
             <div className="flex gap-2">
               <button type="button" className="sa-btn sa-btn-ghost" style={{ padding: '0.35rem 0.8rem' }}
                 onClick={() => setPicked(new Set(course.lessons.filter(l => !l.assigned).map(l => l.lesson_id)))}>
@@ -324,24 +331,11 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
             {course.lessons.map(l => (
               <div key={l.lesson_id} className="rounded-xl border px-3 py-2"
                 style={{ borderColor: picked.has(l.lesson_id) ? 'var(--sa-violet-600)' : 'var(--sa-border)',
-                  background: l.assigned ? 'var(--sa-good-soft)' : 'var(--sa-surface)' }}>
-                <div className="flex items-center gap-3">
+                  background: l.assigned && !bookingsLoading && !bookingsError && courseLessonProgress(dateByLesson[l.lesson_id]).label === 'Taught'
+                    ? 'var(--sa-good-soft)' : 'var(--sa-surface)' }}>
+                <div className="flex flex-wrap items-center gap-3">
                   {l.assigned ? (
-                    <span className="flex items-center gap-1.5" style={{ flexShrink: 0 }}>
-                      <span className="sa-badge sa-badge-committed">
-                        <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check</span>in course
-                      </span>
-                      {dateByLesson[l.lesson_id] && (
-                        <span className="sa-badge"
-                          title={dateByLesson[l.lesson_id].status === 'completed' ? 'taught' : 'scheduled'}
-                          style={{
-                            background: dateByLesson[l.lesson_id].endUtc < Date.now() ? 'var(--sa-surface-soft)' : 'var(--sa-good-soft)',
-                            color: dateByLesson[l.lesson_id].endUtc < Date.now() ? 'var(--sa-text-muted)' : 'var(--sa-good)' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: 12 }}>event</span>
-                          {dateByLesson[l.lesson_id].dateWarsaw} · {dateByLesson[l.lesson_id].timeWarsaw}
-                        </span>
-                      )}
-                    </span>
+                    <CourseLessonProgress booking={dateByLesson[l.lesson_id]} loading={bookingsLoading} error={bookingsError} />
                   ) : (
                     <input type="checkbox" checked={picked.has(l.lesson_id)} onChange={() => togglePick(l.lesson_id)}
                       style={{ width: 16, height: 16, accentColor: 'var(--sa-violet-600)', flexShrink: 0, cursor: 'pointer' }} />
@@ -351,7 +345,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
                   </span>
                   <button type="button"
                     onClick={() => { setOpenDetail(openDetail === l.lesson_id ? null : l.lesson_id); setOpenKw(null) }}
-                    className="min-w-0 flex-1 truncate text-left text-sm font-semibold"
+                    className="min-w-40 flex-1 text-left text-sm font-semibold"
                     style={{ color: 'var(--sa-text)', background: 'none', border: 'none', cursor: 'pointer' }}
                     title="Open lesson details">
                     {l.title}
