@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { usePrefersReducedMotion } from '../../practice/lib/usePrefersReducedMotion'
 import { walkthroughDelay, cursorTarget, playbackDuration } from './bajla-tour.mjs'
 import './bajla-walkthrough.css'
+import NativeWordClip from './NativeWordClip.jsx'
+import { PREVIEW_CLIPS } from './preview-clips.mjs'
 
 const STEPS = {
   memory: [['Ask about your learning','Zapytaj o swoją naukę'],['Bajla connects your lessons','Bajla łączy Twoje lekcje'],['Your recurring habits appear','Pojawiają się Twoje nawyki'],['Open a recurring pattern','Otwórz powtarzający się błąd'],['See the correction in context','Zobacz poprawkę w kontekście'],['Try a personalised question','Rozwiąż własne ćwiczenie'],['Get feedback and continue','Sprawdź odpowiedź i ćwicz dalej']],
@@ -43,9 +45,9 @@ function Clip({word,pl,opened,onOpen,playback,onPlay}){
   const data=WORDS[word];const play=playback?.word===word;const replay=playback?.revision??0
   return <div className={`bj-walk-clip${opened?' bj-walk-clip--page':''}`}>
     {opened&&<div className="bj-walk-clip-title"><Icon name="smart_display"/><span>{word}<small>{pl?'Prawdziwy rozmówca. W kontekście.':'A real speaker. In context.'}</small></span></div>}
-    {play?<iframe key={`${word}-${replay}`} title={`${word} — native speaker`} src={`https://www.youtube.com/embed/${data.video}?start=${data.start}&end=${data.end}&autoplay=1&rel=0`} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/>:<button className="bj-walk-video" onClick={()=>{onOpen();onPlay(word)}} aria-label={`${pl?'Odtwórz nagranie':'Play native-speaker clip'}: ${word}`}><img src={`https://i.ytimg.com/vi/${data.video}/mqdefault.jpg`} alt="" loading="lazy"/><span className="bj-walk-play"><Icon name="play_arrow"/></span><small>{data.end-data.start}s · YouTube</small></button>}
+    <NativeWordClip clip={PREVIEW_CLIPS[word]} pl={pl} active={play} revision={replay} onPlayRequest={()=>{onOpen();onPlay(word)}}/>
     <blockquote>{data.before}<mark>{word}</mark>{data.after}</blockquote>
-    {opened?<div className="bj-walk-clip-links"><button onClick={()=>onPlay(word)}><Icon name="replay"/>{pl?'Powtórz zdanie':'Replay the line'}</button><a href={`https://www.youtube.com/watch?v=${data.video}&t=${data.start}s`} target="_blank" rel="noopener noreferrer">{pl?'Pełne nagranie':'Full video'}<Icon name="open_in_new"/></a></div>:<Action icon="open_in_new" onClick={onOpen}>{pl?'Otwórz podgląd':'Open preview'}</Action>}
+    {!opened&&<Action icon="open_in_new" onClick={onOpen}>{pl?'Otwórz podgląd':'Open preview'}</Action>}
   </div>
 }
 
@@ -61,7 +63,8 @@ export default function BajlaWalkthrough({id,wa,query,pl,auto,setAuto,onComplete
   // Intent lives above the step-keyed feature: opening a clip must not discard
   // the same click that requested playback. Automatic steps never set it.
   const [clipPlayback,setClipPlayback]=useState(null)
-  const playClip=word=>{setClipPlayback(previous=>({word,revision:(previous?.revision??0)+1}))}
+  const clipRevision=useRef(0)
+  const playClip=word=>{setClipPlayback({word,revision:++clipRevision.current})}
   const [slot,setSlot]=useState('18:00')
   const [booking,setBooking]=useState('move')
   const [selectedHabit,setSelectedHabit]=useState(0)
@@ -80,7 +83,7 @@ export default function BajlaWalkthrough({id,wa,query,pl,auto,setAuto,onComplete
     if(!playbackActive)return
     // A requested recording gets time to finish, then the tour continues.
     // Touching, focusing or exploring never changes the Play/Pause preference.
-    const delay=clipPlayback?(WORDS[clipPlayback.word].end-WORDS[clipPlayback.word].start+1)*1000:walkthroughDelay(id,step)
+    const delay=clipPlayback?(PREVIEW_CLIPS[clipPlayback.word].end-PREVIEW_CLIPS[clipPlayback.word].start+2)*1000:walkthroughDelay(id,step)
     const timer=setTimeout(()=>{setClipPlayback(null);if(ended)onComplete();else setStep(step+1)},delay)
     return()=>clearTimeout(timer)
   },[step,playbackActive,replay,ended,id,mode,onComplete,clipPlayback])
@@ -117,7 +120,13 @@ export default function BajlaWalkthrough({id,wa,query,pl,auto,setAuto,onComplete
     },Math.max(playbackDuration(650),duration-playbackDuration(1800)))
     return()=>{clearTimeout(timer);clearTimeout(scrollTimer);movement?.cancel();click?.cancel()}
   },[id,step,mode,running,replay,selectedHabit,booking])
-  useEffect(()=>{const el=body.current;if(!el)return;const timer=setTimeout(()=>el.scrollTo({top:el.scrollHeight,behavior:reduced?'instant':'smooth'}),playbackDuration(90));return()=>clearTimeout(timer)},[step,reduced,answer,word,mode])
+  useEffect(()=>{const el=body.current;if(!el)return;const timer=setTimeout(()=>{
+    const clip=el.querySelector('.em-word-screen')
+    // Keep the entire recording visible instead of scrolling past the speaker
+    // to the transcript at the bottom of a taller clip card.
+    const top=clip?el.scrollTop+clip.getBoundingClientRect().top-el.getBoundingClientRect().top-12:el.scrollHeight
+    el.scrollTo({top,behavior:reduced||clipPlayback?'instant':'smooth'})
+  },playbackDuration(90));return()=>clearTimeout(timer)},[step,reduced,answer,word,mode,clipPlayback])
   const restart=()=>{setClipPlayback(null);setStep(0);setAnswer('');setWord(id==='voice'?'berth':'mural');setMode(id==='word'?'hear':'quiz');setSlot('18:00');setBooking('move');setSelectedHabit(0);setReplay(r=>r+1)}
   const chooseMode=value=>{setMode(value);setAnswer('');go(3)}
   const chooseWord=value=>{setWord(value);setAnswer('');go(3)}
