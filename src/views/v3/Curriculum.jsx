@@ -54,6 +54,7 @@ export default function Curriculum() {
   const studentId = studentUser?._id
 
   const [state, setState] = useState({ loading: true, items: [], hidden: true })
+  const [courseTrack, setCourseTrack] = useState(null)   // e.g. 'B2 Places', from the student's group
   const [openPos, setOpenPos] = useState(null)              // expanded lesson row
   const [sec, setSec] = useState({ done: false, soon: true, pack: false }) // open accordions
   const toggleSec = k => setSec(s => ({ ...s, [k]: !s[k] }))
@@ -61,7 +62,11 @@ export default function Curriculum() {
   const load = useCallback(async () => {
     if (!studentId) { setState({ loading: false, items: [], hidden: true }); return }
     try {
-      const items = await convexQuery('curriculum:listCurriculum', { studentId })
+      const [items, course] = await Promise.all([
+        convexQuery('curriculum:listCurriculum', { studentId }),
+        convexQuery('curriculum:getCourseLabel', { studentId }).catch(() => null),
+      ])
+      setCourseTrack(course?.track || null)
       setState({ loading: false, items: items || [], hidden: !items || items.length === 0 })
     } catch {
       setState({ loading: false, items: [], hidden: true })
@@ -82,6 +87,15 @@ export default function Curriculum() {
   const pct = total ? Math.round((taught / total) * 100) : 0
   const targetCefr = items[items.length - 1]?.targetCefr || studentUser?.targetLevel || 'C2'
   const startCefr = studentUser?.level || items[0]?.targetCefr || ''
+
+  // Course heading: the student's real course ("B2 Places" -> "B2 Places Course"),
+  // falling back to the generic label. A group already named "... Course" is shown as
+  // it stands so we never render "Pilot Course Course".
+  const courseHeading = !courseTrack
+    ? t('curriculum.courseName')
+    : /\bcourse$/i.test(courseTrack)
+      ? courseTrack
+      : t('curriculum.courseNameTrack', { track: courseTrack })
 
   const scrollToBooking = () => {
     const el = document.getElementById('lesson-booking')
@@ -203,10 +217,10 @@ export default function Curriculum() {
 
   return (
     <div id="curriculum" style={{ marginBottom: 28, display: 'grid', gap: 18 }}>
-      {/* ── Active pilot course ───────────────────────────────────── */}
+      {/* ── Active course (named from the student's group; see getCourseLabel) ── */}
       <Glass padding={isMobile ? 20 : 30}>
         <div style={sectionLabel}>{t('curriculum.kicker')}</div>
-        <h2 style={heading}>{t('curriculum.courseName')}</h2>
+        <h2 style={heading}>{courseHeading}</h2>
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 13, color: T.textSoft }}>
           <span>{t('curriculum.semester')}</span>
           {startCefr && (

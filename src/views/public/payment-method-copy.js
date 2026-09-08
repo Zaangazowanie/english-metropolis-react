@@ -21,6 +21,21 @@ export const GROUP_COPY = {
     en: { title: 'Card', sub: () => 'Visa and Mastercard' },
     pl: { title: 'Karta', sub: () => 'Visa i Mastercard' },
   },
+  applepay: {
+    mark: 'card',
+    en: { title: 'Apple Pay', sub: () => 'Available on supported devices and browsers' },
+    pl: { title: 'Apple Pay', sub: () => 'Dostępne na obsługiwanych urządzeniach i w przeglądarkach' },
+  },
+  googlepay: {
+    mark: 'card',
+    en: { title: 'Google Pay', sub: () => 'Pay with a card saved in Google Pay' },
+    pl: { title: 'Google Pay', sub: () => 'Zapłać kartą zapisaną w Google Pay' },
+  },
+  visamobile: {
+    mark: 'card',
+    en: { title: 'Visa Mobile', sub: () => 'Confirm payment in your Visa Mobile app' },
+    pl: { title: 'Visa Mobile', sub: () => 'Potwierdź płatność w aplikacji Visa Mobile' },
+  },
   paypo: {
     mark: 'deferred',
     en: { title: 'PayPo', sub: () => 'Pay in 30 days; instalments for eligible customers' },

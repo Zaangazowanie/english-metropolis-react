@@ -537,6 +537,9 @@ export default function Checkout() {
     .map(group => ({
       blik: 'BLIK',
       card: t('cards', 'karty'),
+      applepay: 'Apple Pay',
+      googlepay: 'Google Pay',
+      visamobile: 'Visa Mobile',
       paypo: 'PayPo',
       installments: t('instalments', 'raty'),
       transfer: t('online transfer', 'przelew online'),

@@ -38,10 +38,13 @@ def group(m):
     if g == "Blik": return "blik"
     if m["id"] == 317 or re.search("paypo", n, re.I): return "paypo"
     if m["id"] == 303 or g == "Installments": return "installments"
+    if m["id"] == 252 or g == "Apple Pay": return "applepay"
+    if m["id"] == 264 or g == "Google Pay": return "googlepay"
+    if m["id"] == 299 or g == "Visa Mobile": return "visamobile"
     if m["id"] == 145 or re.search("card|karta", g, re.I): return "card"
     return "transfer"
 ids = sorted(m["id"] for m in enabled)
-counts = {k: 0 for k in ["blik", "paypo", "installments", "card", "transfer"]}
+counts = {k: 0 for k in ["blik", "paypo", "installments", "card", "applepay", "googlepay", "visamobile", "transfer"]}
 for m in enabled: counts[group(m)] += 1
 if mode == "ids":
     print(",".join(map(str, ids)))

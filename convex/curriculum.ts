@@ -37,6 +37,44 @@ export const listCurriculum = query({
   },
 });
 
+// Public: the display name of the course the student is actually on.
+// Preferred source is the group's library track id ("GEN-B2-PLACES" -> "B2 Places"),
+// which is unambiguous. Only when there is no usable track id do we fall back to the
+// group name, and then only for the "PVT <Name> - <Level> <Track>" shape — an English
+// Line group name like "OP74-25 Pazdziernik 2025 - Czerwiec 2026" also contains " - "
+// and must be shown whole rather than split into its end date.
+// Returns null when nothing usable exists; the caller then shows the generic label.
+// No PII: a PVT group's name is never returned, only its track fragment.
+const TRACK_ID = /^GEN-(A2|B1|B2|C1)-([A-Z]+)$/;
+
+function labelFromCourseId(courseId?: string | null): string | null {
+  if (!courseId) return null;
+  const m = TRACK_ID.exec(courseId);
+  if (!m) return null;
+  const basket = m[2];
+  return `${m[1]} ${basket.charAt(0)}${basket.slice(1).toLowerCase()}`;
+}
+
+export const getCourseLabel = query({
+  args: { studentId: v.id("students") },
+  handler: async (ctx, args) => {
+    const student = await ctx.db.get(args.studentId);
+    if (!student?.groupId) return null;
+    const group = await ctx.db.get(student.groupId);
+    if (!group) return null;
+
+    let track = labelFromCourseId(group.courseId);
+    if (!track && group.name) {
+      const idx = group.name.lastIndexOf(" - ");
+      track = group.name.startsWith("PVT ") && idx !== -1
+        ? group.name.slice(idx + 3)
+        : group.name;
+    }
+    track = (track || "").trim();
+    return track ? { track, courseId: group.courseId ?? null } : null;
+  },
+});
+
 // Replace a student's entire curriculum. Auth: a valid admin session (org-scoped)
 // OR the PIPELINE_API_KEY (for seeding scripts) — same guard the publish pipeline uses.
 export const setCurriculum = mutation({
