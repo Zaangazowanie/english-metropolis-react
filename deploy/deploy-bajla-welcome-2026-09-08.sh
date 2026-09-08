@@ -17,7 +17,7 @@ git merge-base --is-ancestor "$BASE" HEAD
 git diff --quiet "$BASE" HEAD -- convex package.json package-lock.json
 git diff --name-only "$BASE" HEAD | python3 -c '
 import sys
-allowed={'tests/bajla-connect-qa.html', 'src/components/BajlaConnectModal.jsx', 'public/students/conversa-widget-v5.js', 'index.html', 'tests/bajla-connect-qa.jsx', 'deploy/deploy-bajla-welcome-2026-09-08.sh'}
+allowed=set(["deploy/deploy-bajla-welcome-2026-09-08.sh", "index.html", "public/students/conversa-widget-v5.js", "src/components/BajlaConnectModal.jsx", "tests/bajla-connect-qa.html", "tests/bajla-connect-qa.jsx"])
 unexpected=[p for p in sys.stdin.read().splitlines() if p not in allowed]
 assert not unexpected, f"Unexpected release paths: {unexpected}"
 '
