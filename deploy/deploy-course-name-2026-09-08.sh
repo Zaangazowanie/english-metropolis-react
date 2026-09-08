@@ -32,7 +32,28 @@ PY
 cp -a "$WEB/index.html" "$BACKUP/index.html"
 rollback() { trap - ERR; cp -a "$BACKUP/index.html" "$WEB/index.html"; echo "Frontend entry restored. Evidence: $BACKUP"; exit 1; }
 trap rollback ERR
-cp dist/assets/index-*.js dist/assets/index-*.css "$WEB/assets/"
+
+# Copy EVERY asset, not just index-*. A change that touches a lazily-loaded view or a
+# shared chunk (an i18n dictionary, say) re-hashes those chunks too; shipping only
+# index-* and then swapping index.html points the live entry at chunks that were never
+# uploaded, and the app 404s on load. This is additive — existing hashed files stay put,
+# so clients holding the previous index.html keep working.
+new=0
+for f in dist/assets/*; do
+  b=$(basename "$f")
+  [ -e "$WEB/assets/$b" ] || { install -m 644 "$f" "$WEB/assets/$b"; new=$((new+1)); }
+done
+echo "  uploaded $new new asset(s)"
+
+# Verify BEFORE the swap: every asset the new entry references must already be on disk.
+missing=$(grep -oE '(src|href)="/assets/[^"]+"' dist/index.html \
+          | sed -E 's|.*"/assets/(.*)"|\1|' | sort -u \
+          | while read -r b; do [ -e "$WEB/assets/$b" ] || echo "$b"; done)
+if [ -n "$missing" ]; then
+  echo "!! new index.html references assets that are not on the server:"; echo "$missing"
+  false
+fi
+
 install -m 644 dist/index.html "$WEB/.index-$STAMP.html"
 mv "$WEB/.index-$STAMP.html" "$WEB/index.html"
 grep -o 'index-[^"]*\.js' "$WEB/index.html" | head -1
