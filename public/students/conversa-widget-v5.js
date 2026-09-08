@@ -27,7 +27,7 @@
 
   var API = '/api/conversa';
   var MAX_HISTORY = 10;
-  var CHAT_TIMEOUT_MS = 30000;   // a hung /chat must become a message, not a spinner
+  var CHAT_TIMEOUT_MS = 55000;   // allow the bounded model queue and speech synthesis
   var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var HOVER_OK = window.matchMedia && window.matchMedia('(hover:hover) and (pointer:fine)').matches;
   // Bumped together with the ?v= on the widget tag in index.html so a new orb
@@ -66,6 +66,7 @@
       tapStop: 'Stuknij jeszcze raz, żeby wysłać', releaseCancel: 'Puść, żeby anulować', cancelled: 'Anulowano. Nic nie wysłałam.',
       listeningBack: 'Odsłuchuję…', thinking: 'Bajla pisze…',
       noReply: 'Nie dostałam odpowiedzi. Spróbuj jeszcze raz za chwilę.',
+      sessionExpired: 'Zaloguj się ponownie, aby połączyć Bajlę ze swoim kontem.',
       offline: 'Bajla jest offline. Spróbuj ponownie za minutę.', timeout: 'To trwa za długo. Spróbuj ponownie za chwilę.',
       noProfile: 'Nie mogę teraz wczytać Twoich lekcji.', retry: 'Spróbuj ponownie',
       noMic: 'Ta przeglądarka nie pozwala mi tu użyć mikrofonu.', micPerm: 'Potrzebuję dostępu do mikrofonu, żeby Cię usłyszeć.',
@@ -94,6 +95,7 @@
       tapStop: 'Tap again to send', releaseCancel: 'Release to cancel', cancelled: 'Cancelled. Nothing was sent.',
       listeningBack: 'Listening back…', thinking: 'Bajla is typing…',
       noReply: 'No reply came back. Try again in a moment.',
+      sessionExpired: 'Please sign in again to connect Bajla to your account.',
       offline: 'Bajla is offline. Try again in a minute.', timeout: 'That took too long. Try again in a moment.',
       noProfile: 'I could not load your lessons just now.', retry: 'Try again',
       noMic: 'Your browser will not let me use the microphone here.', micPerm: 'I need microphone permission to hear you.',
@@ -1086,10 +1088,21 @@
   // token lets the server verify who is actually asking.
   function studentToken() {
     try {
-      var raw = window.localStorage.getItem('em-student-session');
+      var raw = isAdmin() ? window.sessionStorage.getItem('em-admin-session')
+        : window.localStorage.getItem('em-student-session');
       if (!raw) return '';
       return (JSON.parse(raw) || {}).sessionToken || '';
     } catch (e) { return ''; }
+  }
+
+  function tutorResponse(r) {
+    if (r.status === 401 || r.status === 403) {
+      var error = new Error('session');
+      error.sessionExpired = true;
+      throw error;
+    }
+    if (!r.ok) throw new Error('request failed');
+    return r.json();
   }
 
   function send(text, canned) {
@@ -1117,11 +1130,12 @@
         history: history.slice(-MAX_HISTORY, -1),
         voice: voiceId(),
         admin_mode: isAdmin(),
+        admin_token: isAdmin() ? studentToken() : '',
         canned: !!canned,
         student_session_token: studentToken()
       })
     })
-      .then(function (r) { return r.json(); })
+      .then(tutorResponse)
       .then(function (d) {
         typing(false);
         var reply = d && (d.reply || d.text) || '';
@@ -1136,9 +1150,9 @@
         });
         history.push({ role: 'assistant', content: reply });
       })
-      .catch(function () {
+      .catch(function (error) {
         typing(false);
-        failLast(timedOut ? t('timeout') : t('offline'), text, canned);
+        failLast(error.sessionExpired ? t('sessionExpired') : timedOut ? t('timeout') : t('offline'), text, canned);
       })
       .finally(function () { clearTimeout(chatTimer); busy = false; setSendState(); });
   }
@@ -1440,13 +1454,19 @@
     fd.append('voice', voiceId());
     fd.append('history', JSON.stringify(history.slice(-MAX_HISTORY)));
     fd.append('student_session_token', studentToken());
+    if (isAdmin()) {
+      fd.append('admin_mode', 'true');
+      fd.append('admin_token', studentToken());
+    }
     if (target) {
       fd.append('mode', 'pronunciation_drill');
       fd.append('pronunciation_target', target);
     }
 
-    fetch(API + '/voice', { method: 'POST', body: fd })
-      .then(function (r) { return r.json(); })
+    var voiceController = window.AbortController ? new AbortController() : null;
+    var voiceTimer = voiceController ? setTimeout(function () { voiceController.abort(); }, CHAT_TIMEOUT_MS) : null;
+    fetch(API + '/voice', { method: 'POST', body: fd, signal: voiceController ? voiceController.signal : undefined })
+      .then(tutorResponse)
       .then(function (d) {
         typing(false);
         if (target && d && d.scored) {
@@ -1467,13 +1487,13 @@
           sysMsg(els.chat, t('notHeard'));
         }
       })
-      .catch(function () {
+      .catch(function (error) {
         typing(false);
         disposeOrb();
         if (target && res) res.innerHTML = '';
-        sysMsg(els.chat, t('notHeard'));
+        sysMsg(els.chat, error.sessionExpired ? t('sessionExpired') : error.name === 'AbortError' ? t('timeout') : t('notHeard'));
       })
-      .finally(function () { busy = false; setSendState(); });
+      .finally(function () { clearTimeout(voiceTimer); busy = false; setSendState(); });
   }
 
   function setSendState() {

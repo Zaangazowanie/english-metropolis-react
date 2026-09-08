@@ -40,7 +40,7 @@ const COPY = {
       progress: { title: 'Sprawdź postępy', sub: 'Zobacz, jak idzie Ci nauka.' },
     },
     mainCta: 'Porozmawiaj z Bajlą na WhatsAppie',
-    setupTitle: 'Zanim naprawdę Ci pomogę:',
+    setupTitle: 'Połączmy Cię z Bajlą:',
     setupPhone: 'Zapisz swój numer WhatsApp w profilu. Po nim Cię rozpoznam.',
     setupPhoneDone: 'Numer WhatsApp zapisany. Rozpoznam Cię.',
     setupLessons: 'Wykup pakiet lekcji, żebym miała co rezerwować.',
@@ -81,7 +81,7 @@ const COPY = {
       progress: { title: 'Check your progress', sub: 'See how your learning is going.' },
     },
     mainCta: 'Chat with Bajla on WhatsApp',
-    setupTitle: 'Before I can really help you:',
+    setupTitle: 'Let’s get you connected:',
     setupPhone: 'Save your WhatsApp number to your profile. It is how I recognise you.',
     setupPhoneDone: 'WhatsApp number saved. I will recognise you.',
     setupLessons: 'Buy a lesson package so I have lessons to book for you.',
@@ -118,12 +118,14 @@ const COPY = {
 const MESSAGES = {
   pl: {
     main: 'Cześć Bajla! 👋 Pokaż mi mój plan lekcji na przyszły tydzień.',
+    connect: 'Cześć Bajla! Mój numer WhatsApp jest już zapisany na koncie. Sprawdźmy połączenie.',
     book: 'Cześć Bajla! Chcę zarezerwować lekcję.',
     cancel: 'Cześć Bajla! Chcę odwołać lub przełożyć lekcję.',
     progress: 'Cześć Bajla! Chcę sprawdzić moje postępy.',
   },
   en: {
     main: 'Hi Bajla! 👋 Show me my lesson schedule for next week.',
+    connect: 'Hi Bajla! I have saved my WhatsApp number in my account. Let’s check the connection.',
     book: 'Hi Bajla! I would like to book a lesson.',
     cancel: 'Hi Bajla! I would like to cancel or reschedule a lesson.',
     progress: 'Hi Bajla! I would like to check my progress.',
@@ -149,6 +151,7 @@ async function callConvex(kind, path, args) {
 export default function BajlaConnectModal() {
   const { lang } = useI18n()
   const location = useLocation()
+  const connectRequested = new URLSearchParams(location.search).get('bajla') === 'connect'
   const { isStudentAuthenticated, studentUser } = useStudentAuth()
   const { isTeacherAuthenticated } = useTeacherAuth()
   const { isAdminAuthenticated, adminUser } = useAdminAuth()
@@ -236,11 +239,17 @@ export default function BajlaConnectModal() {
         setHasPhone(phoneOnFile)
         let seen = false
         try { seen = localStorage.getItem(seenKey(accountKey)) === '1' } catch { /* ignore */ }
-        if (!seen) setOpen(true)
+        if (connectRequested) {
+          setStep('phone')
+          setPendingIntent('connect')
+          setError('')
+          if (v?.phone) setPhone(v.phone)
+          setOpen(true)
+        } else if (!seen) setOpen(true)
       })
       .catch(() => { if (!cancelled) setHasPhone(false) })
     return () => { cancelled = true }
-  }, [sessionToken, hideForRoute, verified])
+  }, [sessionToken, hideForRoute, verified, connectRequested])
 
   // Students: how many lessons they have left, for the setup checklist.
   useEffect(() => {
