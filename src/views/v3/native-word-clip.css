@@ -1,0 +1,19 @@
+.em-word-media{width:100%;min-width:0;color:var(--gh-text,#f4f0ff)}
+.em-word-screen{aspect-ratio:16/9;background:#09060e;border-radius:14px;overflow:hidden;position:relative;isolation:isolate}
+.em-word-screen video,.em-word-poster,.em-word-poster img{display:block;width:100%;height:100%;aspect-ratio:16/9;object-fit:contain;border:0;border-radius:0}
+.em-word-poster{position:relative;cursor:pointer;padding:0;background:#09060e;color:white;font:inherit}
+.em-word-poster img{transition:none;transform:none!important;filter:none!important}
+.em-word-play{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.em-word-play>.material-symbols-outlined{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;border:1px solid #ffffffa0;color:#281038;background:#fffffff2;font-size:37px;box-shadow:0 8px 36px #0007;transition:transform .18s}
+.em-word-poster:hover .em-word-play>.material-symbols-outlined{transform:scale(1.08)}
+.em-word-duration{position:absolute;right:12px;bottom:12px;background:#120b20e8;color:#fff;padding:5px 9px;border-radius:6px;font-size:12px}
+.em-word-media-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap}
+.em-word-media-actions button,.em-word-media-actions a{display:inline-flex;align-items:center;gap:6px;min-height:44px;font:600 12px/1.4 'Plus Jakarta Sans',sans-serif;color:inherit;border:0;background:transparent;padding:6px 0;text-underline-offset:4px;cursor:pointer}
+.em-word-media-actions .material-symbols-outlined{font-size:18px}
+.em-word-status{font-size:12px;line-height:1.5;color:inherit;margin:10px 0}
+.em-word-media :is(button,a):focus-visible{outline:2px solid #b57bf2;outline-offset:3px}
+.em-word-screen video::cue{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;background:#100b20dd;color:#fff}
+.bj-walk-clip .em-word-media{color:#ead9f7}.bj-walk-clip .em-word-play>.material-symbols-outlined{width:48px;height:48px;font-size:29px}
+.bj-walk-clip .em-word-screen{width:min(100%,392px);margin-inline:auto}
+.gh-root .bj-walk-clip .em-word-media-actions a,.gh-root .bj-walk-clip .em-word-media-actions a:hover{color:#ead9f7}
+@media(prefers-reduced-motion:reduce){.em-word-play>.material-symbols-outlined{transition:none}}

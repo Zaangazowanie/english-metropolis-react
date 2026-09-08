@@ -27,6 +27,8 @@ import HeroSlider from './HeroSlider.jsx'
 import HeroSkyline from '../../components/public/HeroSkyline.jsx'
 import HeroSilhouette from '../../components/public/HeroSilhouette.jsx'
 import BajlaShowcase from './BajlaShowcase.jsx'
+import WordPreviewShowcase from './WordPreviewShowcase.jsx'
+import AnalysisPreviewShowcase from './AnalysisPreviewShowcase.jsx'
 import CourseSlider from './CourseSlider.jsx'
 import ReactiveShaderField from '../../components/public/ReactiveShaderField.jsx'
 import ActionLink from './ActionLink.jsx'
@@ -716,7 +718,11 @@ export default function GameHome() {
           ))}
         </section>
 
+        <WordPreviewShowcase lang={lang}/>
+
         <BajlaShowcase lang={lang}/>
+
+        <AnalysisPreviewShowcase lang={lang}/>
 
         <CourseSlider lang={lang}/>
 
