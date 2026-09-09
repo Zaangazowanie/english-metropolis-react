@@ -359,13 +359,12 @@ const WORLD_URL = '/play/'
 // labelling them would be its own false statement.
 const AI_NOTE = (lang) => (lang === 'pl' ? 'Wygenerowane przez AI' : 'AI generated')
 
-// The original homepage carousel: live learning first, then course fit and
-// connected practice. The first frame deliberately uses the approved school
-// photograph from the reference design instead of choosing a random image.
+// Live learning first, then course fit and connected practice. Versioned
+// artwork paths keep the refreshed logo and pigeon likeness out of old caches.
 const HERO_MEDIA = [
-  { key: 'lessons', to: '/signup', images: ['/home/photo-office-2607.webp'] },
-  { key: 'course', to: '/pricing', images: ['/home/hero/course-1.webp', '/home/hero/course-3.webp'] },
-  { key: 'practice', href: WORLD_URL, images: ['/home/hero/practice-4.webp'] },
+  { key: 'lessons', to: '/signup', images: ['/home/slider-20260909/school.webp'] },
+  { key: 'course', to: '/pricing', images: ['/home/slider-20260909/evening.webp', '/home/slider-20260909/lifelong.webp'] },
+  { key: 'practice', href: WORLD_URL, images: ['/home/slider-20260909/practice.webp'] },
 ]
 
 // ── Atmosphere ─────────────────────────────────────────────────────────────
