@@ -7,8 +7,9 @@ const root = new URL('../public/media/keyword-cache-20260909/', import.meta.url)
 const { clips } = JSON.parse(readFileSync(new URL('manifest.json', root), 'utf8'))
 
 test('the existing three-word catalogue retains all 30 excerpts and 26 videos', () => {
-  assert.equal(Object.keys(clips).length, 30)
-  assert.equal(new Set(Object.values(clips).map(clip => clip.videoId)).size, 26)
+  const original = Object.values(clips).filter(clip => clip.word !== 'landmark')
+  assert.equal(original.length, 30)
+  assert.equal(new Set(original.map(clip => clip.videoId)).size, 26)
   for (const word of ['mural', 'berth', 'pescatarian']) {
     assert.equal(Object.values(clips).filter(clip => clip.word === word).length, 10)
   }

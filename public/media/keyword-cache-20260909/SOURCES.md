@@ -36,3 +36,10 @@ Short H.264/AAC excerpts, up to 1280px wide, CRF 28, AAC mono 64 kb/s, faststart
 | pescatarian | [YouTube](https://www.youtube.com/watch?v=-9JkA-YdZN4&t=3211s) | 3210.0 | 4.017007 | 273840 |
 | pescatarian | [YouTube](https://www.youtube.com/watch?v=jq82nL019rc&t=602s) | 601.0 | 7.011995 | 219463 |
 | pescatarian | [YouTube](https://www.youtube.com/watch?v=G6aayX6ZKfI&t=105s) | 104.0 | 6.013991 | 359963 |
+
+## Additional landmark examples — 2026-09-09
+
+- https://www.youtube.com/watch?v=fFGs9kaBy-8&t=407s — 10 BEST Things To Do In New Orleans | New Orleans Travel Guide; source excerpt 406.5–412.2 seconds.
+- https://www.youtube.com/watch?v=2NLQZkT8SHo&t=292s — Pres. Tim Sands delivers 2016 State of the University Address; source excerpt 292–299.2 seconds.
+
+Short local H.264/AAC excerpts; actual clip audio aligned locally with faster-whisper small.en. Word timestamps use absolute source time. Source links remain available in the player.

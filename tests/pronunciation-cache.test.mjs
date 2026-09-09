@@ -57,12 +57,15 @@ test('live speech shares concurrent requests, separates voices and retries failu
   } finally {globalThis.fetch=original}
 })
 
-test('the replacement word occurs in its actual aligned source recording', () => {
+test('landmark offers multiple distinct playable examples containing the word', () => {
   assert.equal(studentDemoData().keywords[0].word,'landmark')
   const manifest=JSON.parse(readFileSync(new URL('../public/media/keyword-cache-20260909/manifest.json',import.meta.url)))
-  const video=PREPARED_KEYWORDS.landmark.videos[0]
-  const clip=manifest.clips[`${video.videoId}-${video.occurrences[0].start}`]
-  assert.ok(clip.words.some(cue=>cue.word==='landmark'))
+  const videos=PREPARED_KEYWORDS.landmark.videos
+  assert.ok(new Set(videos.map(video=>video.videoId)).size >= 3)
+  for (const video of videos) {
+    const clip=manifest.clips[`${video.videoId}-${video.occurrences[0].start}`]
+    assert.ok(clip.words.some(cue=>/^landmark[.,]?$/i.test(cue.word)),video.videoId)
+  }
 })
 
 test('only real word timestamps can drive highlighting; gaps and backward seeks stay exact', () => {
