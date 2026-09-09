@@ -45,7 +45,7 @@ const PROV_LABEL = {
 }
 
 // The vocabulary IS the card. A working Raw-notes button on a card with no
-// keywords, blank Polish, or a YouGlish control that opens to nothing is still a
+// keywords, blank Polish, or a YouTube control that opens to nothing is still a
 // broken lesson for her — and none of that was visible here before 2026-09-02.
 function KeywordTable({ keywords }) {
   if (!keywords?.length) return <p className="sa-muted" style={{ fontSize: 13 }}>No keywords on this card.</p>
@@ -150,7 +150,7 @@ function LessonRow({ row, slug, onUploaded }) {
               {c.total} keyword{c.total === 1 ? '' : 's'} on her card
               {` — ${c.planned} planned, ${c.inLesson} added in the lesson`}
               {c.pronunciation ? `, ${c.pronunciation} pronunciation` : ''}
-              {c.withClips != null && ` · ${c.withClips}/${c.total} have YouGlish clips`}
+              {c.withClips != null && ` · ${c.withClips}/${c.total} have YouTube clips`}
             </p>
           )}
           {row.cardWarnings?.map(w => (
@@ -274,7 +274,7 @@ export default function ConsoleLessonNotes({ slug }) {
       <section className="ops-stat-grid ops-stat-grid-3">
         <div className="ops-stat"><span className="ops-stat-label">Vocabulary</span><strong>{kwTotal}</strong><span>keywords across her cards</span></div>
         <div className="ops-stat"><span className="ops-stat-label">Blank fields</span><strong>{kwBad}</strong><span>keywords she sees a gap on</span></div>
-        <div className="ops-stat"><span className="ops-stat-label">No clips</span><strong>{noClips.length}</strong><span>YouGlish opens to nothing</span></div>
+        <div className="ops-stat"><span className="ops-stat-label">No clips</span><strong>{noClips.length}</strong><span>YouTube opens to nothing</span></div>
       </section>
 
       {/* "No analysis" is normal for a student who never bought the 20 PLN add-on.

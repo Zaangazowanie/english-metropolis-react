@@ -1,3 +1,4 @@
+import { warmDemoPronunciations } from '../../components/media/pronunciation.mjs'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Flashcard, InjectVocabStyle, YouGlishModal } from './Vocabulary.jsx'
 import KeywordPronunciationButton from '../../components/media/KeywordPronunciationButton.jsx'
@@ -15,7 +16,7 @@ export default function WordPreviewShowcase({ lang }) {
   const keyword = words[index]
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) setLoaded(true)
+      if (entry.isIntersecting) { setLoaded(true); warmDemoPronunciations() }
       else stage.current?.querySelectorAll('video, audio').forEach(media => media.pause())
     }, { threshold: .05 })
     observer.observe(stage.current)

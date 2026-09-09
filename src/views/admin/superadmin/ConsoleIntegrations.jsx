@@ -10,7 +10,7 @@
 //   Console API       GET /api/console/health
 //   Business API      GET /api/console/biz/pages?limit=1
 //   Mail              GET /api/console/mail/mailboxes
-//   YouGlish / TTS    GET /api/console/pipelines -> services[]
+//   YouTube / TTS    GET /api/console/pipelines -> services[]
 //   Ad accounts       GET /api/console/biz/ad_accounts  (0 rows = not connected)
 //
 // Google Ads and Meta are NOT connected and there is no probe that could make
@@ -126,13 +126,13 @@ async function probeMail() {
   }
 }
 
-// YouGlish and TTS are local services; /api/console/pipelines already reports
+// YouTube and TTS are local services; /api/console/pipelines already reports
 // them from systemctl + a listening-port check, so this reuses that truth
 // rather than inventing a second definition of "up".
 async function probeServices() {
   const meta = {
     youglish: {
-      name: 'YouGlish index service',
+      name: 'YouTube index service',
       group: 'Curriculum',
       purpose: 'Builds the per-keyword pronunciation indexes the lesson decks link to. Port 8790, unit youglish-vps.',
       requires: 'Already connected. Keyword saves in the Course Studio queue new index builds automatically.',

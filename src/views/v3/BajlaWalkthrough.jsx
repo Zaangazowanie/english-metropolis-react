@@ -15,7 +15,7 @@ const STEPS = {
   word: [['Pick up your lesson words','Wróć do słów z lekcji'],['Bajla opens your vocabulary','Bajla otwiera Twoje słownictwo'],['Choose a word','Wybierz słowo'],['Choose what to do with it','Wybierz, co z nim zrobić'],['A real-speaker clip arrives','Pojawia się klip native speakera'],['Open the video preview','Otwórz podgląd nagrania'],['Replay the highlighted line','Powtórz wyróżnione zdanie']],
 }
 const WORDS = {
-  mural: { meaning: 'mural / malowidło ścienne', ipa: '/ˈmjʊərəl/', example: 'The artist painted a colourful mural on the wall.', video: 'sNFh9bL5yzg', start:949, end:956, before:'It was created using the same methods and techniques as the ', after:' of 1953' },
+  landmark: { meaning: 'charakterystyczny obiekt; punkt orientacyjny', ipa: '/ˈlændmɑːk/', example: 'The castle is the most famous landmark in the city.', video: 'qV_CJbh_rD0', start:285, end:291, before:'The mural has become a ', after:'…' },
   berth: { meaning:'koja / miejsce do spania', ipa:'/bɜːθ/', example:'I booked a berth on the night train.', video:'H0zeipr-cVc', start:530, end:533, before:'or do I need to leave this teacher wide ', after:', and just do what I’m told?' },
   pescatarian: { meaning:'osoba jedząca ryby, ale nie mięso', ipa:'/ˌpeskəˈteəriən/', example:'She is a pescatarian, so she ordered the fish.', video:'6d-LMzIlr5I', start:3119, end:3125, before:'You know, to be honest, if you could be a ', after:' —' },
 }
@@ -57,7 +57,7 @@ export default function BajlaWalkthrough({id,wa,query,pl,auto,setAuto,onComplete
   const [visible,setVisible]=useState(false)
   const [pageVisible,setPageVisible]=useState(!document.hidden)
   const [replay,setReplay]=useState(0)
-  const [word,setWord]=useState(id==='voice'?'berth':'mural')
+  const [word,setWord]=useState(id==='voice'?'berth':'landmark')
   const [mode,setMode]=useState(id==='word'?'hear':'quiz')
   const [answer,setAnswer]=useState('')
   // Intent lives above the step-keyed feature: opening a clip must not discard
@@ -127,7 +127,7 @@ export default function BajlaWalkthrough({id,wa,query,pl,auto,setAuto,onComplete
     const top=clip?el.scrollTop+clip.getBoundingClientRect().top-el.getBoundingClientRect().top-12:el.scrollHeight
     el.scrollTo({top,behavior:reduced||clipPlayback?'instant':'smooth'})
   },playbackDuration(90));return()=>clearTimeout(timer)},[step,reduced,answer,word,mode,clipPlayback])
-  const restart=()=>{setClipPlayback(null);setStep(0);setAnswer('');setWord(id==='voice'?'berth':'mural');setMode(id==='word'?'hear':'quiz');setSlot('18:00');setBooking('move');setSelectedHabit(0);setReplay(r=>r+1)}
+  const restart=()=>{setClipPlayback(null);setStep(0);setAnswer('');setWord(id==='voice'?'berth':'landmark');setMode(id==='word'?'hear':'quiz');setSlot('18:00');setBooking('move');setSelectedHabit(0);setReplay(r=>r+1)}
   const chooseMode=value=>{setMode(value);setAnswer('');go(3)}
   const chooseWord=value=>{setWord(value);setAnswer('');go(3)}
   const automaticAnswer=step>=5&&!answer
@@ -139,7 +139,7 @@ export default function BajlaWalkthrough({id,wa,query,pl,auto,setAuto,onComplete
   const exercise=()=>{
     if(mode==='flashcards')return <div className={`bj-walk-flash${step>=6?' flipped':''}`}><small>{copy('YOUR LESSON VOCABULARY','SŁOWA Z TWOJEJ LEKCJI')}</small><strong>{step>=6?'odłożyć coś na później':'to put something off'}</strong><p>{step>=6?'“Don’t put off your next adventure.”':copy('Think of the meaning, then turn the card.','Przypomnij sobie znaczenie i odwróć fiszkę.')}</p><Action icon="flip" onClick={()=>go(step>=6?4:6)}>{copy(step>=6?'Try again':'Flip card',step>=6?'Jeszcze raz':'Odwróć fiszkę')}</Action></div>
     if(mode==='hear')return <Clip key={word} word={word} pl={pl} playback={clipPlayback} onPlay={playClip} opened={step>=5} onOpen={()=>go(5)}/>
-    if(mode==='usage')return <div className="bj-demo-card">{cardTitle('WORD IN CONTEXT','SŁOWO W KONTEKŚCIE')}<strong className="bj-demo-word">{word}</strong><p>{WORDS[word].meaning}</p><blockquote>{WORDS[word].example}</blockquote><div className="bj-walk-language-chips"><span>{word==='mural'?'paint a mural':word==='berth'?'book a berth':'be a pescatarian'}</span><span>{copy('Everyday English','Angielski na co dzień')}</span></div><Action icon="volume_up" onClick={()=>{setMode('hear');go(4)}}>{copy('Hear a real speaker','Posłuchaj rozmówcy')}</Action></div>
+    if(mode==='usage')return <div className="bj-demo-card">{cardTitle('WORD IN CONTEXT','SŁOWO W KONTEKŚCIE')}<strong className="bj-demo-word">{word}</strong><p>{WORDS[word].meaning}</p><blockquote>{WORDS[word].example}</blockquote><div className="bj-walk-language-chips"><span>{word==='landmark'?'a famous landmark':word==='berth'?'book a berth':'be a pescatarian'}</span><span>{copy('Everyday English','Angielski na co dzień')}</span></div><Action icon="volume_up" onClick={()=>{setMode('hear');go(4)}}>{copy('Hear a real speaker','Posłuchaj rozmówcy')}</Action></div>
     const options=mode==='gap'?['of','on','from']:['delay it','finish it','look for it']
     const correct=options[mode==='gap'?1:0]
     const picked=answer||(automaticAnswer?correct:'')

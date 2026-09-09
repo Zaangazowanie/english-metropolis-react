@@ -21,10 +21,10 @@ export function studentDemoData(lang = 'en') {
   const date = '2026-08-10'
   const topics = [pick('Travel', 'Podróże'), pick('Art', 'Sztuka'), pick('Food', 'Jedzenie')]
   const words = [
-    { word: 'mural', ipa: '/ˈmjʊərəl/', respelling: 'MYOOR-uhl', translation: 'mural / malowidło ścienne', cefr_level: 'B2',
-      definition_en: 'A large picture painted directly on a wall.', definition_pl: 'Duży obraz namalowany bezpośrednio na ścianie.',
-      example_en: 'The artist painted a colourful mural on the wall.', example_pl: 'Artysta namalował kolorowy mural na ścianie.',
-      collocations: { commonCollocations: ['paint a mural', 'a colourful mural', 'a street mural'], contexts: ['Public art and city walks'], usagePatterns: [{ phrase: 'a mural by an artist', example: 'We stopped to admire a mural by a local artist.' }] } },
+    { word: 'landmark', ipa: '/ˈlændmɑːk/', respelling: 'LAND-mark', translation: 'charakterystyczny obiekt; punkt orientacyjny', cefr_level: 'B2',
+      definition_en: 'A building or place that is easy to recognise and helps you know where you are.', definition_pl: 'Łatwo rozpoznawalny budynek lub miejsce, które pomaga się zorientować w okolicy.',
+      example_en: 'The castle is the most famous landmark in the city.', example_pl: 'Zamek jest najbardziej znanym punktem orientacyjnym w mieście.',
+      collocations: { commonCollocations: ['a famous landmark', 'a historic landmark', 'a local landmark'], contexts: ['Travel and city walks'], usagePatterns: [{ phrase: 'a landmark in the city', example: 'The old clock tower is a landmark in the city.' }] } },
     { word: 'berth', ipa: '/bɜːθ/', respelling: 'BURTH', translation: 'koja; give a wide berth — omijać z daleka', cefr_level: 'B2',
       definition_en: 'A bed on a ship or train; also a place where a ship can stay. “Give a wide berth” means to avoid someone or something.',
       definition_pl: 'Miejsce do spania na statku lub w pociągu; także miejsce cumowania. „Give a wide berth” znaczy omijać z daleka.',
@@ -51,7 +51,7 @@ export function studentDemoData(lang = 'en') {
     recommendations: [
       { type: 'youtube', title: 'The Surreal World of René Magritte', creator: 'Art History School', url: 'https://www.youtube.com/watch?v=sNFh9bL5yzg',
         whyThisMatches: pick('Continue the art conversation with paintings that give you clear visual context.', 'Kontynuuj rozmowę o sztuce, korzystając z obrazów jako kontekstu.'),
-        howToNavigate: pick('Watch two minutes. Choose a painting and describe it in three sentences.', 'Obejrzyj dwie minuty. Wybierz obraz i opisz go w trzech zdaniach.'), focusVocab: ['mural', 'artist', 'perspective'] },
+        howToNavigate: pick('Watch two minutes. Choose a painting and describe it in three sentences.', 'Obejrzyj dwie minuty. Wybierz obraz i opisz go w trzech zdaniach.'), focusVocab: ['landmark', 'artist', 'perspective'] },
       { type: 'book', title: 'Around the World in Eighty Days', creator: 'Jules Verne', url: 'https://www.gutenberg.org/ebooks/103',
         whyThisMatches: pick('A travel story gives you more language for journeys and destinations.', 'Opowieść podróżnicza poszerzy Twój język związany z podróżami i ich celami.'),
         howToNavigate: pick('Read a short passage. Keep three useful phrases and retell the scene in your own words.', 'Przeczytaj krótki fragment. Zapisz trzy przydatne zwroty i opowiedz scenę własnymi słowami.'), focusVocab: ['journey', 'departure', 'destination'] },
@@ -61,10 +61,10 @@ export function studentDemoData(lang = 'en') {
     id: 'preview-analysis', cefrBand: 'B2', overallScore: 75,
     vocabularyRange: 78, grammaticalAccuracy: 68, fluencyAndCoherence: 76, pronunciation: 72, communicativeEffectiveness: 82,
     lessonSummary: pick(
-      'You planned a weekend in a new city and compared travelling by train with flying. You described a street mural and explained your food preferences. You used examples to support your choices.\n\nYou practised “depend on” when comparing prices. You used “a berth” to describe a sleeping place on a night train. You explored the expression “give a wide berth” and practised the stressed syllable in “pescatarian”.',
-      'Zaplanowałeś weekend w nowym mieście i porównałeś podróż pociągiem z lotem. Opisałeś mural i wyjaśniłeś swoje preferencje żywieniowe. Uzasadniałeś wybory za pomocą przykładów.\n\nĆwiczyłeś „depend on” podczas porównywania cen. Używałeś „a berth”, opisując miejsce do spania w nocnym pociągu. Poznałeś zwrot „give a wide berth” i ćwiczyłeś akcentowaną sylabę w słowie „pescatarian”.'),
+      'You planned a weekend in a new city and compared travelling by train with flying. You described a famous city landmark and explained your food preferences. You used examples to support your choices.\n\nYou practised “depend on” when comparing prices. You used “a berth” to describe a sleeping place on a night train. You explored the expression “give a wide berth” and practised the stressed syllable in “pescatarian”.',
+      'Zaplanowałeś weekend w nowym mieście i porównałeś podróż pociągiem z lotem. Opisałeś charakterystyczny obiekt w mieście i wyjaśniłeś swoje preferencje żywieniowe. Uzasadniałeś wybory za pomocą przykładów.\n\nĆwiczyłeś „depend on” podczas porównywania cen. Używałeś „a berth”, opisując miejsce do spania w nocnym pociągu. Poznałeś zwrot „give a wide berth” i ćwiczyłeś akcentowaną sylabę w słowie „pescatarian”.'),
     strengths: [pick('You explained why you preferred travelling slowly, using clear examples.', 'Jasno wyjaśniłeś na przykładach, dlaczego wolisz podróżować powoli.'), pick('You asked follow-up questions and kept the art conversation moving.', 'Zadawałeś pytania dodatkowe i rozwijałeś rozmowę o sztuce.')],
-    improvements: [pick('Practise prepositions in useful chunks: depend on the price, interested in art.', 'Ćwicz przyimki w przydatnych zwrotach: depend on the price, interested in art.'), pick('Keep the article with singular countable nouns: a berth, a mural.', 'Pamiętaj o przedimku przy rzeczownikach policzalnych w liczbie pojedynczej: a berth, a mural.')],
+    improvements: [pick('Practise prepositions in useful chunks: depend on the price, interested in art.', 'Ćwicz przyimki w przydatnych zwrotach: depend on the price, interested in art.'), pick('Keep the article with singular countable nouns: a berth, a landmark.', 'Pamiętaj o przedimku przy rzeczownikach policzalnych w liczbie pojedynczej: a berth, a landmark.')],
     keyErrors: [{ error: 'It depends of the price.', correction: 'It depends on the price.', category: 'grammar' }, { error: 'I booked berth on the train.', correction: 'I booked a berth on the train.', category: 'grammar' }],
     practiceAdvice: [pick('Practise prepositions with five sentences about your next journey.', 'Poćwicz przyimki, układając pięć zdań o następnej podróży.'), pick('Use pronunciation drills to practise the word stress in pescatarian.', 'Poćwicz wymowę i akcent wyrazowy w słowie pescatarian.')],
     personalDetails: ['metricCommentary:' + JSON.stringify(commentary), 'personalizedRecs:' + JSON.stringify(recommendations)],

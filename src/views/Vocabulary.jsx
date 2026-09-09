@@ -1,3 +1,7 @@
+import KeywordVideoPlayer from '../components/media/KeywordVideoPlayer.jsx'
+import { captionAt } from '../components/media/keyword-media.mjs'
+import { pronunciationSource } from '../components/media/pronunciation.mjs'
+import { PREPARED_KEYWORDS } from '../components/media/prepared-keywords.mjs'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import {
   CefrBadge,
@@ -32,15 +36,7 @@ async function playTTS(text, voice, onTimeUpdate = null, onEnded = null) {
     audio = ttsCache.get(key)
   } else {
     try {
-      // 30s AbortController-backed timeout — see practice-cache.ts.
-      const resp = await fetchWithTimeout('/api/tts/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice, lang: voice[0] || 'a' }),
-      })
-      if (!resp.ok) throw new Error(`TTS ${resp.status}`)
-      const blob = await resp.blob()
-      const url = URL.createObjectURL(blob)
+      const url = await pronunciationSource(text, v)
       audio = new Audio(url)
       ttsCache.set(key, audio)
     } catch (err) {
@@ -51,14 +47,14 @@ async function playTTS(text, voice, onTimeUpdate = null, onEnded = null) {
   currentAudio?.pause()
   currentAudio = audio
   audio.currentTime = 0
-  if (onTimeUpdate) audio.ontimeupdate = () => onTimeUpdate(audio.currentTime, audio.duration || 0)
-  if (onEnded) audio.onended = onEnded
+  audio.ontimeupdate = onTimeUpdate ? () => onTimeUpdate(audio.currentTime, audio.duration || 0) : null
+  audio.onended = onEnded
   try { await audio.play() } catch { /* ignore */ }
   return audio
 }
 
 /* ============================================================================
-   YouGlish fetch — shared
+   YouTube fetch — shared
    ============================================================================ */
 
 const youglishCache = new Map()
@@ -94,6 +90,7 @@ function youglishQueryVariants(rawKey) {
 async function fetchYouglish(word) {
   const key = String(word || '').toLowerCase().replace(/_/g, ' ').trim()
   if (!key) return { keyword: key, videos: [] }
+  if (PREPARED_KEYWORDS[key]) return PREPARED_KEYWORDS[key]
   if (youglishCache.has(key)) return youglishCache.get(key)
   const variants = youglishQueryVariants(key)
   for (const v of variants) {
@@ -113,9 +110,10 @@ async function fetchYouglish(word) {
           })
         }
         byVid.get(r.videoId).occurrences.push({
-          start: parseInt(r.start, 10) || 0,
-          end: parseFloat(r.end) || (parseInt(r.start, 10) || 0) + 3,
+          start: parseFloat(r.start) || 0,
+          end: parseFloat(r.end) || (parseFloat(r.start) || 0) + 3,
           text: r.display || '',
+          words: r.words,
         })
       }
       const out = { keyword: v, videos: Array.from(byVid.values()), fallbackFrom: v === key ? null : key }
@@ -167,10 +165,11 @@ function splitRespellingSyllables(respelling) {
 }
 
 /* ============================================================================
-   YouGlish Modal (local copy — simplified)
+   YouTube Modal (local copy — simplified)
    ============================================================================ */
 
-function YouGlishModal({ word, onClose }) {
+export function YouGlishModal({ word, onClose }) {
+  const [clock, setClock] = useState({ time: null, cues: [] })
   const { t } = useI18n()
   const [state, setState] = useState({ loading: true, error: null, data: null })
   const [videoIdx, setVideoIdx] = useState(0)
@@ -228,9 +227,9 @@ function YouGlishModal({ word, onClose }) {
           {embedUrl && (
             <>
               <div className="aspect-video rounded-xl overflow-hidden border border-slate-700">
-                <iframe key={`${video.videoId}-${occIdx}`} src={embedUrl} allow="autoplay; encrypted-media" allowFullScreen className="w-full h-full" />
+                <KeywordVideoPlayer videoId={video.videoId} occurrence={occurrence} word={word} onClock={setClock}/>
               </div>
-              {occurrence?.text && <p className="mt-3 text-sm text-slate-300 text-center italic">"{occurrence.text}"</p>}
+              {occurrence?.text && <p className="mt-3 text-sm text-slate-300 text-center italic">{clock.cues.length ? clock.cues.map((cue, i) => <span key={i} className={i === captionAt(clock.cues, clock.time) ? 'text-sky-400 font-bold' : undefined}>{cue.word}{' '}</span>) : `“${occurrence.text}”`}</p>}
               <div className="mt-4 flex items-center justify-between gap-2">
                 <button
                   type="button"
@@ -741,7 +740,7 @@ export default function Vocabulary({ data }) {
         </aside>
       </div>
 
-      {/* YouGlish Modal */}
+      {/* YouTube Modal */}
       {youglishWord && <YouGlishModal word={youglishWord} onClose={() => setYouglishWord(null)} />}
     </section>
   )

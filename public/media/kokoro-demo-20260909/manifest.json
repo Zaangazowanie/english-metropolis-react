@@ -1,0 +1,1350 @@
+{
+  "model": "hexgrad/Kokoro-82M",
+  "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+  "files": [
+    {
+      "voice": "af_heart",
+      "text": "landmark",
+      "file": "af_heart-landmark.wav",
+      "bytes": 70844,
+      "duration": 1.475,
+      "sha256": "c7338431b2ecf4a39ece019a215d7a5c0ac060f3be0201ed352fd6bc089bd761"
+    },
+    {
+      "voice": "af_heart",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "af_heart-landmark-example.wav",
+      "bytes": 165644,
+      "duration": 3.45,
+      "sha256": "9d5418a83a360211f982ce71418a256010a236d9f63a101a16b87ba8aaeb8f57"
+    },
+    {
+      "voice": "af_heart",
+      "text": "berth",
+      "file": "af_heart-berth.wav",
+      "bytes": 63644,
+      "duration": 1.325,
+      "sha256": "e8bd84bbbec1e5ac79fc64eebf518a90e7d5f028682ee84a7319c5bf91af3209"
+    },
+    {
+      "voice": "af_heart",
+      "text": "I booked a berth on the night train.",
+      "file": "af_heart-berth-example.wav",
+      "bytes": 110444,
+      "duration": 2.3,
+      "sha256": "a11bf87d826dd9027a2581cbc0ecfe91f1655ccff62496d47fc8fe4c73dd35e7"
+    },
+    {
+      "voice": "af_heart",
+      "text": "pescatarian",
+      "file": "af_heart-pescatarian.wav",
+      "bytes": 79244,
+      "duration": 1.65,
+      "sha256": "f4a880b99470aebc1c45852ab119c754bfb00afba78b4be4c2dfdd52ebf75d15"
+    },
+    {
+      "voice": "af_heart",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "af_heart-pescatarian-example.wav",
+      "bytes": 154844,
+      "duration": 3.225,
+      "sha256": "06db4b6457cebb43106c0492d778bf90ec9d8a02caa5d8800509feb527e8aa07"
+    },
+    {
+      "voice": "bf_emma",
+      "text": "landmark",
+      "file": "bf_emma-landmark.wav",
+      "bytes": 50444,
+      "duration": 1.05,
+      "sha256": "e09e061303c246374395b4fa1c282ad291ae57c482ecbd3ea37a37d2b97e1d83"
+    },
+    {
+      "voice": "bf_emma",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "bf_emma-landmark-example.wav",
+      "bytes": 175244,
+      "duration": 3.65,
+      "sha256": "884628be20c84eecf45869dd0571c6b645f1f4edfcf4f4098711121d38a472d9"
+    },
+    {
+      "voice": "bf_emma",
+      "text": "berth",
+      "file": "bf_emma-berth.wav",
+      "bytes": 33644,
+      "duration": 0.7,
+      "sha256": "22720215d61beadaa8341244c80854908c3b1815b43498af22c5d8a203f661eb"
+    },
+    {
+      "voice": "bf_emma",
+      "text": "I booked a berth on the night train.",
+      "file": "bf_emma-berth-example.wav",
+      "bytes": 126044,
+      "duration": 2.625,
+      "sha256": "4546533bab4eaad08507278905147dfc9e9f60e05a8792a0c42401154664c83d"
+    },
+    {
+      "voice": "bf_emma",
+      "text": "pescatarian",
+      "file": "bf_emma-pescatarian.wav",
+      "bytes": 86444,
+      "duration": 1.8,
+      "sha256": "0ebc4f43a0b30a47c7d1b8c82a916b3b6ba145df52b22ca87889c6375b63c0e2"
+    },
+    {
+      "voice": "bf_emma",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "bf_emma-pescatarian-example.wav",
+      "bytes": 164444,
+      "duration": 3.425,
+      "sha256": "001e21cc9e63d63f494283167b3d0194cc8ab5626f6e999591c93574f19105d6"
+    },
+    {
+      "voice": "af_bella",
+      "text": "landmark",
+      "file": "af_bella-landmark.wav",
+      "bytes": 70844,
+      "duration": 1.475,
+      "sha256": "18e2333e58d8a5afc827158ab2d0335b77eda5451db72501fc4eb0c38edcf4a5"
+    },
+    {
+      "voice": "af_bella",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "af_bella-landmark-example.wav",
+      "bytes": 174044,
+      "duration": 3.625,
+      "sha256": "ceda39b6de0950d973102fce729b87cea43590b4f7a10b12a8e12bd7992546ab"
+    },
+    {
+      "voice": "af_bella",
+      "text": "berth",
+      "file": "af_bella-berth.wav",
+      "bytes": 63644,
+      "duration": 1.325,
+      "sha256": "be135ec6bc5a1d7f37b00e2244dc83a7b94674817f46b74686331cbb4051338d"
+    },
+    {
+      "voice": "af_bella",
+      "text": "I booked a berth on the night train.",
+      "file": "af_bella-berth-example.wav",
+      "bytes": 120044,
+      "duration": 2.5,
+      "sha256": "17a5da80755e345d3affde81118f5b2fc5f02acdd0ff77de4c5651c24eb2bdc0"
+    },
+    {
+      "voice": "af_bella",
+      "text": "pescatarian",
+      "file": "af_bella-pescatarian.wav",
+      "bytes": 82844,
+      "duration": 1.725,
+      "sha256": "41e668d01ef7b04398d8c3d51a7d071ba2d1cc3050fee20d7d0ed11b743092b2"
+    },
+    {
+      "voice": "af_bella",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "af_bella-pescatarian-example.wav",
+      "bytes": 166844,
+      "duration": 3.475,
+      "sha256": "2c9d4467635a16471351dfc3735299d936d0a3d86491c49d9da784a283513ba8"
+    },
+    {
+      "voice": "af_alloy",
+      "text": "landmark",
+      "file": "af_alloy-landmark.wav",
+      "bytes": 52844,
+      "duration": 1.1,
+      "sha256": "15c539d2adbb2c0adebe85d17e5f846db1f4fbef28ab273616d38a0c83b1ffd3"
+    },
+    {
+      "voice": "af_alloy",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "af_alloy-landmark-example.wav",
+      "bytes": 183644,
+      "duration": 3.825,
+      "sha256": "1a29693664e88a2f84d349ade55849a6abadb23966cd92f027310ff864666ed6"
+    },
+    {
+      "voice": "af_alloy",
+      "text": "berth",
+      "file": "af_alloy-berth.wav",
+      "bytes": 43244,
+      "duration": 0.9,
+      "sha256": "542b127c8355cacb0079ac0fc773b8d9ee78a5a2f6647f9a24b2d7f2097e700f"
+    },
+    {
+      "voice": "af_alloy",
+      "text": "I booked a berth on the night train.",
+      "file": "af_alloy-berth-example.wav",
+      "bytes": 139244,
+      "duration": 2.9,
+      "sha256": "b4f086e79a84c842e406f9590df1f043b14c1acb12b24001d5fdd2eaac723e21"
+    },
+    {
+      "voice": "af_alloy",
+      "text": "pescatarian",
+      "file": "af_alloy-pescatarian.wav",
+      "bytes": 88844,
+      "duration": 1.85,
+      "sha256": "b85e353dafd604d9474aae009697d6bc482fe2e8b461dc3b9572fa295c0a5d0e"
+    },
+    {
+      "voice": "af_alloy",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "af_alloy-pescatarian-example.wav",
+      "bytes": 171644,
+      "duration": 3.575,
+      "sha256": "88435b4e8cebca77a95fc6eb83d11f81bd960ac3cdc72622b02d96707a3aca18"
+    },
+    {
+      "voice": "af_aoede",
+      "text": "landmark",
+      "file": "af_aoede-landmark.wav",
+      "bytes": 58844,
+      "duration": 1.225,
+      "sha256": "c26079a87d82b55a4817173ffc15d51251411f21d413533f73a1072d737eabdc"
+    },
+    {
+      "voice": "af_aoede",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "af_aoede-landmark-example.wav",
+      "bytes": 160844,
+      "duration": 3.35,
+      "sha256": "b28bf75802518d393257b3f515c7d470f4d4ce4ca1a775e9212039f1c98bea82"
+    },
+    {
+      "voice": "af_aoede",
+      "text": "berth",
+      "file": "af_aoede-berth.wav",
+      "bytes": 43244,
+      "duration": 0.9,
+      "sha256": "a64ba696a649c32ca2a278e293ad4b61c76843ba5594d232f73155db03f05f33"
+    },
+    {
+      "voice": "af_aoede",
+      "text": "I booked a berth on the night train.",
+      "file": "af_aoede-berth-example.wav",
+      "bytes": 111644,
+      "duration": 2.325,
+      "sha256": "7e15aaaf16ffd43564d4db7303f68d85b30f64b2ffc43539f49bfbf2c5165420"
+    },
+    {
+      "voice": "af_aoede",
+      "text": "pescatarian",
+      "file": "af_aoede-pescatarian.wav",
+      "bytes": 75644,
+      "duration": 1.575,
+      "sha256": "db6d22546ddc579b835ac952a613f37b6164067cc55b26c250cbd80d04892011"
+    },
+    {
+      "voice": "af_aoede",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "af_aoede-pescatarian-example.wav",
+      "bytes": 148844,
+      "duration": 3.1,
+      "sha256": "e639c5430f4f0b710edf63330bb739c3ee5e77b39a89e8f170f7791b69da9f89"
+    },
+    {
+      "voice": "af_jessica",
+      "text": "landmark",
+      "file": "af_jessica-landmark.wav",
+      "bytes": 45644,
+      "duration": 0.95,
+      "sha256": "37cf9bacf34fb26e69060a0041502f7124d2a9d9e386295ea66c124a1731b925"
+    },
+    {
+      "voice": "af_jessica",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "af_jessica-landmark-example.wav",
+      "bytes": 158444,
+      "duration": 3.3,
+      "sha256": "c6a0032ad328f817d124221229ef22e53936830c429c729bb058089ae98435f9"
+    },
+    {
+      "voice": "af_jessica",
+      "text": "berth",
+      "file": "af_jessica-berth.wav",
+      "bytes": 37244,
+      "duration": 0.775,
+      "sha256": "93aca67b34d251e0c34880440ba3e0bf1a812ebedca54ccc738002dd401ad7a6"
+    },
+    {
+      "voice": "af_jessica",
+      "text": "I booked a berth on the night train.",
+      "file": "af_jessica-berth-example.wav",
+      "bytes": 120044,
+      "duration": 2.5,
+      "sha256": "8f4df603aac74c65bbf0cf3fe884fc1a97c2aaef554ed0c0a9175c9c651249fe"
+    },
+    {
+      "voice": "af_jessica",
+      "text": "pescatarian",
+      "file": "af_jessica-pescatarian.wav",
+      "bytes": 64844,
+      "duration": 1.35,
+      "sha256": "f74e64119509158b2962cdbad13390a0f5fe8be265c7a718750035489f98e705"
+    },
+    {
+      "voice": "af_jessica",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "af_jessica-pescatarian-example.wav",
+      "bytes": 152444,
+      "duration": 3.175,
+      "sha256": "06857927c9e2e4439093ba174efd9619af35fa9a0270b8c7b8103058dc95f653"
+    },
+    {
+      "voice": "af_kore",
+      "text": "landmark",
+      "file": "af_kore-landmark.wav",
+      "bytes": 61244,
+      "duration": 1.275,
+      "sha256": "374a626048d57b98aa235ef8b8e36e9a5e47dcc4880572e7eb2c3c1128594d70"
+    },
+    {
+      "voice": "af_kore",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "af_kore-landmark-example.wav",
+      "bytes": 166844,
+      "duration": 3.475,
+      "sha256": "0a11873147ed9605886be0909017d5574abc5694d08486ce3207fb01685e03b2"
+    },
+    {
+      "voice": "af_kore",
+      "text": "berth",
+      "file": "af_kore-berth.wav",
+      "bytes": 49244,
+      "duration": 1.025,
+      "sha256": "a6a2014ae81c8abeaccbccd44d6fbaa22469a5815390a5d591c51862d093618e"
+    },
+    {
+      "voice": "af_kore",
+      "text": "I booked a berth on the night train.",
+      "file": "af_kore-berth-example.wav",
+      "bytes": 108044,
+      "duration": 2.25,
+      "sha256": "d4a57e81e1bc857f85df6230ec01d1c9205f72c7b9fb1ba967f22d0afee9f56b"
+    },
+    {
+      "voice": "af_kore",
+      "text": "pescatarian",
+      "file": "af_kore-pescatarian.wav",
+      "bytes": 73244,
+      "duration": 1.525,
+      "sha256": "70f1d6ad4efef5bc65570f48d105501e4766e956f229e7083e9d01e9806cd386"
+    },
+    {
+      "voice": "af_kore",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "af_kore-pescatarian-example.wav",
+      "bytes": 148844,
+      "duration": 3.1,
+      "sha256": "4501b65c11e21fe98379510a98709637e97a58db1c2100bd25c85078d463ca68"
+    },
+    {
+      "voice": "af_nicole",
+      "text": "landmark",
+      "file": "af_nicole-landmark.wav",
+      "bytes": 70844,
+      "duration": 1.475,
+      "sha256": "55709905879e7da77677d3a4535fc1582b65254d5af7d8cf26b32b97cc732920"
+    },
+    {
+      "voice": "af_nicole",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "af_nicole-landmark-example.wav",
+      "bytes": 254444,
+      "duration": 5.3,
+      "sha256": "b5e86b1442481508db623eecdcf037bf73aeb8f7b17daaee7c01c04795a19d46"
+    },
+    {
+      "voice": "af_nicole",
+      "text": "berth",
+      "file": "af_nicole-berth.wav",
+      "bytes": 55244,
+      "duration": 1.15,
+      "sha256": "69ae1be8fe3b68be26f124b7f2ad3acaa01791832b8308aac1f6e6aa15956c49"
+    },
+    {
+      "voice": "af_nicole",
+      "text": "I booked a berth on the night train.",
+      "file": "af_nicole-berth-example.wav",
+      "bytes": 163244,
+      "duration": 3.4,
+      "sha256": "71574c894696f51d53a5cff5a61766a1198d1c6b4abe55472e2b0d5f7f74751c"
+    },
+    {
+      "voice": "af_nicole",
+      "text": "pescatarian",
+      "file": "af_nicole-pescatarian.wav",
+      "bytes": 87644,
+      "duration": 1.825,
+      "sha256": "1b378aa2748eb33bf858b0dd1c70ca575a74cee5745ace66dd5d72c9adf8163c"
+    },
+    {
+      "voice": "af_nicole",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "af_nicole-pescatarian-example.wav",
+      "bytes": 225644,
+      "duration": 4.7,
+      "sha256": "237776d004ca1069d32745d6f88027965af3a5e841fc1ba250a53871259fde29"
+    },
+    {
+      "voice": "af_nova",
+      "text": "landmark",
+      "file": "af_nova-landmark.wav",
+      "bytes": 54044,
+      "duration": 1.125,
+      "sha256": "ac5a542e4587e0ef05b13bb78b7b9fe57ff93c5e8ab5a8c6d299a885000d5e82"
+    },
+    {
+      "voice": "af_nova",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "af_nova-landmark-example.wav",
+      "bytes": 180044,
+      "duration": 3.75,
+      "sha256": "1aa00e481fd725875047c0de598522867ea616afa1a2dad5910894976e1e7c9e"
+    },
+    {
+      "voice": "af_nova",
+      "text": "berth",
+      "file": "af_nova-berth.wav",
+      "bytes": 45644,
+      "duration": 0.95,
+      "sha256": "22e69bac937b3c4df179babbef94c8d3454c08319a764263f4e5b3e89cba3258"
+    },
+    {
+      "voice": "af_nova",
+      "text": "I booked a berth on the night train.",
+      "file": "af_nova-berth-example.wav",
+      "bytes": 136844,
+      "duration": 2.85,
+      "sha256": "283c8fe9bf69144f38ec7b82885206bca63fcd9fb411d0e570881bcda984ad27"
+    },
+    {
+      "voice": "af_nova",
+      "text": "pescatarian",
+      "file": "af_nova-pescatarian.wav",
+      "bytes": 87644,
+      "duration": 1.825,
+      "sha256": "b85f7dc0e34df45d7f37603752ed33f958b74e8491f989f49a2a9d7500a801ef"
+    },
+    {
+      "voice": "af_nova",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "af_nova-pescatarian-example.wav",
+      "bytes": 168044,
+      "duration": 3.5,
+      "sha256": "3874421895fb53903d0b3dcb8d8ef306603d65e1102543adbc9e03e68e3935a2"
+    },
+    {
+      "voice": "af_river",
+      "text": "landmark",
+      "file": "af_river-landmark.wav",
+      "bytes": 57644,
+      "duration": 1.2,
+      "sha256": "5e61f62638204c3960067632bfc939bd8d1c521532f6037af76d10e859559603"
+    },
+    {
+      "voice": "af_river",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "af_river-landmark-example.wav",
+      "bytes": 163244,
+      "duration": 3.4,
+      "sha256": "ca8ef66d8779edfd7fc8178aeed8633409dcafabcec2596724891d505eaf5287"
+    },
+    {
+      "voice": "af_river",
+      "text": "berth",
+      "file": "af_river-berth.wav",
+      "bytes": 42044,
+      "duration": 0.875,
+      "sha256": "f7dd244c22f778b0fb2f9dab59643273b2dc32a05d51594dabc54e19111de6a2"
+    },
+    {
+      "voice": "af_river",
+      "text": "I booked a berth on the night train.",
+      "file": "af_river-berth-example.wav",
+      "bytes": 122444,
+      "duration": 2.55,
+      "sha256": "f061471ebd773253126ed6bb85060773039f538ac6764ec3dfc40c174a330496"
+    },
+    {
+      "voice": "af_river",
+      "text": "pescatarian",
+      "file": "af_river-pescatarian.wav",
+      "bytes": 76844,
+      "duration": 1.6,
+      "sha256": "3f75278abf73f97123f3ec23b47e798840e1c1cfa381d3cd158fd4681521adda"
+    },
+    {
+      "voice": "af_river",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "af_river-pescatarian-example.wav",
+      "bytes": 150044,
+      "duration": 3.125,
+      "sha256": "6dc8bad7c4279e270d3aca2022e5e8138640b86afed4589bb948fc5e8d8affff"
+    },
+    {
+      "voice": "af_sarah",
+      "text": "landmark",
+      "file": "af_sarah-landmark.wav",
+      "bytes": 84044,
+      "duration": 1.75,
+      "sha256": "ff0360ba7acf88bbe07c7a60b05bc4813267aa01ccd152c30bb0126a91c37436"
+    },
+    {
+      "voice": "af_sarah",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "af_sarah-landmark-example.wav",
+      "bytes": 186044,
+      "duration": 3.875,
+      "sha256": "4b0b99b0f6f76d0185061cb5c73f36a94fa8ca11999c0b29b3390e7026e8b025"
+    },
+    {
+      "voice": "af_sarah",
+      "text": "berth",
+      "file": "af_sarah-berth.wav",
+      "bytes": 70844,
+      "duration": 1.475,
+      "sha256": "49d12f211f1c0869ce724de172448beadc8e38d0e7185df1257a78245706486d"
+    },
+    {
+      "voice": "af_sarah",
+      "text": "I booked a berth on the night train.",
+      "file": "af_sarah-berth-example.wav",
+      "bytes": 134444,
+      "duration": 2.8,
+      "sha256": "53a075092d55037b9473bb04f5e9260c3dd552d8b8e43829ec48f5667b7a0e12"
+    },
+    {
+      "voice": "af_sarah",
+      "text": "pescatarian",
+      "file": "af_sarah-pescatarian.wav",
+      "bytes": 97244,
+      "duration": 2.025,
+      "sha256": "66cb0ad50c8ada4ae5e1cde549c6fd15e9079dcb2fb2b9ad46111dcc25e608f5"
+    },
+    {
+      "voice": "af_sarah",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "af_sarah-pescatarian-example.wav",
+      "bytes": 171644,
+      "duration": 3.575,
+      "sha256": "a7be1b967417661b971882cc4b3f5d9be6be918b4bc66593037c390adfb51a68"
+    },
+    {
+      "voice": "af_sky",
+      "text": "landmark",
+      "file": "af_sky-landmark.wav",
+      "bytes": 58844,
+      "duration": 1.225,
+      "sha256": "18b9f895ded9658f0fd20dc70b3a51eb8e925c351854b7d857a3b64da23f7654"
+    },
+    {
+      "voice": "af_sky",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "af_sky-landmark-example.wav",
+      "bytes": 177644,
+      "duration": 3.7,
+      "sha256": "f168933a92ba47da53263a3f4c8a6ab911f687e7cd85c7664e0c2385c3142578"
+    },
+    {
+      "voice": "af_sky",
+      "text": "berth",
+      "file": "af_sky-berth.wav",
+      "bytes": 51644,
+      "duration": 1.075,
+      "sha256": "a48dbfb7cb0737207171fe67227cebf40830c0c8ed665845fdc635640c74d4a0"
+    },
+    {
+      "voice": "af_sky",
+      "text": "I booked a berth on the night train.",
+      "file": "af_sky-berth-example.wav",
+      "bytes": 129644,
+      "duration": 2.7,
+      "sha256": "4aab5ba687e9b169504a550fc2b30edd8c435f7f5d58768f1e13eb27c4388e75"
+    },
+    {
+      "voice": "af_sky",
+      "text": "pescatarian",
+      "file": "af_sky-pescatarian.wav",
+      "bytes": 78044,
+      "duration": 1.625,
+      "sha256": "e39300976dee4170040c0460bb5de4ec18f573a83742e27aeeba46e60c77fbad"
+    },
+    {
+      "voice": "af_sky",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "af_sky-pescatarian-example.wav",
+      "bytes": 164444,
+      "duration": 3.425,
+      "sha256": "e25826f710f34e946fee646ccb2f2aa1423f7431103f633f4f51caf3be8c1e11"
+    },
+    {
+      "voice": "am_adam",
+      "text": "landmark",
+      "file": "am_adam-landmark.wav",
+      "bytes": 64844,
+      "duration": 1.35,
+      "sha256": "d1a00a3ceece0dfdeef330eb247ac96f07cec130aaa04475311903256303d619"
+    },
+    {
+      "voice": "am_adam",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "am_adam-landmark-example.wav",
+      "bytes": 166844,
+      "duration": 3.475,
+      "sha256": "d8fc9f2417f6d11ea24d8fe2c21606724d94de05d19494c7a7330b3860a2b385"
+    },
+    {
+      "voice": "am_adam",
+      "text": "berth",
+      "file": "am_adam-berth.wav",
+      "bytes": 46844,
+      "duration": 0.975,
+      "sha256": "864aa2436bfc0fd4734bdc33e51ca3fb0800c2eec2915b1caaea0097455fbae4"
+    },
+    {
+      "voice": "am_adam",
+      "text": "I booked a berth on the night train.",
+      "file": "am_adam-berth-example.wav",
+      "bytes": 123644,
+      "duration": 2.575,
+      "sha256": "cc5a2587975b5d94294ca981d5c3572ecdea3493f58549cd98937be3278f66d4"
+    },
+    {
+      "voice": "am_adam",
+      "text": "pescatarian",
+      "file": "am_adam-pescatarian.wav",
+      "bytes": 79244,
+      "duration": 1.65,
+      "sha256": "acb17b5396d1cbf3c18f9d62ad62c55951921d26b124a93cce0879caad6eb27b"
+    },
+    {
+      "voice": "am_adam",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "am_adam-pescatarian-example.wav",
+      "bytes": 153644,
+      "duration": 3.2,
+      "sha256": "0d6c266c4038287428111efbce03aba54513f00d29b26300afb5c55a476b25fd"
+    },
+    {
+      "voice": "am_echo",
+      "text": "landmark",
+      "file": "am_echo-landmark.wav",
+      "bytes": 55244,
+      "duration": 1.15,
+      "sha256": "9e22d4b19d755d9c805db00f7569771621a3ba2cc4aa1bfcbbad5531f767d26d"
+    },
+    {
+      "voice": "am_echo",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "am_echo-landmark-example.wav",
+      "bytes": 183644,
+      "duration": 3.825,
+      "sha256": "3010c3b032abe71cadc37423b5b4fec675cbecda0b22739b073de592fc380497"
+    },
+    {
+      "voice": "am_echo",
+      "text": "berth",
+      "file": "am_echo-berth.wav",
+      "bytes": 42044,
+      "duration": 0.875,
+      "sha256": "8bf4aa1286a712585489442be194c104819dac40bf0a4cdeff500a6e7ae6ae5f"
+    },
+    {
+      "voice": "am_echo",
+      "text": "I booked a berth on the night train.",
+      "file": "am_echo-berth-example.wav",
+      "bytes": 136844,
+      "duration": 2.85,
+      "sha256": "ad35ed92729ff9d6c00c212c4bc2103ae310d76ad615773cb5ad611894dc249d"
+    },
+    {
+      "voice": "am_echo",
+      "text": "pescatarian",
+      "file": "am_echo-pescatarian.wav",
+      "bytes": 81644,
+      "duration": 1.7,
+      "sha256": "a1238cc3beb00b2d4a7100dc15c5cb6810d7b17dfb90de2408e9ca304f524411"
+    },
+    {
+      "voice": "am_echo",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "am_echo-pescatarian-example.wav",
+      "bytes": 170444,
+      "duration": 3.55,
+      "sha256": "6d8553ece7f31b58e252c9fa673a5378cfb44857ecbe06873d765fa01d13a411"
+    },
+    {
+      "voice": "am_eric",
+      "text": "landmark",
+      "file": "am_eric-landmark.wav",
+      "bytes": 44444,
+      "duration": 0.925,
+      "sha256": "7548e3031558b7a60d8134c5684ec29016987e9cb657fe0a9a74aebd2ba82818"
+    },
+    {
+      "voice": "am_eric",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "am_eric-landmark-example.wav",
+      "bytes": 160844,
+      "duration": 3.35,
+      "sha256": "f881a30cf374b4d6e050f5b9a182242c01124ad727ce93724ff4f9d0167e42bd"
+    },
+    {
+      "voice": "am_eric",
+      "text": "berth",
+      "file": "am_eric-berth.wav",
+      "bytes": 36044,
+      "duration": 0.75,
+      "sha256": "3469abbea891a192dd290a0a93e94e511e685d0ed368daca9773c6443adacce5"
+    },
+    {
+      "voice": "am_eric",
+      "text": "I booked a berth on the night train.",
+      "file": "am_eric-berth-example.wav",
+      "bytes": 120044,
+      "duration": 2.5,
+      "sha256": "540503be3e1da136d82642ac604fd8d34fad008edb62ecea46c4f60c4fea5072"
+    },
+    {
+      "voice": "am_eric",
+      "text": "pescatarian",
+      "file": "am_eric-pescatarian.wav",
+      "bytes": 60044,
+      "duration": 1.25,
+      "sha256": "0d24326e4a3c9d12eda22e9a55aea10331f57719404b08d63c69278d5ed9e172"
+    },
+    {
+      "voice": "am_eric",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "am_eric-pescatarian-example.wav",
+      "bytes": 150044,
+      "duration": 3.125,
+      "sha256": "5b68e731de9ca30e5d64b07370e5c2acd7bde73217e479d1c21e27fc260285ef"
+    },
+    {
+      "voice": "am_fenrir",
+      "text": "landmark",
+      "file": "am_fenrir-landmark.wav",
+      "bytes": 58844,
+      "duration": 1.225,
+      "sha256": "1253a33445ae553e20844e3c77c97e8cba32a57e5dba4f389b84f1b25be86c3e"
+    },
+    {
+      "voice": "am_fenrir",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "am_fenrir-landmark-example.wav",
+      "bytes": 154844,
+      "duration": 3.225,
+      "sha256": "743bfad532076ab1ce7b0ee6db7dd77d03a5ef064ff61a3a797af73a9c2209b8"
+    },
+    {
+      "voice": "am_fenrir",
+      "text": "berth",
+      "file": "am_fenrir-berth.wav",
+      "bytes": 49244,
+      "duration": 1.025,
+      "sha256": "6fb942c7712579e3420e9a5d1ed158b7f4d4cec6ec7aefec227ebdb08bae3f8b"
+    },
+    {
+      "voice": "am_fenrir",
+      "text": "I booked a berth on the night train.",
+      "file": "am_fenrir-berth-example.wav",
+      "bytes": 104444,
+      "duration": 2.175,
+      "sha256": "f7df96340e3a9232cb0a524a58d37d7f84c6e52d08a800c81d3e98dbd4730af9"
+    },
+    {
+      "voice": "am_fenrir",
+      "text": "pescatarian",
+      "file": "am_fenrir-pescatarian.wav",
+      "bytes": 70844,
+      "duration": 1.475,
+      "sha256": "2cf5204733a4a2b85b2add1196a4b37b0ec51e2a4f2465473ca3a785373b9c92"
+    },
+    {
+      "voice": "am_fenrir",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "am_fenrir-pescatarian-example.wav",
+      "bytes": 141644,
+      "duration": 2.95,
+      "sha256": "3bb869c9aec7082481b33bb8bf2737153de0a8443fcef0edceee2b3acd99887b"
+    },
+    {
+      "voice": "am_liam",
+      "text": "landmark",
+      "file": "am_liam-landmark.wav",
+      "bytes": 46844,
+      "duration": 0.975,
+      "sha256": "030b2901151b967e2a6e13241acd523390d75269a4f07deb47741f18c6c2a999"
+    },
+    {
+      "voice": "am_liam",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "am_liam-landmark-example.wav",
+      "bytes": 165644,
+      "duration": 3.45,
+      "sha256": "370e9522b51e3a5afb296f1aa7ac807dd3b65d2302af2c66fb67c9fd412a2952"
+    },
+    {
+      "voice": "am_liam",
+      "text": "berth",
+      "file": "am_liam-berth.wav",
+      "bytes": 36044,
+      "duration": 0.75,
+      "sha256": "36ad60030c902b912dabee9af45973cea67e85a10c9b8bf8a4d9afa4566537ae"
+    },
+    {
+      "voice": "am_liam",
+      "text": "I booked a berth on the night train.",
+      "file": "am_liam-berth-example.wav",
+      "bytes": 120044,
+      "duration": 2.5,
+      "sha256": "1a9551239d358ef8d793c17b6d92440fbaf19d9a88727477e36ead16b30a9cc0"
+    },
+    {
+      "voice": "am_liam",
+      "text": "pescatarian",
+      "file": "am_liam-pescatarian.wav",
+      "bytes": 75644,
+      "duration": 1.575,
+      "sha256": "301517b070c9665ad068922b9968027e1bb13c8669bf860a185b9187701db360"
+    },
+    {
+      "voice": "am_liam",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "am_liam-pescatarian-example.wav",
+      "bytes": 154844,
+      "duration": 3.225,
+      "sha256": "721190f4c8ec530c6a32ced313ba3ed1b9f39fc10bfa12b9eaa4355ecf59f840"
+    },
+    {
+      "voice": "am_michael",
+      "text": "landmark",
+      "file": "am_michael-landmark.wav",
+      "bytes": 70844,
+      "duration": 1.475,
+      "sha256": "970ed2d13b8026300192bbd0ee0e67cf8d976932e2add5c7b32b615691903522"
+    },
+    {
+      "voice": "am_michael",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "am_michael-landmark-example.wav",
+      "bytes": 187244,
+      "duration": 3.9,
+      "sha256": "1a9e280ab5e6ab4c49bdd5d58a6c6b62f865f6a77fe381d78ef6068fdc814b85"
+    },
+    {
+      "voice": "am_michael",
+      "text": "berth",
+      "file": "am_michael-berth.wav",
+      "bytes": 57644,
+      "duration": 1.2,
+      "sha256": "e94f248da5a3d4d5aa2b2c8cb8900ee80da251fe1fb27e94eaab3e266061e18f"
+    },
+    {
+      "voice": "am_michael",
+      "text": "I booked a berth on the night train.",
+      "file": "am_michael-berth-example.wav",
+      "bytes": 129644,
+      "duration": 2.7,
+      "sha256": "1d419de56a771232709f566001edccfcef6690d81b300c314dbc2388594f1c8e"
+    },
+    {
+      "voice": "am_michael",
+      "text": "pescatarian",
+      "file": "am_michael-pescatarian.wav",
+      "bytes": 84044,
+      "duration": 1.75,
+      "sha256": "be833a838b8e485135944c9c1eac2853e71b49af9bda3774215cf6935c31afb5"
+    },
+    {
+      "voice": "am_michael",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "am_michael-pescatarian-example.wav",
+      "bytes": 171644,
+      "duration": 3.575,
+      "sha256": "856ba9dee393dec5bd03c42a5d1c918e3faa3a7dd56462663b699127a59e4b80"
+    },
+    {
+      "voice": "am_onyx",
+      "text": "landmark",
+      "file": "am_onyx-landmark.wav",
+      "bytes": 50444,
+      "duration": 1.05,
+      "sha256": "4c43833c99efc723cfe3e59c2f468d9dd19c62fb8d4382af7fbde15702522bf3"
+    },
+    {
+      "voice": "am_onyx",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "am_onyx-landmark-example.wav",
+      "bytes": 181244,
+      "duration": 3.775,
+      "sha256": "b6af15bd383972e491ef991f1ed274707ee9fcc0b981a16cd3e2ac5cf3605567"
+    },
+    {
+      "voice": "am_onyx",
+      "text": "berth",
+      "file": "am_onyx-berth.wav",
+      "bytes": 33644,
+      "duration": 0.7,
+      "sha256": "7a9f3d7a5b0b4572cb6df0265dd1b6d916c741ec1f7ca89c3e25b2634f705afc"
+    },
+    {
+      "voice": "am_onyx",
+      "text": "I booked a berth on the night train.",
+      "file": "am_onyx-berth-example.wav",
+      "bytes": 136844,
+      "duration": 2.85,
+      "sha256": "483267315a93f0cb58aa4c405e75cd5a28e140ac310ab792f72947e5e31766fd"
+    },
+    {
+      "voice": "am_onyx",
+      "text": "pescatarian",
+      "file": "am_onyx-pescatarian.wav",
+      "bytes": 62444,
+      "duration": 1.3,
+      "sha256": "7500cf7f451054f354f9c47a5ae8d9ebd9bc7cabe0493256957774ea0e9f836c"
+    },
+    {
+      "voice": "am_onyx",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "am_onyx-pescatarian-example.wav",
+      "bytes": 169244,
+      "duration": 3.525,
+      "sha256": "0642096eea8916e4b157d73a3946fd532ee93e537b5d866265318302360a644c"
+    },
+    {
+      "voice": "am_puck",
+      "text": "landmark",
+      "file": "am_puck-landmark.wav",
+      "bytes": 62444,
+      "duration": 1.3,
+      "sha256": "cf4f64a95aed3bfecc62f202027c809e034bc819f442f3184c441d4865207d6e"
+    },
+    {
+      "voice": "am_puck",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "am_puck-landmark-example.wav",
+      "bytes": 159644,
+      "duration": 3.325,
+      "sha256": "8009baf5224656d8797a1579f478b9da67d5d5abad3b1220152393fe3da3b19b"
+    },
+    {
+      "voice": "am_puck",
+      "text": "berth",
+      "file": "am_puck-berth.wav",
+      "bytes": 48044,
+      "duration": 1.0,
+      "sha256": "3c99cf18b194ed4be9aa1a6dc61a96275dad64e8ec2466cac5080abcb60788c9"
+    },
+    {
+      "voice": "am_puck",
+      "text": "I booked a berth on the night train.",
+      "file": "am_puck-berth-example.wav",
+      "bytes": 109244,
+      "duration": 2.275,
+      "sha256": "81f898e76821ce530eb221230d2b9149abe880384fe6820ab456be2d6d71c153"
+    },
+    {
+      "voice": "am_puck",
+      "text": "pescatarian",
+      "file": "am_puck-pescatarian.wav",
+      "bytes": 75644,
+      "duration": 1.575,
+      "sha256": "0b75ec9b3897c05614b6e554892d37746373ec3a83af7a8cbda8b90be429a9c3"
+    },
+    {
+      "voice": "am_puck",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "am_puck-pescatarian-example.wav",
+      "bytes": 142844,
+      "duration": 2.975,
+      "sha256": "fe7574d0b11967a5e79efa9b5187f36d866ad1fd9c0fc731967fba907b0efe5b"
+    },
+    {
+      "voice": "am_santa",
+      "text": "landmark",
+      "file": "am_santa-landmark.wav",
+      "bytes": 46844,
+      "duration": 0.975,
+      "sha256": "154b1143f9471bf87506765a2cd157fda2c0e3caec889fb7a4b9ff7267647cd3"
+    },
+    {
+      "voice": "am_santa",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "am_santa-landmark-example.wav",
+      "bytes": 177644,
+      "duration": 3.7,
+      "sha256": "95f377c6e46f034659c93ddd953be732ba356411d9cf239769cab6ab97f1c4f4"
+    },
+    {
+      "voice": "am_santa",
+      "text": "berth",
+      "file": "am_santa-berth.wav",
+      "bytes": 39644,
+      "duration": 0.825,
+      "sha256": "751386f34e3d0d82db326369fe1b88cc17d95cb7b94a0eebb44ec366024cf4bb"
+    },
+    {
+      "voice": "am_santa",
+      "text": "I booked a berth on the night train.",
+      "file": "am_santa-berth-example.wav",
+      "bytes": 115244,
+      "duration": 2.4,
+      "sha256": "2f46a31dce3a1e78343eaca062851b0a8a17d984d4a619e97608b462d6d1d24d"
+    },
+    {
+      "voice": "am_santa",
+      "text": "pescatarian",
+      "file": "am_santa-pescatarian.wav",
+      "bytes": 63644,
+      "duration": 1.325,
+      "sha256": "aceee066c5b3987d7a70451167181083773b45d0eb4c26a9333eab63eb2a5903"
+    },
+    {
+      "voice": "am_santa",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "am_santa-pescatarian-example.wav",
+      "bytes": 165644,
+      "duration": 3.45,
+      "sha256": "fb7725d61d8264f4f9fc018133f6cd7681e2cbc3c94de5db973119c0dba65406"
+    },
+    {
+      "voice": "bf_alice",
+      "text": "landmark",
+      "file": "bf_alice-landmark.wav",
+      "bytes": 52844,
+      "duration": 1.1,
+      "sha256": "a9b206efb68170d8514e818bae53360a9a24947846fcca50533061c9bb9e4777"
+    },
+    {
+      "voice": "bf_alice",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "bf_alice-landmark-example.wav",
+      "bytes": 180044,
+      "duration": 3.75,
+      "sha256": "d45bf3577bca8a3b6a44604fbb4055af14e1cf1ca84c5ec9cca3fe454a499220"
+    },
+    {
+      "voice": "bf_alice",
+      "text": "berth",
+      "file": "bf_alice-berth.wav",
+      "bytes": 39644,
+      "duration": 0.825,
+      "sha256": "29356a4802df729e307ddb4e0f399b8d1e17fd0fc2c65a5108bc724607c6f150"
+    },
+    {
+      "voice": "bf_alice",
+      "text": "I booked a berth on the night train.",
+      "file": "bf_alice-berth-example.wav",
+      "bytes": 129644,
+      "duration": 2.7,
+      "sha256": "818cf86ccc834d42db1023d6226e7c3f590e8f02edfba02fab70a2ee5e50f480"
+    },
+    {
+      "voice": "bf_alice",
+      "text": "pescatarian",
+      "file": "bf_alice-pescatarian.wav",
+      "bytes": 79244,
+      "duration": 1.65,
+      "sha256": "20b36fefa913c2985b10c6329e43927b2c0640d054e73cdba235f83bf956a43a"
+    },
+    {
+      "voice": "bf_alice",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "bf_alice-pescatarian-example.wav",
+      "bytes": 160844,
+      "duration": 3.35,
+      "sha256": "c6b2cc45f9eb3983e5c28dbeef645e2972881d9df5055a55493c52266beb5717"
+    },
+    {
+      "voice": "bf_isabella",
+      "text": "landmark",
+      "file": "bf_isabella-landmark.wav",
+      "bytes": 75644,
+      "duration": 1.575,
+      "sha256": "a9252e3a90fd4a470312058d4453024751d695f26772a7bc85455e77448f0c10"
+    },
+    {
+      "voice": "bf_isabella",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "bf_isabella-landmark-example.wav",
+      "bytes": 175244,
+      "duration": 3.65,
+      "sha256": "1ad631a32b736fa7bb992b58c3d8bd8601797c82b0b0d3f7f950b59f49fc636c"
+    },
+    {
+      "voice": "bf_isabella",
+      "text": "berth",
+      "file": "bf_isabella-berth.wav",
+      "bytes": 48044,
+      "duration": 1.0,
+      "sha256": "18f1dcc27a9043c48b9fa56c0b98a466f4c78fda3b44ff41cae41c8df0d54aaa"
+    },
+    {
+      "voice": "bf_isabella",
+      "text": "I booked a berth on the night train.",
+      "file": "bf_isabella-berth-example.wav",
+      "bytes": 128444,
+      "duration": 2.675,
+      "sha256": "b83f33d2f159859cf4de56436032de1d62cf00c293ce306277c1fbc9c9ac0d3d"
+    },
+    {
+      "voice": "bf_isabella",
+      "text": "pescatarian",
+      "file": "bf_isabella-pescatarian.wav",
+      "bytes": 91244,
+      "duration": 1.9,
+      "sha256": "3a57131ea0e41f7c6c0cc214010de4ceff2959c839892b08871cd1b247c00235"
+    },
+    {
+      "voice": "bf_isabella",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "bf_isabella-pescatarian-example.wav",
+      "bytes": 163244,
+      "duration": 3.4,
+      "sha256": "a1049122b52ac637d5ca24570a8f294b433eb6b666922330bc540dac6e074818"
+    },
+    {
+      "voice": "bf_lily",
+      "text": "landmark",
+      "file": "bf_lily-landmark.wav",
+      "bytes": 62444,
+      "duration": 1.3,
+      "sha256": "6aa37e12cc330ec376024bcce74c2fae392e1786a4b65a2bf6d1b0bf1f3ad178"
+    },
+    {
+      "voice": "bf_lily",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "bf_lily-landmark-example.wav",
+      "bytes": 181244,
+      "duration": 3.775,
+      "sha256": "03dcddf9fbc0861b8e2182b550545052c56b5d90ffcd3da8dbaf744047b74cfa"
+    },
+    {
+      "voice": "bf_lily",
+      "text": "berth",
+      "file": "bf_lily-berth.wav",
+      "bytes": 51644,
+      "duration": 1.075,
+      "sha256": "447f8e2922a97ef1f35ffb63cce9c003c5d559954c288db7f95ad0d28e7379ee"
+    },
+    {
+      "voice": "bf_lily",
+      "text": "I booked a berth on the night train.",
+      "file": "bf_lily-berth-example.wav",
+      "bytes": 129644,
+      "duration": 2.7,
+      "sha256": "9560a6ea0f84e8b92cd8b6790e080cbfc14f6284da4adca884f1431ce8de0ceb"
+    },
+    {
+      "voice": "bf_lily",
+      "text": "pescatarian",
+      "file": "bf_lily-pescatarian.wav",
+      "bytes": 82844,
+      "duration": 1.725,
+      "sha256": "f7f8782de97e3435e635bee169eaaa834ef542cd0e18cf047b72f37c0ea245cb"
+    },
+    {
+      "voice": "bf_lily",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "bf_lily-pescatarian-example.wav",
+      "bytes": 164444,
+      "duration": 3.425,
+      "sha256": "eebabba06181889d53980b16b0e4470b9759b033918f5c7c3ef2f2970cbebdda"
+    },
+    {
+      "voice": "bm_daniel",
+      "text": "landmark",
+      "file": "bm_daniel-landmark.wav",
+      "bytes": 57644,
+      "duration": 1.2,
+      "sha256": "7cbbd88ba8e990423deca4a3c57c2bfb0b99e6bfd76e9ffcb5d6f1f5a9e97bd9"
+    },
+    {
+      "voice": "bm_daniel",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "bm_daniel-landmark-example.wav",
+      "bytes": 175244,
+      "duration": 3.65,
+      "sha256": "2243e1382c79542b9b3b9e40e05a720ba45a675ed428f61ab1e6ba89b6eadf7d"
+    },
+    {
+      "voice": "bm_daniel",
+      "text": "berth",
+      "file": "bm_daniel-berth.wav",
+      "bytes": 46844,
+      "duration": 0.975,
+      "sha256": "da892c475f2255900e34c4ec439cf77a4f247bc0784cce248252bd3f9e7420fb"
+    },
+    {
+      "voice": "bm_daniel",
+      "text": "I booked a berth on the night train.",
+      "file": "bm_daniel-berth-example.wav",
+      "bytes": 127244,
+      "duration": 2.65,
+      "sha256": "0cb50c07ab744be8c8d7bc49c404c70c437c1ec3159f5a5c6086122af6ff41d8"
+    },
+    {
+      "voice": "bm_daniel",
+      "text": "pescatarian",
+      "file": "bm_daniel-pescatarian.wav",
+      "bytes": 76844,
+      "duration": 1.6,
+      "sha256": "8ea3870c07b5a429fb702db6008f75b338a963dcd11da4df40cf52d3ce2ba8c9"
+    },
+    {
+      "voice": "bm_daniel",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "bm_daniel-pescatarian-example.wav",
+      "bytes": 158444,
+      "duration": 3.3,
+      "sha256": "c2095d8240756bf20fd37b32420cd28b3de997de72a35e5129da9d8c0ea98403"
+    },
+    {
+      "voice": "bm_fable",
+      "text": "landmark",
+      "file": "bm_fable-landmark.wav",
+      "bytes": 57644,
+      "duration": 1.2,
+      "sha256": "053a38fc5d545907ddc0e99130a52bcae6ea5cd3831c9fb2e7809573489f4205"
+    },
+    {
+      "voice": "bm_fable",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "bm_fable-landmark-example.wav",
+      "bytes": 184844,
+      "duration": 3.85,
+      "sha256": "3f9339b74894f3e272217c9157f336d60b6c95d31447388b9258c3a60e2a3454"
+    },
+    {
+      "voice": "bm_fable",
+      "text": "berth",
+      "file": "bm_fable-berth.wav",
+      "bytes": 42044,
+      "duration": 0.875,
+      "sha256": "bc45cfa67c108a52f069255831df121a9dbc0c3fab7544db5647516a5f19539e"
+    },
+    {
+      "voice": "bm_fable",
+      "text": "I booked a berth on the night train.",
+      "file": "bm_fable-berth-example.wav",
+      "bytes": 138044,
+      "duration": 2.875,
+      "sha256": "acd07dc329d3d0dbae3e4fedc95dbb977a3739080b9dd4f208cd485bc941b2c3"
+    },
+    {
+      "voice": "bm_fable",
+      "text": "pescatarian",
+      "file": "bm_fable-pescatarian.wav",
+      "bytes": 79244,
+      "duration": 1.65,
+      "sha256": "69890c9dd169e00c47a26e65fc90dfedbbff6e9fa7bef1ccabd2b906085f6893"
+    },
+    {
+      "voice": "bm_fable",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "bm_fable-pescatarian-example.wav",
+      "bytes": 174044,
+      "duration": 3.625,
+      "sha256": "045bf862d8d16add5f603b6616bc8ba5b491e08a295a2607a285ce6719e59825"
+    },
+    {
+      "voice": "bm_george",
+      "text": "landmark",
+      "file": "bm_george-landmark.wav",
+      "bytes": 68444,
+      "duration": 1.425,
+      "sha256": "771829fd8a6366c91d3b3fffa336839d641b1bb9076289f2fe23401c40334ed4"
+    },
+    {
+      "voice": "bm_george",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "bm_george-landmark-example.wav",
+      "bytes": 202844,
+      "duration": 4.225,
+      "sha256": "1a3963a876bd5bcba46b5909915c381bde28bef1fbb340536fbcd76b58b779a4"
+    },
+    {
+      "voice": "bm_george",
+      "text": "berth",
+      "file": "bm_george-berth.wav",
+      "bytes": 52844,
+      "duration": 1.1,
+      "sha256": "ffef7ab6cc12c00517d589162f6b9683fb6d8881a0619f9d8b9d311773147481"
+    },
+    {
+      "voice": "bm_george",
+      "text": "I booked a berth on the night train.",
+      "file": "bm_george-berth-example.wav",
+      "bytes": 141644,
+      "duration": 2.95,
+      "sha256": "d4a9a47615fb000be28e8d55e5668b04f0841186454845780640a0d528e41603"
+    },
+    {
+      "voice": "bm_george",
+      "text": "pescatarian",
+      "file": "bm_george-pescatarian.wav",
+      "bytes": 86444,
+      "duration": 1.8,
+      "sha256": "179ee758c4946a6cfca940cf997e504bcbbd09dd7a23bbca1ac9cda64a4241fd"
+    },
+    {
+      "voice": "bm_george",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "bm_george-pescatarian-example.wav",
+      "bytes": 180044,
+      "duration": 3.75,
+      "sha256": "1466f4130979eb0b3b599d72f19e8a1ff60d68ee8c4f7166f6f17761e3af633d"
+    },
+    {
+      "voice": "bm_lewis",
+      "text": "landmark",
+      "file": "bm_lewis-landmark.wav",
+      "bytes": 76844,
+      "duration": 1.6,
+      "sha256": "a090c6aa84fbc6b315b202e27a1c105c673d06f2ea26a6a80d7fab79bdba49e4"
+    },
+    {
+      "voice": "bm_lewis",
+      "text": "The castle is the most famous landmark in the city.",
+      "file": "bm_lewis-landmark-example.wav",
+      "bytes": 201644,
+      "duration": 4.2,
+      "sha256": "0e4a5ce2669dfa609a16d12123ea75c5ab97d03fbbfc76ae4f54e739d17949b6"
+    },
+    {
+      "voice": "bm_lewis",
+      "text": "berth",
+      "file": "bm_lewis-berth.wav",
+      "bytes": 63644,
+      "duration": 1.325,
+      "sha256": "027673b6d94ffb89b0efcf52b7ca5f40f605e397b78f1dbd7cc1c311b0e54041"
+    },
+    {
+      "voice": "bm_lewis",
+      "text": "I booked a berth on the night train.",
+      "file": "bm_lewis-berth-example.wav",
+      "bytes": 134444,
+      "duration": 2.8,
+      "sha256": "6753b46d8f5ac4d473530c50e9c556ee7d5e1826ce41b7e531b470ca18a8e707"
+    },
+    {
+      "voice": "bm_lewis",
+      "text": "pescatarian",
+      "file": "bm_lewis-pescatarian.wav",
+      "bytes": 86444,
+      "duration": 1.8,
+      "sha256": "0157b1521c316b50ebdb662a31e95188a0003424380cbe21462dfb8fb85e76a0"
+    },
+    {
+      "voice": "bm_lewis",
+      "text": "She is a pescatarian, so she ordered the fish.",
+      "file": "bm_lewis-pescatarian-example.wav",
+      "bytes": 178844,
+      "duration": 3.725,
+      "sha256": "fa00d3aa1c3a69fa1e0022c0be89f9f91a04dbf95624e143fb0ed5cc1d60e6f1"
+    }
+  ]
+}
