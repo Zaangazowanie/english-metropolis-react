@@ -839,7 +839,7 @@ function PersonalizedRecommendationsBlock({ recs }) {
           fontStyle: 'italic', borderLeft: `2px solid ${T.sky}`, paddingLeft: 12 }}>{intro}</div>
       )}
       <div style={{ display: 'grid', gap: 12,
-        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
+        gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))' }}>
         {recommendations.map((r, i) => {
           const icon = RECO_ICON[r.type] || 'article'
           const label = String(r.type || 'article').toUpperCase()
@@ -1044,7 +1044,8 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
   )
 
   return (
-    <div data-lesson-content style={{ display: 'grid', gap: 22 }}>
+    <div data-lesson-content style={{ display: 'grid', gap: 22, minWidth: 0,
+      gridTemplateColumns: 'minmax(0, 1fr)', overflowWrap: 'anywhere' }}>
       {/* Floating back-to-vocab button */}
       {cameFromVocab && studentSlug && (
         <Link to={`${basePath || ''}/${studentSlug}/vocabulary`}
@@ -1306,7 +1307,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
       {/* Per-metric mini score cards */}
       {analysis && (
         <div data-lesson-section="scores" style={{ display: 'grid', gap: 8,
-          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)' }}>
+          gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))' }}>
           {METRICS.map(m => {
             const val = analysis[m.key] || 0
             const tier = scoreToTier(val)
@@ -1331,11 +1332,11 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                     {m.shortLabel}
                   </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}>
                   <span style={{ fontFamily: FONT.display, fontSize: 22, fontWeight: 600,
-                    color: T.text, letterSpacing: '-0.02em',
+                    color: T.text, letterSpacing: '-0.02em', flexShrink: 0, whiteSpace: 'nowrap',
                     fontVariantNumeric: 'tabular-nums' }}>{Math.round(val)}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.1em',
+                  <span style={{ fontSize: isMobile ? 11 : 13, fontWeight: 700, letterSpacing: isMobile ? '0.08em' : '0.1em',
                     textTransform: 'uppercase', color: tierTextColor }}>{tier.label}</span>
                 </div>
                 <div style={{ marginTop: 6, height: 4, borderRadius: 4, overflow: 'hidden',
