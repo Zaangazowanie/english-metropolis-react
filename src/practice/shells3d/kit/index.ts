@@ -17,3 +17,8 @@ export { palette, duskSkyStops } from './palette'
 export type { PaletteKey } from './palette'
 
 export { game3dRegistry, findGame3D } from './registry'
+
+// Wave-2 shared "Hand-Drawn Pastel Pipeline" — toon + ink outlines + painted
+// sky + the single PaperPost pass. Theme-agnostic; pass a PaperTheme.
+export { PaperPost, PastelSky, InkOutline, makeGradientMap, toonRamp } from './paper'
+export type { PaperTheme } from './paper'
