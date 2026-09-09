@@ -26,6 +26,10 @@ export default defineConfig({
   server: {
     port: 5173,
     host: '127.0.0.1',
+    proxy: {
+      '/api/youglish': { target: 'https://englishmetro.com', changeOrigin: true },
+      '/api/tts': { target: 'https://englishmetro.com', changeOrigin: true },
+    },
   },
   build: {
     // Vite inlines assets under 4 KB as data: URIs. The site's CSP is
@@ -34,6 +38,7 @@ export default defineConfig({
     // (2026-09-03 crawl). Keep fonts as files; everything else may inline.
     assetsInlineLimit: (filePath) => !/\.(woff2?|ttf|otf|eot)$/i.test(filePath),
     rolldownOptions: {
+      input: { index: 'index.html', studentPreview: 'student-preview.html' },
       // Explicit chunk membership must not change module execution order.
       preserveEntrySignatures: 'allow-extension',
       output: {

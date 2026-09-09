@@ -6,6 +6,8 @@ import { ProgressBar, useReveal } from '../../design/v3/motion/index.js'
 import { ThreeSlot } from '../../design/v3/three/ThreeSlot.jsx'
 import { useI18n } from '../../i18n'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
+import { useNavigate } from 'react-router-dom'
+import KeywordVideoPlayer from '../../components/media/KeywordVideoPlayer.jsx'
 
 /* ============================================================================
    TTS — identical API to the existing view (POST /api/tts/tts)
@@ -107,7 +109,7 @@ async function fetchYouglish(word) {
         if (!byVid.has(r.videoId)) {
           byVid.set(r.videoId, {
             videoId: r.videoId,
-            thumbnail: `https://img.youtube.com/vi/${r.videoId}/mqdefault.jpg`,
+            thumbnail: `https://img.youtube.com/vi/${r.videoId}/hqdefault.jpg`,
             occurrences: [],
           })
         }
@@ -235,8 +237,6 @@ function YouGlishModal({ word, onClose }) {
   const videos = state.data?.videos || []
   const video = videos[videoIdx]
   const occurrence = video?.occurrences?.[occIdx]
-  const start = Math.max(0, (occurrence?.start || 0) - 2)
-  const embedUrl = video ? `https://www.youtube.com/embed/${video.videoId}?autoplay=1&start=${Math.floor(start)}&rel=0&modestbranding=1` : null
   const fallbackFrom = state.data?.fallbackFrom
   const canPrev = !(videoIdx === 0 && occIdx === 0)
   const canNext = !(videoIdx === videos.length - 1 && occIdx === (video?.occurrences?.length || 1) - 1)
@@ -285,10 +285,10 @@ function YouGlishModal({ word, onClose }) {
               <span style={{ fontSize: 13, color: T.textDim }}>{t('vocabulary.youglish.empty')}</span>
             </div>
           )}
-          {embedUrl && (
+          {video && occurrence && (
             <>
               <div style={playerFrameStyle}>
-                <iframe key={`${video.videoId}-${occIdx}`} src={embedUrl} allow="autoplay; encrypted-media" allowFullScreen title="YouGlish" style={{ width: '100%', height: '100%', border: 0 }} />
+                <KeywordVideoPlayer key={`${video.videoId}-${occIdx}`} videoId={video.videoId} occurrence={occurrence} word={word}/>
               </div>
               {occurrence?.text && <div style={quoteStyle}>"{occurrence.text}"</div>}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 14 }}>
@@ -314,10 +314,11 @@ function YouGlishModal({ word, onClose }) {
               {videos.length > 1 && (
                 <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6 }}>
                   {videos.map((v, i) => (
-                    <div key={v.videoId} onClick={() => { setVideoIdx(i); setOccIdx(0) }}
-                      style={{ flexShrink: 0, width: 128, cursor: 'pointer', border: `2px solid ${i === videoIdx ? T.brand : 'transparent'}`, borderRadius: 10, overflow: 'hidden' }}>
+                    <button key={v.videoId} type="button" onClick={() => { setVideoIdx(i); setOccIdx(0) }}
+                      aria-label={t('lessons.youglish.videoOf', { a: i + 1, b: videos.length })} aria-pressed={videoIdx === i}
+                      style={{ flexShrink: 0, width: 128, cursor: 'pointer', padding: 0, background: 'transparent', border: `2px solid ${i === videoIdx ? T.brand : 'transparent'}`, borderRadius: 10, overflow: 'hidden' }}>
                       <img src={v.thumbnail} alt="" style={{ width: '100%', display: 'block' }} />
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -607,6 +608,7 @@ function WordTowerCard({ tower, T, t, compact = false }) {
 }
 
 export default function VocabularyV3({ data, slug, basePath = '' }) {
+  const navigate = useNavigate()
   const { T, isMobile } = useV3Theme()
   const { t } = useI18n()
   const lessons = useMemo(() => data?.lessons || [], [data?.lessons])
@@ -683,13 +685,13 @@ export default function VocabularyV3({ data, slug, basePath = '' }) {
   useEffect(() => {
     function onKey(e) {
       const tag = (e.target?.tagName || '').toLowerCase()
-      if (['input', 'textarea', 'select'].includes(tag)) return
+      if (youglishWord || ['input', 'textarea', 'select'].includes(tag)) return
       if (e.key === 'ArrowLeft') setActiveIndex(i => Math.max(0, i - 1))
       if (e.key === 'ArrowRight') setActiveIndex(i => Math.min(filteredKeywords.length - 1, i + 1))
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [filteredKeywords.length])
+  }, [filteredKeywords.length, youglishWord])
 
   const activeKeyword = filteredKeywords[activeIndex] || null
   const activeId = activeKeyword?.id
@@ -736,7 +738,7 @@ export default function VocabularyV3({ data, slug, basePath = '' }) {
     if (!activeSlug) return
     const params = new URLSearchParams({ openLesson: lessonId, from: 'vocabulary' })
     if (keywordWord) params.set('focusKeyword', keywordWord)
-    window.location.href = `${basePath || '/app'}/${activeSlug}/lessons?${params.toString()}`
+    navigate(`${basePath || '/app'}/${activeSlug}/lessons?${params.toString()}`)
   }
 
   const progressPct = filteredKeywords.length > 0 ? ((activeIndex + 1) / filteredKeywords.length) * 100 : 0

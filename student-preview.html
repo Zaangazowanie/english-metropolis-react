@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="robots" content="noindex"/>
+  <title>English Metro — app preview</title>
+  <link href="/fonts/fonts.css" rel="stylesheet"/>
+  <link href="/fonts/material-symbols.css?v=20260907" rel="stylesheet"/>
+  <link href="/assets/em-motion-20260825-v3.css?v=31" rel="stylesheet"/>
+  <script defer src="/assets/em-motion-20260825-v3.js?v=18"></script>
+    <style>
+      /* App-feel on mobile / standalone */
+      body {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        overscroll-behavior-y: none;
+        text-size-adjust: 100%;
+        -webkit-text-size-adjust: 100%;
+      }
+      * { -webkit-overflow-scrolling: touch; }
+      button, nav, [role="button"] { -webkit-user-select: none; user-select: none; }
+      input, textarea { -webkit-user-select: text; user-select: text; }
+      .em-safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 12px); }
+      .em-safe-top    { padding-top: max(env(safe-area-inset-top), 0px); }
+      :focus:not(:focus-visible) { outline: none; }
+      @media (display-mode: standalone) {
+        body { overscroll-behavior: none; }
+      }
+      @keyframes emAurora {
+        0%, 100% { transform: translate(0,0) scale(1); }
+        33% { transform: translate(30px,-20px) scale(1.1); }
+        66% { transform: translate(-20px,30px) scale(0.95); }
+      }
+      @keyframes emShimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      @keyframes emFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes emFadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes emModalIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+      @keyframes emPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      .v3-nav-scroll::-webkit-scrollbar { display: none; }
+    </style>
+</head><body><div id="root"></div><script type="module" src="/src/previews/student-preview.jsx"></script></body></html>
