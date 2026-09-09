@@ -8,12 +8,18 @@ export default function StudentFeatureFrame({ feature, lang }) {
   const frame = useRef(null), host = useRef(null), { mode } = useV3Theme()
   const reduced = usePrefersReducedMotion(), pl = lang === 'pl'
   const [loaded, setLoaded] = useState(false), [ready, setReady] = useState(false), [visible, setVisible] = useState(false)
+  const [pageVisible, setPageVisible] = useState(() => !document.hidden)
   const [playing, setPlaying] = useState(feature === 'analysis' && !reduced), [step, setStep] = useState(0)
   const send = data => frame.current?.contentWindow?.postMessage(data, location.origin)
   const url = `/student-preview.html?feature=${feature}&lang=${lang}&mode=${mode}`
   const [initialUrl] = useState(url)
   const configuration = useRef({ lang, mode })
   useEffect(() => { configuration.current = { lang, mode } }, [lang, mode])
+  useEffect(() => {
+    const changed = () => setPageVisible(!document.hidden)
+    document.addEventListener('visibilitychange', changed)
+    return () => document.removeEventListener('visibilitychange', changed)
+  }, [])
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) setLoaded(true)
@@ -47,14 +53,14 @@ export default function StudentFeatureFrame({ feature, lang }) {
     send({ type: 'em-preview-step', index: step })
   }, [ready, step, feature])
   useEffect(() => {
-    if (!ready || !visible || !playing || reduced || feature !== 'analysis') return
+    if (!ready || !visible || !pageVisible || !playing || reduced || feature !== 'analysis') return
     const timer = setTimeout(() => {
       if (document.hidden) return
       if (step === LESSON_TOUR.length - 1) setPlaying(false)
       else setStep(value => value + 1)
     }, step === 0 ? 10000 : 8500)
     return () => clearTimeout(timer)
-  }, [ready, visible, playing, reduced, feature, step])
+  }, [ready, visible, pageVisible, playing, reduced, feature, step])
   useEffect(() => {
     const query = matchMedia('(prefers-reduced-motion: reduce)')
     const change = event => { if (event.matches) setPlaying(false) }
