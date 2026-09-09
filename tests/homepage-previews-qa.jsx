@@ -27,6 +27,8 @@ function App() {
       <button onClick={() => { setFailed(value => !value); setRevision(0) }}>{failed ? 'Restore clip source' : 'Simulate unavailable clip'}</button>
       <output>Reduced motion: {String(reduced)}</output>
       <button onClick={() => setUncached(value => !value)}>{uncached ? 'Use cached keyword video' : 'Use uncached keyword video'}</button>
+      <button onClick={() => { const video = document.querySelector('[data-keyword-player] video'); if (video) video.currentTime = Math.min(video.duration - 0.5, video.currentTime + 5) }}>Seek forward five seconds</button>
+      <button onClick={() => { const video = document.querySelector('[data-keyword-player] video'); if (video) video.currentTime = Math.max(0, video.currentTime - 5) }}>Seek backward five seconds</button>
     </div>
     <AnalysisPreviewShowcase lang="en"/>
     <div style={{ maxWidth: 580, margin: '40px auto' }}><NativeWordClip key={String(failed)} clip={failed ? { ...PREVIEW_CLIPS.mural, word: 'unavailable-qa-clip' } : PREVIEW_CLIPS.mural} active={revision > 0} revision={revision} onPlayRequest={() => setRevision(value => value + 1)}/></div>
