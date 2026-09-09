@@ -1114,6 +1114,21 @@ export default defineSchema({
   // lesson without being handed the whole account forever for 20 PLN — which
   // is what would otherwise happen, because the only entitlement the system
   // had was account-wide and permanent.
+  analysisPackageGrants: defineTable({
+    organizationId: v.id("organizations"),
+    studentId: v.id("students"),
+    packageId: v.id("lessonPackages"),
+    lessonLimit: v.number(),
+    grantedAt: v.number(),
+    grantedBy: v.id("users"),
+    consentAttestation: v.string(),
+    reason: v.string(),
+    noticeVersion: v.string(),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_student", ["studentId"])
+    .index("by_student_package", ["studentId", "packageId"]),
+
   analysisEntitlements: defineTable({
     organizationId: v.optional(v.id("organizations")),
     studentId: v.id("students"),
