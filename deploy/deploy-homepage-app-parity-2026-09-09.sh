@@ -4,7 +4,9 @@ set -euo pipefail
 umask 022
 REPO=/root/englishmetro
 WEB=/var/www/englishmetro
-BASE=bb93e3fbeb747ddb861761040664a6981e23005a
+# The photography release was already published while the app previews were
+# being verified. Keep its files outside this release's strict change scope.
+BASE=b9581ab980e216698fdf7e6fe7ff14427f4c1fd3
 STAMP=$(date -u +%Y%m%d-%H%M%S)
 BACKUP=/root/backups/englishmetro-app-parity-$STAMP
 MEDIA=media/keyword-cache-20260909
