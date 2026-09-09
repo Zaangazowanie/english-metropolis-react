@@ -111,7 +111,7 @@ export default function BajlaWalkthrough({id,wa,query,pl,auto,setAuto,onComplete
       const point={x:Math.max(12,Math.min(frame.width-22,rect.left-frame.left+rect.width*.68)),y:Math.max(74,Math.min(frame.height-18,rect.top-frame.top+rect.height*.5))}
       const start=pointerPosition.current
       guide.style.left=`${point.x}px`;guide.style.top=`${point.y}px`
-      movement=guide.animate([{opacity:0,transform:`translate(${start.x-point.x}px,${start.y-point.y}px) rotate(-12deg)`},{opacity:1,offset:.22},{opacity:1,transform:'translate(0,0) rotate(0deg)'}],{duration:playbackDuration(900),easing:'cubic-bezier(.22,.61,.36,1)',fill:'forwards'})
+      movement=guide.animate([{opacity:0,transform:`translate(${start.x-point.x}px,${start.y-point.y}px)`},{opacity:1,offset:.22},{opacity:1,transform:'translate(0,0)'}],{duration:playbackDuration(900),easing:'cubic-bezier(.22,.61,.36,1)',fill:'forwards'})
       click=guide.querySelector('i').animate([{transform:'scale(.2)',opacity:0},{transform:'scale(.55)',opacity:.65,offset:.3},{transform:'scale(1.7)',opacity:0}],{delay:playbackDuration(900),duration:playbackDuration(500),fill:'both'})
       pointerPosition.current=point
       }
@@ -203,7 +203,7 @@ export default function BajlaWalkthrough({id,wa,query,pl,auto,setAuto,onComplete
       <div className={`bj-demo-composer${step===0?' bj-walk-composing':''}`} aria-hidden="true">{wa&&<Icon name="add"/>}<span>{step===0?<Stream key={replay} text={previewQuery} running={running} reduced={reduced}/>:copy(wa?'Type a message':'Ask Bajla anything…',wa?'Wpisz wiadomość':'Zapytaj Bajlę o cokolwiek…')}</span><Icon name={step===0?'send':'mic'}/>{!wa&&step!==0&&<Icon name="send"/>}</div>
     </div>
     <div className="bj-walk-transport"><div><span>{copy('STEP','KROK')} {step+1}/{steps.length}</span><strong key={`${id}-${step}`}>{caption()}</strong></div><div className="bj-walk-buttons"><button onClick={restart} aria-label={copy('Replay this walkthrough','Powtórz tę prezentację')}><Icon name="replay"/></button><button onClick={()=>{setClipPlayback(null);setAuto(v=>!v)}} aria-label={copy(auto?'Pause walkthrough':'Play walkthrough',auto?'Zatrzymaj prezentację':'Odtwórz prezentację')} aria-pressed={auto}><Icon name={auto?'pause':'play_arrow'}/></button><button onClick={next} aria-label={copy('Next walkthrough step','Następny krok prezentacji')}><Icon name="skip_next"/></button></div></div>
-    <div ref={pointer} className="bj-walk-guide" aria-hidden="true"><i/><Icon name="near_me"/></div>
+    <div ref={pointer} className="bj-walk-guide" aria-hidden="true"><i/><svg viewBox="0 0 24 30" focusable="false"><path d="M2 2v22l5.5-5.5 4.5 9 4-2-4.5-9H22Z"/></svg></div>
     <div className="bj-walk-timeline" aria-hidden="true">{steps.map((_,i)=><span key={i} className={i<step?'done':i===step?'current':''}/>)}</div>
   </div>
 }
