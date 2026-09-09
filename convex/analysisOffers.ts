@@ -15,6 +15,7 @@ import { v } from "convex/values";
 import { requireStudent, requireSuperadmin } from "./authHelpers";
 import { isGrandfathered } from "./enrolmentRules";
 import { ANALYSIS_NOTICE_VERSION } from "./students";
+import { complimentaryPackageOverview, lessonAnalysisAccess, packageGrantsFor } from "./analysisAccess";
 import {
   ANALYSIS_ADDON_PLN_PER_LESSON,
   ANALYSIS_BULK_MAX_PLN,
@@ -67,6 +68,9 @@ async function offerStateFor(ctx: any, student: any): Promise<{ offer: boolean; 
     .withIndex("by_student", (q: any) => q.eq("studentId", student._id))
     .collect();
   if (entitlements.some((e: any) => e.revokedAt)) return { offer: false, reason: "revoked" };
+  if ((await packageGrantsFor(ctx, student._id)).some((g: any) => g.revokedAt)) {
+    return { offer: false, reason: "revoked" };
+  }
   return state;
 }
 
@@ -111,6 +115,12 @@ export const myOffer = query({
     if (!state.offer) {
       return { show: false, reason: state.reason, noticeVersion: ANALYSIS_NOTICE_VERSION };
     }
+    const complimentaryPackages = await complimentaryPackageOverview(ctx, student);
+    const coveredByGift = args.lessonId
+      ? (await lessonAnalysisAccess(ctx, student, args.lessonId)).reason === "complimentary_package"
+      : complimentaryPackages.some((p: any) => p.remainingLessons > 0 && (!p.expiresAt || p.expiresAt >= Date.now()));
+    if (coveredByGift) return { show: false, reason: "complimentary_package",
+      complimentaryPackages, noticeVersion: ANALYSIS_NOTICE_VERSION };
 
     // A lesson already paid for individually must not be sold again, and the
     // prompt must not appear on its card.
@@ -178,6 +188,9 @@ export const createQuote = mutation({
       // Ownership, not just existence — a lessonId is guessable and must never
       // let one student buy an analysis attached to another's lesson.
       if (!lesson || lesson.studentId !== student._id) throw new Error("Lesson not found");
+      if ((await lessonAnalysisAccess(ctx, student, args.lessonId)).reason === "complimentary_package") {
+        throw new Error("ANALYSIS_ALREADY_INCLUDED_IN_PACKAGE");
+      }
       const existing = await lessonEntitlement(ctx, student._id, args.lessonId);
       if (existing && !existing.revokedAt) throw new Error("ANALYSIS_ALREADY_PAID_FOR_THIS_LESSON");
       amount = ANALYSIS_ADDON_PLN_PER_LESSON * 100;

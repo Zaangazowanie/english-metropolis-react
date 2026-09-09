@@ -2,6 +2,7 @@ import { query, mutation, internalQuery, internalMutation } from "./_generated/s
 import { v } from "convex/values";
 import { collocationsField } from "./validators.js";
 import { requireAdminOrPipelineKey } from "./authHelpers";
+import { lessonAnalysisAccess, packageGrantsFor } from "./analysisAccess";
 
 // ─── Transcript Analysis ───────────────────────────────────
 
@@ -97,6 +98,16 @@ export const createAnalysis = mutation({
   handler: async (ctx, args) => {
     await requireAdminOrPipelineKey(ctx, args.sessionToken, args.apiKey);
     const { sessionToken, apiKey, ...rest } = args;
+    // Package gifts are bounded at the write as well as at the worker's read.
+    // Legacy import behavior is unchanged for accounts with no package grant.
+    if ((await packageGrantsFor(ctx, args.studentId)).length) {
+      const student = await ctx.db.get(args.studentId);
+      const access = await lessonAnalysisAccess(ctx, student, args.lessonId);
+      if (!access.allowed) throw new Error(`Analysis refused: ${access.reason}`);
+      const existing = await ctx.db.query("transcriptAnalyses")
+        .withIndex("by_lesson", q => q.eq("lessonId", args.lessonId)).unique();
+      if (existing) return existing._id;
+    }
     return await ctx.db.insert("transcriptAnalyses", {
       ...rest,
       createdAt: Date.now(),

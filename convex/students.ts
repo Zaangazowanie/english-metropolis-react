@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { collocationsField } from "./validators.js";
 import { requireAdmin, requireSuperadmin, requireAdminOrPipelineKey, requireStudent, isSuperadmin } from "./authHelpers";
 import { isGrandfathered } from "./enrolmentRules";
+import { lessonAnalysisAccess, complimentaryPackageOverview, packageGrantsFor } from "./analysisAccess";
 
 const lessonMaterialField = v.object({
   name: v.string(),
@@ -2224,17 +2225,7 @@ export const analysisEligibility = query({
     }
     const student = await ctx.db.get(args.studentId);
     if (!student) return { allowed: false, reason: "no_student" };
-    const state = analysisState(student);
-    if (state.allowed || student.isMinor || !args.lessonId) return state;
-    const entitlement = await ctx.db
-      .query("analysisEntitlements")
-      .withIndex("by_student_lesson", q =>
-        q.eq("studentId", args.studentId).eq("lessonId", args.lessonId!))
-      .unique();
-    if (entitlement && !entitlement.revokedAt) {
-      return { allowed: true, reason: "lesson_entitlement" };
-    }
-    return state;
+    return lessonAnalysisAccess(ctx, student, args.lessonId);
   },
 });
 
@@ -2295,7 +2286,8 @@ export const dueAccountBackfill = query({
     for (const student of students) {
       if (student.isMinor) continue;
       const consent = student.lessonAnalysis;
-      if (!consent || consent.revokedAt) continue;
+      const packageGrants = await packageGrantsFor(ctx, student._id);
+      if ((!consent || consent.revokedAt) && !packageGrants.some((g: any) => !g.revokedAt)) continue;
       const lessons = await ctx.db
         .query("lessons")
         .withIndex("by_student", q => q.eq("studentId", student._id))
@@ -2306,6 +2298,7 @@ export const dueAccountBackfill = query({
         if (taken >= limit) break;
         const status = lesson.status || "";
         if (status === "planned" || status === "cancelled") continue;
+        if (!(await lessonAnalysisAccess(ctx, student, lesson._id)).allowed) continue;
         const existing = await ctx.db
           .query("transcriptAnalyses")
           .withIndex("by_lesson", q => q.eq("lessonId", lesson._id))
@@ -2346,13 +2339,15 @@ export const myAnalysisSetting = query({
   handler: async (ctx, args) => {
     const { student } = await requireStudent(ctx, args.sessionToken);
     const state = analysisState(student);
+    const complimentaryPackages = await complimentaryPackageOverview(ctx, student);
     return {
-      allowed: state.allowed,
-      reason: state.reason,
+      allowed: state.allowed || complimentaryPackages.length > 0,
+      reason: state.allowed ? state.reason : complimentaryPackages.length ? "complimentary_package" : state.reason,
+      complimentaryPackages,
       // A minor's account must not even be offered the choice.
       offerable: !student.isMinor,
       noticeVersion: ANALYSIS_NOTICE_VERSION,
-      grantedAt: student.lessonAnalysis?.grantedAt ?? null,
+      grantedAt: student.lessonAnalysis?.grantedAt ?? complimentaryPackages[0]?.grantedAt ?? null,
     };
   },
 });
@@ -2375,6 +2370,11 @@ export const revokeAnalysisConsent = mutation({
       .withIndex("by_student", q => q.eq("studentId", student._id))
       .collect();
     let revokedAny = false;
+    for (const grant of await packageGrantsFor(ctx, student._id)) {
+      if (grant.revokedAt) continue;
+      await ctx.db.patch(grant._id, { revokedAt: now });
+      revokedAny = true;
+    }
     for (const entitlement of entitlements) {
       if (entitlement.revokedAt) continue;
       await ctx.db.patch(entitlement._id, { revokedAt: now });
