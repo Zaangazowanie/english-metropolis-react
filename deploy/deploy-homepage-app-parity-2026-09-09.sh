@@ -4,9 +4,9 @@ set -euo pipefail
 umask 022
 REPO=/root/englishmetro
 WEB=/var/www/englishmetro
-# Hide the inactive landing flashcard face independently of 3D compositing.
-# Preserve all other published previews and shared design assets.
-BASE=99a15205530705c44e05c650c030297c10a04121
+# Replace the full lesson frame with an analysis-only playback preview.
+# Preserve the compact vocabulary, flashcard fix and shared design assets.
+BASE=c7c36def6d550832f6f222059b919e51b1f9baf4
 STAMP=$(date -u +%Y%m%d-%H%M%S)
 BACKUP=/root/backups/englishmetro-app-parity-$STAMP
 MEDIA=media/keyword-cache-20260909
@@ -21,7 +21,7 @@ git merge-base --is-ancestor "$BASE" HEAD
 git diff --quiet "$BASE" HEAD -- convex package.json package-lock.json index.html public/assets src/design src/views/v3/game-home.css src/views/v3/BajlaWalkthrough.jsx src/views/v3/bajla-tour.mjs
 git diff --name-only "$BASE" HEAD | python3 -c '
 import sys
-allowed={"deploy/deploy-homepage-app-parity-2026-09-09.sh","src/views/v3/focused-keyword-previews.css"}
+allowed={"deploy/deploy-homepage-app-parity-2026-09-09.sh","src/views/v3/AnalysisPreviewShowcase.jsx","src/views/v3/Lessons.jsx","src/previews/AnalysisFilm.jsx","src/previews/analysis-film.css","src/previews/analysis-film.mjs","tests/analysis-film.test.mjs"}
 unexpected=[p for p in sys.stdin.read().splitlines() if p not in allowed]
 assert not unexpected, f"Unexpected release paths: {unexpected}"
 '
