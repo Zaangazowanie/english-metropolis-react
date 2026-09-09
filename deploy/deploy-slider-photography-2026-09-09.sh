@@ -73,7 +73,10 @@ expected,actual=re.search(pattern,local),re.search(pattern,edge)
 assert expected and actual and expected[1]==actual[1], 'Public entry mismatch'
 for p in pathlib.Path('public/home/slider-20260909').rglob('*.webp'):
     url='https://englishmetro.com/'+str(p.relative_to('public'))
-    with urllib.request.urlopen(url,timeout=30) as r:
+    # The public edge rejects Python's default user agent; use an explicit
+    # browser-compatible request while preserving HTTPS and full hash checks.
+    request=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
+    with urllib.request.urlopen(request,timeout=30) as r:
         assert r.status==200 and 'image/webp' in r.headers.get('Content-Type','')
         assert hashlib.sha256(r.read()).digest()==hashlib.sha256(p.read_bytes()).digest(),url
 print('Public entry and all ten image hashes verified',actual[1])
