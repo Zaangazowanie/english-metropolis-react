@@ -4,9 +4,9 @@ set -euo pipefail
 umask 022
 REPO=/root/englishmetro
 WEB=/var/www/englishmetro
-# Refine the published vocabulary preview into focused landing-page examples.
-# Preserve the separate analysis tour, photography and shared design assets.
-BASE=32d82d1ce364b62fbc9657c9535c79d05dcbea46
+# Hide the inactive landing flashcard face independently of 3D compositing.
+# Preserve all other published previews and shared design assets.
+BASE=99a15205530705c44e05c650c030297c10a04121
 STAMP=$(date -u +%Y%m%d-%H%M%S)
 BACKUP=/root/backups/englishmetro-app-parity-$STAMP
 MEDIA=media/keyword-cache-20260909
@@ -21,7 +21,7 @@ git merge-base --is-ancestor "$BASE" HEAD
 git diff --quiet "$BASE" HEAD -- convex package.json package-lock.json index.html public/assets src/design src/views/v3/game-home.css src/views/v3/BajlaWalkthrough.jsx src/views/v3/bajla-tour.mjs
 git diff --name-only "$BASE" HEAD | python3 -c '
 import sys
-allowed={"deploy/deploy-homepage-app-parity-2026-09-09.sh","src/views/v3/WordPreviewShowcase.jsx","src/views/v3/focused-keyword-previews.css","src/views/v3/Vocabulary.jsx","src/components/media/KeywordVideoPlayer.jsx","src/components/media/KeywordPronunciationButton.jsx"}
+allowed={"deploy/deploy-homepage-app-parity-2026-09-09.sh","src/views/v3/focused-keyword-previews.css"}
 unexpected=[p for p in sys.stdin.read().splitlines() if p not in allowed]
 assert not unexpected, f"Unexpected release paths: {unexpected}"
 '

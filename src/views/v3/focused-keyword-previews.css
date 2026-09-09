@@ -46,8 +46,12 @@
 .em-flashcard-copy h3 > span:last-child { color: var(--gh-text-soft); }
 .em-flashcard-copy p { margin: 0; font-size: 14px; line-height: 1.75; color: var(--gh-text-soft); }
 .em-flashcard-stage { min-width: 0; }
-.em-flashcard-compact .v3-flashcard-inner { min-height: 390px; }
-.em-flashcard-compact .v3-flashcard-face > div { background-color: var(--gh-glass-bg) !important; background-image: linear-gradient(145deg, var(--gh-glass-highlight), transparent 38%) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: var(--gh-glass-shadow) !important; }
+.em-flashcard-compact .v3-flashcard-inner { display: grid; min-height: 390px; }
+/* Stack both faces in one grid cell so wrapped front content sets the height. */
+.em-flashcard-compact .v3-flashcard-face { position: relative; inset: auto; grid-area: 1 / 1; min-width: 0; }
+/* Hide inactive content explicitly, independent of browser 3D backface culling. */
+.em-flashcard-compact .v3-flashcard-face[aria-hidden="true"] { visibility: hidden; opacity: 0; pointer-events: none; }
+.em-flashcard-compact .v3-flashcard-face > div { height: 100%; background-color: var(--gh-glass-bg) !important; background-image: linear-gradient(145deg, var(--gh-glass-highlight), transparent 38%) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: var(--gh-glass-shadow) !important; }
 .em-flashcard-compact .v3-flashcard-sparkles { display: none; }
 .em-flashcard-navigation { display: flex; justify-content: center; align-items: center; gap: 22px; margin-top: 16px; }
 .em-flashcard-navigation > span { font-size: 12px; color: var(--gh-text-soft); font-variant-numeric: tabular-nums; }
