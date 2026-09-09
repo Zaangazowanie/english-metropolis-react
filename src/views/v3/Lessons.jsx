@@ -4,7 +4,7 @@
 // Tailwind-era Lessons.jsx — functional parity preserved verbatim.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useI18n } from '../../i18n'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 import {
@@ -20,6 +20,8 @@ import { Sheet, useReveal } from '../../design/v3/motion/index.js'
 import { Btn, Glass, Pill } from '../../design/v3/primitives.jsx'
 import { generateLessonPdf } from './lessons-pdf.js'
 import AnalysisUpgradeCTA from './AnalysisUpgradeCTA.jsx'
+import KeywordVideoPlayer from '../../components/media/KeywordVideoPlayer.jsx'
+import { captionAt } from '../../components/media/keyword-media.mjs'
 
 // Dark-mode surface constant (used inside YouGlishModal overlay)
 const NIGHT_SURFACE = '#0A0718'
@@ -157,12 +159,12 @@ function packYouglishResults(results, queryUsed) {
     if (!byVid.has(r.videoId)) {
       byVid.set(r.videoId, {
         videoId: r.videoId,
-        thumbnail: `https://img.youtube.com/vi/${r.videoId}/mqdefault.jpg`,
+        thumbnail: `https://img.youtube.com/vi/${r.videoId}/hqdefault.jpg`,
         occurrences: [],
       })
     }
     byVid.get(r.videoId).occurrences.push({
-      start: parseInt(r.start, 10) || 0,
+      start: parseFloat(r.start) || 0,
       end: parseFloat(r.end) || (parseInt(r.start, 10) || 0) + 3,
       text: r.display || '',
     })
@@ -418,10 +420,7 @@ function YouGlishModal({ word, onClose }) {
   const [state, setState] = useState({ loading: true, error: null, data: null })
   const [videoIdx, setVideoIdx] = useState(0)
   const [occIdx, setOccIdx] = useState(0)
-  const [autoplay] = useState(true)
-  const playerRef = useRef(null)
-  const timerRef = useRef(null)
-  const [elapsed, setElapsed] = useState(0)
+  const [playback, setPlayback] = useState({ time: null, cues: [] })
 
   useEffect(() => {
     if (!word) return
@@ -440,6 +439,7 @@ function YouGlishModal({ word, onClose }) {
   useEffect(() => {
     function onKey(e) {
       if (e.key === 'Escape') onClose()
+      if (['VIDEO', 'AUDIO', 'INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName)) return
       if (e.key === 'ArrowRight') next()
       if (e.key === 'ArrowLeft') prev()
     }
@@ -447,21 +447,9 @@ function YouGlishModal({ word, onClose }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, videoIdx, occIdx, state.data])
 
-  useEffect(() => {
-    clearInterval(timerRef.current)
-    setElapsed(0)
-    if (!word) return
-    timerRef.current = setInterval(() => setElapsed(e => e + 0.1), 100)
-    return () => clearInterval(timerRef.current)
-  }, [word, videoIdx, occIdx])
-
   if (!word) return null
 
   const occurrence = video?.occurrences?.[occIdx] || null
-  const start = Math.max(0, (occurrence?.start || 0) - 2)
-  const embedUrl = video
-    ? `https://www.youtube.com/embed/${video.videoId}?autoplay=${autoplay ? 1 : 0}&mute=0&start=${Math.floor(start)}&rel=0&modestbranding=1&iv_load_policy=3&controls=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')}`
-    : null
 
   const totalOccurrences = videos.reduce((sum, v) => sum + v.occurrences.length, 0)
   const globalOccIdx = videos.slice(0, videoIdx).reduce((s, v) => s + v.occurrences.length, 0) + occIdx + 1
@@ -477,22 +465,12 @@ function YouGlishModal({ word, onClose }) {
     else if (videoIdx > 0) { setVideoIdx(videoIdx - 1); setOccIdx((videos[videoIdx - 1]?.occurrences?.length || 1) - 1) }
   }
 
-  const IFRAME_STARTUP = 4.0
-  const LEAD_IN = 2.0
-  const captionWords = useMemo(() => {
-    if (!occurrence?.text) return []
-    const duration = Math.max(1, (occurrence.end || (occurrence.start + 3)) - occurrence.start)
-    const words = occurrence.text.split(/\s+/).filter(Boolean)
-    return words.map((w, i) => {
-      const perWord = duration / words.length
-      const activeAt = IFRAME_STARTUP + LEAD_IN + i * perWord
-      return { word: w, activeAt, duration: perWord }
-    })
-  }, [occurrence])
-
-  const wordColor = (activeAt, duration) => {
-    const isActive = elapsed >= activeAt && elapsed < activeAt + duration
-    const hasPlayed = elapsed >= activeAt
+  const captionWords = playback.cues.length ? playback.cues :
+    (occurrence?.text || '').split(/\s+/).filter(Boolean).map(text => ({ word: text, start: Infinity, end: Infinity }))
+  const activeCaption = captionAt(captionWords, playback.time)
+  const wordColor = (cue, index) => {
+    const isActive = activeCaption === index
+    const hasPlayed = playback.time !== null && playback.time >= cue.end
     if (isActive) return { color: T.sky, fontWeight: 700, transform: 'scale(1.1)' }
     if (hasPlayed) return { color: T.textSoft }
     return { color: T.textMute }
@@ -571,28 +549,12 @@ function YouGlishModal({ word, onClose }) {
               <div style={{ fontSize: 13, color: T.textDim, marginTop: 3 }}>{t('lessons.youglish.emptyHint')}</div>
             </div>
           )}
-          {video && embedUrl && (
+          {video && occurrence && (
             <>
               <div style={{ aspectRatio: '16/9', borderRadius: 14, overflow: 'hidden',
                 border: `1px solid ${T.border}`, background: '#000' }}>
-                <iframe
-                  ref={playerRef}
-                  key={`${video.videoId}-${occIdx}`}
-                  src={embedUrl}
-                  title={`"${word}" spoken in a YouTube clip`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                  onLoad={() => {
-                    try {
-                      const w = playerRef.current?.contentWindow
-                      if (!w) return
-                      w.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*')
-                      w.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*')
-                      w.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*')
-                    } catch {}
-                  }}
-                />
+                <KeywordVideoPlayer key={`${video.videoId}-${occIdx}`} videoId={video.videoId}
+                  occurrence={occurrence} word={word} onClock={setPlayback}/>
               </div>
               {captionWords.length > 0 && (
                 <div style={{ marginTop: 14, padding: '12px 16px', borderRadius: 12,
@@ -607,7 +569,7 @@ function YouGlishModal({ word, onClose }) {
                       <span key={i} style={{
                         display: 'inline-block', margin: '0 2px',
                         transition: 'all 200ms ease',
-                        ...wordColor(w.activeAt, w.duration),
+                        ...wordColor(w, i),
                       }}>{w.word}</span>
                     ))}
                   </div>
@@ -656,6 +618,7 @@ function YouGlishModal({ word, onClose }) {
                   overflowX: 'auto', paddingBottom: 4 }}>
                   {videos.map((v, i) => (
                     <button key={v.videoId} type="button"
+                      aria-label={t('lessons.youglish.videoOf', { a: i + 1, b: videos.length })} aria-pressed={videoIdx === i}
                       onClick={() => { setVideoIdx(i); setOccIdx(0) }}
                       style={{
                         flexShrink: 0, borderRadius: 10, overflow: 'hidden',
@@ -856,7 +819,7 @@ function PersonalizedRecommendationsBlock({ recs }) {
   const { intro, recommendations } = recs
   if (!recommendations?.length) return null
   return (
-    <Glass padding={22}>
+    <Glass padding={22} data-lesson-section="recommendations">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
         <div style={{ width: 44, height: 44, borderRadius: 14, background: G.brand,
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
@@ -972,7 +935,7 @@ function LessonSummaryOnion({ summary, title, deeperLabel }) {
   }, [summary])
 
   return (
-    <div style={{ borderRadius: 18, padding: 22,
+    <div data-lesson-section="summary" style={{ borderRadius: 18, padding: 22,
       background: isDay
         ? 'linear-gradient(135deg, rgba(240,249,255,0.5), #fff)'
         : 'linear-gradient(135deg, rgba(96,165,250,0.05), rgba(255,255,255,0.02))',
@@ -1001,7 +964,7 @@ function LessonSummaryOnion({ summary, title, deeperLabel }) {
       )}
       {deepBullets.length > 0 && (
         <details style={{ marginTop: 18 }}>
-          <summary style={{
+          <summary data-lesson-action="deeper" style={{
             cursor: 'pointer', listStyle: 'none',
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '8px 14px', borderRadius: 999,
@@ -1081,10 +1044,10 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
   )
 
   return (
-    <div style={{ display: 'grid', gap: 22 }}>
+    <div data-lesson-content style={{ display: 'grid', gap: 22 }}>
       {/* Floating back-to-vocab button */}
       {cameFromVocab && studentSlug && (
-        <a href={`${basePath || ''}/${studentSlug}/vocabulary`}
+        <Link to={`${basePath || ''}/${studentSlug}/vocabulary`}
           style={{
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '12px 18px', borderRadius: 999, textDecoration: 'none',
@@ -1100,7 +1063,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
             <div style={{ fontSize: 13 }}>{t('lessons.detail.backToVocab')}</div>
           </div>
           <span className="material-symbols-outlined" style={{ marginLeft: 'auto', fontSize: 20 }}>library_books</span>
-        </a>
+        </Link>
       )}
 
       {/* Header pill row */}
@@ -1232,7 +1195,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
               const isFocused = highlightKeyword === wordKey
               const isTarget = String(focusKeyword || '').toLowerCase() === wordKey
               return (
-                <div key={`${kw.word}-${i}`}
+                <div key={`${kw.word}-${i}`} data-lesson-keyword={kw.word}
                   ref={el => { if (el) keywordRefs.current[wordKey] = el }}
                   style={isFocused ? {
                     borderRadius: 18,
@@ -1259,7 +1222,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
           disclosure so the lesson opens calm and keyword-first. */}
       {analysis && (
         <button type="button" onClick={() => setAnalysisOpen(o => !o)}
-          aria-expanded={analysisOpen}
+          data-lesson-action="analysis" aria-expanded={analysisOpen}
           style={{ width: '100%', textAlign: 'left', cursor: 'pointer',
             background: isDay ? '#fff' : 'rgba(255,255,255,0.03)',
             border: `1px solid ${T.border}`, borderRadius: 16,
@@ -1294,7 +1257,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
       {analysisOpen && (<>
       {/* Topics chips */}
       {lesson.topics?.length > 0 && (
-        <div>
+        <div data-lesson-section="topics">
           <SectionLabel T={T}>{t('lessons.detail.topicsCovered')}</SectionLabel>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {lesson.topics.map((tp, i) => (
@@ -1342,7 +1305,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
 
       {/* Per-metric mini score cards */}
       {analysis && (
-        <div style={{ display: 'grid', gap: 8,
+        <div data-lesson-section="scores" style={{ display: 'grid', gap: 8,
           gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)' }}>
           {METRICS.map(m => {
             const val = analysis[m.key] || 0
@@ -1404,7 +1367,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
 
       {/* Strengths */}
       {analysis?.strengths?.length > 0 && (
-        <Glass padding={20}>
+        <Glass padding={20} data-lesson-section="strengths">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: T.emerald }}>celebration</span>
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
@@ -1441,7 +1404,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
 
       {/* Improvements — clickable */}
       {analysis?.improvements?.length > 0 && (
-        <Glass padding={20}>
+        <Glass padding={20} data-lesson-section="improvements">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: T.amber }}>rocket_launch</span>
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
@@ -1498,7 +1461,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
 
       {/* Key errors — clickable */}
       {analysis?.keyErrors?.length > 0 && (
-        <Glass padding={20}>
+        <Glass padding={20} data-lesson-section="errors">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: T.rose }}>flag_circle</span>
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
@@ -1558,7 +1521,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
 
       {/* Practice advice cards */}
       {analysis?.practiceAdvice?.length > 0 && (
-        <Glass padding={20}>
+        <Glass padding={20} data-lesson-section="practice">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: T.sky }}>tips_and_updates</span>
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
@@ -1668,7 +1631,7 @@ function LessonDetailModal({ lesson, onClose, onYouglish, focusKeyword, cameFrom
           </button>
         </div>
         {/* Body */}
-        <div style={{ flex: 1, overflow: 'auto',
+        <div data-lesson-scroll style={{ flex: 1, overflow: 'auto',
           padding: isMobile ? '18px 20px 28px' : '24px 28px 36px' }}>
           <LessonDetail
             lesson={lesson}
@@ -1948,7 +1911,8 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
   const [selectedLesson, setSelectedLesson] = useState(null)
   const [lessonFilter, setLessonFilter] = useState('')
   const [youglishWord, setYouglishWord] = useState(null)
-  const [pdfMap, setPdfMap] = useState({})
+  const [fetchedPdfMap, setPdfMap] = useState({})
+  const pdfMap = data?.pdfMap ?? fetchedPdfMap
   const [focusKeyword, setFocusKeyword] = useState(null)
   const [cameFromVocab, setCameFromVocab] = useState(false)
   const [topicFilter, setTopicFilter] = useState(null)
@@ -1960,6 +1924,7 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
 
   useEffect(() => {
     let cancelled = false
+    if (data?.pdfMap) return
     // Revalidate alongside lesson data: a newly published card or replacement
     // PDF must not remain invisible behind an older in-memory registry.
     fetchWithTimeout('/lesson-pdfs.json', { cache: 'no-cache' })
@@ -1967,7 +1932,7 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
       .then(d => { if (!cancelled) setPdfMap(d || {}) })
       .catch(() => { /* Keep the last successful notes index during a network failure. */ })
     return () => { cancelled = true }
-  }, [studentSlug, data?.refreshedAt])
+  }, [studentSlug, data?.refreshedAt, data?.pdfMap])
 
   const allTopics = useMemo(() => {
     const set = new Set()
