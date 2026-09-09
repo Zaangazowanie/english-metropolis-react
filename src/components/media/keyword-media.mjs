@@ -2,7 +2,7 @@ export const KEYWORD_MEDIA_ROOT = '/media/keyword-cache-20260909'
 let manifestPromise
 
 export function loadKeywordMedia() {
-  if (!manifestPromise) manifestPromise = fetch(`${KEYWORD_MEDIA_ROOT}/manifest.json`)
+  if (!manifestPromise) manifestPromise = fetch(`${KEYWORD_MEDIA_ROOT}/manifest.json?v=landmark-3`)
     .then(response => {
       if (!response.ok) throw new Error('Clip catalogue unavailable')
       return response.json()
