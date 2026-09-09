@@ -911,7 +911,7 @@ function PersonalizedRecommendationsBlock({ recs }) {
 /* ============================================================================
    LessonSummaryOnion — bullets + collapsible deeper details
    ============================================================================ */
-function LessonSummaryOnion({ summary, title, deeperLabel }) {
+function LessonSummaryOnion({ summary, title, deeperLabel, expanded = false }) {
   const { T, mode } = useV3Theme()
   const isDay = mode === 'day'
   const { bullets, deepBullets } = useMemo(() => {
@@ -963,7 +963,7 @@ function LessonSummaryOnion({ summary, title, deeperLabel }) {
         </div>
       )}
       {deepBullets.length > 0 && (
-        <details style={{ marginTop: 18 }}>
+        <details open={expanded || undefined} style={{ marginTop: 18 }}>
           <summary data-lesson-action="deeper" style={{
             cursor: 'pointer', listStyle: 'none',
             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -1000,7 +1000,7 @@ function LessonSummaryOnion({ summary, title, deeperLabel }) {
 /* ============================================================================
    LessonDetail — full per-lesson modal body
    ============================================================================ */
-function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, studentSlug, basePath, pdfUrl }) {
+export function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, studentSlug, basePath, pdfUrl, analysisOnly = false }) {
   const { T, mode, isMobile } = useV3Theme()
   const isDay = mode === 'day'
   const { t } = useI18n()
@@ -1047,7 +1047,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
     <div data-lesson-content style={{ display: 'grid', gap: 22, minWidth: 0,
       gridTemplateColumns: 'minmax(0, 1fr)', overflowWrap: 'anywhere' }}>
       {/* Floating back-to-vocab button */}
-      {cameFromVocab && studentSlug && (
+      {!analysisOnly && cameFromVocab && studentSlug && (
         <Link to={`${basePath || ''}/${studentSlug}/vocabulary`}
           style={{
             display: 'flex', alignItems: 'center', gap: 10,
@@ -1068,12 +1068,12 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
       )}
 
       {/* Header pill row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <div data-lesson-section="overview" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{
           padding: '5px 12px', borderRadius: 999, background: G.brand, color: '#fff',
           fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
           textTransform: 'uppercase' }}>
-          {formatLongDate(lesson.date)}
+          {analysisOnly ? t('lessons.detail.fullAnalysis') : formatLongDate(lesson.date)}
         </span>
         {band && (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -1089,7 +1089,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
             )}
           </div>
         )}
-        {pdfUrl && (
+        {!analysisOnly && pdfUrl && (
           <a href={pdfUrl} download target="_blank" rel="noopener noreferrer"
             title={t('lessons.rawNotesTitle')}
             style={{
@@ -1108,6 +1108,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
 
       {/* Vocabulary FIRST — the keywords (with TTS + YouGlish previews) are
           what a student revises; the full analysis follows on demand. */}
+      {!analysisOnly && <>
       {hasAccuracyPractice && (
         <Glass padding={0} style={{
           overflow: 'hidden',
@@ -1254,8 +1255,9 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
       {!analysis && lesson.id && (lesson.status || '') !== 'planned' && (
         <AnalysisUpgradeCTA lessonId={lesson.id} />
       )}
+      </>}
 
-      {analysisOpen && (<>
+      {(analysisOnly || analysisOpen) && (<>
       {/* Topics chips */}
       {lesson.topics?.length > 0 && (
         <div data-lesson-section="topics">
@@ -1273,7 +1275,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
       )}
 
       {lesson.materials?.some(materialHref) && (
-        <Glass padding={18}>
+        <Glass padding={18} data-lesson-section="materials">
           <SectionLabel T={T} icon="attachment" tone="sky">Published materials</SectionLabel>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {lesson.materials.filter(materialHref).map((m, i) => (
@@ -1328,7 +1330,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                   </span>
                   <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                     textTransform: 'uppercase', color: T.textSoft,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: analysisOnly ? 'normal' : 'nowrap' }}>
                     {m.shortLabel}
                   </span>
                 </div>
@@ -1347,9 +1349,9 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
                 </div>
                 {commentary && (
                   <div style={{ marginTop: 8, fontSize: 13, color: T.textDim, fontStyle: 'italic',
-                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                    display: analysisOnly ? 'block' : '-webkit-box', WebkitLineClamp: analysisOnly ? undefined : 2, WebkitBoxOrient: 'vertical',
                     overflow: 'hidden', lineHeight: 1.4 }}>
-                    {commentary.slice(0, 90)}...
+                    {analysisOnly ? commentary : `${commentary.slice(0, 90)}...`}
                   </div>
                 )}
               </div>
@@ -1363,6 +1365,7 @@ function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, student
         <LessonSummaryOnion
           summary={analysis.lessonSummary}
           title={t('lessons.detail.summaryHeading')}
+          expanded={analysisOnly}
           deeperLabel={t('dashboard.summary.technical')}/>
       )}
 
