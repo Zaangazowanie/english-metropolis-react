@@ -107,12 +107,12 @@ backup=pathlib.Path(sys.argv[1]);opener=urllib.request.build_opener(urllib.reque
 def get(path):
     before=time.monotonic()
     req=urllib.request.Request('https://englishmetro.com/'+path,headers={'User-Agent':'Mozilla/5.0'})
-    with opener.open(req,timeout=20) as response: return response.read(),dict(response.headers),round(time.monotonic()-before,3)
+    with opener.open(req,timeout=20) as response: return response.read(),{key.lower():value for key,value in response.headers.items()},round(time.monotonic()-before,3)
 for name in ['index','student-preview']:
     raw,headers,_=get(name+'.html');edge=raw.decode();local=pathlib.Path('dist',name+'.html').read_text()
     pattern=r'src="(/assets/[^\"]+\.js)"'
     assert re.search(pattern,local)[1]==re.search(pattern,edge)[1], 'Public entry mismatch'
-    assert "https://www.youtube.com" in headers.get('Content-Security-Policy','')
+    assert "https://www.youtube.com" in headers.get('content-security-policy','')
     (backup/(name+'-public.html')).write_text(edge)
     print('Public entry verified:',re.search(pattern,edge)[1])
 manifest=json.loads(pathlib.Path('public',sys.argv[2],'manifest.json').read_text())
@@ -121,8 +121,8 @@ for row in manifest['files']:
     if row['voice']!='af_heart':continue
     raw,headers,elapsed=get(sys.argv[2]+'/'+row['file'])
     assert hashlib.sha256(raw).hexdigest()==row['sha256']
-    assert 'audio/' in headers.get('Content-Type','')
-    proof.append({'file':row['file'],'seconds':elapsed,'bytes':len(raw),'contentType':headers.get('Content-Type'),'cacheControl':headers.get('Cache-Control')})
+    assert 'audio/' in headers.get('content-type','')
+    proof.append({'file':row['file'],'seconds':elapsed,'bytes':len(raw),'contentType':headers.get('content-type'),'cacheControl':headers.get('cache-control')})
 (backup/'public-audio.json').write_text(json.dumps(proof,indent=2))
 print(json.dumps(proof))
 PY
