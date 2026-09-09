@@ -19,7 +19,7 @@ git merge-base --is-ancestor "$BASE" HEAD
 git diff --quiet "$BASE" HEAD -- package.json package-lock.json index.html public/assets src/design src/views/v3/game-home.css src/views/v3/bajla-tour.mjs
 git diff --name-only "$BASE" HEAD | python3 -c '
 import sys
-allowed={"deploy/deploy-ai-packages-2026-09-09.sh","convex/analysisPricing.ts","convex/p24.ts","src/views/v3/GameHome.jsx","src/views/v3/WordPreviewShowcase.jsx","src/views/v3/AnalysisPreviewShowcase.jsx","src/views/v3/BajlaWalkthrough.jsx","src/views/v3/bajla-walkthrough.css","src/views/public/LessonPricingSignup.jsx","src/views/public/lesson-pricing-signup.css","src/views/public/Checkout.jsx","src/views/public/CartUI.jsx","src/views/public/cart-store.js","tests/analysis-cart.test.mjs","tests/p24-pipeline.test.mjs"}
+allowed={"deploy/deploy-ai-packages-2026-09-09.sh","convex/analysisPricing.ts","convex/p24.ts","src/views/v3/GameHome.jsx","src/views/v3/WordPreviewShowcase.jsx","src/views/v3/AnalysisPreviewShowcase.jsx","src/views/v3/BajlaWalkthrough.jsx","src/views/v3/bajla-walkthrough.css","src/views/v3/BajlaShowcase.jsx","src/views/public/LessonPricingSignup.jsx","src/views/public/lesson-pricing-signup.css","src/views/public/Checkout.jsx","src/views/public/CartUI.jsx","src/views/public/cart-store.js","tests/analysis-cart.test.mjs","tests/p24-pipeline.test.mjs"}
 unexpected=[p for p in sys.stdin.read().splitlines() if p not in allowed]
 assert not unexpected, f"Unexpected release paths: {unexpected}"
 '
