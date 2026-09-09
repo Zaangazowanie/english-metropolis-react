@@ -733,59 +733,75 @@ async function generateLessonPdf(profile, lesson, analysis) {
   // ------------------------------------------------------------------------
   function renderVocabulary() {
     if (!lesson?.keywords?.length) return
-    sectionHeader(7, `Vocabulary Bank · ${lesson.keywords.length} keywords`)
-    y += 4
-
     const gap = 16
     const colW = (W - MX * 2 - gap) / 2
-    let col = 0
-    const colY = [y, y]
-    const max = Math.min(36, lesson.keywords.length)
-    for (let i = 0; i < max; i++) {
-      const kw = lesson.keywords[i]
-      let cy = colY[col]
-      const colX = MX + col * (colW + gap)
-      const exText = kw.exampleEn || kw.example_en
-      const needed = 20 + (exText ? 18 : 0)
-      if (cy + needed > CONTENT_BOTTOM) {
-        if (col === 0) { col = 1; continue }
-        // Both columns full -> new page
-        drawFooter(pageNum); doc.addPage(); pageNum += 1
-        drawHero(pageNum)
-        colY[0] = CONTENT_TOP_PN; colY[1] = CONTENT_TOP_PN
-        col = 0
-        cy = colY[col]
+    const headingH = 34
+    const maxRowH = CONTENT_BOTTOM - CONTENT_TOP_PN - headingH
+
+    // Measure each field with the font used to draw it. IPA gets its own line:
+    // measuring a bold keyword with the smaller regular IPA font caused overlap.
+    const measureEntry = (kw) => {
+      const lines = []
+      const field = (text, size, leading, bold, color) => {
+        if (!text) return
+        if (bold) fontB(); else fontR()
+        doc.setFontSize(size)
+        doc.setCharSpace(0)
+        for (const line of doc.splitTextToSize(String(text), colW)) {
+          lines.push({ text: line, size, leading, bold, color })
+        }
       }
-      // Word
-      fontB(); doc.setFontSize(10.5); setColor(C.violetDeep)
-      doc.text(String(kw.word || ''), colX, cy + 4)
-      // IPA
-      if (kw.ipa) {
-        fontR(); doc.setFontSize(8.5); setColor(C.slate500)
-        doc.text(String(kw.ipa).slice(0, 30), colX + doc.getTextWidth(String(kw.word || '')) + 6, cy + 4)
-      }
-      cy += 12
-      // Translation (fuchsia)
-      if (kw.translation) {
-        fontR(); doc.setFontSize(9.5); setColor(C.fuchsiaDeep)
-        const tLines = doc.splitTextToSize(String(kw.translation), colW)
-        doc.text(tLines[0], colX, cy + 3)
-        cy += 12
-      }
-      // Example
-      if (exText) {
-        fontR(); doc.setFontSize(8.5); setColor(C.slate500)
-        const eLines = doc.splitTextToSize(`"${exText}"`, colW)
-        doc.text(eLines[0], colX, cy + 3)
-        cy += 11
+      field(kw.word, 10.5, 14, true, C.violetDeep)
+      field(kw.ipa, 8.5, 12, false, C.slate500)
+      field(kw.translation, 9.5, 13, false, C.fuchsiaDeep)
+      const example = kw.exampleEn || kw.example_en
+      field(example && `"${example}"`, 8.5, 12, false, C.slate500)
+      return lines
+    }
+    const rows = []
+    for (let i = 0; i < lesson.keywords.length; i += 2) {
+      const entries = lesson.keywords.slice(i, i + 2).map(measureEntry)
+      const bands = Array.from({ length: Math.max(...entries.map(e => e.length)) }, (_, j) => {
+        const cells = entries.map(e => e[j])
+        return { cells, height: Math.max(...cells.map(c => c?.leading || 0)) }
+      })
+      rows.push({ bands, height: bands.reduce((h, band) => h + band.height, 12), columns: entries.length })
+    }
+    const heading = (continued = false) => {
+      sectionHeader(7, continued ? 'Vocabulary Bank · continued' : `Vocabulary Bank · ${lesson.keywords.length} keywords`)
+      y += 8
+    }
+    const nextPage = () => {
+      drawFooter(pageNum); doc.addPage(); pageNum += 1
+      drawHero(pageNum)
+      y = CONTENT_TOP_PN
+      heading(true)
+    }
+
+    ensureSpace(headingH + Math.min(rows[0].height, maxRowH))
+    heading()
+    for (const row of rows) {
+      // Keep an ordinary pair together. Exceptionally long entries can span pages
+      // line by line, without dropping an entry or reusing a stale column offset.
+      if (row.height <= maxRowH && y + row.height > CONTENT_BOTTOM) nextPage()
+      for (const band of row.bands) {
+        if (y + band.height + 12 > CONTENT_BOTTOM) nextPage()
+        band.cells.forEach((cell, col) => {
+          if (!cell) return
+          if (cell.bold) fontB(); else fontR()
+          doc.setFontSize(cell.size); doc.setCharSpace(0); setColor(cell.color)
+          doc.text(cell.text, MX + col * (colW + gap), y + band.height - 3)
+        })
+        y += band.height
       }
       setStroke(C.slate100); doc.setLineWidth(0.3)
-      doc.line(colX, cy + 3, colX + colW, cy + 3)
-      cy += 8
-      colY[col] = cy
-      col = col === 0 ? 1 : 0
+      for (let col = 0; col < row.columns; col++) {
+        const x = MX + col * (colW + gap)
+        doc.line(x, y + 3, x + colW, y + 3)
+      }
+      y += 12
     }
-    y = Math.max(colY[0], colY[1]) + 6
+    y += 6
   }
 
   // ------------------------------------------------------------------------
