@@ -56,10 +56,12 @@ function MediaPlayer({ videoId, occurrence, word, onClock, autoPlay = true }) {
       if (event.origin === location.origin && event.source === window.parent && event.data?.type === 'em-preview-pause-media') pause()
     }
     document.addEventListener('em-keyword-play', another)
+    document.addEventListener('em-public-clip-play', another)
     document.addEventListener('visibilitychange', hidden)
     window.addEventListener('message', message)
     return () => {
       pause(); document.removeEventListener('em-keyword-play', another)
+      document.removeEventListener('em-public-clip-play', another)
       document.removeEventListener('visibilitychange', hidden); window.removeEventListener('message', message)
     }
   }, [owner])

@@ -8,6 +8,7 @@ import { useI18n } from '../../i18n'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 import { useNavigate } from 'react-router-dom'
 import KeywordVideoPlayer from '../../components/media/KeywordVideoPlayer.jsx'
+import { announceKeywordPlayback, captionAt } from '../../components/media/keyword-media.mjs'
 
 /* ============================================================================
    TTS — identical API to the existing view (POST /api/tts/tts)
@@ -43,6 +44,7 @@ async function playTTS(text, voice, onTimeUpdate = null, onEnded = null) {
   currentAudio?.pause()
   currentAudio = audio
   audio.currentTime = 0
+  announceKeywordPlayback('vocabulary-tts')
   if (onTimeUpdate) audio.ontimeupdate = () => onTimeUpdate(audio.currentTime, audio.duration || 0)
   if (onEnded) audio.onended = onEnded
   try { await audio.play() } catch { /* ignore */ }
@@ -194,7 +196,7 @@ const V3_VOCAB_CSS = `
 .v3-topic-pill:disabled{cursor:not-allowed;opacity:.35}
 `
 
-function InjectVocabStyle() {
+export function InjectVocabStyle() {
   useEffect(() => {
     if (document.getElementById('v3-vocab-style')) return
     const el = document.createElement('style')
@@ -209,29 +211,33 @@ function InjectVocabStyle() {
    YouGlish Modal — 16:9 autoplay, prev/next across occurrences-then-videos
    ============================================================================ */
 
-function YouGlishModal({ word, onClose }) {
+export function YouGlishModal({ word, onClose, inline = false, autoPlay = true }) {
   const { T } = useV3Theme()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [state, setState] = useState({ loading: true, error: null, data: null })
   const [videoIdx, setVideoIdx] = useState(0)
   const [occIdx, setOccIdx] = useState(0)
+  const [playRequested, setPlayRequested] = useState(autoPlay)
+  const [clock, setClock] = useState({ time: null, cues: [] })
 
   useEffect(() => {
     if (!word) return
     let cancelled = false
     setState({ loading: true, error: null, data: null })
     setVideoIdx(0); setOccIdx(0)
+    setPlayRequested(autoPlay)
     fetchYouglish(word)
       .then(data => { if (!cancelled) setState({ loading: false, error: null, data }) })
       .catch(err => { if (!cancelled) setState({ loading: false, error: err.message, data: null }) })
     return () => { cancelled = true }
-  }, [word])
+  }, [word, autoPlay])
 
   useEffect(() => {
+    if (inline) return
     function onKey(e) { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, inline])
 
   if (!word) return null
   const videos = state.data?.videos || []
@@ -248,11 +254,13 @@ function YouGlishModal({ word, onClose }) {
   const closeBtnStyle = { background: 'rgba(255,255,255,0.2)', border: 'none', width: 38, height: 38, borderRadius: '50%', cursor: 'pointer', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
   const playerFrameStyle = { aspectRatio: '16/9', borderRadius: 14, overflow: 'hidden', background: '#000', border: `1px solid ${T.border}`, marginBottom: 14 }
   const quoteStyle = { padding: 14, background: T.bg2, borderRadius: 12, border: `1px solid ${T.border}`, fontSize: 15, color: T.text, lineHeight: 1.6, fontStyle: 'italic', marginBottom: 14, textAlign: 'center' }
+  const activeCaption = captionAt(clock.cues, clock.time)
 
   return (
-    <div role="dialog" aria-modal="true" onClick={onClose} style={overlayStyle}>
-      <div onClick={(e) => e.stopPropagation()} style={dialogStyle}>
-        <div style={headerStyle}>
+    <div role={inline ? 'region' : 'dialog'} aria-modal={inline ? undefined : true} aria-label={inline ? `YouTube · ${word}` : undefined}
+      className={inline ? 'em-inline-youglish' : undefined} onClick={inline ? undefined : onClose} style={inline ? undefined : overlayStyle}>
+      <div onClick={(e) => e.stopPropagation()} style={inline ? undefined : dialogStyle}>
+        {!inline && <div style={headerStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={iconBoxStyle}><span className="material-symbols-outlined" style={{ color: '#fff' }}>record_voice_over</span></div>
             <div>
@@ -263,13 +271,13 @@ function YouGlishModal({ word, onClose }) {
           <button onClick={onClose} aria-label={t('common.close')} style={closeBtnStyle}>
             <span className="material-symbols-outlined">close</span>
           </button>
-        </div>
+        </div>}
         {fallbackFrom && state.data?.keyword && state.data.keyword !== fallbackFrom && (
           <div style={{ padding: '10px 20px', fontSize: 13, color: T.amber, background: 'rgba(252,211,77,0.10)', fontStyle: 'italic' }}>
             {t('vocabulary.youglish.fallback', { from: fallbackFrom, to: state.data.keyword })}
           </div>
         )}
-        <div style={{ padding: 22 }}>
+        <div style={inline ? undefined : { padding: 22 }}>
           {state.loading && (
             <div style={{ aspectRatio: '16/9', borderRadius: 14, background: T.bg2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 13, color: T.textDim }}>{t('vocabulary.youglish.loading')}</span>
@@ -287,17 +295,21 @@ function YouGlishModal({ word, onClose }) {
           )}
           {video && occurrence && (
             <>
-              <div style={playerFrameStyle}>
-                <KeywordVideoPlayer key={`${video.videoId}-${occIdx}`} videoId={video.videoId} occurrence={occurrence} word={word}/>
+              <div className={inline ? 'em-inline-video' : undefined} style={inline ? undefined : playerFrameStyle}>
+                <KeywordVideoPlayer key={`${video.videoId}-${occIdx}`} videoId={video.videoId} occurrence={occurrence} word={word}
+                  autoPlay={playRequested} onClock={inline ? setClock : undefined}/>
               </div>
-              {occurrence?.text && <div style={quoteStyle}>"{occurrence.text}"</div>}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              {occurrence?.text && <div className={inline ? 'em-inline-caption' : undefined} style={inline ? undefined : quoteStyle}>
+                {inline && clock.cues.length ? clock.cues.map((cue, i) => <span key={i} className={i === activeCaption ? 'is-speaking' : undefined}>{cue.word}{' '}</span>) : `“${occurrence.text}”`}
+              </div>}
+              <div className={inline ? 'em-inline-transport' : undefined} style={inline ? undefined : { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                 <Btn size="sm" variant="secondary" icon="chevron_left" disabled={!canPrev}
                   onClick={() => {
+                    setPlayRequested(true); setClock({ time: null, cues: [] })
                     if (occIdx > 0) setOccIdx(occIdx - 1)
                     else if (videoIdx > 0) { setVideoIdx(videoIdx - 1); setOccIdx(0) }
                   }}>{t('vocabulary.youglish.prevShort')}</Btn>
-                <div style={{ fontSize: 13, color: T.textDim, fontFamily: FONT.mono }}>
+                <div className={inline ? 'em-inline-count' : undefined} style={inline ? undefined : { fontSize: 13, color: T.textDim, fontFamily: FONT.mono }}>
                   {t('vocabulary.youglish.clipCounter', {
                     current: occIdx + 1,
                     total: video?.occurrences?.length || 0,
@@ -307,21 +319,26 @@ function YouGlishModal({ word, onClose }) {
                 </div>
                 <Btn size="sm" variant="secondary" trailingIcon="chevron_right" disabled={!canNext}
                   onClick={() => {
+                    setPlayRequested(true); setClock({ time: null, cues: [] })
                     if (occIdx < (video?.occurrences?.length || 1) - 1) setOccIdx(occIdx + 1)
                     else if (videoIdx < videos.length - 1) { setVideoIdx(videoIdx + 1); setOccIdx(0) }
                   }}>{t('vocabulary.youglish.nextShort')}</Btn>
               </div>
               {videos.length > 1 && (
-                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6 }}>
+                <div className={inline ? 'em-inline-sources' : undefined} style={inline ? undefined : { display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6 }}>
                   {videos.map((v, i) => (
-                    <button key={v.videoId} type="button" onClick={() => { setVideoIdx(i); setOccIdx(0) }}
+                    <button key={v.videoId} type="button" onClick={() => { setPlayRequested(true); setClock({ time: null, cues: [] }); setVideoIdx(i); setOccIdx(0) }}
                       aria-label={t('lessons.youglish.videoOf', { a: i + 1, b: videos.length })} aria-pressed={videoIdx === i}
-                      style={{ flexShrink: 0, width: 128, cursor: 'pointer', padding: 0, background: 'transparent', border: `2px solid ${i === videoIdx ? T.brand : 'transparent'}`, borderRadius: 10, overflow: 'hidden' }}>
-                      <img src={v.thumbnail} alt="" style={{ width: '100%', display: 'block' }} />
+                      style={inline ? undefined : { flexShrink: 0, width: 128, cursor: 'pointer', padding: 0, background: 'transparent', border: `2px solid ${i === videoIdx ? T.brand : 'transparent'}`, borderRadius: 10, overflow: 'hidden' }}>
+                      <img src={v.thumbnail} alt="" loading="lazy" style={{ width: '100%', display: 'block' }} />
+                      {inline && <span>{i + 1}</span>}
                     </button>
                   ))}
                 </div>
               )}
+              {inline && <a className="em-inline-source-link" href={`https://www.youtube.com/watch?v=${video.videoId}&t=${Math.floor(occurrence.start)}s`} target="_blank" rel="noopener noreferrer">
+                {lang === 'pl' ? 'Pełne nagranie na YouTube' : 'Full video on YouTube'}<span className="material-symbols-outlined" aria-hidden>open_in_new</span>
+              </a>}
             </>
           )}
         </div>
@@ -345,7 +362,7 @@ const COLLOC_LABEL_KEYS = {
   usagePatterns: 'vocabulary.card.usagePatterns',
 }
 
-function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0 }) {
+export function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0, compact = false, showLessonLink = true }) {
   const { T, isMobile } = useV3Theme()
   const { t } = useI18n()
   const [flipped, setFlipped] = useState(false)
@@ -355,6 +372,22 @@ function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0 }) {
   const [showScrollTop, setShowScrollTop] = useState(false)
 
   useEffect(() => { setFlipped(false); setActiveSyllable(-1) }, [keyword?.id])
+  useEffect(() => {
+    const pause = event => { if (event.detail !== 'vocabulary-tts') { currentAudio?.pause(); setActiveSyllable(-1) } }
+    const hidden = () => { if (document.hidden) pause({}) }
+    const message = event => {
+      if (event.origin === location.origin && event.source === window.parent && event.data?.type === 'em-preview-pause-media') pause({})
+    }
+    document.addEventListener('em-public-clip-play', pause)
+    document.addEventListener('visibilitychange', hidden)
+    window.addEventListener('message', message)
+    return () => {
+      currentAudio?.pause()
+      document.removeEventListener('em-public-clip-play', pause)
+      document.removeEventListener('visibilitychange', hidden)
+      window.removeEventListener('message', message)
+    }
+  }, [])
   useEffect(() => {
     if (!summonPulse) return
     setSummoned(true)
@@ -398,19 +431,19 @@ function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0 }) {
   const hintLine = { marginTop: 14, textAlign: 'center', fontSize: 13, color: T.textDim, letterSpacing: '0.12em', textTransform: 'uppercase', fontStyle: 'italic' }
 
   return (
-    <div className={`v3-flashcard-scene ${summoned ? 'is-summoned' : ''}`}>
+    <div className={`v3-flashcard-scene ${summoned ? 'is-summoned' : ''}${compact ? ' em-flashcard-compact' : ''}`}>
       <div className={`v3-flashcard-inner ${flipped ? 'is-flipped' : ''}`}>
         {/* FRONT */}
-        <div className="v3-flashcard-face v3-flashcard-face-front" onClick={() => setFlipped(true)} style={{ cursor: 'pointer' }}>
-          <Glass padding={isMobile ? 24 : 40} style={{ position: 'relative', overflow: 'hidden', minHeight: 520, borderRadius: 20 }}>
+        <div className="v3-flashcard-face v3-flashcard-face-front" inert={flipped} aria-hidden={flipped} onClick={() => setFlipped(true)} style={{ cursor: 'pointer' }}>
+          <Glass padding={compact ? 24 : isMobile ? 24 : 40} style={{ position: 'relative', overflow: 'hidden', minHeight: compact ? 390 : 520, borderRadius: 20 }}>
             <span className="v3-flashcard-sparkles" aria-hidden><span /><span /><span /><span /><span /><span /></span>
             <span className="v3-flashcard-curl" aria-hidden />
             <div aria-hidden style={{ position: 'absolute', top: -40, right: -40, width: 220, height: 220, background: G.brandSoft, filter: 'blur(60px)', pointerEvents: 'none' }} />
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', minHeight: isMobile ? 440 : 460 }}>
+            <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', minHeight: compact ? 342 : isMobile ? 440 : 460 }}>
               <div style={metaRow}>
-                <div style={metaMono}>
+                {showLessonLink && <div style={metaMono}>
                   {keyword.lessonNumber ? `L${keyword.lessonNumber} · ` : ''}{(keyword.lessonTitle || '').slice(0, 70)}
-                </div>
+                </div>}
                 {keyword.cefr_level && (
                   <Pill tone="brand" size="sm" style={{ borderColor: CEFR_COLOR[keyword.cefr_level] || undefined, color: CEFR_COLOR[keyword.cefr_level] || undefined }}>
                     {keyword.cefr_level}
@@ -418,7 +451,7 @@ function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0 }) {
                 )}
               </div>
               <div style={{ textAlign: 'center', padding: '12px 0 18px' }}>
-                <h2 style={{ fontFamily: FONT.display, fontSize: isMobile ? 48 : 72, fontWeight: 600, letterSpacing: '-0.04em', lineHeight: 1, margin: 0, color: T.text }}>
+                <h2 style={{ fontFamily: FONT.display, fontSize: compact ? 'clamp(32px, 5vw, 58px)' : isMobile ? 48 : 72, fontWeight: 600, letterSpacing: '-0.04em', lineHeight: compact ? 1.1 : 1, margin: 0, color: T.text }}>
                   {keyword.word}
                 </h2>
                 {keyword.ipa && <div style={ipaStyle}>{keyword.ipa}</div>}
@@ -451,7 +484,7 @@ function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0 }) {
                 <Btn variant="secondary" icon="smart_display" onClick={(e) => { stop(e); onYouglish(keyword.word) }}>{t('vocabulary.card.inContext')}</Btn>
                 <Btn variant="ghost" trailingIcon="flip_camera_android" onClick={(e) => { stop(e); setFlipped(true) }}>{t('vocabulary.card.flip')}</Btn>
               </div>
-              <div style={{ marginTop: 18 }}>
+              {showLessonLink && <div style={{ marginTop: 18 }}>
                 <button type="button" title={keyword.lessonTitle} style={lessonBtn}
                   onClick={(e) => { stop(e); onJumpToLesson && onJumpToLesson(keyword.lessonId, keyword.word) }}>
                   <span className="material-symbols-outlined" style={{ color: T.brandInk || T.brand, flexShrink: 0 }}>menu_book</span>
@@ -461,15 +494,15 @@ function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0 }) {
                   </span>
                   <span className="material-symbols-outlined" style={{ color: T.textDim, flexShrink: 0 }}>arrow_forward</span>
                 </button>
-              </div>
+              </div>}
               <div style={hintLine}>{t('vocabulary.nav.clickToFlip')}</div>
             </div>
           </Glass>
         </div>
 
         {/* BACK */}
-        <div className="v3-flashcard-face v3-flashcard-face-back" onClick={() => setFlipped(false)} style={{ cursor: 'pointer' }}>
-          <Glass padding={0} style={{ position: 'relative', minHeight: 520, overflow: 'hidden', borderRadius: 20 }}>
+        <div className="v3-flashcard-face v3-flashcard-face-back" inert={!flipped} aria-hidden={!flipped} onClick={() => setFlipped(false)} style={{ cursor: 'pointer' }}>
+          <Glass padding={0} style={{ position: 'relative', minHeight: compact ? 390 : 520, overflow: 'hidden', borderRadius: 20 }}>
             <div ref={backScrollRef} onScroll={onBackScroll} className="v3-scroll-area v3-flashcard-back-scroll" style={{ padding: isMobile ? 22 : 32 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
                 <div>
@@ -543,7 +576,7 @@ function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0 }) {
               )}
               <div style={{ marginTop: 22, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <Btn size="sm" variant="secondary" icon="smart_display" onClick={(e) => { stop(e); onYouglish(keyword.word) }}>{t('vocabulary.card.inContext')}</Btn>
-                {keyword.lessonId && (
+                {showLessonLink && keyword.lessonId && (
                   <Btn size="sm" variant="ghost" icon="school" onClick={(e) => { stop(e); onJumpToLesson && onJumpToLesson(keyword.lessonId, keyword.word) }}>
                     {t('vocabulary.card.fromLessonShort', { number: keyword.lessonNumber || '' })}
                   </Btn>
