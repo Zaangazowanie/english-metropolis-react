@@ -1,3 +1,5 @@
+import { pronunciationSource } from '../../components/media/pronunciation.mjs'
+import { PREPARED_KEYWORDS } from '../../components/media/prepared-keywords.mjs'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { FONT, G, EASE, CEFR_COLOR } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
@@ -29,15 +31,8 @@ async function playTTS(text, voice, onTimeUpdate = null, onEnded = null) {
   if (ttsCache.has(key)) audio = ttsCache.get(key)
   else {
     try {
-      // 30s AbortController-backed timeout — see practice-cache.ts.
-      const resp = await fetchWithTimeout('/api/tts/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice: v, lang: v[0] || 'a' }),
-      })
-      if (!resp.ok) throw new Error(`TTS ${resp.status}`)
-      const blob = await resp.blob()
-      audio = new Audio(URL.createObjectURL(blob))
+      const url = await pronunciationSource(text, v)
+      audio = new Audio(url)
       ttsCache.set(key, audio)
     } catch (err) { console.error('TTS error:', err); return null }
   }
@@ -45,14 +40,14 @@ async function playTTS(text, voice, onTimeUpdate = null, onEnded = null) {
   currentAudio = audio
   audio.currentTime = 0
   announceKeywordPlayback('vocabulary-tts')
-  if (onTimeUpdate) audio.ontimeupdate = () => onTimeUpdate(audio.currentTime, audio.duration || 0)
-  if (onEnded) audio.onended = onEnded
+  audio.ontimeupdate = onTimeUpdate ? () => onTimeUpdate(audio.currentTime, audio.duration || 0) : null
+  audio.onended = onEnded
   try { await audio.play() } catch { /* ignore */ }
   return audio
 }
 
 /* ============================================================================
-   YouGlish — 5-tier query-variant fallback ladder with module-level cache
+   YouTube — 5-tier query-variant fallback ladder with module-level cache
    ============================================================================ */
 
 const youglishCache = new Map()
@@ -71,7 +66,7 @@ function youglishQueryVariants(rawKey) {
   const seen = new Set()
   const push = (s) => { const v = s.trim(); if (v && !seen.has(v)) { seen.add(v); out.push(v) } }
   push(key)
-  // Hyphen handling — YouGlish often indexes "skip level" but not "skip-level".
+  // Hyphen handling — YouTube often indexes "skip level" but not "skip-level".
   // If the key contains a hyphen, also try (a) hyphen → space variant and
   // (b) hyphen removed entirely. Mike: "if the word doesn't catch first time,
   // remember to edit it slightly like removing the -".
@@ -97,6 +92,7 @@ function youglishQueryVariants(rawKey) {
 async function fetchYouglish(word) {
   const key = String(word || '').toLowerCase().replace(/_/g, ' ').trim()
   if (!key) return { keyword: key, videos: [] }
+  if (PREPARED_KEYWORDS[key]) return PREPARED_KEYWORDS[key]
   if (youglishCache.has(key)) return youglishCache.get(key)
   const variants = youglishQueryVariants(key)
   for (const v of variants) {
@@ -116,9 +112,10 @@ async function fetchYouglish(word) {
           })
         }
         byVid.get(r.videoId).occurrences.push({
-          start: parseInt(r.start, 10) || 0,
-          end: parseFloat(r.end) || (parseInt(r.start, 10) || 0) + 3,
+          start: parseFloat(r.start) || 0,
+          end: parseFloat(r.end) || (parseFloat(r.start) || 0) + 3,
           text: r.display || '',
+          words: r.words,
         })
       }
       const out = { keyword: v, videos: Array.from(byVid.values()), fallbackFrom: v === key ? null : key }
@@ -208,7 +205,7 @@ export function InjectVocabStyle() {
 }
 
 /* ============================================================================
-   YouGlish Modal — 16:9 autoplay, prev/next across occurrences-then-videos
+   YouTube Modal — 16:9 autoplay, prev/next across occurrences-then-videos
    ============================================================================ */
 
 export function YouGlishModal({ word, onClose, inline = false, autoPlay = true }) {
@@ -297,10 +294,10 @@ export function YouGlishModal({ word, onClose, inline = false, autoPlay = true }
             <>
               <div className={inline ? 'em-inline-video' : undefined} style={inline ? undefined : playerFrameStyle}>
                 <KeywordVideoPlayer key={`${video.videoId}-${occIdx}`} videoId={video.videoId} occurrence={occurrence} word={word}
-                  autoPlay={playRequested} onClock={inline ? setClock : undefined}/>
+                  autoPlay={playRequested} onClock={setClock}/>
               </div>
               {occurrence?.text && <div className={inline ? 'em-inline-caption' : undefined} style={inline ? undefined : quoteStyle}>
-                {inline && clock.cues.length ? clock.cues.map((cue, i) => <span key={i} className={i === activeCaption ? 'is-speaking' : undefined}>{cue.word}{' '}</span>) : `“${occurrence.text}”`}
+                {clock.cues.length ? clock.cues.map((cue, i) => <span key={i} className={i === activeCaption ? 'is-speaking' : undefined} style={i === activeCaption ? { color: T.sky, fontWeight: 700 } : undefined}>{cue.word}{' '}</span>) : `“${occurrence.text}”`}
               </div>}
               <div className={inline ? 'em-inline-transport' : undefined} style={inline ? undefined : { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                 <Btn size="sm" variant="secondary" icon="chevron_left" disabled={!canPrev}
@@ -348,7 +345,7 @@ export function YouGlishModal({ word, onClose, inline = false, autoPlay = true }
 }
 
 /* ============================================================================
-   Flashcard — 3D flip, karaoke syllables, TTS, YouGlish, lesson jump
+   Flashcard — 3D flip, karaoke syllables, TTS, YouTube, lesson jump
    ============================================================================ */
 
 const KARAOKE = ['#F472B6', '#D946EF', '#A855F7', '#FB923C', '#34D399']

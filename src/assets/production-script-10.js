@@ -1661,7 +1661,7 @@ function renderLessonKeywordRows(lesson, lessonIdx) {
                                                 <span class="material-symbols-outlined text-xl">record_voice_over</span>
                                                 <span class="font-label text-xs font-bold uppercase tracking-[0.24em]">Play Example</span>
                                             </button>
-                                            <button onclick="openYouGlish('${escapeJsString(keyword.word || '')}')" class="vocab-action vocab-action-youglish inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border" title="YouGlish">
+                                            <button onclick="openYouGlish('${escapeJsString(keyword.word || '')}')" class="vocab-action vocab-action-youglish inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border" title="YouTube">
                                                 <span class="material-symbols-outlined text-xl">smart_display</span>
                                                 <span class="font-label text-xs font-bold uppercase tracking-[0.24em]">Hear in Context</span>
                                             </button>
@@ -1741,7 +1741,7 @@ function renderLessonKeywordRows(lesson, lessonIdx) {
                                         ` : ''}
                                         <div class="rounded-[1.2rem] border border-slate-200 bg-white/85 p-4">
                                             <p class="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Keyword Notes</p>
-                                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Use YouGlish for real-world pronunciation, then replay the built-in example to lock in the phrasing.</p>
+                                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Use YouTube for real-world pronunciation, then replay the built-in example to lock in the phrasing.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -2941,7 +2941,7 @@ async function fetchYouGlishPayload(keyword, options = {}) {
     const request = (async () => {
         const url = `/api/youglish/keyword?q=${encodeURIComponent(normalizedKeyword)}`;
         const response = await fetch(url);
-        if (!response.ok) throw new Error(`YouGlish returned ${response.status}`);
+        if (!response.ok) throw new Error(`YouTube returned ${response.status}`);
         const data = await response.json();
         const results = Array.isArray(data.results) ? data.results : [];
         const payload = {
@@ -3006,7 +3006,7 @@ async function openYouGlish(keyword) {
         renderThumbnails();
         playCurrentOccurrence();
     } catch (e) {
-        console.error('[YouGlish] Fetch failed:', e);
+        console.error('[YouTube] Fetch failed:', e);
         renderYouGlishErrorState();
     }
 }

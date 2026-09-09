@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { announceKeywordPlayback, excerptKey, KEYWORD_MEDIA_ROOT, loadKeywordMedia } from './keyword-media.mjs'
+import { announceKeywordPlayback, excerptKey, KEYWORD_MEDIA_ROOT, loadKeywordMedia, timedWords } from './keyword-media.mjs'
 
 let youtubeReady
 function loadYouTube() {
@@ -74,23 +74,27 @@ function MediaPlayer({ videoId, occurrence, word, onClock, autoPlay = true }) {
   useEffect(() => {
     if (!useEmbed || !iframe.current) return
     let cancelled = false, interval
+    const cues = timedWords(cached?.words || occurrence?.words)
     loadYouTube().then(YT => {
       if (cancelled || !iframe.current) return
       const player = new YT.Player(iframe.current, { events: {
         onReady: event => {
+          if (cancelled) return
           if (autoPlay) { event.target.unMute(); event.target.setVolume(100); event.target.playVideo() }
           interval = window.setInterval(() => {
             const time = player.getCurrentTime?.()
-            if (Number.isFinite(time)) clock.current?.({ time, cues: [] })
+            if (Number.isFinite(time)) clock.current?.({ time, cues })
           }, 100)
         },
-        onStateChange: event => { if (event.data === YT.PlayerState.PLAYING) announceKeywordPlayback(owner) },
+        onStateChange: event => {
+          if (event.data === YT.PlayerState.PLAYING) { setBlocked(false); announceKeywordPlayback(owner) }
+        },
         onAutoplayBlocked: () => setBlocked(true),
       } })
       youtube.current = player
     })
     return () => { cancelled = true; clearInterval(interval); youtube.current?.destroy?.(); youtube.current = null }
-  }, [useEmbed, key, autoPlay, owner])
+  }, [useEmbed, key, autoPlay, owner, cached, occurrence?.words])
 
   function updateClock(event) {
     if (!cached) return

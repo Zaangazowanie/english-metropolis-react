@@ -1,25 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { fetchWithTimeout } from '../../practice/lib/practice-cache'
+import { pronunciationSource } from './pronunciation.mjs'
 import { announceKeywordPlayback } from './keyword-media.mjs'
-
-const pronunciationCache = new Map()
-function pronunciationSource(word) {
-  let voice = 'af_heart'
-  try { voice = localStorage.getItem('tts_voice') || voice } catch { /* default voice */ }
-  const key = `${voice}:${word}`
-  if (!pronunciationCache.has(key)) pronunciationCache.set(key,
-    fetchWithTimeout('/api/tts/tts', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: word, voice, lang: voice[0] || 'a' }),
-    }).then(response => {
-      if (!response.ok) throw new Error('Pronunciation unavailable')
-      return response.blob()
-    }).then(blob => URL.createObjectURL(blob)).catch(error => {
-      pronunciationCache.delete(key)
-      throw error
-    }))
-  return pronunciationCache.get(key)
-}
 
 export default function KeywordPronunciationButton({ word, lang }) {
   const owner = useId(), audio = useRef(null), request = useRef(0)

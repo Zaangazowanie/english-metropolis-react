@@ -1,3 +1,7 @@
+import KeywordVideoPlayer from '../components/media/KeywordVideoPlayer.jsx'
+import { captionAt } from '../components/media/keyword-media.mjs'
+import { pronunciationSource } from '../components/media/pronunciation.mjs'
+import { PREPARED_KEYWORDS } from '../components/media/prepared-keywords.mjs'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n'
@@ -41,15 +45,7 @@ async function playTTS(text, voice) {
     return
   }
   try {
-    // 30s AbortController-backed timeout — see practice-cache.ts.
-    const resp = await fetchWithTimeout('/api/tts/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, voice, lang: voice[0] || 'a' }),
-    })
-    if (!resp.ok) throw new Error(`TTS failed ${resp.status}`)
-    const blob = await resp.blob()
-    const url = URL.createObjectURL(blob)
+    const url = await pronunciationSource(text, v)
     const audio = new Audio(url)
     ttsCache.set(key, audio)
     currentAudio?.pause()
@@ -61,7 +57,7 @@ async function playTTS(text, voice) {
 }
 
 /* ============================================================================
-   YouGlish fetch — uses /api/youglish/keyword?q=X proxy
+   YouTube fetch — uses /api/youglish/keyword?q=X proxy
    ============================================================================ */
 
 const youglishCache = new Map()
@@ -76,7 +72,7 @@ const STOPWORDS = new Set([
 
 /**
  * Generate progressively-relaxed query variants for a word/phrase so we
- * never give up on a YouGlish lookup just because the exact phrase isn't
+ * never give up on a YouTube lookup just because the exact phrase isn't
  * indexed. Order matters — most specific first, most permissive last.
  */
 function youglishQueryVariants(rawKey) {
@@ -117,7 +113,7 @@ function youglishQueryVariants(rawKey) {
 async function fetchYouglishRaw(query) {
   // 30s AbortController-backed timeout — see practice-cache.ts.
   const resp = await fetchWithTimeout(`/api/youglish/keyword?q=${encodeURIComponent(query)}`)
-  if (!resp.ok) throw new Error(`YouGlish ${resp.status}`)
+  if (!resp.ok) throw new Error(`YouTube ${resp.status}`)
   return resp.json()
 }
 
@@ -207,9 +203,10 @@ function packYouglishResults(results, queryUsed) {
       })
     }
     byVid.get(r.videoId).occurrences.push({
-      start: parseInt(r.start, 10) || 0,
-      end: parseFloat(r.end) || (parseInt(r.start, 10) || 0) + 3,
+      start: parseFloat(r.start) || 0,
+      end: parseFloat(r.end) || (parseFloat(r.start) || 0) + 3,
       text: r.display || '',
+      words: r.words,
     })
   }
   return { keyword: queryUsed, videos: Array.from(byVid.values()) }
@@ -218,6 +215,7 @@ function packYouglishResults(results, queryUsed) {
 async function fetchYouglish(word) {
   const key = String(word || '').toLowerCase().replace(/_/g, ' ').trim()
   if (!key) return { keyword: key, videos: [] }
+  if (PREPARED_KEYWORDS[key]) return PREPARED_KEYWORDS[key]
   if (youglishCache.has(key)) return youglishCache.get(key)
   // Walk variants in order until one returns results.
   const variants = youglishQueryVariants(key)
@@ -239,7 +237,7 @@ async function fetchYouglish(word) {
   // Cache empty result so we don't re-walk the variant list every render
   const empty = { keyword: key, videos: [], fallbackFrom: key }
   youglishCache.set(key, empty)
-  if (lastErr) console.warn('[YouGlish] all variants failed for', key, lastErr)
+  if (lastErr) console.warn('[YouTube] all variants failed for', key, lastErr)
   return empty
 }
 
@@ -1070,18 +1068,15 @@ async function generateLessonPdf(profile, lesson, analysis) {
 }
 
 /* ============================================================================
-   YouGlish Modal — embedded YouTube player for pronunciation context
+   YouTube Modal — embedded YouTube player for pronunciation context
    ============================================================================ */
 
-function YouGlishModal({ word, onClose }) {
+export function YouGlishModal({ word, onClose }) {
   const { t } = useI18n()
   const [state, setState] = useState({ loading: true, error: null, data: null })
   const [videoIdx, setVideoIdx] = useState(0)
   const [occIdx, setOccIdx] = useState(0)
-  const [autoplay, setAutoplay] = useState(true)
-  const playerRef = useRef(null)
-  const timerRef = useRef(null)
-  const [elapsed, setElapsed] = useState(0)
+  const [playback, setPlayback] = useState({ time: null, cues: [] })
 
   useEffect(() => {
     if (!word) return
@@ -1104,28 +1099,12 @@ function YouGlishModal({ word, onClose }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, videoIdx, occIdx, state.data])
 
-  // Elapsed counter for caption sync fallback
-  useEffect(() => {
-    clearInterval(timerRef.current)
-    setElapsed(0)
-    if (!word) return
-    timerRef.current = setInterval(() => setElapsed(e => e + 0.1), 100)
-    return () => clearInterval(timerRef.current)
-  }, [word, videoIdx, occIdx])
 
   if (!word) return null
 
   const videos = state.data?.videos || []
   const video = videos[videoIdx] || null
   const occurrence = video?.occurrences?.[occIdx] || null
-  const start = Math.max(0, (occurrence?.start || 0) - 2)
-  // enablejsapi=1 + explicit mute=0 so we can postMessage unMute() after the
-  // user's first interaction (clicking open the modal counts) and dodge
-  // Chrome's autoplay-without-sound fallback.
-  const embedUrl = video
-    ? `https://www.youtube.com/embed/${video.videoId}?autoplay=${autoplay ? 1 : 0}&mute=0&start=${Math.floor(start)}&rel=0&modestbranding=1&iv_load_policy=3&controls=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')}`
-    : null
-
   const totalOccurrences = videos.reduce((sum, v) => sum + v.occurrences.length, 0)
   const globalOccIdx = videos.slice(0, videoIdx).reduce((s, v) => s + v.occurrences.length, 0) + occIdx + 1
 
@@ -1140,38 +1119,11 @@ function YouGlishModal({ word, onClose }) {
     else if (videoIdx > 0) { setVideoIdx(videoIdx - 1); setOccIdx((videos[videoIdx - 1]?.occurrences?.length || 1) - 1) }
   }
 
-  // Build a simple word-by-word caption animation from the occurrence text
-  // Timing: We start the video 2s BEFORE the word — so the word itself is at elapsed=2s
-  // into the clip. Add a 4s startup offset for iframe load + YouTube buffering.
-  const IFRAME_STARTUP = 4.0 // seconds for iframe to load + start playing
-  const LEAD_IN = 2.0 // seconds of lead-in before the actual word
-  const captionWords = useMemo(() => {
-    if (!occurrence?.text) return []
-    const duration = Math.max(1, (occurrence.end || (occurrence.start + 3)) - occurrence.start)
-    const words = occurrence.text.split(/\s+/).filter(Boolean)
-    // Pace each word across the actual clip duration, starting after startup + lead-in
-    return words.map((w, i) => {
-      const perWord = duration / words.length
-      const activeAt = IFRAME_STARTUP + LEAD_IN + i * perWord
-      return { word: w, activeAt, duration: perWord }
-    })
-  }, [occurrence])
-
-  const highlightWord = (word, activeAt, i) => {
-    const wordDuration = captionWords[i]?.duration || 0.4
-    const isActive = elapsed >= activeAt && elapsed < activeAt + wordDuration
-    const hasPlayed = elapsed >= activeAt
-    return (
-      <span
-        key={i}
-        className={`inline-block mx-0.5 transition-all duration-200 ${
-          isActive ? 'text-sky-400 font-bold scale-110' : hasPlayed ? 'text-slate-300' : 'text-slate-500'
-        }`}
-      >
-        {word}
-      </span>
-    )
-  }
+  // Captions use the actual media clock and verified timing cues.
+  const captionWords = playback.cues.length ? playback.cues :
+    (occurrence?.text || '').split(/\s+/).filter(Boolean).map(word => ({ word, start: Infinity, end: Infinity }))
+  const activeCaption = captionAt(captionWords, playback.time)
+  const highlightWord = (cue, i) => <span key={i} className={`inline-block mx-0.5 ${i === activeCaption ? 'text-sky-400 font-bold' : 'text-slate-400'}`}>{cue.word}</span>
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 youglish-modal-enter">
@@ -1225,40 +1177,18 @@ function YouGlishModal({ word, onClose }) {
               <p className="text-xs text-slate-500 mt-1">{t('lessons.youglish.emptyHint')}</p>
             </div>
           )}
-          {video && embedUrl && (
+          {video && occurrence && (
             <>
               <div className="aspect-video rounded-xl overflow-hidden border border-slate-700 bg-black relative">
-                <iframe
-                  ref={playerRef}
-                  key={`${video.videoId}-${occIdx}`}
-                  src={embedUrl}
-                  title={`"${word}" spoken in a YouTube clip`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="w-full h-full"
-                  onLoad={() => {
-                    // The cross-origin iframe inherits Chrome's autoplay policy
-                    // from youtube.com, not our origin, so autoplay often starts
-                    // muted. Ride on the user's click that opened/advanced the
-                    // modal (counts as user gesture) and postMessage unMute+play
-                    // to YouTube's IFrame API. Safe no-op if sound was already on.
-                    try {
-                      const w = playerRef.current?.contentWindow
-                      if (!w) return
-                      w.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*')
-                      w.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*')
-                      w.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*')
-                    } catch (e) { /* ignore cross-origin rejection */ }
-                  }}
-                />
+                <KeywordVideoPlayer videoId={video.videoId} occurrence={occurrence} word={word} onClock={setPlayback}/>
               </div>
 
               {/* Karaoke-style caption */}
               {captionWords.length > 0 && (
                 <div className="mt-4 rounded-xl bg-slate-800/60 border border-slate-700 px-4 py-3">
-                  <p className="font-label text-[9px] font-bold uppercase tracking-[0.2em] text-sky-400 mb-1.5">{t('lessons.youglish.caption')}</p>
+                  <p className="font-label text-[9px] font-bold uppercase tracking-[0.2em] text-sky-400 mb-1.5">{t(playback.cues.length ? 'lessons.youglish.caption' : 'lessons.youglish.excerpt')}</p>
                   <p className="text-base leading-relaxed text-slate-400 flex flex-wrap">
-                    {captionWords.map((w, i) => highlightWord(w.word, w.activeAt, i))}
+                    {captionWords.map(highlightWord)}
                   </p>
                 </div>
               )}
@@ -1321,7 +1251,7 @@ function YouGlishModal({ word, onClose }) {
 }
 
 /* ============================================================================
-   KeywordCard — rich keyword display with collocations, TTS, YouGlish
+   KeywordCard — rich keyword display with collocations, TTS, YouTube
    ============================================================================ */
 
 function KeywordCard({ keyword, onYouglish, forceExpanded = false }) {
@@ -1998,7 +1928,7 @@ export default function Lessons({ data }) {
         )}
       </Modal>
 
-      {/* YouGlish Modal */}
+      {/* YouTube Modal */}
       {youglishWord && (
         <YouGlishModal word={youglishWord} onClose={() => setYouglishWord(null)} />
       )}

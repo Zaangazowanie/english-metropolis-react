@@ -31,7 +31,7 @@ function App() {
       <button onClick={() => { const video = document.querySelector('[data-keyword-player] video'); if (video) video.currentTime = Math.max(0, video.currentTime - 5) }}>Seek backward five seconds</button>
     </div>
     <AnalysisPreviewShowcase lang="en"/>
-    <div style={{ maxWidth: 580, margin: '40px auto' }}><NativeWordClip key={String(failed)} clip={failed ? { ...PREVIEW_CLIPS.mural, word: 'unavailable-qa-clip' } : PREVIEW_CLIPS.mural} active={revision > 0} revision={revision} onPlayRequest={() => setRevision(value => value + 1)}/></div>
+    <div style={{ maxWidth: 580, margin: '40px auto' }}><NativeWordClip key={String(failed)} clip={failed ? { ...PREVIEW_CLIPS.landmark, word: 'unavailable-qa-clip', assetKey: 'unavailable-qa-clip' } : PREVIEW_CLIPS.landmark} active={revision > 0} revision={revision} onPlayRequest={() => setRevision(value => value + 1)}/></div>
     <section style={{ maxWidth: 800, margin: '40px auto' }}>
       <h2>Production keyword player</h2>
       <output data-keyword-clock>{JSON.stringify(clock)}</output>

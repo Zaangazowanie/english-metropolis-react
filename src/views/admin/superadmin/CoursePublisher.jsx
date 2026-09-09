@@ -8,12 +8,12 @@
 //   1 · Student   — active roster, CEFR shown
 //   2 · Course    — recommended for the student's CEFR first, then everything
 //   3 · Lessons   — numbered decks; add/remove, download PDF, preview keywords
-//                   (each keyword shows its YouGlish cache state)
+//                   (each keyword shows its YouTube cache state)
 //   4 · Add       — review + sequential assign with live progress
 //
 // Publishing copies each deck's PDF into the student's webroot folder and
 // appends a curriculum item (em-console-api /assign); the API also queues a
-// YouGlish index build for any keyword not yet cached, so freshly published
+// YouTube index build for any keyword not yet cached, so freshly published
 // lessons are always watchable.
 
 import { useEffect, useMemo, useState } from 'react'
@@ -57,7 +57,7 @@ function LayerHeading({ step, label, hint }) {
   )
 }
 
-// Lazy keyword preview for one lesson — words + PL + YouGlish cache state.
+// Lazy keyword preview for one lesson — words + PL + YouTube cache state.
 function KeywordPreview({ lessonId }) {
   const [state, setState] = useState({ loading: true, keywords: [], cached: 0, total: 0 })
   useEffect(() => {
@@ -72,11 +72,11 @@ function KeywordPreview({ lessonId }) {
   return (
     <div className="mt-2 space-y-1.5 rounded-xl border p-3" style={{ borderColor: 'var(--sa-border)', background: 'var(--sa-surface-soft)' }}>
       <p className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: 'var(--sa-text-muted)' }}>
-        {state.total} keywords · {state.cached}/{state.total} YouGlish-cached
+        {state.total} keywords · {state.cached}/{state.total} YouTube-cached
       </p>
       {state.keywords.map(k => (
         <div key={k.word} className="flex flex-wrap items-baseline gap-x-2 text-xs">
-          <span className="material-symbols-outlined" title={k.youglish_cached ? 'YouGlish clips cached' : 'YouGlish caching queued'}
+          <span className="material-symbols-outlined" title={k.youglish_cached ? 'YouTube clips cached' : 'YouTube caching queued'}
             style={{ fontSize: 13, color: k.youglish_cached ? 'var(--sa-good)' : 'var(--sa-warm-ink)' }}>
             {k.youglish_cached ? 'check_circle' : 'hourglass_top'}
           </span>
@@ -429,7 +429,7 @@ export default function CoursePublisher({ students, selectedStudentId, setSelect
                   {r.ok ? 'check_circle' : 'error'}
                 </span>
                 <span className="font-mono" style={{ color: 'var(--sa-text)' }}>{r.lid}</span>
-                {r.ok && r.yg > 0 && <span style={{ color: 'var(--sa-warm-ink)' }}>· {r.yg} keyword{r.yg === 1 ? '' : 's'} queued for YouGlish</span>}
+                {r.ok && r.yg > 0 && <span style={{ color: 'var(--sa-warm-ink)' }}>· {r.yg} keyword{r.yg === 1 ? '' : 's'} queued for YouTube</span>}
                 {r.warn && <span style={{ color: 'var(--sa-warm-ink)' }}>· {r.warn}</span>}
               </div>
             ))}

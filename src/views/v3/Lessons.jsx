@@ -1,5 +1,7 @@
+import { pronunciationSource } from '../../components/media/pronunciation.mjs'
+import { PREPARED_KEYWORDS } from '../../components/media/prepared-keywords.mjs'
 // EM v3 · Lessons — full archive w/ rich per-lesson modal, KeywordCards,
-// YouGlish modal, Analysis PDF generator, Raw Notes external PDF, topic filter,
+// YouTube modal, Analysis PDF generator, Raw Notes external PDF, topic filter,
 // deep-link query params, horizontal navigator. Inline-style port of the
 // Tailwind-era Lessons.jsx — functional parity preserved verbatim.
 
@@ -97,15 +99,7 @@ async function playTTS(text, voice) {
     return
   }
   try {
-    // 30s AbortController-backed timeout — see practice-cache.ts.
-    const resp = await fetchWithTimeout('/api/tts/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, voice: v, lang: v[0] || 'a' }),
-    })
-    if (!resp.ok) throw new Error(`TTS failed ${resp.status}`)
-    const blob = await resp.blob()
-    const url = URL.createObjectURL(blob)
+    const url = await pronunciationSource(text, v)
     const audio = new Audio(url)
     ttsCache.set(key, audio)
     currentAudio?.pause()
@@ -115,7 +109,7 @@ async function playTTS(text, voice) {
 }
 
 /* ============================================================================
-   YouGlish fetch — progressive variant relaxation
+   YouTube fetch — progressive variant relaxation
    ============================================================================ */
 const youglishCache = new Map()
 const STOPWORDS = new Set([
@@ -134,7 +128,7 @@ function youglishQueryVariants(rawKey) {
   push(key)
   const words = key.split(' ').filter(Boolean)
   if (words.length === 1) return out
-  // The live YouGlish index sometimes stores compound phrases with hyphens
+  // The live YouTube index sometimes stores compound phrases with hyphens
   // even when the lesson keyword uses spaces (for example "rabbit hole").
   // Try that spelling before relaxing the phrase to unrelated single words.
   push(words.join('-'))
@@ -150,7 +144,7 @@ function youglishQueryVariants(rawKey) {
 }
 async function fetchYouglishRaw(query) {
   const resp = await fetchWithTimeout(`/api/youglish/keyword?q=${encodeURIComponent(query)}`)
-  if (!resp.ok) throw new Error(`YouGlish ${resp.status}`)
+  if (!resp.ok) throw new Error(`YouTube ${resp.status}`)
   return resp.json()
 }
 function packYouglishResults(results, queryUsed) {
@@ -165,8 +159,9 @@ function packYouglishResults(results, queryUsed) {
     }
     byVid.get(r.videoId).occurrences.push({
       start: parseFloat(r.start) || 0,
-      end: parseFloat(r.end) || (parseInt(r.start, 10) || 0) + 3,
+      end: parseFloat(r.end) || (parseFloat(r.start) || 0) + 3,
       text: r.display || '',
+      words: r.words,
     })
   }
   return { keyword: queryUsed, videos: Array.from(byVid.values()) }
@@ -174,6 +169,7 @@ function packYouglishResults(results, queryUsed) {
 async function fetchYouglish(word) {
   const key = String(word || '').toLowerCase().replace(/_/g, ' ').trim()
   if (!key) return { keyword: key, videos: [] }
+  if (PREPARED_KEYWORDS[key]) return PREPARED_KEYWORDS[key]
   if (youglishCache.has(key)) return youglishCache.get(key)
   const variants = youglishQueryVariants(key)
   let lastErr = null
@@ -191,7 +187,7 @@ async function fetchYouglish(word) {
   }
   const empty = { keyword: key, videos: [], fallbackFrom: key }
   youglishCache.set(key, empty)
-  if (lastErr) console.warn('[YouGlish] all variants failed for', key, lastErr)
+  if (lastErr) console.warn('[YouTube] all variants failed for', key, lastErr)
   return empty
 }
 
@@ -218,7 +214,7 @@ function SectionLabel({ children, icon, tone = 'brand', T }) {
 }
 
 /* ============================================================================
-   KeywordCard — rich keyword display with TTS, YouGlish, collocations
+   KeywordCard — rich keyword display with TTS, YouTube, collocations
    ============================================================================ */
 function materialHref(material) {
   return String(material?.url || '').trim()
@@ -413,7 +409,7 @@ function KeywordCard({ keyword, onYouglish, forceExpanded = false }) {
 /* ============================================================================
    YouGlishModal — embedded player + karaoke caption + prev/next
    ============================================================================ */
-function YouGlishModal({ word, onClose }) {
+export function YouGlishModal({ word, onClose }) {
   const { T, mode } = useV3Theme()
   const isDay = mode === 'day'
   const { t } = useI18n()
@@ -562,7 +558,7 @@ function YouGlishModal({ word, onClose }) {
                   border: `1px solid ${T.border}` }}>
                   <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em',
                     textTransform: 'uppercase', color: T.sky, marginBottom: 6 }}>
-                    {t('lessons.youglish.caption')}
+                    {t(playback.cues.length ? 'lessons.youglish.caption' : 'lessons.youglish.excerpt')}
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, fontSize: 15, lineHeight: 1.6 }}>
                     {captionWords.map((w, i) => (
@@ -1106,7 +1102,7 @@ export function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, 
         )}
       </div>
 
-      {/* Vocabulary FIRST — the keywords (with TTS + YouGlish previews) are
+      {/* Vocabulary FIRST — the keywords (with TTS + YouTube previews) are
           what a student revises; the full analysis follows on demand. */}
       {!analysisOnly && <>
       {hasAccuracyPractice && (

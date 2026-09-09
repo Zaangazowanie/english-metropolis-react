@@ -168,7 +168,7 @@ function LessonStudio({ lesson }) {
       const r = await consolePost(`/api/console/library/${encodeURIComponent(lesson.lesson_id)}/keywords/update`,
         { keywords: kw.map(k => ({ word: k.word, ipa: k.ipa, pl: k.pl, example: k.example })) })
       setDirtyKw(false)
-      setMsg({ ok: true, text: `Keywords saved — deck PDF re-rendered${r.youglish_queued ? ` · ${r.youglish_queued} new keyword(s) queued for YouGlish` : ''}.` })
+      setMsg({ ok: true, text: `Keywords saved — deck PDF re-rendered${r.youglish_queued ? ` · ${r.youglish_queued} new keyword(s) queued for YouTube` : ''}.` })
     } catch (e) {
       setMsg({ ok: false, text: String(e.message || e) })
     } finally { setBusy('') }
