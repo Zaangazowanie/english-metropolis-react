@@ -2076,3 +2076,15 @@ html.dark .lp-page .lp-field textarea:focus {
 /* Przelewy24 instalment badge, rendered by their SDK; empty until Raty is offered. */
 .lp-raty-widget:empty { display: none; }
 .lp-raty-widget { margin-top: .5rem; min-height: 0; }
+.lp-ai-option { margin: 0 0 28px; padding: 22px 24px; border: 1px solid #cfc8e3; border-radius: 18px; background: #fff; color: #231b3b; }
+.lp-ai-option[data-selected="true"] { border-color: #9764d4; background: #f8f3ff; }
+.lp-ai-option label { display: flex; align-items: flex-start; gap: 14px; cursor: pointer; }
+.lp-ai-option input { width: 21px; height: 21px; margin: 2px 0 0; flex-shrink: 0; accent-color: #8246c3; }
+.lp-ai-option input:focus-visible { outline: 2px solid #8246c3; outline-offset: 4px; }
+.lp-ai-option label strong { display: block; font-size: 17px; margin-bottom: 6px; }
+.lp-ai-option label span span, .lp-ai-option p { font-size: 14px; line-height: 1.6; }
+.lp-ai-option p { margin: 16px 0 0 35px; }
+.lp-ai-option p > span { display: block; color: #655b7c; margin-top: 4px; }
+.lp-ai-price { font-size: 12px; line-height: 1.5; color: #6b369f; margin: 8px 0; }
+.lp-ai-price > span { display: block; font-weight: 700; }
+@media (max-width: 600px) { .lp-ai-option { padding: 19px 16px; } .lp-ai-option p { margin-left: 0; } }

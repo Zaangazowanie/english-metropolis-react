@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useCart, cart, cartCount, cartTotalPLN, formatPLN } from './cart-store.js'
+import { useCart, cart, cartCount, cartTotalPLN, cartAnalysisPrice, formatPLN } from './cart-store.js'
 import { PACKAGE_LESSONS, packageValidity } from './packages.js'
 import AnimatedMoney from './AnimatedMoney.jsx'
 import './cart-ui.css'
@@ -15,7 +15,8 @@ export default function CartUI({ lang = 'pl' }) {
   const state = useCart()
   const [open, setOpen] = useState(false)
   const count = cartCount(state)
-  const total = cartTotalPLN(state)
+  const analysis = cartAnalysisPrice(state)
+  const total = cartTotalPLN(state) + (state.analysisAddon ? analysis.totalPLN : 0)
   const pillRef = useRef(null)
   const drawerRef = useRef(null)
   const closeRef = useRef(null)
@@ -120,6 +121,10 @@ export default function CartUI({ lang = 'pl' }) {
             </ul>
 
             <footer className="emc-foot">
+              {state.analysisAddon && analysis.lessons > 0 && <p className="emc-note">
+                {t('AI lesson analysis', 'Analiza lekcji AI')}: {formatPLN(analysis.totalPLN)}
+                {analysis.savingPLN > 0 && <> · {t('You save', 'Oszczędzasz')} {formatPLN(analysis.savingPLN)}</>}
+              </p>}
               <div className="emc-total">
                 <span>{t('Total (VAT included)', 'Razem (z VAT)')}</span>
                 <strong><AnimatedMoney value={total} /></strong>

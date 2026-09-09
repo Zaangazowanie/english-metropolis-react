@@ -5,12 +5,31 @@
 // and never sends an amount back; `p24:preparePayment` prices from the stored
 // quote. If you change a number here, nothing else needs editing.
 //
-// ⚠️ Checkout.jsx still carries its own ANALYSIS_PLN_PER_LESSON mirror for the
-// package-checkout add-on line (pre-existing, 2026-08-10). The upgrade CTA
-// added on 2026-08-17 does NOT mirror anything — it reads the server.
+// The package UI imports these pure calculations for display. Payment handlers
+// independently apply them to server-owned catalogue entries.
 
 // The single-lesson price, unchanged since 2026-08-10.
 export const ANALYSIS_ADDON_PLN_PER_LESSON = 20;
+
+export const ANALYSIS_PACKAGE_PLN_PER_LESSON = 15;
+export const ANALYSIS_PACKAGE_DISCOUNT_PERCENT =
+  100 * (1 - ANALYSIS_PACKAGE_PLN_PER_LESSON / ANALYSIS_ADDON_PLN_PER_LESSON);
+
+// Discount multi-lesson products only. Buying several single lessons does not
+// turn them into a package. Existing account/lesson upgrade quotes stay separate.
+export function pricePackageAnalysis(items: Array<{ lessons: number; qty: number }>) {
+  return items.reduce((quote, item) => {
+    const lessons = Math.max(0, Math.trunc(item.lessons));
+    const qty = Math.max(0, Math.trunc(item.qty));
+    const rate = lessons > 1 ? ANALYSIS_PACKAGE_PLN_PER_LESSON : ANALYSIS_ADDON_PLN_PER_LESSON;
+    const count = lessons * qty;
+    quote.lessons += count;
+    quote.totalPLN += count * rate;
+    quote.listTotalPLN += count * ANALYSIS_ADDON_PLN_PER_LESSON;
+    quote.savingPLN = quote.listTotalPLN - quote.totalPLN;
+    return quote;
+  }, { lessons: 0, totalPLN: 0, listTotalPLN: 0, savingPLN: 0 });
+}
 
 // ── The volume discount ──────────────────────────────────────────────────────
 //

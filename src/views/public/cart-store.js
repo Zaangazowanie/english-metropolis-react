@@ -3,6 +3,8 @@
 // Module-level store consumed via useSyncExternalStore so the lessons page,
 // the cart drawer and /checkout share state without provider wiring.
 import { useSyncExternalStore } from 'react'
+import { pricePackageAnalysis } from '../../../convex/analysisPricing.ts'
+import { PACKAGE_LESSONS } from './packages.js'
 
 const STORAGE_KEY = 'em.cart.v1'
 // A cart is only ever emptied by a completed payment (PaymentReturn), so until
@@ -18,7 +20,7 @@ function load() {
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed.items)) return { items: [] }
     if (!parsed.savedAt || Date.now() - parsed.savedAt > MAX_AGE_MS) return { items: [] }
-    return { items: parsed.items.filter((i) => i && i.id && i.qty > 0) }
+    return { items: parsed.items.filter((i) => i && i.id && i.qty > 0), analysisAddon: parsed.analysisAddon === true }
   } catch {
     return { items: [] }
   }
@@ -62,14 +64,17 @@ export const cart = {
     } else {
       items.push({ ...item, qty: 1 })
     }
-    emit({ items })
+    emit({ ...state, items })
   },
   setQty(id, qty) {
     if (qty <= 0) return cart.remove(id)
-    emit({ items: state.items.map((i) => (i.id === id ? { ...i, qty: Math.min(qty, 20) } : i)) })
+    emit({ ...state, items: state.items.map((i) => (i.id === id ? { ...i, qty: Math.min(qty, 20) } : i)) })
   },
   remove(id) {
-    emit({ items: state.items.filter((i) => i.id !== id) })
+    emit({ ...state, items: state.items.filter((i) => i.id !== id) })
+  },
+  setAnalysisAddon(selected) {
+    emit({ ...state, analysisAddon: !!selected })
   },
   clear() {
     emit({ items: [] })
@@ -86,6 +91,10 @@ export function cartCount(s) {
 
 export function cartTotalPLN(s) {
   return s.items.reduce((n, i) => n + i.pricePLN * i.qty, 0)
+}
+
+export function cartAnalysisPrice(s) {
+  return pricePackageAnalysis(s.items.map(item => ({ lessons: PACKAGE_LESSONS[item.id] ?? 0, qty: item.qty })))
 }
 
 export function formatPLN(n) {

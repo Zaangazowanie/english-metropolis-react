@@ -717,9 +717,9 @@ export default function GameHome() {
           ))}
         </section>
 
-        <WordPreviewShowcase lang={lang}/>
-
         <BajlaShowcase lang={lang}/>
+
+        <WordPreviewShowcase lang={lang}/>
 
         <AnalysisPreviewShowcase lang={lang}/>
 

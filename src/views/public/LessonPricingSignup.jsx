@@ -7,7 +7,8 @@ import CartUI from './CartUI.jsx'
 import PackageDial from './PackageDial.jsx'
 import RatyWidget from './RatyWidget.jsx'
 import PaymentMark from './PaymentMarks.jsx'
-import { cart, parsePricePLN, formatPLN } from './cart-store.js'
+import { cart, useCart, parsePricePLN, formatPLN } from './cart-store.js'
+import { pricePackageAnalysis, ANALYSIS_ADDON_PLN_PER_LESSON, ANALYSIS_PACKAGE_PLN_PER_LESSON, ANALYSIS_PACKAGE_DISCOUNT_PERCENT } from '../../../convex/analysisPricing.ts'
 import { detectInitial } from '../../i18n'
 import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN } from '../legal/foundation-legal-content.js'
 import MetroSignalField from '../../components/public/MetroSignalField.jsx'
@@ -238,13 +239,17 @@ const POLICY_PL = {
     copy: 'Dodaj pakiety do koszyka i złóż zamówienie. Bezpieczna płatność online otwiera się w Przelewy24, z metodami dostępnymi dla danej transakcji.',
   },
 }
-function buildSummary({ selectedPackage, format, learnerName, email, level, goals, lang }) {
+function buildSummary({ selectedPackage, format, learnerName, email, level, goals, lang, analysisAddon }) {
   const packageCopy = lang === 'pl' ? PACKAGE_PL[selectedPackage.id] : null
   const formatCopy = lang === 'pl' ? FORMAT_PL[format.id] : null
+  const analysisPLN = analysisAddon && !selectedPackage.id.startsWith('company-')
+    ? pricePackageAnalysis([{ lessons: PACKAGE_LESSONS[selectedPackage.id] ?? 0, qty: 1 }]).totalPLN : 0
+  const price = formatPLN(parsePricePLN(selectedPackage.price) + analysisPLN)
   return [
     lang === 'pl' ? 'Prośba o zapis na lekcje English Metro' : 'English Metro lesson signup request',
     '',
-    `${lang === 'pl' ? 'Pakiet' : 'Package'}: ${selectedPackage.name} (${packageCopy?.pace || selectedPackage.pace}, ${selectedPackage.price})`,
+    `${lang === 'pl' ? 'Pakiet' : 'Package'}: ${selectedPackage.name} (${packageCopy?.pace || selectedPackage.pace}, ${price})`,
+    ...(analysisPLN > 0 ? [`${lang === 'pl' ? 'W tym analiza AI' : 'Includes AI analysis'}: ${formatPLN(analysisPLN)}`] : []),
     `${lang === 'pl' ? 'Format' : 'Format'}: ${formatCopy?.label || format.label} - ${formatCopy?.detail || format.detail}`,
     `${lang === 'pl' ? 'Uczeń' : 'Learner'}: ${learnerName || (lang === 'pl' ? 'Nie podano' : 'Not provided')}`,
     `Email: ${email || (lang === 'pl' ? 'Nie podano' : 'Not provided')}`,
@@ -262,12 +267,13 @@ function buildSummary({ selectedPackage, format, learnerName, email, level, goal
 // (or, for company packages, prepares the enquiry).
 // Memoised: selecting or adding used to re-render all twelve cards (576 dial
 // ticks) for one changed flag. Now only the card whose props changed repaints.
-const PackageCard = memo(function PackageCard({ pkg, formatId, selected, lang, added, company = false, onSelect, onAdd, onEnquiry }) {
+const PackageCard = memo(function PackageCard({ pkg, formatId, selected, lang, added, company = false, analysisAddon = false, onSelect, onAdd, onEnquiry }) {
   const isPl = lang === 'pl'
   const t = (en, pl) => (isPl ? pl : en)
-  const priceOf = (item) => formatPLN(parsePricePLN(item.price))
   const copy = PACKAGE_PL[pkg.id] || {}
   const lessons = PACKAGE_LESSONS[pkg.id]
+  const analysis = pricePackageAnalysis([{ lessons, qty: 1 }])
+  const total = parsePricePLN(pkg.price) + (analysisAddon ? analysis.totalPLN : 0)
   const validity = packageValidity(lessons)[isPl ? 'pl' : 'en']
   const select = () => onSelect(pkg.id, formatId)
   return (
@@ -294,18 +300,22 @@ const PackageCard = memo(function PackageCard({ pkg, formatId, selected, lang, a
       <h3>{pkg.name}</h3>
       <p className="lp-package-pace">{isPl ? (copy.pace || pkg.pace) : pkg.pace}</p>
       <div className="lp-price">
-        {priceOf(pkg)}
+        {formatPLN(total)}
         <small>{t('incl. VAT', 'z VAT')}</small>
       </div>
       {/* Przelewy24's own instalment badge; renders nothing until Raty is offered (server-decided). */}
-      {!company && <RatyWidget amountPLN={parsePricePLN(pkg.price)} />}
+      {!company && <RatyWidget amountPLN={total} />}
+      {analysisAddon && <p className="lp-ai-price">
+        {t('Includes AI analysis', 'Z analizą AI')}: +{formatPLN(analysis.totalPLN)}
+        {analysis.savingPLN > 0 && <span>{t('You save', 'Oszczędzasz')} {formatPLN(analysis.savingPLN)}</span>}
+      </p>}
       {company && (
         <p className="lp-price-calculation">
           <span>{t('Package calculation', 'Wyliczenie pakietu')}</span>
           <strong>{isPl ? (copy.calculation || pkg.calculation) : pkg.calculation}</strong>
         </p>
       )}
-      <p className="lp-per-lesson">{isPl ? (copy.perLesson || pkg.perLesson) : pkg.perLesson}</p>
+      <p className="lp-per-lesson">{analysisAddon ? `${formatPLN(total / lessons)} ${t('/ lesson with AI', '/ lekcję z AI')}` : (isPl ? (copy.perLesson || pkg.perLesson) : pkg.perLesson)}</p>
       {company && (
         <>
           <p className="lp-per-student-package">{isPl ? (copy.perStudentPackage || pkg.perStudentPackage) : pkg.perStudentPackage}</p>
@@ -339,7 +349,7 @@ const PackageCard = memo(function PackageCard({ pkg, formatId, selected, lang, a
           type="button"
           className="lp-add-cart"
           data-added={added}
-          aria-label={t(`Add ${pkg.name} to cart, ${priceOf(pkg)}`, `Dodaj ${pkg.name} do koszyka, ${priceOf(pkg)}`)}
+          aria-label={t(`Add ${pkg.name} to cart, ${formatPLN(total)}`, `Dodaj ${pkg.name} do koszyka, ${formatPLN(total)}`)}
           onClick={() => onAdd(pkg)}
         >
           <span className="material-symbols-outlined" aria-hidden>
@@ -354,6 +364,11 @@ const PackageCard = memo(function PackageCard({ pkg, formatId, selected, lang, a
 
 export default function LessonPricingSignup() {
   const location = useLocation()
+  const cartState = useCart()
+  const analysisAddon = !!cartState.analysisAddon
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('addon') === '1') cart.setAnalysisAddon(true)
+  }, [location.search])
   const pageRef = useRef(null)
   const pricingRef = useRef(null)
   const signupRef = useRef(null)
@@ -407,8 +422,8 @@ export default function LessonPricingSignup() {
   const packageCopy = PACKAGE_PL[selectedPackage.id] || {}
   const isCompanyPackage = selectedPackage.id.startsWith('company-')
   const summary = useMemo(
-    () => buildSummary({ selectedPackage, format: selectedFormat, learnerName, email, level, goals, lang }),
-    [selectedPackage, selectedFormat, learnerName, email, level, goals, lang],
+    () => buildSummary({ selectedPackage, format: selectedFormat, learnerName, email, level, goals, lang, analysisAddon }),
+    [selectedPackage, selectedFormat, learnerName, email, level, goals, lang, analysisAddon],
   )
   const mailHref = `mailto:support@englishmetro.com?subject=${encodeURIComponent(`${isPl ? 'Zapis na lekcje' : 'Lessons signup'} - ${selectedPackage.name}`)}&body=${encodeURIComponent(summary)}`
 
@@ -557,7 +572,8 @@ export default function LessonPricingSignup() {
   }
 
 
-  const priceOf = (pkg) => formatPLN(parsePricePLN(pkg.price))
+  const priceOf = (pkg) => formatPLN(parsePricePLN(pkg.price) + (analysisAddon && !pkg.id.startsWith('company-')
+    ? pricePackageAnalysis([{ lessons: PACKAGE_LESSONS[pkg.id] ?? 0, qty: 1 }]).totalPLN : 0))
 
   return (
     <main ref={pageRef} className="lp-page">
@@ -675,10 +691,10 @@ export default function LessonPricingSignup() {
           </li>
         </ul>
         <p>
-          <span className="lp-optional-tag">{t('Optional at checkout', 'Opcjonalnie w kasie')}</span>{' '}
+          <span className="lp-optional-tag">{t('Optional AI analysis', 'Opcjonalna analiza AI')}</span>{' '}
           {t(
-            'AI lesson analysis: a written CEFR assessment after every lesson, 20 PLN per lesson, which also unlocks Bajla, your assistant on WhatsApp. Never added without your tick.',
-            'Analiza lekcji AI: pisemna ocena CEFR po każdej lekcji, 20 PLN za lekcję, która włącza też Bajlę, Twoją asystentkę na WhatsAppie. Nigdy nie jest dodawana bez Twojego zaznaczenia.',
+            'Get an estimated CEFR level, corrections and a practice plan after each lesson. Includes Bajla on WhatsApp. Select it below before choosing your package.',
+            'Szacowany poziom CEFR, poprawki i plan ćwiczeń po każdej lekcji. Obejmuje też Bajlę na WhatsAppie. Zaznacz poniżej przed wyborem pakietu.',
           )}
         </p>
       </section>
@@ -690,6 +706,20 @@ export default function LessonPricingSignup() {
             <h2 id="pricing-title">{t('Choose how often you learn', 'Wybierz częstotliwość lekcji')}</h2>
           </div>
           <p>{t('Prices are gross, VAT included. Click a card to compare it in the summary below, then add it to the cart.', 'Ceny brutto, z VAT. Kliknij kartę, aby porównać ją w podsumowaniu poniżej, a potem dodaj do koszyka.')}</p>
+        </div>
+
+        <div className="lp-ai-option" data-selected={analysisAddon}>
+          <label>
+            <input type="checkbox" checked={analysisAddon} onChange={event => cart.setAnalysisAddon(event.target.checked)} aria-describedby="lp-ai-description lp-ai-rates" />
+            <span><strong>{t('Add AI lesson analysis', 'Dodaj analizę lekcji AI')}</strong>
+              <span id="lp-ai-description">{t('CEFR estimate, corrections and what to practise next. Includes Bajla on WhatsApp.', 'Szacowany poziom CEFR, poprawki i wskazówki do ćwiczeń. Obejmuje Bajlę na WhatsAppie.')}</span>
+            </span>
+          </label>
+          <p id="lp-ai-rates">
+            <strong>{formatPLN(ANALYSIS_PACKAGE_PLN_PER_LESSON)} {t('/ lesson with a package', '/ lekcję w pakiecie')}</strong>
+            {' · '}{t(`${ANALYSIS_PACKAGE_DISCOUNT_PERCENT}% off AI analysis`, `${ANALYSIS_PACKAGE_DISCOUNT_PERCENT}% rabatu na analizę AI`)}
+            <span>{t(`Individual lesson: ${ANALYSIS_ADDON_PLN_PER_LESSON} PLN for analysis. Package prices below update when selected.`, `Pojedyncza lekcja: ${ANALYSIS_ADDON_PLN_PER_LESSON} PLN za analizę. Zaznaczenie aktualizuje ceny pakietów poniżej.`)}</span>
+          </p>
         </div>
 
         <ul className="lp-trust" aria-label={t('Payment and cancellation terms', 'Warunki płatności i odwołania')}>
@@ -716,7 +746,7 @@ export default function LessonPricingSignup() {
         <div className="lp-package-grid">
           {PRIVATE_PACKAGES.map((pkg) => (
             <PackageCard key={pkg.id} pkg={pkg} formatId="one-to-one" selected={pkg.id === packageId} lang={lang}
-              added={justAdded === pkg.id} onSelect={choosePackage} onAdd={addToCart} />
+              added={justAdded === pkg.id} analysisAddon={analysisAddon} onSelect={choosePackage} onAdd={addToCart} />
           ))}
         </div>
 
@@ -734,7 +764,7 @@ export default function LessonPricingSignup() {
           <div className="lp-package-grid lp-specialist-grid">
             {SPECIALIST_PACKAGES.map((pkg) => (
               <PackageCard key={pkg.id} pkg={pkg} formatId="specialist" selected={pkg.id === packageId} lang={lang}
-                added={justAdded === pkg.id} onSelect={choosePackage} onAdd={addToCart} />
+                added={justAdded === pkg.id} analysisAddon={analysisAddon} onSelect={choosePackage} onAdd={addToCart} />
             ))}
           </div>
         </div>
@@ -779,6 +809,7 @@ export default function LessonPricingSignup() {
               <span className="material-symbols-outlined" aria-hidden>sunny</span>
               <h3>{isPl ? (COURSE_PL[course.id]?.name || course.name) : course.name}</h3>
               <strong>{priceOf(course)} <small>{isPl ? course.priceUnitPl : course.priceUnit}</small></strong>
+              {analysisAddon && <small>{t('Includes AI analysis at the package rate.', 'Obejmuje analizę AI w cenie pakietowej.')}</small>}
               <small>{isPl ? (COURSE_PL[course.id]?.detail || course.detail) : course.detail}</small>
               <p className="lp-package-validity">
                 <span className="material-symbols-outlined" aria-hidden>event_available</span>
