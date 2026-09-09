@@ -1,14 +1,77 @@
-import StudentFeatureFrame from './StudentFeatureFrame.jsx'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Flashcard, InjectVocabStyle, YouGlishModal } from './Vocabulary.jsx'
+import KeywordPronunciationButton from '../../components/media/KeywordPronunciationButton.jsx'
+import { studentDemoData } from '../../previews/student-demo-data.mjs'
+import ActionLink from './ActionLink.jsx'
 import './feature-previews.css'
+import './focused-keyword-previews.css'
 
 export default function WordPreviewShowcase({ lang }) {
   const pl = lang === 'pl'
+  const words = useMemo(() => studentDemoData(lang).keywords, [lang])
+  const [index, setIndex] = useState(0), [playRevision, setPlayRevision] = useState(0)
+  const [loaded, setLoaded] = useState(false), [modalWord, setModalWord] = useState(null)
+  const stage = useRef(null)
+  const keyword = words[index]
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setLoaded(true)
+      else stage.current?.querySelectorAll('video, audio').forEach(media => media.pause())
+    }, { threshold: .05 })
+    observer.observe(stage.current)
+    return () => observer.disconnect()
+  }, [])
+  function chooseWord(next, play = false) {
+    setIndex(next)
+    setLoaded(true)
+    setPlayRevision(play ? value => value + 1 : 0)
+  }
   return <section className="gh-section em-feature-preview" id="words-in-context" aria-labelledby="em-words-title">
     <div className="em-preview-heading">
-      <h2 id="em-words-title">{pl ? <>Twoje słowa.<br/><span>Prawdziwe rozmowy.</span></> : <>Your words.<br/><span>Out in the world.</span></>}</h2>
-      <div><p>{pl ? 'Poznaj słownictwo tak jak w aplikacji: odwróć fiszkę, posłuchaj wymowy i wybieraj nagrania prawdziwych rozmówców.' : 'Explore your vocabulary as you do in the app: flip a flashcard, hear the pronunciation and choose between videos of real speakers.'}</p>
+      <h2 id="em-words-title">{pl ? <>Twoje słowa.<br/><span>Prawdziwe nagrania.</span></> : <>Your words.<br/><span>Real YouTube clips.</span></>}</h2>
+      <p>{pl ? 'Ćwicz wymowę, a potem posłuchaj każdego słowa w prawdziwych nagraniach z YouTube.' : 'Practise pronunciation, then hear each keyword spoken in real YouTube clips.'}</p>
+      <ActionLink to="/signup" variant="secondary" trailingIcon="arrow_forward">{pl ? 'Ucz się na własnych słowach' : 'Learn with your own words'}</ActionLink>
+    </div>
+    <div className="em-keyword-showcase" ref={stage}>
+      <div className="em-keyword-list gh-glass">
+        <div className="em-keyword-list-heading"><h3>{pl ? 'Wypróbuj wymowę i nagrania' : 'Try the pronunciation and clips'}</h3><span><span className="material-symbols-outlined" aria-hidden>volume_up</span> / <span className="material-symbols-outlined" aria-hidden>smart_display</span></span></div>
+        <div className="em-keyword-rows" role="group" aria-label={pl ? 'Słowa z nagraniami' : 'Words with YouTube clips'}>
+          {words.map((item, i) => <div key={item.word} className={`em-keyword-row${index === i ? ' is-selected' : ''}`}>
+            <button type="button" className="em-keyword-name" aria-pressed={index === i} onClick={() => chooseWord(i)} aria-controls="em-keyword-video-stage">
+              <strong>{item.word}</strong><span>{item.ipa}</span>
+            </button>
+            <div className="em-keyword-row-actions">
+              <KeywordPronunciationButton word={item.word} lang={lang}/>
+              <button type="button" className="gh-action gh-action--secondary gh-action--sm" onClick={() => chooseWord(i, true)}
+                aria-label={`YouTube: ${item.word}`} title={`YouTube: ${item.word}`} aria-controls="em-keyword-video-stage">
+                <span className="material-symbols-outlined" aria-hidden>smart_display</span><span className="em-keyword-action-label">YouTube</span>
+              </button>
+            </div>
+          </div>)}
+        </div>
+      </div>
+      <div id="em-keyword-video-stage" className="em-keyword-video-stage gh-glass">
+        <div className="em-keyword-stage-heading"><span className="material-symbols-outlined" aria-hidden>smart_display</span><span>{pl ? 'YouTube · słowo w kontekście' : 'YouTube · the word in context'}</span><strong>{keyword.word}</strong></div>
+        {loaded ? <YouGlishModal key={`${keyword.word}-${playRevision}`} word={keyword.word} inline autoPlay={playRevision > 0}/>
+          : <div className="em-inline-video em-keyword-placeholder"><span className="material-symbols-outlined" aria-hidden>play_circle</span></div>}
       </div>
     </div>
-    <StudentFeatureFrame feature="vocabulary" lang={lang}/>
+    <div className="em-flashcard-example" aria-labelledby="em-flashcard-title">
+      <div className="em-flashcard-copy">
+        <span className="material-symbols-outlined" aria-hidden>style</span>
+        <h3 id="em-flashcard-title">{pl ? <><span>Zapamiętaj słowo.</span><span>Użyj go w rozmowie.</span></> : <><span>Remember the word.</span><span>Use it in conversation.</span></>}</h3>
+        <p>{pl ? 'Odwróć fiszkę, poznaj znaczenie i przykład. Posłuchaj wymowy i wróć do nagrania jednym kliknięciem.' : 'Flip the flashcard for its meaning and an example. Hear the pronunciation and return to a clip with one tap.'}</p>
+      </div>
+      <div className="em-flashcard-stage">
+        <InjectVocabStyle/>
+        <Flashcard keyword={keyword} compact showLessonLink={false} onYouglish={setModalWord}/>
+        <div className="em-flashcard-navigation">
+          <button type="button" className="gh-action gh-action--secondary gh-action--sm" onClick={() => chooseWord((index + words.length - 1) % words.length)} aria-label={pl ? 'Poprzednia fiszka' : 'Previous flashcard'}><span className="material-symbols-outlined" aria-hidden>arrow_back</span></button>
+          <span>{index + 1} / {words.length}</span>
+          <button type="button" className="gh-action gh-action--secondary gh-action--sm" onClick={() => chooseWord((index + 1) % words.length)} aria-label={pl ? 'Następna fiszka' : 'Next flashcard'}><span className="material-symbols-outlined" aria-hidden>arrow_forward</span></button>
+        </div>
+      </div>
+    </div>
+    {modalWord && <YouGlishModal word={modalWord} onClose={() => setModalWord(null)}/>}
   </section>
 }

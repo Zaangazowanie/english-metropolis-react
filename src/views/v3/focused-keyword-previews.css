@@ -1,0 +1,77 @@
+/* Focused app examples inside the existing landing-page design system.
+   Keep the shared student flashcard and video controls; remove the app shell. */
+.em-keyword-showcase { display: grid; grid-template-columns: minmax(290px, .72fr) minmax(0, 1.28fr); gap: 20px; align-items: start; }
+.em-keyword-list, .em-keyword-video-stage { border: 1px solid var(--gh-glass-border); border-radius: 24px; min-width: 0; overflow: hidden; }
+.em-keyword-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 18px 10px; }
+.em-keyword-list-heading > span { display: flex; align-items: center; gap: 4px; color: var(--gh-text-soft); }
+.em-keyword-list-heading > span > .material-symbols-outlined { font-size: 17px; }
+.em-keyword-list-heading > .material-symbols-outlined, .em-keyword-stage-heading > .material-symbols-outlined { color: var(--gh-accent, #b985ea); font-size: 22px; }
+.em-keyword-list-heading h3 { margin: 0; font-size: 12px; line-height: 1.4; font-weight: 500; color: var(--gh-text-soft); }
+.em-keyword-rows { padding: 0 8px 8px; }
+.em-keyword-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 11px 9px; border-radius: 12px; border: 1px solid transparent; }
+.em-keyword-row.is-selected { background: #a875df12; border-color: var(--gh-border-hi); }
+.em-keyword-name { display: grid; gap: 5px; width: 100%; padding: 0; text-align: left; border: 0; color: var(--gh-text); background: transparent; }
+.em-keyword-name strong { font-size: 20px; font-weight: 650; letter-spacing: -.035em; line-height: 1.2; }
+.em-keyword-name > span { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--gh-text-soft); white-space: nowrap; }
+.em-keyword-row-actions { display: flex; gap: 6px; }
+.em-keyword-row-actions .gh-action { width: 38px; height: 38px; padding: 0; min-height: 38px; }
+.em-keyword-action-label { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.em-keyword-row-actions [aria-pressed=true] { border-color: #b47ce0; background: #a875df24; }
+.em-keyword-audio:disabled { cursor: wait; opacity: .65; }
+.em-keyword-audio-error { flex-basis: 100%; color: var(--gh-text-soft); font-size: 12px; line-height: 1.5; }
+.em-keyword-help { padding: 0 24px; margin: 17px 0 23px; font-size: 12px; line-height: 1.7; color: var(--gh-text-soft); }
+.em-keyword-stage-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; padding: 18px 20px; border-bottom: 1px solid var(--gh-glass-border); font-size: 12px; color: var(--gh-text-soft); }
+.em-keyword-stage-heading > strong { color: var(--gh-text); font-size: 14px; margin-left: auto; font-weight: 600; }
+.em-inline-youglish { padding: 16px; }
+.em-inline-video { aspect-ratio: 16/9; background: #08060d; border-radius: 14px; overflow: hidden; }
+.em-keyword-placeholder { margin: 16px; display: grid; place-items: center; color: #d3c5e4; }
+.em-keyword-placeholder > span { font-size: 54px; }
+.em-inline-caption { min-height: 64px; padding: 16px 3px 12px; font-size: 14px; line-height: 1.7; color: var(--gh-text-soft); }
+.em-inline-caption > span { border-radius: 3px; }
+.em-inline-caption > .is-speaking { background: #b879df30; color: var(--gh-text); }
+.em-inline-transport { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 0 16px; }
+.em-inline-count { color: var(--gh-text-soft); font-size: 11px; line-height: 1.5; text-align: center; }
+.em-inline-sources { display: flex; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; padding: 2px 0 9px; scrollbar-width: thin; scrollbar-color: #9c72ba66 transparent; }
+.em-inline-sources > button { flex: 0 0 92px; padding: 0; overflow: hidden; border-radius: 9px; background: var(--gh-glass-bg); color: var(--gh-text-soft); border: 2px solid transparent; }
+.em-inline-sources > button[aria-pressed=true] { border-color: #b780e4; color: var(--gh-text); }
+.em-inline-sources img { aspect-ratio: 16/9; object-fit: cover; }
+.em-inline-sources > button > span { display: block; padding: 4px 0; font-size: 10px; }
+.em-inline-source-link { display: flex; justify-content: flex-end; align-items: center; gap: 6px; width: fit-content; margin: 8px 0 0 auto; min-height: 36px; font-size: 11px; text-underline-offset: 4px; }
+.em-inline-source-link > span { font-size: 15px; }
+.em-flashcard-example { margin-top: 46px; padding-top: 38px; border-top: 1px solid var(--gh-glass-border); display: grid; grid-template-columns: minmax(260px,.8fr) minmax(0,1.2fr); gap: clamp(24px, 5vw, 70px); align-items: center; }
+.em-flashcard-copy { max-width: 370px; }
+.em-flashcard-copy > .material-symbols-outlined { font-size: 28px; color: var(--gh-text-soft); margin-bottom: 15px; }
+.em-flashcard-copy h3 { font-size: clamp(26px, 2.7vw, 36px); line-height: 1.15; letter-spacing: -.04em; font-weight: 650; margin: 0 0 18px; }
+.em-flashcard-copy h3 > span { display: block; }
+.em-flashcard-copy h3 > span:last-child { color: var(--gh-text-soft); }
+.em-flashcard-copy p { margin: 0; font-size: 14px; line-height: 1.75; color: var(--gh-text-soft); }
+.em-flashcard-stage { min-width: 0; }
+.em-flashcard-compact .v3-flashcard-inner { min-height: 390px; }
+.em-flashcard-compact .v3-flashcard-face > div { background-color: var(--gh-glass-bg) !important; background-image: linear-gradient(145deg, var(--gh-glass-highlight), transparent 38%) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: var(--gh-glass-shadow) !important; }
+.em-flashcard-compact .v3-flashcard-sparkles { display: none; }
+.em-flashcard-navigation { display: flex; justify-content: center; align-items: center; gap: 22px; margin-top: 16px; }
+.em-flashcard-navigation > span { font-size: 12px; color: var(--gh-text-soft); font-variant-numeric: tabular-nums; }
+.em-flashcard-navigation button { width: 42px; }
+.gh-day .em-keyword-list-heading > .material-symbols-outlined, .gh-day .em-keyword-stage-heading > .material-symbols-outlined { color: #7c3aed; }
+@media (max-width: 767px) {
+  .em-keyword-showcase { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .em-keyword-list-heading { padding: 14px 16px 9px; }
+  .em-keyword-rows { padding: 0 7px 7px; }
+  .em-keyword-row { padding: 10px 8px; }
+  .em-keyword-name strong { font-size: 19px; }
+  .em-keyword-help { padding: 0 18px; margin-block: 14px 18px; }
+  .em-keyword-stage-heading { padding: 15px 14px; }
+  .em-inline-youglish { padding: 10px; }
+  .em-inline-video { border-radius: 10px; }
+  .em-inline-caption { font-size: 13px; min-height: 74px; }
+  .em-inline-transport { gap: 6px; }
+  .em-inline-transport > button { padding: 8px 10px !important; font-size: 12px !important; }
+  .em-inline-count { font-size: 10px; }
+  .em-inline-sources > button { flex-basis: 80px; }
+  .em-flashcard-example { margin-top: 32px; padding-top: 28px; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .em-flashcard-copy { max-width: 100%; }
+  .em-flashcard-copy > .material-symbols-outlined { display: none; }
+  .em-flashcard-copy h3 { font-size: 27px; margin-bottom: 12px; }
+  .em-flashcard-compact .v3-flashcard-face-front > div { padding: 18px !important; }
+  .em-flashcard-compact .v3-flashcard-face-front h2 { overflow-wrap: anywhere; }
+}

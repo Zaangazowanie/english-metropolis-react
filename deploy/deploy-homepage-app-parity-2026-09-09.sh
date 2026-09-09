@@ -4,9 +4,9 @@ set -euo pipefail
 umask 022
 REPO=/root/englishmetro
 WEB=/var/www/englishmetro
-# The photography release was already published while the app previews were
-# being verified. Keep its files outside this release's strict change scope.
-BASE=b9581ab980e216698fdf7e6fe7ff14427f4c1fd3
+# Refine the published vocabulary preview into focused landing-page examples.
+# Preserve the separate analysis tour, photography and shared design assets.
+BASE=32d82d1ce364b62fbc9657c9535c79d05dcbea46
 STAMP=$(date -u +%Y%m%d-%H%M%S)
 BACKUP=/root/backups/englishmetro-app-parity-$STAMP
 MEDIA=media/keyword-cache-20260909
@@ -20,12 +20,8 @@ REV=$(git rev-parse HEAD)
 git merge-base --is-ancestor "$BASE" HEAD
 git diff --quiet "$BASE" HEAD -- convex package.json package-lock.json index.html public/assets src/design src/views/v3/game-home.css src/views/v3/BajlaWalkthrough.jsx src/views/v3/bajla-tour.mjs
 git diff --name-only "$BASE" HEAD | python3 -c '
-import json,pathlib,sys
-allowed={"deploy/deploy-homepage-app-parity-2026-09-09.sh","src/views/v3/WordPreviewShowcase.jsx","src/views/v3/AnalysisPreviewShowcase.jsx","src/views/v3/StudentFeatureFrame.jsx","src/views/v3/student-feature-frame.css","src/views/v3/Lessons.jsx","src/views/v3/Vocabulary.jsx","src/components/media/KeywordVideoPlayer.jsx","src/components/media/keyword-media.mjs","src/previews/student-preview.jsx","src/previews/student-demo-data.mjs","student-preview.html","vite.config.js","tests/keyword-media.test.mjs","tests/homepage-previews-qa.jsx"}
-root="public/media/keyword-cache-20260909/"
-manifest=json.loads(pathlib.Path(root,"manifest.json").read_text())
-allowed.update(root+key+"."+ext for key in manifest["clips"] for ext in ("mp4","jpg","vtt"))
-allowed.update((root+"manifest.json",root+"SOURCES.md"))
+import sys
+allowed={"deploy/deploy-homepage-app-parity-2026-09-09.sh","src/views/v3/WordPreviewShowcase.jsx","src/views/v3/focused-keyword-previews.css","src/views/v3/Vocabulary.jsx","src/components/media/KeywordVideoPlayer.jsx","src/components/media/KeywordPronunciationButton.jsx"}
 unexpected=[p for p in sys.stdin.read().splitlines() if p not in allowed]
 assert not unexpected, f"Unexpected release paths: {unexpected}"
 '
