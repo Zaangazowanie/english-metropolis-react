@@ -65,3 +65,35 @@ calls=[];assert.equal((await P.statusHandler(ctx,req(body))).status,200);
 assert(calls.some(c=>c.url.endsWith('/transaction/verify')));assert.equal(allocated,1);assert.equal(order.status,'confirmed');assert.equal(pay.status,'paid');assert.equal(notifications,1);
 assert.equal((await P.statusHandler(ctx,req(body))).status,200);assert.equal(allocated,1);assert.equal(notifications,1);
 console.log('PASS webhook rejects malformed/forged/mismatched data; verifies P24 before allocation; replay grants no duplicate lessons or email');
+
+// Exercise the real catalogue and payment mutation with an in-memory database.
+// Display totals must not be the authority for the amount sent to Przelewy24.
+async function prepare(items, options={}) {
+ const student={_id:'buyer',organizationId:'org',status:'active',isMinor:!!options.minor};
+ const saved={buyer:student}; const inserts=[];
+ const session={kind:'student',studentId:'buyer',expiresAt:Date.now()+60_000};
+ const database={
+  query:table=>({withIndex:()=>({unique:async()=>table==='authSessions'?session:table==='priceQuotes'?options.quote:null,collect:async()=>[]})}),
+  get:async id=>saved[id],
+  insert:async(table,row)=>{const id=`saved-${inserts.length}`;saved[id]={_id:id,...row};inserts.push({table,...row});return id;},
+  patch:async(id,patch)=>Object.assign(saved[id],patch),
+ };
+ const args={sessionToken:'test-session',sessionId:'new-session',checkoutRef:'QA-ANALYSIS',items,billing:{fullName:'Test Buyer',email:'qa@example.invalid'},lang:'en',consentTerms:true,consentImmediate:false,consentMarketing:false,analysisAddon:true,consentAnalysis:true,...options.args};
+ const payment=await P.preparePayment.handler({db:database},args);
+ return {payment,inserts};
+}
+for(const [id,expected,quantity] of [['single',15500,1],['private-core',54000,1],['momentum',100000,1],['fluency-48',456000,1],['single',62000,4],['private-core',108000,2]]){
+ const {payment}=await prepare([{packageId:id,qty:quantity}]);
+ assert.equal(payment.amount,expected,`${id} x ${quantity}`);assert.equal(payment.consentAnalysis,true);
+}
+assert.equal((await prepare([{packageId:'single',qty:2},{packageId:'private-core',qty:1}])).payment.amount,85000);
+assert.equal((await prepare([{packageId:'private-core',qty:1}],{args:{analysisAddon:false,consentAnalysis:false}})).payment.amount,48000);
+await assert.rejects(()=>prepare([{packageId:'private-core',qty:1}],{args:{consentAnalysis:false}}),/ANALYSIS_CONSENT_REQUIRED/);
+await assert.rejects(()=>prepare([{packageId:'private-core',qty:1}],{minor:true}),/ANALYSIS_NOT_AVAILABLE_FOR_MINORS/);
+await assert.rejects(()=>prepare([{packageId:'private-core',qty:1}],{args:{forChild:true}}),/ANALYSIS_NOT_AVAILABLE_FOR_MINORS/);
+await assert.rejects(()=>prepare([{packageId:'invented-cheap-package',qty:1}]),/Invalid cart item/);
+await assert.rejects(()=>prepare([{packageId:'private-core',qty:0}]),/Invalid cart item/);
+const quote={quoteRef:'offer',studentId:'buyer',status:'open',expiresAt:Date.now()+60_000,amount:2000,label:'One lesson analysis',kind:'analysis',grantAnalysisScope:'lesson'};
+assert.equal((await prepare([],{quote,args:{quoteRef:'offer',analysisAddon:false}})).payment.amount,2000);
+await assert.rejects(()=>prepare([],{quote,args:{quoteRef:'offer',analysisAddon:false,consentAnalysis:false}}),/ANALYSIS_CONSENT_REQUIRED/);
+console.log('PASS AI package discount, single/mixed quantities, opt-out, consent, minors, invalid products and unchanged upgrade quotes');

@@ -2,7 +2,8 @@ import { detectInitial } from '../../i18n'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Skyline } from '../../design/v3/primitives.jsx'
-import { useCart, cart, cartTotalPLN, formatPLN } from './cart-store.js'
+import { useCart, cart, cartTotalPLN, cartAnalysisPrice, formatPLN } from './cart-store.js'
+import { ANALYSIS_ADDON_PLN_PER_LESSON, ANALYSIS_PACKAGE_PLN_PER_LESSON } from '../../../convex/analysisPricing.ts'
 import { PACKAGE_LESSONS, packageValidity } from './packages.js'
 import { FOUNDATION, FOUNDATION_FOOTER_PL, FOUNDATION_FOOTER_EN } from '../legal/foundation-legal-content.js'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
@@ -129,14 +130,13 @@ export default function Checkout() {
   // that decides it — the analysis add-on is then not offered at all, and the
   // server refuses it even if the request is forged.
   const [forChild, setForChild] = useState(false)
-  // Off by default. The one exception is arriving from Bajla's own CTA
-  // (?addon=1), where the customer has just tapped a button that says buying
-  // this is what switches her on — so starting it ticked reflects what they
-  // asked for rather than pre-selecting something nobody mentioned. It stays a
-  // plain checkbox they can untick, and the consent itself is still only
-  // written on a verified payment in p24:finalizePaid.
-  const [analysisAddon, setAnalysisAddon] = useState(
-    () => new URLSearchParams(window.location.search).get('addon') === '1')
+  // Preserve the customer's pricing-page selection. Recording consent remains
+  // a separate unchecked field, including when arriving from an AI CTA.
+  const analysisAddon = !!state.analysisAddon
+  const setAnalysisAddon = cart.setAnalysisAddon
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('addon') === '1') cart.setAnalysisAddon(true)
+  }, [])
   // Consents + submission
   const [consentTerms, setConsentTerms] = useState(false)
   // Early performance is a CHOICE with no default: null until the customer picks.
@@ -171,19 +171,16 @@ export default function Checkout() {
   // Phone only: the order summary starts collapsed to a one-line total.
   const [summaryOpen, setSummaryOpen] = useState(false)
 
-  // Display only. convex/p24.ts re-derives this and is the price authority; if
-  // the two ever disagree the customer is charged what the server computed, so
-  // this constant and ANALYSIS_ADDON_PLN_PER_LESSON must be changed together.
-  const ANALYSIS_PLN_PER_LESSON = 20
   const quoteMode = !!quoteRef
   const quoteReady = quoteMode && quote && quote.status === 'open' && !quote.expired
   const quoteNeedsAnalysisConsent = !!quoteReady && !!quote.grantAnalysisScope
-  const analysisLessons = state.items.reduce(
-    (n, item) => n + (PACKAGE_LESSONS[item.id] ?? 0) * item.qty, 0)
+  const analysis = cartAnalysisPrice(state)
+  const analysisLessons = analysis.lessons
   // The per-package add-on is a cart concept. A quote already carries its own
   // price for the analysis, so offering it again here would double-charge.
   const analysisOffered = !quoteMode && !forChild && analysisLessons > 0
-  const analysisPLN = analysisOffered && analysisAddon ? analysisLessons * ANALYSIS_PLN_PER_LESSON : 0
+  const analysisPLN = analysisOffered && analysisAddon ? analysis.totalPLN : 0
+  const needsAnalysisConsent = quoteNeedsAnalysisConsent || (analysisOffered && analysisAddon)
   // Shown to the customer. The server charges `quote.amount` regardless.
   const total = quoteReady ? quote.amount / 100 : cartTotalPLN(state) + analysisPLN
   const isPl = lang === 'pl'
@@ -191,7 +188,7 @@ export default function Checkout() {
   // The reference identifies one cart, not one page visit. If it survived a cart
   // edit, a retry after a failed attempt would resume the earlier payment and
   // charge the earlier total, so it is re-minted whenever the cart changes.
-  const cartKey = quoteRef || state.items.map(item => `${item.id}x${item.qty}`).sort().join('|')
+  const cartKey = quoteRef || `${state.items.map(item => `${item.id}x${item.qty}`).sort().join('|')}|analysis:${analysisPLN}`
   const orderRef = useMemo(() => {
     const d = new Date()
     const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
@@ -245,7 +242,7 @@ export default function Checkout() {
     return null
   }
 
-  useEffect(() => { if (forChild) setAnalysisAddon(false) }, [forChild])
+  useEffect(() => { if (forChild) cart.setAnalysisAddon(false) }, [forChild])
 
   const accountDone = !!session
   const emailFormValid = namesOk && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()) && password.length >= 8 && !!dateOfBirth
@@ -441,8 +438,9 @@ export default function Checkout() {
       consentImmediate,
       consentMarketing,
       analysisAddon: analysisOffered && analysisAddon,
+      consentAnalysis: needsAnalysisConsent && consentAnalysis,
       forChild,
-      ...(quoteMode ? { quoteRef, consentAnalysis } : {}),
+      ...(quoteMode ? { quoteRef } : {}),
       ...(chosen?.methodId ? { method: chosen.methodId } : {}),
       ...(methodKey === 'paypo' ? {
         payPoDetails: {
@@ -471,7 +469,7 @@ export default function Checkout() {
     // The analysis consent is its own gate, separate from the Terms above. The
     // server refuses the payment without it too — this is only the earlier,
     // clearer refusal.
-    if (quoteNeedsAnalysisConsent && !consentAnalysis) {
+    if (needsAnalysisConsent && !consentAnalysis) {
       return setError(t('To buy the AI lesson analysis you must agree to your lessons being recorded, transcribed and analysed.',
         'Aby kupić analizę lekcji AI, musisz wyrazić zgodę na nagrywanie, transkrypcję i analizę Twoich lekcji.'))
     }
@@ -857,19 +855,20 @@ export default function Checkout() {
                         <strong>
                           {t('Written analysis after every lesson, plus Bajla', 'Pisemna analiza po każdej lekcji i Bajla')}
                           <span className="co-addon-price">
-                            +{formatPLN(analysisLessons * ANALYSIS_PLN_PER_LESSON)}
+                            +{formatPLN(analysis.totalPLN)}
                           </span>
                         </strong>
                         <small className="co-choice-what">
                           {t(
-                            `A CEFR assessment, your strengths, the exact mistakes you made with corrections, and what to practise next, for each of your ${analysisLessons} lessons. ${ANALYSIS_PLN_PER_LESSON} PLN per lesson. It also switches on Bajla, your WhatsApp assistant, for good.`,
-                            `Ocena poziomu CEFR, mocne strony, konkretne błędy wraz z poprawkami i wskazówki do dalszej pracy, dla każdej z ${analysisLessons} lekcji. ${ANALYSIS_PLN_PER_LESSON} PLN za lekcję. Włącza też na stałe Bajlę, Twoją asystentkę na WhatsAppie.`,
+                            `Estimated CEFR level, corrections and a practice plan for ${analysisLessons} lessons. Includes Bajla on WhatsApp. Analysis costs ${ANALYSIS_PACKAGE_PLN_PER_LESSON} PLN per lesson in a package, or ${ANALYSIS_ADDON_PLN_PER_LESSON} PLN for an individual lesson.`,
+                            `Szacowany poziom CEFR, poprawki i plan ćwiczeń dla ${analysisLessons} lekcji. Obejmuje Bajlę na WhatsAppie. Analiza kosztuje ${ANALYSIS_PACKAGE_PLN_PER_LESSON} PLN za lekcję w pakiecie lub ${ANALYSIS_ADDON_PLN_PER_LESSON} PLN za pojedynczą lekcję.`,
                           )}
+                          {analysis.savingPLN > 0 && <> {t('You save', 'Oszczędzasz')} {formatPLN(analysis.savingPLN)}.</>}
                         </small>
                         <small className="co-choice-legal">
                           {t(
-                            'To do this we record and transcribe your lessons and a language model writes the analysis. Lessons are not recorded unless you tick this. You can withdraw at any time in Settings, and we delete the recordings.',
-                            'W tym celu nagrywamy i transkrybujemy Twoje lekcje, a analizę przygotowuje model językowy. Bez zaznaczenia tego pola lekcje nie są nagrywane. Zgodę możesz wycofać w każdej chwili w Ustawieniach, a nagrania usuwamy.',
+                            'Recording and transcription require your separate consent below.',
+                            'Nagrywanie i transkrypcja wymagają osobnej zgody poniżej.',
                           )}{' '}
                           <Link to="/lesson-analysis" target="_blank">
                             {t('How we handle this data', 'Jak przetwarzamy te dane')}
@@ -886,7 +885,7 @@ export default function Checkout() {
                     consenting to it, but the customer has to say so in a
                     separate, informed act — it must never ride in on the Terms
                     tickbox or on anything else they were going to tick anyway. */}
-                {quoteNeedsAnalysisConsent && (
+                {needsAnalysisConsent && (
                   <fieldset className="co-block co-consents co-analysis-consent">
                     <legend>{t('Consent to the AI lesson analysis', 'Zgoda na analizę lekcji AI')}</legend>
                     <label className="co-check">
@@ -1080,6 +1079,9 @@ export default function Checkout() {
                   <strong>{formatPLN(analysisPLN)}</strong>
                 </div>
               )}
+              {analysisPLN > 0 && analysis.savingPLN > 0 && <p className="co-consent-hint">
+                {t('AI package discount', 'Rabat pakietowy na AI')}: −{formatPLN(analysis.savingPLN)}
+              </p>}
               <div className="co-total">
                 <span>{t('Total (VAT included)', 'Razem (z VAT)')}</span>
                 <strong><AnimatedMoney value={total} /></strong>

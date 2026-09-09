@@ -28,9 +28,9 @@ export default function WordPreviewShowcase({ lang }) {
   }
   return <section className="gh-section em-feature-preview" id="words-in-context" aria-labelledby="em-words-title">
     <div className="em-preview-heading">
-      <h2 id="em-words-title">{pl ? <>Twoje słowa.<br/><span>Prawdziwe nagrania.</span></> : <>Your words.<br/><span>Real YouTube clips.</span></>}</h2>
-      <p>{pl ? 'Ćwicz wymowę, a potem posłuchaj każdego słowa w prawdziwych nagraniach z YouTube.' : 'Practise pronunciation, then hear each keyword spoken in real YouTube clips.'}</p>
-      <ActionLink to="/signup" variant="secondary" trailingIcon="arrow_forward">{pl ? 'Ucz się na własnych słowach' : 'Learn with your own words'}</ActionLink>
+      <h2 id="em-words-title">{pl ? 'Słowa z lekcji w klipach z YouTube' : 'YouTube clips for words from your lesson'}</h2>
+      <p>{pl ? 'Po każdej lekcji oglądaj krótkie klipy z nowymi słowami. Posłuchaj wymowy i zobacz, jak używać ich w zdaniach.' : 'After each lesson, watch short clips featuring your new words. Hear the pronunciation and learn how to use them in a sentence.'}</p>
+      <ActionLink to="/pricing" variant="secondary" trailingIcon="arrow_forward">{pl ? 'Wybierz pakiet lekcji' : 'Choose a lesson package'}</ActionLink>
     </div>
     <div className="em-keyword-showcase" ref={stage}>
       <div className="em-keyword-list gh-glass">
@@ -59,8 +59,8 @@ export default function WordPreviewShowcase({ lang }) {
     <div className="em-flashcard-example" aria-labelledby="em-flashcard-title">
       <div className="em-flashcard-copy">
         <span className="material-symbols-outlined" aria-hidden>style</span>
-        <h3 id="em-flashcard-title">{pl ? <><span>Zapamiętaj słowo.</span><span>Użyj go w rozmowie.</span></> : <><span>Remember the word.</span><span>Use it in conversation.</span></>}</h3>
-        <p>{pl ? 'Odwróć fiszkę, poznaj znaczenie i przykład. Posłuchaj wymowy i wróć do nagrania jednym kliknięciem.' : 'Flip the flashcard for its meaning and an example. Hear the pronunciation and return to a clip with one tap.'}</p>
+        <h3 id="em-flashcard-title">{pl ? 'Interaktywne fiszki po każdej lekcji' : 'Interactive flashcards after every lesson'}</h3>
+        <p>{pl ? 'Powtarzaj słowa z lekcji z wymową, wyjaśnieniami, przykładami i typowymi połączeniami wyrazów.' : 'Review your lesson vocabulary with pronunciation, explanations, examples and common word combinations.'}</p>
       </div>
       <div className="em-flashcard-stage">
         <InjectVocabStyle/>

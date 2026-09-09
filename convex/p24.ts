@@ -3,7 +3,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { requireStudent, requireAdmin, isSuperadmin } from "./authHelpers";
 import { ANALYSIS_NOTICE_VERSION } from "./students";
-import { ANALYSIS_ADDON_PLN_PER_LESSON } from "./analysisPricing";
+import { pricePackageAnalysis } from "./analysisPricing";
 import { packageExpiresAt } from "./billing";
 
 const CURRENCY = "PLN";
@@ -267,6 +267,9 @@ export const preparePayment = internalMutation({
     if (args.analysisAddon && buyerIsMinor) {
       throw new Error("ANALYSIS_NOT_AVAILABLE_FOR_MINORS");
     }
+    if (args.analysisAddon && !args.consentAnalysis) {
+      throw new Error("ANALYSIS_CONSENT_REQUIRED");
+    }
 
     // Mark the account as a child's the moment the buying adult says so, not on
     // payment: the flag is protective and should bind even if they abandon the
@@ -277,10 +280,11 @@ export const preparePayment = internalMutation({
     }
     // The per-lesson add-on bought alongside a package. Not applicable to a
     // quote, which already carries its own analysis price.
-    const analysisLessons = !quote && args.analysisAddon
-      ? lines.reduce((n, line) => n + line.lessons, 0)
+    const analysisAmount = !quote && args.analysisAddon
+      ? pricePackageAnalysis(args.items.map(item => ({
+          lessons: CATALOG[item.packageId].lessons, qty: Math.trunc(item.qty),
+        }))).totalPLN * 100
       : 0;
-    const analysisAmount = analysisLessons * ANALYSIS_ADDON_PLN_PER_LESSON * 100;
     const linesTotal = lines.reduce((sum, line) => sum + line.lineAmount, 0);
     const amount = quote ? quote.amount : linesTotal + analysisAmount;
     // The line amounts must add up to what is charged, or an order row would
