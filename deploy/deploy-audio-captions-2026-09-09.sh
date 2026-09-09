@@ -64,6 +64,8 @@ install -d -m 700 "$BACKUP"
 git rev-parse HEAD > "$BACKUP/revision.txt"
 cp -a "$WEB/index.html" "$BACKUP/index.html"
 cp -a "$WEB/student-preview.html" "$BACKUP/student-preview.html"
+NGINX=/etc/nginx/sites-enabled/englishmetro.com
+cp -a "$NGINX" "$BACKUP/nginx.conf"
 export CONVEX_DEPLOYMENT=prod:wooden-manatee-881
 node_modules/.bin/convex function-spec --prod > "$BACKUP/function-spec.json"
 node scripts/check-convex-contract.mjs --self-test --spec "$BACKUP/function-spec.json" > "$BACKUP/contract-self-test.log" 2>&1
@@ -76,6 +78,8 @@ test "$(git rev-parse HEAD)" = "$REV"
 space
 rollback() {
   trap - ERR
+  cp -a "$BACKUP/nginx.conf" "$NGINX"
+  nginx -t && systemctl reload nginx
   for entry in index student-preview; do
     install -m 644 "$BACKUP/$entry.html" "$WEB/.rollback-$entry-$STAMP.html"
     mv "$WEB/.rollback-$entry-$STAMP.html" "$WEB/$entry.html"
@@ -88,6 +92,27 @@ rsync -a --backup --backup-dir="$BACKUP/replaced-assets" dist/assets/ "$WEB/asse
 install -d -m 755 "$WEB/$MEDIA"
 rsync -a --backup --backup-dir="$BACKUP/replaced-audio" "public/$MEDIA/" "$WEB/$MEDIA/"
 verify_audio "$WEB/$MEDIA"
+python3 - "$NGINX" <<'PY'
+import pathlib,sys
+path=pathlib.Path(sys.argv[1]);config=path.read_text()
+marker='    # Saved Kokoro demo audio 20260909'
+if marker not in config:
+    anchor='    location /api/tts/ {'
+    assert config.count(anchor)==1
+    block='''    # Saved Kokoro demo audio 20260909
+    location ~ ^/media/kokoro-demo-20260909/([ab][fm]_[a-z]+-(landmark|berth|pescatarian)(-example)?\\.wav|manifest\\.json)$ {
+        types { audio/wav wav; application/json json; }
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        include /etc/nginx/snippets/em-security-headers.conf;
+        try_files $uri =404;
+    }
+
+'''
+    path.write_text(config.replace(anchor,block+anchor))
+PY
+nginx -t
+systemctl reload nginx
 python3 - "$WEB" <<'PY'
 import pathlib,re,sys
 web=pathlib.Path(sys.argv[1])
@@ -122,6 +147,7 @@ for row in manifest['files']:
     raw,headers,elapsed=get(sys.argv[2]+'/'+row['file'])
     assert hashlib.sha256(raw).hexdigest()==row['sha256']
     assert 'audio/' in headers.get('content-type','')
+    assert 'immutable' in headers.get('cache-control','')
     proof.append({'file':row['file'],'seconds':elapsed,'bytes':len(raw),'contentType':headers.get('content-type'),'cacheControl':headers.get('cache-control')})
 (backup/'public-audio.json').write_text(json.dumps(proof,indent=2))
 print(json.dumps(proof))
