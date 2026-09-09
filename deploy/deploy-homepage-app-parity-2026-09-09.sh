@@ -84,7 +84,30 @@ new=new.replace("script-src 'self' 'unsafe-inline' 'unsafe-eval'", "script-src '
 p.write_text(new)
 PY
 nginx -t > "$BACKUP/nginx-test.log" 2>&1
+cp -a "$HEADERS" "$BACKUP/security-headers-published.conf"
 systemctl reload nginx
+# Reload returns before the replacement workers necessarily serve requests.
+# Keep the previous HTML public until the required CSP is visible at the edge.
+python3 - "$BACKUP" "$STAMP" <<'PY'
+import pathlib,subprocess,sys,time
+backup=pathlib.Path(sys.argv[1])
+required=("frame-src 'self' https://www.youtube.com",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://s.ytimg.com")
+for attempt in range(1,31):
+    headers=backup/f"csp-ready-{attempt:02d}.txt"
+    result=subprocess.run(["curl","--fail","--silent","--show-error","--max-time","10",
+                           "-D",str(headers),"-o","/dev/null",
+                           f"https://englishmetro.com/?csp-ready={sys.argv[2]}-{attempt}"],
+                          capture_output=True,text=True)
+    policy=headers.read_text() if headers.exists() else ""
+    if result.returncode==0 and all(value in policy for value in required):
+        print(f"Public CSP ready on attempt {attempt}",flush=True)
+        break
+    print(f"Waiting for public CSP: attempt {attempt}/30",flush=True)
+    time.sleep(1)
+else:
+    raise SystemExit("Public CSP did not become ready; refusing to publish HTML")
+PY
 # Publish only build assets and the versioned keyword cache.
 rsync -a --backup --backup-dir="$BACKUP/replaced-assets" dist/assets/ "$WEB/assets/"
 install -d -m 755 "$WEB/$MEDIA"
@@ -119,7 +142,9 @@ for name in ("index","student-preview"):
     pattern=r'src="(/assets/[^\"]+\.js)"'
     expected,actual=re.search(pattern,local),re.search(pattern,edge)
     assert expected and actual and expected[1]==actual[1], "Public entry mismatch"
-    assert "frame-src 'self' https://www.youtube.com" in (backup/f"{name}-headers.txt").read_text()
+    headers=(backup/f"{name}-headers.txt").read_text()
+    assert "frame-src 'self' https://www.youtube.com" in headers
+    assert "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://s.ytimg.com" in headers
     print("Public entry verified:",actual[1])
 PY
 for key in sNFh9bL5yzg-949 H0zeipr-cVc-530 6d-LMzIlr5I-3119; do
