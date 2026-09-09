@@ -4,7 +4,9 @@ set -euo pipefail
 umask 022
 REPO=/root/englishmetro
 WEB=/var/www/englishmetro
-BASE=471dc4e030d2011df29cde20f2aa9dd6f7b597b3
+# Audio/caption release completed while the PDF PR was in CI. Its deployment
+# receipt and public entry were verified before advancing this release baseline.
+BASE=cf4e3cd5ba021c6e4d1019b8190d8005407a8c1e
 STAMP=$(date -u +%Y%m%d-%H%M%S)
 BACKUP=/root/backups/englishmetro-analysis-pdf-$STAMP
 . "$(dirname "$0")/_guard.sh"
@@ -13,6 +15,7 @@ cd "$REPO"
 exec 9>/root/englishmetro-homepage-previews-deploy.lock
 flock -n 9
 REV=$(git rev-parse HEAD)
+printf '%s\n' 'c510c4250c13e65ed4050693d1675cec9629ffd9468dfe09dbd58b986a7286ac  /var/www/englishmetro/index.html' | sha256sum --check
 git merge-base --is-ancestor "$BASE" HEAD
 git diff --name-only "$BASE" HEAD | python3 -c '
 import sys
