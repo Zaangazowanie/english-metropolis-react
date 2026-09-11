@@ -17,7 +17,7 @@ flock -n 9
 REV=$(git rev-parse HEAD)
 BASE=$(git rev-parse "$BASE" 2>/dev/null || git rev-parse HEAD~1)
 git merge-base --is-ancestor "$BASE" HEAD
-git diff --quiet "$BASE" HEAD -- convex package.json package-lock.json
+git diff --quiet "$BASE" HEAD -- convex ':!convex/_generated' package.json package-lock.json
 git diff --name-only "$BASE" HEAD | python3 -c '
 import sys
 allowed=set(["deploy/deploy-bajla-popup-2026-09-11.sh", "src/components/BajlaConnectModal.jsx", "tests/bajla-connect-qa.jsx", "convex/_generated/api.d.ts"])
