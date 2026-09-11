@@ -681,9 +681,11 @@ const RATY_METHOD_ID = 303;
 // method 303 alone does not establish a 0% rate. See docs/P24-ACTIVATION.md.
 // A production env switch avoids a code deployment on activation day.
 export const RATY_OFFERED = process.env.P24_RATY_ZERO_CONFIRMED === "true";
-// Pricing-page widget shows only on packages from this amount up (Mike's
-// lowest tier boundary). Irrelevant while RATY_OFFERED is false.
-export const RATY_WIDGET_MIN_PLN = 2000;
+// Pricing-page widget shows on every package: Przelewy24 Raty covers baskets
+// from 100 PLN (their documented floor), and our cheapest package is 155 PLN.
+// Mike, 2026-09-11: cover all packages (was 2000). Irrelevant while
+// RATY_OFFERED is false.
+export const RATY_WIDGET_MIN_PLN = 100;
 
 export function methodGroupOf(method: any): MethodGroupKey {
   const group = String(method?.group || "");
