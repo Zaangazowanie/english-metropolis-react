@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+// Emit a same-origin worker file; a data: import is blocked by production CSP.
+import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?worker&url'
 import { useI18n } from '../../i18n'
 
 GlobalWorkerOptions.workerSrc = workerUrl
