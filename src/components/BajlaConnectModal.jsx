@@ -215,6 +215,12 @@ export default function BajlaConnectModal() {
   // checklist tells them to "buy a lesson package" — which is the page they are
   // already on. Nothing may cover the form between the cart and Przelewy24.
   const hideForRoute = /^\/(login|logout|admin|checkout)/i.test(location.pathname)
+  // The introduction belongs to a student who has signed up and is inside
+  // their own app (Mike, 2026-09-11). It used to auto-open for any signed-in
+  // account on any page, including the marketing homepage, so a visitor who
+  // had just signed in met it before seeing anything else. Teachers and admins
+  // never get the auto-show; the ?bajla=connect link still works anywhere.
+  const inStudentApp = isStudentAuthenticated && /^\/app\//i.test(location.pathname)
   // EM-branded popup must not auto-open on a school-branded subdomain
   // (e.g. conversa.englishmetro.com) — it would stomp the school's branding.
   // The minimized launcher stays available; only the auto-show is suppressed.
@@ -245,11 +251,11 @@ export default function BajlaConnectModal() {
           setError('')
           if (v?.phone) setPhone(v.phone)
           setOpen(true)
-        } else if (!seen) setOpen(true)
+        } else if (!seen && inStudentApp) setOpen(true)
       })
       .catch(() => { if (!cancelled) setHasPhone(false) })
     return () => { cancelled = true }
-  }, [sessionToken, hideForRoute, verified, connectRequested])
+  }, [sessionToken, hideForRoute, verified, connectRequested, inStudentApp])
 
   // Students: how many lessons they have left, for the setup checklist.
   useEffect(() => {
@@ -324,209 +330,207 @@ export default function BajlaConnectModal() {
   const greeting = name ? C.greeting.replace('!', `, ${name.split(' ')[0]}!`) : C.greeting
 
   return (
-    <div className="bjp-overlay" role="dialog" aria-modal="true" aria-label={C.brand}>
+    <div className="bjp-overlay" role="dialog" aria-modal="true" aria-label={C.brand} onClick={(e) => { if (e.target === e.currentTarget) dismiss() }}>
       <style>{BJP_CSS}</style>
       <div className="bjp-card">
         <button className="bjp-close" onClick={dismiss} aria-label={C.closeAria}>×</button>
-        <div className="bjp-brand">{C.brand}<span>.com</span></div>
 
-        <div className="bjp-grid">
-          <div className="bjp-copy">
-            {step === 'intro' && (
-              <>
+        {step === 'intro' && (
+          <>
+            <header className="bjp-head">
+              <img className="bjp-mascot" src="/brand/em-bajla-icon.webp" alt="" />
+              <div>
                 <h2 className="bjp-h2">{greeting}</h2>
-                <h3 className="bjp-h3">{C.tagline}</h3>
-                <p className="bjp-intro">{C.intro}</p>
-                {/* The checklist is for a student who already has Bajla. While
-                    she is closed the panel below is the whole message, and a
-                    second "Buy lessons →" link beside it just competes with the
-                    one CTA Mike asked for. */}
-                {isStudentAuthenticated && !closed && (
-                  <div className="bjp-setup">
-                    <div className="bjp-setup-title">{C.setupTitle}</div>
-                    <div className={`bjp-step ${hasPhone ? 'done' : ''}`}>
-                      <span className="bjp-step-mark">{hasPhone ? '✓' : '1'}</span>
-                      {hasPhone ? C.setupPhoneDone : C.setupPhone}
-                    </div>
-                    <div className={`bjp-step ${remaining > 0 ? 'done' : ''}`}>
-                      <span className="bjp-step-mark">{remaining > 0 ? '✓' : '2'}</span>
-                      <span>
-                        {remaining > 0 ? C.setupLessonsDone : C.setupLessons}
-                        {!(remaining > 0) && studentUser?.slug && (
-                          <a className="bjp-step-link" href={`/app/${studentUser.slug}/buy`} onClick={dismiss}> {C.setupBuy}</a>
-                        )}
-                      </span>
-                    </div>
-                    <div className="bjp-step">
-                      <span className="bjp-step-mark">3</span>
-                      {C.setupChat}
-                    </div>
-                  </div>
-                )}
-                {needsPurchase ? (
-                  <div className="bjp-locked">
-                    <div className="bjp-locked-title">{C.lockedTitle}</div>
-                    <p className="bjp-locked-body">{C.lockedBody}</p>
-                    {studentUser?.slug && (
-                      /* ?addon=1 rides through the buy wizard to /checkout, where
-                         it starts the AI add-on ticked — this CTA is what says so. */
-                      <a className="bjp-wa-btn bjp-locked-cta" href={`/app/${studentUser.slug}/buy?addon=1`} onClick={dismiss}>
-                        <span className="bjp-wa-ico">📅</span> {C.lockedCta}
-                      </a>
+                <p className="bjp-tag">{C.tagline}</p>
+              </div>
+            </header>
+            <p className="bjp-intro">{C.intro}</p>
+
+            {isStudentAuthenticated && !closed && (
+              <ol className="bjp-setup" aria-label={C.setupTitle}>
+                <li className={hasPhone ? 'done' : ''}>
+                  <span className="bjp-mark">{hasPhone ? '✓' : '1'}</span>
+                  {hasPhone ? C.setupPhoneDone : C.setupPhone}
+                </li>
+                <li className={remaining > 0 ? 'done' : ''}>
+                  <span className="bjp-mark">{remaining > 0 ? '✓' : '2'}</span>
+                  <span>
+                    {remaining > 0 ? C.setupLessonsDone : C.setupLessons}
+                    {!(remaining > 0) && studentUser?.slug && (
+                      <a className="bjp-link" href={`/app/${studentUser.slug}/buy`} onClick={dismiss}> {C.setupBuy}</a>
                     )}
-                    <p className="bjp-footer">{C.lockedNote}</p>
-                  </div>
-                ) : needsConsent ? (
-                  <div className="bjp-locked">
-                    <div className="bjp-locked-title">{C.consentTitle}</div>
-                    <p className="bjp-locked-body">{C.consentBody}</p>
-                    <button className="bjp-wa-btn" type="button" onClick={grantConsent} disabled={consenting}>
-                      <span className="bjp-wa-ico">💬</span> {consenting ? C.consentBusy : C.consentCta}
-                    </button>
-                    {consentError && <p className="bjp-error" style={{ marginTop: 12 }}>{consentError}</p>}
-                    <p className="bjp-footer">
-                      {C.consentNote}{' '}
-                      <a href="/lesson-analysis" target="_blank" rel="noopener noreferrer"
-                        style={{ color: '#cdb4ff' }}>{C.consentLink}</a>
-                    </p>
-                  </div>
-                ) : (
-                <>
-                <div className="bjp-cards">
-                  <button className="bjp-action" onClick={() => onAction('book')}>
-                    <span className="bjp-ico">📅</span>
-                    <strong>{C.cards.book.title}</strong>
-                    <span className="bjp-sub">{C.cards.book.sub}</span>
-                  </button>
-                  <button className="bjp-action" onClick={() => onAction('cancel')}>
-                    <span className="bjp-ico">🔁</span>
-                    <strong>{C.cards.cancel.title}</strong>
-                    <span className="bjp-sub">{C.cards.cancel.sub}</span>
-                  </button>
-                  <button className="bjp-action" onClick={() => onAction('progress')}>
-                    <span className="bjp-ico">📈</span>
-                    <strong>{C.cards.progress.title}</strong>
-                    <span className="bjp-sub">{C.cards.progress.sub}</span>
-                  </button>
-                </div>
-                <button className="bjp-wa-btn" onClick={() => onAction('main')}>
-                  <span className="bjp-wa-ico">💬</span> {C.mainCta}
-                </button>
-                <p className="bjp-footer">{C.footer}</p>
-                </>
+                  </span>
+                </li>
+                <li><span className="bjp-mark">3</span>{C.setupChat}</li>
+              </ol>
+            )}
+
+            {needsPurchase ? (
+              <div className="bjp-locked">
+                <div className="bjp-locked-title">{C.lockedTitle}</div>
+                <p className="bjp-locked-body">{C.lockedBody}</p>
+                {studentUser?.slug && (
+                  /* ?addon=1 rides through the buy wizard to /checkout, where
+                     it starts the AI add-on ticked — this CTA is what says so. */
+                  <a className="bjp-cta bjp-cta-violet" href={`/app/${studentUser.slug}/buy?addon=1`} onClick={dismiss}>{C.lockedCta}</a>
                 )}
-              </>
-            )}
-
-            {step === 'phone' && (
-              <form onSubmit={savePhoneAndContinue}>
-                <h2 className="bjp-h2 bjp-h2-sm">{C.phoneTitle}</h2>
-                <p className="bjp-intro">{C.phoneIntro}</p>
-                <input
-                  className="bjp-input"
-                  type="tel"
-                  inputMode="tel"
-                  autoFocus
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder={C.phonePlaceholder}
-                  aria-label={C.phoneTitle}
-                />
-                {error && <p className="bjp-error">{error}</p>}
-                <button className="bjp-wa-btn" type="submit" disabled={saving}>
-                  <span className="bjp-wa-ico">💬</span> {saving ? C.phoneSaving : C.phoneSave}
+                <p className="bjp-note">{C.lockedNote}</p>
+              </div>
+            ) : needsConsent ? (
+              <div className="bjp-locked">
+                <div className="bjp-locked-title">{C.consentTitle}</div>
+                <p className="bjp-locked-body">{C.consentBody}</p>
+                <button className="bjp-cta" type="button" onClick={grantConsent} disabled={consenting}>
+                  {consenting ? C.consentBusy : C.consentCta}
                 </button>
-                <button className="bjp-back" type="button" onClick={() => setStep('intro')}>{C.back}</button>
-              </form>
-            )}
-
-            {step === 'ready' && (
+                {consentError && <p className="bjp-error">{consentError}</p>}
+                <p className="bjp-note">
+                  {C.consentNote}{' '}
+                  <a className="bjp-link" href="/lesson-analysis" target="_blank" rel="noopener noreferrer">{C.consentLink}</a>
+                </p>
+              </div>
+            ) : (
               <>
-                <h2 className="bjp-h2 bjp-h2-sm">{C.greeting}</h2>
-                <p className="bjp-intro">{C.openHint}</p>
-                <a className="bjp-wa-btn" href={readyLink} target="_blank" rel="noopener noreferrer" onClick={dismiss}>
-                  <span className="bjp-wa-ico">💬</span> {C.openWhatsApp}
-                </a>
-                <p className="bjp-footer">{C.footer}</p>
+                <div className="bjp-actions">
+                  {[['book', '📅'], ['cancel', '🔁'], ['progress', '📈']].map(([intent, ico]) => (
+                    <button key={intent} className="bjp-action" onClick={() => onAction(intent)}>
+                      <span className="bjp-ico" aria-hidden="true">{ico}</span>
+                      <span className="bjp-action-text">
+                        <strong>{C.cards[intent].title}</strong>
+                        <span className="bjp-sub">{C.cards[intent].sub}</span>
+                      </span>
+                      <span className="bjp-chev" aria-hidden="true">›</span>
+                    </button>
+                  ))}
+                </div>
+                <button className="bjp-cta" onClick={() => onAction('main')}>
+                  <WaGlyph /> {C.mainCta}
+                </button>
+                <p className="bjp-note">{C.footer}</p>
               </>
             )}
-          </div>
+          </>
+        )}
 
-          <img className="bjp-mascot" src="/brand/em-bajla-icon.webp" alt="Bajla" />
-        </div>
+        {step === 'phone' && (
+          <form onSubmit={savePhoneAndContinue}>
+            <header className="bjp-head">
+              <img className="bjp-mascot" src="/brand/em-bajla-icon.webp" alt="" />
+              <div>
+                <h2 className="bjp-h2">{C.phoneTitle}</h2>
+                <p className="bjp-tag">{C.phoneIntro}</p>
+              </div>
+            </header>
+            <input
+              className="bjp-input"
+              type="tel"
+              inputMode="tel"
+              autoFocus
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder={C.phonePlaceholder}
+              aria-label={C.phoneTitle}
+            />
+            {error && <p className="bjp-error">{error}</p>}
+            <button className="bjp-cta" type="submit" disabled={saving}>
+              <WaGlyph /> {saving ? C.phoneSaving : C.phoneSave}
+            </button>
+            <button className="bjp-back" type="button" onClick={() => setStep('intro')}>{C.back}</button>
+          </form>
+        )}
+
+        {step === 'ready' && (
+          <>
+            <header className="bjp-head">
+              <img className="bjp-mascot" src="/brand/em-bajla-icon.webp" alt="" />
+              <div>
+                <h2 className="bjp-h2">{C.greeting}</h2>
+                <p className="bjp-tag">{C.openHint}</p>
+              </div>
+            </header>
+            <a className="bjp-cta" href={readyLink} target="_blank" rel="noopener noreferrer" onClick={dismiss}>
+              <WaGlyph /> {C.openWhatsApp}
+            </a>
+            <p className="bjp-note">{C.footer}</p>
+          </>
+        )}
       </div>
     </div>
   )
 }
 
+// WhatsApp mark as a vector, so the CTA does not depend on the platform's
+// emoji set (the old 💬 rendered as four different glyphs across devices).
+function WaGlyph() {
+  return (
+    <svg className="bjp-wa" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 12 12 0 0 0 4.6 4c1.7.7 2.3.8 3.1.7a2.7 2.7 0 0 0 1.8-1.3c.2-.6.2-1.1.2-1.2l-.5-.3Z"/>
+    </svg>
+  )
+}
+
+// Compact, square-cornered card (Mike, 2026-09-11: the previous one was too
+// round and too big). One column, mascot in the header, actions as rows.
 const BJP_CSS = `
 .bjp-overlay{position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;
-  padding:20px;background:rgba(8,4,20,.72);backdrop-filter:blur(6px);animation:bjpfade .25s ease}
+  padding:16px;background:rgba(10,6,24,.6);backdrop-filter:blur(4px);animation:bjpfade .2s ease}
 @keyframes bjpfade{from{opacity:0}to{opacity:1}}
-.bjp-card{animation:bjpcard .32s cubic-bezier(.16,1,.3,1) both}
-@keyframes bjpcard{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.bjp-overlay,.bjp-card{animation:none}.bjp-action,.bjp-wa-btn,.bjp-close{transition:none}}
-.bjp-card{position:relative;width:100%;max-width:880px;max-height:92vh;overflow:auto;padding:40px 44px;
-  border-radius:32px;color:#fff;font-family:Inter,system-ui,sans-serif;
-  background:radial-gradient(120% 120% at 85% 10%,#4a1d8f 0%,#2a0f56 45%,#140826 100%);
-  border:1px solid rgba(200,120,255,.4);box-shadow:0 0 60px rgba(150,70,255,.35)}
-.bjp-close{position:absolute;top:18px;right:20px;width:42px;height:42px;border-radius:50%;
-  border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#fff;font-size:24px;
-  line-height:1;cursor:pointer;transition:background .2s ease,transform .16s cubic-bezier(.16,1,.3,1)}
-.bjp-close:active{transform:scale(.92)}
-.bjp-close:hover{background:rgba(255,255,255,.14)}
-.bjp-brand{font-weight:800;font-size:22px;letter-spacing:-.01em;margin-bottom:26px}
-.bjp-brand span{color:#cdb4ff;font-weight:700}
-.bjp-grid{display:grid;grid-template-columns:1fr 240px;gap:28px;align-items:center}
-.bjp-h2{font-size:clamp(34px,5vw,56px);line-height:.98;margin:0 0 8px;font-weight:800}
-.bjp-h2-sm{font-size:clamp(26px,4vw,38px)}
-.bjp-h3{font-size:20px;color:#d98cff;margin:0 0 18px;font-weight:600}
-.bjp-intro{color:#ded7ef;font-size:16px;line-height:1.5;margin:0 0 22px;max-width:460px}
-.bjp-setup{margin:0 0 20px;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.12)}
-.bjp-setup-title{font-weight:800;font-size:14px;letter-spacing:.02em;margin-bottom:10px;color:#e9ddff}
-.bjp-step{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:#ded7ef;line-height:1.45;
-  margin-bottom:8px}
-.bjp-step:last-child{margin-bottom:0}
-.bjp-step.done{color:#b7f2cd}
-.bjp-step-mark{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
-  border-radius:50%;font-size:13px;font-weight:800;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2)}
-.bjp-step.done .bjp-step-mark{background:rgba(37,211,102,.3);border-color:rgba(37,211,102,.6)}
-.bjp-step-link{color:#7CF2A6;font-weight:700;text-decoration:none}
-.bjp-locked{border:1px solid rgba(217,70,239,.30);border-radius:16px;padding:16px 18px;
-  background:linear-gradient(180deg,rgba(217,70,239,.10),rgba(139,92,246,.06));margin-bottom:18px}
-.bjp-locked-title{font-weight:800;font-size:15px;margin-bottom:6px;color:#f3e8ff}
-.bjp-locked-body{font-size:13.5px;line-height:1.6;color:#e9ddff;margin:0 0 14px}
-.bjp-locked-cta{background:linear-gradient(135deg,#8B5CF6,#D946EF)!important}
-.bjp-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
-.bjp-action{display:flex;flex-direction:column;gap:6px;text-align:left;padding:16px;border-radius:18px;
-  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;cursor:pointer;transition:transform .2s cubic-bezier(.16,1,.3,1),background .18s ease}
-@media (hover:hover) and (pointer:fine){.bjp-action:hover{transform:translateY(-3px);background:rgba(255,255,255,.12)}}
-.bjp-action:active{transform:scale(.98)}
-.bjp-ico{font-size:22px}
-.bjp-action strong{font-size:15px;font-weight:700}
-.bjp-sub{font-size:13px;color:#c7bfd8;line-height:1.35}
-.bjp-wa-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:17px 24px;
-  border:none;border-radius:18px;font-weight:800;font-size:18px;color:#fff;cursor:pointer;text-decoration:none;
-  background:linear-gradient(135deg,#25D366,#13a84e);box-shadow:0 0 26px rgba(37,211,102,.45);transition:transform .2s cubic-bezier(.16,1,.3,1),filter .18s ease}
-@media (hover:hover) and (pointer:fine){.bjp-wa-btn:hover{filter:brightness(1.07);transform:translateY(-2px)}}
-.bjp-wa-btn:active{transform:scale(.98)}
-.bjp-wa-btn:disabled{opacity:.6;cursor:default;transform:none}
-.bjp-wa-ico{font-size:20px}
-.bjp-footer{margin:16px 0 0;font-size:13px;color:#b9aed4;text-align:center}
-.bjp-input{width:100%;padding:15px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.25);
-  background:rgba(255,255,255,.08);color:#fff;font-size:18px;margin:6px 0 14px;outline:none}
-.bjp-input:focus{border-color:#cc4dff;box-shadow:0 0 0 3px rgba(204,77,255,.25)}
-.bjp-input::placeholder{color:#a99fc4}
-.bjp-error{color:#ff9db0;font-size:14px;margin:0 0 12px}
-.bjp-back{display:block;width:100%;margin-top:12px;background:none;border:none;color:#cdb4ff;font-size:14px;cursor:pointer}
-.bjp-mascot{width:100%;max-width:240px;border-radius:26px;display:block;
-  filter:drop-shadow(0 0 26px rgba(190,100,255,.55))}
-@media (max-width:760px){
-  .bjp-card{padding:28px 22px}
-  .bjp-grid{grid-template-columns:1fr}
-  .bjp-mascot{max-width:170px;margin:0 auto;order:-1}
-  .bjp-cards{grid-template-columns:1fr}
-}
+@keyframes bjpcard{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.bjp-card{position:relative;width:100%;max-width:440px;max-height:92vh;overflow:auto;padding:22px 22px 18px;
+  border-radius:12px;color:#f4f0ff;font-family:'Sora','Plus Jakarta Sans',Inter,system-ui,sans-serif;
+  background:#1a1030;border:1px solid rgba(190,150,255,.28);
+  box-shadow:0 24px 60px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.3);animation:bjpcard .24s cubic-bezier(.16,1,.3,1) both}
+.bjp-card *{box-sizing:border-box}
+@media (prefers-reduced-motion:reduce){.bjp-overlay,.bjp-card{animation:none}.bjp-action,.bjp-cta,.bjp-close{transition:none}}
+.bjp-close{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:8px;border:0;
+  background:transparent;color:#b9aed4;font-size:22px;line-height:1;cursor:pointer;transition:background .15s,color .15s}
+.bjp-close:hover{background:rgba(255,255,255,.08);color:#fff}
+.bjp-head{display:flex;gap:12px;align-items:center;margin:0 28px 12px 0}
+.bjp-mascot{flex:0 0 auto;width:52px;height:52px;border-radius:10px;object-fit:cover;
+  box-shadow:0 0 0 1px rgba(190,150,255,.35)}
+.bjp-h2{font-size:18px;line-height:1.2;margin:0 0 3px;font-weight:700;letter-spacing:-.01em}
+.bjp-tag{font-size:13px;color:#c9a8ff;margin:0;line-height:1.35}
+.bjp-intro{color:#cfc6e6;font-size:13.5px;line-height:1.5;margin:0 0 14px}
+.bjp-setup{list-style:none;margin:0 0 14px;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);display:grid;gap:7px}
+.bjp-setup li{display:flex;gap:9px;align-items:flex-start;font-size:13px;color:#d6cdea;line-height:1.4}
+.bjp-setup li.done{color:#9fe7b8}
+.bjp-mark{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;
+  border-radius:5px;font-size:11px;font-weight:700;background:rgba(255,255,255,.1);margin-top:1px}
+.bjp-setup li.done .bjp-mark{background:rgba(37,211,102,.25);color:#7CF2A6}
+.bjp-link{color:#7CF2A6;font-weight:600;text-decoration:none}
+.bjp-link:hover{text-decoration:underline}
+.bjp-actions{display:grid;gap:6px;margin-bottom:12px}
+.bjp-action{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:9px 10px;border-radius:8px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);color:#fff;cursor:pointer;
+  transition:background .15s,border-color .15s,transform .15s cubic-bezier(.16,1,.3,1)}
+.bjp-action:hover{background:rgba(255,255,255,.08);border-color:rgba(190,150,255,.4)}
+.bjp-action:active{transform:scale(.99)}
+.bjp-ico{font-size:17px;width:22px;text-align:center;flex:0 0 auto}
+.bjp-action-text{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.bjp-action strong{font-size:13.5px;font-weight:600}
+.bjp-sub{font-size:12px;color:#b9aed4;line-height:1.3}
+.bjp-chev{color:#8f80b3;font-size:18px;line-height:1;flex:0 0 auto}
+.bjp-locked{border:1px solid rgba(217,70,239,.28);border-radius:8px;padding:12px 13px;
+  background:rgba(217,70,239,.07);margin-bottom:8px}
+.bjp-locked-title{font-weight:700;font-size:14px;margin-bottom:4px}
+.bjp-locked-body{font-size:13px;line-height:1.5;color:#d6cdea;margin:0 0 10px}
+.bjp-cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 16px;
+  border:none;border-radius:8px;font-weight:700;font-size:14px;color:#0b1f13;cursor:pointer;text-decoration:none;
+  background:#25D366;transition:filter .15s,transform .15s cubic-bezier(.16,1,.3,1)}
+.bjp-cta:hover{filter:brightness(1.06)}
+.bjp-cta:active{transform:scale(.99)}
+.bjp-cta:disabled{opacity:.6;cursor:default;transform:none}
+.bjp-cta-violet{background:#8B5CF6;color:#fff}
+.bjp-wa{flex:0 0 auto}
+.bjp-note{margin:10px 0 0;font-size:11.5px;color:#9d92bd;text-align:center;line-height:1.4}
+.bjp-error{margin:0 0 8px;font-size:12.5px;color:#ff9db0}
+.bjp-input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.05);color:#fff;font-size:15px;margin:4px 0 10px;outline:none;font-family:inherit}
+.bjp-input:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(167,139,250,.25)}
+.bjp-input::placeholder{color:#8f80b3}
+.bjp-back{margin-top:8px;background:none;border:0;color:#b9aed4;font-size:13px;cursor:pointer;padding:6px 0;font-family:inherit}
+.bjp-back:hover{color:#fff}
+@media (max-width:480px){.bjp-overlay{align-items:flex-end;padding:0}
+  .bjp-card{max-width:none;border-radius:12px 12px 0 0;max-height:88vh}}
 `
-

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import './dashboard-metropolis.css'
+import NextCourseLesson from './NextCourseLesson.jsx'
 import { Link } from 'react-router-dom'
 import { FONT, G, CEFR_COLOR } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
@@ -249,7 +250,7 @@ export function AccuracyAtSpeedCard({ slug, basePath }) {
   )
 }
 
-export function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null }) {
+export function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null, coursePreview }) {
   const { T } = useV3Theme()
   const { t } = useI18n()
   // Live clock (30s tick) so "starts in N min" and the Join state stay honest
@@ -321,7 +322,7 @@ export function UpcomingLessonCard({ upcoming, slug, basePath, alloc = null }) {
   const niceDate = formatUpcomingDateTime(t, upcoming.date, upcoming.startTime)
   const topic = (upcoming.topics || [])[0]
   const meet = upcoming.meetingUrl
-  const lessonPath = slug ? `${basePath}/${slug}/lessons?openLesson=${upcoming.id}` : '#'
+  const lessonPath = slug ? `${basePath}/${slug}/lessons?${coursePreview ? 'preview=next' : `openLesson=${upcoming.id}`}` : '#'
 
   return (
     <Glass className="em-dashboard-card em-dashboard-card--upcoming" padding={28} hover style={{
@@ -814,7 +815,7 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
         gap: 20, marginBottom: 32 }}>
         {showCard('upcoming') && (
           <div {...heroReveal.item(0)}>
-            <UpcomingLessonCard upcoming={upcomingLesson} slug={slug} basePath={basePath} alloc={alloc}/>
+            <UpcomingLessonCard upcoming={upcomingLesson} slug={slug} basePath={basePath} alloc={alloc} coursePreview={data?.coursePreview}/>
           </div>
         )}
 
@@ -831,6 +832,8 @@ export default function DashboardV3({ data, slug, basePath = '' }) {
           </div>
         )}
       </div>
+
+      <NextCourseLesson data={data}/>
 
       {/* The lesson line: the student's package as a metro line (3D when
           WebGL + motion allow, SVG otherwise). Same numbers either way. */}

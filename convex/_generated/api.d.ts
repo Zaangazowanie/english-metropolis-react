@@ -10,12 +10,14 @@
 
 import type * as admin from "../admin.js";
 import type * as adminStudentView from "../adminStudentView.js";
+import type * as analysisAccess from "../analysisAccess.js";
 import type * as analysisOffers from "../analysisOffers.js";
 import type * as analysisPricing from "../analysisPricing.js";
 import type * as analytics from "../analytics.js";
 import type * as authHelpers from "../authHelpers.js";
 import type * as bajla from "../bajla.js";
 import type * as billing from "../billing.js";
+import type * as complimentaryAnalysis from "../complimentaryAnalysis.js";
 import type * as consoleTeacher from "../consoleTeacher.js";
 import type * as crons from "../crons.js";
 import type * as curriculum from "../curriculum.js";
@@ -53,12 +55,14 @@ import type {
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   adminStudentView: typeof adminStudentView;
+  analysisAccess: typeof analysisAccess;
   analysisOffers: typeof analysisOffers;
   analysisPricing: typeof analysisPricing;
   analytics: typeof analytics;
   authHelpers: typeof authHelpers;
   bajla: typeof bajla;
   billing: typeof billing;
+  complimentaryAnalysis: typeof complimentaryAnalysis;
   consoleTeacher: typeof consoleTeacher;
   crons: typeof crons;
   curriculum: typeof curriculum;

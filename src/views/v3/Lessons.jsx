@@ -22,6 +22,7 @@ import { Sheet, useReveal } from '../../design/v3/motion/index.js'
 import { Btn, Glass, Pill } from '../../design/v3/primitives.jsx'
 import { generateLessonPdf } from './lessons-pdf.js'
 import AnalysisUpgradeCTA from './AnalysisUpgradeCTA.jsx'
+import NextCourseLesson from './NextCourseLesson.jsx'
 import KeywordVideoPlayer from '../../components/media/KeywordVideoPlayer.jsx'
 import { captionAt } from '../../components/media/keyword-media.mjs'
 
@@ -2073,6 +2074,8 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
             allLabel={t('lessons.allTopics')}/>
         )}
       </Glass>
+
+      <NextCourseLesson data={data}/>
 
       {/* Horizontal navigator — completed lessons only.
           Upcoming sit inside the collapsible block below. */}

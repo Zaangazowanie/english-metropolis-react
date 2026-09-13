@@ -1,0 +1,35 @@
+.em-next-course { margin-bottom: 28px; color: var(--preview-text); }
+.em-next-course-heading { color: var(--preview-accent); font-size: 12px; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 10px; }
+.em-next-course-top { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.em-next-course h2 { font-size: clamp(21px, 2.2vw, 28px); font-weight: 650; line-height: 1.25; margin: 0 0 12px; }
+.em-next-course-meta, .em-next-course-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.em-next-course-meta { color: var(--preview-dim); font-size: 13px; }
+.em-next-course-intro { color: var(--preview-dim); font-size: 14px; line-height: 1.65; margin: 16px 0 0; }
+.em-next-course-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.em-next-course-chips span { padding: 6px 11px; border: 1px solid var(--preview-border); border-radius: 9px; font-size: 13px; }
+.em-next-course-words { margin-top: 24px; border-top: 1px solid var(--preview-border); padding-top: 18px; }
+.em-next-course-words h3 { margin: 0 0 15px; font-size: 17px; font-weight: 650; }
+.em-next-course-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.em-next-course-grid article { border: 1px solid var(--preview-border); border-radius: 12px; padding: 17px; overflow-wrap: anywhere; }
+.em-next-course-grid strong { font-size: 17px; }
+.em-next-course-ipa { color: var(--preview-dim); font-size: 13px; margin-left: 5px; }
+.em-next-course-translation { color: var(--preview-accent); font-size: 14px; margin: 7px 0; }
+.em-next-course-example { color: var(--preview-dim); font-size: 14px; line-height: 1.6; margin: 8px 0 0; }
+.em-next-course-dialog { margin: auto; width: min(1120px, 96vw); max-width: 96vw; height: 90dvh; max-height: 94dvh; padding: 0; border: 1px solid var(--preview-border); border-radius: 16px; background: var(--preview-surface); color: var(--preview-text); overflow: hidden; }
+.em-next-course-dialog::backdrop { background: rgba(7, 5, 18, .75); }
+.em-next-course-pdfbar { height: 70px; padding: 12px 18px; display: flex; align-items: center; gap: 18px; box-sizing: border-box; }
+.em-next-course-pdfbar h2 { margin: 0; font-size: 16px; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.em-next-course-pdfbar a { color: var(--preview-accent); font-size: 14px; }
+.em-next-course-pdfbar button { background: transparent; color: inherit; border: 1px solid var(--preview-border); border-radius: 8px; min-width: 44px; height: 44px; font-size: 28px; cursor: pointer; }
+.em-course-pdf-viewer { height: calc(100% - 70px); display: flex; flex-direction: column; }
+.em-course-pdf-controls { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 10px; font-size: 13px; }
+.em-course-pdf-controls button { width: 36px; height: 36px; font-size: 22px; border: 1px solid var(--preview-border); background: transparent; color: inherit; border-radius: 7px; cursor: pointer; }
+.em-course-pdf-controls button:disabled { opacity: .3; cursor: default; }
+.em-course-pdf-page { position: relative; flex: 1; min-height: 0; overflow: auto; background: #e5e5e5; }
+.em-course-pdf-page canvas { display: block; margin: 14px auto; background: white; box-shadow: 0 2px 12px #0002; }
+.em-course-pdf-loading { position: absolute; top: 18px; left: 20px; background: white; color: #272033; padding: 8px 12px; border-radius: 7px; }
+@media (max-width: 600px) {
+  .em-next-course-grid { grid-template-columns: 1fr; }
+  .em-next-course-actions { gap: 8px; }
+  .em-next-course-pdfbar { gap: 10px; padding: 10px; }
+}

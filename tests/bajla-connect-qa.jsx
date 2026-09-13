@@ -12,7 +12,9 @@ const params = new URLSearchParams(location.search)
 const scenario = params.get('scenario') || 'returning'
 const user = { _id: 'synthetic-student', slug: 'synthetic-student', name: 'Test Learner', sessionToken: 'synthetic-session' }
 localStorage.setItem('em.lang.v2', params.get('lang') || 'en')
-localStorage.setItem('em.bajla.popupSeen.v2.synthetic-student', '1')
+// 'intro' scenario: first visit inside the student app, so the popup auto-opens.
+if (scenario === 'intro') { localStorage.removeItem('em.bajla.popupSeen.v2.synthetic-student'); history.replaceState(null, '', '/app/synthetic-student' + location.search) }
+else localStorage.setItem('em.bajla.popupSeen.v2.synthetic-student', '1')
 if (scenario === 'signed-out') localStorage.removeItem('em-student-session')
 else localStorage.setItem('em-student-session', JSON.stringify(user))
 sessionStorage.removeItem('em-admin-session')
@@ -26,7 +28,7 @@ window.fetch = async (url, options) => {
   const { path, args } = JSON.parse(options.body)
   const values = {
     'studentAuth:myVerification': { verified: true, bajlaAllowed: true },
-    'bajla:getMyPhone': { phone: scenario === 'change-number' ? '+48 111 111 111' : null },
+    'bajla:getMyPhone': { phone: scenario === 'change-number' || params.get('phone') === '1' ? '+48 111 111 111' : null },
     'orders:getStudentAllocation': { remaining: 4 },
   }
   if (path === 'bajla:setMyPhone') {
