@@ -21,3 +21,6 @@ dist
 dist-dev/
 *.pre-*
 *.applied
+
+# Python course-preview service/tests.
+ops/em-console-api/__pycache__/

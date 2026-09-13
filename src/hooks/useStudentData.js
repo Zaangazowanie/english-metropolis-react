@@ -12,6 +12,7 @@ import { fetchWithTimeout } from '../practice/lib/practice-cache'
 import { getStudentSessionToken } from '../contexts/StudentAuthContext.jsx'
 import { createStudentDataRefresh, refreshedValue } from './studentDataRefresh.js'
 import { useI18n } from '../i18n'
+import { fetchCoursePreview } from '../lib/course-preview.js'
 
 function normalizeDateKey(value) {
   return String(value || '').trim().slice(0, 10)
@@ -315,6 +316,8 @@ function emptyStudentState(slug) {
     profile: { id: null, slug, name: '', firstName: '', initials: '', level: '' },
     lessons: [],
     bookings: [],
+    coursePreview: null,
+    coursePreviewError: false,
     keywords: [],
     convexKeywords: [],
     analyses: [],
@@ -350,15 +353,16 @@ export default function useStudentData() {
         queryConvex('analytics:getStudentAnalyses', { studentId, limit: ANALYSES_LIMIT }),
         queryConvex('students:listKeywords', { studentId, limit: 2000 }),
         queryConvex('scheduling:listBookings', { sessionToken: getStudentSessionToken(), studentId }),
+        fetchCoursePreview(getStudentSessionToken()),
       ]
-      const [convexLessonsResult, analysesResult, keywordsResult, bookingsResult] =
+      const [convexLessonsResult, analysesResult, keywordsResult, bookingsResult, previewResult] =
         await Promise.allSettled(fetches)
-      return { student, studentId, convexLessonsResult, analysesResult, keywordsResult, bookingsResult }
+      return { student, studentId, convexLessonsResult, analysesResult, keywordsResult, bookingsResult, previewResult }
     }
 
     const controller = createStudentDataRefresh({
       load: loadStudentData,
-      onData({ student, studentId, convexLessonsResult, analysesResult, keywordsResult, bookingsResult }) {
+      onData({ student, studentId, convexLessonsResult, analysesResult, keywordsResult, bookingsResult, previewResult }) {
         setState(current => {
           const previous = current.studentSlug === urlSlug ? current : emptyStudentState(urlSlug)
           const convexLessons = refreshedValue(convexLessonsResult, Object.values(previous.convexLessonsById))
@@ -386,6 +390,8 @@ export default function useStudentData() {
             },
             lessons: mergedLessons,
             bookings,
+            coursePreview: previewResult.status === 'fulfilled' ? previewResult.value : null,
+            coursePreviewError: previewResult.status === 'rejected',
             keywords: flattenKeywords(mergedLessons),
             convexKeywords,
             analyses,
