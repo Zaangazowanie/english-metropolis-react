@@ -74,7 +74,7 @@ test "$(git rev-parse HEAD)" = "$REV"
 rollback() {
   trap - ERR
   # The private backup root is 0700; never copy that mode onto the public root.
-  rsync -a --no-perms --no-owner --no-group "$BACKUP/site/" "$WEB/"
+  rsync -a --checksum --no-perms --no-owner --no-group "$BACKUP/site/" "$WEB/"
   echo "Previous entries and static files restored; evidence: $BACKUP"
   exit 1
 }
