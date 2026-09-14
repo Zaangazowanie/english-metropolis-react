@@ -17,6 +17,7 @@ import { fetchWithTimeout } from '../../practice/lib/practice-cache'
 import { useI18n } from '../../i18n'
 import { joinName, nameFieldOk } from '../../lib/signup-name.js'
 import { ensureGoogleIdentity } from '../../lib/google-identity.js'
+import { MARKETING_NOTICE } from '../../../shared/marketingNotice'
 
 const GOOGLE_CLIENT_ID = '960729188616-r2ql4rjid9aibbo1psi678gonf8lp04o.apps.googleusercontent.com'
 
@@ -156,6 +157,7 @@ export default function Signup() {
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', dateOfBirth: '' })
   const [touched, setTouched] = useState({})
   const [busy, setBusy] = useState(false)
+  const [consentMarketing, setConsentMarketing] = useState(false)
   const [err, setErr] = useState('')
   const googleBtnRef = useRef(null)
   const [googleReady, setGoogleReady] = useState(false)
@@ -217,6 +219,7 @@ export default function Signup() {
       const r = await callConvex('action', 'studentAuth:studentSignupAction', {
         name: joinName(form.firstName, form.lastName), email: form.email, password: form.password,
         phone: form.phone || undefined, dateOfBirth: form.dateOfBirth,
+        consentMarketing, marketingLocale: lang === 'pl' ? 'pl' : 'en',
       })
       if (!r?.success) { setErr(serverMessage(r) || 'Signup failed'); setBusy(false); return }
       persistSession(r.student, r.sessionToken)
@@ -246,6 +249,12 @@ export default function Signup() {
     setErr(''); setBusy(true)
     try {
       const args = { idToken }
+      // The final signup step shows its own optional checkbox. Existing Google
+      // sign-ins return before the server's signup branch and retain preferences.
+      if (extra.dateOfBirth || extra.firstName !== undefined || extra.lastName !== undefined) {
+        args.consentMarketing = consentMarketing
+        args.marketingLocale = lang === 'pl' ? 'pl' : 'en'
+      }
       if (extra.dateOfBirth) args.dateOfBirth = extra.dateOfBirth
       if (extra.firstName !== undefined) args.firstName = extra.firstName.trim()
       if (extra.lastName !== undefined) args.lastName = extra.lastName.trim()
@@ -323,6 +332,19 @@ export default function Signup() {
       borderRadius: 12, color: T.rose, fontSize: 13, lineHeight: 1.5 }}>{err}</div>
   )
   const nameRow = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }
+  const marketingChoice = (
+    <div style={{ fontSize: 13, lineHeight: 1.55, color: T.textDim }}>
+      <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer' }}>
+        <input type="checkbox" name="consentMarketing" checked={consentMarketing} disabled={busy}
+          onChange={e => setConsentMarketing(e.target.checked)}
+          style={{ marginTop: 3, width: 18, height: 18, flexShrink: 0, accentColor: '#9224b7' }} />
+        <span>{MARKETING_NOTICE[lang === 'pl' ? 'pl' : 'en']}</span>
+      </label>
+      <div style={{ margin: '6px 0 0 28px', fontSize: 12 }}>
+        EnglishMetro · Fundacja „Twój StartUp” · <Link to="/privacy" target="_blank" rel="noopener" style={{ color: T.brandInk || T.brand }}>{lang === 'pl' ? 'Polityka prywatności' : 'Privacy policy'}</Link>
+      </div>
+    </div>
+  )
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden',
@@ -403,6 +425,7 @@ export default function Signup() {
                   <p style={{ margin: 0, fontSize: 13, color: T.textDim, lineHeight: 1.5 }}>{C.dobWhy}</p>
                 </>
               )}
+              {marketingChoice}
               {errBox}
               <Btn variant="primary" size="lg" full type="submit" trailingIcon="arrow_forward" disabled={!googleStepReady}>
                 {busy ? C.busy : C.stepSubmit}
@@ -428,6 +451,7 @@ export default function Signup() {
             <p style={{ margin: '-4px 0 0', fontSize: 13, color: T.textDim, lineHeight: 1.5 }}>{C.dobWhy}</p>
             <SField label={C.phone} type="tel" value={form.phone} autoComplete="tel" inputMode="tel"
               onChange={set('phone')} />
+            {marketingChoice}
             {errBox}
             <Btn variant="primary" size="lg" full type="submit" trailingIcon="arrow_forward" disabled={!canSubmit}>
               {busy ? C.busy : C.submit}

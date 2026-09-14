@@ -135,9 +135,13 @@ type GoogleSignInResult =
       code?: string;
     };
 
+import { recordMarketingChoice } from './marketingConsent';
+
 export const googleSignIn = action({
   args: {
     idToken: v.string(),
+    consentMarketing: v.optional(v.boolean()),
+    marketingLocale: v.optional(v.union(v.literal('en'), v.literal('pl'))),
     dateOfBirth: v.optional(v.string()),
     // Typed by the student on the follow-up step; override whatever Google sent.
     firstName: v.optional(v.string()),
@@ -276,6 +280,8 @@ export const googleSignIn = action({
         email,
         name,
         dateOfBirth: args.dateOfBirth?.trim() || undefined,
+        consentMarketing: args.consentMarketing,
+        marketingLocale: args.marketingLocale,
       },
     );
     return {
@@ -287,7 +293,11 @@ export const googleSignIn = action({
 
 // Create a student account from a verified Google identity (signup path).
 export const createStudentFromGoogle = internalMutation({
-  args: { email: v.string(), name: v.string(), dateOfBirth: v.optional(v.string()) },
+  args: {
+    email: v.string(), name: v.string(), dateOfBirth: v.optional(v.string()),
+    consentMarketing: v.optional(v.boolean()),
+    marketingLocale: v.optional(v.union(v.literal('en'), v.literal('pl'))),
+  },
   handler: async (ctx, args) => {
     // Re-checked at the insert for the same reason as the password path: the
     // age rule must not rest on one caller having remembered to apply it.
@@ -320,6 +330,7 @@ export const createStudentFromGoogle = internalMutation({
       emailVerifiedAt: now,
       enrolledAt: now, createdAt: now, updatedAt: now,
     } as any);
+    if (args.consentMarketing !== undefined) await recordMarketingChoice(ctx, studentId, args.email, args.consentMarketing, 'signup_google', args.marketingLocale);
     const sessionToken = await createStudentSession(ctx, studentId);
     return { sessionToken,
       student: { _id: studentId, name: args.name, slug, email: args.email, level: "", organizationId: SIGNUP_ORG } };

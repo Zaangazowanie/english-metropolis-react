@@ -88,6 +88,7 @@ const Checkout = lazyRoute(() => import('./views/public/Checkout.jsx'))
 const PaymentReturn = lazyRoute(() => import('./views/public/PaymentReturn.jsx'))
 const WithdrawalPage = lazyRoute(() => import('./views/public/WithdrawalPage.jsx'))
 const Signup = lazyRoute(() => import('./views/v3/Signup.jsx'))
+const EmailPreferences = lazyRoute(() => import('./views/v3/EmailPreferences.jsx'))
 const Logout = lazyRoute(() => import('./views/Logout.jsx'))
 const Settings = lazyRoute(() => import('./views/Settings.jsx'))
 import { I18nProvider } from './i18n'
@@ -267,6 +268,7 @@ function RootRouter() {
       <Routes>
         {/* Legal pages — public, no auth, top-level */}
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/email-preferences" element={<EmailPreferences />} />
         <Route path="/cookies" element={<CookiePolicy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/lesson-analysis" element={<LessonAnalysisNotice />} />

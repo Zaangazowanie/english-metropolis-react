@@ -13,6 +13,7 @@ import {
 } from "./authHelpers";
 import { signupDobProblem, signupNameProblem, normaliseSignupName } from "./enrolmentRules";
 import { bajlaState } from "./students";
+import { recordMarketingChoice } from './marketingConsent';
 
 // ─────────────────────────────────────────────────────────────
 // studentLogin — public mutation (called from the Login page).
@@ -106,6 +107,8 @@ export const studentSignup = mutation({
     password: v.string(),
     phone: v.optional(v.string()),
     dateOfBirth: v.optional(v.string()),
+    consentMarketing: v.optional(v.boolean()),
+    marketingLocale: v.optional(v.union(v.literal('en'), v.literal('pl'))),
   },
   handler: async (ctx, args) => {
     const name = normaliseSignupName(args.name);
@@ -143,6 +146,7 @@ export const studentSignup = mutation({
       enrolledAt: now, createdAt: now, updatedAt: now,
     } as any);
 
+    if (args.consentMarketing !== undefined) await recordMarketingChoice(ctx, studentId, email, args.consentMarketing, 'signup_email', args.marketingLocale);
     const sessionToken = await createStudentSession(ctx, studentId);
     return {
       success: true, sessionToken,
@@ -164,6 +168,8 @@ export const signupInsert = internalMutation({
     passwordHash: v.string(),
     phone: v.optional(v.string()),
     dateOfBirth: v.optional(v.string()),
+    consentMarketing: v.optional(v.boolean()),
+    marketingLocale: v.optional(v.union(v.literal('en'), v.literal('pl'))),
   },
   handler: async (ctx, args) => {
     // Re-checked here, not only in the action that called it. This mutation is
@@ -202,6 +208,7 @@ export const signupInsert = internalMutation({
       enrolledAt: now, createdAt: now, updatedAt: now,
     } as any);
 
+    if (args.consentMarketing !== undefined) await recordMarketingChoice(ctx, studentId, email, args.consentMarketing, 'signup_email', args.marketingLocale);
     const sessionToken = await createStudentSession(ctx, studentId);
     return {
       success: true, sessionToken,
@@ -217,6 +224,8 @@ export const studentSignupAction = action({
     password: v.string(),
     phone: v.optional(v.string()),
     dateOfBirth: v.optional(v.string()),
+    consentMarketing: v.optional(v.boolean()),
+    marketingLocale: v.optional(v.union(v.literal('en'), v.literal('pl'))),
   },
   handler: async (ctx, args): Promise<any> => {
     const name = normaliseSignupName(args.name);
@@ -232,6 +241,8 @@ export const studentSignupAction = action({
     const result: any = await ctx.runMutation(internal.studentAuth.signupInsert, {
       name, email, passwordHash, phone: args.phone?.trim() || undefined,
       dateOfBirth: args.dateOfBirth?.trim() || undefined,
+      consentMarketing: args.consentMarketing,
+      marketingLocale: args.marketingLocale,
     });
     // Confirmation goes out the moment the account exists, so for a checkout
     // signup it is already waiting by the time they come back from Przelewy24.

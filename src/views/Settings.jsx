@@ -145,6 +145,7 @@ export default function Settings() {
       </Section>
 
       <Section title={t('settings.section.notifications')}>
+        <p><Link to="/email-preferences">{lang === 'pl' ? 'Oferty e-mail — zgoda i rezygnacja' : 'Email offers — subscribe or unsubscribe'}</Link></p>
         <Row label={t('settings.notifications.emailDigest')} hint={t('settings.notifications.comingSoon')}>
           <Toggle checked={notif.emailDigest} onChange={v => updateNotif({ emailDigest: v })} />
         </Row>

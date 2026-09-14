@@ -201,6 +201,30 @@ export default defineSchema({
   // STUDENTS
   // ═══════════════════════════════════════════════════════════
 
+  marketingPreferences: defineTable({
+    studentId: v.id('students'),
+    email: v.string(),
+    subscribed: v.boolean(),
+    updatedAt: v.number(),
+  }).index('by_email', ['email']),
+
+  marketingConsentEvents: defineTable({
+    preferenceId: v.id('marketingPreferences'),
+    studentId: v.id('students'),
+    subscribed: v.boolean(),
+    source: v.union(v.literal('signup_email'), v.literal('signup_google'), v.literal('account'), v.literal('unsubscribe_link')),
+    locale: v.optional(v.union(v.literal('en'), v.literal('pl'))),
+    noticeVersion: v.optional(v.string()),
+    noticeText: v.optional(v.string()),
+    at: v.number(),
+  }).index('by_preference', ['preferenceId']),
+
+  marketingUnsubscribeTokens: defineTable({
+    preferenceId: v.id('marketingPreferences'),
+    tokenHash: v.string(),
+    createdAt: v.number(),
+  }).index('by_hash', ['tokenHash']),
+
   students: defineTable({
     organizationId: v.optional(v.id("organizations")),
     name: v.string(),                    // "Szymon Karpiński"
