@@ -88,7 +88,7 @@ python3 - "$BUILD" "$BACKUP" <<'PY'
 from pathlib import Path
 import re,sys,subprocess,hashlib
 root,backup=map(Path,sys.argv[1:])
-urls=['/','/student-preview.html','/legal/legal.css?v=20260914-motion','/students/conversa-widget-v5.js?v=20260914-motion']
+urls=['/','/student-preview.html','/legal/legal.css?v=20260914-motion2','/students/conversa-widget-v5.js?v=20260914-motion2']
 urls += [f'/{page}/' for page in ('about','cookies','faq','kontakt','ochrona-dzieci','privacy','terms')]
 for entry in ('index.html','student-preview.html'):
     urls += re.findall(r'(?:src|href)="(/assets/[^"?]+)"',(root/entry).read_text())
