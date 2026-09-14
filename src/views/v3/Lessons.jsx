@@ -18,7 +18,7 @@ import {
 } from '../../components/analytics/AnalyticsPrimitives.jsx'
 import { FONT, G, EASE, CEFR_COLOR } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
-import { Sheet, useReveal } from '../../design/v3/motion/index.js'
+import { Sheet, Presence, Collapse, useReveal } from '../../design/v3/motion/index.js'
 import { Btn, Glass, Pill } from '../../design/v3/primitives.jsx'
 import { generateLessonPdf } from './lessons-pdf.js'
 import AnalysisUpgradeCTA from './AnalysisUpgradeCTA.jsx'
@@ -262,7 +262,7 @@ function KeywordCard({ keyword, onYouglish, forceExpanded = false }) {
       overflow: 'hidden',
       transition: `all 200ms ${EASE.springFast}`,
     }}>
-      <button type="button" onClick={() => setExpanded(!expanded)} style={headerBtn}>
+      <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} style={headerBtn}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
             <span style={{ fontFamily: FONT.display, fontSize: 19, fontWeight: 600,
@@ -309,7 +309,7 @@ function KeywordCard({ keyword, onYouglish, forceExpanded = false }) {
         </div>
       </button>
 
-      {expanded && (
+      <Collapse open={expanded}>
         <div style={{ padding: '0 16px 16px',
           borderTop: `1px solid ${T.borderSoft}`, paddingTop: 14,
           background: isDay ? 'rgba(248,245,255,0.4)' : 'rgba(255,255,255,0.01)',
@@ -402,7 +402,7 @@ function KeywordCard({ keyword, onYouglish, forceExpanded = false }) {
             </div>
           )}
         </div>
-      )}
+      </Collapse>
     </div>
   )
 }
@@ -1254,7 +1254,7 @@ export function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, 
       )}
       </>}
 
-      {(analysisOnly || analysisOpen) && (<>
+      <Collapse open={analysisOnly || analysisOpen} contentStyle={{ display: 'grid', gap: 22, minWidth: 0 }}>
       {/* Topics chips */}
       {lesson.topics?.length > 0 && (
         <div data-lesson-section="topics">
@@ -1580,7 +1580,7 @@ export function LessonDetail({ lesson, onYouglish, focusKeyword, cameFromVocab, 
         if (!recs) return null
         return <PersonalizedRecommendationsBlock recs={recs}/>
       })()}
-      </>)}
+      </Collapse>
     </div>
   )
 }
@@ -2260,7 +2260,7 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
       </div>
 
       {/* Modals */}
-      {selectedLesson && (
+      <Presence kind={isMobile ? 'drawer' : 'modal'}>{selectedLesson && (
         <LessonDetailModal
           lesson={selectedLesson}
           onClose={() => { setSelectedLesson(null); setFocusKeyword(null); setCameFromVocab(false) }}
@@ -2271,10 +2271,10 @@ export default function LessonsV3({ data, slug, basePath = '' }) {
           basePath={basePath}
           pdfUrl={(pdfMap[studentSlug || ''] || [])
             .find(pdf => pdf.date === selectedLesson.date)?.url}/>
-      )}
-      {youglishWord && (
+      )}</Presence>
+      <Presence>{youglishWord && (
         <YouGlishModal word={youglishWord} onClose={() => setYouglishWord(null)}/>
-      )}
+      )}</Presence>
     </div>
   )
 }

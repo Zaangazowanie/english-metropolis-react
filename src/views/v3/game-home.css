@@ -131,7 +131,7 @@
   from { opacity: 0; transform: translateY(22px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.gh-rise   { animation: gh-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.gh-rise   { animation: gh-rise var(--duration-very-slow) var(--ease-smooth-out) both; }
 .gh-rise-1 { animation-delay: 0.05s; }
 .gh-rise-2 { animation-delay: 0.14s; }
 .gh-rise-3 { animation-delay: 0.24s; }
@@ -289,7 +289,7 @@
   border-color: rgba(217, 70, 239, 0.45) !important;
   box-shadow: 0 18px 44px -18px var(--gh-card-glow, rgba(217,70,239,0.35));
 }
-.gh-card .gh-card-play { opacity: 0; transform: translateY(5px); transition: all 220ms ease; }
+.gh-card .gh-card-play { opacity: 0; transform: translateY(5px); transition: opacity var(--duration-fast) var(--ease-smooth-out), transform var(--duration-fast) var(--ease-smooth-out); }
 .gh-card:not(:disabled):hover .gh-card-play, .gh-card:disabled .gh-card-play { opacity: 1; transform: translateY(0); }
 .gh-card:disabled .gh-card-play { opacity: 0.7; }
 .gh-card .gh-card-play .material-symbols-outlined { transition: transform 200ms ease; }
@@ -332,7 +332,7 @@
 /* ── Services-first landing (2026-07-10) ─────────────────────────────── */
 /* Scroll reveal */
 .gh-sr { opacity: 0; transform: translateY(26px);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+  transition: opacity var(--duration-very-slow) var(--ease-in-out), transform var(--duration-very-slow) var(--ease-in-out); }
 .gh-sr.on, .gh-still .gh-sr { opacity: 1; transform: none; }
 
 /* The dot is semantic: this preview is playable, not a static screenshot. */
@@ -724,7 +724,7 @@
   border: 1px solid var(--gh-glass-border);
   border-radius: 999px;
   opacity: 0;
-  animation: gh-chip-in 700ms cubic-bezier(0.16, 1, 0.3, 1) var(--gh-chip-delay) both;
+  animation: gh-chip-in var(--duration-very-slow) var(--ease-smooth-out) var(--gh-chip-delay) both;
 }
 .gh-hero-stage-wrap {
   --motion-x: 50%;
@@ -781,7 +781,7 @@
   padding: 10px 18px;
   border-right: 1px solid var(--gh-border);
   text-align: center;
-  animation: gh-proof-in 700ms cubic-bezier(0.16, 1, 0.3, 1) var(--gh-proof-delay) both;
+  animation: gh-proof-in var(--duration-very-slow) var(--ease-smooth-out) var(--gh-proof-delay) both;
 }
 .gh-proof-item:last-child { border-right: 0; }
 .gh-proof-item strong {
@@ -1196,13 +1196,13 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transform: translateY(-10px) scale(0.98);
+    transform: scale(var(--dropdown-pre-scale));
     transform-origin: top center;
-    transition: opacity 220ms ease, transform 300ms cubic-bezier(0.16, 1, 0.3, 1), visibility 220ms;
+    transition: opacity var(--dropdown-close-dur) var(--dropdown-ease), transform var(--dropdown-close-dur) var(--dropdown-ease), visibility 0s linear var(--dropdown-close-dur);
   }
   .gh-night .gh-nav { background: rgba(8, 5, 18, 0.97); }
   .gh-day .gh-nav { background: rgba(255, 255, 255, 0.96); }
-  .gh-header > .gh-nav.is-open { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
+  .gh-header > .gh-nav.is-open { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition-duration: var(--dropdown-open-dur); transition-delay: 0s; }
   .gh-nav .gh-action { width: 100%; }
   .gh-nav .gh-lang { justify-self: stretch; justify-content: center; min-height: 44px; }
   .gh-nav .gh-theme-btn { width: 100%; height: 44px; }

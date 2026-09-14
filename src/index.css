@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./design/v3/motion/motion.css";
 
 /* Mobile: remove the ~300ms double-tap-zoom delay on interactive controls.
    (index.html already sets tap-highlight/overflow-scrolling/safe-area; this is

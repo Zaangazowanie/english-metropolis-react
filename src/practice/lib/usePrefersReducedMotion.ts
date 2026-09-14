@@ -14,28 +14,8 @@
 //     const id = requestAnimationFrame(tick);
 //     return () => cancelAnimationFrame(id);
 //   }, [reduce]);
-import { useEffect, useState } from 'react';
-
+// The same live preference now drives marketing, app motion and game UI.
+import { useReducedMotion } from '../../design/v3/motion/useReducedMotion.js';
 export function usePrefersReducedMotion(): boolean {
-  const [reduce, setReduce] = useState<boolean>(() =>
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  );
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const handler = (e: MediaQueryListEvent): void => setReduce(e.matches);
-    // Safari < 14 only supports the legacy addListener API.
-    if (typeof mq.addEventListener === 'function') {
-      mq.addEventListener('change', handler);
-      return () => mq.removeEventListener('change', handler);
-    } else {
-      // @ts-expect-error legacy addListener fallback
-      mq.addListener(handler);
-      // @ts-expect-error legacy removeListener fallback
-      return () => mq.removeListener(handler);
-    }
-  }, []);
-  return reduce;
+  return useReducedMotion();
 }

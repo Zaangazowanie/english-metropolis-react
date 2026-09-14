@@ -53,8 +53,8 @@
 .gh-course-controls button:hover::after { opacity: 1; }
 .gh-courses :focus-visible { outline: 3px solid var(--course-accent); outline-offset: 4px; }
 @media (prefers-reduced-motion: no-preference) {
-  .gh-course-panel.is-active { animation: course-appear 320ms ease-out; }
-  @keyframes course-appear { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: none; } }
+  .gh-course-panel.is-active { animation: course-appear var(--duration-fast) var(--ease-smooth-out); }
+  @keyframes course-appear { from { opacity: 0; transform: translateX(var(--distance-base)); filter: blur(var(--blur-medium)); } to { opacity: 1; transform: none; filter: none; } }
 }
 @media (max-width: 900px) {
   .gh-courses-heading { grid-template-columns: 1fr; gap: 18px; }

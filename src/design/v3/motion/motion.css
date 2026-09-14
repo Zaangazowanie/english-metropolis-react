@@ -1,20 +1,24 @@
+@import "./transitions-tokens.css";
+@import "./transitions-recipes.css";
+@import "./surface-motion.css";
+
 /* English Metro v3 motion kit — shared keyframes, reveal/stagger, page enter,
    sliding tab ink, sheets, focus rings. Transform + opacity only. Every rule
    collapses to an opacity-only or instant equivalent under reduced motion
    (OS setting or the in-app Settings → Animations choice on <html data-motion>). */
 
 :root {
-  --em-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --em-ease-out: var(--ease-smooth-out);
   --em-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --em-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --em-ease-drawer: var(--ease-smooth-out);
   --em-ease-inout: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 /* ---- Staggered reveal (useReveal) ---- */
 .em-reveal-item {
   opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 360ms var(--em-ease-out), transform 460ms var(--em-ease-out);
+  transform: translateY(var(--distance-medium));
+  transition: opacity var(--duration-very-slow) var(--ease-in-out), transform var(--duration-very-slow) var(--ease-in-out);
   transition-delay: var(--em-reveal-delay, 0ms);
 }
 .em-reveal-in .em-reveal-item {
@@ -24,10 +28,10 @@
 
 /* ---- Route / tab page enter (PageTransition) ---- */
 @keyframes emPageIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translateY(var(--distance-base)); filter: blur(var(--blur-medium)); }
+  to   { opacity: 1; transform: none; filter: none; }
 }
-.em-page-enter { animation: emPageIn 300ms var(--em-ease-out) both; }
+.em-page-enter { animation: emPageIn var(--duration-fast) var(--ease-smooth-out); }
 /* Once the entrance has played the wrapper must stop being a containing
    block for position:fixed descendants (modals), so the animation clears
    its own transform via `both` + `none` end state; nothing else needed. */
@@ -38,7 +42,7 @@
   inset: 0;
   pointer-events: none;
   border-radius: 999px;
-  transition: clip-path 340ms var(--em-ease-out), opacity 200ms ease;
+  transition: clip-path var(--tabs-dur) var(--tabs-ease), opacity var(--duration-quick) var(--ease-out);
 }
 .em-tab-ink[data-ready="0"] { transition: none; }
 
@@ -46,23 +50,27 @@
 @keyframes emSheetBackdropIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes emSheetIn {
   from { opacity: 0; transform: translateY(14px) scale(0.965); }
-  to   { opacity: 1; transform: none; }
+  to   { opacity: 1; transform: none; filter: none; }
 }
 @keyframes emDrawerIn {
   from { transform: translateY(100%); }
   to   { transform: none; }
 }
-.em-sheet-backdrop { animation: emSheetBackdropIn 220ms ease both; }
-.em-sheet-panel { animation: emSheetIn 340ms var(--em-ease-out) both; }
-.em-sheet-panel[data-side="bottom"] { animation: emDrawerIn 380ms var(--em-ease-drawer) both; }
+.em-sheet-backdrop { opacity: 0; transition: opacity var(--modal-open-dur) var(--modal-ease); }
+[data-motion-state="open"] > .em-sheet-backdrop { opacity: 1; }
+[data-motion-state="closing"] > .em-sheet-backdrop { transition-duration: var(--modal-close-dur); }
+.em-sheet-panel.is-open { transform: none; }
+.em-motion-drawer { opacity: 0; transform: translateY(100%); transition: transform var(--panel-open-dur) var(--panel-ease), opacity var(--panel-open-dur) var(--panel-ease); }
+.em-motion-drawer.is-open { opacity: 1; transform: none; }
+.em-motion-drawer.is-closing { opacity: 0; transform: translateY(100%); transition-duration: var(--panel-close-dur); }
 
 /* ---- Skeleton -> content crossfade ---- */
-@keyframes emContentIn { from { opacity: 0; } to { opacity: 1; } }
-.em-content-in { animation: emContentIn 260ms ease both; }
+@keyframes emContentIn { from { opacity: 0; filter: blur(var(--reveal-blur)); } to { opacity: 1; filter: none; } }
+.em-content-in { animation: emContentIn var(--reveal-dur) var(--reveal-ease); }
 
 /* ---- Pressables (Btn, PressScale) ---- */
 .em-press {
-  transition: transform 220ms var(--em-ease-out), box-shadow 220ms var(--em-ease-out),
+  transition: transform var(--duration-fast) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out),
     background-color 180ms ease, color 180ms ease, border-color 180ms ease, opacity 180ms ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -108,6 +116,6 @@ html[data-motion="reduced"] .em-sheet-panel,
 html[data-motion="none"] .em-sheet-panel { animation: none; }
 
 /* ---- Popovers (avatar menu): scale from the trigger corner ---- */
-.em-pop { animation: emSheetIn 220ms var(--em-ease-out) both; transform-origin: top right; }
+.em-pop { transform-origin: top right; }
 @media (prefers-reduced-motion: reduce) { .em-pop { animation: emContentIn 120ms ease both; } }
 html[data-motion="reduced"] .em-pop, html[data-motion="none"] .em-pop { animation: none; }

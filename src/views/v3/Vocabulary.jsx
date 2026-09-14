@@ -1,10 +1,11 @@
+import { createPortal } from 'react-dom'
 import { pronunciationSource } from '../../components/media/pronunciation.mjs'
 import { PREPARED_KEYWORDS } from '../../components/media/prepared-keywords.mjs'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { FONT, G, EASE, CEFR_COLOR } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Glass, Pill } from '../../design/v3/primitives.jsx'
-import { ProgressBar, useReveal } from '../../design/v3/motion/index.js'
+import { ProgressBar, Presence, usePresence, usePresenceContext, useDismiss, useReveal } from '../../design/v3/motion/index.js'
 import { ThreeSlot } from '../../design/v3/three/ThreeSlot.jsx'
 import { useI18n } from '../../i18n'
 import { fetchWithTimeout } from '../../practice/lib/practice-cache'
@@ -215,6 +216,11 @@ export function YouGlishModal({ word, onClose, inline = false, autoPlay = true }
   const [videoIdx, setVideoIdx] = useState(0)
   const [occIdx, setOccIdx] = useState(0)
   const [playRequested, setPlayRequested] = useState(autoPlay)
+  const panelRef = useRef(null)
+  const inheritedMotion = usePresenceContext()
+  const localMotion = usePresence(true)
+  const motion = inheritedMotion || localMotion
+  useDismiss(onClose, panelRef, !inline && !motion.inert)
   const [clock, setClock] = useState({ time: null, cues: [] })
 
   useEffect(() => {
@@ -229,12 +235,6 @@ export function YouGlishModal({ word, onClose, inline = false, autoPlay = true }
     return () => { cancelled = true }
   }, [word, autoPlay])
 
-  useEffect(() => {
-    if (inline) return
-    function onKey(e) { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, inline])
 
   if (!word) return null
   const videos = state.data?.videos || []
@@ -244,8 +244,8 @@ export function YouGlishModal({ word, onClose, inline = false, autoPlay = true }
   const canPrev = !(videoIdx === 0 && occIdx === 0)
   const canNext = !(videoIdx === videos.length - 1 && occIdx === (video?.occurrences?.length || 1) - 1)
 
-  const overlayStyle = { position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(5,3,12,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'v3VocabFadeIn 220ms ease' }
-  const dialogStyle = { width: 'min(860px, 100%)', maxHeight: '92vh', overflow: 'auto', background: 'linear-gradient(180deg, rgba(20,12,50,0.98), rgba(11,7,28,0.98))', border: `1px solid ${T.borderHi}`, borderRadius: 24, boxShadow: '0 40px 100px -20px rgba(0,0,0,0.8)', animation: 'v3VocabModalPop 320ms cubic-bezier(0.34, 1.56, 0.64, 1)' }
+  const overlayStyle = { position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(5,3,12,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }
+  const dialogStyle = { width: 'min(860px, 100%)', maxHeight: '92vh', overflow: 'auto', background: 'linear-gradient(180deg, rgba(20,12,50,0.98), rgba(11,7,28,0.98))', border: `1px solid ${T.borderHi}`, borderRadius: 24, boxShadow: '0 40px 100px -20px rgba(0,0,0,0.8)' }
   const headerStyle = { padding: '18px 22px', background: G.brand, borderRadius: '24px 24px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }
   const iconBoxStyle = { width: 38, height: 38, borderRadius: 12, background: 'rgba(255,255,255,0.2)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
   const closeBtnStyle = { background: 'rgba(255,255,255,0.2)', border: 'none', width: 38, height: 38, borderRadius: '50%', cursor: 'pointer', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
@@ -253,10 +253,10 @@ export function YouGlishModal({ word, onClose, inline = false, autoPlay = true }
   const quoteStyle = { padding: 14, background: T.bg2, borderRadius: 12, border: `1px solid ${T.border}`, fontSize: 15, color: T.text, lineHeight: 1.6, fontStyle: 'italic', marginBottom: 14, textAlign: 'center' }
   const activeCaption = captionAt(clock.cues, clock.time)
 
-  return (
-    <div role={inline ? 'region' : 'dialog'} aria-modal={inline ? undefined : true} aria-label={inline ? `YouTube · ${word}` : undefined}
-      className={inline ? 'em-inline-youglish' : undefined} onClick={inline ? undefined : onClose} style={inline ? undefined : overlayStyle}>
-      <div onClick={(e) => e.stopPropagation()} style={inline ? undefined : dialogStyle}>
+  const content = (
+    <div role={inline ? 'region' : 'dialog'} aria-modal={inline ? undefined : true} aria-label={`YouTube · ${word}`}
+      className={inline ? 'em-inline-youglish' : 'em-motion-overlay'} data-motion-state={inline ? undefined : motion.phase} inert={!inline && motion.inert} onClick={inline || motion.inert ? undefined : onClose} style={inline ? undefined : overlayStyle}>
+      <div ref={panelRef} tabIndex={inline ? undefined : -1} className={inline ? undefined : `t-modal ${motion.className}`} onClick={(e) => e.stopPropagation()} style={inline ? undefined : dialogStyle}>
         {!inline && <div style={headerStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={iconBoxStyle}><span className="material-symbols-outlined" style={{ color: '#fff' }}>record_voice_over</span></div>
@@ -342,6 +342,7 @@ export function YouGlishModal({ word, onClose, inline = false, autoPlay = true }
       </div>
     </div>
   )
+  return inline ? content : createPortal(content, document.body)
 }
 
 /* ============================================================================
@@ -916,7 +917,7 @@ export default function VocabularyV3({ data, slug, basePath = '' }) {
         </div>
       </div>
 
-      {youglishWord && <YouGlishModal word={youglishWord} onClose={() => setYouglishWord(null)} />}
+      <Presence>{youglishWord && <YouGlishModal word={youglishWord} onClose={() => setYouglishWord(null)} />}</Presence>
     </div>
   )
 }

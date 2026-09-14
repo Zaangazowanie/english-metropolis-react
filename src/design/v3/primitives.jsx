@@ -47,7 +47,7 @@ export function Glass({ children, style = {}, hover = false, padding = 24, glow 
         border: `1px solid ${hov ? T.borderHi : T.border}`,
         borderRadius: 20,
         padding,
-        transition: `background 280ms ${EASE.springFast}, border-color 280ms ${EASE.springFast}, box-shadow 280ms ${EASE.springFast}, transform 320ms ${EASE.springFast}`,
+        transition: `background 280ms ${EASE.springFast}, border-color 280ms ${EASE.springFast}, box-shadow 280ms ${EASE.springFast}, transform var(--duration-fast) var(--ease-smooth-out)`,
         boxShadow: hov ? T.shadow : T.shadowSm,
         // Lift only while hovered: a resting card has no transform, so it is
         // never a containing block for position:fixed children (modals).
@@ -160,7 +160,7 @@ export function Field({ label, value, onChange, type = 'text', placeholder, icon
         borderRadius: 999, padding: '2px 4px 2px 18px',
         display: 'flex', alignItems: 'center', gap: 8,
         boxShadow: focus ? '0 0 0 3px rgba(217,70,239,0.15)' : 'none',
-        transition: `all 200ms ${EASE.springFast}` }}>
+        transition: 'border-color var(--duration-quick) var(--ease-out), background-color var(--duration-quick) var(--ease-out), box-shadow var(--duration-quick) var(--ease-out)' }}>
         {icon && <span className="material-symbols-outlined" style={{ fontSize: 18, color: T.textDim }}>{icon}</span>}
         <input type={type} value={value} onChange={e => onChange && onChange(e.target.value)}
           className="v3-field-input"

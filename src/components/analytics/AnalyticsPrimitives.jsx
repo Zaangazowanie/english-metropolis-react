@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
+import { Presence, Sheet } from '../../design/v3/motion/index.js'
+import { useState, useMemo } from 'react'
 
 /* ============================================================================
    Shared analytics primitives — used by both admin and student panels
@@ -431,16 +432,13 @@ export function MetricRadarChart({ scores, size = 280, onMetricClick = null, lab
    ============================================================================ */
 
 export function Modal({ open, onClose, title, children, widthClass = 'max-w-4xl' }) {
-  useEffect(() => {
-    function onKey(e) { if (e.key === 'Escape') onClose() }
-    if (open) window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-  if (!open) return null
+  return <Presence>{open && <AnalyticsModal onClose={onClose} title={title} widthClass={widthClass}>{children}</AnalyticsModal>}</Presence>
+}
+
+function AnalyticsModal({ onClose, title, children, widthClass }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative w-full ${widthClass} max-h-[90vh] overflow-hidden rounded-[2rem] border border-white/60 bg-white shadow-2xl`}>
+    <Sheet onClose={onClose} label={title} padding={16}
+      panelClassName={`relative w-full ${widthClass} max-h-[90vh] overflow-hidden rounded-[2rem] border border-white/60 bg-white shadow-2xl`}>
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
           <h3 className="font-headline text-xl text-slate-900">{title}</h3>
           <button
@@ -455,8 +453,7 @@ export function Modal({ open, onClose, title, children, widthClass = 'max-w-4xl'
         <div className="px-6 py-5 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 80px)' }}>
           {children}
         </div>
-      </div>
-    </div>
+    </Sheet>
   )
 }
 

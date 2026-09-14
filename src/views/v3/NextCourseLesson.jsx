@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Glass, Pill } from '../../design/v3/primitives.jsx'
+import { Collapse, usePresence } from '../../design/v3/motion/index.js'
 import { FONT } from '../../design/v3/tokens.js'
 import { useI18n } from '../../i18n'
 import { getStudentSessionToken } from '../../lib/student-session.js'
@@ -18,6 +19,8 @@ export default function NextCourseLesson({ data }) {
   const preview = data?.coursePreview
   const [expanded, setExpanded] = useState(false)
   const [pdf, setPdf] = useState(null)
+  const [pdfClosing, setPdfClosing] = useState(false)
+  const pdfMotion = usePresence(Boolean(pdf) && !pdfClosing)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
   const request = useRef(0)
@@ -41,6 +44,14 @@ export default function NextCourseLesson({ data }) {
     return () => URL.revokeObjectURL(pdf)
   }, [pdf])
 
+  useEffect(() => {
+    if (pdfClosing && !pdfMotion.mounted) {
+      setPdf(null)
+      setPdfClosing(false)
+      pdfButton.current?.focus({ preventScroll: true })
+    }
+  }, [pdfClosing, pdfMotion.mounted])
+
   async function openPdf() {
     const version = ++request.current
     setBusy(true)
@@ -51,7 +62,7 @@ export default function NextCourseLesson({ data }) {
       })
       if (!response.ok || !response.headers.get('content-type')?.includes('application/pdf')) throw new Error('PDF unavailable')
       const blob = await response.blob()
-      if (version === request.current) setPdf(URL.createObjectURL(blob))
+      if (version === request.current) { setPdfClosing(false); setPdf(URL.createObjectURL(blob)) }
     } catch {
       if (version === request.current) setError(true)
     } finally {
@@ -60,9 +71,7 @@ export default function NextCourseLesson({ data }) {
   }
 
   function closePdf() {
-    dialog.current?.close()
-    setPdf(null)
-    pdfButton.current?.focus()
+    setPdfClosing(true)
   }
 
   if (!preview && !data?.coursePreviewError) return null
@@ -102,7 +111,7 @@ export default function NextCourseLesson({ data }) {
           {preview.keywords.slice(0, 5).map((k, i) => <span key={i}>{k.word}</span>)}
           {preview.keywords.length > 5 && <span>+{preview.keywords.length - 5}</span>}
         </div>}
-        {expanded && <div id={keywordId} className="em-next-course-words">
+        <Collapse open={expanded} id={keywordId}><div className="em-next-course-words">
           <h3>{t('coursePreview.wordHeading')}</h3>
           {preview.keywords.length ? <div className="em-next-course-grid">
             {preview.keywords.map((k, i) => <article key={i}>
@@ -111,10 +120,10 @@ export default function NextCourseLesson({ data }) {
               {k.example && <p lang="en" className="em-next-course-example">{k.example}</p>}
             </article>)}
           </div> : <p>{t('coursePreview.wordsPending')}</p>}
-        </div>}
+        </div></Collapse>
       </>}
     </Glass>
-    {pdf && preview && createPortal(<dialog ref={dialog} className="em-next-course-dialog" style={variables}
+    {pdfMotion.mounted && pdf && preview && createPortal(<dialog ref={dialog} className={`em-next-course-dialog t-modal ${pdfMotion.className}`} style={variables} inert={pdfMotion.inert}
       aria-labelledby={titleId} onCancel={event => { event.preventDefault(); closePdf() }}>
       <div className="em-next-course-pdfbar">
         <h2 id={titleId}>{preview.title}</h2>

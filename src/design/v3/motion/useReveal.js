@@ -9,7 +9,7 @@ import { useReducedMotion } from './useReducedMotion.js'
 // waits more than ~320ms. Reduced motion: everything is visible at once.
 // The container becomes visible immediately when IntersectionObserver is
 // missing, so content can never be stranded invisible.
-export function useReveal({ stagger = 40, cap = 8, rootMargin = '0px 0px -8% 0px' } = {}) {
+export function useReveal({ stagger = 40, cap = 7, rootMargin = '0px 0px -8% 0px' } = {}) {
   // Callback ref: the container often mounts AFTER the hook (a skeleton is
   // shown first), so observing must start when the node attaches, not on the
   // hook's first effect.
@@ -38,7 +38,7 @@ export function useReveal({ stagger = 40, cap = 8, rootMargin = '0px 0px -8% 0px
     container: { ref, className: inView ? 'em-reveal em-reveal-in' : 'em-reveal' },
     item: (i = 0, extraStyle) => ({
       className: 'em-reveal-item',
-      style: { '--em-reveal-delay': `${Math.min(i, cap) * stagger}ms`, ...(extraStyle || {}) },
+      style: { '--em-reveal-delay': `${Math.min(Math.max(0, i), cap, Math.floor(280 / Math.max(1, stagger))) * stagger}ms`, ...(extraStyle || {}) },
     }),
   }
 }

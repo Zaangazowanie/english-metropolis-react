@@ -1,5 +1,6 @@
 import { warmDemoPronunciations } from '../../components/media/pronunciation.mjs'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Presence } from '../../design/v3/motion/index.js'
 import { Flashcard, InjectVocabStyle, YouGlishModal } from './Vocabulary.jsx'
 import KeywordPronunciationButton from '../../components/media/KeywordPronunciationButton.jsx'
 import { studentDemoData } from '../../previews/student-demo-data.mjs'
@@ -73,6 +74,6 @@ export default function WordPreviewShowcase({ lang }) {
         </div>
       </div>
     </div>
-    {modalWord && <YouGlishModal word={modalWord} onClose={() => setModalWord(null)}/>}
+    <Presence>{modalWord && <YouGlishModal word={modalWord} onClose={() => setModalWord(null)}/>}</Presence>
   </section>
 }

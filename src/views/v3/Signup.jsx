@@ -79,9 +79,9 @@ const SIGNUP_COPY = {
 const MOTION_CSS = `
 @keyframes emSignupRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes emSignupErrIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-.em-signup-card { animation: emSignupRise 560ms ${EASE.editorial} both; }
-.em-signup-step { animation: emSignupRise 420ms ${EASE.editorial} both; }
-.em-signup-err { animation: emSignupErrIn 260ms ${EASE.gentle} both; }
+.em-signup-card { animation: emSignupRise var(--duration-very-slow) var(--ease-smooth-out) both; }
+.em-signup-step { animation: emSignupRise var(--duration-fast) var(--ease-smooth-out) both; }
+.em-signup-err { animation: emSignupErrIn var(--duration-quick) var(--ease-out) both; }
 .em-signup-input::placeholder { color: inherit; opacity: 0.45; }
 @media (prefers-reduced-motion: reduce) {
   .em-signup-card, .em-signup-step, .em-signup-err { animation: none; }

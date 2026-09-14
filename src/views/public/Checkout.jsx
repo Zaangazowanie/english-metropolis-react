@@ -720,7 +720,7 @@ export default function Checkout() {
                       {t('Invoice details (optional)', 'Dane do faktury (opcjonalnie)')}
                     </button>
                   </legend>
-                  <div className="co-collapse" data-open={invoiceOpen}>
+                  <div className="co-collapse" data-open={invoiceOpen} inert={!invoiceOpen}>
                     <div className="co-collapse-inner">
                       <p className="co-consent-hint">
                         {t(

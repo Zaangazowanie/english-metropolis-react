@@ -1,3 +1,4 @@
+import { MotionDropdown } from '../design/v3/motion/index.js'
 import { useState, useEffect, useRef } from 'react'
 import { useV3Theme } from '../design/v3/ThemeProvider.jsx'
 import { useI18n } from '../i18n'
@@ -179,8 +180,7 @@ export default function VoiceSelector() {
         <span className={`material-symbols-outlined text-[18px] transition-transform ${open ? 'rotate-180' : ''} ${isDay ? 'text-slate-400' : 'text-slate-400'}`}>expand_more</span>
       </button>
 
-      {open && (
-        <div className="absolute right-0 mt-2 w-[min(360px,calc(100vw-32px))] rounded-[1.5rem] border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.2)] overflow-hidden z-50 animate-[voicePopIn_.28s_cubic-bezier(.34,1.56,.64,1)]">
+      <MotionDropdown open={open} className="absolute right-0 mt-2 w-[min(360px,calc(100vw-32px))] rounded-[1.5rem] border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.2)] overflow-hidden z-50">
           <div className="px-4 pt-3 pb-2 border-b border-slate-100 bg-gradient-to-r from-violet-50 to-rose-50">
             <div className="flex items-center justify-between gap-2">
               <p className="font-label text-[10px] font-bold uppercase tracking-[0.18em] text-violet-700">🌍 {t('voice.kicker')}</p>
@@ -252,8 +252,7 @@ export default function VoiceSelector() {
               <div className="px-4 py-8 text-center text-slate-400 text-xs">{t('voice.noMatch', { query })}</div>
             )}
           </div>
-        </div>
-      )}
+        </MotionDropdown>
     </div>
   )
 }

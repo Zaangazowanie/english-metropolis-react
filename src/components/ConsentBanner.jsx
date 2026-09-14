@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { usePresence, Collapse } from '../design/v3/motion/index.js'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
 
@@ -68,11 +69,13 @@ export default function ConsentBanner() {
     return () => { delete window.__EM_OPEN_CONSENT }
   }, [])
 
+  const motion = usePresence(state.loaded && state.visible, 'drawer')
+
   // 2026-09-03: never inside the operator consoles. A person signed in to
   // /admin or /teacher is staff on a work screen, not a visitor; the cookie
   // notice there was covering the Bajla reply box and the publishing buttons.
   if (typeof window !== 'undefined' && /^\/(admin|teacher)(\/|$)/.test(window.location.pathname)) return null
-  if (!state.loaded || !state.visible) return null
+  if (!motion.mounted) return null
 
   function acceptAll() {
     setConsent({ necessary: true, functional: true, analytics: true, marketing: true })
@@ -90,8 +93,8 @@ export default function ConsentBanner() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[10000] p-3 sm:p-5 pointer-events-none">
-      <div className="max-w-5xl mx-auto rounded-[16px] border border-slate-900/10 bg-white/98 backdrop-blur-xl shadow-[0_-6px_28px_rgba(15,23,42,0.12)] p-5 sm:p-6 pointer-events-auto consent-banner-enter">
+    <div inert={motion.inert} className="fixed bottom-0 left-0 right-0 z-[10000] p-3 sm:p-5 pointer-events-none">
+      <div data-motion-state={motion.phase} className="em-motion-banner max-w-5xl mx-auto rounded-[16px] border border-slate-900/10 bg-white/98 backdrop-blur-xl shadow-[0_-6px_28px_rgba(15,23,42,0.12)] p-5 sm:p-6 pointer-events-auto">
         <div className="flex items-start gap-3 sm:gap-4">
           <div className="shrink-0 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-[10px] bg-[#4333C6] shadow-sm">
             <span className="material-symbols-outlined text-white text-xl sm:text-2xl">cookie</span>
@@ -104,7 +107,7 @@ export default function ConsentBanner() {
               {t('consent.blurb')} <Link to="/privacy" className="text-[#4333C6] font-semibold underline underline-offset-2 font-label">{t('consent.privacyLink')}</Link> · <Link to="/cookies" className="text-[#4333C6] font-semibold underline underline-offset-2 font-label">{t('consent.cookieLink')}</Link>
             </p>
 
-            {state.expanded && (
+            <Collapse open={state.expanded}>
               <div className="mt-4 space-y-2">
                 {[
                   { key: 'necessary', label: t('consent.cat.necessary.label'), desc: t('consent.cat.necessary.desc'), disabled: true },
@@ -130,7 +133,7 @@ export default function ConsentBanner() {
                   </label>
                 ))}
               </div>
-            )}
+            </Collapse>
 
             <div className="mt-4 flex items-center gap-2 flex-wrap">
               <button

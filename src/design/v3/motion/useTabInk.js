@@ -16,16 +16,26 @@ export function useTabInk(navRef, activeKey) {
   useEffect(() => {
     const nav = navRef.current
     if (!nav) return
+    let cancelled = false
+    let firstResize = true
     const measure = () => {
       const btn = nav.querySelector(`[data-tab="${activeKey}"]`)
       if (!btn) { setRect(null); return }
       setRect({ left: btn.offsetLeft, width: btn.offsetWidth, total: nav.scrollWidth || nav.clientWidth })
     }
     measure()
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
+    const snap = () => {
+      if (cancelled) return
+      setReady(false)
+      measure()
+    }
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => {
+      if (firstResize) { firstResize = false; return }
+      snap()
+    }) : null
     ro?.observe(nav)
-    document.fonts?.ready?.then(measure).catch(() => {})
-    return () => ro?.disconnect()
+    if (document.fonts?.status === 'loading') document.fonts.ready.then(snap).catch(() => {})
+    return () => { cancelled = true; ro?.disconnect() }
   }, [navRef, activeKey])
 
   useEffect(() => {

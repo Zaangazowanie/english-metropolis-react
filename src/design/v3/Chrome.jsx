@@ -4,14 +4,14 @@ import { useStudentAuth } from '../../contexts/StudentAuthContext.jsx'
 import { EASE, FONT, G } from './tokens.js'
 import { useV3Theme } from './ThemeProvider.jsx'
 import { Avatar, Glass, Skyline } from './primitives.jsx'
-import { PageTransition, TabInk } from './motion/index.js'
+import { PageTransition, TabInk, MotionDropdown } from './motion/index.js'
 import VoiceSelector from '../../components/VoiceSelector.jsx'
 import { useI18n } from '../../i18n'
 
 // EN/PL pill toggle — restored to v3 chrome topbar (was lost in the v3 redesign).
 // Reads + writes through the existing useI18n() context, so the en/pl JSON
 // dictionaries (~500 keys) plug in immediately. Storage key: em.lang.
-function V3LanguageToggle({ T, EASE }) {
+function V3LanguageToggle({ T }) {
   const { lang, setLang, supported, t, englishLevel, setEnglishLevel } = useI18n()
   return (
     <div style={{ display: 'inline-flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
@@ -23,7 +23,7 @@ function V3LanguageToggle({ T, EASE }) {
           borderRadius: 999,
           padding: 2,
           height: 38,
-          transition: `all 180ms ${EASE.springFast}`,
+          transition: 'background-color var(--duration-quick) var(--ease-out), border-color var(--duration-quick) var(--ease-out), color var(--duration-quick) var(--ease-out), transform var(--duration-fast) var(--ease-smooth-out)',
         }}>
         {supported.map((code) => {
           const active = lang === code
@@ -52,7 +52,7 @@ function V3LanguageToggle({ T, EASE }) {
                 fontSize: 13,
                 fontWeight: 700,
                 letterSpacing: '0.08em',
-                transition: `all 160ms ${EASE.springFast}`,
+                transition: 'background-color var(--duration-quick) var(--ease-out), border-color var(--duration-quick) var(--ease-out), color var(--duration-quick) var(--ease-out), transform var(--duration-fast) var(--ease-smooth-out)',
               }}
               className="em-press em-focus">
               {code.toUpperCase()}
@@ -90,7 +90,7 @@ function V3LanguageToggle({ T, EASE }) {
             fontWeight: 700,
             letterSpacing: '0.04em',
             display: 'inline-flex', alignItems: 'center', gap: 4,
-            transition: `all 160ms ${EASE.springFast}`,
+            transition: 'background-color var(--duration-quick) var(--ease-out), border-color var(--duration-quick) var(--ease-out), color var(--duration-quick) var(--ease-out), transform var(--duration-fast) var(--ease-smooth-out)',
           }}
           className="em-press em-focus">
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
@@ -236,7 +236,7 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
         )}
 
         {/* Language toggle — EN / PL pair, surface on the topbar next to theme. */}
-        <V3LanguageToggle T={T} EASE={EASE}/>
+        <V3LanguageToggle T={T}/>
 
         {/* Theme toggle — surface on the topbar (was buried in avatar dropdown). */}
         <button
@@ -254,7 +254,7 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
             color: T.textSoft,
             cursor: 'pointer',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            transition: `all 180ms ${EASE.springFast}`,
+            transition: 'background-color var(--duration-quick) var(--ease-out), border-color var(--duration-quick) var(--ease-out), color var(--duration-quick) var(--ease-out), transform var(--duration-fast) var(--ease-smooth-out)',
           }}>
           <span key={mode} className="material-symbols-outlined em-content-in" style={{
             fontSize: 20,
@@ -273,11 +273,9 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
 
         <div style={{ position: 'relative', flexShrink: 0 }} ref={menuRef} data-em-touch-target="avatar-wrap">
           <Avatar initials={initials} size={36} onClick={() => setMenuOpen(o => !o)}/>
-          {menuOpen && (
-            // Narrow-viewport (<=480px): pin the popover to the viewport's right
-            // edge with an 8px margin so it never bleeds past the screen.
-            // Wider: anchor to the avatar's right (parent-relative) as before.
-            <div className="em-pop" role="menu" style={isNarrow
+          {/* Narrow-viewport (<=480px): pin the popover to the viewport's right
+            edge with an 8px margin so it never bleeds past the screen. */}
+            <MotionDropdown open={menuOpen} className="em-pop" role="menu" style={isNarrow
               ? { position: 'fixed', right: 8, top: 60, left: 'auto',
                   maxWidth: 'calc(100vw - 16px)', minWidth: 240,
                   background: isDay ? '#FFFFFF' : 'rgba(17,9,42,0.96)',
@@ -305,7 +303,7 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
                       textTransform: 'capitalize', fontWeight: 600,
                       background: mode === m ? G.brand : T.surface,
                       color: mode === m ? '#fff' : T.textSoft,
-                      transition: `all 160ms ${EASE.springFast}` }}>
+                      transition: 'background-color var(--duration-quick) var(--ease-out), border-color var(--duration-quick) var(--ease-out), color var(--duration-quick) var(--ease-out), transform var(--duration-fast) var(--ease-smooth-out)' }}>
                     {m === 'night' ? t('chrome.theme.nightShort') : t('chrome.theme.dayShort')}
                   </button>
                 ))}
@@ -336,8 +334,7 @@ function TopBar({ slug, basePath = '', firstName = 'Student' }) {
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>logout</span>
                   {isAdminStudentView ? 'End student view' : t('chrome.menu.logout')}
               </button>
-            </div>
-          )}
+            </MotionDropdown>
         </div>
       </div>
     </div>
@@ -383,7 +380,7 @@ function MobileTabBar({ slug, basePath = '' }) {
         <span aria-hidden style={{ position: 'absolute', top: 0, left: 0,
           width: `${100 / MOBILE_TABS.length}%`, height: 3, pointerEvents: 'none',
           transform: `translateX(${Math.max(0, MOBILE_TABS.findIndex(tab => tab.k === currentTab)) * 100}%)`,
-          transition: `transform 320ms ${EASE.springFast}`,
+          transition: 'transform var(--tabs-dur) var(--tabs-ease)',
           display: 'flex', justifyContent: 'center' }}>
           <span style={{ width: 24, height: 3, borderRadius: 3, background: G.brand,
             boxShadow: isDay ? 'none' : '0 0 10px rgba(217,70,239,0.6)' }}/>

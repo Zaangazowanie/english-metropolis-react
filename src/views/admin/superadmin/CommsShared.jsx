@@ -2,59 +2,23 @@
 // Everything visual here composes console.css primitives (.sa-drawer,
 // .sa-modal, .sa-field-row, .sa-th-sortable); nothing new is invented.
 
-import { useEffect, useRef } from 'react'
+import { usePresence, useDismiss } from '../../../design/v3/motion/index.js'
+import { useRef } from 'react'
 
-const FOCUSABLE =
-  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
-
-// Focus goes into the overlay on open, Tab cycles inside it, Escape closes it,
-// and focus returns where it came from. Same behaviour for drawer and modal.
 function useOverlay(open, onClose) {
   const ref = useRef(null)
-  useEffect(() => {
-    if (!open) return undefined
-    const node = ref.current
-    const previous = document.activeElement
-    const visible = () => [...(node?.querySelectorAll(FOCUSABLE) || [])].filter(el => el.offsetParent !== null)
-    const first = visible()[0]
-    ;(first || node)?.focus()
-
-    function onKeyDown(event) {
-      if (event.key === 'Escape') {
-        event.stopPropagation()
-        onClose()
-        return
-      }
-      if (event.key !== 'Tab') return
-      const items = visible()
-      if (!items.length) return
-      const head = items[0]
-      const tail = items[items.length - 1]
-      if (event.shiftKey && document.activeElement === head) {
-        event.preventDefault()
-        tail.focus()
-      } else if (!event.shiftKey && document.activeElement === tail) {
-        event.preventDefault()
-        head.focus()
-      }
-    }
-
-    node?.addEventListener('keydown', onKeyDown)
-    return () => {
-      node?.removeEventListener('keydown', onKeyDown)
-      if (previous && typeof previous.focus === 'function') previous.focus()
-    }
-  }, [open, onClose])
+  useDismiss(onClose, ref, open)
   return ref
 }
 
 export function SaDrawer({ open, title, onClose, footer, children }) {
+  const motion = usePresence(open, 'drawer')
   const ref = useOverlay(open, onClose)
-  if (!open) return null
+  if (!motion.mounted) return null
   return (
     <>
-      <div className="sa-scrim" onClick={onClose} />
-      <aside className="sa-drawer" role="dialog" aria-modal="true" aria-label={title} ref={ref} tabIndex={-1}>
+      <div className="sa-scrim em-motion-overlay" data-motion-state={motion.phase} onClick={motion.inert ? undefined : onClose} />
+      <aside className={`sa-drawer em-motion-drawer-right ${motion.className}`} inert={motion.inert} role="dialog" aria-modal="true" aria-label={title} ref={ref} tabIndex={-1}>
         <header className="sa-drawer-header">
           <span>{title}</span>
           <button type="button" className="sa-icon-btn" onClick={onClose} aria-label="Close panel">
@@ -69,12 +33,13 @@ export function SaDrawer({ open, title, onClose, footer, children }) {
 }
 
 export function ConfirmModal({ open, title, body, confirmLabel, busy, onConfirm, onClose }) {
+  const motion = usePresence(open)
   const ref = useOverlay(open, onClose)
-  if (!open) return null
+  if (!motion.mounted) return null
   return (
     <>
-      <div className="sa-scrim" onClick={onClose} />
-      <div className="sa-modal" role="alertdialog" aria-modal="true" aria-label={title} ref={ref} tabIndex={-1}>
+      <div className="sa-scrim em-motion-overlay" data-motion-state={motion.phase} onClick={motion.inert ? undefined : onClose} />
+      <div className={`sa-modal t-modal ${motion.className}`} inert={motion.inert} role="alertdialog" aria-modal="true" aria-label={title} ref={ref} tabIndex={-1}>
         <header className="sa-modal-header">
           <span>{title}</span>
           <button type="button" className="sa-icon-btn" onClick={onClose} aria-label="Close dialog">

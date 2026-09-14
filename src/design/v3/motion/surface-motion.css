@@ -1,0 +1,52 @@
+/* Layout adapters around the unmodified transitions.dev recipes. */
+.em-motion-overlay {
+  opacity: 0;
+  transition: opacity var(--modal-open-dur) var(--modal-ease);
+}
+.em-motion-overlay[data-motion-state="open"] { opacity: 1; }
+.em-motion-overlay[data-motion-state="closing"] { transition-duration: var(--modal-close-dur); }
+.em-motion-banner {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity var(--panel-open-dur) var(--panel-ease), transform var(--panel-open-dur) var(--panel-ease);
+}
+.em-motion-banner[data-motion-state="open"] { opacity: 1; transform: none; }
+.em-motion-banner[data-motion-state="closing"] { transition-duration: var(--panel-close-dur); }
+.em-settings-pop.t-dropdown, .em-pop.t-dropdown, .sa-modal.t-modal { animation: none; }
+.sa-root .sa-modal.t-modal { animation: none; }
+.sa-root .sa-drawer.em-motion-drawer-right, .sa-drawer.em-motion-drawer-right {
+  animation: none;
+  opacity: 0;
+  transform: translateX(100%);
+  transition: transform var(--panel-open-dur) var(--panel-ease), opacity var(--panel-open-dur) var(--panel-ease);
+}
+.sa-root .sa-drawer.em-motion-drawer-right.is-open, .sa-drawer.em-motion-drawer-right.is-open { opacity: 1; transform: none; }
+.sa-root .sa-drawer.em-motion-drawer-right.is-closing, .sa-drawer.em-motion-drawer-right.is-closing { transition-duration: var(--panel-close-dur); }
+
+/* A nested disclosure must not inherit an ancestor's open state. Padding is
+   inside the clipping track; 0fr leaves no focusable or visible remnants. */
+.t-acc-panel > .t-acc-panel-inner { min-height: 0; }
+.t-acc[data-open="false"] > .t-acc-panel { grid-template-rows: 0fr; }
+.t-acc[data-open="false"] > .t-acc-panel > .t-acc-panel-inner { opacity: 0; filter: blur(var(--blur-small)); }
+.t-acc[data-open="true"] > .t-acc-panel > .t-acc-panel-inner { opacity: 1; filter: none; }
+.gh-acc.t-acc > .gh-acc-body { transition: grid-template-rows var(--acc-expand) var(--acc-ease); }
+.gh-acc.t-acc .gh-acc-chev { transition: transform var(--acc-chevron) var(--acc-ease); }
+.gh-acc.t-acc[data-open="true"] .gh-acc-chev { transform: scaleY(-1); }
+.gh-root .gh-acc[data-open="true"] .gh-card { animation-duration: var(--duration-fast); animation-timing-function: var(--ease-smooth-out); }
+
+/* Motion preference also cancels delays: a near-zero duration with a stale
+   stagger or delayed visibility still leaves content inaccessible. */
+html[data-motion="reduced"] *, html[data-motion="reduced"] *::before, html[data-motion="reduced"] *::after,
+html[data-motion="none"] *, html[data-motion="none"] *::before, html[data-motion="none"] *::after {
+  animation-delay: 0ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .em-sheet-backdrop, .em-motion-overlay, .em-motion-banner, .em-motion-drawer,
+  .em-motion-drawer-right, .em-tab-ink, .em-press, .em-sheen, .em-glow {
+    transition: none !important;
+  }
+  .em-page-enter, .em-content-in, .em-sheet-panel { animation: none !important; }
+  .em-reveal-item { opacity: 1; transform: none; filter: none; transition: none !important; }
+}
