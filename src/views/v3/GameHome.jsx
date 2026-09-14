@@ -16,6 +16,7 @@ import { Suspense, lazy, useMemo, useRef, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { readStudentSession } from '../../lib/student-session.js'
 import { FONT, G, EASE } from '../../design/v3/tokens.js'
+import { IconSwap } from '../../design/v3/motion/index.js'
 import { Skyline } from '../../design/v3/primitives.jsx'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { usePrefersReducedMotion } from '../../practice/lib/usePrefersReducedMotion'
@@ -413,9 +414,7 @@ function ThemeToggle({ mode, setMode, T }) {
       onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
       onPointerDown={pulsePointerPolish}
       style={{ border: `1px solid ${T.border}`, background: T.surface, color: isDay ? T.amber : T.brandInk }}>
-      <span className="material-symbols-outlined" style={{ fontSize: 19 }}>
-        {isDay ? 'dark_mode' : 'light_mode'}
-      </span>
+      <IconSwap active={!isDay} from="dark_mode" to="light_mode" style={{ fontSize: 19 }}/>
     </button>
   )
 }
@@ -430,7 +429,7 @@ function GameCard({ g, color, T, onPlay, index }) {
       style={{ textAlign: 'left', cursor: 'pointer', borderRadius: 16,
         border: `1px solid ${T.border}`, padding: '18px 18px 16px',
         color: T.text, fontFamily: FONT.body,
-        animationDelay: `${Math.min(index * 45, 450)}ms`, '--gh-card-glow': `${color}44` }}>
+        animationDelay: `calc(${Math.min(index, 7)} * var(--duration-stagger))`, '--gh-card-glow': `${color}44` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <span aria-hidden style={{ width: 14, height: 14, borderRadius: '50%',
           border: `3px solid ${color}`, background: 'transparent', flex: 'none' }}/>
@@ -455,10 +454,10 @@ function GameCard({ g, color, T, onPlay, index }) {
 // One expandable metro line of the practice catalog.
 function LineSection({ line, T, open, onToggle, count, subtitle, children }) {
   return (
-    <div className="gh-acc gh-glass" data-open={open}
+    <div className="gh-acc gh-glass t-acc" data-open={open}
       style={{ border: `1px solid ${open ? T.borderHi : T.border}`, borderRadius: 20,
         boxShadow: open ? T.shadowSm : 'none' }}>
-      <button type="button" className="gh-acc-head" onClick={onToggle} aria-expanded={open}
+      <button type="button" className="gh-acc-head t-acc-head" onClick={onToggle} aria-expanded={open}
         style={{ color: T.text }}>
         <span className="gh-acc-badge" style={{ background: line.color }} aria-hidden>
           <span className="material-symbols-outlined" style={{ fontSize: 19, color: '#fff' }}>{line.icon}</span>
@@ -474,11 +473,11 @@ function LineSection({ line, T, open, onToggle, count, subtitle, children }) {
             {subtitle}
           </span>
         </span>
-        <span className="material-symbols-outlined gh-acc-chev" aria-hidden
+        <span className="material-symbols-outlined gh-acc-chev t-acc-chevron" aria-hidden
           style={{ color: T.textDim, fontSize: 24 }}>expand_more</span>
       </button>
-      <div className="gh-acc-body">
-        <div className="gh-acc-inner">
+      <div className="gh-acc-body t-acc-panel" inert={!open} aria-hidden={!open}>
+        <div className="gh-acc-inner t-acc-panel-inner">
           <div className="gh-game-grid" style={{ display: 'grid', gap: 14, padding: '4px 18px 20px' }}>
             {children}
           </div>
@@ -600,7 +599,7 @@ export default function GameHome() {
             aria-expanded={menuOpen} aria-controls="gh-primary-nav" onClick={() => setMenuOpen((open) => !open)}
             onPointerMove={setPointerPolish} onPointerLeave={clearPointerPolish}
             onPointerDown={pulsePointerPolish}>
-            <span className="material-symbols-outlined" aria-hidden>{menuOpen ? 'close' : 'menu'}</span>
+            <IconSwap active={menuOpen} from="menu" to="close"/>
           </button>
           <nav id="gh-primary-nav" className={`gh-nav${menuOpen ? ' is-open' : ''}`} aria-label="Primary navigation">
             <ActionLink to="/pricing" onClick={() => setMenuOpen(false)}>{W.navPricing}</ActionLink>

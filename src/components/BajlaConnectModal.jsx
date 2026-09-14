@@ -1,3 +1,5 @@
+import { useRef } from 'react'
+import { usePresence, useDismiss } from '../design/v3/motion/index.js'
 // Bajla connect popup — shown after login so every user type (student / teacher
 // / admin) can start chatting with the Bajla WhatsApp assistant.
 //
@@ -280,16 +282,6 @@ export default function BajlaConnectModal() {
     return () => document.body.classList.remove('em-bjp-open')
   }, [open])
 
-  // Esc dismisses, like every other dialog on the site. Registered only while
-  // open so a closed popup holds no listener.
-  useEffect(() => {
-    if (!open) return
-    function onKey(e) { if (e.key === 'Escape') dismiss() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
-
   // A CTA was tapped. With a number on file we go straight to WhatsApp (direct
   // user gesture → no popup-blocker issue). Without one, collect it first.
   function onAction(intent) {
@@ -324,15 +316,18 @@ export default function BajlaConnectModal() {
     }
   }
 
-  if (!open) return null
+  const motion = usePresence(open)
+  const panelRef = useRef(null)
+  useDismiss(dismiss, panelRef, open)
+  if (!motion.mounted) return null
 
   const name = studentUser?.name || adminUser?.name || ''
   const greeting = name ? C.greeting.replace('!', `, ${name.split(' ')[0]}!`) : C.greeting
 
   return (
-    <div className="bjp-overlay" role="dialog" aria-modal="true" aria-label={C.brand} onClick={(e) => { if (e.target === e.currentTarget) dismiss() }}>
+    <div className="bjp-overlay em-motion-overlay" data-motion-state={motion.phase} inert={motion.inert} role="dialog" aria-modal="true" aria-label={C.brand} onClick={(e) => { if (e.target === e.currentTarget) dismiss() }}>
       <style>{BJP_CSS}</style>
-      <div className="bjp-card">
+      <div ref={panelRef} tabIndex={-1} className={`bjp-card t-modal ${motion.className}`}>
         <button className="bjp-close" onClick={dismiss} aria-label={C.closeAria}>×</button>
 
         {step === 'intro' && (
@@ -413,7 +408,7 @@ export default function BajlaConnectModal() {
         )}
 
         {step === 'phone' && (
-          <form onSubmit={savePhoneAndContinue}>
+          <form className="em-page-enter" onSubmit={savePhoneAndContinue}>
             <header className="bjp-head">
               <img className="bjp-mascot" src="/brand/em-bajla-icon.webp" alt="" />
               <div>
@@ -473,13 +468,13 @@ function WaGlyph() {
 // round and too big). One column, mascot in the header, actions as rows.
 const BJP_CSS = `
 .bjp-overlay{position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;
-  padding:16px;background:rgba(10,6,24,.6);backdrop-filter:blur(4px);animation:bjpfade .2s ease}
+  padding:16px;background:rgba(10,6,24,.6);backdrop-filter:blur(4px)}
 @keyframes bjpfade{from{opacity:0}to{opacity:1}}
 @keyframes bjpcard{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .bjp-card{position:relative;width:100%;max-width:440px;max-height:92vh;overflow:auto;padding:22px 22px 18px;
   border-radius:12px;color:#f4f0ff;font-family:'Sora','Plus Jakarta Sans',Inter,system-ui,sans-serif;
   background:#1a1030;border:1px solid rgba(190,150,255,.28);
-  box-shadow:0 24px 60px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.3);animation:bjpcard .24s cubic-bezier(.16,1,.3,1) both}
+  box-shadow:0 24px 60px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.3)}
 .bjp-card *{box-sizing:border-box}
 @media (prefers-reduced-motion:reduce){.bjp-overlay,.bjp-card{animation:none}.bjp-action,.bjp-cta,.bjp-close{transition:none}}
 .bjp-close{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:8px;border:0;

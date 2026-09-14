@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { FONT, G, EASE } from '../../design/v3/tokens.js'
 import { useV3Theme } from '../../design/v3/ThemeProvider.jsx'
 import { Btn, Glass, Pill, Skeleton } from '../../design/v3/primitives.jsx'
-import { Sheet, useReveal } from '../../design/v3/motion/index.js'
+import { Sheet, Presence, useReveal } from '../../design/v3/motion/index.js'
 import { useI18n } from '../../i18n'
 import { fetchJSONCached } from '../../practice/lib/practice-cache'
 
@@ -717,10 +717,10 @@ export default function KnowledgeBaseV3({ data, slug: slugProp, basePath = '/app
         )}
       </div>
 
-      {activeDrill && activeDrill.drill && (
+      <Presence>{activeDrill && activeDrill.drill && (
         <InPlaceDrillModal entry={activeDrill.entry} drill={activeDrill.drill}
           onClose={() => setActiveDrill(null)}/>
-      )}
+      )}</Presence>
     </div>
   )
 }

@@ -68,7 +68,7 @@ export function headMeta({ titlePl, titleEn, path, metaDesc, metaDescEn }) {
   <meta name="twitter:image" content="${OG_IMAGE}" />
   <link rel="preload" href="/fonts/fonts.css" as="style" />
   <link href="/fonts/fonts.css" rel="stylesheet" />
-  <link href="/legal/legal.css?v=${ASSET_V}" rel="stylesheet" />
+  <link href="/legal/legal.css?v=20260914-motion" rel="stylesheet" />
   <link href="/legal/foundation-legal.css?v=${ASSET_V}" rel="stylesheet" />
   <script src="/legal/legal.js?v=${ASSET_V}" defer></script>`
 }

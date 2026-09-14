@@ -218,9 +218,9 @@
     'height:min(624px,calc(100vh - 150px));border-radius:22px;overflow:hidden;display:flex;flex-direction:column;',
     'background:linear-gradient(180deg,var(--bjl-bg0),var(--bjl-bg1));color:var(--bjl-text);',
     'border:1px solid var(--bjl-border-hi);box-shadow:var(--bjl-shadow);',
-    'transform-origin:calc(100% - 30px) calc(100% + 16px);visibility:hidden;opacity:0;transform:translateY(14px) scale(.9);',
-    'transition:transform .2s var(--bjl-drawer),opacity .16s ease-out,visibility 0s linear .2s}',
-    '.bjl-open .bjl-panel{visibility:visible;opacity:1;transform:none;transition:transform .36s var(--bjl-drawer),opacity .2s ease-out,visibility 0s}',
+    'transform-origin:calc(100% - 30px) calc(100% + 16px);visibility:hidden;opacity:0;transform:translateY(8px) scale(var(--scale-medium,.97));',
+    'transition:transform var(--panel-close-dur,350ms) var(--ease-smooth-out,cubic-bezier(.22,1,.36,1)),opacity var(--panel-close-dur,350ms) ease-out,visibility 0s linear var(--panel-close-dur,350ms)}',
+    '.bjl-open .bjl-panel{visibility:visible;opacity:1;transform:none;transition:transform var(--panel-open-dur,400ms) var(--ease-smooth-out,cubic-bezier(.22,1,.36,1)),opacity var(--panel-open-dur,400ms) ease-out,visibility 0s}',
     '.bjl-hd{display:flex;align-items:center;gap:11px;padding:14px 15px;border-bottom:1px solid var(--bjl-border);background:var(--bjl-hd-glow)}',
     '.bjl-av{width:38px;height:38px;border-radius:12px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;',
     'background:var(--bjl-grad);box-shadow:0 0 0 1px rgba(217,70,239,.45),0 0 30px -6px rgba(217,70,239,.55)}',
@@ -1509,6 +1509,7 @@
     panel.setAttribute('role', 'dialog');
     panel.setAttribute('aria-label', t('dialog'));
     panel.id = 'bjl-panel';
+    panel.inert = true;
 
     var hd = el('div', 'bjl-hd');
     var av = el('div', 'bjl-av');
@@ -1670,6 +1671,7 @@
     clearTimeout(closeTimer);
     els.root.classList.toggle('bjl-open', open);
     els.fab.setAttribute('aria-expanded', open ? 'true' : 'false');
+    els.panel.inert = !open;
     if (open) {
       lastFocus = document.activeElement;
       setUnread(false);

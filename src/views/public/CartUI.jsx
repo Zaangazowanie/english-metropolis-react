@@ -66,7 +66,7 @@ export default function CartUI({ lang = 'pl' }) {
       <button
         ref={pillRef}
         type="button"
-        className="emc-pill"
+        className="emc-pill" tabIndex={count > 0 ? 0 : -1} aria-hidden={count === 0}
         data-visible={count > 0}
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
@@ -80,7 +80,7 @@ export default function CartUI({ lang = 'pl' }) {
 
       <div className="emc-backdrop" data-open={open} onClick={() => setOpen(false)} aria-hidden />
 
-      <aside ref={drawerRef} className="emc-drawer" data-open={open} role="dialog" aria-modal="true" aria-label={t('Shopping cart', 'Koszyk')} aria-hidden={!open}>
+      <aside ref={drawerRef} className="emc-drawer" data-open={open} inert={!open} role="dialog" aria-modal="true" aria-label={t('Shopping cart', 'Koszyk')} aria-hidden={!open}>
         <header className="emc-head">
           <h2>
             <span className="material-symbols-outlined" aria-hidden>shopping_cart</span>
@@ -100,7 +100,7 @@ export default function CartUI({ lang = 'pl' }) {
           <>
             <ul className="emc-items">
               {state.items.map((item, idx) => (
-                <li key={item.id} className="emc-item" style={{ '--emc-i': idx }}>
+                <li key={item.id} className="emc-item" style={{ '--emc-i': Math.min(idx, 7) }}>
                   <div className="emc-item-info">
                     <strong>{isPl ? item.namePl || item.name : item.name}</strong>
                     <span>{isPl ? item.pacePl || item.pace : item.pace} · {packageValidity(PACKAGE_LESSONS[item.id])[isPl ? 'pl' : 'en']}</span>

@@ -1,3 +1,7 @@
+/* transitions.dev motion scale for the static document shell. */
+:root { --duration-quick:150ms; --duration-fast:250ms; --duration-very-slow:500ms;
+  --duration-stagger:40ms; --distance-medium:12px; --scale-medium:.97;
+  --ease-smooth-out:cubic-bezier(.22,1,.36,1); --ease-in-out:ease-in-out; }
 /* ═══════════════════════════════════════════════════════════════
    English Metro. — cold-page design system
    (/terms /privacy /cookies /kontakt /faq /ochrona-dzieci /about)
@@ -547,7 +551,7 @@ html[data-lang="pl"] .lang-en { display: none !important; }
 /* Hero load-in, and gentle scroll reveal on document sections. legal.js
    sets html[data-reveal] before first paint; without JS nothing is hidden. */
 @media (prefers-reduced-motion: no-preference) {
-  .legal-hero h1, .legal-hero .lede, .legal-doc-meta, .legal-hero-actions { animation: legalRise 0.7s var(--ease) both; }
+  .legal-hero h1, .legal-hero .lede, .legal-doc-meta, .legal-hero-actions { animation: legalRise var(--duration-very-slow) var(--ease-smooth-out) both; }
   .legal-hero .lede { animation-delay: 0.1s; }
   .legal-hero-actions { animation-delay: 0.18s; }
   .legal-doc-meta { animation-delay: 0.02s; }
@@ -558,7 +562,7 @@ html[data-lang="pl"] .lang-en { display: none !important; }
   html[data-reveal] .legal-content .reveal {
     opacity: 0;
     transform: translateY(14px);
-    transition: opacity 0.55s var(--ease), transform 0.55s var(--ease);
+    transition: opacity var(--duration-very-slow) var(--ease-in-out), transform var(--duration-very-slow) var(--ease-in-out);
   }
   html[data-reveal] .legal-content .reveal.is-in { opacity: 1; transform: none; }
 }
@@ -623,4 +627,24 @@ html[data-lang="pl"] .lang-en { display: none !important; }
   .legal-hero { background: #fff; }
   .legal-content section { page-break-inside: avoid; margin-bottom: 1.5rem; }
   html[data-reveal] .legal-content .reveal { opacity: 1; transform: none; }
+}
+
+/* Navigation stays mounted so both opening and dismissal interpolate. */
+@media (max-width: 760px) {
+  .legal-topbar:has(.legal-menu-btn) .legal-topnav {
+    position:absolute; top:calc(100% + 8px); left:12px; right:12px; width:auto;
+    max-height:75dvh; overflow:auto; padding:12px; border:1px solid var(--hairline);
+    border-radius:14px; background:var(--paper); box-shadow:0 18px 36px #221a2e18;
+    display:flex; flex-direction:column; visibility:hidden; opacity:0;
+    pointer-events:none; transform:scale(var(--scale-medium)); transform-origin:top right;
+    transition:opacity var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out), visibility 0s linear var(--duration-quick);
+  }
+  .legal-topbar.is-open:has(.legal-menu-btn) .legal-topnav {
+    visibility:visible; opacity:1; pointer-events:auto; transform:none;
+    transition-duration:var(--duration-fast); transition-delay:0s;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .legal-topbar:has(.legal-menu-btn) .legal-topnav { transition:none; transform:none; }
+  html { scroll-behavior:auto; }
 }

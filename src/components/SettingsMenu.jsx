@@ -1,3 +1,4 @@
+import { MotionDropdown } from '../design/v3/motion/index.js'
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
@@ -33,8 +34,7 @@ export default function SettingsMenu({ userName = 'Guest', userEmail = '' }) {
       >
         <span className="em-avatar-circle">{initials}</span>
       </button>
-      {open && (
-        <div className="em-settings-pop" role="menu">
+      <MotionDropdown open={open} className="em-settings-pop" role="menu">
           <div className="em-settings-pop-head">
             <span className="em-avatar-circle em-avatar-lg">{initials}</span>
             <div className="em-settings-pop-name">
@@ -81,8 +81,7 @@ export default function SettingsMenu({ userName = 'Guest', userEmail = '' }) {
             <span className="material-symbols-outlined text-[16px]">logout</span>
             {t('header.menu.logout')}
           </Link>
-        </div>
-      )}
+        </MotionDropdown>
     </div>
   )
 }
