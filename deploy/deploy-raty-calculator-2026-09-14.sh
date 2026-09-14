@@ -1,5 +1,5 @@
 #!/bin/bash
-# Frontend-only correction: package-specific Przelewy24 calculator links.
+# Frontend-only correction: package-specific Przelewy24 embedded calculator amounts.
 # Existing Convex functions and the enabled Raty flag remain in place.
 set -euo pipefail
 umask 022
@@ -31,7 +31,7 @@ node_modules/.bin/convex function-spec --prod > "$BACKUP/function-spec.json"
 node scripts/check-convex-contract.mjs --strict --spec "$BACKUP/function-spec.json" > "$BACKUP/contract.log" 2>&1
 OXC_THREADS=2 RAYON_NUM_THREADS=2 npm run build > "$BACKUP/build.log" 2>&1
 test -s dist/index.html
-grep -q 'getCalculatorUrl' dist/assets/*.js
+grep -q 'calculator-modal' dist/assets/*.js
 test "$(df --output=avail -B1 / | tail -1 | tr -d ' ')" -ge 21474836480
 guard_clean_prod "$REPO"
 test "$(git rev-parse HEAD)" = "$REV"
