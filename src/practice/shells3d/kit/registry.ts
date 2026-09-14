@@ -42,6 +42,12 @@ export const game3dRegistry: Game3DRegistryEntry[] = [
     load: () => import('../Battleship3D'),
   },
   {
+    shellKey: 'hangman',
+    title: 'Lantern Alley',
+    district: 'Lantern Alley',
+    load: () => import('../Hangman3D'),
+  },
+  {
     shellKey: 'mazechase',
     title: 'Museum After Dark',
     district: 'Museum After Dark',
