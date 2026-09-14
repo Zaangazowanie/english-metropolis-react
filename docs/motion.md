@@ -67,7 +67,7 @@ tab, PDF rendering/dismissal, basket, consent, and static navigation. Authentica
 account workflows use the real shared components with anonymous fixture data.
 
 Build and review on the PC. The frontend-only deploy script verifies the live
-Convex contract, release source-tree identity, exact public bytes and MIME types,
+Convex contract, release source-tree identity, exact static bytes, HTML asset references and MIME types,
 preserved legacy motion assets, and at least 20 GiB of VPS headroom. It backs up
 both HTML entries and every replaced static file and rolls them back on failure.
 Do not upload the entire public directory or repopulate course worktrees.

@@ -88,7 +88,7 @@ python3 - "$BUILD" "$BACKUP" <<'PY'
 from pathlib import Path
 import re,sys,subprocess,hashlib
 root,backup=map(Path,sys.argv[1:])
-urls=['/','/student-preview.html','/legal/legal.css?v=20260914-motion2','/students/conversa-widget-v5.js?v=20260914-motion2']
+urls=['/','/student-preview.html','/legal/legal.css?v=20260914-motion3','/students/conversa-widget-v5.js?v=20260914-motion3']
 urls += [f'/{page}/' for page in ('about','cookies','faq','kontakt','ochrona-dzieci','privacy','terms')]
 for entry in ('index.html','student-preview.html'):
     urls += re.findall(r'(?:src|href)="(/assets/[^"?]+)"',(root/entry).read_text())
@@ -103,8 +103,18 @@ for url in dict.fromkeys(urls):
     body=target.read_bytes(); mime=result.stdout.split(';')[0].strip()
     relative=url.split('?')[0].lstrip('/')
     if not relative or relative.endswith('/'): relative+='index.html'
-    expected=root/relative
-    assert expected.read_bytes()==body, f'Public file differs: {url}'
+    expected=(root/relative).read_bytes()
+    assert (Path('/var/www/englishmetro')/relative).read_bytes()==expected, f'Origin file differs: {url}'
+    if relative.endswith('.html'):
+        # Nginx substitutes the visitor country and Cloudflare appends its
+        # challenge script. Verify application assets through those rewrites.
+        pattern=rb"/(?:assets|legal|students)/[^\"'<>\s]+"
+        references=lambda html: sorted(set(re.findall(pattern,html)))
+        assert references(expected) and references(expected)==references(body), f'Public HTML assets differ: {url}'
+        title=lambda html: re.search(rb'<title>(.*?)</title>',html,re.S).group(1)
+        assert title(expected)==title(body), f'Public HTML title differs: {url}'
+    else:
+        assert expected==body, f'Public static file differs: {url}'
     if relative.endswith('.js'): assert mime in ('application/javascript','text/javascript'), mime
     if relative.endswith('.css'): assert mime=='text/css', mime
     records.append(f'{url}\t{mime}\t{hashlib.sha256(body).hexdigest()}')
