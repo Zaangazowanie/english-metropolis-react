@@ -73,30 +73,34 @@ guard_clean_prod "$REPO"
 test "$(git rev-parse HEAD)" = "$REV"
 rollback() {
   trap - ERR
-  rsync -a "$BACKUP/site/" "$WEB/"
+  # The private backup root is 0700; never copy that mode onto the public root.
+  rsync -a --checksum --no-perms --no-owner --no-group "$BACKUP/site/" "$WEB/"
   echo "Previous entries and static files restored; evidence: $BACKUP"
   exit 1
 }
 trap rollback ERR
-rsync -a --backup --backup-dir="$BACKUP/replaced-assets" "$BUILD/assets/" "$WEB/assets/"
+rsync -a --chmod=D755,F644 --backup --backup-dir="$BACKUP/replaced-assets" "$BUILD/assets/" "$WEB/assets/"
 for file in "${FILES[@]}"; do
   install -m 644 "$BUILD/$file" "$WEB/$file.release-$STAMP"
   mv "$WEB/$file.release-$STAMP" "$WEB/$file"
 done
 python3 - "$BUILD" "$BACKUP" <<'PY'
 from pathlib import Path
-import re,sys,urllib.request,hashlib
+import re,sys,subprocess,hashlib
 root,backup=map(Path,sys.argv[1:])
-urls=['/','/student-preview.html','/legal/legal.css?v=20260914-motion','/students/conversa-widget-v5.js?v=20260914-motion']
+urls=['/','/student-preview.html','/legal/legal.css?v=20260914-motion2','/students/conversa-widget-v5.js?v=20260914-motion2']
 urls += [f'/{page}/' for page in ('about','cookies','faq','kontakt','ochrona-dzieci','privacy','terms')]
 for entry in ('index.html','student-preview.html'):
     urls += re.findall(r'(?:src|href)="(/assets/[^"?]+)"',(root/entry).read_text())
 urls += ['/assets/'+p.name for p in (root/'assets').glob('pdf.worker.min-*.js')]
 records=[]
 for url in dict.fromkeys(urls):
-    request=urllib.request.Request('https://englishmetro.com'+url,headers={'Cache-Control':'no-cache'})
-    with urllib.request.urlopen(request,timeout=30) as response:
-        body=response.read(); mime=response.headers.get_content_type()
+    print('Verifying public URL:',url,flush=True)
+    target=backup/f'verified-{len(records)}.bin'
+    result=subprocess.run(['curl','--fail','--silent','--show-error','--max-time','30',
+        '--output',str(target),'--write-out','%{content_type}',
+        'https://englishmetro.com'+url],check=True,capture_output=True,text=True)
+    body=target.read_bytes(); mime=result.stdout.split(';')[0].strip()
     relative=url.split('?')[0].lstrip('/')
     if not relative or relative.endswith('/'): relative+='index.html'
     expected=root/relative
