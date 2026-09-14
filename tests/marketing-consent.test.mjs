@@ -142,3 +142,43 @@ test('unsubscribe requires a valid bearer token, is repeatable and blocks future
   await P.unsubscribe.handler(ctx,{token})
   assert.equal(ctx.tables.marketingPreferences[0].subscribed,false)
 })
+
+test('one-time existing-student update grants no subscription and its link records a real opt-out', async () => {
+  const realNow=Date.now
+  Date.now=()=>Date.UTC(2026,8,14,9)
+  try {
+    const ctx=fixture(),result=await addStudent(ctx,undefined)
+    const s=await ctx.db.get(result.student._id)
+    Object.assign(s,{createdAt:Date.UTC(2026,8,1),email:'learner@example.com',googleEmail:'learner@example.com'})
+    const args={studentId:s._id,campaignKey:'raty-zero-2026-09-14'}
+    const recipient=await P.prepareExistingStudentUpdate.handler(ctx,args)
+    assert.equal(recipient.email,'learner@example.com')
+    assert.equal(ctx.tables.marketingPreferences.length,0)
+    assert.equal(ctx.tables.marketingConsentEvents.length,0)
+    const token=recipient.unsubscribeUrl.split('=')[1]
+    assert.deepEqual(await P.unsubscribe.handler(ctx,{token}),{success:true})
+    assert.deepEqual(await P.unsubscribe.handler(ctx,{token}),{success:true})
+    assert.equal(ctx.tables.marketingPreferences[0].subscribed,false)
+    assert.equal(ctx.tables.marketingConsentEvents.length,1)
+    assert.equal(await P.prepareExistingStudentUpdate.handler(ctx,args),null)
+  } finally {Date.now=realNow}
+})
+
+test('one-time update excludes other schools, new signups, inactive accounts, placeholders and expired campaign', async () => {
+  const realNow=Date.now
+  Date.now=()=>Date.UTC(2026,8,14,9)
+  try {
+    const ctx=fixture(),result=await addStudent(ctx,undefined)
+    const s=await ctx.db.get(result.student._id)
+    const base={...s,createdAt:Date.UTC(2026,8,1),email:'learner@example.com',googleEmail:'learner@example.com'}
+    for(const patch of [{organizationId:'other'},{status:'archived'},{createdAt:Date.UTC(2026,8,14,9)},
+      {email:'placeholder@englishmetro.com',googleEmail:''},{email:'test@example.invalid',googleEmail:''}]) {
+      Object.assign(s,base,patch)
+      assert.equal(await P.prepareExistingStudentUpdate.handler(ctx,{studentId:s._id,campaignKey:'raty-zero-2026-09-14'}),null)
+    }
+    Object.assign(s,base)
+    Date.now=()=>Date.UTC(2026,8,16)
+    assert.equal(await P.prepareExistingStudentUpdate.handler(ctx,{studentId:s._id,campaignKey:'raty-zero-2026-09-14'}),null)
+    assert.equal(ctx.tables.marketingUnsubscribeTokens.length,0)
+  } finally {Date.now=realNow}
+})

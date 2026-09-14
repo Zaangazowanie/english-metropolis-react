@@ -35,7 +35,23 @@ export const unsubscribe = mutation({
     const tokenHash = await sha256Hex(args.token);
     const link = await ctx.db.query('marketingUnsubscribeTokens')
       .withIndex('by_hash', q => q.eq('tokenHash', tokenHash)).unique();
-    const current = link && await ctx.db.get(link.preferenceId);
+    if (!link) return { success: false };
+    let current = link.preferenceId ? await ctx.db.get(link.preferenceId) : null;
+    if (!current && link.studentId && link.email) {
+      current = await ctx.db.query('marketingPreferences')
+        .withIndex('by_email', q => q.eq('email', link.email!)).unique();
+      if (!current) {
+        const now = Date.now();
+        const preferenceId = await ctx.db.insert('marketingPreferences', {
+          studentId: link.studentId, email: link.email, subscribed: false, updatedAt: now,
+        });
+        await ctx.db.insert('marketingConsentEvents', {
+          preferenceId, studentId: link.studentId, subscribed: false,
+          source: 'unsubscribe_link', at: now,
+        });
+        return { success: true };
+      }
+    }
     if (!current) return { success: false };
     if (current.subscribed) {
       const now = Date.now();
@@ -46,6 +62,36 @@ export const unsubscribe = mutation({
       });
     }
     return { success: true };
+  },
+});
+
+// Owner-approved, one-time Raty announcement to the existing private roster.
+// This does not assert or grant marketing consent. It is deliberately separate
+// from prepareRecipient's ongoing promotional-list eligibility check.
+export const prepareExistingStudentUpdate = internalMutation({
+  args: { studentId: v.id('students'), campaignKey: v.literal('raty-zero-2026-09-14') },
+  handler: async (ctx, args) => {
+    if (Date.now() > Date.UTC(2026, 8, 15, 23, 59, 59)) return null;
+    const student = await ctx.db.get(args.studentId);
+    if (!student || student.organizationId !== 'js779cs2vjwb2c9yjc3a7t619n84zcp8'
+      || !['active', 'paused'].includes(student.status)
+      || student.createdAt > Date.UTC(2026, 8, 14, 8, 47, 32)) return null;
+    const candidates = [student.email, student.googleEmail].map(x => x?.trim().toLowerCase() || '');
+    const email = candidates.find(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x)
+      && !x.endsWith('@englishmetro.com') && !x.endsWith('.invalid'));
+    if (!email) return null;
+    // Any known opt-out on either account address suppresses the update.
+    for (const address of new Set(candidates.filter(Boolean))) {
+      const preference = await ctx.db.query('marketingPreferences')
+        .withIndex('by_email', q => q.eq('email', address)).unique();
+      if (preference?.subscribed === false) return null;
+    }
+    const token = generateToken();
+    await ctx.db.insert('marketingUnsubscribeTokens', {
+      studentId: student._id, email, campaignKey: args.campaignKey,
+      tokenHash: await sha256Hex(token), createdAt: Date.now(),
+    });
+    return { email, name: student.name, unsubscribeUrl: `https://englishmetro.com/email-preferences#unsubscribe=${token}` };
   },
 });
 

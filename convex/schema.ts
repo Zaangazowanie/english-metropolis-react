@@ -220,7 +220,11 @@ export default defineSchema({
   }).index('by_preference', ['preferenceId']),
 
   marketingUnsubscribeTokens: defineTable({
-    preferenceId: v.id('marketingPreferences'),
+    preferenceId: v.optional(v.id('marketingPreferences')),
+    // A one-time update to an existing student need not create a subscription.
+    studentId: v.optional(v.id('students')),
+    email: v.optional(v.string()),
+    campaignKey: v.optional(v.string()),
     tokenHash: v.string(),
     createdAt: v.number(),
   }).index('by_hash', ['tokenHash']),
