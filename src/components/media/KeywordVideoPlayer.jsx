@@ -16,6 +16,22 @@ function loadYouTube() {
   return youtubeReady
 }
 
+// Where the excerpt stops. `occurrence.end` is the caption CUE's end, and YouTube's
+// auto-captions trail real speech by up to a second, so a keyword that closes the
+// cue is spoken right at (or past) that boundary — with a 1s tail it was cut off
+// ("the Perseids." ended before "Perseids"; Szymon Z., 16 Sep 2026). Tail of 2.5s,
+// plus 1s more when the keyword sits in the last third of the caption.
+export function clipEnd(occurrence, word) {
+  const cueStart = Number(occurrence?.start || 0)
+  const cueEnd = Math.max(Number(occurrence?.end || 0), cueStart + 3)
+  const tokens = String(occurrence?.text || '').toLowerCase().split(/\s+/).filter(Boolean)
+  const needle = String(word || '').toLowerCase().split(/\s+/)[0] || ''
+  let at = -1
+  if (needle) tokens.forEach((tok, i) => { if (tok.includes(needle)) at = i })
+  const late = at >= 0 && tokens.length > 2 && at >= Math.floor(tokens.length * 2 / 3)
+  return cueEnd + 2.5 + (late ? 1 : 0)
+}
+
 // Used by the production lesson and vocabulary views, and therefore by their
 // public previews. The media clock is authoritative: pause, seek and buffering
 // can never advance captions independently of the video.
@@ -68,7 +84,7 @@ function MediaPlayer({ videoId, occurrence, word, onClock, autoPlay = true }) {
 
   const useEmbed = cached === null || failed
   const start = Math.max(0, Number(occurrence?.start || 0) - 2)
-  const end = Number(occurrence?.end || start + 6) + 1
+  const end = clipEnd(occurrence, word)
   const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}&mute=0&start=${Math.floor(start)}&end=${Math.ceil(end)}&rel=0&controls=1&enablejsapi=1&playsinline=1&cc_load_policy=1&cc_lang_pref=en&origin=${encodeURIComponent(location.origin)}`
 
   useEffect(() => {

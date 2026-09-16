@@ -35,7 +35,18 @@ async function playTTS(text, voice, onTimeUpdate = null, onEnded = null) {
       const url = await pronunciationSource(text, v)
       audio = new Audio(url)
       ttsCache.set(key, audio)
-    } catch (err) { console.error('TTS error:', err); return null }
+    } catch (err) {
+      // Never silent: if the speech service is busy or down, the browser's own
+      // voice reads the text (worse, but audible) and the failure is logged.
+      console.warn('TTS unavailable, using browser speech:', err?.message || err)
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        const u = new SpeechSynthesisUtterance(text)
+        u.lang = v.startsWith('b') ? 'en-GB' : 'en-US'
+        u.onend = onEnded
+        window.speechSynthesis.cancel(); window.speechSynthesis.speak(u)
+      }
+      return null
+    }
   }
   currentAudio?.pause()
   currentAudio = audio
@@ -171,12 +182,20 @@ const V3_VOCAB_CSS = `
 @keyframes v3VocabTwinkle{0%,100%{opacity:0;transform:scale(.6)}50%{opacity:.85;transform:scale(1)}}
 @keyframes v3VocabFadeIn{from{opacity:0}to{opacity:1}}
 @keyframes v3VocabModalPop{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
-.v3-flashcard-scene{perspective:1800px;position:relative;width:100%}
+.v3-flashcard-scene{perspective:1800px;position:relative;width:100%;min-width:0}
 .v3-flashcard-scene.is-summoned{animation:v3VocabSummon 1200ms cubic-bezier(.34,1.56,.64,1)}
 .v3-flashcard-inner{position:relative;width:100%;min-height:520px;transform-style:preserve-3d;transition:transform 720ms cubic-bezier(.2,.8,.2,1)}
 .v3-flashcard-inner.is-flipped{transform:rotateY(180deg)}
-.v3-flashcard-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:20px}
-.v3-flashcard-face-back{transform:rotateY(180deg)}
+.v3-flashcard-face{backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:20px}
+/* The front face stays in normal flow so the frame is exactly as tall as the card. With both faces
+   absolute, a phone-height front card (~600px) overflowed the 520px frame: the Prev/Next row sat
+   inside the card and a tap on "Wstecz" hit the card's lesson button instead (Szymon Z., 16 Sep). */
+.v3-flashcard-face-front{position:relative;width:100%;min-width:0;transition:visibility 0s linear 360ms}
+.v3-flashcard-face-back{position:absolute;inset:0;transform:rotateY(180deg);visibility:hidden;transition:visibility 0s linear 360ms}
+/* The face turned away is hidden at rest, switching halfway through the 720ms turn. backface-visibility
+   alone let the front's overflow show through mirrored on iOS, where composited descendants ignore it. */
+.v3-flashcard-inner.is-flipped .v3-flashcard-face-front{visibility:hidden}
+.v3-flashcard-inner.is-flipped .v3-flashcard-face-back{visibility:visible}
 .v3-flashcard-sparkles{position:absolute;inset:0;pointer-events:none;border-radius:20px;overflow:hidden}
 .v3-flashcard-sparkles span{position:absolute;width:4px;height:4px;border-radius:50%;background:#F472B6;box-shadow:0 0 8px rgba(244,114,182,.8);animation:v3VocabTwinkle 3s ease-in-out infinite;opacity:0}
 .v3-flashcard-sparkles span:nth-child(1){top:14%;left:12%;animation-delay:0s}
@@ -500,7 +519,7 @@ export function Flashcard({ keyword, onYouglish, onJumpToLesson, summonPulse = 0
 
         {/* BACK */}
         <div className="v3-flashcard-face v3-flashcard-face-back" inert={!flipped} aria-hidden={!flipped} onClick={() => setFlipped(false)} style={{ cursor: 'pointer' }}>
-          <Glass padding={0} style={{ position: 'relative', minHeight: compact ? 390 : 520, overflow: 'hidden', borderRadius: 20 }}>
+          <Glass padding={0} style={{ position: 'relative', height: '100%', minHeight: compact ? 390 : 520, overflow: 'hidden', borderRadius: 20 }}>
             <div ref={backScrollRef} onScroll={onBackScroll} className="v3-scroll-area v3-flashcard-back-scroll" style={{ padding: isMobile ? 22 : 32 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
                 <div>
@@ -896,7 +915,10 @@ export default function VocabularyV3({ data, slug, basePath = '' }) {
           </div>
         )}
 
-        <div>
+        {/* minWidth 0: a grid item's automatic minimum is its content's min-content
+            width, and the in-flow flashcard face would otherwise widen this column
+            past the viewport on phones (an unbreakable 60px headword). */}
+        <div style={{ minWidth: 0 }}>
           {filteredKeywords.length > 0 ? (
             <>
               <Flashcard key={activeKeyword?.id || activeIndex} keyword={activeKeyword} onYouglish={setYouglishWord} onJumpToLesson={jumpToLesson} summonPulse={summonPulse} />
