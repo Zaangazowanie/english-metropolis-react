@@ -182,6 +182,77 @@ async function mutateConvex<T>(path: string, args: Record<string, unknown>): Pro
   return payload.value as T;
 }
 
+// ─── Progress rows: one fetch per student, shared by every shell ─────────────
+// The practice page mounts a hook per shell card (100+ on a full page). Each
+// used to run its own practice:getProgress query, which tripped nginx's per-IP
+// limit on /api/query and silently zeroed most cards (2026-09-16). Now the
+// first hook fetches practice:listForStudent once and the rest read from it.
+// Picks the same row getProgress would: exact (shellId, exerciseId) when an
+// exerciseId is given, otherwise the oldest row for that shell.
+type ProgressRow = {
+  shellId: string;
+  exerciseId?: string;
+  progress?: number;
+  completed?: boolean;
+  hintsUsed?: number;
+  lastState?: ShellState;
+  meta?: Record<string, unknown>;
+  _creationTime?: number;
+};
+const progressRowsBySlug = new Map<string, Promise<ProgressRow[]>>();
+
+function loadProgressRows(slug: string | undefined): Promise<ProgressRow[]> {
+  if (!slug) return Promise.resolve([]);
+  let p = progressRowsBySlug.get(slug);
+  if (!p) {
+    p = queryConvex<ProgressRow[]>('practice:listForStudent', { studentSlug: slug })
+      .then((rows) => (rows ?? []).slice().sort((a, b) => (a._creationTime ?? 0) - (b._creationTime ?? 0)))
+      .catch((err) => {
+        progressRowsBySlug.delete(slug);   // let the next mount retry
+        throw err;
+      });
+    progressRowsBySlug.set(slug, p);
+  }
+  return p;
+}
+
+async function loadProgressRow(
+  slug: string | undefined,
+  shellId: string,
+  exerciseId: string | undefined,
+): Promise<ProgressRow | null> {
+  const rows = await loadProgressRows(slug);
+  return rows.find((r) => r.shellId === shellId
+    && (exerciseId === undefined || r.exerciseId === exerciseId)) ?? null;
+}
+
+// Keep the shared rows in step with what a shell just wrote, so a re-mount
+// (tab switch, next shell in a session) sees the same state it saved.
+function rememberProgressRow(
+  slug: string | undefined,
+  shellId: string,
+  exerciseId: string | undefined,
+  patch: Partial<ShellProgress>,
+) {
+  if (!slug) return;
+  const p = progressRowsBySlug.get(slug);
+  if (!p) return;
+  progressRowsBySlug.set(slug, p.then((rows) => {
+    const i = rows.findIndex((r) => r.shellId === shellId && r.exerciseId === exerciseId);
+    if (i >= 0) rows[i] = { ...rows[i], ...patch };
+    else rows.push({ shellId, exerciseId, ...patch });
+    return rows;
+  }));
+}
+
+function forgetProgressRow(slug: string | undefined, shellId: string, exerciseId: string | undefined) {
+  if (!slug) return;
+  const p = progressRowsBySlug.get(slug);
+  if (!p) return;
+  progressRowsBySlug.set(slug, p.then((rows) =>
+    rows.filter((r) => !(r.shellId === shellId && r.exerciseId === exerciseId))));
+}
+
 // ─── useShellProgress ────────────────────────────────────────────────────────
 // Hook the shells call. Returns the current progress + a `save(partial)`
 // merge-update + a `reset` callback. Identical signature to the v1
@@ -228,17 +299,7 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
 
     (async () => {
       try {
-        const row = await queryConvex<{
-          progress?: number;
-          completed?: boolean;
-          hintsUsed?: number;
-          lastState?: ShellState;
-          meta?: Record<string, unknown>;
-        } | null>('practice:getProgress', {
-          studentSlug: slug,
-          shellId,
-          exerciseId,
-        });
+        const row = await loadProgressRow(slug, shellId, exerciseId);
         if (cancelled) return;
         if (row) {
           setState({
@@ -275,6 +336,7 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
       // Fire-and-forget backend write. We send the *delta* fields so the
       // mutation can patch atomically rather than over-write neighbouring
       // fields with stale values.
+      rememberProgressRow(slug, shellId, nextExerciseId ?? exerciseId, progressFields);
       void mutateConvex('practice:saveProgress', {
         studentSlug: slug,
         shellId,
@@ -291,6 +353,7 @@ export function useShellProgress(shellId: ShellId, exerciseId?: string): UseShel
     setState(DEFAULT_PROGRESS);
     reportArcadeProgress?.(shellId, DEFAULT_PROGRESS);
     if (!persist || studentView || isStudentView()) return;
+    forgetProgressRow(slug, shellId, exerciseId);
     void mutateConvex('practice:reset', {
       studentSlug: slug,
       shellId,

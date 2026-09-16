@@ -170,6 +170,49 @@ export async function fetchFreshSentenceFromCache(
   };
 }
 
+/**
+ * fetchFreshSentencesFromCache — the batched form of the above. One
+ * /api/query for every miss instead of one per keyword: a 57-word vocab set
+ * used to fire 57 requests at once and nginx's per-IP limit on /api/query
+ * 503'd most of them (2026-09-16). Returns a Map keyed by memKey(...).
+ */
+export async function fetchFreshSentencesFromCache(
+  items: ReadonlyArray<{ keyword: string; cefr?: string; topic?: string }>,
+): Promise<Map<string, FreshnessCacheHit>> {
+  const out = new Map<string, FreshnessCacheHit>();
+  const misses: Array<{ keyword: string; cefr?: string; topic?: string; key: string }> = [];
+  for (const it of items) {
+    const key = memKey(it.keyword, it.cefr, it.topic);
+    if (out.has(key)) continue;
+    const cached = memCache.get(key);
+    if (cached && cached.length > 0) {
+      out.set(key, {
+        sentences: cached,
+        hot: cached[0]?.generatedAt > Date.now() - 30 * 24 * 60 * 60 * 1000,
+        key: { keyword: it.keyword.toLowerCase(), cefr: (it.cefr ?? '*').toUpperCase(), topic: (it.topic ?? '*').toLowerCase() },
+      });
+    } else {
+      misses.push({ ...it, key });
+    }
+  }
+  const CHUNK = 100;   // getMany caps at 200; keep each request small
+  for (let i = 0; i < misses.length; i += CHUNK) {
+    const chunk = misses.slice(i, i + CHUNK);
+    const results = await queryConvex<FreshnessCacheHit[]>('sentenceFreshness:getMany', {
+      items: chunk.map(({ keyword, cefr, topic }) => ({ keyword, cefr, topic })),
+    });
+    chunk.forEach((m, idx) => {
+      const r = results?.[idx];
+      if (r?.sentences && r.sentences.length > 0) memCache.set(m.key, r.sentences);
+      out.set(m.key, r ?? {
+        sentences: [], hot: false,
+        key: { keyword: m.keyword.toLowerCase(), cefr: (m.cefr ?? '*').toUpperCase(), topic: (m.topic ?? '*').toLowerCase() },
+      });
+    });
+  }
+  return out;
+}
+
 // ─── Generation (with persistence) ───────────────────────────────────
 
 /**
@@ -385,17 +428,21 @@ export async function refreshSentencesForVocab(
     expoMap.set(id.toLowerCase(), (expoMap.get(id.toLowerCase()) ?? 0) + e.count);
   }
 
+  // Always at least PEEK at the cache so even non-stale keywords get a
+  // fresh sentence if Phase 1.1 has already populated one — one batched
+  // Convex query for the whole set, cached in memory after the first call.
+  const hits = await fetchFreshSentencesFromCache(
+    vocab.filter((v) => (v.word ?? '').trim())
+         .map((v) => ({ keyword: v.word.trim(), cefr, topic: v.topic })),
+  );
   await Promise.all(
     vocab.map(async (v) => {
       const word = (v.word ?? '').trim();
       if (!word) return;
       const exposures = expoMap.get(word.toLowerCase()) ?? 0;
       const isStale = exposures >= 2;
-      // Always at least PEEK at the cache so even non-stale keywords get
-      // a fresh sentence if Phase 1.1 has already populated one (cheap
-      // — single Convex query, cached in memory after first call).
-      const hit = await fetchFreshSentenceFromCache(word, cefr, v.topic);
-      if (hit.sentences.length > 0) {
+      const hit = hits.get(memKey(word, cefr, v.topic));
+      if (hit && hit.sentences.length > 0) {
         // Use the freshest cached entry whose text differs from the
         // current static example (so we don't no-op-replace).
         const candidate = hit.sentences.find(

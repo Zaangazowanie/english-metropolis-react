@@ -30,7 +30,7 @@
 // topic), not by student. Per-student exposure of these generated
 // sentences is tracked separately in practiceExposure.
 
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 
@@ -58,13 +58,12 @@ function normKey(keyword: string, cefr: string | undefined, topic: string | unde
 // get — read the cache. Always returns a result; the `hot` flag tells
 // the frontend whether to background-refresh.
 // ─────────────────────────────────────────────────────────────
-export const get = query({
-  args: {
-    keyword: v.string(),
-    cefr: v.optional(v.string()),
-    topic: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
+type LookupArgs = { keyword: string; cefr?: string; topic?: string };
+
+// One lookup, shared by `get` (single) and `getMany` (batched — the practice
+// page asks for every vocab word at once, and one request per word tripped
+// nginx's per-IP limit on /api/query; see 2026-09-16).
+async function lookupOne(ctx: QueryCtx, args: LookupArgs) {
     const k = normKey(args.keyword, args.cefr, args.topic);
     if (!k.keyword) return { sentences: [], hot: false, key: k };
 
@@ -117,6 +116,30 @@ export const get = query({
     }
 
     return { sentences: [], hot: false, key: k };
+}
+
+export const get = query({
+  args: {
+    keyword: v.string(),
+    cefr: v.optional(v.string()),
+    topic: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => lookupOne(ctx, args),
+});
+
+// Same result shape as `get`, one entry per input item in input order.
+export const getMany = query({
+  args: {
+    items: v.array(v.object({
+      keyword: v.string(),
+      cefr: v.optional(v.string()),
+      topic: v.optional(v.string()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const out = [];
+    for (const item of args.items.slice(0, 200)) out.push(await lookupOne(ctx, item));
+    return out;
   },
 });
 
