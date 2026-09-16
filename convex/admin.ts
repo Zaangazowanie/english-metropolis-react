@@ -443,3 +443,120 @@ export const deleteTestStudents = mutation({
     return { dryRun: !!args.dryRun, report };
   },
 });
+
+// ─────────────────────────────────────────────────────────────
+// cloneStudentForTesting — CLI only (2026-09-16). Creates a NEW student row
+// that carries a copy of another student's content — lessons, keywords,
+// analyses, practice progress, curriculum — so a tester can log in with their
+// own e-mail and see a real account, while the source student is never touched.
+// Money rows (packages, orders, payments), bookings, sessions and tokens are
+// deliberately not copied: they are not "content" and the Money tabs list every
+// row regardless of status. Tear-down is archiveStudent → deleteTestStudents
+// (allowLessons), which covers exactly the tables written here.
+// Usage: npx convex run --prod admin:cloneStudentForTesting \
+//   '{"sourceSlug":"natalia-pvt","name":"Rachel Phlange","slug":"rachel-phlange",
+//     "email":"rachelphlange@gmail.com","dryRun":true}'
+// Password is set afterwards with studentAuth:seedStudentPassword.
+// ─────────────────────────────────────────────────────────────
+export const cloneStudentForTesting = internalMutation({
+  args: {
+    sourceSlug: v.string(),
+    name: v.string(),
+    slug: v.string(),
+    email: v.string(),
+    notes: v.optional(v.string()),
+    dryRun: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const email = args.email.trim().toLowerCase();
+    const source = await ctx.db
+      .query("students")
+      .withIndex("by_slug", (q) => q.eq("slug", args.sourceSlug))
+      .unique();
+    if (!source) throw new Error(`Source student "${args.sourceSlug}" not found`);
+    if (await ctx.db.query("students").withIndex("by_slug", (q) => q.eq("slug", args.slug)).first()) {
+      throw new Error(`Slug "${args.slug}" is already taken`);
+    }
+    if (await ctx.db.query("students").withIndex("by_email", (q) => q.eq("email", email)).first()) {
+      throw new Error(`Email "${email}" already belongs to a student`);
+    }
+    if (await ctx.db.query("students").withIndex("by_googleEmail", (q) => q.eq("googleEmail", email)).first()) {
+      throw new Error(`Email "${email}" is already a Google sign-in address`);
+    }
+
+    const byStudent = (table: any) =>
+      ctx.db.query(table).withIndex("by_student", (q: any) => q.eq("studentId", source._id)).collect();
+    const lessons = await byStudent("lessons");
+    const keywords = await byStudent("keywords");
+    const analyses = (await byStudent("transcriptAnalyses"))
+      .sort((a: any, b: any) => a.createdAt - b.createdAt);   // oldest first so the chain re-links
+    const practice = await byStudent("practiceProgress");
+    const curriculum = await byStudent("curriculumItems");
+    // Not copied — reported so nobody assumes they were.
+    const skipped: Record<string, number> = {};
+    for (const table of ["quizResults", "lessonPackages", "lessonOrders", "lessonBookings",
+                         "groupMemberships", "certificates", "analysisEntitlements"] as const) {
+      skipped[table] = (await byStudent(table)).length;
+    }
+    const counts = {
+      lessons: lessons.length, keywords: keywords.length, transcriptAnalyses: analyses.length,
+      practiceProgress: practice.length, curriculumItems: curriculum.length,
+    };
+    if (args.dryRun) return { dryRun: true, source: { _id: source._id, name: source.name }, counts, skipped };
+
+    const strip = ({ _id, _creationTime, ...rest }: any) => rest;
+    const now = Date.now();
+    // Credentials, contact details and consents belong to the source student
+    // and are not carried across; the tester's own are set on the new row.
+    const { passwordHash, phone, notes, intake, bajlaConsent, lessonAnalysis, dateOfBirth,
+            ...profile } = strip(source);
+    const studentId = await ctx.db.insert("students", {
+      ...profile,
+      name: args.name,
+      slug: args.slug,
+      email,
+      googleEmail: email,
+      notes: args.notes ?? `TEST ACCOUNT — content cloned from ${source.name} (${source.slug}) on ${new Date(now).toISOString().slice(0, 10)}`,
+      tags: [...(source.tags ?? []), "test-account"],
+      emailVerifiedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const lessonMap = new Map<string, any>();
+    for (const l of lessons) {
+      lessonMap.set(String(l._id), await ctx.db.insert("lessons", { ...strip(l), studentId }));
+    }
+    for (const k of keywords) {
+      const lessonId = lessonMap.get(String(k.lessonId));
+      if (!lessonId) throw new Error(`keyword ${k._id} points at a lesson that is not the source student's`);
+      await ctx.db.insert("keywords", { ...strip(k), studentId, lessonId });
+    }
+    const analysisMap = new Map<string, any>();
+    for (const a of analyses) {
+      const lessonId = lessonMap.get(String(a.lessonId));
+      if (!lessonId) throw new Error(`analysis ${a._id} points at a lesson that is not the source student's`);
+      const previousAnalysisId = a.previousAnalysisId
+        ? analysisMap.get(String(a.previousAnalysisId)) : undefined;
+      analysisMap.set(String(a._id), await ctx.db.insert("transcriptAnalyses", {
+        ...strip(a), studentId, lessonId, previousAnalysisId,
+      }));
+    }
+    for (const p of practice) {
+      await ctx.db.insert("practiceProgress", { ...strip(p), studentId, studentSlug: args.slug });
+    }
+    for (const c of curriculum) {
+      const lessonId = c.lessonId ? lessonMap.get(String(c.lessonId)) : undefined;
+      await ctx.db.insert("curriculumItems", { ...strip(c), studentId, lessonId });
+    }
+    await ctx.db.insert("auditLog", {
+      organizationId: source.organizationId,
+      action: "student.cloned_for_testing",
+      targetType: "student",
+      targetId: String(studentId),
+      details: JSON.stringify({ sourceSlug: source.slug, slug: args.slug, email, ...counts }),
+      timestamp: now,
+    });
+    return { dryRun: false, studentId, slug: args.slug, email, counts, skipped };
+  },
+});
